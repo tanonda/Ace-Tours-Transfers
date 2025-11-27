@@ -36,30 +36,28 @@ export function Layout({ children }: { children: React.ReactNode }) {
         }`}
       >
         <div className="container mx-auto px-4 flex items-center justify-between">
-          <Link href="/">
-            <a className="flex items-center gap-2">
-              <img src={logo} alt="Ace Tours Logo" className="h-12 w-auto rounded-full" />
-              <span className={`font-serif font-bold text-xl tracking-tight ${isScrolled ? "text-foreground" : "text-foreground md:text-white"}`}>
-                Ace Tours & Transfers
-              </span>
-            </a>
+          <Link href="/" className="flex items-center gap-2">
+            <img src={logo} alt="Ace Tours Logo" className="h-12 w-auto rounded-full" />
+            <span className={`font-serif font-bold text-xl tracking-tight ${isScrolled ? "text-foreground" : "text-foreground md:text-white"}`}>
+              Ace Tours & Transfers
+            </span>
           </Link>
 
           {/* Desktop Nav */}
           <nav className="hidden md:flex items-center gap-8">
             {navLinks.map((link) => (
-              <Link key={link.href} href={link.href}>
-                <a
-                  className={`text-sm font-medium transition-colors hover:text-primary ${
-                    location === link.href
-                      ? "text-primary"
-                      : isScrolled
-                      ? "text-foreground"
-                      : "text-white/90 hover:text-white"
-                  }`}
-                >
-                  {link.label}
-                </a>
+              <Link 
+                key={link.href} 
+                href={link.href}
+                className={`text-sm font-medium transition-colors hover:text-primary ${
+                  location === link.href
+                    ? "text-primary"
+                    : isScrolled
+                    ? "text-foreground"
+                    : "text-white/90 hover:text-white"
+                }`}
+              >
+                {link.label}
               </Link>
             ))}
             <BookingModal trigger={<Button size="lg" className="font-semibold shadow-lg">Book Now</Button>} />
@@ -75,10 +73,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <SheetContent>
               <div className="flex flex-col gap-6 mt-10">
                 {navLinks.map((link) => (
-                  <Link key={link.href} href={link.href}>
-                    <a className="text-lg font-medium hover:text-primary">
-                      {link.label}
-                    </a>
+                  <Link 
+                    key={link.href} 
+                    href={link.href}
+                    className="text-lg font-medium hover:text-primary"
+                  >
+                    {link.label}
                   </Link>
                 ))}
                 <BookingModal trigger={<Button size="lg" className="w-full">Book Now</Button>} />
@@ -120,8 +120,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <ul className="space-y-3">
                 {navLinks.map((link) => (
                   <li key={link.href}>
-                    <Link href={link.href}>
-                      <a className="text-white/70 hover:text-white transition-colors">{link.label}</a>
+                    <Link 
+                      href={link.href}
+                      className="text-white/70 hover:text-white transition-colors"
+                    >
+                      {link.label}
                     </Link>
                   </li>
                 ))}

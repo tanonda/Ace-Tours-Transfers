@@ -134,7 +134,7 @@ export default function Home() {
         <div className="container mx-auto px-4 relative text-center text-white">
           <h2 className="text-4xl md:text-6xl font-bold mb-8 font-serif">Ready for your next adventure?</h2>
           <p className="text-xl md:text-2xl mb-10 max-w-2xl mx-auto opacity-90">Let us handle the details while you make the memories.</p>
-          <BookingModal trigger={<Button size="xl" variant="secondary" className="text-primary font-bold px-10 py-8 text-xl shadow-2xl">Start Planning Now</Button>} />
+          <BookingModal trigger={<Button size="lg" variant="secondary" className="text-primary font-bold px-10 py-8 text-xl shadow-2xl">Start Planning Now</Button>} />
         </div>
       </section>
     </Layout>

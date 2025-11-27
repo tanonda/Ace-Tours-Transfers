@@ -36,7 +36,3 @@ waitForPort = 5000
 
 [agent]
 mockupState = "MOCKUP"
-
-[[ports]]
-localPort = 39655
-externalPort = 80
