@@ -1,7 +1,7 @@
 
 import { Link, useLocation } from "wouter";
 import { useState, useEffect } from "react";
-import { Menu, Phone, Mail, Instagram, Facebook } from "lucide-react";
+import { Menu, X, Phone, Mail, Instagram, Facebook } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { BookingModal } from "@/components/booking-modal";
@@ -152,13 +152,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </div>
           </div>
           
-          <div className="border-t border-white/10 pt-8 text-center text-white/40 text-sm flex flex-col md:flex-row justify-between items-center gap-4">
+          <div className="border-t border-white/10 pt-8 text-center text-white/40 text-sm">
             <p>&copy; {new Date().getFullYear()} Ace Tours & Transfers Vanuatu. All rights reserved.</p>
-            <div className="flex items-center gap-4 opacity-50 grayscale hover:grayscale-0 transition-all">
-              <div className="text-xs font-bold border border-white/30 px-2 py-1 rounded">BRED Bank</div>
-              <div className="text-xs font-bold border border-white/30 px-2 py-1 rounded">NBV</div>
-              <div className="text-xs font-bold border border-white/30 px-2 py-1 rounded">ANZ</div>
-            </div>
           </div>
         </div>
       </footer>
