@@ -10,14 +10,6 @@ deploymentTarget = "static"
 build = ["npm", "run", "build"]
 publicDir = "dist/public"
 
-[[ports]]
-localPort = 5000
-externalPort = 80
-
-[[ports]]
-localPort = 37453
-externalPort = 3000
-
 [env]
 PORT = "5000"
 
@@ -44,3 +36,7 @@ waitForPort = 5000
 
 [agent]
 mockupState = "MOCKUP"
+
+[[ports]]
+localPort = 39655
+externalPort = 80

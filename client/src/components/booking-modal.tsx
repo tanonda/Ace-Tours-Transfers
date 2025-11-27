@@ -15,6 +15,7 @@ import { CalendarIcon, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { tours, transfers } from "@/lib/data";
+import { useLocation } from "wouter";
 
 const formSchema = z.object({
   name: z.string().min(2, "Name is required"),
@@ -29,6 +30,7 @@ export function BookingModal({ trigger, preselectedService }: { trigger: React.R
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [, setLocation] = useLocation();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -44,16 +46,15 @@ export function BookingModal({ trigger, preselectedService }: { trigger: React.R
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
     // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
     
     console.log(values);
-    toast({
-      title: "Booking Request Sent!",
-      description: "We'll get back to you shortly to confirm your reservation.",
-    });
     setIsLoading(false);
     setOpen(false);
     form.reset();
+    
+    // Redirect to ANZ eGate payment page
+    setLocation("/payment");
   }
 
   return (
