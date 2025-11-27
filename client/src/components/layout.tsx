@@ -1,15 +1,53 @@
-
 import { Link, useLocation } from "wouter";
-import { useState, useEffect } from "react";
-import { Menu, X, Phone, Mail, Instagram, Facebook } from "lucide-react";
+import { useState, useEffect, forwardRef } from "react";
+import { Menu, Phone, Mail, Instagram, Facebook } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { BookingModal } from "@/components/booking-modal";
 import logo from "@assets/thumbnail_1755110010542_1764279489018.jpg";
+import {
+  NavigationMenu,
+  NavigationMenuContent,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+  NavigationMenuTrigger,
+} from "@/components/ui/navigation-menu";
+import { cn } from "@/lib/utils";
+import { tours, transfers } from "@/lib/data";
+
+const ListItem = forwardRef<
+  React.ElementRef<"a">,
+  React.ComponentPropsWithoutRef<"a"> & { href: string }
+>(({ className, title, children, href, ...props }, ref) => {
+  return (
+    <li>
+      <NavigationMenuLink asChild>
+        <Link href={href}>
+          <a
+            ref={ref}
+            className={cn(
+              "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground",
+              className
+            )}
+            {...props}
+          >
+            <div className="text-sm font-medium leading-none">{title}</div>
+            <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
+              {children}
+            </p>
+          </a>
+        </Link>
+      </NavigationMenuLink>
+    </li>
+  )
+})
+ListItem.displayName = "ListItem"
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [location] = useLocation();
+  const isHome = location === "/";
 
   useEffect(() => {
     const handleScroll = () => {
@@ -19,10 +57,17 @@ export function Layout({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  const isTransparent = isHome && !isScrolled;
+  
+  // Text color logic:
+  // If transparent (Home top): White text
+  // If scrolled OR not Home: Dark text (foreground)
+  const navTextColor = isTransparent ? "text-white hover:text-white/80" : "text-foreground hover:text-primary";
+  const logoTextColor = isTransparent ? "text-white" : "text-foreground";
+  const mobileButtonColor = isTransparent ? "text-white" : "text-foreground";
+
   const navLinks = [
     { href: "/", label: "Home" },
-    { href: "/tours", label: "Tours" },
-    { href: "/transfers", label: "Transfers" },
     { href: "/about", label: "About" },
     { href: "/contact", label: "Contact" },
   ];
@@ -38,49 +83,135 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <div className="container mx-auto px-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
             <img src={logo} alt="Ace Tours Logo" className="h-12 w-auto rounded-full" />
-            <span className={`font-serif font-bold text-xl tracking-tight ${isScrolled ? "text-foreground" : "text-foreground md:text-white"}`}>
+            <span className={`font-serif font-bold text-xl tracking-tight transition-colors ${logoTextColor}`}>
               Ace Tours & Transfers
             </span>
           </Link>
 
           {/* Desktop Nav */}
-          <nav className="hidden md:flex items-center gap-8">
-            {navLinks.map((link) => (
-              <Link 
-                key={link.href} 
-                href={link.href}
-                className={`text-sm font-medium transition-colors hover:text-primary ${
-                  location === link.href
-                    ? "text-primary"
-                    : isScrolled
-                    ? "text-foreground"
-                    : "text-white/90 hover:text-white"
-                }`}
-              >
-                {link.label}
-              </Link>
-            ))}
-            <BookingModal trigger={<Button size="lg" className="font-semibold shadow-lg">Book Now</Button>} />
-          </nav>
+          <div className="hidden md:flex items-center gap-4">
+            <NavigationMenu>
+              <NavigationMenuList>
+                <NavigationMenuItem>
+                  <Link href="/">
+                    <a className={cn(
+                      "group inline-flex h-9 w-max items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors focus:outline-none disabled:pointer-events-none disabled:opacity-50",
+                      navTextColor
+                    )}>
+                      Home
+                    </a>
+                  </Link>
+                </NavigationMenuItem>
+
+                <NavigationMenuItem>
+                  <NavigationMenuTrigger className={cn("bg-transparent hover:bg-transparent focus:bg-transparent data-[state=open]:bg-transparent", navTextColor)}>
+                    Tours
+                  </NavigationMenuTrigger>
+                  <NavigationMenuContent>
+                    <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
+                      {tours.map((tour) => (
+                        <ListItem
+                          key={tour.id}
+                          title={tour.title}
+                          href="/tours"
+                        >
+                          {tour.description[0]}
+                        </ListItem>
+                      ))}
+                      <ListItem href="/tours" title="View All Tours" className="bg-muted/50">
+                        See our complete range of tour packages
+                      </ListItem>
+                    </ul>
+                  </NavigationMenuContent>
+                </NavigationMenuItem>
+
+                <NavigationMenuItem>
+                  <NavigationMenuTrigger className={cn("bg-transparent hover:bg-transparent focus:bg-transparent data-[state=open]:bg-transparent", navTextColor)}>
+                    Transfers
+                  </NavigationMenuTrigger>
+                  <NavigationMenuContent>
+                    <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
+                      {transfers.map((transfer) => (
+                        <ListItem
+                          key={transfer.id}
+                          title={transfer.title}
+                          href="/transfers"
+                        >
+                          {transfer.description}
+                        </ListItem>
+                      ))}
+                      <ListItem href="/transfers" title="View All Transfers" className="bg-muted/50">
+                        See our complete range of transfer options
+                      </ListItem>
+                    </ul>
+                  </NavigationMenuContent>
+                </NavigationMenuItem>
+
+                <NavigationMenuItem>
+                  <Link href="/about">
+                    <a className={cn(
+                      "group inline-flex h-9 w-max items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors focus:outline-none disabled:pointer-events-none disabled:opacity-50",
+                      navTextColor
+                    )}>
+                      About
+                    </a>
+                  </Link>
+                </NavigationMenuItem>
+
+                <NavigationMenuItem>
+                  <Link href="/contact">
+                    <a className={cn(
+                      "group inline-flex h-9 w-max items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors focus:outline-none disabled:pointer-events-none disabled:opacity-50",
+                      navTextColor
+                    )}>
+                      Contact
+                    </a>
+                  </Link>
+                </NavigationMenuItem>
+              </NavigationMenuList>
+            </NavigationMenu>
+            
+            <div className="ml-4">
+              <BookingModal trigger={<Button size="lg" className="font-semibold shadow-lg">Book Now</Button>} />
+            </div>
+          </div>
 
           {/* Mobile Nav */}
           <Sheet>
             <SheetTrigger asChild className="md:hidden">
-              <Button variant="ghost" size="icon" className={isScrolled ? "text-foreground" : "text-white"}>
+              <Button variant="ghost" size="icon" className={mobileButtonColor}>
                 <Menu className="h-6 w-6" />
               </Button>
             </SheetTrigger>
             <SheetContent>
               <div className="flex flex-col gap-6 mt-10">
-                {navLinks.map((link) => (
-                  <Link 
-                    key={link.href} 
-                    href={link.href}
-                    className="text-lg font-medium hover:text-primary"
-                  >
-                    {link.label}
-                  </Link>
-                ))}
+                <Link href="/" className="text-lg font-medium hover:text-primary">Home</Link>
+                
+                <div className="space-y-3">
+                  <Link href="/tours" className="text-lg font-medium hover:text-primary block">Tours</Link>
+                  <div className="pl-4 space-y-2 border-l-2 border-muted">
+                    {tours.map(tour => (
+                      <Link key={tour.id} href="/tours" className="block text-sm text-muted-foreground hover:text-primary">
+                        {tour.title}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <Link href="/transfers" className="text-lg font-medium hover:text-primary block">Transfers</Link>
+                  <div className="pl-4 space-y-2 border-l-2 border-muted">
+                    {transfers.map(transfer => (
+                      <Link key={transfer.id} href="/transfers" className="block text-sm text-muted-foreground hover:text-primary">
+                        {transfer.title}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+
+                <Link href="/about" className="text-lg font-medium hover:text-primary">About</Link>
+                <Link href="/contact" className="text-lg font-medium hover:text-primary">Contact</Link>
+                
                 <BookingModal trigger={<Button size="lg" className="w-full">Book Now</Button>} />
               </div>
             </SheetContent>
@@ -118,16 +249,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <div>
               <h3 className="font-serif text-lg font-semibold mb-6 text-primary">Quick Links</h3>
               <ul className="space-y-3">
-                {navLinks.map((link) => (
-                  <li key={link.href}>
-                    <Link 
-                      href={link.href}
-                      className="text-white/70 hover:text-white transition-colors"
-                    >
-                      {link.label}
-                    </Link>
-                  </li>
-                ))}
+                <li><Link href="/" className="text-white/70 hover:text-white transition-colors">Home</Link></li>
+                <li><Link href="/tours" className="text-white/70 hover:text-white transition-colors">Tours</Link></li>
+                <li><Link href="/transfers" className="text-white/70 hover:text-white transition-colors">Transfers</Link></li>
+                <li><Link href="/about" className="text-white/70 hover:text-white transition-colors">About</Link></li>
+                <li><Link href="/contact" className="text-white/70 hover:text-white transition-colors">Contact</Link></li>
               </ul>
             </div>
 
