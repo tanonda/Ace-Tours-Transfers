@@ -172,20 +172,29 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     </a>
                   </Link>
                 </NavigationMenuItem>
+
+                <NavigationMenuItem>
+                  <NavigationMenuTrigger className={cn("bg-transparent hover:bg-transparent focus:bg-transparent data-[state=open]:bg-transparent", navTextColor)}>
+                    My Bookings
+                  </NavigationMenuTrigger>
+                  <NavigationMenuContent>
+                    <ul className="grid w-[200px] gap-2 p-4">
+                      <ListItem href="/reservations" title="Edit your trip">
+                        Manage existing bookings
+                      </ListItem>
+                      <ListItem href="/reservations" title="Cancel your trip">
+                        Cancel a reservation
+                      </ListItem>
+                      <ListItem href="/reservations" title="Book ride">
+                        Start a new booking
+                      </ListItem>
+                    </ul>
+                  </NavigationMenuContent>
+                </NavigationMenuItem>
               </NavigationMenuList>
             </NavigationMenu>
             
             <div className="ml-4 flex items-center gap-4">
-              <Link href="/cart">
-                <Button variant="ghost" size="icon" className={cn("relative", navTextColor)}>
-                  <ShoppingCart className="h-5 w-5" />
-                  {itemCount > 0 && (
-                    <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs">
-                      {itemCount}
-                    </Badge>
-                  )}
-                </Button>
-              </Link>
               <BookingModal trigger={<Button size="lg" className="font-semibold shadow-lg">Book Now</Button>} />
             </div>
           </div>
@@ -225,6 +234,15 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
                 <Link href="/about" className="text-lg font-medium hover:text-primary">About</Link>
                 <Link href="/contact" className="text-lg font-medium hover:text-primary">Contact</Link>
+
+                <div className="space-y-3">
+                  <span className="text-lg font-medium text-foreground block">My Bookings</span>
+                  <div className="pl-4 space-y-2 border-l-2 border-muted">
+                    <Link href="/reservations" className="block text-sm text-muted-foreground hover:text-primary">Edit your trip</Link>
+                    <Link href="/reservations" className="block text-sm text-muted-foreground hover:text-primary">Cancel your trip</Link>
+                    <Link href="/reservations" className="block text-sm text-muted-foreground hover:text-primary">Book ride</Link>
+                  </div>
+                </div>
                 
                 <BookingModal trigger={<Button size="lg" className="w-full">Book Now</Button>} />
               </div>
