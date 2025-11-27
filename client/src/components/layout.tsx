@@ -94,7 +94,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
           {/* Desktop Nav */}
           <div className="hidden md:flex items-center gap-4">
-            <NavigationMenu>
+            <NavigationMenu className="relative z-50">
               <NavigationMenuList>
                 <NavigationMenuItem>
                   <Link href="/">
