@@ -19,9 +19,7 @@ export default function Reservations() {
         <div className="container mx-auto px-4 py-3">
           <div className="flex flex-wrap items-center justify-between gap-4">
              <div className="flex items-center gap-2">
-               <Button variant="outline" size="sm" className="bg-white/10 border-white/20 text-white hover:bg-white/20 hover:text-white" onClick={() => setLocation("/")}>
-                 GO
-               </Button>
+               <Button variant="outline" size="sm" className="bg-white/10 border-white/20 text-white hover:bg-white/20 hover:text-white" onClick={() => setLocation("/")}>Home</Button>
                
                <div className="flex items-center bg-white/10 rounded-md p-1">
                   <Button variant="ghost" size="sm" className="text-white hover:bg-white/20 hover:text-white bg-white/20 gap-2 font-medium">
@@ -56,7 +54,6 @@ export default function Reservations() {
           </div>
         </div>
       </header>
-
       <main className="flex-grow container mx-auto px-4 py-12">
         <div className="text-center mb-12">
           <h1 className="text-3xl md:text-4xl font-serif font-bold text-[#004165] mb-2">Manage Reservations</h1>
@@ -112,7 +109,6 @@ export default function Reservations() {
           </CardContent>
         </Card>
       </main>
-      
       {/* Simple Footer for this page */}
       <footer className="bg-[#291B12] text-white py-6 text-center text-sm opacity-90">
          <p>&copy; {new Date().getFullYear()} Ace Tours & Transfers Vanuatu. All rights reserved.</p>
