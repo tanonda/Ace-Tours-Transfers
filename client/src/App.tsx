@@ -9,6 +9,10 @@ import Home from "@/pages/home";
 import Tours from "@/pages/tours";
 import Transfers from "@/pages/transfers";
 import Payment from "@/pages/payment";
+import About from "@/pages/about";
+import Contact from "@/pages/contact";
+import Cart from "@/pages/cart";
+import { CartProvider } from "@/lib/cart-context";
 
 function Router() {
   return (
@@ -16,6 +20,9 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/tours" component={Tours} />
       <Route path="/transfers" component={Transfers} />
+      <Route path="/about" component={About} />
+      <Route path="/contact" component={Contact} />
+      <Route path="/cart" component={Cart} />
       <Route path="/payment" component={Payment} />
       <Route component={NotFound} />
     </Switch>
@@ -26,8 +33,10 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Toaster />
-        <Router />
+        <CartProvider>
+          <Toaster />
+          <Router />
+        </CartProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );

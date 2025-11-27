@@ -5,13 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { ShieldCheck, Lock, CreditCard, Loader2 } from "lucide-react";
+import { ShieldCheck, Lock, CreditCard, Loader2, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useCart } from "@/lib/cart-context";
 
 export default function Payment() {
   const [isLoading, setIsLoading] = useState(false);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { total, clearCart } = useCart();
 
   const handlePayment = (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,12 +26,18 @@ export default function Payment() {
         title: "Payment Successful",
         description: "Your booking has been confirmed via ANZ eGate.",
       });
+      clearCart();
       setLocation("/");
     }, 2000);
   };
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
+      <div className="w-full max-w-md mb-4">
+        <Button variant="ghost" className="text-muted-foreground hover:text-foreground" onClick={() => setLocation("/cart")}>
+          <ArrowLeft className="mr-2 h-4 w-4" /> Back to Cart
+        </Button>
+      </div>
       <div className="w-full max-w-md">
         {/* ANZ Branding Header */}
         <div className="bg-[#004165] text-white p-4 rounded-t-lg flex items-center justify-between shadow-md">
@@ -63,7 +71,7 @@ export default function Payment() {
               <Separator className="my-2" />
               <div className="flex justify-between items-center">
                 <span className="font-semibold text-[#004165]">Total Amount</span>
-                <span className="font-bold text-lg text-[#004165]">15,000 VUV</span>
+                <span className="font-bold text-lg text-[#004165]">${total > 0 ? total.toLocaleString() : "15,000 VUV"}</span>
               </div>
             </div>
 

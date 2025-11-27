@@ -15,6 +15,9 @@ import {
 } from "@/components/ui/navigation-menu";
 import { cn } from "@/lib/utils";
 import { tours, transfers } from "@/lib/data";
+import { useCart } from "@/lib/cart-context";
+import { ShoppingCart } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 const ListItem = forwardRef<
   React.ElementRef<"a">,
@@ -47,6 +50,7 @@ ListItem.displayName = "ListItem"
 export function Layout({ children }: { children: React.ReactNode }) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [location] = useLocation();
+  const { itemCount } = useCart();
   const isHome = location === "/";
 
   useEffect(() => {
@@ -171,7 +175,17 @@ export function Layout({ children }: { children: React.ReactNode }) {
               </NavigationMenuList>
             </NavigationMenu>
             
-            <div className="ml-4">
+            <div className="ml-4 flex items-center gap-4">
+              <Link href="/cart">
+                <Button variant="ghost" size="icon" className={cn("relative", navTextColor)}>
+                  <ShoppingCart className="h-5 w-5" />
+                  {itemCount > 0 && (
+                    <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs">
+                      {itemCount}
+                    </Badge>
+                  )}
+                </Button>
+              </Link>
               <BookingModal trigger={<Button size="lg" className="font-semibold shadow-lg">Book Now</Button>} />
             </div>
           </div>

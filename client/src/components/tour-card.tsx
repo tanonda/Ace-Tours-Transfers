@@ -2,9 +2,11 @@
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Users, Check } from "lucide-react";
+import { Clock, Users, Check, Eye } from "lucide-react";
 import { BookingModal } from "@/components/booking-modal";
+import { ProductQuickView } from "@/components/product-quick-view";
 import { motion } from "framer-motion";
+import { useState } from "react";
 
 interface TourProps {
   id: string;
@@ -17,14 +19,20 @@ interface TourProps {
 }
 
 export function TourCard({ tour, index }: { tour: TourProps; index: number }) {
+  const [showQuickView, setShowQuickView] = useState(false);
+
   return (
+    <>
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: index * 0.1 }}
       viewport={{ once: true }}
     >
-      <Card className="h-full flex flex-col overflow-hidden border-none shadow-lg hover:shadow-xl transition-shadow duration-300 group">
+      <Card 
+        className="h-full flex flex-col overflow-hidden border-none shadow-lg hover:shadow-xl transition-shadow duration-300 group cursor-pointer"
+        onClick={() => setShowQuickView(true)}
+      >
         <div className="relative h-64 overflow-hidden">
           <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors z-10" />
           <img 
@@ -36,6 +44,11 @@ export function TourCard({ tour, index }: { tour: TourProps; index: number }) {
             <Badge className="bg-white/90 text-foreground hover:bg-white text-sm font-bold px-3 py-1 shadow-sm backdrop-blur-sm">
               {tour.price}
             </Badge>
+          </div>
+          <div className="absolute inset-0 flex items-center justify-center z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            <Button variant="secondary" size="sm" className="shadow-lg font-semibold">
+              <Eye className="mr-2 h-4 w-4" /> Quick View
+            </Button>
           </div>
         </div>
         
@@ -68,13 +81,26 @@ export function TourCard({ tour, index }: { tour: TourProps; index: number }) {
           </ul>
         </CardContent>
         
-        <CardFooter className="pt-4 border-t border-border/50 bg-muted/30">
-          <BookingModal 
-            preselectedService={tour.title}
-            trigger={<Button className="w-full font-semibold" size="lg">Book Now</Button>} 
-          />
+        <CardFooter className="pt-4 border-t border-border/50 bg-muted/30" onClick={(e) => e.stopPropagation()}>
+          <div className="w-full space-y-2">
+             <div className="flex justify-between items-center text-sm text-muted-foreground mb-2">
+               <span>Starting from</span>
+               <span className="font-bold text-foreground">{tour.price}</span>
+             </div>
+             <BookingModal 
+               preselectedService={tour.title}
+               trigger={<Button className="w-full font-semibold" size="lg">Book Now</Button>} 
+             />
+          </div>
         </CardFooter>
       </Card>
     </motion.div>
+    
+    <ProductQuickView 
+      isOpen={showQuickView} 
+      onClose={() => setShowQuickView(false)} 
+      product={tour} 
+    />
+    </>
   );
 }
