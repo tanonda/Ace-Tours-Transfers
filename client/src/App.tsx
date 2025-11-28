@@ -15,6 +15,15 @@ import Cart from "@/pages/cart";
 import Reservations from "@/pages/reservations";
 import Login from "@/pages/login";
 import Register from "@/pages/register";
+import AdminDashboard from "@/pages/admin/dashboard";
+import AdminBookings from "@/pages/admin/bookings";
+import AdminTours from "@/pages/admin/tours";
+import AdminCustomers from "@/pages/admin/customers";
+import AdminSettings from "@/pages/admin/settings";
+import CustomerDashboard from "@/pages/customer/dashboard";
+import CustomerBookings from "@/pages/customer/bookings";
+import CustomerSaved from "@/pages/customer/saved";
+import CustomerProfile from "@/pages/customer/profile";
 import { CartProvider } from "@/lib/cart-context";
 
 function Router() {
@@ -30,6 +39,20 @@ function Router() {
       <Route path="/reservations" component={Reservations} />
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
+      
+      {/* Admin Routes */}
+      <Route path="/admin/dashboard" component={AdminDashboard} />
+      <Route path="/admin/bookings" component={AdminBookings} />
+      <Route path="/admin/tours" component={AdminTours} />
+      <Route path="/admin/customers" component={AdminCustomers} />
+      <Route path="/admin/settings" component={AdminSettings} />
+
+      {/* Customer Routes */}
+      <Route path="/dashboard" component={CustomerDashboard} />
+      <Route path="/dashboard/bookings" component={CustomerBookings} />
+      <Route path="/dashboard/saved" component={CustomerSaved} />
+      <Route path="/dashboard/profile" component={CustomerProfile} />
+
       <Route component={NotFound} />
     </Switch>
   );
