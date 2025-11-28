@@ -106,7 +106,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     </a>
                   </Link>
                 </NavigationMenuItem>
+              </NavigationMenuList>
+            </NavigationMenu>
 
+            <NavigationMenu className="relative z-50">
+              <NavigationMenuList>
                 <NavigationMenuItem>
                   <NavigationMenuTrigger className={cn("bg-transparent hover:bg-transparent focus:bg-transparent data-[state=open]:bg-transparent", navTextColor)}>
                     Tours
@@ -128,7 +132,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     </ul>
                   </NavigationMenuContent>
                 </NavigationMenuItem>
+              </NavigationMenuList>
+            </NavigationMenu>
 
+            <NavigationMenu className="relative z-50">
+              <NavigationMenuList>
                 <NavigationMenuItem>
                   <NavigationMenuTrigger className={cn("bg-transparent hover:bg-transparent focus:bg-transparent data-[state=open]:bg-transparent", navTextColor)}>
                     Transfers
@@ -150,7 +158,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     </ul>
                   </NavigationMenuContent>
                 </NavigationMenuItem>
+              </NavigationMenuList>
+            </NavigationMenu>
 
+            <NavigationMenu className="relative z-50">
+              <NavigationMenuList>
                 <NavigationMenuItem>
                   <Link href="/about">
                     <a className={cn(
@@ -161,7 +173,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     </a>
                   </Link>
                 </NavigationMenuItem>
+              </NavigationMenuList>
+            </NavigationMenu>
 
+            <NavigationMenu className="relative z-50">
+              <NavigationMenuList>
                 <NavigationMenuItem>
                   <Link href="/contact">
                     <a className={cn(
@@ -172,7 +188,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     </a>
                   </Link>
                 </NavigationMenuItem>
+              </NavigationMenuList>
+            </NavigationMenu>
 
+            <NavigationMenu className="relative z-50">
+              <NavigationMenuList>
                 <NavigationMenuItem>
                   <NavigationMenuTrigger className={cn("bg-transparent hover:bg-transparent focus:bg-transparent data-[state=open]:bg-transparent", navTextColor)}>
                     My Bookings
