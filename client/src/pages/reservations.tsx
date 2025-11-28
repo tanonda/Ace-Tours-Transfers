@@ -110,7 +110,7 @@ export default function Reservations() {
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-2">
                  <Button variant="outline" size="sm" className="bg-white/10 border-white/20 text-white hover:bg-white/20 hover:text-white" onClick={() => setLocation("/")}>
-                   GO
+                   Home
                  </Button>
                  
                  <div className="flex items-center bg-white/10 rounded-md p-1">
