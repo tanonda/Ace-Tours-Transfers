@@ -7,8 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, Filter, MoreHorizontal, Eye } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { BookingDetailsDialog } from "@/components/admin/booking-details-dialog";
+import { EditBookingDialog } from "@/components/admin/edit-booking-dialog";
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 
-const bookings = [
+const initialBookings = [
   { id: "BK-7821", customer: "James Wilson", tour: "Efate Scenic Tour", date: "2024-06-15", guests: 2, amount: "$240", status: "confirmed" },
   { id: "BK-7822", customer: "Sarah Connor", tour: "Airport Transfer", date: "2024-06-16", guests: 4, amount: "$60", status: "pending" },
   { id: "BK-7823", customer: "Michael Chen", tour: "Roots & Routes", date: "2024-06-18", guests: 1, amount: "$100", status: "confirmed" },
@@ -16,10 +20,13 @@ const bookings = [
   { id: "BK-7825", customer: "David Miller", tour: "Efate Scenic Tour", date: "2024-06-22", guests: 3, amount: "$360", status: "cancelled" },
   { id: "BK-7826", customer: "Sophie Turner", tour: "Event Transfer", date: "2024-06-25", guests: 8, amount: "$250", status: "confirmed" },
 ];
-import { useToast } from "@/hooks/use-toast";
 
 export default function AdminBookings() {
   const { toast } = useToast();
+  const [bookings, setBookings] = useState(initialBookings);
+  const [selectedBooking, setSelectedBooking] = useState<typeof initialBookings[0] | null>(null);
+  const [isViewOpen, setIsViewOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
   
   const getStatusColor = (status: string) => {
     switch(status) {
@@ -29,6 +36,21 @@ export default function AdminBookings() {
       case "cancelled": return "bg-red-100 text-red-800 hover:bg-red-100";
       default: return "bg-gray-100 text-gray-800";
     }
+  };
+
+  const handleViewBooking = (booking: typeof initialBookings[0]) => {
+    setSelectedBooking(booking);
+    setIsViewOpen(true);
+  };
+
+  const handleEditBooking = (booking: typeof initialBookings[0]) => {
+    setSelectedBooking(booking);
+    setIsEditOpen(true);
+  };
+
+  const handleSaveBooking = (updatedBooking: any) => {
+    setBookings(prev => prev.map(b => b.id === updatedBooking.id ? updatedBooking : b));
+    toast({ title: "Booking Updated", description: `Booking ${updatedBooking.id} has been updated successfully.` });
   };
 
   return (
@@ -105,8 +127,8 @@ export default function AdminBookings() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => toast({ title: "View Details", description: `Viewing booking ${booking.id}` })}>View Details</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => toast({ title: "Edit Booking", description: `Editing booking ${booking.id}` })}>Edit Booking</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleViewBooking(booking)}>View Details</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleEditBooking(booking)}>Edit Booking</DropdownMenuItem>
                           <DropdownMenuItem className="text-red-600" onClick={() => toast({ title: "Cancel Booking", description: `Booking ${booking.id} has been cancelled`, variant: "destructive" })}>Cancel Booking</DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -117,6 +139,19 @@ export default function AdminBookings() {
             </Table>
           </CardContent>
         </Card>
+
+        <BookingDetailsDialog 
+          booking={selectedBooking} 
+          open={isViewOpen} 
+          onOpenChange={setIsViewOpen} 
+        />
+
+        <EditBookingDialog 
+          booking={selectedBooking} 
+          open={isEditOpen} 
+          onOpenChange={setIsEditOpen} 
+          onSave={handleSaveBooking}
+        />
       </div>
     </DashboardLayout>
   );
