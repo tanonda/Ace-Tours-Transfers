@@ -2,9 +2,9 @@ import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useCart } from "@/lib/cart-context";
-import { Car, PlusCircle, LogIn, UserPlus, Globe, ShoppingCart, Search, Eraser, ArrowLeft, CalendarIcon, Loader2 } from "lucide-react";
+import { Car, PlusCircle, LogIn, UserPlus, Globe, ShoppingCart, Search, Eraser, ArrowLeft, CalendarIcon, Loader2, ShoppingBag, Trash2, ArrowRight } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
@@ -18,6 +18,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { tours, transfers } from "@/lib/data";
+import { Separator } from "@/components/ui/separator";
 
 const bookingFormSchema = z.object({
   name: z.string().min(2, "Name is required"),
@@ -29,10 +30,10 @@ const bookingFormSchema = z.object({
 });
 
 export default function Reservations() {
-  const { itemCount } = useCart();
+  const { itemCount, items, removeFromCart, total, clearCart } = useCart();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState<"my-reservations" | "book-new">("my-reservations");
+  const [activeTab, setActiveTab] = useState<"my-reservations" | "book-new" | "cart">("my-reservations");
   
   // State for My Reservations search
   const [confirmationNumber, setConfirmationNumber] = useState("");
@@ -92,6 +93,10 @@ export default function Reservations() {
     });
   };
 
+  const handleCheckout = () => {
+    setLocation("/payment");
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-background font-sans text-foreground">
       <main className="flex-grow container mx-auto px-4 py-12">
@@ -146,11 +151,14 @@ export default function Reservations() {
                    <img src="https://flagcdn.com/w20/us.png" alt="US Flag" className="h-3 w-auto" /> English
                  </Button>
                  
-                 <Link href="/cart">
-                  <Button variant="ghost" size="sm" className="text-white hover:bg-white/20 hover:text-white gap-2 relative">
+                 <Button 
+                   variant={activeTab === "cart" ? "secondary" : "ghost"} 
+                   size="sm" 
+                   className={activeTab === "cart" ? "text-primary bg-white hover:bg-white/90 gap-2 relative" : "text-white hover:bg-white/20 hover:text-white gap-2 relative"}
+                   onClick={() => setActiveTab("cart")}
+                 >
                     <ShoppingCart className="h-4 w-4" /> Cart {itemCount}
-                  </Button>
-                 </Link>
+                 </Button>
                  
                  <div className="h-4 w-px bg-white/30 mx-2"></div>
 
@@ -164,7 +172,7 @@ export default function Reservations() {
           </div>
           
           <CardContent className="p-8">
-             {activeTab === "my-reservations" ? (
+             {activeTab === "my-reservations" && (
                <>
                  <h2 className="font-bold text-lg mb-6">
                    Enter your reservation confirmation. In order to verify your reservation, please select a verification type and enter the corresponding information.
@@ -222,7 +230,9 @@ export default function Reservations() {
                    </Button>
                  </div>
                </>
-             ) : (
+             )}
+             
+             {activeTab === "book-new" && (
                <div className="max-w-2xl mx-auto">
                   <h2 className="font-serif text-2xl text-center mb-6 font-bold text-[#004165]">Plan Your Adventure</h2>
                   <Form {...bookingForm}>
@@ -346,6 +356,115 @@ export default function Reservations() {
                     </form>
                   </Form>
                </div>
+             )}
+
+             {activeTab === "cart" && (
+               <>
+                 {items.length === 0 ? (
+                   <div className="flex flex-col items-center justify-center py-12">
+                      <div className="bg-muted/30 p-8 rounded-full mb-6">
+                        <ShoppingBag className="h-12 w-12 text-muted-foreground" />
+                      </div>
+                      <h1 className="text-3xl font-serif font-bold mb-4">Your cart is empty</h1>
+                      <p className="text-muted-foreground mb-8 text-center max-w-md">
+                        Looks like you haven't added any tours or transfers yet. Explore our packages to get started.
+                      </p>
+                      <div className="flex gap-4">
+                        <Link href="/tours">
+                          <Button size="lg">Browse Tours</Button>
+                        </Link>
+                        <Link href="/transfers">
+                          <Button variant="outline" size="lg">View Transfers</Button>
+                        </Link>
+                      </div>
+                   </div>
+                 ) : (
+                   <div className="flex flex-col lg:flex-row gap-8">
+                    <div className="lg:w-2/3">
+                      <div className="space-y-4">
+                        {items.map((item, index) => (
+                          <Card key={`${item.id}-${index}`} className="overflow-hidden border shadow-sm">
+                            <CardContent className="p-0">
+                              <div className="flex flex-col sm:flex-row">
+                                <div className="w-full sm:w-40 h-40 sm:h-auto relative">
+                                  <img 
+                                    src={item.image} 
+                                    alt={item.title} 
+                                    className="w-full h-full object-cover absolute inset-0" 
+                                  />
+                                </div>
+                                <div className="p-6 flex-grow flex flex-col justify-between">
+                                  <div className="flex justify-between items-start mb-2">
+                                    <div>
+                                      <h3 className="font-bold text-lg">{item.title}</h3>
+                                      <div className="text-sm text-muted-foreground mt-1 space-y-1">
+                                        {item.date && <p>Date: {format(new Date(item.date), "PPP")}</p>}
+                                        {item.guests && <p>Guests: {item.guests}</p>}
+                                      </div>
+                                    </div>
+                                    <p className="font-bold text-lg">${item.price}</p>
+                                  </div>
+                                  
+                                  <div className="flex justify-between items-end mt-4">
+                                    <div className="text-sm text-muted-foreground">
+                                      Quantity: {item.quantity}
+                                    </div>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm" 
+                                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                      onClick={() => removeFromCart(item.id)}
+                                    >
+                                      <Trash2 className="h-4 w-4 mr-2" />
+                                      Remove
+                                    </Button>
+                                  </div>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                      <div className="mt-6 text-right">
+                        <Button variant="outline" onClick={clearCart} size="sm" className="text-muted-foreground">
+                          Clear Cart
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="lg:w-1/3">
+                      <Card className="sticky top-24 shadow-lg border">
+                        <CardHeader>
+                          <CardTitle>Order Summary</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-4">
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Subtotal</span>
+                              <span>${total.toLocaleString()}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Taxes & Fees</span>
+                              <span>$0.00</span>
+                            </div>
+                            <Separator />
+                            <div className="flex justify-between font-bold text-lg">
+                              <span>Total</span>
+                              <span>${total.toLocaleString()}</span>
+                            </div>
+                          </div>
+                        </CardContent>
+                        <CardFooter>
+                          <Button className="w-full py-6 text-lg" size="lg" onClick={handleCheckout}>
+                            Proceed to Checkout
+                            <ArrowRight className="ml-2 h-4 w-4" />
+                          </Button>
+                        </CardFooter>
+                      </Card>
+                    </div>
+                   </div>
+                 )}
+               </>
              )}
           </CardContent>
         </Card>
