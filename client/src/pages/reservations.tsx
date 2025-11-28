@@ -60,11 +60,6 @@ export default function Reservations() {
                   <Button variant="ghost" size="sm" className="text-white hover:bg-white/20 hover:text-white bg-white/20 gap-2 font-medium">
                     <Car className="h-4 w-4" /> My reservations
                   </Button>
-                  <BookingModal trigger={
-                    <Button variant="ghost" size="sm" className="text-white hover:bg-white/20 hover:text-white gap-2">
-                      <PlusCircle className="h-4 w-4" /> Book a New Reservation
-                    </Button>
-                  } />
                </div>
              </div>
 
@@ -103,7 +98,12 @@ export default function Reservations() {
         </div>
 
         <Card className="max-w-5xl mx-auto border-none shadow-lg overflow-hidden">
-          <div className="bg-primary p-4 flex justify-end">
+          <div className="bg-primary p-4 flex justify-between items-center">
+            <BookingModal trigger={
+              <Button variant="ghost" className="text-white hover:bg-white/20 hover:text-white gap-2">
+                <PlusCircle className="h-4 w-4" /> Book a New Reservation
+              </Button>
+            } />
             <Link href="/tours">
               <Button className="bg-[#22c55e] hover:bg-[#16a34a] text-white font-semibold shadow-sm gap-2">
                 <ArrowLeft className="h-4 w-4" /> Continue booking
