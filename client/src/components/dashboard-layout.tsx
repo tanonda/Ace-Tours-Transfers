@@ -25,7 +25,7 @@ interface DashboardLayoutProps {
 
 export function DashboardLayout({ children, type }: DashboardLayoutProps) {
   const [location] = useLocation();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const adminLinks = [
     { href: "/admin/dashboard", label: "Overview", icon: LayoutDashboard },
@@ -52,6 +52,8 @@ export function DashboardLayout({ children, type }: DashboardLayoutProps) {
           "fixed inset-y-0 left-0 z-50 w-64 bg-[#004165] text-white transition-transform duration-300 ease-in-out shadow-xl",
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}
+        onMouseEnter={() => setIsSidebarOpen(true)}
+        onMouseLeave={() => setIsSidebarOpen(false)}
       >
         <div className="flex items-center justify-between h-16 px-6 border-b border-white/10">
           <Link href="/">
@@ -108,17 +110,14 @@ export function DashboardLayout({ children, type }: DashboardLayoutProps) {
       </aside>
 
       {/* Main Content */}
-      <div className={cn(
-        "flex-1 flex flex-col min-w-0 overflow-hidden transition-all duration-300 ease-in-out",
-        isSidebarOpen ? "lg:ml-64" : "lg:ml-0"
-      )}>
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <header className="bg-white border-b h-16 flex items-center justify-between px-4 lg:px-8 sticky top-0 z-40">
-          <button onClick={() => setIsSidebarOpen(true)} className={cn(
-            "text-slate-500 hover:text-slate-700 mr-4",
-            isSidebarOpen ? "lg:hidden" : ""
-          )}>
+          <div 
+            className="mr-4 p-2 -ml-2 cursor-pointer text-slate-500 hover:text-slate-700"
+            onMouseEnter={() => setIsSidebarOpen(true)}
+          >
             <Menu className="h-6 w-6" />
-          </button>
+          </div>
           
           <div className="flex items-center gap-4 ml-auto">
             <Button variant="ghost" size="icon" className="relative text-slate-500">
