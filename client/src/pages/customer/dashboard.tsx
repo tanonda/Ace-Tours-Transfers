@@ -21,12 +21,12 @@ export default function CustomerDashboard() {
     <DashboardLayout type="customer">
       <div className="space-y-8">
         <div>
-          <h1 className="text-3xl font-bold text-[#004165]">Hello, James!</h1>
+          <h1 className="text-3xl font-bold text-[hsl(var(--foreground))]">Hello, James!</h1>
           <p className="text-muted-foreground">Here's an overview of your upcoming adventures.</p>
         </div>
 
         {/* Upcoming Trip Hero Card */}
-        <Card className="overflow-hidden border-none shadow-lg bg-[#004165] text-white">
+        <Card className="overflow-hidden border-none shadow-lg bg-[hsl(var(--foreground))] text-white">
           <div className="flex flex-col md:flex-row">
             <div className="w-full md:w-1/3 h-48 md:h-auto relative">
                <img 
@@ -36,28 +36,28 @@ export default function CustomerDashboard() {
                />
             </div>
             <div className="p-6 md:p-8 flex-1 flex flex-col justify-center">
-              <div className="flex items-center gap-2 text-blue-200 mb-2 text-sm font-medium uppercase tracking-wide">
+              <div className="flex items-center gap-2 text-[hsl(var(--primary))] mb-2 text-sm font-medium uppercase tracking-wide">
                 <Calendar className="h-4 w-4" /> Upcoming Trip
               </div>
               <h2 className="text-2xl md:text-3xl font-serif font-bold mb-4">{upcomingTrip.tour}</h2>
               
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6 text-sm">
                 <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-blue-200" />
+                  <Calendar className="h-4 w-4 text-[hsl(var(--primary))]" />
                   <span>{upcomingTrip.date}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-blue-200" />
+                  <Clock className="h-4 w-4 text-[hsl(var(--primary))]" />
                   <span>{upcomingTrip.time}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-blue-200" />
+                  <MapPin className="h-4 w-4 text-[hsl(var(--primary))]" />
                   <span>Hotel Pickup</span>
                 </div>
               </div>
               
               <div className="flex gap-3 mt-auto">
-                <Button className="bg-white text-[#004165] hover:bg-white/90 font-semibold" onClick={() => toast({ title: "Downloading Ticket", description: "Your ticket for Efate Scenic Tour is downloading." })}>
+                <Button className="bg-[hsl(var(--primary))] text-white hover:bg-[hsl(var(--primary))/90] font-semibold" onClick={() => toast({ title: "Downloading Ticket", description: "Your ticket for Efate Scenic Tour is downloading." })}>
                   View Ticket
                 </Button>
                 <Button variant="outline" className="border-white/20 text-white hover:bg-white/10 hover:text-white" onClick={() => toast({ title: "Manage Booking", description: "Redirecting to booking management..." })}>
@@ -69,9 +69,9 @@ export default function CustomerDashboard() {
         </Card>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="bg-slate-50 border-slate-200">
+          <Card className="bg-[hsl(var(--background))] border-[hsl(var(--border))]">
             <CardHeader>
-              <CardTitle className="text-[#004165]">My Bookings</CardTitle>
+              <CardTitle className="text-[hsl(var(--foreground))]">My Bookings</CardTitle>
               <CardDescription>View your history</CardDescription>
             </CardHeader>
             <CardContent>
@@ -85,9 +85,9 @@ export default function CustomerDashboard() {
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-50 border-slate-200">
+          <Card className="bg-[hsl(var(--background))] border-[hsl(var(--border))]">
             <CardHeader>
-              <CardTitle className="text-[#004165]">Saved Tours</CardTitle>
+              <CardTitle className="text-[hsl(var(--foreground))]">Saved Tours</CardTitle>
               <CardDescription>Your wishlist</CardDescription>
             </CardHeader>
             <CardContent>
@@ -101,9 +101,9 @@ export default function CustomerDashboard() {
             </CardContent>
           </Card>
 
-          <Card className="bg-[#f0f9ff] border-blue-100">
+          <Card className="bg-[hsl(var(--card))] border-[hsl(var(--border))]">
             <CardHeader>
-              <CardTitle className="text-[#004165]">Need Help?</CardTitle>
+              <CardTitle className="text-[hsl(var(--foreground))]">Need Help?</CardTitle>
               <CardDescription>We're here for you</CardDescription>
             </CardHeader>
             <CardContent>
@@ -111,7 +111,7 @@ export default function CustomerDashboard() {
                 Have questions about your booking or need to make changes?
               </p>
               <Link href="/contact">
-                <Button className="w-full bg-[#004165] hover:bg-[#003150]">
+                <Button className="w-full bg-[hsl(var(--foreground))] hover:bg-[hsl(var(--foreground))/90]">
                   Contact Support
                 </Button>
               </Link>

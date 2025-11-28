@@ -34,7 +34,7 @@ export default function AdminDashboard() {
     <DashboardLayout type="admin">
       <div className="space-y-8">
         <div>
-          <h1 className="text-3xl font-bold text-[#004165]">Dashboard Overview</h1>
+          <h1 className="text-3xl font-bold text-[hsl(var(--foreground))]">Dashboard Overview</h1>
           <p className="text-muted-foreground">Welcome back, here's what's happening with your tours.</p>
         </div>
 
@@ -71,7 +71,7 @@ export default function AdminDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">12</div>
-              <p className="text-xs text-muted-foreground flex items-center mt-1 text-slate-500">
+              <p className="text-xs text-muted-foreground flex items-center mt-1 text-[hsl(var(--muted-foreground))]">
                 Running smoothly
               </p>
             </CardContent>
@@ -119,7 +119,7 @@ export default function AdminDashboard() {
                   />
                   <Bar 
                     dataKey="total" 
-                    fill="#004165" 
+                    fill="hsl(var(--primary))" 
                     radius={[4, 4, 0, 0]} 
                   />
                 </BarChart>

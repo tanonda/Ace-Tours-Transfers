@@ -45,11 +45,11 @@ export function DashboardLayout({ children, type }: DashboardLayoutProps) {
   const links = type === "admin" ? adminLinks : customerLinks;
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
+    <div className="min-h-screen bg-[hsl(var(--background))] flex">
       {/* Floating Sidebar Trigger */}
       {!isSidebarOpen && (
         <div 
-          className="fixed left-0 top-1/2 -translate-y-1/2 z-50 bg-[#004165] text-white p-2 rounded-r-md cursor-pointer shadow-md hover:w-12 transition-all duration-300 w-8 flex items-center justify-center"
+          className="fixed left-0 top-1/2 -translate-y-1/2 z-50 bg-[hsl(var(--primary))] text-white p-2 rounded-r-md cursor-pointer shadow-md hover:w-12 transition-all duration-300 w-8 flex items-center justify-center"
           onMouseEnter={() => setIsSidebarOpen(true)}
         >
           <div className="h-8 w-1 bg-white/20 rounded-full"></div>
@@ -59,7 +59,7 @@ export function DashboardLayout({ children, type }: DashboardLayoutProps) {
       {/* Sidebar */}
       <aside 
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-64 bg-[#004165] text-white transition-transform duration-300 ease-in-out shadow-xl",
+          "fixed inset-y-0 left-0 z-50 w-64 bg-[hsl(var(--foreground))] text-white transition-transform duration-300 ease-in-out shadow-xl",
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}
         onMouseEnter={() => setIsSidebarOpen(true)}
