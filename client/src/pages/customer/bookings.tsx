@@ -2,34 +2,40 @@ import { DashboardLayout } from "@/components/dashboard-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, MapPin, Download, Eye } from "lucide-react";
+import { Calendar, MapPin, Download, Eye, Pencil } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
+import { BookingDetailsDialog } from "@/components/customer/booking-details-dialog";
+import { EditBookingDialog } from "@/components/customer/edit-booking-dialog";
 
-const myBookings = [
+const initialBookings = [
   { 
     id: "BK-7821", 
+    customer: "James Doe", // Added for dialog compatibility
     tour: "Efate Scenic Tour", 
-    date: "June 15, 2024", 
+    date: "2024-06-15", // Standardized date format
     guests: 2, 
-    total: "$240", 
+    amount: "$240", // Renamed from total
     status: "confirmed",
     image: "https://images.unsplash.com/photo-1589308078059-be1415eab4c3?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80"
   },
   { 
     id: "BK-6502", 
+    customer: "James Doe",
     tour: "Airport Transfer", 
-    date: "March 10, 2024", 
+    date: "2024-03-10", 
     guests: 2, 
-    total: "$30", 
+    amount: "$30", 
     status: "completed",
     image: "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80"
   },
   { 
     id: "BK-5901", 
+    customer: "James Doe",
     tour: "Roots & Routes", 
-    date: "January 22, 2024", 
+    date: "2024-01-22", 
     guests: 4, 
-    total: "$400", 
+    amount: "$400", 
     status: "completed",
     image: "https://images.unsplash.com/photo-1596394516093-501ba68a0ba6?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80"
   },
@@ -37,6 +43,27 @@ const myBookings = [
 
 export default function CustomerBookings() {
   const { toast } = useToast();
+  const [bookings, setBookings] = useState(initialBookings);
+  const [selectedBooking, setSelectedBooking] = useState<typeof initialBookings[0] | null>(null);
+  const [isViewOpen, setIsViewOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+
+  const handleViewBooking = (booking: typeof initialBookings[0]) => {
+    setSelectedBooking(booking);
+    setIsViewOpen(true);
+  };
+
+  const handleEditBooking = (booking: typeof initialBookings[0]) => {
+    setSelectedBooking(booking);
+    setIsEditOpen(true);
+  };
+
+  const handleSaveBooking = (updatedBooking: any) => {
+    // Preserve the image property when updating
+    setBookings(prev => prev.map(b => b.id === updatedBooking.id ? { ...b, ...updatedBooking } : b));
+    toast({ title: "Request Sent", description: `Change request for ${updatedBooking.id} has been submitted.` });
+  };
+
   return (
     <DashboardLayout type="customer">
       <div className="space-y-6">
@@ -46,7 +73,7 @@ export default function CustomerBookings() {
         </div>
 
         <div className="space-y-4">
-          {myBookings.map((booking) => (
+          {bookings.map((booking) => (
             <Card key={booking.id} className="overflow-hidden">
               <div className="flex flex-col sm:flex-row">
                 <div className="w-full sm:w-48 h-48 sm:h-auto relative">
@@ -81,16 +108,19 @@ export default function CustomerBookings() {
                         <span className="font-medium">Guests:</span> {booking.guests}
                       </div>
                       <div>
-                        <span className="font-medium">Total:</span> {booking.total}
+                        <span className="font-medium">Total:</span> {booking.amount}
                       </div>
                     </div>
                   </div>
                   
-                  <div className="flex justify-end gap-3 mt-6 pt-4 border-t">
+                  <div className="flex justify-end gap-3 mt-6 pt-4 border-t flex-wrap">
                     <Button variant="outline" size="sm" onClick={() => toast({ title: "Download Ticket", description: `Downloading ticket for ${booking.tour}` })}>
                       <Download className="h-4 w-4 mr-2" /> Download Ticket
                     </Button>
-                    <Button size="sm" className="bg-[#004165]" onClick={() => toast({ title: "View Details", description: `Viewing details for ${booking.id}` })}>
+                    <Button variant="outline" size="sm" onClick={() => handleEditBooking(booking)}>
+                      <Pencil className="h-4 w-4 mr-2" /> Modify
+                    </Button>
+                    <Button size="sm" className="bg-[#004165]" onClick={() => handleViewBooking(booking)}>
                       <Eye className="h-4 w-4 mr-2" /> View Details
                     </Button>
                   </div>
@@ -99,6 +129,19 @@ export default function CustomerBookings() {
             </Card>
           ))}
         </div>
+
+        <BookingDetailsDialog 
+          booking={selectedBooking} 
+          open={isViewOpen} 
+          onOpenChange={setIsViewOpen} 
+        />
+
+        <EditBookingDialog 
+          booking={selectedBooking} 
+          open={isEditOpen} 
+          onOpenChange={setIsEditOpen} 
+          onSave={handleSaveBooking}
+        />
       </div>
     </DashboardLayout>
   );
