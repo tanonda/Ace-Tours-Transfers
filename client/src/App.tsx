@@ -13,6 +13,8 @@ import About from "@/pages/about";
 import Contact from "@/pages/contact";
 import Cart from "@/pages/cart";
 import Reservations from "@/pages/reservations";
+import Login from "@/pages/login";
+import Register from "@/pages/register";
 import { CartProvider } from "@/lib/cart-context";
 
 function Router() {
@@ -26,6 +28,8 @@ function Router() {
       <Route path="/cart" component={Cart} />
       <Route path="/payment" component={Payment} />
       <Route path="/reservations" component={Reservations} />
+      <Route path="/login" component={Login} />
+      <Route path="/register" component={Register} />
       <Route component={NotFound} />
     </Switch>
   );
