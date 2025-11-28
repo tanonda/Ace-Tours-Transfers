@@ -3,6 +3,7 @@ import heroBg from "@assets/stock_images/vanuatu_tropical_bea_1818375e.jpg";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { BookingModal } from "@/components/booking-modal";
+import { Link } from "wouter";
 
 export function Hero() {
   return (
@@ -36,9 +37,11 @@ export function Hero() {
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <BookingModal trigger={<Button size="lg" className="text-lg px-8 py-6 h-auto shadow-xl hover:scale-105 transition-transform">Book Your Tour</Button>} />
-            <Button variant="outline" size="lg" className="text-lg px-8 py-6 h-auto bg-white/10 border-white text-white hover:bg-white hover:text-foreground backdrop-blur-sm">
-              View Packages
-            </Button>
+            <Link href="/tours">
+              <Button variant="outline" size="lg" className="text-lg px-8 py-6 h-auto bg-white/10 border-white text-white hover:bg-white hover:text-foreground backdrop-blur-sm">
+                View Packages
+              </Button>
+            </Link>
           </div>
         </motion.div>
       </div>
