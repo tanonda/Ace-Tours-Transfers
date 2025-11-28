@@ -50,7 +50,7 @@ export default function Login() {
       <main className="flex-grow flex items-center justify-center p-4 bg-slate-50">
         <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
           {/* Login Form */}
-          <Card className="w-full border-none shadow-lg order-2 lg:order-1">
+          <Card className="w-full border-none shadow-lg">
             <CardHeader className="space-y-1">
               <CardTitle className="text-2xl font-serif font-bold text-center text-[#004165]">Sign in</CardTitle>
               <CardDescription className="text-center">
@@ -102,7 +102,7 @@ export default function Login() {
           </Card>
 
           {/* Cross-sell / Featured Tour */}
-          <div className="hidden lg:flex flex-col space-y-6 order-1 lg:order-2">
+          <div className="flex flex-col space-y-6">
             <div className="relative rounded-2xl overflow-hidden shadow-xl aspect-[4/5] group">
               <img 
                 src={featuredTour.image} 
