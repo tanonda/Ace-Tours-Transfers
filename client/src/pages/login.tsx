@@ -13,6 +13,8 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   const featuredTour = tours[0];
 
@@ -23,12 +25,37 @@ export default function Login() {
     // Simulate login delay
     setTimeout(() => {
       setIsLoading(false);
-      toast({
-        title: "Welcome back!",
-        description: "You have successfully logged in.",
-      });
-      setLocation("/reservations");
+
+      if (email === "admin@acetours.vu" && password === "admin123") {
+        toast({
+          title: "Welcome back, Admin!",
+          description: "Redirecting to dashboard...",
+        });
+        setLocation("/admin/dashboard");
+      } else if (email === "james@example.com" && password === "user123") {
+        toast({
+          title: "Welcome back, James!",
+          description: "Redirecting to your account...",
+        });
+        setLocation("/dashboard");
+      } else {
+        toast({
+          title: "Login Failed",
+          description: "Invalid credentials. Please try again.",
+          variant: "destructive"
+        });
+      }
     }, 1500);
+  };
+
+  const fillCredentials = (type: 'admin' | 'customer') => {
+    if (type === 'admin') {
+      setEmail("admin@acetours.vu");
+      setPassword("admin123");
+    } else {
+      setEmail("james@example.com");
+      setPassword("user123");
+    }
   };
 
   return (
@@ -58,10 +85,44 @@ export default function Login() {
               </CardDescription>
             </CardHeader>
             <CardContent>
+              {/* Demo Accounts Alert */}
+              <div className="mb-6 bg-blue-50 border border-blue-200 rounded-md p-4 text-sm text-blue-800">
+                <p className="font-semibold mb-2 flex items-center gap-2">
+                  <Star className="h-4 w-4 fill-blue-600 text-blue-600" /> 
+                  Demo Accounts
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <button 
+                    onClick={() => fillCredentials('admin')}
+                    className="text-left p-2 rounded hover:bg-blue-100 transition-colors border border-transparent hover:border-blue-200"
+                  >
+                    <span className="font-bold block text-xs uppercase tracking-wider text-blue-600 mb-0.5">Admin</span>
+                    <div className="text-xs opacity-80">admin@acetours.vu</div>
+                    <div className="text-xs opacity-60">admin123</div>
+                  </button>
+                  <button 
+                    onClick={() => fillCredentials('customer')}
+                    className="text-left p-2 rounded hover:bg-blue-100 transition-colors border border-transparent hover:border-blue-200"
+                  >
+                    <span className="font-bold block text-xs uppercase tracking-wider text-blue-600 mb-0.5">Customer</span>
+                    <div className="text-xs opacity-80">james@example.com</div>
+                    <div className="text-xs opacity-60">user123</div>
+                  </button>
+                </div>
+                <p className="text-xs mt-2 text-blue-600/80 italic text-center">Click a card above to auto-fill credentials</p>
+              </div>
+
               <form onSubmit={handleLogin} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" placeholder="name@example.com" required />
+                  <Input 
+                    id="email" 
+                    type="email" 
+                    placeholder="name@example.com" 
+                    required 
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
@@ -70,7 +131,13 @@ export default function Login() {
                       Forgot password?
                     </a>
                   </div>
-                  <Input id="password" type="password" required />
+                  <Input 
+                    id="password" 
+                    type="password" 
+                    required 
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
                 </div>
                 <div className="flex items-center space-x-2">
                   <Checkbox id="remember" />
