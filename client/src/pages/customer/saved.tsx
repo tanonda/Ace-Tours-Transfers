@@ -4,8 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Star, Trash2 } from "lucide-react";
 import { tours } from "@/lib/data";
 import { Link } from "wouter";
+import { useToast } from "@/hooks/use-toast";
 
 export default function CustomerSaved() {
+  const { toast } = useToast();
   return (
     <DashboardLayout type="customer">
       <div className="space-y-6">
@@ -23,6 +25,7 @@ export default function CustomerSaved() {
                   variant="destructive" 
                   size="icon" 
                   className="absolute top-3 right-3 h-8 w-8 rounded-full opacity-90 hover:opacity-100"
+                  onClick={() => toast({ title: "Removed from Saved", description: `${tour.title} has been removed from your wishlist.` })}
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>

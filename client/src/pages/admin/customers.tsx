@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Search, Mail, Phone } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const customers = [
   { id: 1, name: "James Wilson", email: "james.w@example.com", phone: "+61 412 345 678", bookings: 3, totalSpent: "$580", joinDate: "Jan 12, 2024" },
@@ -14,6 +15,7 @@ const customers = [
 ];
 
 export default function AdminCustomers() {
+  const { toast } = useToast();
   return (
     <DashboardLayout type="admin">
       <div className="space-y-6">
@@ -22,7 +24,7 @@ export default function AdminCustomers() {
             <h1 className="text-3xl font-bold text-[#004165]">Customers</h1>
             <p className="text-muted-foreground">View and manage registered customers.</p>
           </div>
-          <Button variant="outline">Export List</Button>
+          <Button variant="outline" onClick={() => toast({ title: "Exporting List", description: "Customer list is being downloaded." })}>Export List</Button>
         </div>
 
         <Card>
@@ -72,7 +74,7 @@ export default function AdminCustomers() {
                     <TableCell className="text-center">{customer.bookings}</TableCell>
                     <TableCell className="text-right font-medium">{customer.totalSpent}</TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="sm">View Profile</Button>
+                      <Button variant="ghost" size="sm" onClick={() => toast({ title: "View Profile", description: `Viewing profile for ${customer.name}` })}>View Profile</Button>
                     </TableCell>
                   </TableRow>
                 ))}

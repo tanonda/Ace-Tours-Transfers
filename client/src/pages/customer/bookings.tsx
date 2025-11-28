@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar, MapPin, Download, Eye } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const myBookings = [
   { 
@@ -35,6 +36,7 @@ const myBookings = [
 ];
 
 export default function CustomerBookings() {
+  const { toast } = useToast();
   return (
     <DashboardLayout type="customer">
       <div className="space-y-6">
@@ -85,10 +87,10 @@ export default function CustomerBookings() {
                   </div>
                   
                   <div className="flex justify-end gap-3 mt-6 pt-4 border-t">
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="sm" onClick={() => toast({ title: "Download Ticket", description: `Downloading ticket for ${booking.tour}` })}>
                       <Download className="h-4 w-4 mr-2" /> Download Ticket
                     </Button>
-                    <Button size="sm" className="bg-[#004165]">
+                    <Button size="sm" className="bg-[#004165]" onClick={() => toast({ title: "View Details", description: `Viewing details for ${booking.id}` })}>
                       <Eye className="h-4 w-4 mr-2" /> View Details
                     </Button>
                   </div>

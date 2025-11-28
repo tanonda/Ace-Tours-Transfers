@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Calendar, MapPin, Clock, ArrowRight, Heart } from "lucide-react";
 import { Link } from "wouter";
+import { useToast } from "@/hooks/use-toast";
 
 const upcomingTrip = {
   id: "BK-7821",
@@ -15,6 +16,7 @@ const upcomingTrip = {
 };
 
 export default function CustomerDashboard() {
+  const { toast } = useToast();
   return (
     <DashboardLayout type="customer">
       <div className="space-y-8">
@@ -55,10 +57,10 @@ export default function CustomerDashboard() {
               </div>
               
               <div className="flex gap-3 mt-auto">
-                <Button className="bg-white text-[#004165] hover:bg-white/90 font-semibold">
+                <Button className="bg-white text-[#004165] hover:bg-white/90 font-semibold" onClick={() => toast({ title: "Downloading Ticket", description: "Your ticket for Efate Scenic Tour is downloading." })}>
                   View Ticket
                 </Button>
-                <Button variant="outline" className="border-white/20 text-white hover:bg-white/10 hover:text-white">
+                <Button variant="outline" className="border-white/20 text-white hover:bg-white/10 hover:text-white" onClick={() => toast({ title: "Manage Booking", description: "Redirecting to booking management..." })}>
                   Manage Booking
                 </Button>
               </div>

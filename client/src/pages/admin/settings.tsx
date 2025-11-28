@@ -5,8 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
+import { useToast } from "@/hooks/use-toast";
 
 export default function AdminSettings() {
+  const { toast } = useToast();
   return (
     <DashboardLayout type="admin">
       <div className="space-y-6">
@@ -40,7 +42,7 @@ export default function AdminSettings() {
                   <Input defaultValue="Port Vila, Vanuatu" />
                 </div>
               </div>
-              <Button className="mt-4 bg-[#004165]">Save Changes</Button>
+              <Button className="mt-4 bg-[#004165]" onClick={() => toast({ title: "Settings Saved", description: "Your changes have been saved successfully." })}>Save Changes</Button>
             </CardContent>
           </Card>
 

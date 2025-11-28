@@ -6,8 +6,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Plus, Search, MoreHorizontal, Edit, Trash } from "lucide-react";
 import { tours, transfers } from "@/lib/data";
+import { useToast } from "@/hooks/use-toast";
 
 export default function AdminTours() {
+  const { toast } = useToast();
   const allServices = [...tours, ...transfers];
 
   return (
@@ -18,7 +20,7 @@ export default function AdminTours() {
             <h1 className="text-3xl font-bold text-[#004165]">Tours & Services</h1>
             <p className="text-muted-foreground">Manage your tour packages and transfer services.</p>
           </div>
-          <Button className="bg-[#004165]">
+          <Button className="bg-[#004165]" onClick={() => toast({ title: "Add Service", description: "Opening new service form..." })}>
             <Plus className="h-4 w-4 mr-2" /> Add New Service
           </Button>
         </div>
@@ -60,10 +62,10 @@ export default function AdminTours() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
-                        <Button variant="ghost" size="icon">
+                        <Button variant="ghost" size="icon" onClick={() => toast({ title: "Edit Service", description: `Editing ${service.title}` })}>
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-600 hover:bg-red-50">
+                        <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-600 hover:bg-red-50" onClick={() => toast({ title: "Delete Service", description: `${service.title} has been deleted`, variant: "destructive" })}>
                           <Trash className="h-4 w-4" />
                         </Button>
                       </div>

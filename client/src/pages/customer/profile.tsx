@@ -5,8 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
+import { useToast } from "@/hooks/use-toast";
 
 export default function CustomerProfile() {
+  const { toast } = useToast();
   return (
     <DashboardLayout type="customer">
       <div className="space-y-6 max-w-4xl">
@@ -26,7 +28,7 @@ export default function CustomerProfile() {
                 <AvatarImage src="" />
                 <AvatarFallback className="text-2xl bg-slate-100">JD</AvatarFallback>
               </Avatar>
-              <Button variant="outline">Change Avatar</Button>
+              <Button variant="outline" onClick={() => toast({ title: "Change Avatar", description: "Opening image uploader..." })}>Change Avatar</Button>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -48,7 +50,7 @@ export default function CustomerProfile() {
               </div>
             </div>
             
-            <Button className="bg-[#004165]">Save Changes</Button>
+            <Button className="bg-[#004165]" onClick={() => toast({ title: "Profile Updated", description: "Your profile information has been updated." })}>Save Changes</Button>
           </CardContent>
         </Card>
 
@@ -70,7 +72,7 @@ export default function CustomerProfile() {
               <Label>Confirm New Password</Label>
               <Input type="password" />
             </div>
-            <Button variant="outline" className="mt-2">Update Password</Button>
+            <Button variant="outline" className="mt-2" onClick={() => toast({ title: "Password Updated", description: "Your password has been changed successfully." })}>Update Password</Button>
           </CardContent>
         </Card>
       </div>

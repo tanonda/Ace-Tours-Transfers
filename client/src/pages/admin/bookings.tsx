@@ -16,8 +16,11 @@ const bookings = [
   { id: "BK-7825", customer: "David Miller", tour: "Efate Scenic Tour", date: "2024-06-22", guests: 3, amount: "$360", status: "cancelled" },
   { id: "BK-7826", customer: "Sophie Turner", tour: "Event Transfer", date: "2024-06-25", guests: 8, amount: "$250", status: "confirmed" },
 ];
+import { useToast } from "@/hooks/use-toast";
 
 export default function AdminBookings() {
+  const { toast } = useToast();
+  
   const getStatusColor = (status: string) => {
     switch(status) {
       case "confirmed": return "bg-green-100 text-green-800 hover:bg-green-100";
@@ -37,8 +40,8 @@ export default function AdminBookings() {
             <p className="text-muted-foreground">Manage and track all tour reservations.</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline">Export CSV</Button>
-            <Button className="bg-[#004165]">Create Booking</Button>
+            <Button variant="outline" onClick={() => toast({ title: "Exporting...", description: "Your CSV download will start shortly." })}>Export CSV</Button>
+            <Button className="bg-[#004165]" onClick={() => toast({ title: "Create Booking", description: "Opening booking creation form..." })}>Create Booking</Button>
           </div>
         </div>
 
@@ -102,9 +105,9 @@ export default function AdminBookings() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem>View Details</DropdownMenuItem>
-                          <DropdownMenuItem>Edit Booking</DropdownMenuItem>
-                          <DropdownMenuItem className="text-red-600">Cancel Booking</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => toast({ title: "View Details", description: `Viewing booking ${booking.id}` })}>View Details</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => toast({ title: "Edit Booking", description: `Editing booking ${booking.id}` })}>Edit Booking</DropdownMenuItem>
+                          <DropdownMenuItem className="text-red-600" onClick={() => toast({ title: "Cancel Booking", description: `Booking ${booking.id} has been cancelled`, variant: "destructive" })}>Cancel Booking</DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>

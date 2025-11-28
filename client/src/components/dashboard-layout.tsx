@@ -50,14 +50,14 @@ export function DashboardLayout({ children, type }: DashboardLayoutProps) {
       <aside 
         className={cn(
           "fixed inset-y-0 left-0 z-50 w-64 bg-[#004165] text-white transition-transform duration-300 ease-in-out shadow-xl",
-          !isSidebarOpen && "-translate-x-full lg:translate-x-0 lg:static"
+          isSidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
         <div className="flex items-center justify-between h-16 px-6 border-b border-white/10">
           <Link href="/">
             <span className="font-serif font-bold text-xl tracking-tight cursor-pointer">Ace Tours</span>
           </Link>
-          <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden text-white/70 hover:text-white">
+          <button onClick={() => setIsSidebarOpen(false)} className="text-white/70 hover:text-white">
             <X className="h-6 w-6" />
           </button>
         </div>
@@ -108,9 +108,15 @@ export function DashboardLayout({ children, type }: DashboardLayoutProps) {
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <div className={cn(
+        "flex-1 flex flex-col min-w-0 overflow-hidden transition-all duration-300 ease-in-out",
+        isSidebarOpen ? "lg:ml-64" : "lg:ml-0"
+      )}>
         <header className="bg-white border-b h-16 flex items-center justify-between px-4 lg:px-8 sticky top-0 z-40">
-          <button onClick={() => setIsSidebarOpen(true)} className="lg:hidden text-slate-500 hover:text-slate-700">
+          <button onClick={() => setIsSidebarOpen(true)} className={cn(
+            "text-slate-500 hover:text-slate-700 mr-4",
+            isSidebarOpen ? "lg:hidden" : ""
+          )}>
             <Menu className="h-6 w-6" />
           </button>
           
