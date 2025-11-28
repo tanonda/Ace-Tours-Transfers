@@ -14,9 +14,15 @@ import {
   ShoppingBag,
   User,
   Heart,
-  Bell
+  Bell,
+  Check
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -26,6 +32,32 @@ interface DashboardLayoutProps {
 export function DashboardLayout({ children, type }: DashboardLayoutProps) {
   const [location] = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  const notifications = [
+    {
+      id: 1,
+      title: "New Booking Confirmed",
+      message: "Booking #BK-7821 has been confirmed.",
+      time: "2 mins ago",
+      read: false
+    },
+    {
+      id: 2,
+      title: "Payment Received",
+      message: "Payment for Booking #BK-7821 successful.",
+      time: "5 mins ago",
+      read: false
+    },
+    {
+      id: 3,
+      title: "Tour Reminder",
+      message: "Your tour starts tomorrow at 8:00 AM.",
+      time: "1 hour ago",
+      read: true
+    }
+  ];
+
+  const unreadCount = notifications.filter(n => !n.read).length;
 
   const adminLinks = [
     { href: "/admin/dashboard", label: "Overview", icon: LayoutDashboard },
@@ -130,10 +162,60 @@ export function DashboardLayout({ children, type }: DashboardLayoutProps) {
           </div>
           
           <div className="flex items-center gap-4 ml-auto">
-            <Button variant="ghost" size="icon" className="relative text-slate-500">
-              <Bell className="h-5 w-5" />
-              <span className="absolute top-2 right-2 h-2 w-2 bg-red-500 rounded-full"></span>
-            </Button>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="icon" className="relative text-slate-500 hover:text-[hsl(var(--primary))] hover:bg-[hsl(var(--primary))/10]">
+                  <Bell className="h-5 w-5" />
+                  {unreadCount > 0 && (
+                    <span className="absolute top-2 right-2 h-2 w-2 bg-red-500 rounded-full ring-2 ring-white"></span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80 p-0 mr-4" align="end">
+                <div className="flex items-center justify-between px-4 py-3 border-b bg-[hsl(var(--muted))/30]">
+                  <h4 className="font-semibold text-sm">Notifications</h4>
+                  {unreadCount > 0 && (
+                    <span className="bg-[hsl(var(--primary))] text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold">
+                      {unreadCount} New
+                    </span>
+                  )}
+                </div>
+                <div className="max-h-[300px] overflow-y-auto">
+                  {notifications.length > 0 ? (
+                    <div className="divide-y">
+                      {notifications.map((notification) => (
+                        <div 
+                          key={notification.id} 
+                          className={cn(
+                            "p-4 hover:bg-[hsl(var(--muted))/30] transition-colors cursor-pointer",
+                            !notification.read && "bg-[hsl(var(--primary))/5]"
+                          )}
+                        >
+                          <div className="flex justify-between items-start gap-2 mb-1">
+                            <h5 className={cn("text-sm font-medium", !notification.read && "text-[hsl(var(--primary))]")}>
+                              {notification.title}
+                            </h5>
+                            <span className="text-[10px] text-muted-foreground whitespace-nowrap">{notification.time}</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground line-clamp-2">
+                            {notification.message}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="p-8 text-center text-muted-foreground text-sm">
+                      No new notifications
+                    </div>
+                  )}
+                </div>
+                <div className="p-2 border-t bg-[hsl(var(--muted))/30]">
+                  <Button variant="ghost" size="sm" className="w-full text-xs h-8 text-muted-foreground hover:text-[hsl(var(--primary))]">
+                    Mark all as read
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
         </header>
 
