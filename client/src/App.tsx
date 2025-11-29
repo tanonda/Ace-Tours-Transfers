@@ -31,6 +31,8 @@ import CustomerProfile from "@/pages/customer/profile";
 import { CartProvider } from "@/lib/cart-context";
 import { AuthProvider, ProtectedRoute } from "@/lib/auth-context";
 import { ThemeProvider } from "@/lib/theme-context";
+import { CMSProvider } from "@/lib/cms-context";
+import { WhatsAppWidget } from "@/components/whatsapp-widget";
 
 if (typeof window !== 'undefined') {
   window.addEventListener('error', (event) => {
@@ -148,10 +150,13 @@ function App() {
         <ThemeProvider>
           <TooltipProvider>
             <AuthProvider>
-              <CartProvider>
-                <Toaster />
-                <Router />
-              </CartProvider>
+              <CMSProvider>
+                <CartProvider>
+                  <Toaster />
+                  <Router />
+                  <WhatsAppWidget />
+                </CartProvider>
+              </CMSProvider>
             </AuthProvider>
           </TooltipProvider>
         </ThemeProvider>

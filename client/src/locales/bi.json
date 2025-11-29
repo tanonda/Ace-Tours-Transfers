@@ -232,5 +232,38 @@
   "footer.contactInfo": "Contact Info",
   "footer.copyright": "All rights reserved.",
   "footer.privacyPolicy": "Privacy Policy",
-  "footer.termsOfService": "Terms of Service"
+  "footer.termsOfService": "Terms of Service",
+  
+  "whatsapp.defaultGreeting": "Halo! Olsem wanem mifala i save helpem yu long adventure blong yu long Vanuatu?",
+  "whatsapp.typicallyReplies": "Normolli i reply long few minutes",
+  "whatsapp.startChat": "Statem Chat",
+  "whatsapp.openChat": "Openem WhatsApp chat",
+  "whatsapp.close": "Close",
+  
+  "cms.title": "Content Management",
+  "cms.description": "Turnem on or off ol section blong site",
+  "cms.enabled": "Enabled",
+  "cms.disabled": "Disabled",
+  "cms.saveChanges": "Savem Changes",
+  "cms.updated": "Settings i updated gud",
+  
+  "payments.title": "Payment Gateways",
+  "payments.description": "Configurem payment options",
+  "payments.active": "Active",
+  "payments.inactive": "Inactive",
+  "payments.setDefault": "Mekem Default",
+  "payments.default": "Default",
+  "payments.configure": "Configure",
+  "payments.credentials": "API Credentials",
+  "payments.merchantId": "Merchant ID",
+  "payments.apiKey": "API Key",
+  "payments.secretKey": "Secret Key",
+  "payments.environment": "Environment",
+  "payments.sandbox": "Sandbox",
+  "payments.production": "Production",
+  
+  "accessibility.skipToMain": "Go long main content",
+  "accessibility.skipToNav": "Go long navigation",
+  "accessibility.menuOpen": "Openem menu",
+  "accessibility.menuClose": "Close menu"
 }

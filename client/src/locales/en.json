@@ -232,5 +232,38 @@
   "footer.contactInfo": "Contact Info",
   "footer.copyright": "All rights reserved.",
   "footer.privacyPolicy": "Privacy Policy",
-  "footer.termsOfService": "Terms of Service"
+  "footer.termsOfService": "Terms of Service",
+  
+  "whatsapp.defaultGreeting": "Hello! How can we help you with your Vanuatu adventure?",
+  "whatsapp.typicallyReplies": "Typically replies within minutes",
+  "whatsapp.startChat": "Start Chat",
+  "whatsapp.openChat": "Open WhatsApp chat",
+  "whatsapp.close": "Close",
+  
+  "cms.title": "Content Management",
+  "cms.description": "Toggle site sections on or off",
+  "cms.enabled": "Enabled",
+  "cms.disabled": "Disabled",
+  "cms.saveChanges": "Save Changes",
+  "cms.updated": "Settings updated successfully",
+  
+  "payments.title": "Payment Gateways",
+  "payments.description": "Configure payment processing options",
+  "payments.active": "Active",
+  "payments.inactive": "Inactive",
+  "payments.setDefault": "Set as Default",
+  "payments.default": "Default",
+  "payments.configure": "Configure",
+  "payments.credentials": "API Credentials",
+  "payments.merchantId": "Merchant ID",
+  "payments.apiKey": "API Key",
+  "payments.secretKey": "Secret Key",
+  "payments.environment": "Environment",
+  "payments.sandbox": "Sandbox",
+  "payments.production": "Production",
+  
+  "accessibility.skipToMain": "Skip to main content",
+  "accessibility.skipToNav": "Skip to navigation",
+  "accessibility.menuOpen": "Open menu",
+  "accessibility.menuClose": "Close menu"
 }

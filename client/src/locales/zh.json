@@ -232,5 +232,38 @@
   "footer.contactInfo": "联系信息",
   "footer.copyright": "版权所有。",
   "footer.privacyPolicy": "隐私政策",
-  "footer.termsOfService": "服务条款"
+  "footer.termsOfService": "服务条款",
+  
+  "whatsapp.defaultGreeting": "您好！我们如何帮助您的瓦努阿图之旅？",
+  "whatsapp.typicallyReplies": "通常在几分钟内回复",
+  "whatsapp.startChat": "开始聊天",
+  "whatsapp.openChat": "打开WhatsApp聊天",
+  "whatsapp.close": "关闭",
+  
+  "cms.title": "内容管理",
+  "cms.description": "启用或禁用网站版块",
+  "cms.enabled": "已启用",
+  "cms.disabled": "已禁用",
+  "cms.saveChanges": "保存更改",
+  "cms.updated": "设置已成功更新",
+  
+  "payments.title": "支付网关",
+  "payments.description": "配置支付处理选项",
+  "payments.active": "激活",
+  "payments.inactive": "未激活",
+  "payments.setDefault": "设为默认",
+  "payments.default": "默认",
+  "payments.configure": "配置",
+  "payments.credentials": "API凭证",
+  "payments.merchantId": "商户ID",
+  "payments.apiKey": "API密钥",
+  "payments.secretKey": "密钥",
+  "payments.environment": "环境",
+  "payments.sandbox": "测试环境",
+  "payments.production": "生产环境",
+  
+  "accessibility.skipToMain": "跳到主要内容",
+  "accessibility.skipToNav": "跳到导航",
+  "accessibility.menuOpen": "打开菜单",
+  "accessibility.menuClose": "关闭菜单"
 }

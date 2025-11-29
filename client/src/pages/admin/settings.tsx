@@ -8,8 +8,11 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "react-i18next";
 import {
   Building2,
   Mail,
@@ -21,11 +24,153 @@ import {
   Shield,
   Palette,
   FileText,
-  Clock
+  Clock,
+  LayoutGrid,
+  MessageCircle,
+  Landmark
 } from "lucide-react";
+
+interface ContentBlock {
+  id: string;
+  slug: string;
+  label: string;
+  description: string | null;
+  enabled: boolean;
+  config: Record<string, any> | null;
+  updatedAt: string;
+}
+
+interface PaymentGateway {
+  id: string;
+  slug: string;
+  displayName: string;
+  description: string | null;
+  active: boolean;
+  isDefault: boolean;
+  credentials: Record<string, any> | null;
+  supportedCurrencies: string[] | null;
+  config: Record<string, any> | null;
+}
+
+interface WhatsAppSettings {
+  enabled: boolean;
+  phoneNumber: string;
+  greeting: string;
+  position: string;
+}
 
 export default function AdminSettings() {
   const { toast } = useToast();
+  const { t } = useTranslation();
+  const queryClient = useQueryClient();
+  
+  const { data: contentBlocks = [] } = useQuery<ContentBlock[]>({
+    queryKey: ["admin-content-blocks"],
+    queryFn: async () => {
+      const res = await fetch("/api/content-blocks");
+      if (!res.ok) throw new Error("Failed to fetch content blocks");
+      return res.json();
+    }
+  });
+
+  const { data: paymentGateways = [] } = useQuery<PaymentGateway[]>({
+    queryKey: ["admin-payment-gateways"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/payment-gateways", { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch payment gateways");
+      return res.json();
+    }
+  });
+
+  const { data: whatsappSetting } = useQuery({
+    queryKey: ["admin-whatsapp-setting"],
+    queryFn: async () => {
+      const res = await fetch("/api/settings/whatsapp");
+      if (!res.ok) return null;
+      return res.json();
+    }
+  });
+
+  const [whatsappConfig, setWhatsappConfig] = useState<WhatsAppSettings>({
+    enabled: true,
+    phoneNumber: "+678 5551234",
+    greeting: "Hello! How can we help you with your Vanuatu adventure?",
+    position: "bottom-right"
+  });
+
+  // Update whatsapp config when data loads
+  useState(() => {
+    if (whatsappSetting?.value) {
+      setWhatsappConfig(whatsappSetting.value);
+    }
+  });
+
+  const toggleBlockMutation = useMutation({
+    mutationFn: async ({ slug, enabled }: { slug: string; enabled: boolean }) => {
+      const res = await fetch(`/api/admin/content-blocks/${slug}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ enabled })
+      });
+      if (!res.ok) throw new Error("Failed to update content block");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-content-blocks"] });
+      queryClient.invalidateQueries({ queryKey: ["content-blocks"] });
+      toast({ title: t("cms.updated") });
+    }
+  });
+
+  const toggleGatewayMutation = useMutation({
+    mutationFn: async ({ id, active }: { id: string; active: boolean }) => {
+      const res = await fetch(`/api/admin/payment-gateways/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ active })
+      });
+      if (!res.ok) throw new Error("Failed to update gateway");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-payment-gateways"] });
+      toast({ title: "Payment gateway updated" });
+    }
+  });
+
+  const setDefaultGatewayMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/admin/payment-gateways/${id}/set-default`, {
+        method: "POST",
+        credentials: "include"
+      });
+      if (!res.ok) throw new Error("Failed to set default gateway");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-payment-gateways"] });
+      toast({ title: "Default gateway updated" });
+    }
+  });
+
+  const saveWhatsappMutation = useMutation({
+    mutationFn: async (config: WhatsAppSettings) => {
+      const res = await fetch("/api/admin/settings/whatsapp", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ value: config })
+      });
+      if (!res.ok) throw new Error("Failed to save WhatsApp settings");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["site-settings"] });
+      toast({ title: "WhatsApp settings saved" });
+    }
+  });
   
   const [settings, setSettings] = useState({
     companyName: 'Ace Tours & Transfers',
@@ -67,18 +212,24 @@ export default function AdminSettings() {
         </div>
 
         <Tabs defaultValue="general" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5">
+          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-1">
             <TabsTrigger value="general" className="flex items-center gap-2">
               <Building2 className="h-4 w-4" /> General
             </TabsTrigger>
+            <TabsTrigger value="cms" className="flex items-center gap-2">
+              <LayoutGrid className="h-4 w-4" /> CMS
+            </TabsTrigger>
+            <TabsTrigger value="whatsapp" className="flex items-center gap-2">
+              <MessageCircle className="h-4 w-4" /> WhatsApp
+            </TabsTrigger>
+            <TabsTrigger value="gateways" className="flex items-center gap-2">
+              <Landmark className="h-4 w-4" /> Banks
+            </TabsTrigger>
             <TabsTrigger value="notifications" className="flex items-center gap-2">
-              <Bell className="h-4 w-4" /> Notifications
+              <Bell className="h-4 w-4" /> Alerts
             </TabsTrigger>
             <TabsTrigger value="booking" className="flex items-center gap-2">
               <Clock className="h-4 w-4" /> Booking
-            </TabsTrigger>
-            <TabsTrigger value="payment" className="flex items-center gap-2">
-              <CreditCard className="h-4 w-4" /> Payment
             </TabsTrigger>
             <TabsTrigger value="policies" className="flex items-center gap-2">
               <FileText className="h-4 w-4" /> Policies
@@ -195,6 +346,218 @@ export default function AdminSettings() {
                   data-testid="button-save-general"
                 >
                   Save Changes
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="cms">
+            <Card>
+              <CardHeader>
+                <CardTitle>{t("cms.title")}</CardTitle>
+                <CardDescription>{t("cms.description")}</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {contentBlocks.map((block) => (
+                  <div 
+                    key={block.id} 
+                    className="flex items-center justify-between p-4 border rounded-lg"
+                    data-testid={`cms-block-${block.slug}`}
+                  >
+                    <div className="space-y-0.5">
+                      <Label className="text-base">{block.label}</Label>
+                      <p className="text-sm text-muted-foreground">
+                        {block.description}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Badge variant={block.enabled ? "default" : "secondary"}>
+                        {block.enabled ? t("cms.enabled") : t("cms.disabled")}
+                      </Badge>
+                      <Switch 
+                        checked={block.enabled}
+                        onCheckedChange={(enabled) => toggleBlockMutation.mutate({ slug: block.slug, enabled })}
+                        data-testid={`toggle-block-${block.slug}`}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="whatsapp">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MessageCircle className="h-5 w-5 text-green-500" />
+                  WhatsApp Chat Widget
+                </CardTitle>
+                <CardDescription>Configure the floating WhatsApp chat button.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="space-y-0.5">
+                    <Label className="text-base">Enable WhatsApp Widget</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Show floating WhatsApp button on all pages
+                    </p>
+                  </div>
+                  <Switch 
+                    checked={whatsappConfig.enabled}
+                    onCheckedChange={(enabled) => setWhatsappConfig({...whatsappConfig, enabled})}
+                    data-testid="toggle-whatsapp-enabled"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>WhatsApp Phone Number</Label>
+                  <Input 
+                    value={whatsappConfig.phoneNumber}
+                    onChange={(e) => setWhatsappConfig({...whatsappConfig, phoneNumber: e.target.value})}
+                    placeholder="+678 1234567"
+                    data-testid="input-whatsapp-phone"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Include country code (e.g., +678 for Vanuatu)
+                  </p>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>Greeting Message</Label>
+                  <Textarea 
+                    value={whatsappConfig.greeting}
+                    onChange={(e) => setWhatsappConfig({...whatsappConfig, greeting: e.target.value})}
+                    rows={3}
+                    placeholder="Hello! How can we help you?"
+                    data-testid="input-whatsapp-greeting"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    This message will be pre-filled when customers open chat
+                  </p>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>Widget Position</Label>
+                  <Select 
+                    value={whatsappConfig.position} 
+                    onValueChange={(v) => setWhatsappConfig({...whatsappConfig, position: v})}
+                  >
+                    <SelectTrigger data-testid="select-whatsapp-position">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="bottom-right">Bottom Right</SelectItem>
+                      <SelectItem value="bottom-left">Bottom Left</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <Button 
+                  className="bg-green-600 hover:bg-green-700" 
+                  onClick={() => saveWhatsappMutation.mutate(whatsappConfig)}
+                  data-testid="button-save-whatsapp"
+                >
+                  Save WhatsApp Settings
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="gateways">
+            <Card>
+              <CardHeader>
+                <CardTitle>{t("payments.title")}</CardTitle>
+                <CardDescription>{t("payments.description")}</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {paymentGateways.map((gateway) => (
+                  <div 
+                    key={gateway.id} 
+                    className="p-4 border rounded-lg space-y-4"
+                    data-testid={`gateway-${gateway.slug}`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <Landmark className="h-5 w-5 text-muted-foreground" />
+                          <Label className="text-lg font-semibold">{gateway.displayName}</Label>
+                          {gateway.isDefault && (
+                            <Badge className="bg-blue-500">{t("payments.default")}</Badge>
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          {gateway.description}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Currencies: {gateway.supportedCurrencies?.join(", ") || "VUV"}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Badge variant={gateway.active ? "default" : "secondary"}>
+                          {gateway.active ? t("payments.active") : t("payments.inactive")}
+                        </Badge>
+                        <Switch 
+                          checked={gateway.active}
+                          onCheckedChange={(active) => toggleGatewayMutation.mutate({ id: gateway.id, active })}
+                          data-testid={`toggle-gateway-${gateway.slug}`}
+                        />
+                      </div>
+                    </div>
+                    
+                    {gateway.active && !gateway.isDefault && (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setDefaultGatewayMutation.mutate(gateway.id)}
+                        data-testid={`set-default-${gateway.slug}`}
+                      >
+                        {t("payments.setDefault")}
+                      </Button>
+                    )}
+                    
+                    <Separator />
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label className="text-sm">{t("payments.merchantId")}</Label>
+                        <Input 
+                          placeholder="Enter merchant ID"
+                          defaultValue={(gateway.credentials as any)?.merchantId || ""}
+                          data-testid={`input-merchant-${gateway.slug}`}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm">{t("payments.apiKey")}</Label>
+                        <Input 
+                          type="password"
+                          placeholder="Enter API key"
+                          defaultValue={(gateway.credentials as any)?.apiKey || ""}
+                          data-testid={`input-apikey-${gateway.slug}`}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm">{t("payments.environment")}</Label>
+                        <Select defaultValue={(gateway.credentials as any)?.environment || "sandbox"}>
+                          <SelectTrigger data-testid={`select-env-${gateway.slug}`}>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="sandbox">{t("payments.sandbox")}</SelectItem>
+                            <SelectItem value="production">{t("payments.production")}</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                
+                <Button 
+                  className="bg-[#004165]" 
+                  onClick={() => handleSave('Payment Gateways')}
+                  data-testid="button-save-gateways"
+                >
+                  Save Gateway Settings
                 </Button>
               </CardContent>
             </Card>

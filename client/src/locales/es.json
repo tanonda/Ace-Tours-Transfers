@@ -232,5 +232,38 @@
   "footer.contactInfo": "Información de Contacto",
   "footer.copyright": "Todos los derechos reservados.",
   "footer.privacyPolicy": "Política de Privacidad",
-  "footer.termsOfService": "Términos de Servicio"
+  "footer.termsOfService": "Términos de Servicio",
+  
+  "whatsapp.defaultGreeting": "¡Hola! ¿Cómo podemos ayudarte con tu aventura en Vanuatu?",
+  "whatsapp.typicallyReplies": "Normalmente responde en minutos",
+  "whatsapp.startChat": "Iniciar Chat",
+  "whatsapp.openChat": "Abrir chat de WhatsApp",
+  "whatsapp.close": "Cerrar",
+  
+  "cms.title": "Gestión de Contenido",
+  "cms.description": "Activar o desactivar secciones del sitio",
+  "cms.enabled": "Activado",
+  "cms.disabled": "Desactivado",
+  "cms.saveChanges": "Guardar Cambios",
+  "cms.updated": "Configuración actualizada correctamente",
+  
+  "payments.title": "Pasarelas de Pago",
+  "payments.description": "Configurar opciones de procesamiento de pagos",
+  "payments.active": "Activo",
+  "payments.inactive": "Inactivo",
+  "payments.setDefault": "Establecer como Predeterminado",
+  "payments.default": "Predeterminado",
+  "payments.configure": "Configurar",
+  "payments.credentials": "Credenciales API",
+  "payments.merchantId": "ID de Comerciante",
+  "payments.apiKey": "Clave API",
+  "payments.secretKey": "Clave Secreta",
+  "payments.environment": "Entorno",
+  "payments.sandbox": "Pruebas",
+  "payments.production": "Producción",
+  
+  "accessibility.skipToMain": "Saltar al contenido principal",
+  "accessibility.skipToNav": "Saltar a la navegación",
+  "accessibility.menuOpen": "Abrir menú",
+  "accessibility.menuClose": "Cerrar menú"
 }
