@@ -8,6 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { ShieldCheck, Lock, CreditCard, Loader2, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useCart } from "@/lib/cart-context";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export default function Payment() {
   const [isLoading, setIsLoading] = useState(false);
@@ -32,11 +33,12 @@ export default function Payment() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-md mb-4">
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
+      <div className="w-full max-w-md mb-4 flex items-center justify-between">
         <Button variant="ghost" className="text-muted-foreground hover:text-foreground" onClick={() => setLocation("/cart")}>
           <ArrowLeft className="mr-2 h-4 w-4" /> Back to Cart
         </Button>
+        <ThemeToggle size="sm" />
       </div>
       <div className="w-full max-w-md">
         {/* ANZ Branding Header */}

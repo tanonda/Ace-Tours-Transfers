@@ -7,6 +7,7 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, ArrowLeft, Quote, CheckCircle, Star } from "lucide-react";
 import { tours } from "@/lib/data";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export default function Register() {
   const [isLoading, setIsLoading] = useState(false);
@@ -38,11 +39,14 @@ export default function Register() {
           <Link href="/" className="font-serif font-bold text-xl tracking-tight">
             Ace Tours & Transfers
           </Link>
-          <Link href="/">
-            <span className="inline-flex items-center px-3 py-1.5 rounded text-sm font-medium text-white hover:bg-white/20 transition-colors cursor-pointer">
-              <ArrowLeft className="mr-2 h-4 w-4" /> Back to Home
-            </span>
-          </Link>
+          <div className="flex items-center gap-4">
+            <ThemeToggle size="sm" />
+            <Link href="/">
+              <span className="inline-flex items-center px-3 py-1.5 rounded text-sm font-medium text-white hover:bg-white/20 transition-colors cursor-pointer">
+                <ArrowLeft className="mr-2 h-4 w-4" /> Back to Home
+              </span>
+            </Link>
+          </div>
         </div>
       </header>
 
