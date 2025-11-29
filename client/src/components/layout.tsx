@@ -80,7 +80,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
       {/* Navigation */}
       <header
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-          isScrolled ? "bg-white/90 backdrop-blur-md shadow-sm py-2" : "bg-transparent py-4"
+          isScrolled 
+            ? "bg-background/95 backdrop-blur-md shadow-sm py-2 border-b border-border/50" 
+            : isHome 
+              ? "bg-transparent py-4" 
+              : "bg-background/95 backdrop-blur-md py-3"
         }`}
       >
         <div className="container mx-auto px-4 flex items-center justify-between">
