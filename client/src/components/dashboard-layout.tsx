@@ -235,21 +235,19 @@ export function DashboardLayout({ children, type }: DashboardLayoutProps) {
 
   return (
     <div className="min-h-screen bg-background text-foreground flex font-sans">
-      {!isSidebarOpen && (
-        <div 
-          className="fixed left-0 top-1/2 -translate-y-1/2 z-50 bg-primary p-2 rounded-r-lg cursor-pointer shadow-lg transition-all duration-300 w-8 flex items-center justify-center"
-          onMouseEnter={openSidebar}
-        >
-          <div className="h-8 w-1 bg-primary-foreground/30 rounded" />
-        </div>
-      )}
+      <div 
+        className={`fixed left-0 top-1/2 -translate-y-1/2 z-40 bg-primary p-2 rounded-r-lg cursor-pointer shadow-lg w-8 flex items-center justify-center transition-opacity duration-200 ${
+          isSidebarOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'
+        }`}
+        onClick={toggleSidebar}
+      >
+        <div className="h-8 w-1 bg-primary-foreground/30 rounded" />
+      </div>
 
       <aside 
-        className={`fixed inset-y-0 left-0 z-50 w-60 bg-background border-r border-border flex flex-col transition-transform duration-300 ease-in-out ${
+        className={`fixed inset-y-0 left-0 z-50 w-60 bg-background border-r border-border flex flex-col transition-transform duration-300 ease-in-out will-change-transform ${
           isSidebarOpen ? 'translate-x-0 shadow-xl' : '-translate-x-full'
         }`}
-        onMouseEnter={openSidebar}
-        onMouseLeave={closeSidebar}
       >
         <div className="flex items-center justify-between h-16 px-4 border-b border-border">
           <Link href="/">
@@ -294,7 +292,7 @@ export function DashboardLayout({ children, type }: DashboardLayoutProps) {
               return (
                 <Link key={link.href} href={link.href}>
                   <div 
-                    className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg cursor-pointer text-sm transition-all ${
+                    className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg cursor-pointer text-sm transition-colors duration-150 ${
                       isActive 
                         ? 'bg-accent text-accent-foreground font-semibold' 
                         : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
@@ -314,7 +312,7 @@ export function DashboardLayout({ children, type }: DashboardLayoutProps) {
           <Link href="/login">
             <button 
               onClick={handleLogout}
-              className="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-lg border-none bg-transparent text-muted-foreground cursor-pointer text-sm text-left transition-all hover:bg-destructive/10 hover:text-destructive"
+              className="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-lg border-none bg-transparent text-muted-foreground cursor-pointer text-sm text-left transition-colors duration-150 hover:bg-destructive/10 hover:text-destructive"
             >
               <LogOut size={16} />
               Sign Out
@@ -326,7 +324,7 @@ export function DashboardLayout({ children, type }: DashboardLayoutProps) {
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <header className="bg-background border-b border-border h-16 flex items-center justify-between px-6 sticky top-0 z-40">
           <button 
-            className="p-2 -ml-2 cursor-pointer text-muted-foreground rounded-lg transition-all hover:bg-accent hover:text-foreground border-none bg-transparent"
+            className="p-2 -ml-2 cursor-pointer text-muted-foreground rounded-lg transition-colors duration-150 hover:bg-accent hover:text-foreground border-none bg-transparent"
             onClick={toggleSidebar}
           >
             <Menu size={24} />
