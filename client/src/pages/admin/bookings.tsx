@@ -12,8 +12,9 @@ import { EditBookingDialog } from "@/components/admin/edit-booking-dialog";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchBookings, updateBooking, deleteBooking } from "@/lib/api";
+import { fetchBookings, updateBooking, deleteBooking, exportBookingsCSV } from "@/lib/api";
 import type { Booking } from "@shared/schema";
+import { Download } from "lucide-react";
 
 export default function AdminBookings() {
   const { toast } = useToast();
@@ -74,6 +75,15 @@ export default function AdminBookings() {
     }
   };
 
+  const handleExportCSV = async () => {
+    try {
+      await exportBookingsCSV();
+      toast({ title: "Export Complete", description: "Bookings CSV has been downloaded." });
+    } catch (error) {
+      toast({ title: "Export Failed", description: "Failed to export bookings.", variant: "destructive" });
+    }
+  };
+
   return (
     <DashboardLayout type="admin">
       <div className="space-y-6">
@@ -83,7 +93,9 @@ export default function AdminBookings() {
             <p className="text-muted-foreground">Manage and track all tour reservations.</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => toast({ title: "Exporting...", description: "Your CSV download will start shortly." })}>Export CSV</Button>
+            <Button variant="outline" onClick={handleExportCSV} data-testid="button-export-csv">
+              <Download className="h-4 w-4 mr-2" /> Export CSV
+            </Button>
             <Button className="bg-[#004165]" onClick={() => toast({ title: "Create Booking", description: "Opening booking creation form..." })}>Create Booking</Button>
           </div>
         </div>
