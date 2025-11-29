@@ -88,9 +88,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
         }`}
       >
         <div className="container mx-auto px-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <img src={logo} alt="Ace Tours Logo" className="h-12 w-auto rounded-full" />
-            <span className={`font-serif font-bold text-xl tracking-tight transition-colors ${logoTextColor} block md:hidden lg:block`}>
+          <Link href="/" className="flex items-center gap-2 shrink-0">
+            <img src={logo} alt="Ace Tours Logo" className="h-10 md:h-12 w-auto rounded-full" />
+            <span className={`font-serif font-bold text-lg md:text-xl tracking-tight transition-colors ${logoTextColor}`}>
               Ace Tours & Transfers
             </span>
           </Link>
