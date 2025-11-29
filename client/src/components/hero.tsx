@@ -28,8 +28,9 @@ export function Hero() {
           <span className="inline-block py-1 px-3 rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-sm font-medium mb-6 tracking-wider uppercase">
             {t("hero.subtitle")}
           </span>
-          <h1 className="font-serif text-5xl md:text-7xl lg:text-8xl mb-6 leading-tight drop-shadow-xl text-[#f2800d] font-bold">
-            {t("hero.title")}
+          <h1 className="font-serif text-5xl md:text-7xl lg:text-8xl mb-6 leading-tight drop-shadow-xl">
+            <span className="text-white font-bold">{t("hero.titlePart1")} </span>
+            <span className="text-[#f2800d] italic font-normal lowercase">{t("hero.titlePart2")}</span>
           </h1>
           <p className="text-lg md:text-xl text-white/90 mb-8 max-w-2xl mx-auto font-light leading-relaxed">
             {t("home.toursDesc")}
