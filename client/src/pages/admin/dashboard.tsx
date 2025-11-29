@@ -37,11 +37,15 @@ function Topbar({ title, showSearch = true, onLogout }: { title: string; showSea
 function Sidebar({ onNewBooking }: { onNewBooking: () => void }) {
   const [location, setLocation] = useLocation();
   const items = [
-    { label: 'Overview', href: '/admin/dashboard' },
-    { label: 'Bookings', href: '/admin/bookings' },
-    { label: 'Tours', href: '/admin/tours' },
-    { label: 'Customers', href: '/admin/customers' },
-    { label: 'Settings', href: '/admin/settings' },
+    { label: 'Overview', href: '/admin/dashboard', icon: '📊' },
+    { label: 'Analytics', href: '/admin/analytics', icon: '📈' },
+    { label: 'Bookings', href: '/admin/bookings', icon: '📅' },
+    { label: 'Calendar', href: '/admin/calendar', icon: '🗓️' },
+    { label: 'Tours & Services', href: '/admin/tours', icon: '🗺️' },
+    { label: 'Customers', href: '/admin/customers', icon: '👥' },
+    { label: 'Promotions', href: '/admin/promotions', icon: '🏷️' },
+    { label: 'Reports', href: '/admin/reports', icon: '📋' },
+    { label: 'Settings', href: '/admin/settings', icon: '⚙️' },
   ];
 
   return (
@@ -55,12 +59,15 @@ function Sidebar({ onNewBooking }: { onNewBooking: () => void }) {
           </div>
         </div>
       </Link>
-      <nav style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
+      <nav style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 8 }}>
         {items.map(it => (
           <Link key={it.label} href={it.href}>
             <button 
-              data-testid={`nav-${it.label.toLowerCase()}`}
+              data-testid={`nav-${it.label.toLowerCase().replace(/\s+/g, '-')}`}
               style={{ 
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
                 textAlign: 'left', 
                 padding: '10px 12px', 
                 borderRadius: 8, 
@@ -69,9 +76,22 @@ function Sidebar({ onNewBooking }: { onNewBooking: () => void }) {
                 color: location === it.href ? THEME.text : 'rgba(230,238,243,0.7)', 
                 cursor: 'pointer',
                 width: '100%',
-                fontWeight: location === it.href ? 600 : 400
+                fontWeight: location === it.href ? 600 : 400,
+                fontSize: 13,
+                transition: 'all 0.15s ease'
+              }}
+              onMouseOver={(e) => {
+                if (location !== it.href) {
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
+                }
+              }}
+              onMouseOut={(e) => {
+                if (location !== it.href) {
+                  e.currentTarget.style.background = 'transparent';
+                }
               }}
             >
+              <span style={{ fontSize: 14 }}>{it.icon}</span>
               {it.label}
             </button>
           </Link>

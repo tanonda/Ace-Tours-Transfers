@@ -15,7 +15,6 @@ import {
   User,
   Heart,
   Bell,
-  Check,
   BarChart3,
   FileText,
   Tag,
@@ -27,6 +26,17 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { useAuth } from "@/lib/auth-context";
+
+const THEME = {
+  accent1: '#FF6B6B',
+  accent2: '#FFD93D',
+  accent3: '#6BCB77',
+  accent4: '#4D96FF',
+  bg: '#0f1724',
+  surface: '#0b1220',
+  text: '#E6EEF3'
+};
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -36,6 +46,7 @@ interface DashboardLayoutProps {
 export function DashboardLayout({ children, type }: DashboardLayoutProps) {
   const [location] = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const { user, logout } = useAuth();
 
   const notifications = [
     {
@@ -64,178 +75,419 @@ export function DashboardLayout({ children, type }: DashboardLayoutProps) {
   const unreadCount = notifications.filter(n => !n.read).length;
 
   const adminLinks = [
-    { href: "/admin/dashboard", label: "Overview", icon: LayoutDashboard },
-    { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
-    { href: "/admin/bookings", label: "Bookings", icon: CalendarDays },
-    { href: "/admin/calendar", label: "Calendar", icon: Calendar },
-    { href: "/admin/tours", label: "Tours & Services", icon: Map },
-    { href: "/admin/customers", label: "Customers", icon: Users },
-    { href: "/admin/promotions", label: "Promotions", icon: Tag },
-    { href: "/admin/reports", label: "Reports", icon: FileText },
-    { href: "/admin/settings", label: "Settings", icon: Settings },
+    { href: "/admin/dashboard", label: "Overview", icon: LayoutDashboard, emoji: "📊" },
+    { href: "/admin/analytics", label: "Analytics", icon: BarChart3, emoji: "📈" },
+    { href: "/admin/bookings", label: "Bookings", icon: CalendarDays, emoji: "📅" },
+    { href: "/admin/calendar", label: "Calendar", icon: Calendar, emoji: "🗓️" },
+    { href: "/admin/tours", label: "Tours & Services", icon: Map, emoji: "🗺️" },
+    { href: "/admin/customers", label: "Customers", icon: Users, emoji: "👥" },
+    { href: "/admin/promotions", label: "Promotions", icon: Tag, emoji: "🏷️" },
+    { href: "/admin/reports", label: "Reports", icon: FileText, emoji: "📋" },
+    { href: "/admin/settings", label: "Settings", icon: Settings, emoji: "⚙️" },
   ];
 
   const customerLinks = [
-    { href: "/dashboard", label: "My Dashboard", icon: LayoutDashboard },
-    { href: "/dashboard/bookings", label: "My Bookings", icon: ShoppingBag },
-    { href: "/dashboard/saved", label: "Saved Tours", icon: Heart },
-    { href: "/dashboard/profile", label: "Profile & Settings", icon: User },
+    { href: "/dashboard", label: "My Dashboard", icon: LayoutDashboard, emoji: "🏠" },
+    { href: "/dashboard/bookings", label: "My Bookings", icon: ShoppingBag, emoji: "🎫" },
+    { href: "/dashboard/saved", label: "Saved Tours", icon: Heart, emoji: "❤️" },
+    { href: "/dashboard/profile", label: "Profile & Settings", icon: User, emoji: "👤" },
   ];
 
   const links = type === "admin" ? adminLinks : customerLinks;
 
+  const handleLogout = async () => {
+    await logout();
+  };
+
   return (
-    <div className="min-h-screen bg-[hsl(var(--background))] flex">
-      {/* Floating Sidebar Trigger */}
+    <div 
+      style={{ 
+        minHeight: '100vh', 
+        background: `linear-gradient(180deg, ${THEME.bg}, ${THEME.surface})`, 
+        color: THEME.text, 
+        fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial',
+        display: 'flex'
+      }}
+    >
       {!isSidebarOpen && (
         <div 
-          className="fixed left-0 top-1/2 -translate-y-1/2 z-50 bg-[hsl(var(--primary))] text-white p-2 rounded-r-md cursor-pointer shadow-md hover:w-12 transition-all duration-300 w-8 flex items-center justify-center"
+          style={{
+            position: 'fixed',
+            left: 0,
+            top: '50%',
+            transform: 'translateY(-50%)',
+            zIndex: 50,
+            background: THEME.accent4,
+            padding: '8px',
+            borderRadius: '0 8px 8px 0',
+            cursor: 'pointer',
+            boxShadow: '2px 2px 10px rgba(0,0,0,0.3)',
+            transition: 'all 0.3s ease',
+            width: 32,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
           onMouseEnter={() => setIsSidebarOpen(true)}
         >
-          <div className="h-8 w-1 bg-white/20 rounded-full"></div>
+          <div style={{ height: 32, width: 4, background: 'rgba(255,255,255,0.3)', borderRadius: 4 }}></div>
         </div>
       )}
 
-      {/* Sidebar */}
       <aside 
-        className={cn(
-          "fixed inset-y-0 left-0 z-50 w-64 bg-[hsl(var(--foreground))] text-white transition-transform duration-300 ease-in-out shadow-xl",
-          isSidebarOpen ? "translate-x-0" : "-translate-x-full"
-        )}
+        style={{
+          position: 'fixed',
+          inset: '0',
+          right: 'auto',
+          zIndex: 50,
+          width: 240,
+          background: `linear-gradient(180deg, ${THEME.bg}, ${THEME.surface})`,
+          borderRight: '1px solid rgba(255,255,255,0.05)',
+          transform: isSidebarOpen ? 'translateX(0)' : 'translateX(-100%)',
+          transition: 'transform 0.3s ease',
+          boxShadow: isSidebarOpen ? '4px 0 20px rgba(0,0,0,0.3)' : 'none',
+          display: 'flex',
+          flexDirection: 'column'
+        }}
         onMouseEnter={() => setIsSidebarOpen(true)}
         onMouseLeave={() => setIsSidebarOpen(false)}
       >
-        <div className="flex items-center justify-between h-16 px-6 border-b border-white/10">
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'space-between', 
+          height: 64, 
+          padding: '0 16px', 
+          borderBottom: '1px solid rgba(255,255,255,0.05)' 
+        }}>
           <Link href="/">
-            <span className="font-serif font-bold text-xl tracking-tight cursor-pointer">Ace Tours</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
+              <div style={{ 
+                width: 36, 
+                height: 36, 
+                borderRadius: 8, 
+                background: THEME.accent1, 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                color: '#201114', 
+                fontWeight: 800,
+                fontSize: 12
+              }}>AT</div>
+              <div>
+                <div style={{ color: THEME.text, fontWeight: 700, fontSize: 14 }}>Ace Tours</div>
+                <div style={{ color: 'rgba(230,238,243,0.5)', fontSize: 11 }}>
+                  {type === "admin" ? "Admin Panel" : "Customer Portal"}
+                </div>
+              </div>
+            </div>
           </Link>
-          <button onClick={() => setIsSidebarOpen(false)} className="text-white/70 hover:text-white">
-            <X className="h-6 w-6" />
+          <button 
+            onClick={() => setIsSidebarOpen(false)} 
+            style={{ 
+              background: 'transparent', 
+              border: 'none', 
+              color: 'rgba(230,238,243,0.5)', 
+              cursor: 'pointer',
+              padding: 4
+            }}
+          >
+            <X size={20} />
           </button>
         </div>
 
-        <div className="p-4">
-          <div className="flex items-center gap-3 mb-8 px-2">
-            <Avatar className="h-10 w-10 border-2 border-white/20">
-              <AvatarImage src={type === "admin" ? "https://github.com/shadcn.png" : ""} />
-              <AvatarFallback className="bg-primary-foreground text-primary font-bold">
-                {type === "admin" ? "AD" : "JD"}
-              </AvatarFallback>
-            </Avatar>
-            <div className="overflow-hidden">
-              <p className="font-medium truncate">{type === "admin" ? "Admin User" : "James Doe"}</p>
-              <p className="text-xs text-white/60 truncate">{type === "admin" ? "Administrator" : "Customer"}</p>
+        <div style={{ padding: 16, flex: 1, overflowY: 'auto' }}>
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: 12, 
+            marginBottom: 24, 
+            padding: '12px', 
+            background: 'rgba(255,255,255,0.03)', 
+            borderRadius: 10 
+          }}>
+            <div style={{ 
+              width: 40, 
+              height: 40, 
+              borderRadius: 10, 
+              background: THEME.accent4, 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              color: '#07203b', 
+              fontWeight: 700 
+            }}>
+              {user?.name?.[0] || (type === "admin" ? "A" : "J")}
+            </div>
+            <div style={{ overflow: 'hidden' }}>
+              <p style={{ margin: 0, fontWeight: 600, fontSize: 14, color: THEME.text }}>
+                {user?.name || (type === "admin" ? "Admin User" : "Customer")}
+              </p>
+              <p style={{ margin: 0, fontSize: 11, color: 'rgba(230,238,243,0.5)' }}>
+                {type === "admin" ? "Administrator" : "Customer"}
+              </p>
             </div>
           </div>
 
-          <nav className="space-y-1">
+          <nav style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {links.map((link) => {
-              const Icon = link.icon;
               const isActive = location === link.href;
               return (
                 <Link key={link.href} href={link.href}>
-                  <a className={cn(
-                    "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors",
-                    isActive 
-                      ? "bg-white/10 text-white shadow-sm" 
-                      : "text-white/70 hover:bg-white/5 hover:text-white"
-                  )}>
-                    <Icon className="h-4 w-4" />
+                  <div 
+                    style={{ 
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                      padding: '10px 12px', 
+                      borderRadius: 8, 
+                      background: isActive ? 'rgba(255,255,255,0.08)' : 'transparent', 
+                      color: isActive ? THEME.text : 'rgba(230,238,243,0.7)', 
+                      cursor: 'pointer',
+                      fontWeight: isActive ? 600 : 400,
+                      fontSize: 13,
+                      transition: 'all 0.15s ease'
+                    }}
+                    onMouseOver={(e) => {
+                      if (!isActive) {
+                        e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
+                        e.currentTarget.style.color = THEME.text;
+                      }
+                    }}
+                    onMouseOut={(e) => {
+                      if (!isActive) {
+                        e.currentTarget.style.background = 'transparent';
+                        e.currentTarget.style.color = 'rgba(230,238,243,0.7)';
+                      }
+                    }}
+                    data-testid={`nav-${link.label.toLowerCase().replace(/\s+/g, '-')}`}
+                  >
+                    <span style={{ fontSize: 14 }}>{link.emoji}</span>
                     {link.label}
-                  </a>
+                  </div>
                 </Link>
               );
             })}
           </nav>
         </div>
 
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-white/10">
+        <div style={{ 
+          padding: 16, 
+          borderTop: '1px solid rgba(255,255,255,0.05)' 
+        }}>
           <Link href="/login">
-            <button className="flex items-center gap-3 px-3 py-2.5 w-full text-left rounded-md text-sm font-medium text-white/70 hover:bg-red-500/10 hover:text-red-200 transition-colors">
-              <LogOut className="h-4 w-4" />
+            <button 
+              onClick={handleLogout}
+              style={{ 
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                width: '100%',
+                padding: '10px 12px', 
+                borderRadius: 8, 
+                border: 'none',
+                background: 'transparent', 
+                color: 'rgba(230,238,243,0.6)', 
+                cursor: 'pointer',
+                fontSize: 13,
+                textAlign: 'left',
+                transition: 'all 0.15s ease'
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.background = 'rgba(255,107,107,0.1)';
+                e.currentTarget.style.color = THEME.accent1;
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.color = 'rgba(230,238,243,0.6)';
+              }}
+            >
+              <LogOut size={16} />
               Sign Out
             </button>
           </Link>
         </div>
       </aside>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <header className="bg-white border-b h-16 flex items-center justify-between px-4 lg:px-8 sticky top-0 z-40">
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
+        <header style={{ 
+          background: THEME.bg, 
+          borderBottom: '1px solid rgba(255,255,255,0.05)', 
+          height: 64, 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'space-between', 
+          padding: '0 24px',
+          position: 'sticky',
+          top: 0,
+          zIndex: 40
+        }}>
           <div 
-            className="mr-4 p-2 -ml-2 cursor-pointer text-slate-500 hover:text-slate-700"
-            onMouseEnter={() => setIsSidebarOpen(true)}
+            style={{ 
+              padding: 8, 
+              marginLeft: -8, 
+              cursor: 'pointer', 
+              color: 'rgba(230,238,243,0.6)',
+              borderRadius: 8,
+              transition: 'all 0.15s ease'
+            }}
+            onMouseEnter={(e) => {
+              setIsSidebarOpen(true);
+              e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+              e.currentTarget.style.color = THEME.text;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent';
+              e.currentTarget.style.color = 'rgba(230,238,243,0.6)';
+            }}
           >
-            <Menu className="h-6 w-6" />
+            <Menu size={24} />
           </div>
           
-          <div className="flex items-center gap-4 ml-auto">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="ghost" size="icon" className="relative text-slate-500 hover:text-[hsl(var(--primary))] hover:bg-[hsl(var(--primary))/10]">
-                  <Bell className="h-5 w-5" />
+                <button 
+                  style={{ 
+                    position: 'relative', 
+                    background: 'transparent', 
+                    border: 'none', 
+                    padding: 8, 
+                    cursor: 'pointer',
+                    color: 'rgba(230,238,243,0.6)',
+                    borderRadius: 8
+                  }}
+                >
+                  <Bell size={20} />
                   {unreadCount > 0 && (
-                    <span className="absolute top-2 right-2 h-2 w-2 bg-red-500 rounded-full ring-2 ring-white"></span>
+                    <span style={{ 
+                      position: 'absolute', 
+                      top: 6, 
+                      right: 6, 
+                      width: 8, 
+                      height: 8, 
+                      background: THEME.accent1, 
+                      borderRadius: 999,
+                      border: `2px solid ${THEME.bg}`
+                    }}></span>
                   )}
-                </Button>
+                </button>
               </PopoverTrigger>
-              <PopoverContent className="w-80 p-0 mr-4" align="end">
-                <div className="flex items-center justify-between px-4 py-3 border-b bg-[hsl(var(--muted))/30]">
-                  <h4 className="font-semibold text-sm">Notifications</h4>
+              <PopoverContent 
+                className="w-80 p-0 mr-4" 
+                align="end"
+                style={{ background: THEME.bg, border: '1px solid rgba(255,255,255,0.1)' }}
+              >
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'space-between', 
+                  padding: '12px 16px', 
+                  borderBottom: '1px solid rgba(255,255,255,0.05)',
+                  background: 'rgba(255,255,255,0.02)'
+                }}>
+                  <h4 style={{ margin: 0, fontWeight: 600, fontSize: 14, color: THEME.text }}>Notifications</h4>
                   {unreadCount > 0 && (
-                    <span className="bg-[hsl(var(--primary))] text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold">
+                    <span style={{ 
+                      background: THEME.accent4, 
+                      color: '#07203b', 
+                      fontSize: 10, 
+                      padding: '2px 6px', 
+                      borderRadius: 999, 
+                      fontWeight: 700 
+                    }}>
                       {unreadCount} New
                     </span>
                   )}
                 </div>
-                <div className="max-h-[300px] overflow-y-auto">
+                <div style={{ maxHeight: 300, overflowY: 'auto' }}>
                   {notifications.length > 0 ? (
-                    <div className="divide-y">
+                    <div>
                       {notifications.map((notification) => (
                         <div 
                           key={notification.id} 
-                          className={cn(
-                            "p-4 hover:bg-[hsl(var(--muted))/30] transition-colors cursor-pointer",
-                            !notification.read && "bg-[hsl(var(--primary))/5]"
-                          )}
+                          style={{
+                            padding: 16,
+                            borderBottom: '1px solid rgba(255,255,255,0.03)',
+                            background: !notification.read ? 'rgba(77,150,255,0.05)' : 'transparent',
+                            cursor: 'pointer'
+                          }}
                         >
-                          <div className="flex justify-between items-start gap-2 mb-1">
-                            <h5 className={cn("text-sm font-medium", !notification.read && "text-[hsl(var(--primary))]")}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 4 }}>
+                            <h5 style={{ 
+                              margin: 0, 
+                              fontSize: 13, 
+                              fontWeight: 500, 
+                              color: !notification.read ? THEME.accent4 : THEME.text 
+                            }}>
                               {notification.title}
                             </h5>
-                            <span className="text-[10px] text-muted-foreground whitespace-nowrap">{notification.time}</span>
+                            <span style={{ fontSize: 10, color: 'rgba(230,238,243,0.4)', whiteSpace: 'nowrap' }}>
+                              {notification.time}
+                            </span>
                           </div>
-                          <p className="text-xs text-muted-foreground line-clamp-2">
+                          <p style={{ margin: 0, fontSize: 12, color: 'rgba(230,238,243,0.6)' }}>
                             {notification.message}
                           </p>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <div className="p-8 text-center text-muted-foreground text-sm">
+                    <div style={{ padding: 32, textAlign: 'center', color: 'rgba(230,238,243,0.4)', fontSize: 13 }}>
                       No new notifications
                     </div>
                   )}
                 </div>
-                <div className="p-2 border-t bg-[hsl(var(--muted))/30]">
-                  <Button variant="ghost" size="sm" className="w-full text-xs h-8 text-muted-foreground hover:text-[hsl(var(--primary))]">
+                <div style={{ padding: 8, borderTop: '1px solid rgba(255,255,255,0.05)', background: 'rgba(255,255,255,0.02)' }}>
+                  <button 
+                    style={{ 
+                      width: '100%', 
+                      padding: 8, 
+                      background: 'transparent', 
+                      border: 'none', 
+                      color: 'rgba(230,238,243,0.5)', 
+                      fontSize: 12, 
+                      cursor: 'pointer',
+                      borderRadius: 6
+                    }}
+                  >
                     Mark all as read
-                  </Button>
+                  </button>
                 </div>
               </PopoverContent>
             </Popover>
+
+            <div style={{ 
+              width: 36, 
+              height: 36, 
+              borderRadius: 999, 
+              background: THEME.accent4, 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              color: '#07203b', 
+              fontWeight: 700,
+              fontSize: 14
+            }}>
+              {user?.name?.[0] || (type === "admin" ? "A" : "J")}
+            </div>
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-4 lg:p-8">
+        <main style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
           {children}
         </main>
       </div>
 
-      {/* Overlay for mobile sidebar */}
       {isSidebarOpen && (
         <div 
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.5)',
+            zIndex: 40
+          }}
+          className="lg:hidden"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
