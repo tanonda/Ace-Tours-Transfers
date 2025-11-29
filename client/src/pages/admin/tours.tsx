@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Search, Edit, Trash, Eye, Clock, Users, DollarSign, ImageIcon } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchTours, fetchBookings } from "@/lib/api";
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
 import type { Tour } from "@shared/schema";
 
@@ -48,15 +48,19 @@ export default function AdminTours() {
   const [viewingTour, setViewingTour] = useState<Tour | null>(null);
   const [formData, setFormData] = useState<TourFormData>(defaultFormData);
 
-  const { data: tours = [], isLoading } = useQuery({
+  const { data: tours = [], isLoading: toursLoading } = useQuery({
     queryKey: ["tours"],
     queryFn: fetchTours,
+    staleTime: 30000,
   });
 
-  const { data: bookings = [] } = useQuery({
+  const { data: bookings = [], isLoading: bookingsLoading } = useQuery({
     queryKey: ["bookings"],
     queryFn: fetchBookings,
+    staleTime: 30000,
   });
+
+  const isLoading = toursLoading || bookingsLoading;
 
   const createMutation = useMutation({
     mutationFn: async (data: TourFormData) => {
@@ -79,21 +83,35 @@ export default function AdminTours() {
     }
   });
 
-  const filteredTours = tours.filter(tour => {
-    const matchesSearch = tour.title.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = categoryFilter === 'all' || tour.category === categoryFilter;
-    return matchesSearch && matchesCategory;
-  });
+  const filteredTours = useMemo(() => {
+    return tours.filter(tour => {
+      const matchesSearch = tour.title.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCategory = categoryFilter === 'all' || tour.category === categoryFilter;
+      return matchesSearch && matchesCategory;
+    });
+  }, [tours, searchQuery, categoryFilter]);
 
-  const getTourBookingsCount = (tourId: string) => {
-    return bookings.filter(b => b.tourId === tourId).length;
-  };
+  const tourBookingData = useMemo(() => {
+    const stats: Record<string, { bookings: number; revenue: number }> = {};
+    for (const tour of tours) {
+      stats[tour.id] = { bookings: 0, revenue: 0 };
+    }
+    for (const booking of bookings) {
+      if (stats[booking.tourId]) {
+        stats[booking.tourId].bookings += 1;
+        stats[booking.tourId].revenue += parseFloat(booking.amount?.replace(/[^0-9.-]+/g, '') || '0');
+      }
+    }
+    return stats;
+  }, [tours, bookings]);
 
-  const getTourRevenue = (tourId: string) => {
-    return bookings
-      .filter(b => b.tourId === tourId)
-      .reduce((sum, b) => sum + parseFloat(b.amount?.replace(/[^0-9.-]+/g, '') || '0'), 0);
-  };
+  const getTourBookingsCount = useCallback((tourId: string) => {
+    return tourBookingData[tourId]?.bookings || 0;
+  }, [tourBookingData]);
+
+  const getTourRevenue = useCallback((tourId: string) => {
+    return tourBookingData[tourId]?.revenue || 0;
+  }, [tourBookingData]);
 
   const handleCreateTour = () => {
     if (!formData.title || !formData.price) {
@@ -372,14 +390,14 @@ export default function AdminTours() {
                   filteredTours.map((tour) => (
                     <TableRow key={tour.id} data-testid={`row-tour-${tour.id}`}>
                       <TableCell>
-                        <img 
-                          src={tour.image} 
-                          alt={tour.title} 
-                          className="h-12 w-16 object-cover rounded-md"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = 'https://via.placeholder.com/64x48?text=No+Image';
-                          }}
-                        />
+                        <div className="h-12 w-16 bg-muted rounded-md overflow-hidden flex-shrink-0">
+                          <img 
+                            src={tour.image || '/placeholder-tour.jpg'} 
+                            alt={tour.title} 
+                            className="h-full w-full object-cover"
+                            loading="lazy"
+                          />
+                        </div>
                       </TableCell>
                       <TableCell className="font-medium max-w-[200px] truncate">
                         {tour.title}
