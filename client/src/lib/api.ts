@@ -103,7 +103,9 @@ export async function fetchCustomers(): Promise<User[]> {
 
 // Export bookings as CSV
 export async function exportBookingsCSV(): Promise<void> {
-  const response = await fetch(`${API_BASE}/bookings/export`);
+  const response = await fetch(`${API_BASE}/bookings/export`, {
+    credentials: "include"
+  });
   if (!response.ok) throw new Error("Failed to export bookings");
   
   const blob = await response.blob();
