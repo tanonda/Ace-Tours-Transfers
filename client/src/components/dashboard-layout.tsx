@@ -16,7 +16,12 @@ import {
   BarChart3,
   FileText,
   Tag,
-  Calendar
+  Calendar,
+  CheckCircle,
+  CreditCard,
+  Clock,
+  AlertCircle,
+  ChevronRight
 } from "lucide-react";
 import {
   Popover,
@@ -38,31 +43,137 @@ export function DashboardLayout({ children, type }: DashboardLayoutProps) {
   const { user, logout } = useAuth();
   const { theme } = useTheme();
 
-  const notifications = [
+  const adminNotifications = [
     {
       id: 1,
+      type: "booking",
       title: "New Booking Confirmed",
-      message: "Booking #BK-7821 has been confirmed.",
+      message: "Efate Scenic Tour booked by James Doe",
+      details: {
+        bookingId: "BK-7821",
+        customer: "James Doe",
+        tour: "Efate Scenic Tour",
+        date: "Dec 15, 2024",
+        guests: 2,
+        amount: "$240"
+      },
       time: "2 mins ago",
-      read: false
+      read: false,
+      link: "/admin/bookings"
     },
     {
       id: 2,
+      type: "payment",
       title: "Payment Received",
-      message: "Payment for Booking #BK-7821 successful.",
+      message: "Payment of $240 received for booking",
+      details: {
+        bookingId: "BK-7821",
+        customer: "James Doe",
+        amount: "$240",
+        method: "Credit Card"
+      },
       time: "5 mins ago",
-      read: false
+      read: false,
+      link: "/admin/bookings"
     },
     {
       id: 3,
-      title: "Tour Reminder",
-      message: "Your tour starts tomorrow at 8:00 AM.",
+      type: "reminder",
+      title: "Tour Starting Tomorrow",
+      message: "Roots & Routes Tour scheduled for 8:00 AM",
+      details: {
+        tour: "Roots & Routes Tour",
+        date: "Dec 10, 2024",
+        time: "8:00 AM",
+        guests: 4
+      },
       time: "1 hour ago",
-      read: true
+      read: true,
+      link: "/admin/calendar"
+    },
+    {
+      id: 4,
+      type: "alert",
+      title: "Low Availability Alert",
+      message: "Only 2 seats left for Efate Scenic Tour on Dec 20",
+      details: {
+        tour: "Efate Scenic Tour",
+        date: "Dec 20, 2024",
+        seatsLeft: 2
+      },
+      time: "3 hours ago",
+      read: true,
+      link: "/admin/tours"
     }
   ];
 
+  const customerNotifications = [
+    {
+      id: 1,
+      type: "booking",
+      title: "Booking Confirmed",
+      message: "Your Efate Scenic Tour is confirmed!",
+      details: {
+        bookingId: "BK-7821",
+        tour: "Efate Scenic Tour",
+        date: "Dec 15, 2024",
+        guests: 2,
+        amount: "$240"
+      },
+      time: "2 mins ago",
+      read: false,
+      link: "/dashboard/bookings"
+    },
+    {
+      id: 2,
+      type: "payment",
+      title: "Payment Successful",
+      message: "Your payment of $240 was processed",
+      details: {
+        bookingId: "BK-7821",
+        amount: "$240",
+        method: "Credit Card",
+        reference: "PAY-9823"
+      },
+      time: "5 mins ago",
+      read: false,
+      link: "/dashboard/bookings"
+    },
+    {
+      id: 3,
+      type: "reminder",
+      title: "Tour Reminder",
+      message: "Your tour starts tomorrow at 8:00 AM",
+      details: {
+        tour: "Roots & Routes Tour",
+        date: "Dec 10, 2024",
+        time: "8:00 AM",
+        pickup: "Hotel Warwick"
+      },
+      time: "1 hour ago",
+      read: true,
+      link: "/dashboard/bookings"
+    }
+  ];
+
+  const notifications = type === "admin" ? adminNotifications : customerNotifications;
   const unreadCount = notifications.filter(n => !n.read).length;
+  const [, navigate] = useLocation();
+
+  const getNotificationIcon = (notificationType: string) => {
+    switch (notificationType) {
+      case "booking":
+        return <CheckCircle className="h-4 w-4 text-green-500" />;
+      case "payment":
+        return <CreditCard className="h-4 w-4 text-blue-500" />;
+      case "reminder":
+        return <Clock className="h-4 w-4 text-orange-500" />;
+      case "alert":
+        return <AlertCircle className="h-4 w-4 text-red-500" />;
+      default:
+        return <Bell className="h-4 w-4 text-muted-foreground" />;
+    }
+  };
 
   const adminLinks = [
     { href: "/admin/dashboard", label: "Overview", icon: LayoutDashboard, emoji: "📊" },
@@ -203,7 +314,7 @@ export function DashboardLayout({ children, type }: DashboardLayoutProps) {
                 </button>
               </PopoverTrigger>
               <PopoverContent 
-                className="w-80 p-0 mr-4 bg-card border-border" 
+                className="w-96 p-0 mr-4 bg-card border-border" 
                 align="end"
               >
                 <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/50">
@@ -214,27 +325,88 @@ export function DashboardLayout({ children, type }: DashboardLayoutProps) {
                     </span>
                   )}
                 </div>
-                <div className="max-h-72 overflow-y-auto">
+                <div className="max-h-96 overflow-y-auto">
                   {notifications.length > 0 ? (
                     <div>
                       {notifications.map((notification) => (
                         <div 
                           key={notification.id} 
-                          className={`p-4 border-b border-border/50 cursor-pointer hover:bg-muted/50 transition-colors ${
+                          onClick={() => navigate(notification.link)}
+                          className={`p-4 border-b border-border/50 cursor-pointer hover:bg-muted/50 transition-all group ${
                             !notification.read ? 'bg-primary/5' : ''
                           }`}
                         >
-                          <div className="flex justify-between items-start gap-2 mb-1">
-                            <h5 className={`text-sm font-medium ${!notification.read ? 'text-primary' : 'text-foreground'}`}>
-                              {notification.title}
-                            </h5>
-                            <span className="text-xs text-muted-foreground whitespace-nowrap">
-                              {notification.time}
-                            </span>
+                          <div className="flex items-start gap-3">
+                            <div className={`mt-0.5 p-2 rounded-full ${
+                              notification.type === 'booking' ? 'bg-green-100 dark:bg-green-900/30' :
+                              notification.type === 'payment' ? 'bg-blue-100 dark:bg-blue-900/30' :
+                              notification.type === 'reminder' ? 'bg-orange-100 dark:bg-orange-900/30' :
+                              'bg-red-100 dark:bg-red-900/30'
+                            }`}>
+                              {getNotificationIcon(notification.type)}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex justify-between items-start gap-2 mb-1">
+                                <h5 className={`text-sm font-medium ${!notification.read ? 'text-primary' : 'text-foreground'}`}>
+                                  {notification.title}
+                                </h5>
+                                <span className="text-xs text-muted-foreground whitespace-nowrap">
+                                  {notification.time}
+                                </span>
+                              </div>
+                              <p className="text-xs text-muted-foreground mb-2">
+                                {notification.message}
+                              </p>
+                              <div className="bg-muted/50 rounded-md p-2 text-xs space-y-1">
+                                {notification.details.bookingId && (
+                                  <div className="flex justify-between">
+                                    <span className="text-muted-foreground">Booking ID:</span>
+                                    <span className="font-medium text-foreground">{notification.details.bookingId}</span>
+                                  </div>
+                                )}
+                                {notification.details.tour && (
+                                  <div className="flex justify-between">
+                                    <span className="text-muted-foreground">Tour:</span>
+                                    <span className="font-medium text-foreground truncate ml-2">{notification.details.tour}</span>
+                                  </div>
+                                )}
+                                {notification.details.date && (
+                                  <div className="flex justify-between">
+                                    <span className="text-muted-foreground">Date:</span>
+                                    <span className="font-medium text-foreground">{notification.details.date}</span>
+                                  </div>
+                                )}
+                                {notification.details.amount && (
+                                  <div className="flex justify-between">
+                                    <span className="text-muted-foreground">Amount:</span>
+                                    <span className="font-medium text-green-600 dark:text-green-400">{notification.details.amount}</span>
+                                  </div>
+                                )}
+                                {notification.details.guests && (
+                                  <div className="flex justify-between">
+                                    <span className="text-muted-foreground">Guests:</span>
+                                    <span className="font-medium text-foreground">{notification.details.guests}</span>
+                                  </div>
+                                )}
+                                {'pickup' in notification.details && notification.details.pickup && (
+                                  <div className="flex justify-between">
+                                    <span className="text-muted-foreground">Pickup:</span>
+                                    <span className="font-medium text-foreground">{notification.details.pickup}</span>
+                                  </div>
+                                )}
+                                {notification.details.time && (
+                                  <div className="flex justify-between">
+                                    <span className="text-muted-foreground">Time:</span>
+                                    <span className="font-medium text-foreground">{notification.details.time}</span>
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-1 mt-2 text-xs text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                                <span>View details</span>
+                                <ChevronRight className="h-3 w-3" />
+                              </div>
+                            </div>
                           </div>
-                          <p className="text-xs text-muted-foreground">
-                            {notification.message}
-                          </p>
                         </div>
                       ))}
                     </div>
