@@ -83,6 +83,28 @@ export default function AdminTours() {
     }
   });
 
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: TourFormData }) => {
+      const response = await fetch(`/api/tours/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(data)
+      });
+      if (!response.ok) throw new Error('Failed to update tour');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tours"] });
+      toast({ title: "Tour Updated", description: "Tour has been updated successfully." });
+      setEditingTour(null);
+      setFormData(defaultFormData);
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to update tour", variant: "destructive" });
+    }
+  });
+
   const filteredTours = useMemo(() => {
     return tours.filter(tour => {
       const matchesSearch = tour.title.toLowerCase().includes(searchQuery.toLowerCase());
@@ -147,6 +169,19 @@ export default function AdminTours() {
       description: tour.description,
       category: tour.category as 'tour' | 'transfer'
     });
+  };
+
+  const handleUpdateTour = () => {
+    if (!editingTour || !formData.title || !formData.price) {
+      toast({ title: "Validation Error", description: "Please fill in all required fields", variant: "destructive" });
+      return;
+    }
+    updateMutation.mutate({ id: editingTour.id, data: formData });
+  };
+
+  const handleCloseEditDialog = () => {
+    setEditingTour(null);
+    setFormData(defaultFormData);
   };
 
   const tourStats = {
@@ -511,6 +546,147 @@ export default function AdminTours() {
                 </div>
               </>
             )}
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={!!editingTour} onOpenChange={handleCloseEditDialog}>
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle>Edit Service</DialogTitle>
+              <DialogDescription>
+                Update the details for this tour or transfer service.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Service Type</Label>
+                  <Select 
+                    value={formData.category} 
+                    onValueChange={(v: 'tour' | 'transfer') => setFormData({ ...formData, category: v })}
+                  >
+                    <SelectTrigger data-testid="edit-select-category">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="tour">Tour Package</SelectItem>
+                      <SelectItem value="transfer">Transfer Service</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Title *</Label>
+                  <Input 
+                    value={formData.title}
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    placeholder="e.g., Island Tour"
+                    data-testid="edit-input-title"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Adult Price *</Label>
+                  <Input 
+                    value={formData.price}
+                    onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                    placeholder="e.g., $120 / adult"
+                    data-testid="edit-input-price"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Child Price</Label>
+                  <Input 
+                    value={formData.childPrice}
+                    onChange={(e) => setFormData({ ...formData, childPrice: e.target.value })}
+                    placeholder="e.g., $60 / child"
+                    data-testid="edit-input-child-price"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Duration</Label>
+                  <Input 
+                    value={formData.duration}
+                    onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
+                    placeholder="e.g., 4-5 Hours"
+                    data-testid="edit-input-duration"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Min. Passengers</Label>
+                  <Input 
+                    value={formData.minPax}
+                    onChange={(e) => setFormData({ ...formData, minPax: e.target.value })}
+                    placeholder="e.g., 10-14 pax"
+                    data-testid="edit-input-min-pax"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Image URL</Label>
+                <Input 
+                  value={formData.image}
+                  onChange={(e) => setFormData({ ...formData, image: e.target.value })}
+                  placeholder="https://example.com/image.jpg"
+                  data-testid="edit-input-image"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Description & Features</Label>
+                {formData.description.map((desc, index) => (
+                  <div key={index} className="flex gap-2">
+                    <Input 
+                      value={desc}
+                      onChange={(e) => {
+                        const newDesc = [...formData.description];
+                        newDesc[index] = e.target.value;
+                        setFormData({ ...formData, description: newDesc });
+                      }}
+                      placeholder={`Feature ${index + 1}`}
+                      data-testid={`edit-input-desc-${index}`}
+                    />
+                    {formData.description.length > 1 && (
+                      <Button 
+                        type="button"
+                        variant="outline" 
+                        size="icon"
+                        onClick={() => {
+                          const newDesc = formData.description.filter((_, i) => i !== index);
+                          setFormData({ ...formData, description: newDesc });
+                        }}
+                        data-testid={`edit-button-remove-desc-${index}`}
+                      >
+                        <Trash className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+                <Button 
+                  type="button"
+                  variant="outline" 
+                  className="w-full mt-2"
+                  onClick={() => setFormData({ ...formData, description: [...formData.description, ''] })}
+                  data-testid="edit-button-add-desc"
+                >
+                  <Plus className="h-4 w-4 mr-2" /> Add Feature
+                </Button>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={handleCloseEditDialog} data-testid="edit-button-cancel">
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleUpdateTour} 
+                disabled={updateMutation.isPending}
+                className="bg-[#004165]"
+                data-testid="edit-button-save"
+              >
+                {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>

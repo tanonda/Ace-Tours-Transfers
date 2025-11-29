@@ -138,6 +138,34 @@ export async function registerRoutes(
     }
   });
 
+  app.put("/api/tours/:id", requireAdmin, async (req, res) => {
+    try {
+      const existingTour = await storage.getTour(req.params.id);
+      if (!existingTour) {
+        return res.status(404).json({ error: "Tour not found" });
+      }
+      const tour = await storage.updateTour(req.params.id, req.body);
+      res.json(tour);
+    } catch (error) {
+      console.error("Tour update error:", error);
+      res.status(400).json({ error: "Failed to update tour" });
+    }
+  });
+
+  app.delete("/api/tours/:id", requireAdmin, async (req, res) => {
+    try {
+      const existingTour = await storage.getTour(req.params.id);
+      if (!existingTour) {
+        return res.status(404).json({ error: "Tour not found" });
+      }
+      await storage.deleteTour(req.params.id);
+      res.json({ message: "Tour deleted successfully" });
+    } catch (error) {
+      console.error("Tour delete error:", error);
+      res.status(500).json({ error: "Failed to delete tour" });
+    }
+  });
+
   // Bookings API (admin can see all, users can see their own)
   app.get("/api/bookings", requireAdmin, async (req, res) => {
     try {

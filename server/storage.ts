@@ -24,6 +24,8 @@ export interface IStorage {
   getTours(): Promise<Tour[]>;
   getTour(id: string): Promise<Tour | undefined>;
   createTour(tour: InsertTour): Promise<Tour>;
+  updateTour(id: string, tour: Partial<InsertTour>): Promise<Tour>;
+  deleteTour(id: string): Promise<void>;
   
   // Booking operations
   getBookings(): Promise<Booking[]>;
@@ -83,6 +85,19 @@ export class DatabaseStorage implements IStorage {
       .values(insertTour)
       .returning();
     return tour;
+  }
+
+  async updateTour(id: string, updateData: Partial<InsertTour>): Promise<Tour> {
+    const [tour] = await db
+      .update(tours)
+      .set(updateData)
+      .where(eq(tours.id, id))
+      .returning();
+    return tour;
+  }
+
+  async deleteTour(id: string): Promise<void> {
+    await db.delete(tours).where(eq(tours.id, id));
   }
 
   // Booking operations
