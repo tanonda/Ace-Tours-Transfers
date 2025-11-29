@@ -4,8 +4,10 @@ import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { BookingModal } from "@/components/booking-modal";
 import { Link } from "wouter";
+import { useTranslation } from "react-i18next";
 
 export function Hero() {
+  const { t } = useTranslation();
   return (
     <section className="relative h-screen min-h-[600px] w-full overflow-hidden">
       {/* Background Image with Overlay */}
@@ -25,21 +27,20 @@ export function Hero() {
           className="max-w-4xl"
         >
           <span className="inline-block py-1 px-3 rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-sm font-medium mb-6 tracking-wider uppercase">
-            Welcome to Vanuatu
+            {t("hero.subtitle")}
           </span>
           <h1 className="font-serif text-5xl md:text-7xl lg:text-8xl font-bold mb-6 leading-tight drop-shadow-xl">
-            Time for your <br/>
-            <span className="text-primary italic">next adventure</span>
+            {t("hero.title")}
           </h1>
           <p className="text-lg md:text-xl text-white/90 mb-8 max-w-2xl mx-auto font-light leading-relaxed">
-            Let us help you with your travel plans. Explore the hidden gems of Efate Island with our curated tours.
+            {t("home.toursDesc")}
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <BookingModal trigger={<Button size="lg" className="text-lg px-8 py-6 h-auto shadow-xl hover:scale-105 transition-transform">Book Your Tour</Button>} />
+            <BookingModal trigger={<Button size="lg" className="text-lg px-8 py-6 h-auto shadow-xl hover:scale-105 transition-transform">{t("hero.cta")}</Button>} />
             <Link href="/tours">
               <Button variant="outline" size="lg" className="text-lg px-8 py-6 h-auto bg-white/10 border-white text-white hover:bg-white hover:text-foreground backdrop-blur-sm">
-                View Packages
+                {t("nav.viewAllTours")}
               </Button>
             </Link>
           </div>

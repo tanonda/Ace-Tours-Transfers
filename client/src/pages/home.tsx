@@ -9,8 +9,10 @@ import { Button } from "@/components/ui/button";
 import { BookingModal } from "@/components/booking-modal";
 import { useQuery } from "@tanstack/react-query";
 import { fetchTours } from "@/lib/api";
+import { useTranslation } from "react-i18next";
 
 export default function Home() {
+  const { t } = useTranslation();
   const { data: tours = [] } = useQuery({
     queryKey: ["tours"],
     queryFn: fetchTours,
@@ -42,7 +44,7 @@ export default function Home() {
                   className="rounded-2xl shadow-2xl w-full object-cover aspect-[4/3]" 
                 />
                 <div className="absolute -bottom-6 -right-6 bg-card p-6 rounded-xl shadow-xl max-w-xs hidden md:block border border-border/50 transition-all duration-300 hover:shadow-2xl hover:shadow-primary/20 hover:border-primary/30 hover:-translate-y-1 cursor-default">
-                  <p className="font-serif text-lg italic text-foreground">"Customer satisfaction, safety, and service are at the heart of everything we do."</p>
+                  <p className="font-serif text-lg italic text-foreground">"{t("home.quote")}"</p>
                 </div>
               </div>
             </motion.div>
@@ -56,22 +58,22 @@ export default function Home() {
             >
               <div className="flex items-center gap-2 mb-4">
                 <span className="h-px w-12 bg-primary"></span>
-                <span className="text-primary font-semibold uppercase tracking-wider text-sm">About Us</span>
+                <span className="text-primary font-semibold uppercase tracking-wider text-sm">{t("home.aboutLabel")}</span>
               </div>
-              <h2 className="text-4xl md:text-5xl font-bold mb-6 text-foreground">Travel made easy</h2>
+              <h2 className="text-4xl md:text-5xl font-bold mb-6 text-foreground">{t("home.aboutTitle")}</h2>
               <p className="text-lg text-muted-foreground mb-6 leading-relaxed">
-                Welcome to Ace Tours & Transfers. Our mission is to offer meticulously pre-planned and custom-designed tour packages that ensure your stay in Port Vila is nothing short of extraordinary.
+                {t("home.aboutDesc1")}
               </p>
               <p className="text-lg text-muted-foreground mb-8 leading-relaxed">
-                Whether you're seeking adventure, relaxation, or cultural immersion, we are dedicated to making your experience enjoyable, safe, and unforgettable. We are fully insured for public liability and take your safety to heart!
+                {t("home.aboutDesc2")}
               </p>
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
                 {[
-                  "Fully Insured",
-                  "Experienced Drivers",
-                  "Custom Itineraries",
-                  "Safety First"
+                  t("home.fullyInsured"),
+                  t("home.experiencedDrivers"),
+                  t("home.customItineraries"),
+                  t("home.safetyFirst")
                 ].map((item, i) => (
                   <div key={i} className="flex items-center gap-3">
                     <CheckCircle className="text-primary h-5 w-5" />
@@ -80,7 +82,7 @@ export default function Home() {
                 ))}
               </div>
 
-              <Button variant="outline" className="border-primary text-primary hover:bg-primary hover:text-white">Learn More About Us</Button>
+              <Button variant="outline" className="border-primary text-primary hover:bg-primary hover:text-white">{t("home.learnMore")}</Button>
             </motion.div>
           </div>
         </div>
@@ -90,9 +92,9 @@ export default function Home() {
       <section className="py-24 bg-background">
         <div className="container mx-auto px-4">
           <div className="text-center max-w-3xl mx-auto mb-16">
-            <span className="text-primary font-semibold uppercase tracking-wider text-sm mb-2 block">Our Packages</span>
-            <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-6">Unforgettable Tours</h2>
-            <p className="text-lg text-muted-foreground">Discover the best of Efate Island with our curated experiences.</p>
+            <span className="text-primary font-semibold uppercase tracking-wider text-sm mb-2 block">{t("home.toursLabel")}</span>
+            <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-6">{t("home.toursTitle")}</h2>
+            <p className="text-lg text-muted-foreground">{t("home.toursDesc")}</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -107,8 +109,8 @@ export default function Home() {
       <section className="py-24 bg-[#291B12] text-white">
         <div className="container mx-auto px-4">
           <div className="text-center max-w-3xl mx-auto mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold mb-6">Reliable Transfers</h2>
-            <p className="text-white/70 text-lg">Professional transport solutions for any occasion.</p>
+            <h2 className="text-4xl md:text-5xl font-bold mb-6">{t("home.transfersTitle")}</h2>
+            <p className="text-white/70 text-lg">{t("home.transfersDesc")}</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -129,7 +131,7 @@ export default function Home() {
                 <p className="text-white/70 mb-6 text-sm leading-relaxed">{transfer.description.join(", ")}</p>
                 <BookingModal 
                   preselectedService={transfer.title}
-                  trigger={<Button variant="link" className="text-white p-0 h-auto hover:text-primary">Book Transfer &rarr;</Button>}
+                  trigger={<Button variant="link" className="text-white p-0 h-auto hover:text-primary">{t("home.bookTransfer")} &rarr;</Button>}
                 />
               </motion.div>
             ))}
@@ -141,9 +143,9 @@ export default function Home() {
       <section className="py-20 bg-primary relative overflow-hidden">
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
         <div className="container mx-auto px-4 relative text-center text-white">
-          <h2 className="text-4xl md:text-6xl font-bold mb-8 font-serif">Ready for your next adventure?</h2>
-          <p className="text-xl md:text-2xl mb-10 max-w-2xl mx-auto opacity-90">Let us handle the details while you make the memories.</p>
-          <BookingModal trigger={<Button size="lg" variant="secondary" className="text-primary font-bold px-10 py-8 text-xl shadow-2xl">Start Planning Now</Button>} />
+          <h2 className="text-4xl md:text-6xl font-bold mb-8 font-serif">{t("home.ctaTitle")}</h2>
+          <p className="text-xl md:text-2xl mb-10 max-w-2xl mx-auto opacity-90">{t("home.ctaDesc")}</p>
+          <BookingModal trigger={<Button size="lg" variant="secondary" className="text-primary font-bold px-10 py-8 text-xl shadow-2xl">{t("home.ctaButton")}</Button>} />
         </div>
       </section>
     </Layout>

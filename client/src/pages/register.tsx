@@ -8,11 +8,14 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, ArrowLeft, Quote, CheckCircle, Star } from "lucide-react";
 import { tours } from "@/lib/data";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { LanguageSelector } from "@/components/language-selector";
+import { useTranslation } from "react-i18next";
 
 export default function Register() {
   const [isLoading, setIsLoading] = useState(false);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { t } = useTranslation();
   
   const featuredTour = tours[1]; // Roots & Routes
 
@@ -40,10 +43,11 @@ export default function Register() {
             Ace Tours & Transfers
           </Link>
           <div className="flex items-center gap-4">
+            <LanguageSelector />
             <ThemeToggle size="sm" />
             <Link href="/">
               <span className="inline-flex items-center px-3 py-1.5 rounded text-sm font-medium text-white hover:bg-white/20 transition-colors cursor-pointer">
-                <ArrowLeft className="mr-2 h-4 w-4" /> Back to Home
+                <ArrowLeft className="mr-2 h-4 w-4" /> {t("auth.backToHome")}
               </span>
             </Link>
           </div>
@@ -69,35 +73,24 @@ export default function Register() {
               {/* Registration Form */}
               <Card className="w-full border border-white/20 shadow-2xl bg-black/40 backdrop-blur-md text-white">
                 <CardHeader className="space-y-1">
-                  <CardTitle className="text-2xl font-serif font-bold text-center text-white">Create an account</CardTitle>
+                  <CardTitle className="text-2xl font-serif font-bold text-center text-white">{t("auth.signUp")}</CardTitle>
                   <CardDescription className="text-center text-white/70">
-                    Enter your details below to create your account
+                    {t("auth.signUpDesc")}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <form onSubmit={handleRegister} className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="firstName" className="text-white">First name</Label>
-                        <Input 
-                          id="firstName" 
-                          placeholder="John" 
-                          required 
-                          className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-white/40"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="lastName" className="text-white">Last name</Label>
-                        <Input 
-                          id="lastName" 
-                          placeholder="Doe" 
-                          required 
-                          className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-white/40"
-                        />
-                      </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="fullName" className="text-white">{t("auth.fullName")}</Label>
+                      <Input 
+                        id="fullName" 
+                        placeholder="John Doe" 
+                        required 
+                        className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-white/40"
+                      />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="email" className="text-white">Email</Label>
+                      <Label htmlFor="email" className="text-white">{t("auth.email")}</Label>
                       <Input 
                         id="email" 
                         type="email" 
@@ -107,7 +100,7 @@ export default function Register() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="password" className="text-white">Password</Label>
+                      <Label htmlFor="password" className="text-white">{t("auth.password")}</Label>
                       <Input 
                         id="password" 
                         type="password" 
@@ -116,7 +109,7 @@ export default function Register() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="confirmPassword" className="text-white">Confirm Password</Label>
+                      <Label htmlFor="confirmPassword" className="text-white">{t("auth.confirmPassword")}</Label>
                       <Input 
                         id="confirmPassword" 
                         type="password" 
@@ -129,17 +122,17 @@ export default function Register() {
                       {isLoading ? (
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Creating account...
+                          {t("auth.registering")}
                         </>
                       ) : (
-                        "Create Account"
+                        t("auth.registerButton")
                       )}
                     </Button>
                   </form>
                   <div className="mt-4 text-center text-sm text-white/80">
-                    Already have an account?{" "}
+                    {t("auth.haveAccount")}{" "}
                     <Link href="/login" className="text-white font-medium hover:underline">
-                      Sign in
+                      {t("nav.login")}
                     </Link>
                   </div>
                 </CardContent>

@@ -2,15 +2,17 @@ import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { CheckCircle, MapPin, Phone, Mail, Clock } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export default function About() {
+  const { t } = useTranslation();
   return (
     <Layout>
       <div className="pt-40 pb-10 bg-primary/5">
         <div className="container mx-auto px-4 text-center">
-          <h1 className="text-4xl md:text-5xl font-serif font-bold mb-4">About Ace Tours</h1>
+          <h1 className="text-4xl md:text-5xl font-serif font-bold mb-4">{t("about.title")}</h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Your trusted partner for exploring the beautiful islands of Vanuatu.
+            {t("about.subtitle")}
           </p>
         </div>
       </div>
@@ -26,21 +28,21 @@ export default function About() {
               />
             </div>
             <div>
-              <h2 className="text-3xl font-bold mb-6 font-serif">Our Story</h2>
+              <h2 className="text-3xl font-bold mb-6 font-serif">{t("about.storyTitle")}</h2>
               <p className="text-lg text-muted-foreground mb-4">
-                Ace Tours & Transfers was founded with a simple mission: to share the incredible beauty and culture of Vanuatu with the world. What started as a small family-owned business has grown into one of Port Vila's most trusted tour operators.
+                {t("about.storyDesc1")}
               </p>
               <p className="text-lg text-muted-foreground mb-6">
-                We pride ourselves on our deep local knowledge, professional service, and commitment to safety. Our team of experienced drivers and guides are passionate about making your visit unforgettable.
+                {t("about.storyDesc2")}
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {[
-                  "Locally Owned & Operated",
-                  "Fully Insured & Licensed",
-                  "Expert Local Guides",
-                  "Modern, Comfortable Fleet",
-                  "Customized Itineraries",
-                  "24/7 Customer Support"
+                  t("about.locallyOwned"),
+                  t("about.fullyLicensed"),
+                  t("about.expertGuides"),
+                  t("about.modernFleet"),
+                  t("about.customItineraries"),
+                  t("about.support247")
                 ].map((item, i) => (
                   <div key={i} className="flex items-center gap-2">
                     <CheckCircle className="text-primary h-5 w-5 shrink-0" />
@@ -55,16 +57,16 @@ export default function About() {
 
       <section className="py-16 bg-muted/30">
         <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl font-bold mb-12 font-serif">Why Choose Us?</h2>
+          <h2 className="text-3xl font-bold mb-12 font-serif">{t("about.whyChooseUs")}</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <Card className="border-none shadow-md bg-card">
               <CardContent className="pt-6">
                 <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4 text-primary">
                   <MapPin className="h-6 w-6" />
                 </div>
-                <h3 className="text-xl font-bold mb-2">Local Expertise</h3>
+                <h3 className="text-xl font-bold mb-2">{t("about.localExpertise")}</h3>
                 <p className="text-muted-foreground">
-                  We know every hidden gem, best photo spot, and authentic local experience on the island.
+                  {t("about.localExpertiseDesc")}
                 </p>
               </CardContent>
             </Card>
@@ -73,9 +75,9 @@ export default function About() {
                 <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4 text-primary">
                   <Clock className="h-6 w-6" />
                 </div>
-                <h3 className="text-xl font-bold mb-2">Reliable Service</h3>
+                <h3 className="text-xl font-bold mb-2">{t("about.reliableService")}</h3>
                 <p className="text-muted-foreground">
-                  Punctuality and reliability are our hallmarks. You can count on us to be there when you need us.
+                  {t("about.reliableServiceDesc")}
                 </p>
               </CardContent>
             </Card>
@@ -84,9 +86,9 @@ export default function About() {
                 <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4 text-primary">
                   <CheckCircle className="h-6 w-6" />
                 </div>
-                <h3 className="text-xl font-bold mb-2">Safety First</h3>
+                <h3 className="text-xl font-bold mb-2">{t("about.safetyFirst")}</h3>
                 <p className="text-muted-foreground">
-                  Your safety is our priority. Our vehicles are regularly maintained and our drivers are professionally trained.
+                  {t("about.safetyFirstDesc")}
                 </p>
               </CardContent>
             </Card>

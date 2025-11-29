@@ -9,6 +9,8 @@ import { Loader2, ArrowLeft, Star } from "lucide-react";
 import { tours } from "@/lib/data";
 import { useAuth } from "@/lib/auth-context";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { LanguageSelector } from "@/components/language-selector";
+import { useTranslation } from "react-i18next";
 
 export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
@@ -16,6 +18,7 @@ export default function Login() {
   const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const { t } = useTranslation();
 
   const featuredTour = tours[0];
 
@@ -30,8 +33,8 @@ export default function Login() {
       if (result.success) {
         try {
           toast({
-            title: "Welcome back!",
-            description: "Redirecting to your dashboard...",
+            title: t("auth.welcomeBack"),
+            description: t("auth.redirecting"),
           });
         } catch (toastError) {
           console.warn('Toast error:', toastError);
@@ -39,8 +42,8 @@ export default function Login() {
       } else {
         try {
           toast({
-            title: "Login Failed",
-            description: result.error || "Invalid credentials. Please try again.",
+            title: t("auth.loginFailed"),
+            description: result.error || t("auth.invalidCredentials"),
             variant: "destructive"
           });
         } catch (toastError) {
@@ -52,8 +55,8 @@ export default function Login() {
       console.error('Login error:', error);
       try {
         toast({
-          title: "Error",
-          description: "An unexpected error occurred. Please try again.",
+          title: t("auth.error"),
+          description: t("auth.unexpectedError"),
           variant: "destructive"
         });
       } catch (toastError) {
@@ -81,10 +84,11 @@ export default function Login() {
              Ace Tours & Transfers
           </Link>
           <div className="flex items-center gap-4">
+            <LanguageSelector />
             <ThemeToggle size="sm" />
             <Link href="/">
               <span className="inline-flex items-center px-3 py-1.5 rounded text-sm font-medium text-white hover:bg-white/20 transition-colors cursor-pointer">
-                <ArrowLeft className="mr-2 h-4 w-4" /> Back to Home
+                <ArrowLeft className="mr-2 h-4 w-4" /> {t("auth.backToHome")}
               </span>
             </Link>
           </div>
@@ -110,9 +114,9 @@ export default function Login() {
               {/* Login Form */}
               <Card className="w-full border border-white/20 shadow-2xl bg-black/40 backdrop-blur-md text-white">
                 <CardHeader className="space-y-1">
-                  <CardTitle className="text-2xl font-serif font-bold text-center text-white">Sign in</CardTitle>
+                  <CardTitle className="text-2xl font-serif font-bold text-center text-white">{t("auth.signIn")}</CardTitle>
                   <CardDescription className="text-center text-white/70">
-                    Enter your email and password to access your account
+                    {t("auth.signInDesc")}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -120,7 +124,7 @@ export default function Login() {
                   <div className="mb-6 bg-white/10 border border-white/20 rounded-md p-4 text-sm text-white">
                     <p className="font-semibold mb-2 flex items-center gap-2">
                       <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" /> 
-                      Demo Accounts
+                      {t("auth.demoAccounts")}
                     </p>
                     <div className="grid grid-cols-2 gap-2">
                       <button 
@@ -145,7 +149,7 @@ export default function Login() {
 
                   <form onSubmit={handleLogin} className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="email" className="text-white">Email</Label>
+                      <Label htmlFor="email" className="text-white">{t("auth.email")}</Label>
                       <Input 
                         id="email" 
                         type="email" 
@@ -158,9 +162,9 @@ export default function Login() {
                     </div>
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <Label htmlFor="password" className="text-white">Password</Label>
+                        <Label htmlFor="password" className="text-white">{t("auth.password")}</Label>
                         <a href="#" className="text-sm font-medium text-white/80 hover:text-white hover:underline">
-                          Forgot password?
+                          {t("auth.forgotPassword")}
                         </a>
                       </div>
                       <Input 
@@ -172,34 +176,21 @@ export default function Login() {
                         className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-white/40"
                       />
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <input 
-                        type="checkbox" 
-                        id="remember" 
-                        className="h-4 w-4 rounded border-white/40 bg-white/10 accent-primary"
-                      />
-                      <label
-                        htmlFor="remember"
-                        className="text-sm font-medium leading-none text-white/90"
-                      >
-                        Remember me
-                      </label>
-                    </div>
                     <Button type="submit" className="w-full bg-white text-primary hover:bg-white/90 font-semibold" disabled={isLoading}>
                       {isLoading ? (
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Signing in...
+                          {t("auth.loggingIn")}
                         </>
                       ) : (
-                        "Sign In"
+                        t("auth.loginButton")
                       )}
                     </Button>
                   </form>
                   <div className="mt-4 text-center text-sm text-white/80">
-                    Don't have an account?{" "}
+                    {t("auth.noAccount")}{" "}
                     <Link href="/register" className="text-white font-medium hover:underline">
-                      Sign up
+                      {t("nav.register")}
                     </Link>
                   </div>
                 </CardContent>
