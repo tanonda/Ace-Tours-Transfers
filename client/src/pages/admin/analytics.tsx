@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery } from "@tanstack/react-query";
 import { fetchBookings, fetchTours, fetchBookingStats, fetchRevenue } from "@/lib/api";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
+import { useToast } from "@/hooks/use-toast";
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -108,6 +109,7 @@ function StatCard({
 
 export default function AdminAnalytics() {
   const [timeRange, setTimeRange] = useState('30');
+  const { toast } = useToast();
   
   const { data: bookings = [], isLoading: bookingsLoading, refetch: refetchBookings } = useQuery({
     queryKey: ["bookings"],
@@ -189,6 +191,66 @@ export default function AdminAnalytics() {
         : '0',
     };
   }, [bookings, tours]);
+
+  const handleExportReport = useCallback(() => {
+    // Helper to escape CSV fields properly
+    const escapeCSV = (value: string | number): string => {
+      const str = String(value);
+      // If contains comma, quote, or newline, wrap in quotes and escape existing quotes
+      if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+        return `"${str.replace(/"/g, '""')}"`;
+      }
+      return str;
+    };
+
+    const csvData = [
+      ['Analytics Report', `Generated: ${new Date().toLocaleDateString()}`],
+      [''],
+      ['Summary Metrics'],
+      ['Metric', 'Value'],
+      ['Total Revenue', `$${analytics.totalRevenue.toFixed(2)}`],
+      ['Total Bookings', analytics.totalBookings],
+      ['Average Booking Value', `$${analytics.avgBookingValue.toFixed(2)}`],
+      ['Conversion Rate', `${analytics.conversionRate}%`],
+      [''],
+      ['Booking Status Breakdown'],
+      ['Status', 'Count'],
+      ['Confirmed', analytics.confirmedBookings],
+      ['Pending', analytics.pendingBookings],
+      ['Completed', analytics.completedBookings],
+      ['Cancelled', analytics.cancelledBookings],
+      [''],
+      ['Service Type Breakdown'],
+      ['Type', 'Count'],
+      ['Tours', analytics.tourBookings],
+      ['Transfers', analytics.transferBookings],
+      [''],
+      ['Top Performing Tours'],
+      ['Tour Name', 'Bookings'],
+      ...analytics.popularTours.map(([name, count]) => [name, count]),
+      [''],
+      ['Monthly Revenue'],
+      ['Month', 'Revenue'],
+      ...Object.entries(analytics.monthlyRevenue).map(([month, amount]) => [month, `$${amount.toFixed(2)}`]),
+      [''],
+      ['Monthly Bookings'],
+      ['Month', 'Bookings'],
+      ...Object.entries(analytics.monthlyBookings).map(([month, count]) => [month, count]),
+    ];
+
+    const csvContent = csvData.map(row => row.map(escapeCSV).join(',')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `analytics_report_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+    
+    toast({ title: "Export Complete", description: "Analytics report has been downloaded." });
+  }, [analytics, toast]);
 
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   
@@ -303,7 +365,7 @@ export default function AdminAnalytics() {
             <Button variant="outline" size="icon" onClick={() => refetchBookings()} data-testid="button-refresh">
               <RefreshCw className="h-4 w-4" />
             </Button>
-            <Button variant="outline" data-testid="button-export-report">
+            <Button variant="outline" onClick={handleExportReport} data-testid="button-export-report">
               <Download className="h-4 w-4 mr-2" /> Export Report
             </Button>
           </div>

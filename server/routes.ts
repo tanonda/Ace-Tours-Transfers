@@ -180,9 +180,21 @@ export async function registerRoutes(
   app.get("/api/bookings/export", requireAdmin, async (req, res) => {
     try {
       const bookings = await storage.getBookings();
+      
+      // Helper to escape CSV fields properly
+      const escapeCSV = (value: string | number | null | undefined): string => {
+        const str = String(value ?? '');
+        if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+          return `"${str.replace(/"/g, '""')}"`;
+        }
+        return str;
+      };
+      
       const csvHeader = "ID,Customer,Tour,Date,Amount,Status,Guests\n";
       const csvRows = bookings.map(b => 
-        `${b.id},${b.customerName},${b.tourName},${b.date},${b.amount},${b.status},${b.guests}`
+        [b.id, b.customerName, b.tourName, b.date, b.amount, b.status, b.guests]
+          .map(escapeCSV)
+          .join(',')
       ).join("\n");
       
       res.setHeader("Content-Type", "text/csv");
