@@ -1,7 +1,7 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertBookingSchema, insertTourSchema, insertUserSchema, insertContentBlockSchema, insertSiteSettingSchema, insertPaymentGatewaySchema, insertPaymentSchema } from "@shared/schema";
+import { insertBookingSchema, insertTourSchema, insertUserSchema, insertContentBlockSchema, insertSiteSettingSchema, insertPaymentGatewaySchema, insertPaymentSchema, insertWishlistItemSchema, insertNewsletterSubscriberSchema, insertCmsContentSchema } from "@shared/schema";
 import bcrypt from "bcryptjs";
 
 // Auth middleware
@@ -558,6 +558,204 @@ export async function registerRoutes(
       res.json({ message: "Payment updated successfully" });
     } catch (error) {
       res.status(400).json({ error: "Failed to process payment callback" });
+    }
+  });
+
+  // ============================================
+  // WISHLIST API
+  // ============================================
+  
+  // Get user's wishlist
+  app.get("/api/wishlist", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const items = await storage.getWishlistItems(userId);
+      res.json(items);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch wishlist" });
+    }
+  });
+
+  // Check if tour is in wishlist
+  app.get("/api/wishlist/check/:tourId", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const { tourId } = req.params;
+      const inWishlist = await storage.isInWishlist(userId, tourId);
+      res.json({ inWishlist });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to check wishlist" });
+    }
+  });
+
+  // Add to wishlist
+  app.post("/api/wishlist", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const { tourId } = req.body;
+      
+      if (!tourId) {
+        return res.status(400).json({ error: "Tour ID is required" });
+      }
+      
+      // Check if already in wishlist
+      const existing = await storage.getWishlistItem(userId, tourId);
+      if (existing) {
+        return res.json(existing);
+      }
+      
+      const item = await storage.addToWishlist({ userId, tourId });
+      res.status(201).json(item);
+    } catch (error) {
+      res.status(400).json({ error: "Failed to add to wishlist" });
+    }
+  });
+
+  // Remove from wishlist
+  app.delete("/api/wishlist/:tourId", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const { tourId } = req.params;
+      await storage.removeFromWishlist(userId, tourId);
+      res.json({ message: "Removed from wishlist" });
+    } catch (error) {
+      res.status(400).json({ error: "Failed to remove from wishlist" });
+    }
+  });
+
+  // ============================================
+  // NEWSLETTER API
+  // ============================================
+  
+  // Get all subscribers (admin only)
+  app.get("/api/newsletter/subscribers", requireAdmin, async (req, res) => {
+    try {
+      const subscribers = await storage.getNewsletterSubscribers();
+      res.json(subscribers);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch subscribers" });
+    }
+  });
+
+  // Subscribe to newsletter (public)
+  app.post("/api/newsletter/subscribe", async (req, res) => {
+    try {
+      const { email, name, locale, source } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ error: "Email is required" });
+      }
+      
+      // Basic email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return res.status(400).json({ error: "Invalid email format" });
+      }
+      
+      const subscriber = await storage.subscribeNewsletter({ 
+        email, 
+        name: name || null, 
+        locale: locale || 'en',
+        source: source || 'website'
+      });
+      
+      res.status(201).json({ message: "Successfully subscribed!", subscriber });
+    } catch (error) {
+      console.error("Newsletter subscription error:", error);
+      res.status(400).json({ error: "Failed to subscribe" });
+    }
+  });
+
+  // Unsubscribe from newsletter (public with email in body)
+  app.post("/api/newsletter/unsubscribe", async (req, res) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ error: "Email is required" });
+      }
+      
+      await storage.unsubscribeNewsletter(email);
+      res.json({ message: "Successfully unsubscribed" });
+    } catch (error) {
+      res.status(400).json({ error: "Failed to unsubscribe" });
+    }
+  });
+
+  // ============================================
+  // CMS CONTENT API
+  // ============================================
+  
+  // Get all CMS content for a block (public)
+  app.get("/api/cms-content/:blockSlug", async (req, res) => {
+    try {
+      const { blockSlug } = req.params;
+      const locale = req.query.locale as string || undefined;
+      const content = await storage.getCmsContent(blockSlug, locale);
+      res.json(content);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch CMS content" });
+    }
+  });
+
+  // Get all CMS content (admin)
+  app.get("/api/cms-content", requireAdmin, async (req, res) => {
+    try {
+      // Get content for all blocks
+      const blocks = await storage.getContentBlocks();
+      const allContent: Record<string, any[]> = {};
+      
+      for (const block of blocks) {
+        allContent[block.slug] = await storage.getCmsContent(block.slug);
+      }
+      
+      res.json(allContent);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch CMS content" });
+    }
+  });
+
+  // Create CMS content (admin)
+  app.post("/api/cms-content", requireAdmin, async (req, res) => {
+    try {
+      const validatedData = insertCmsContentSchema.parse(req.body);
+      const content = await storage.createCmsContent(validatedData);
+      res.status(201).json(content);
+    } catch (error) {
+      console.error("CMS content creation error:", error);
+      res.status(400).json({ error: "Failed to create CMS content" });
+    }
+  });
+
+  // Update CMS content (admin)
+  app.patch("/api/cms-content/:id", requireAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const existing = await storage.getCmsContentItem(id);
+      if (!existing) {
+        return res.status(404).json({ error: "Content not found" });
+      }
+      
+      const content = await storage.updateCmsContent(id, req.body);
+      res.json(content);
+    } catch (error) {
+      res.status(400).json({ error: "Failed to update CMS content" });
+    }
+  });
+
+  // Delete CMS content (admin)
+  app.delete("/api/cms-content/:id", requireAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const existing = await storage.getCmsContentItem(id);
+      if (!existing) {
+        return res.status(404).json({ error: "Content not found" });
+      }
+      
+      await storage.deleteCmsContent(id);
+      res.json({ message: "Content deleted successfully" });
+    } catch (error) {
+      res.status(400).json({ error: "Failed to delete CMS content" });
     }
   });
 

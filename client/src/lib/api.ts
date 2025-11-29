@@ -118,3 +118,119 @@ export async function exportBookingsCSV(): Promise<void> {
   window.URL.revokeObjectURL(url);
   document.body.removeChild(a);
 }
+
+// Wishlist API
+export async function fetchWishlist(): Promise<{ id: string; userId: string; tourId: string; addedAt: string }[]> {
+  const response = await fetch(`${API_BASE}/wishlist`, { credentials: "include" });
+  if (!response.ok) throw new Error("Failed to fetch wishlist");
+  return response.json();
+}
+
+export async function checkWishlist(tourId: string): Promise<boolean> {
+  const response = await fetch(`${API_BASE}/wishlist/check/${tourId}`, { credentials: "include" });
+  if (!response.ok) return false;
+  const data = await response.json();
+  return data.inWishlist;
+}
+
+export async function addToWishlist(tourId: string): Promise<void> {
+  const response = await fetch(`${API_BASE}/wishlist`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ tourId }),
+  });
+  if (!response.ok) throw new Error("Failed to add to wishlist");
+}
+
+export async function removeFromWishlist(tourId: string): Promise<void> {
+  const response = await fetch(`${API_BASE}/wishlist/${tourId}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  if (!response.ok) throw new Error("Failed to remove from wishlist");
+}
+
+// Newsletter API
+export async function subscribeNewsletter(data: { 
+  email: string; 
+  name?: string; 
+  locale?: string; 
+  source?: string 
+}): Promise<{ message: string }> {
+  const response = await fetch(`${API_BASE}/newsletter/subscribe`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to subscribe");
+  }
+  return response.json();
+}
+
+export async function fetchNewsletterSubscribers(): Promise<any[]> {
+  const response = await fetch(`${API_BASE}/newsletter/subscribers`, { credentials: "include" });
+  if (!response.ok) throw new Error("Failed to fetch subscribers");
+  return response.json();
+}
+
+// CMS Content API
+export async function fetchCmsContent(blockSlug: string, locale?: string): Promise<any[]> {
+  const url = locale 
+    ? `${API_BASE}/cms-content/${blockSlug}?locale=${locale}` 
+    : `${API_BASE}/cms-content/${blockSlug}`;
+  const response = await fetch(url);
+  if (!response.ok) throw new Error("Failed to fetch CMS content");
+  return response.json();
+}
+
+export async function fetchAllCmsContent(): Promise<Record<string, any[]>> {
+  const response = await fetch(`${API_BASE}/cms-content`, { credentials: "include" });
+  if (!response.ok) throw new Error("Failed to fetch CMS content");
+  return response.json();
+}
+
+export async function createCmsContent(data: {
+  blockSlug: string;
+  contentKey: string;
+  contentType: string;
+  value: string;
+  locale?: string;
+  sortOrder?: number;
+}): Promise<any> {
+  const response = await fetch(`${API_BASE}/cms-content`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error("Failed to create CMS content");
+  return response.json();
+}
+
+export async function updateCmsContent(id: string, data: Partial<{
+  contentKey: string;
+  contentType: string;
+  value: string;
+  locale: string;
+  sortOrder: number;
+}>): Promise<any> {
+  const response = await fetch(`${API_BASE}/cms-content/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error("Failed to update CMS content");
+  return response.json();
+}
+
+export async function deleteCmsContent(id: string): Promise<void> {
+  const response = await fetch(`${API_BASE}/cms-content/${id}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  if (!response.ok) throw new Error("Failed to delete CMS content");
+}

@@ -1,10 +1,11 @@
-
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Clock, Users, Check, Eye } from "lucide-react";
 import { BookingModal } from "@/components/booking-modal";
 import { ProductQuickView } from "@/components/product-quick-view";
+import { WishlistButton } from "@/components/wishlist-button";
+import { ShareButton } from "@/components/share-button";
 import { motion } from "framer-motion";
 import { useState } from "react";
 
@@ -42,6 +43,10 @@ export function TourCard({ tour, index }: { tour: TourProps; index: number }) {
             alt={tour.title}
             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
           />
+          <div className="absolute top-4 left-4 z-20 flex gap-2">
+            <WishlistButton tourId={tour.id} />
+            <ShareButton title={tour.title} description={tour.description[0]} />
+          </div>
           <div className="absolute top-4 right-4 z-20">
             <Badge className="bg-background/90 text-foreground hover:bg-background text-sm font-bold px-3 py-1 shadow-sm backdrop-blur-sm border border-border/50">
               {tour.price}

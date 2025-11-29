@@ -186,6 +186,13 @@ async function seed() {
       description: "Floating WhatsApp chat button",
       enabled: true,
       config: {}
+    },
+    {
+      slug: "newsletter",
+      label: "Newsletter Subscription",
+      description: "Newsletter signup form in footer",
+      enabled: true,
+      config: {}
     }
   ];
 

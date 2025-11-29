@@ -4,6 +4,7 @@ import { Menu, Phone, Mail, Instagram, Facebook } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { BookingModal } from "@/components/booking-modal";
+import { NewsletterForm } from "@/components/newsletter-form";
 import logo from "@assets/thumbnail_1755110010542_1764279489018.jpg";
 import {
   NavigationMenu,
@@ -22,6 +23,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { LanguageSelector } from "@/components/language-selector";
 import { useTranslation } from "react-i18next";
 import { SkipLinks } from "@/components/skip-links";
+import { useCMS } from "@/lib/cms-context";
 
 const ListItem = forwardRef<
   HTMLDivElement,
@@ -54,7 +56,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const { itemCount } = useCart();
   const { t } = useTranslation();
+  const { isBlockEnabled } = useCMS();
   const isHome = location === "/";
+  const showNewsletter = isBlockEnabled('newsletter');
 
   useEffect(() => {
     const handleScroll = () => {
@@ -365,7 +369,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </div>
 
             <div>
-              <h3 className="font-serif text-lg font-semibold mb-6 text-primary">Contact Us</h3>
+              <h3 className="font-serif text-lg font-semibold mb-6 text-primary">{t("footer.contactUs", "Contact Us")}</h3>
               <ul className="space-y-4">
                 <li className="flex items-start gap-3">
                   <Phone className="h-5 w-5 text-primary shrink-0 mt-0.5" />
@@ -375,7 +379,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                       {" / "}
                       <a href="tel:+6787342389" className="hover:text-white transition-colors">7342389</a>
                     </p>
-                    <p className="text-sm opacity-60">Available 24/7</p>
+                    <p className="text-sm opacity-60">{t("footer.available247", "Available 24/7")}</p>
                   </div>
                 </li>
                 <li className="flex items-start gap-3">
@@ -385,12 +389,26 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   </a>
                 </li>
                 <li className="text-white/70">
-                  <p className="font-medium text-white mb-1">Address:</p>
+                  <p className="font-medium text-white mb-1">{t("footer.address", "Address")}:</p>
                   Port Vila, Vanuatu
                 </li>
               </ul>
             </div>
           </div>
+          
+          {showNewsletter && (
+            <div className="border-t border-white/10 py-8 mb-8">
+              <div className="max-w-md mx-auto text-center">
+                <h3 className="font-serif text-xl font-semibold mb-2 text-white">
+                  {t("newsletter.footerTitle", "Stay Updated")}
+                </h3>
+                <p className="text-white/70 text-sm mb-4">
+                  {t("newsletter.footerDesc", "Subscribe to our newsletter for exclusive deals and travel tips")}
+                </p>
+                <NewsletterForm source="footer" variant="inline" />
+              </div>
+            </div>
+          )}
           
           <div className="border-t border-white/10 pt-8 text-center text-white/40 text-sm">
             <p>&copy; {new Date().getFullYear()} Ace Tours & Transfers Vanuatu. All rights reserved.</p>
