@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Calendar, Wallet, Heart, HelpCircle, Ticket, Download, X, Printer } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 const fmtVT = (n?: number) => (n == null ? '-' : n.toLocaleString('en-US') + ' VT');
 
@@ -107,6 +108,7 @@ export default function CustomerDashboard() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [selectedBooking, setSelectedBooking] = useState<any>(null);
+  const { t } = useTranslation();
 
   const { data: bookings = [] } = useQuery({
     queryKey: ["user-bookings", user?.id],
@@ -125,8 +127,8 @@ export default function CustomerDashboard() {
 
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Welcome back, {user?.name || 'Guest'}!</h1>
-          <p className="text-muted-foreground">Here's an overview of your travel activities.</p>
+          <h1 className="text-3xl font-bold text-foreground">{t("dashboard.welcome")}, {user?.name || 'Guest'}!</h1>
+          <p className="text-muted-foreground">{t("dashboard.welcomeDesc")}</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -134,10 +136,10 @@ export default function CustomerDashboard() {
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-lg font-semibold flex items-center gap-2">
                 <Calendar className="h-5 w-5 text-primary" />
-                Upcoming Trips
+                {t("dashboard.upcomingTrips")}
               </CardTitle>
               <Link href="/tours">
-                <Button data-testid="button-new-booking" size="sm">Book New Trip</Button>
+                <Button data-testid="button-new-booking" size="sm">{t("dashboard.bookNewTrip")}</Button>
               </Link>
             </CardHeader>
             <CardContent>
@@ -169,7 +171,7 @@ export default function CustomerDashboard() {
                 </div>
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
-                  No upcoming trips. <Link href="/tours" className="text-primary hover:underline">Book something fun!</Link>
+                  {t("dashboard.noUpcomingTrips")} <Link href="/tours" className="text-primary hover:underline">{t("dashboard.bookSomethingFun")}</Link>
                 </div>
               )}
             </CardContent>
@@ -179,35 +181,35 @@ export default function CustomerDashboard() {
             <CardHeader className="pb-2">
               <CardTitle className="text-lg font-semibold flex items-center gap-2">
                 <Wallet className="h-5 w-5 text-primary" />
-                Wallet
+                {t("dashboard.wallet")}
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-primary mb-1">{fmtVT(walletBalance)}</div>
-              <p className="text-sm text-muted-foreground mb-4">Available balance</p>
+              <p className="text-sm text-muted-foreground mb-4">{t("dashboard.availableBalance")}</p>
               <div className="flex gap-2">
                 <Button 
                   data-testid="button-topup"
-                  onClick={() => toast({ title: "Top-up", description: "Wallet top-up feature coming soon!" })}
+                  onClick={() => toast({ title: t("dashboard.topUp"), description: t("dashboard.topUpComingSoon") })}
                   size="sm"
                   className="flex-1"
                 >
-                  Top-up
+                  {t("dashboard.topUp")}
                 </Button>
                 <Button 
                   data-testid="button-withdraw"
-                  onClick={() => toast({ title: "Withdraw", description: "Withdrawal feature coming soon!" })}
+                  onClick={() => toast({ title: t("dashboard.withdraw"), description: t("dashboard.withdrawComingSoon") })}
                   size="sm"
                   variant="outline"
                   className="flex-1"
                 >
-                  Withdraw
+                  {t("dashboard.withdraw")}
                 </Button>
               </div>
               <div className="mt-4 p-3 bg-background/50 rounded-lg border border-border/50">
-                <div className="text-xs text-muted-foreground mb-1">Loyalty Points</div>
+                <div className="text-xs text-muted-foreground mb-1">{t("dashboard.loyaltyPoints")}</div>
                 <div className="font-bold text-lg text-foreground">2,450 pts</div>
-                <div className="text-xs text-muted-foreground">Bronze Member</div>
+                <div className="text-xs text-muted-foreground">{t("dashboard.bronzeMember")}</div>
               </div>
             </CardContent>
           </Card>
@@ -215,14 +217,14 @@ export default function CustomerDashboard() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg font-semibold">Recent Activity</CardTitle>
+            <CardTitle className="text-lg font-semibold">{t("dashboard.recentActivity")}</CardTitle>
           </CardHeader>
           <CardContent>
             {bookings.length > 0 ? (
               <BookingsTable rows={bookings} onViewTicket={setSelectedBooking} />
             ) : (
               <div className="text-center py-8 text-muted-foreground">
-                No booking history yet. <Link href="/tours" className="text-primary hover:underline">Start exploring tours!</Link>
+                {t("dashboard.noBookingHistory")} <Link href="/tours" className="text-primary hover:underline">{t("dashboard.startExploringTours")}</Link>
               </div>
             )}
           </CardContent>
@@ -233,12 +235,12 @@ export default function CustomerDashboard() {
             <CardHeader className="pb-2">
               <CardTitle className="text-lg font-semibold flex items-center gap-2">
                 <Heart className="h-5 w-5 text-pink-500" />
-                Saved Tours
+                {t("dashboard.savedTours")}
               </CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground mb-3">
-                You have <strong className="text-primary">5 tours</strong> saved in your wishlist
+                {t("dashboard.savedInWishlist", { count: 5 })}
               </p>
               <Button 
                 data-testid="button-view-wishlist"
@@ -246,7 +248,7 @@ export default function CustomerDashboard() {
                 variant="secondary"
                 size="sm"
               >
-                View Wishlist
+                {t("dashboard.viewWishlist")}
               </Button>
             </CardContent>
           </Card>
@@ -255,12 +257,12 @@ export default function CustomerDashboard() {
             <CardHeader className="pb-2">
               <CardTitle className="text-lg font-semibold flex items-center gap-2">
                 <HelpCircle className="h-5 w-5 text-orange-500" />
-                Need Help?
+                {t("dashboard.needHelp")}
               </CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground mb-3">
-                Have questions about your booking or need to make changes?
+                {t("dashboard.needHelpDesc")}
               </p>
               <Link href="/contact">
                 <Button 
@@ -268,7 +270,7 @@ export default function CustomerDashboard() {
                   variant="secondary"
                   size="sm"
                 >
-                  Contact Support
+                  {t("dashboard.contactSupport")}
                 </Button>
               </Link>
             </CardContent>
