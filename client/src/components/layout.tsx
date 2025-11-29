@@ -88,17 +88,17 @@ export function Layout({ children }: { children: React.ReactNode }) {
         }`}
       >
         {/* Logo Bar - Centered */}
-        <div className={`container mx-auto px-4 py-3 flex justify-center ${isScrolled ? "py-2" : "py-4"}`}>
-          <Link href="/" className="flex flex-col items-center gap-1">
+        <div className={`container mx-auto px-4 flex justify-center transition-all duration-300 ${isScrolled ? "py-1" : "pt-3 pb-1"}`}>
+          <Link href="/" className="flex items-center gap-3">
             <img 
               src={logo} 
               alt="Ace Tours Logo" 
               className={`rounded-full shadow-lg border-2 transition-all duration-300 ${
                 isTransparent ? "border-white/30" : "border-primary/30"
-              } ${isScrolled ? "h-12 w-12" : "h-16 w-16 md:h-20 md:w-20"}`}
+              } ${isScrolled ? "h-10 w-10" : "h-14 w-14 md:h-16 md:w-16"}`}
             />
             <span className={`font-serif font-bold tracking-tight transition-all duration-300 ${logoTextColor} ${
-              isScrolled ? "text-lg" : "text-xl md:text-2xl"
+              isScrolled ? "text-base" : "text-lg md:text-xl"
             }`}>
               Ace Tours & Transfers
             </span>
@@ -106,7 +106,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         </div>
 
         {/* Navigation Bar */}
-        <div className={`container mx-auto px-4 pb-2 flex items-center justify-center ${isScrolled ? "pb-1" : "pb-3"}`}>
+        <div className={`container mx-auto px-4 flex items-center justify-center transition-all duration-300 ${isScrolled ? "pb-1" : "pb-2"}`}>
           {/* Desktop Nav */}
           <nav className="hidden md:flex items-center gap-6">
             <NavigationMenu className="relative z-50">
