@@ -8,16 +8,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Calendar, User, MapPin, CreditCard, Users, Clock } from "lucide-react";
-
-interface Booking {
-  id: string;
-  customer: string;
-  tour: string;
-  date: string;
-  guests: number;
-  amount: string;
-  status: string;
-}
+import type { Booking } from "@shared/schema";
 
 interface BookingDetailsDialogProps {
   booking: Booking | null;
@@ -60,7 +51,7 @@ export function BookingDetailsDialog({ booking, open, onOpenChange }: BookingDet
                 <User className="h-5 w-5 text-muted-foreground mt-0.5" />
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Customer</p>
-                  <p className="font-medium">{booking.customer}</p>
+                  <p className="font-medium">{booking.customerName}</p>
                   <p className="text-sm text-muted-foreground">customer@example.com</p>
                   <p className="text-sm text-muted-foreground">+678 123 4567</p>
                 </div>
@@ -80,7 +71,7 @@ export function BookingDetailsDialog({ booking, open, onOpenChange }: BookingDet
                 <MapPin className="h-5 w-5 text-muted-foreground mt-0.5" />
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Tour / Service</p>
-                  <p className="font-medium">{booking.tour}</p>
+                  <p className="font-medium">{booking.tourName}</p>
                   <p className="text-sm text-muted-foreground">Pickup: Grand Hotel</p>
                 </div>
               </div>

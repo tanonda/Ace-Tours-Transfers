@@ -11,16 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState, useEffect } from "react";
-
-interface Booking {
-  id: string;
-  customer: string;
-  tour: string;
-  date: string;
-  guests: number;
-  amount: string;
-  status: string;
-}
+import type { Booking } from "@shared/schema";
 
 interface EditBookingDialogProps {
   booking: Booking | null;
@@ -61,8 +52,8 @@ export function EditBookingDialog({ booking, open, onOpenChange, onSave }: EditB
               <Label htmlFor="customer">Customer Name</Label>
               <Input 
                 id="customer" 
-                value={formData.customer} 
-                onChange={(e) => setFormData({...formData, customer: e.target.value})}
+                value={formData.customerName} 
+                onChange={(e) => setFormData({...formData, customerName: e.target.value})}
               />
             </div>
             <div className="space-y-2">
@@ -79,8 +70,8 @@ export function EditBookingDialog({ booking, open, onOpenChange, onSave }: EditB
           <div className="space-y-2">
             <Label htmlFor="tour">Tour / Service</Label>
             <Select 
-              value={formData.tour} 
-              onValueChange={(value) => setFormData({...formData, tour: value})}
+              value={formData.tourName} 
+              onValueChange={(value) => setFormData({...formData, tourName: value})}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select tour" />
