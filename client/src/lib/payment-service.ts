@@ -44,7 +44,7 @@ export async function initiatePayment(
       credentials: 'include',
       body: JSON.stringify({
         ...request,
-        gateway: gatewaySlug
+        gatewaySlug
       })
     });
 

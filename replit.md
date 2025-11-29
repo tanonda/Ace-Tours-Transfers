@@ -93,10 +93,92 @@ Preferred communication style: Simple, everyday language.
    - customerName, tourName (denormalized for performance)
    - createdAt timestamp
 
+4. **content_blocks** - CMS toggleable content sections
+   - id (UUID primary key)
+   - slug (unique identifier)
+   - label, description
+   - enabled (boolean toggle)
+   - config (JSON for additional settings)
+   - updatedAt timestamp
+
+5. **site_settings** - Key-value store for site configuration
+   - id (UUID primary key)
+   - key (unique), value (JSON)
+   - Used for WhatsApp config, theme settings, etc.
+
+6. **payment_gateways** - Vanuatu bank payment integrations
+   - id (UUID primary key)
+   - slug (anz-egate, bred-bank, bsp)
+   - displayName, description
+   - active, isDefault (boolean)
+   - credentials (encrypted JSON)
+   - supportedCurrencies, config
+
+7. **payments** - Transaction records
+   - id (UUID primary key)
+   - bookingId, gatewayId (foreign keys)
+   - amount, currency, status
+   - gatewayReference, gatewayResponse (JSON)
+   - createdAt, completedAt timestamps
+
 **Relationships**
 - Users have many bookings (one-to-many)
 - Tours have many bookings (one-to-many)
+- Bookings have many payments (one-to-many)
+- Payment gateways have many payments (one-to-many)
 - Drizzle relations defined for type-safe joins
+
+### CMS Content Management
+
+**Toggleable Content Blocks**
+- Hero Section, Featured Tours, Featured Transfers
+- About Us, Testimonials, Contact Form
+- Promotions Banner, WhatsApp Widget
+- Admin can enable/disable each block via Settings > CMS tab
+
+**WhatsApp Integration**
+- Floating chat widget with configurable phone number
+- Customizable greeting message
+- Position: bottom-right or bottom-left
+- Localized in all 5 languages
+
+### Payment Gateway Integration
+
+**Supported Banks**
+- ANZ eGate (Vanuatu)
+- BRED Bank
+- BSP (Bank of South Pacific)
+
+**Modular Adapter Pattern**
+- Each gateway implements common interface
+- Admin can toggle active gateway
+- Credentials stored securely in database
+- Support for sandbox/production environments
+
+### Accessibility Features
+
+**WCAG AA Compliance**
+- Skip links for keyboard navigation
+- ARIA landmarks (banner, main, contentinfo)
+- Enhanced focus indicators
+- Reduced motion support
+- High contrast mode support
+- Semantic HTML structure
+
+### Internationalization
+
+**Supported Languages**
+- English (en)
+- French (fr)
+- Spanish (es)
+- Bislama (bi)
+- Chinese (zh)
+
+**Translation Coverage**
+- Public pages, authentication flows
+- Customer and admin dashboards
+- WhatsApp, CMS, and payment UI
+- Accessibility labels
 
 ### Build & Deployment
 
