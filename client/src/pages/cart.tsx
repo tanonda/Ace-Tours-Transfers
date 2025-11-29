@@ -41,7 +41,7 @@ export default function Cart() {
 
   return (
     <Layout>
-      <div className="py-12 bg-slate-50 min-h-screen">
+      <div className="py-12 bg-muted/30 min-h-screen">
         <div className="container mx-auto px-4">
           <h1 className="text-3xl md:text-4xl font-serif font-bold mb-8">Shopping Cart</h1>
           

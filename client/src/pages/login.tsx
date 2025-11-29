@@ -70,7 +70,7 @@ export default function Login() {
         </div>
       </header>
 
-      <main className="flex-grow flex items-center justify-center p-4 bg-slate-50">
+      <main className="flex-grow flex items-center justify-center p-4 bg-muted/30">
         <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
           {/* Login Form */}
           <Card className="w-full border-none shadow-lg">

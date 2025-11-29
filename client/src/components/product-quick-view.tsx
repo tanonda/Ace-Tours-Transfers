@@ -54,7 +54,7 @@ export function ProductQuickView({ isOpen, onClose, product }: ProductQuickViewP
               className="w-full h-full object-cover"
             />
             <div className="absolute top-4 left-4">
-              <Badge className="bg-white/90 text-foreground hover:bg-white font-bold shadow-sm backdrop-blur-sm">
+              <Badge className="bg-background/90 text-foreground hover:bg-background font-bold shadow-sm backdrop-blur-sm border border-border/50">
                 {product.price}
               </Badge>
             </div>

@@ -24,7 +24,7 @@ export default function Home() {
       <Hero />
 
       {/* About Section */}
-      <section className="py-20 bg-[#FFFDF5] overflow-hidden">
+      <section className="py-20 bg-muted/30 overflow-hidden">
         <div className="container mx-auto px-4">
           <div className="flex flex-col lg:flex-row items-center gap-16">
             <motion.div 
@@ -41,7 +41,7 @@ export default function Home() {
                   alt="Vanuatu Waterfall" 
                   className="rounded-2xl shadow-2xl w-full object-cover aspect-[4/3]" 
                 />
-                <div className="absolute -bottom-6 -right-6 bg-white p-6 rounded-xl shadow-xl max-w-xs hidden md:block">
+                <div className="absolute -bottom-6 -right-6 bg-card p-6 rounded-xl shadow-xl max-w-xs hidden md:block border border-border/50">
                   <p className="font-serif text-lg italic text-foreground">"Customer satisfaction, safety, and service are at the heart of everything we do."</p>
                 </div>
               </div>
@@ -87,11 +87,11 @@ export default function Home() {
       </section>
 
       {/* Tours Section */}
-      <section className="py-24 bg-white">
+      <section className="py-24 bg-background">
         <div className="container mx-auto px-4">
           <div className="text-center max-w-3xl mx-auto mb-16">
             <span className="text-primary font-semibold uppercase tracking-wider text-sm mb-2 block">Our Packages</span>
-            <h2 className="text-4xl md:text-5xl font-bold mb-6">Unforgettable Tours</h2>
+            <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-6">Unforgettable Tours</h2>
             <p className="text-lg text-muted-foreground">Discover the best of Efate Island with our curated experiences.</p>
           </div>
 

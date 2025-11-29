@@ -61,14 +61,14 @@ export default function Payment() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="bg-slate-50 p-4 rounded-md mb-6 border border-slate-100">
+            <div className="bg-muted/50 p-4 rounded-md mb-6 border border-border">
               <div className="flex justify-between items-center mb-2">
-                <span className="text-sm text-slate-500">Merchant</span>
-                <span className="font-medium">Vanuatu Tours & Transfers</span>
+                <span className="text-sm text-muted-foreground">Merchant</span>
+                <span className="font-medium text-foreground">Vanuatu Tours & Transfers</span>
               </div>
               <div className="flex justify-between items-center mb-2">
-                <span className="text-sm text-slate-500">Order ID</span>
-                <span className="font-medium font-mono">ORD-{Math.floor(Math.random() * 10000)}</span>
+                <span className="text-sm text-muted-foreground">Order ID</span>
+                <span className="font-medium font-mono text-foreground">ORD-{Math.floor(Math.random() * 10000)}</span>
               </div>
               <Separator className="my-2" />
               <div className="flex justify-between items-center">

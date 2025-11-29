@@ -43,7 +43,7 @@ export function TourCard({ tour, index }: { tour: TourProps; index: number }) {
             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
           />
           <div className="absolute top-4 right-4 z-20">
-            <Badge className="bg-white/90 text-foreground hover:bg-white text-sm font-bold px-3 py-1 shadow-sm backdrop-blur-sm">
+            <Badge className="bg-background/90 text-foreground hover:bg-background text-sm font-bold px-3 py-1 shadow-sm backdrop-blur-sm border border-border/50">
               {tour.price}
             </Badge>
           </div>
