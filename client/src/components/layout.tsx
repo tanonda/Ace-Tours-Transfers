@@ -87,8 +87,29 @@ export function Layout({ children }: { children: React.ReactNode }) {
               : "bg-background/95 backdrop-blur-md"
         }`}
       >
+        {/* Top Contact Bar */}
+        <div className={`transition-all duration-300 ${isScrolled ? "hidden" : "block"}`}>
+          <div className={`container mx-auto px-4 py-2 flex flex-col md:flex-row items-center justify-between text-sm ${isTransparent ? "text-white/90" : "text-muted-foreground"}`}>
+            <p className={`italic font-medium ${isTransparent ? "text-white" : "text-foreground"}`}>
+              "Your trusted partner for unforgettable Vanuatu adventures"
+            </p>
+            <div className="flex items-center gap-4 mt-1 md:mt-0">
+              <a href="tel:+6787114045" className={`flex items-center gap-1.5 hover:text-primary transition-colors ${isTransparent ? "hover:text-white" : ""}`}>
+                <Phone className="h-3.5 w-3.5" />
+                <span>7114045</span>
+              </a>
+              <span className={isTransparent ? "text-white/50" : "text-muted-foreground/50"}>|</span>
+              <a href="mailto:acetoursvanuatu@outlook.com" className={`flex items-center gap-1.5 hover:text-primary transition-colors ${isTransparent ? "hover:text-white" : ""}`}>
+                <Mail className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">acetoursvanuatu@outlook.com</span>
+                <span className="sm:hidden">Email Us</span>
+              </a>
+            </div>
+          </div>
+        </div>
+
         {/* Logo Bar - Centered */}
-        <div className={`container mx-auto px-4 flex justify-center transition-all duration-300 ${isScrolled ? "py-1" : "pt-3 pb-1"}`}>
+        <div className={`container mx-auto px-4 flex justify-center transition-all duration-300 ${isScrolled ? "py-1" : "pt-1 pb-1"}`}>
           <Link href="/" className="flex items-center gap-3">
             <img 
               src={logo} 
