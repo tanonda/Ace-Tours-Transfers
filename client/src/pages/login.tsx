@@ -24,20 +24,42 @@ export default function Login() {
     e.preventDefault();
     setIsLoading(true);
     
-    const result = await login(email, password);
-    setIsLoading(false);
+    try {
+      const result = await login(email, password);
+      setIsLoading(false);
 
-    if (result.success) {
-      toast({
-        title: "Welcome back!",
-        description: "Redirecting to your dashboard...",
-      });
-    } else {
-      toast({
-        title: "Login Failed",
-        description: result.error || "Invalid credentials. Please try again.",
-        variant: "destructive"
-      });
+      if (result.success) {
+        try {
+          toast({
+            title: "Welcome back!",
+            description: "Redirecting to your dashboard...",
+          });
+        } catch (toastError) {
+          console.warn('Toast error:', toastError);
+        }
+      } else {
+        try {
+          toast({
+            title: "Login Failed",
+            description: result.error || "Invalid credentials. Please try again.",
+            variant: "destructive"
+          });
+        } catch (toastError) {
+          console.warn('Toast error:', toastError);
+        }
+      }
+    } catch (error) {
+      setIsLoading(false);
+      console.error('Login error:', error);
+      try {
+        toast({
+          title: "Error",
+          description: "An unexpected error occurred. Please try again.",
+          variant: "destructive"
+        });
+      } catch (toastError) {
+        console.warn('Toast error:', toastError);
+      }
     }
   };
 
