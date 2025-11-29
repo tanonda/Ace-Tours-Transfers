@@ -17,7 +17,6 @@ export function Hero() {
       >
         <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px]" />
       </div>
-
       {/* Content */}
       <div className="relative h-full container mx-auto px-4 flex flex-col justify-center items-center text-center text-white pt-32 md:pt-40">
         <motion.div
@@ -29,7 +28,7 @@ export function Hero() {
           <span className="inline-block py-1 px-3 rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-sm font-medium mb-6 tracking-wider uppercase">
             {t("hero.subtitle")}
           </span>
-          <h1 className="font-serif text-5xl md:text-7xl lg:text-8xl font-bold mb-6 leading-tight drop-shadow-xl">
+          <h1 className="font-serif text-5xl md:text-7xl lg:text-8xl mb-6 leading-tight drop-shadow-xl text-[#f2800d] font-bold">
             {t("hero.title")}
           </h1>
           <p className="text-lg md:text-xl text-white/90 mb-8 max-w-2xl mx-auto font-light leading-relaxed">
@@ -46,7 +45,6 @@ export function Hero() {
           </div>
         </motion.div>
       </div>
-
       {/* Scroll Indicator */}
       <motion.div 
         className="absolute bottom-10 left-1/2 -translate-x-1/2 text-white/60"
