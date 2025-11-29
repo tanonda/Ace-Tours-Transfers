@@ -26,6 +26,7 @@ import {
 import { useAuth } from "@/lib/auth-context";
 import { useTheme } from "@/lib/theme-context";
 import { ThemeToggle } from "@/components/theme-toggle";
+import logo from "@assets/thumbnail_1755110010542_1764279489018.jpg";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -110,11 +111,13 @@ export function DashboardLayout({ children, type }: DashboardLayoutProps) {
         <div className="flex items-center justify-between h-16 px-4 border-b border-border">
           <Link href="/">
             <div className="flex items-center gap-2.5 cursor-pointer">
-              <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-extrabold text-xs">
-                AT
-              </div>
+              <img 
+                src={logo} 
+                alt="Ace Tours Logo" 
+                className="h-10 w-10 object-contain rounded-lg"
+              />
               <div>
-                <div className="text-foreground font-bold text-sm">Ace Tours</div>
+                <div className="text-foreground font-bold text-sm">Ace Tours & Transfers</div>
                 <div className="text-muted-foreground text-xs">
                   {type === "admin" ? "Admin Panel" : "Customer Portal"}
                 </div>
