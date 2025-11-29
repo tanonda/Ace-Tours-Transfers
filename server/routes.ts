@@ -176,6 +176,23 @@ export async function registerRoutes(
     }
   });
 
+  // Export bookings as CSV (admin only) - must be before :id route
+  app.get("/api/bookings/export", requireAdmin, async (req, res) => {
+    try {
+      const bookings = await storage.getBookings();
+      const csvHeader = "ID,Customer,Tour,Date,Amount,Status,Guests\n";
+      const csvRows = bookings.map(b => 
+        `${b.id},${b.customerName},${b.tourName},${b.date},${b.amount},${b.status},${b.guests}`
+      ).join("\n");
+      
+      res.setHeader("Content-Type", "text/csv");
+      res.setHeader("Content-Disposition", "attachment; filename=bookings.csv");
+      res.send(csvHeader + csvRows);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to export bookings" });
+    }
+  });
+
   app.get("/api/bookings/user/:userId", requireAuth, async (req, res) => {
     try {
       // Users can only access their own bookings unless admin
@@ -290,23 +307,6 @@ export async function registerRoutes(
       res.json(customers);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch customers" });
-    }
-  });
-
-  // Export bookings as CSV (admin only)
-  app.get("/api/bookings/export", requireAdmin, async (req, res) => {
-    try {
-      const bookings = await storage.getBookings();
-      const csvHeader = "ID,Customer,Tour,Date,Amount,Status,Guests\n";
-      const csvRows = bookings.map(b => 
-        `${b.id},${b.customerName},${b.tourName},${b.date},${b.amount},${b.status},${b.guests}`
-      ).join("\n");
-      
-      res.setHeader("Content-Type", "text/csv");
-      res.setHeader("Content-Disposition", "attachment; filename=bookings.csv");
-      res.send(csvHeader + csvRows);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to export bookings" });
     }
   });
 
