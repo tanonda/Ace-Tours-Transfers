@@ -6,7 +6,7 @@ import { CheckCircle, MapPin, Phone, Mail, Clock } from "lucide-react";
 export default function About() {
   return (
     <Layout>
-      <div className="pt-20 pb-10 bg-primary/5">
+      <div className="pt-32 pb-10 bg-primary/5">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-4xl md:text-5xl font-serif font-bold mb-4">About Ace Tours</h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
