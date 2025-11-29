@@ -2,7 +2,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Link } from "wouter";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -174,7 +173,11 @@ export default function Login() {
                       />
                     </div>
                     <div className="flex items-center space-x-2">
-                      <Checkbox id="remember" className="border-white/40 data-[state=checked]:bg-primary" />
+                      <input 
+                        type="checkbox" 
+                        id="remember" 
+                        className="h-4 w-4 rounded border-white/40 bg-white/10 accent-primary"
+                      />
                       <label
                         htmlFor="remember"
                         className="text-sm font-medium leading-none text-white/90"

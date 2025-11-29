@@ -18,6 +18,25 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      // Suppress Vite error overlay for non-Error objects
+      window.__VITE_ERROR_OVERLAY_PATCHED__ = false;
+      const origDefineProperty = Object.defineProperty;
+      Object.defineProperty = function(obj, prop, desc) {
+        if (prop === 'ErrorOverlay' && desc && desc.value) {
+          const OriginalErrorOverlay = desc.value;
+          desc.value = function(err, links) {
+            if (!err || typeof err !== 'object' || !err.message) {
+              console.warn('Suppressed non-Error overlay:', err);
+              return document.createElement('div');
+            }
+            return new OriginalErrorOverlay(err, links);
+          };
+          desc.value.prototype = OriginalErrorOverlay.prototype;
+        }
+        return origDefineProperty.call(this, obj, prop, desc);
+      };
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
