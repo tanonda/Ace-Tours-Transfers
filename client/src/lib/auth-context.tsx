@@ -60,19 +60,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         // Redirect based on role - use setTimeout to avoid navigation during render
         setTimeout(() => {
-          if (userData.role === "admin") {
-            setLocation("/admin/dashboard");
-          } else {
-            setLocation("/dashboard");
+          try {
+            if (userData.role === "admin") {
+              setLocation("/admin/dashboard");
+            } else {
+              setLocation("/dashboard");
+            }
+          } catch (navError) {
+            console.error("Navigation error:", navError);
           }
-        }, 0);
+        }, 50);
         
         return { success: true };
       } else {
         const error = await res.json();
         return { success: false, error: error.error || "Login failed" };
       }
-    } catch {
+    } catch (err) {
+      console.error("Login error:", err);
       return { success: false, error: "Network error" };
     }
   };

@@ -3,6 +3,7 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { ErrorBoundary } from "@/components/error-boundary";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import Tours from "@/pages/tours";
@@ -30,6 +31,22 @@ import CustomerProfile from "@/pages/customer/profile";
 import { CartProvider } from "@/lib/cart-context";
 import { AuthProvider, ProtectedRoute } from "@/lib/auth-context";
 import { ThemeProvider } from "@/lib/theme-context";
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('error', (event) => {
+    if (event.error && !(event.error instanceof Error)) {
+      event.preventDefault();
+      console.warn('Non-Error exception caught:', event.error);
+    }
+  });
+  
+  window.addEventListener('unhandledrejection', (event) => {
+    if (event.reason && !(event.reason instanceof Error)) {
+      event.preventDefault();
+      console.warn('Non-Error rejection caught:', event.reason);
+    }
+  });
+}
 
 function Router() {
   return (
@@ -126,18 +143,20 @@ function Router() {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <TooltipProvider>
-          <AuthProvider>
-            <CartProvider>
-              <Toaster />
-              <Router />
-            </CartProvider>
-          </AuthProvider>
-        </TooltipProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider>
+          <TooltipProvider>
+            <AuthProvider>
+              <CartProvider>
+                <Toaster />
+                <Router />
+              </CartProvider>
+            </AuthProvider>
+          </TooltipProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 

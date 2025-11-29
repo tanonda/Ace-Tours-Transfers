@@ -67,9 +67,13 @@ export default function AdminTours() {
       const response = await fetch('/api/tours', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(data)
       });
-      if (!response.ok) throw new Error('Failed to create tour');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to create tour');
+      }
       return response.json();
     },
     onSuccess: () => {
@@ -78,8 +82,8 @@ export default function AdminTours() {
       setIsCreateOpen(false);
       setFormData(defaultFormData);
     },
-    onError: () => {
-      toast({ title: "Error", description: "Failed to create tour", variant: "destructive" });
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message || "Failed to create tour", variant: "destructive" });
     }
   });
 
@@ -91,7 +95,10 @@ export default function AdminTours() {
         credentials: 'include',
         body: JSON.stringify(data)
       });
-      if (!response.ok) throw new Error('Failed to update tour');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to update tour');
+      }
       return response.json();
     },
     onSuccess: () => {
@@ -100,8 +107,8 @@ export default function AdminTours() {
       setEditingTour(null);
       setFormData(defaultFormData);
     },
-    onError: () => {
-      toast({ title: "Error", description: "Failed to update tour", variant: "destructive" });
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message || "Failed to update tour", variant: "destructive" });
     }
   });
 
@@ -144,16 +151,27 @@ export default function AdminTours() {
   };
 
   const handleDeleteTour = async (tourId: string) => {
-    if (!confirm("Are you sure you want to delete this tour?")) return;
+    const confirmed = window.confirm("Are you sure you want to delete this tour?");
+    if (!confirmed) return;
     
     try {
-      const response = await fetch(`/api/tours/${tourId}`, { method: 'DELETE' });
+      const response = await fetch(`/api/tours/${tourId}`, { 
+        method: 'DELETE',
+        credentials: 'include'
+      });
       if (response.ok) {
         queryClient.invalidateQueries({ queryKey: ["tours"] });
-        toast({ title: "Deleted", description: "Tour has been removed", variant: "destructive" });
+        toast({ title: "Deleted", description: "Tour has been removed" });
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to delete tour');
       }
-    } catch {
-      toast({ title: "Error", description: "Failed to delete tour", variant: "destructive" });
+    } catch (error) {
+      toast({ 
+        title: "Error", 
+        description: error instanceof Error ? error.message : "Failed to delete tour", 
+        variant: "destructive" 
+      });
     }
   };
 
