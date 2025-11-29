@@ -19,6 +19,8 @@ import { useCart } from "@/lib/cart-context";
 import { ShoppingCart } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { LanguageSelector } from "@/components/language-selector";
+import { useTranslation } from "react-i18next";
 
 const ListItem = forwardRef<
   HTMLDivElement,
@@ -50,6 +52,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [location] = useLocation();
   const { itemCount } = useCart();
+  const { t } = useTranslation();
   const isHome = location === "/";
 
   useEffect(() => {
@@ -70,9 +73,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const mobileButtonColor = isTransparent ? "text-white" : "text-foreground";
 
   const navLinks = [
-    { href: "/", label: "Home" },
-    { href: "/about", label: "About" },
-    { href: "/contact", label: "Contact" },
+    { href: "/", label: t("nav.home") },
+    { href: "/about", label: t("nav.about") },
+    { href: "/contact", label: t("nav.contact") },
   ];
 
   return (
@@ -137,7 +140,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     "group inline-flex h-9 w-max items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors focus:outline-none disabled:pointer-events-none disabled:opacity-50",
                     navTextColor
                   )}>
-                    Home
+                    {t("nav.home")}
                   </Link>
                 </NavigationMenuItem>
               </NavigationMenuList>
@@ -147,7 +150,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <NavigationMenuList>
                 <NavigationMenuItem>
                   <NavigationMenuTrigger className={cn("bg-transparent hover:bg-transparent focus:bg-transparent data-[state=open]:bg-transparent", navTextColor)}>
-                    Tours
+                    {t("nav.tours")}
                   </NavigationMenuTrigger>
                   <NavigationMenuContent>
                     <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
@@ -173,7 +176,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <NavigationMenuList>
                 <NavigationMenuItem>
                   <NavigationMenuTrigger className={cn("bg-transparent hover:bg-transparent focus:bg-transparent data-[state=open]:bg-transparent", navTextColor)}>
-                    Transfers
+                    {t("nav.transfers")}
                   </NavigationMenuTrigger>
                   <NavigationMenuContent>
                     <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
@@ -202,7 +205,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     "group inline-flex h-9 w-max items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors focus:outline-none disabled:pointer-events-none disabled:opacity-50",
                     navTextColor
                   )}>
-                    About
+                    {t("nav.about")}
                   </Link>
                 </NavigationMenuItem>
               </NavigationMenuList>
@@ -215,7 +218,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     "group inline-flex h-9 w-max items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors focus:outline-none disabled:pointer-events-none disabled:opacity-50",
                     navTextColor
                   )}>
-                    Contact
+                    {t("nav.contact")}
                   </Link>
                 </NavigationMenuItem>
               </NavigationMenuList>
@@ -245,6 +248,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </NavigationMenu>
             
             <div className="ml-2 flex items-center gap-4">
+              <LanguageSelector />
               <ThemeToggle size="sm" />
               <BookingModal trigger={<Button size="lg" className="font-semibold shadow-lg">Book Now</Button>} />
             </div>
@@ -259,10 +263,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </SheetTrigger>
             <SheetContent>
               <div className="flex flex-col gap-6 mt-10">
-                <Link href="/" className="text-lg font-medium hover:text-primary">Home</Link>
+                <Link href="/" className="text-lg font-medium hover:text-primary">{t("nav.home")}</Link>
                 
                 <div className="space-y-3">
-                  <Link href="/tours" className="text-lg font-medium hover:text-primary block">Tours</Link>
+                  <Link href="/tours" className="text-lg font-medium hover:text-primary block">{t("nav.tours")}</Link>
                   <div className="pl-4 space-y-2 border-l-2 border-muted">
                     {tours.map(tour => (
                       <Link key={tour.id} href="/tours" className="block text-sm text-muted-foreground hover:text-primary">
@@ -273,7 +277,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 </div>
 
                 <div className="space-y-3">
-                  <Link href="/transfers" className="text-lg font-medium hover:text-primary block">Transfers</Link>
+                  <Link href="/transfers" className="text-lg font-medium hover:text-primary block">{t("nav.transfers")}</Link>
                   <div className="pl-4 space-y-2 border-l-2 border-muted">
                     {transfers.map(transfer => (
                       <Link key={transfer.id} href="/transfers" className="block text-sm text-muted-foreground hover:text-primary">
@@ -283,8 +287,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   </div>
                 </div>
 
-                <Link href="/about" className="text-lg font-medium hover:text-primary">About</Link>
-                <Link href="/contact" className="text-lg font-medium hover:text-primary">Contact</Link>
+                <Link href="/about" className="text-lg font-medium hover:text-primary">{t("nav.about")}</Link>
+                <Link href="/contact" className="text-lg font-medium hover:text-primary">{t("nav.contact")}</Link>
 
                 <div className="space-y-3">
                   <span className="text-lg font-medium text-foreground block">My Bookings</span>
@@ -293,6 +297,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     <Link href="/reservations" className="block text-sm text-muted-foreground hover:text-primary">Cancel your trip</Link>
                     <Link href="/reservations" className="block text-sm text-muted-foreground hover:text-primary">Book ride</Link>
                   </div>
+                </div>
+
+                <div className="flex items-center justify-between py-2">
+                  <span className="text-lg font-medium text-foreground">Language</span>
+                  <LanguageSelector />
                 </div>
 
                 <div className="flex items-center justify-between py-2">
