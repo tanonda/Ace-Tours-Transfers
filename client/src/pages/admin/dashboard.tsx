@@ -12,24 +12,33 @@ import {
   Line
 } from "recharts";
 import { Users, CreditCard, CalendarCheck, TrendingUp, ArrowUpRight, ArrowDownRight } from "lucide-react";
-
-const data = [
-  { name: "Jan", total: 1500 },
-  { name: "Feb", total: 2300 },
-  { name: "Mar", total: 3400 },
-  { name: "Apr", total: 2900 },
-  { name: "May", total: 4500 },
-  { name: "Jun", total: 5200 },
-];
-
-const recentBookings = [
-  { id: "BK-001", customer: "John Doe", tour: "Efate Scenic Tour", date: "2024-05-15", status: "Confirmed", amount: "$120" },
-  { id: "BK-002", customer: "Jane Smith", tour: "Airport Transfer", date: "2024-05-16", status: "Completed", amount: "$30" },
-  { id: "BK-003", customer: "Robert Johnson", tour: "Roots & Routes", date: "2024-05-18", status: "Pending", amount: "$100" },
-  { id: "BK-004", customer: "Emily Davis", tour: "Bus Hire", date: "2024-05-20", status: "Confirmed", amount: "$400" },
-];
+import { useQuery } from "@tanstack/react-query";
+import { fetchBookings, fetchBookingStats, fetchRevenue, fetchTours } from "@/lib/api";
 
 export default function AdminDashboard() {
+  const { data: bookings = [] } = useQuery({
+    queryKey: ["bookings"],
+    queryFn: fetchBookings,
+  });
+
+  const { data: stats } = useQuery({
+    queryKey: ["stats"],
+    queryFn: fetchBookingStats,
+  });
+
+  const { data: revenue = [] } = useQuery({
+    queryKey: ["revenue"],
+    queryFn: fetchRevenue,
+  });
+
+  const { data: tours = [] } = useQuery({
+    queryKey: ["tours"],
+    queryFn: fetchTours,
+  });
+
+  const recentBookings = bookings.slice(0, 4);
+  const totalRevenue = revenue.reduce((sum, month) => sum + month.total, 0);
+
   return (
     <DashboardLayout type="admin">
       <div className="space-y-8">
@@ -46,9 +55,9 @@ export default function AdminDashboard() {
               <CreditCard className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">$45,231.89</div>
+              <div className="text-2xl font-bold">${totalRevenue.toLocaleString()}</div>
               <p className="text-xs text-muted-foreground flex items-center mt-1 text-green-600">
-                <ArrowUpRight className="h-3 w-3 mr-1" /> +20.1% from last month
+                <ArrowUpRight className="h-3 w-3 mr-1" /> Total from all bookings
               </p>
             </CardContent>
           </Card>
@@ -58,9 +67,9 @@ export default function AdminDashboard() {
               <CalendarCheck className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">+2350</div>
+              <div className="text-2xl font-bold">{stats?.total || 0}</div>
               <p className="text-xs text-muted-foreground flex items-center mt-1 text-green-600">
-                <ArrowUpRight className="h-3 w-3 mr-1" /> +180.1% from last month
+                <ArrowUpRight className="h-3 w-3 mr-1" /> {stats?.confirmed || 0} confirmed
               </p>
             </CardContent>
           </Card>
@@ -70,9 +79,9 @@ export default function AdminDashboard() {
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">12</div>
+              <div className="text-2xl font-bold">{tours.length}</div>
               <p className="text-xs text-muted-foreground flex items-center mt-1 text-[hsl(var(--muted-foreground))]">
-                Running smoothly
+                Available tours
               </p>
             </CardContent>
           </Card>
@@ -82,9 +91,9 @@ export default function AdminDashboard() {
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">+573</div>
-              <p className="text-xs text-muted-foreground flex items-center mt-1 text-green-600">
-                <ArrowUpRight className="h-3 w-3 mr-1" /> +201 since last hour
+              <div className="text-2xl font-bold">{stats?.pending || 0}</div>
+              <p className="text-xs text-muted-foreground flex items-center mt-1 text-[hsl(var(--muted-foreground))]">
+                Pending bookings
               </p>
             </CardContent>
           </Card>
@@ -98,7 +107,7 @@ export default function AdminDashboard() {
             </CardHeader>
             <CardContent className="pl-2">
               <ResponsiveContainer width="100%" height={350}>
-                <BarChart data={data}>
+                <BarChart data={revenue.map(r => ({ name: r.month, total: r.total }))}>
                   <XAxis 
                     dataKey="name" 
                     stroke="#888888" 
@@ -137,9 +146,9 @@ export default function AdminDashboard() {
                 {recentBookings.map((booking) => (
                   <div key={booking.id} className="flex items-center">
                     <div className="space-y-1">
-                      <p className="text-sm font-medium leading-none">{booking.customer}</p>
+                      <p className="text-sm font-medium leading-none">{booking.customerName}</p>
                       <p className="text-sm text-muted-foreground">
-                        {booking.tour}
+                        {booking.tourName}
                       </p>
                     </div>
                     <div className="ml-auto font-medium">{booking.amount}</div>

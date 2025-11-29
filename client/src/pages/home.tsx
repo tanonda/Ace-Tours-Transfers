@@ -2,14 +2,23 @@
 import { Layout } from "@/components/layout";
 import { Hero } from "@/components/hero";
 import { TourCard } from "@/components/tour-card";
-import { tours, transfers } from "@/lib/data";
 import { motion } from "framer-motion";
 import aboutImg from "@assets/stock_images/vanuatu_rarru_waterf_a12f619f.jpg";
 import { CheckCircle, MapPin, Shield, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BookingModal } from "@/components/booking-modal";
+import { useQuery } from "@tanstack/react-query";
+import { fetchTours } from "@/lib/api";
 
 export default function Home() {
+  const { data: tours = [] } = useQuery({
+    queryKey: ["tours"],
+    queryFn: fetchTours,
+  });
+
+  const toursList = tours.filter(t => t.category === "tour");
+  const transfers = tours.filter(t => t.category === "transfer");
+
   return (
     <Layout>
       <Hero />
@@ -87,7 +96,7 @@ export default function Home() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {tours.map((tour, index) => (
+            {toursList.map((tour, index) => (
               <TourCard key={tour.id} tour={tour} index={index} />
             ))}
           </div>
@@ -117,7 +126,7 @@ export default function Home() {
                 </div>
                 <h3 className="text-xl font-bold mb-2 font-serif">{transfer.title}</h3>
                 <p className="text-primary font-medium mb-4">{transfer.price}</p>
-                <p className="text-white/70 mb-6 text-sm leading-relaxed">{transfer.description}</p>
+                <p className="text-white/70 mb-6 text-sm leading-relaxed">{transfer.description.join(", ")}</p>
                 <BookingModal 
                   preselectedService={transfer.title}
                   trigger={<Button variant="link" className="text-white p-0 h-auto hover:text-primary">Book Transfer &rarr;</Button>}

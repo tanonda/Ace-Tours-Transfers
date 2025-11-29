@@ -11,22 +11,38 @@ import { BookingDetailsDialog } from "@/components/admin/booking-details-dialog"
 import { EditBookingDialog } from "@/components/admin/edit-booking-dialog";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-
-const initialBookings = [
-  { id: "BK-7821", customer: "James Wilson", tour: "Efate Scenic Tour", date: "2024-06-15", guests: 2, amount: "$240", status: "confirmed" },
-  { id: "BK-7822", customer: "Sarah Connor", tour: "Airport Transfer", date: "2024-06-16", guests: 4, amount: "$60", status: "pending" },
-  { id: "BK-7823", customer: "Michael Chen", tour: "Roots & Routes", date: "2024-06-18", guests: 1, amount: "$100", status: "confirmed" },
-  { id: "BK-7824", customer: "Emma Watson", tour: "Bus Hire", date: "2024-06-20", guests: 12, amount: "$400", status: "completed" },
-  { id: "BK-7825", customer: "David Miller", tour: "Efate Scenic Tour", date: "2024-06-22", guests: 3, amount: "$360", status: "cancelled" },
-  { id: "BK-7826", customer: "Sophie Turner", tour: "Event Transfer", date: "2024-06-25", guests: 8, amount: "$250", status: "confirmed" },
-];
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchBookings, updateBooking, deleteBooking } from "@/lib/api";
+import type { Booking } from "@shared/schema";
 
 export default function AdminBookings() {
   const { toast } = useToast();
-  const [bookings, setBookings] = useState(initialBookings);
-  const [selectedBooking, setSelectedBooking] = useState<typeof initialBookings[0] | null>(null);
+  const queryClient = useQueryClient();
+  const { data: bookings = [], isLoading } = useQuery({
+    queryKey: ["bookings"],
+    queryFn: fetchBookings,
+  });
+  
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, updates }: { id: string; updates: Partial<Booking> }) =>
+      updateBooking(id, updates),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["bookings"] });
+      toast({ title: "Booking Updated", description: "Booking has been updated successfully." });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteBooking,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["bookings"] });
+      toast({ title: "Booking Deleted", description: "Booking has been deleted successfully." });
+    },
+  });
   
   const getStatusColor = (status: string) => {
     switch(status) {
@@ -38,19 +54,24 @@ export default function AdminBookings() {
     }
   };
 
-  const handleViewBooking = (booking: typeof initialBookings[0]) => {
+  const handleViewBooking = (booking: Booking) => {
     setSelectedBooking(booking);
     setIsViewOpen(true);
   };
 
-  const handleEditBooking = (booking: typeof initialBookings[0]) => {
+  const handleEditBooking = (booking: Booking) => {
     setSelectedBooking(booking);
     setIsEditOpen(true);
   };
 
-  const handleSaveBooking = (updatedBooking: any) => {
-    setBookings(prev => prev.map(b => b.id === updatedBooking.id ? updatedBooking : b));
-    toast({ title: "Booking Updated", description: `Booking ${updatedBooking.id} has been updated successfully.` });
+  const handleSaveBooking = (updatedBooking: Booking) => {
+    updateMutation.mutate({ id: updatedBooking.id, updates: updatedBooking });
+  };
+
+  const handleDeleteBooking = (id: string) => {
+    if (confirm("Are you sure you want to delete this booking?")) {
+      deleteMutation.mutate(id);
+    }
   };
 
   return (
@@ -107,34 +128,48 @@ export default function AdminBookings() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {bookings.map((booking) => (
-                  <TableRow key={booking.id}>
-                    <TableCell className="font-medium">{booking.id}</TableCell>
-                    <TableCell>{booking.customer}</TableCell>
-                    <TableCell>{booking.tour}</TableCell>
-                    <TableCell>{booking.date}</TableCell>
-                    <TableCell>
-                      <Badge className={getStatusColor(booking.status)} variant="outline">
-                        {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">{booking.amount}</TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleViewBooking(booking)}>View Details</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleEditBooking(booking)}>Edit Booking</DropdownMenuItem>
-                          <DropdownMenuItem className="text-red-600" onClick={() => toast({ title: "Cancel Booking", description: `Booking ${booking.id} has been cancelled`, variant: "destructive" })}>Cancel Booking</DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-8">
+                      Loading bookings...
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : bookings.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-8">
+                      No bookings found.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  bookings.map((booking) => (
+                    <TableRow key={booking.id}>
+                      <TableCell className="font-medium">{booking.id.slice(0, 8)}</TableCell>
+                      <TableCell>{booking.customerName}</TableCell>
+                      <TableCell>{booking.tourName}</TableCell>
+                      <TableCell>{new Date(booking.date).toLocaleDateString()}</TableCell>
+                      <TableCell>
+                        <Badge className={getStatusColor(booking.status)} variant="outline">
+                          {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">{booking.amount}</TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleViewBooking(booking)}>View Details</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleEditBooking(booking)}>Edit Booking</DropdownMenuItem>
+                            <DropdownMenuItem className="text-red-600" onClick={() => handleDeleteBooking(booking.id)}>Delete Booking</DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </CardContent>

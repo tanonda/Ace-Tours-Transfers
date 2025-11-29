@@ -13,9 +13,11 @@ interface TourProps {
   title: string;
   price: string;
   duration: string;
-  minPax?: string;
+  minPax?: string | null;
+  childPrice?: string | null;
   description: string[];
   image: string;
+  category?: string;
 }
 
 export function TourCard({ tour, index }: { tour: TourProps; index: number }) {
