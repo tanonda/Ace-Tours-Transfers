@@ -38,7 +38,7 @@ interface DashboardLayoutProps {
 }
 
 export function DashboardLayout({ children, type }: DashboardLayoutProps) {
-  const [location] = useLocation();
+  const [location, navigate] = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const { user, logout } = useAuth();
   const { theme } = useTheme();
@@ -158,7 +158,6 @@ export function DashboardLayout({ children, type }: DashboardLayoutProps) {
 
   const notifications = type === "admin" ? adminNotifications : customerNotifications;
   const unreadCount = notifications.filter(n => !n.read).length;
-  const [, navigate] = useLocation();
 
   const getNotificationIcon = (notificationType: string) => {
     switch (notificationType) {
