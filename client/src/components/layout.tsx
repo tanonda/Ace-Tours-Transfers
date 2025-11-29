@@ -21,6 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LanguageSelector } from "@/components/language-selector";
 import { useTranslation } from "react-i18next";
+import { SkipLinks } from "@/components/skip-links";
 
 const ListItem = forwardRef<
   HTMLDivElement,
@@ -80,8 +81,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen flex flex-col bg-background font-sans text-foreground">
+      <SkipLinks />
+      
       {/* Navigation */}
       <header
+        id="main-navigation"
+        role="banner"
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
           isScrolled 
             ? "bg-background/95 backdrop-blur-md shadow-sm border-b border-border/50" 
@@ -132,7 +137,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         {/* Navigation Bar */}
         <div className={`container mx-auto px-4 flex items-center justify-center transition-all duration-300 ${isScrolled ? "pb-1" : "pb-2"}`}>
           {/* Desktop Nav */}
-          <nav className="hidden md:flex items-center gap-6">
+          <nav className="hidden md:flex items-center gap-6" aria-label="Main navigation">
             <NavigationMenu className="relative z-50">
               <NavigationMenuList>
                 <NavigationMenuItem>
@@ -257,8 +262,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
           {/* Mobile Nav */}
           <Sheet>
             <SheetTrigger asChild className="md:hidden">
-              <Button variant="ghost" size="icon" className={mobileButtonColor}>
-                <Menu className="h-6 w-6" />
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className={mobileButtonColor}
+                aria-label={t("accessibility.menuOpen")}
+              >
+                <Menu className="h-6 w-6" aria-hidden="true" />
               </Button>
             </SheetTrigger>
             <SheetContent>
@@ -317,12 +327,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </header>
 
       {/* Main Content */}
-      <main className="flex-grow">
+      <main id="main-content" role="main" className="flex-grow" tabIndex={-1}>
         {children}
       </main>
 
       {/* Footer */}
-      <footer className="bg-[#291B12] text-white pt-16 pb-8">
+      <footer role="contentinfo" className="bg-[#291B12] text-white pt-16 pb-8">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
             <div>
