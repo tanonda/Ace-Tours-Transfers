@@ -265,5 +265,20 @@
   "accessibility.skipToMain": "跳到主要内容",
   "accessibility.skipToNav": "跳到导航",
   "accessibility.menuOpen": "打开菜单",
-  "accessibility.menuClose": "关闭菜单"
+  "accessibility.menuClose": "关闭菜单",
+  
+  "itinerary.title": "旅行行程",
+  "itinerary.print": "打印行程",
+  "itinerary.confirmationNumber": "确认号",
+  "itinerary.tourDetails": "旅游详情",
+  "itinerary.tourDescription": "与我们专业的导游一起体验瓦努阿图的美丽。",
+  "itinerary.bookingInfo": "预订信息",
+  "itinerary.travelers": "旅行者",
+  "itinerary.totalAmount": "总金额",
+  "itinerary.importantNotes": "重要提示",
+  "itinerary.note1": "请在预定接送时间前15分钟到达",
+  "itinerary.note2": "请穿舒适的步行鞋并做好防晒措施",
+  "itinerary.note3": "提供饮用水和小点心",
+  "itinerary.note4": "到达时请出示此行程单办理登记",
+  "itinerary.footerNote": "感谢您选择Ace Tours & Transfers。祝您旅途愉快！"
 }

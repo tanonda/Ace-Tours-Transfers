@@ -265,5 +265,20 @@
   "accessibility.skipToMain": "Skip to main content",
   "accessibility.skipToNav": "Skip to navigation",
   "accessibility.menuOpen": "Open menu",
-  "accessibility.menuClose": "Close menu"
+  "accessibility.menuClose": "Close menu",
+  
+  "itinerary.title": "Travel Itinerary",
+  "itinerary.print": "Print Itinerary",
+  "itinerary.confirmationNumber": "Confirmation",
+  "itinerary.tourDetails": "Tour Details",
+  "itinerary.tourDescription": "Experience the beauty of Vanuatu with our expertly guided tour.",
+  "itinerary.bookingInfo": "Booking Information",
+  "itinerary.travelers": "Travelers",
+  "itinerary.totalAmount": "Total Amount",
+  "itinerary.importantNotes": "Important Notes",
+  "itinerary.note1": "Please arrive 15 minutes before your scheduled pickup time",
+  "itinerary.note2": "Bring comfortable walking shoes and sun protection",
+  "itinerary.note3": "Water and light refreshments are provided",
+  "itinerary.note4": "Present this itinerary upon arrival for check-in",
+  "itinerary.footerNote": "Thank you for choosing Ace Tours & Transfers. Have a wonderful trip!"
 }

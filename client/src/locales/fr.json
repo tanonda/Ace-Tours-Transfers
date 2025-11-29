@@ -265,5 +265,20 @@
   "accessibility.skipToMain": "Aller au contenu principal",
   "accessibility.skipToNav": "Aller à la navigation",
   "accessibility.menuOpen": "Ouvrir le menu",
-  "accessibility.menuClose": "Fermer le menu"
+  "accessibility.menuClose": "Fermer le menu",
+  
+  "itinerary.title": "Itinéraire de Voyage",
+  "itinerary.print": "Imprimer l'Itinéraire",
+  "itinerary.confirmationNumber": "Confirmation",
+  "itinerary.tourDetails": "Détails de l'Excursion",
+  "itinerary.tourDescription": "Découvrez la beauté du Vanuatu avec notre visite guidée experte.",
+  "itinerary.bookingInfo": "Informations de Réservation",
+  "itinerary.travelers": "Voyageurs",
+  "itinerary.totalAmount": "Montant Total",
+  "itinerary.importantNotes": "Notes Importantes",
+  "itinerary.note1": "Veuillez arriver 15 minutes avant l'heure de prise en charge prévue",
+  "itinerary.note2": "Apportez des chaussures de marche confortables et une protection solaire",
+  "itinerary.note3": "L'eau et des rafraîchissements légers sont fournis",
+  "itinerary.note4": "Présentez cet itinéraire à l'arrivée pour l'enregistrement",
+  "itinerary.footerNote": "Merci d'avoir choisi Ace Tours & Transfers. Bon voyage!"
 }

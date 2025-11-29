@@ -9,8 +9,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Calendar, Wallet, Heart, HelpCircle, Ticket, Download, X, Printer } from "lucide-react";
+import { Calendar, Wallet, Heart, HelpCircle, Ticket, Download, X, Printer, FileText } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { PrintItinerary } from "@/components/print-itinerary";
 
 function TicketModal({ booking, onClose, t }: { booking: any; onClose: () => void; t: (key: string) => string }) {
   return (
@@ -116,6 +117,7 @@ export default function CustomerDashboard() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [selectedBooking, setSelectedBooking] = useState<any>(null);
+  const [itineraryBooking, setItineraryBooking] = useState<any>(null);
   const { t, i18n } = useTranslation();
   
   const fmtVT = (n?: number) => {
@@ -137,6 +139,10 @@ export default function CustomerDashboard() {
     <DashboardLayout type="customer">
       {selectedBooking && (
         <TicketModal booking={selectedBooking} onClose={() => setSelectedBooking(null)} t={t} />
+      )}
+      
+      {itineraryBooking && (
+        <PrintItinerary booking={itineraryBooking} onClose={() => setItineraryBooking(null)} />
       )}
 
       <div className="space-y-6">
@@ -169,7 +175,7 @@ export default function CustomerDashboard() {
                         <div className="font-semibold text-foreground">{b.tourName}</div>
                         <div className="text-sm text-muted-foreground">{b.date} • {b.guests} {t("booking.guests")}</div>
                       </div>
-                      <div className="flex gap-3 items-center">
+                      <div className="flex gap-2 items-center">
                         <span className="font-bold text-foreground">{b.amount}</span>
                         <Button 
                           data-testid={`button-download-ticket-${b.id}`}
@@ -177,7 +183,15 @@ export default function CustomerDashboard() {
                           size="sm"
                           variant="outline"
                         >
-                          <Download className="h-4 w-4 mr-1" /> {t("dashboard.ticket")}
+                          <Ticket className="h-4 w-4 mr-1" /> {t("dashboard.ticket")}
+                        </Button>
+                        <Button 
+                          data-testid={`button-print-itinerary-${b.id}`}
+                          onClick={() => setItineraryBooking(b)}
+                          size="sm"
+                          variant="outline"
+                        >
+                          <FileText className="h-4 w-4 mr-1" /> {t("itinerary.print", "Itinerary")}
                         </Button>
                       </div>
                     </div>

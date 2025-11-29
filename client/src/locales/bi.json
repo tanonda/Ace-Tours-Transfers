@@ -265,5 +265,20 @@
   "accessibility.skipToMain": "Go long main content",
   "accessibility.skipToNav": "Go long navigation",
   "accessibility.menuOpen": "Openem menu",
-  "accessibility.menuClose": "Close menu"
+  "accessibility.menuClose": "Close menu",
+  
+  "itinerary.title": "Travel Itinerary",
+  "itinerary.print": "Printem Itinerary",
+  "itinerary.confirmationNumber": "Confirmation",
+  "itinerary.tourDetails": "Tour Details",
+  "itinerary.tourDescription": "Experiensem beauty blong Vanuatu wetem expert guide blong mifala.",
+  "itinerary.bookingInfo": "Booking Information",
+  "itinerary.travelers": "Travelers",
+  "itinerary.totalAmount": "Total Amount",
+  "itinerary.importantNotes": "Important Notes",
+  "itinerary.note1": "Plis kam 15 minutes bifo pickup time blong yu",
+  "itinerary.note2": "Karem comfortable shoes mo sun protection",
+  "itinerary.note3": "Wota mo small kai kai i provided",
+  "itinerary.note4": "Showem itinerary hemia taem yu kam blong check-in",
+  "itinerary.footerNote": "Tankyu tumas from choosem Ace Tours & Transfers. Gud trip!"
 }
