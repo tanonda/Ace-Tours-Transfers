@@ -55,12 +55,12 @@ export default function Login() {
        {/* Simple Header */}
        <header className="bg-primary text-white shadow-md py-4">
         <div className="container mx-auto px-4 flex items-center justify-between">
-          <Link href="/">
-             <a className="font-serif font-bold text-xl tracking-tight">Ace Tours & Transfers</a>
+          <Link href="/" className="font-serif font-bold text-xl tracking-tight">
+             Ace Tours & Transfers
           </Link>
           <Link href="/">
-            <Button variant="ghost" size="sm" className="text-white hover:bg-white/20">
-              <ArrowLeft className="mr-2 h-4 w-4" /> Back to Home
+            <Button variant="ghost" size="sm" className="text-white hover:bg-white/20" asChild>
+              <span><ArrowLeft className="mr-2 h-4 w-4" /> Back to Home</span>
             </Button>
           </Link>
         </div>
@@ -153,8 +153,8 @@ export default function Login() {
               </form>
               <div className="mt-4 text-center text-sm">
                 Don't have an account?{" "}
-                <Link href="/register">
-                  <a className="text-primary font-medium hover:underline">Sign up</a>
+                <Link href="/register" className="text-primary font-medium hover:underline">
+                  Sign up
                 </Link>
               </div>
             </CardContent>
