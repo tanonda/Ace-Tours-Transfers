@@ -18,6 +18,7 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  getCustomers(): Promise<User[]>;
   
   // Tour operations
   getTours(): Promise<Tour[]>;
@@ -60,6 +61,10 @@ export class DatabaseStorage implements IStorage {
       .values(insertUser)
       .returning();
     return user;
+  }
+
+  async getCustomers(): Promise<User[]> {
+    return await db.select().from(users).where(eq(users.role, 'customer'));
   }
 
   // Tour operations

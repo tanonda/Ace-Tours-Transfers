@@ -1,4 +1,3 @@
-
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -25,6 +24,7 @@ import CustomerBookings from "@/pages/customer/bookings";
 import CustomerSaved from "@/pages/customer/saved";
 import CustomerProfile from "@/pages/customer/profile";
 import { CartProvider } from "@/lib/cart-context";
+import { AuthProvider, ProtectedRoute } from "@/lib/auth-context";
 
 function Router() {
   return (
@@ -40,19 +40,59 @@ function Router() {
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
       
-      {/* Admin Routes */}
-      <Route path="/admin/dashboard" component={AdminDashboard} />
-      <Route path="/admin/bookings" component={AdminBookings} />
-      <Route path="/admin/tours" component={AdminTours} />
-      <Route path="/admin/customers" component={AdminCustomers} />
-      <Route path="/admin/settings" component={AdminSettings} />
+      {/* Admin Routes - Protected */}
+      <Route path="/admin/dashboard">
+        <ProtectedRoute requireAdmin>
+          <AdminDashboard />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/admin/bookings">
+        <ProtectedRoute requireAdmin>
+          <AdminBookings />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/admin/tours">
+        <ProtectedRoute requireAdmin>
+          <AdminTours />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/admin/customers">
+        <ProtectedRoute requireAdmin>
+          <AdminCustomers />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/admin/settings">
+        <ProtectedRoute requireAdmin>
+          <AdminSettings />
+        </ProtectedRoute>
+      </Route>
 
-      {/* Customer Routes */}
-      <Route path="/dashboard" component={CustomerDashboard} />
-      <Route path="/customer/dashboard" component={CustomerDashboard} />
-      <Route path="/dashboard/bookings" component={CustomerBookings} />
-      <Route path="/dashboard/saved" component={CustomerSaved} />
-      <Route path="/dashboard/profile" component={CustomerProfile} />
+      {/* Customer Routes - Protected */}
+      <Route path="/dashboard">
+        <ProtectedRoute>
+          <CustomerDashboard />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/customer/dashboard">
+        <ProtectedRoute>
+          <CustomerDashboard />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/dashboard/bookings">
+        <ProtectedRoute>
+          <CustomerBookings />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/dashboard/saved">
+        <ProtectedRoute>
+          <CustomerSaved />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/dashboard/profile">
+        <ProtectedRoute>
+          <CustomerProfile />
+        </ProtectedRoute>
+      </Route>
 
       <Route component={NotFound} />
     </Switch>
@@ -63,10 +103,12 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <CartProvider>
-          <Toaster />
-          <Router />
-        </CartProvider>
+        <AuthProvider>
+          <CartProvider>
+            <Toaster />
+            <Router />
+          </CartProvider>
+        </AuthProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );

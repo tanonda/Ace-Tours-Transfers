@@ -94,3 +94,25 @@ export async function fetchUser(id: string): Promise<User> {
   if (!response.ok) throw new Error("Failed to fetch user");
   return response.json();
 }
+
+export async function fetchCustomers(): Promise<User[]> {
+  const response = await fetch(`${API_BASE}/customers`);
+  if (!response.ok) throw new Error("Failed to fetch customers");
+  return response.json();
+}
+
+// Export bookings as CSV
+export async function exportBookingsCSV(): Promise<void> {
+  const response = await fetch(`${API_BASE}/bookings/export`);
+  if (!response.ok) throw new Error("Failed to export bookings");
+  
+  const blob = await response.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "bookings.csv";
+  document.body.appendChild(a);
+  a.click();
+  window.URL.revokeObjectURL(url);
+  document.body.removeChild(a);
+}

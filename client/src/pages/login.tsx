@@ -3,49 +3,41 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Link, useLocation } from "wouter";
+import { Link } from "wouter";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, ArrowLeft, Star } from "lucide-react";
 import { tours } from "@/lib/data";
+import { useAuth } from "@/lib/auth-context";
 
 export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
-  const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   const featuredTour = tours[0];
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
-    // Simulate login delay
-    setTimeout(() => {
-      setIsLoading(false);
+    const result = await login(email, password);
+    setIsLoading(false);
 
-      if (email === "admin@acetours.vu" && password === "admin123") {
-        toast({
-          title: "Welcome back, Admin!",
-          description: "Redirecting to dashboard...",
-        });
-        setLocation("/admin/dashboard");
-      } else if (email === "james@example.com" && password === "user123") {
-        toast({
-          title: "Welcome back, James!",
-          description: "Redirecting to your account...",
-        });
-        setLocation("/dashboard");
-      } else {
-        toast({
-          title: "Login Failed",
-          description: "Invalid credentials. Please try again.",
-          variant: "destructive"
-        });
-      }
-    }, 1500);
+    if (result.success) {
+      toast({
+        title: "Welcome back!",
+        description: "Redirecting to your dashboard...",
+      });
+    } else {
+      toast({
+        title: "Login Failed",
+        description: result.error || "Invalid credentials. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const fillCredentials = (type: 'admin' | 'customer') => {
