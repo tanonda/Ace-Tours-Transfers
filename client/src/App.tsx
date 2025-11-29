@@ -29,6 +29,7 @@ import CustomerSaved from "@/pages/customer/saved";
 import CustomerProfile from "@/pages/customer/profile";
 import { CartProvider } from "@/lib/cart-context";
 import { AuthProvider, ProtectedRoute } from "@/lib/auth-context";
+import { ThemeProvider } from "@/lib/theme-context";
 
 function Router() {
   return (
@@ -126,14 +127,16 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <AuthProvider>
-          <CartProvider>
-            <Toaster />
-            <Router />
-          </CartProvider>
-        </AuthProvider>
-      </TooltipProvider>
+      <ThemeProvider>
+        <TooltipProvider>
+          <AuthProvider>
+            <CartProvider>
+              <Toaster />
+              <Router />
+            </CartProvider>
+          </AuthProvider>
+        </TooltipProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

@@ -18,6 +18,7 @@ import { tours, transfers } from "@/lib/data";
 import { useCart } from "@/lib/cart-context";
 import { ShoppingCart } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const ListItem = forwardRef<
   HTMLDivElement,
@@ -207,6 +208,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </NavigationMenu>
             
             <div className="ml-4 flex items-center gap-4">
+              <ThemeToggle size="sm" />
               <BookingModal trigger={<Button size="lg" className="font-semibold shadow-lg">Book Now</Button>} />
             </div>
           </div>
@@ -254,6 +256,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     <Link href="/reservations" className="block text-sm text-muted-foreground hover:text-primary">Cancel your trip</Link>
                     <Link href="/reservations" className="block text-sm text-muted-foreground hover:text-primary">Book ride</Link>
                   </div>
+                </div>
+
+                <div className="flex items-center justify-between py-2">
+                  <span className="text-lg font-medium text-foreground">Theme</span>
+                  <ThemeToggle size="md" />
                 </div>
                 
                 <BookingModal trigger={<Button size="lg" className="w-full">Book Now</Button>} />

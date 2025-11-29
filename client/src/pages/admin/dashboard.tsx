@@ -6,35 +6,24 @@ import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/hooks/use-toast";
 import { DashboardLayout } from "@/components/dashboard-layout";
 
-const THEME = {
-  accent1: '#FF6B6B',
-  accent2: '#FFD93D',
-  accent3: '#6BCB77',
-  accent4: '#4D96FF',
-  bg: '#0f1724',
-  surface: '#0b1220',
-  text: '#E6EEF3'
-};
-
 const fmtVT = (n?: number) => (n == null ? '-' : n.toLocaleString('en-US') + ' VT');
 
-function KPI({ label, value, delta, iconBg }: { label: string; value: string | number; delta?: string; iconBg?: string }) {
+function KPI({ label, value, delta, colorClass }: { label: string; value: string | number; delta?: string; colorClass?: string }) {
   return (
-    <div data-testid={`kpi-${label.toLowerCase().replace(/\s+/g, '-')}`} style={{ 
-      padding: 16, 
-      borderRadius: 12, 
-      background: 'linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01))', 
-      border: '1px solid rgba(255,255,255,0.05)',
-      minWidth: 160,
-      flex: 1
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-        <div style={{ fontSize: 12, color: 'rgba(230,238,243,0.6)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div>
-        <div style={{ width: 36, height: 36, borderRadius: 10, background: iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, color: '#0f1724', fontSize: 14 }}>{label[0]}</div>
+    <div data-testid={`kpi-${label.toLowerCase().replace(/\s+/g, '-')}`} className="p-4 rounded-xl bg-card border border-border">
+      <div className="flex items-center justify-between mb-2">
+        <div className="text-xs text-muted-foreground uppercase tracking-wide">{label}</div>
+        <div className={`w-9 h-9 rounded-lg flex items-center justify-center font-bold text-sm ${colorClass || 'bg-primary text-primary-foreground'}`}>
+          {label[0]}
+        </div>
       </div>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-        <div style={{ fontSize: 24, fontWeight: 700, color: THEME.text }}>{value}</div>
-        {delta && <div style={{ fontSize: 12, fontWeight: 500, color: delta.startsWith('+') ? THEME.accent3 : THEME.accent1 }}>{delta}</div>}
+      <div className="flex items-baseline gap-2">
+        <div className="text-2xl font-bold text-foreground">{value}</div>
+        {delta && (
+          <div className={`text-xs font-medium ${delta.startsWith('+') ? 'text-green-500' : 'text-red-500'}`}>
+            {delta}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -42,23 +31,41 @@ function KPI({ label, value, delta, iconBg }: { label: string; value: string | n
 
 function BookingModal({ booking, onClose, onUpdate }: { booking: any; onClose: () => void; onUpdate: (status: string) => void }) {
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-      <div style={{ background: THEME.bg, padding: 24, borderRadius: 16, width: 400, maxWidth: '90%', border: '1px solid rgba(255,255,255,0.1)' }}>
-        <h3 style={{ margin: 0, color: THEME.text, marginBottom: 16 }}>Booking Details</h3>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, color: 'rgba(230,238,243,0.85)' }}>
-          <div><strong>ID:</strong> #{booking.id?.slice(0, 8)}</div>
-          <div><strong>Customer:</strong> {booking.customerName}</div>
-          <div><strong>Tour:</strong> {booking.tourName}</div>
-          <div><strong>Date:</strong> {booking.date}</div>
-          <div><strong>Guests:</strong> {booking.guests}</div>
-          <div><strong>Amount:</strong> {booking.amount}</div>
-          <div><strong>Status:</strong> {booking.status}</div>
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[1000]">
+      <div className="bg-card p-6 rounded-2xl w-[400px] max-w-[90%] border border-border">
+        <h3 className="text-foreground text-lg font-semibold mb-4">Booking Details</h3>
+        <div className="flex flex-col gap-3 text-muted-foreground">
+          <div><strong className="text-foreground">ID:</strong> #{booking.id?.slice(0, 8)}</div>
+          <div><strong className="text-foreground">Customer:</strong> {booking.customerName}</div>
+          <div><strong className="text-foreground">Tour:</strong> {booking.tourName}</div>
+          <div><strong className="text-foreground">Date:</strong> {booking.date}</div>
+          <div><strong className="text-foreground">Guests:</strong> {booking.guests}</div>
+          <div><strong className="text-foreground">Amount:</strong> {booking.amount}</div>
+          <div><strong className="text-foreground">Status:</strong> {booking.status}</div>
         </div>
-        <div style={{ marginTop: 20, display: 'flex', gap: 8 }}>
-          <button data-testid="button-confirm-booking" onClick={() => onUpdate('confirmed')} style={{ flex: 1, padding: '10px', borderRadius: 8, border: 'none', background: THEME.accent3, color: '#031428', fontWeight: 600, cursor: 'pointer' }}>Confirm</button>
-          <button data-testid="button-cancel-booking" onClick={() => onUpdate('cancelled')} style={{ flex: 1, padding: '10px', borderRadius: 8, border: 'none', background: THEME.accent1, color: '#031428', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+        <div className="mt-5 flex gap-2">
+          <button 
+            data-testid="button-confirm-booking" 
+            onClick={() => onUpdate('confirmed')} 
+            className="flex-1 py-2.5 rounded-lg border-none bg-green-500 text-white font-semibold cursor-pointer hover:bg-green-600 transition-colors"
+          >
+            Confirm
+          </button>
+          <button 
+            data-testid="button-cancel-booking" 
+            onClick={() => onUpdate('cancelled')} 
+            className="flex-1 py-2.5 rounded-lg border-none bg-red-500 text-white font-semibold cursor-pointer hover:bg-red-600 transition-colors"
+          >
+            Cancel
+          </button>
         </div>
-        <button data-testid="button-close-modal" onClick={onClose} style={{ marginTop: 12, width: '100%', padding: '10px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: THEME.text, cursor: 'pointer' }}>Close</button>
+        <button 
+          data-testid="button-close-modal" 
+          onClick={onClose} 
+          className="mt-3 w-full py-2.5 rounded-lg border border-border bg-transparent text-foreground cursor-pointer hover:bg-muted transition-colors"
+        >
+          Close
+        </button>
       </div>
     </div>
   );
@@ -66,57 +73,45 @@ function BookingModal({ booking, onClose, onUpdate }: { booking: any; onClose: (
 
 function Table({ rows, onOpenBooking }: { rows: any[]; onOpenBooking: (booking: any) => void }) {
   return (
-    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-      <thead style={{ textAlign: 'left', color: 'rgba(230,238,243,0.5)' }}>
+    <table className="w-full border-collapse">
+      <thead className="text-left text-muted-foreground">
         <tr>
-          <th style={{ padding: '12px 8px', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, borderBottom: '1px solid rgba(255,255,255,0.05)' }}>ID</th>
-          <th style={{ padding: '12px 8px', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, borderBottom: '1px solid rgba(255,255,255,0.05)' }}>Customer</th>
-          <th style={{ padding: '12px 8px', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, borderBottom: '1px solid rgba(255,255,255,0.05)' }}>Route</th>
-          <th style={{ padding: '12px 8px', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, borderBottom: '1px solid rgba(255,255,255,0.05)' }}>Date</th>
-          <th style={{ padding: '12px 8px', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, borderBottom: '1px solid rgba(255,255,255,0.05)' }}>Amount</th>
-          <th style={{ padding: '12px 8px', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, borderBottom: '1px solid rgba(255,255,255,0.05)' }}>Status</th>
-          <th style={{ padding: '12px 8px', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, borderBottom: '1px solid rgba(255,255,255,0.05)' }}>Action</th>
+          <th className="py-3 px-2 text-xs uppercase tracking-wide border-b border-border">ID</th>
+          <th className="py-3 px-2 text-xs uppercase tracking-wide border-b border-border">Customer</th>
+          <th className="py-3 px-2 text-xs uppercase tracking-wide border-b border-border">Route</th>
+          <th className="py-3 px-2 text-xs uppercase tracking-wide border-b border-border">Date</th>
+          <th className="py-3 px-2 text-xs uppercase tracking-wide border-b border-border">Amount</th>
+          <th className="py-3 px-2 text-xs uppercase tracking-wide border-b border-border">Status</th>
+          <th className="py-3 px-2 text-xs uppercase tracking-wide border-b border-border">Action</th>
         </tr>
       </thead>
       <tbody>
         {rows.map(r => (
-          <tr key={r.id} data-testid={`row-booking-${r.id}`} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
-            <td style={{ padding: '12px 8px', color: 'rgba(230,238,243,0.85)', fontSize: 13 }}>#{r.id?.slice(0, 6) || r.id}</td>
-            <td style={{ padding: '12px 8px', color: 'rgba(230,238,243,0.85)', fontSize: 13 }}>{r.customerName || r.name}</td>
-            <td style={{ padding: '12px 8px', color: 'rgba(230,238,243,0.85)', fontSize: 13 }}>{r.tourName || r.route}</td>
-            <td style={{ padding: '12px 8px', color: 'rgba(230,238,243,0.85)', fontSize: 13 }}>{r.date}</td>
-            <td style={{ padding: '12px 8px', color: 'rgba(230,238,243,0.85)', fontSize: 13 }}>{r.amount}</td>
-            <td style={{ padding: '12px 8px', color: 'rgba(230,238,243,0.85)' }}>
-              <span style={{
-                padding: '4px 10px',
-                borderRadius: 6,
-                fontSize: 11,
-                fontWeight: 600,
-                background: r.status === 'confirmed' || r.status === 'Paid' ? 'rgba(107,203,119,0.15)' : 
-                           r.status === 'pending' || r.status === 'Pending' ? 'rgba(255,217,61,0.15)' : 
-                           'rgba(255,107,107,0.15)',
-                color: r.status === 'confirmed' || r.status === 'Paid' ? THEME.accent3 : 
-                       r.status === 'pending' || r.status === 'Pending' ? THEME.accent2 : 
-                       THEME.accent1
-              }}>
+          <tr key={r.id} data-testid={`row-booking-${r.id}`} className="border-b border-border/30">
+            <td className="py-3 px-2 text-foreground text-sm">#{r.id?.slice(0, 6) || r.id}</td>
+            <td className="py-3 px-2 text-foreground text-sm">{r.customerName || r.name}</td>
+            <td className="py-3 px-2 text-foreground text-sm">{r.tourName || r.route}</td>
+            <td className="py-3 px-2 text-foreground text-sm">{r.date}</td>
+            <td className="py-3 px-2 text-foreground text-sm">{r.amount}</td>
+            <td className="py-3 px-2">
+              <span className={`px-2.5 py-1 rounded-md text-xs font-semibold ${
+                r.status === 'confirmed' || r.status === 'Paid' 
+                  ? 'bg-green-500/15 text-green-500' 
+                  : r.status === 'pending' || r.status === 'Pending' 
+                    ? 'bg-yellow-500/15 text-yellow-500' 
+                    : 'bg-red-500/15 text-red-500'
+              }`}>
                 {r.status}
               </span>
             </td>
-            <td style={{ padding: '12px 8px' }}>
+            <td className="py-3 px-2">
               <button 
                 data-testid={`button-open-${r.id}`}
                 onClick={() => onOpenBooking(r)}
-                style={{ 
-                  background: THEME.accent4,
-                  color: '#07203b', 
-                  padding: '6px 12px', 
-                  borderRadius: 6, 
-                  border: 'none', 
-                  fontWeight: 600, 
-                  cursor: 'pointer',
-                  fontSize: 11,
-                  transition: 'all 0.15s ease'
-                }}>View</button>
+                className="bg-primary text-primary-foreground px-3 py-1.5 rounded-md border-none font-semibold cursor-pointer text-xs hover:opacity-90 transition-opacity"
+              >
+                View
+              </button>
             </td>
           </tr>
         ))}
@@ -190,77 +185,48 @@ export default function AdminDashboard() {
         />
       )}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div className="flex flex-col gap-5">
+        <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
-            <h1 style={{ margin: 0, fontSize: 28, fontWeight: 700, color: THEME.text }}>
+            <h1 className="text-2xl font-bold text-foreground">
               Welcome back, {user?.name || 'Admin'}
             </h1>
-            <p style={{ margin: '4px 0 0', fontSize: 14, color: 'rgba(230,238,243,0.6)' }}>
+            <p className="mt-1 text-sm text-muted-foreground">
               Here's what's happening with your tours today
             </p>
           </div>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div className="flex gap-2">
             <input 
               data-testid="input-search" 
               placeholder="Search bookings..." 
-              style={{ 
-                padding: '10px 14px', 
-                borderRadius: 8, 
-                border: '1px solid rgba(255,255,255,0.1)', 
-                minWidth: 200, 
-                background: 'rgba(255,255,255,0.03)', 
-                color: THEME.text,
-                fontSize: 13
-              }} 
+              className="py-2.5 px-3.5 rounded-lg border border-border min-w-[200px] bg-background text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
             <button 
               data-testid="button-export-csv" 
               onClick={handleExportCSV} 
-              style={{ 
-                background: THEME.accent4, 
-                padding: '10px 16px', 
-                borderRadius: 8, 
-                cursor: 'pointer', 
-                border: 'none', 
-                color: '#07203b', 
-                fontSize: 13,
-                fontWeight: 600
-              }}
+              className="bg-primary py-2.5 px-4 rounded-lg cursor-pointer border-none text-primary-foreground text-sm font-semibold hover:opacity-90 transition-opacity"
             >
               Export CSV
             </button>
           </div>
         </div>
         
-        <section style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
-          <KPI label="Revenue" value={fmtVT(totalRevenue * 100)} delta="+8%" iconBg={THEME.accent2} />
-          <KPI label="Bookings" value={stats?.total || bookings.length} delta="+3%" iconBg={THEME.accent4} />
-          <KPI label="Active Tours" value={tours.length} delta="+1%" iconBg={THEME.accent3} />
-          <KPI label="Uptime" value="99.97%" delta="+0.01%" iconBg={THEME.accent1} />
+        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <KPI label="Revenue" value={fmtVT(totalRevenue * 100)} delta="+8%" colorClass="bg-yellow-500 text-yellow-950" />
+          <KPI label="Bookings" value={stats?.total || bookings.length} delta="+3%" colorClass="bg-blue-500 text-blue-950" />
+          <KPI label="Active Tours" value={tours.length} delta="+1%" colorClass="bg-green-500 text-green-950" />
+          <KPI label="Uptime" value="99.97%" delta="+0.01%" colorClass="bg-red-400 text-red-950" />
         </section>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 20 }}>
-          <div style={{ 
-            padding: 20, 
-            borderRadius: 12, 
-            background: 'linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01))',
-            border: '1px solid rgba(255,255,255,0.05)'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-              <h3 style={{ margin: 0, color: THEME.text, fontSize: 16, fontWeight: 600 }}>Recent Bookings</h3>
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-5">
+          <div className="p-5 rounded-xl bg-card border border-border">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-foreground text-base font-semibold">Recent Bookings</h3>
               <select 
                 data-testid="select-status-filter"
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                style={{ 
-                  padding: '6px 12px', 
-                  borderRadius: 6, 
-                  background: 'rgba(255,255,255,0.05)', 
-                  border: '1px solid rgba(255,255,255,0.1)', 
-                  color: THEME.text,
-                  fontSize: 12
-                }}
+                className="py-1.5 px-3 rounded-md bg-muted border border-border text-foreground text-xs cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50"
               >
                 <option value="all">All statuses</option>
                 <option value="confirmed">Confirmed</option>
@@ -271,130 +237,87 @@ export default function AdminDashboard() {
             {recentBookings.length > 0 ? (
               <Table rows={recentBookings} onOpenBooking={setSelectedBooking} />
             ) : (
-              <div style={{ padding: 40, textAlign: 'center', color: 'rgba(230,238,243,0.4)' }}>
+              <div className="py-10 text-center text-muted-foreground">
                 No bookings yet. Create your first booking to see it here.
               </div>
             )}
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div style={{ 
-              padding: 20, 
-              borderRadius: 12, 
-              background: 'linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01))',
-              border: '1px solid rgba(255,255,255,0.05)'
-            }}>
-              <h4 style={{ margin: '0 0 12px', color: THEME.text, fontSize: 14, fontWeight: 600 }}>Revenue Breakdown</h4>
+          <div className="flex flex-col gap-4">
+            <div className="p-5 rounded-xl bg-card border border-border">
+              <h4 className="text-foreground text-sm font-semibold mb-3">Revenue Breakdown</h4>
               <svg width="100%" height={120} viewBox="0 0 200 100" preserveAspectRatio="none">
-                <rect x="10" y="50" width="50" height="50" rx="6" fill={THEME.accent4}></rect>
-                <rect x="75" y="25" width="50" height="75" rx="6" fill={THEME.accent1}></rect>
-                <rect x="140" y="10" width="50" height="90" rx="6" fill={THEME.accent3}></rect>
+                <rect x="10" y="50" width="50" height="50" rx="6" className="fill-blue-500"></rect>
+                <rect x="75" y="25" width="50" height="75" rx="6" className="fill-red-400"></rect>
+                <rect x="140" y="10" width="50" height="90" rx="6" className="fill-green-500"></rect>
               </svg>
-              <div style={{ display: 'flex', justifyContent: 'space-around', marginTop: 12, fontSize: 11, color: 'rgba(230,238,243,0.6)' }}>
+              <div className="flex justify-around mt-3 text-xs text-muted-foreground">
                 <span>Tours</span>
                 <span>Transfers</span>
                 <span>Bus Hire</span>
               </div>
             </div>
 
-            <div style={{ 
-              padding: 20, 
-              borderRadius: 12, 
-              background: 'linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01))',
-              border: '1px solid rgba(255,255,255,0.05)'
-            }}>
-              <h4 style={{ margin: '0 0 12px', color: THEME.text, fontSize: 14, fontWeight: 600 }}>System Health</h4>
-              <div style={{ fontSize: 13, color: 'rgba(230,238,243,0.85)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                  <span style={{ width: 8, height: 8, borderRadius: 999, background: THEME.accent3 }}></span>
-                  All systems nominal
+            <div className="p-5 rounded-xl bg-card border border-border">
+              <h4 className="text-foreground text-sm font-semibold mb-3">System Health</h4>
+              <div className="text-sm text-muted-foreground">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                  <span className="text-foreground">All systems nominal</span>
                 </div>
-                <div style={{ color: 'rgba(230,238,243,0.5)', fontSize: 12 }}>
+                <div className="text-xs text-muted-foreground">
                   API latency 120ms • DB connections 12/20
                 </div>
               </div>
             </div>
 
-            <div style={{ 
-              padding: 20, 
-              borderRadius: 12, 
-              background: 'linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01))',
-              border: '1px solid rgba(255,255,255,0.05)'
-            }}>
-              <h4 style={{ margin: '0 0 12px', color: THEME.text, fontSize: 14, fontWeight: 600 }}>Quick Actions</h4>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            <div className="p-5 rounded-xl bg-card border border-border">
+              <h4 className="text-foreground text-sm font-semibold mb-3">Quick Actions</h4>
+              <div className="flex flex-wrap gap-2">
                 <button 
                   data-testid="button-new-booking" 
                   onClick={() => setLocation('/tours')} 
-                  style={{ 
-                    background: 'rgba(255,255,255,0.05)', 
-                    padding: '8px 12px', 
-                    borderRadius: 8, 
-                    cursor: 'pointer', 
-                    border: '1px solid rgba(255,255,255,0.1)', 
-                    color: THEME.text, 
-                    fontSize: 12 
-                  }}
+                  className="bg-muted px-3 py-2 rounded-lg cursor-pointer border border-border text-foreground text-xs hover:bg-accent transition-colors"
                 >
                   New Booking
                 </button>
                 <button 
                   data-testid="button-create-promo" 
                   onClick={() => setLocation('/admin/promotions')} 
-                  style={{ 
-                    background: 'rgba(255,255,255,0.05)', 
-                    padding: '8px 12px', 
-                    borderRadius: 8, 
-                    cursor: 'pointer', 
-                    border: '1px solid rgba(255,255,255,0.1)', 
-                    color: THEME.text, 
-                    fontSize: 12 
-                  }}
+                  className="bg-muted px-3 py-2 rounded-lg cursor-pointer border border-border text-foreground text-xs hover:bg-accent transition-colors"
                 >
                   Create Promo
                 </button>
                 <button 
                   data-testid="button-view-reports" 
                   onClick={() => setLocation('/admin/reports')} 
-                  style={{ 
-                    background: 'rgba(255,255,255,0.05)', 
-                    padding: '8px 12px', 
-                    borderRadius: 8, 
-                    cursor: 'pointer', 
-                    border: '1px solid rgba(255,255,255,0.1)', 
-                    color: THEME.text, 
-                    fontSize: 12 
-                  }}
+                  className="bg-muted px-3 py-2 rounded-lg cursor-pointer border border-border text-foreground text-xs hover:bg-accent transition-colors"
                 >
                   View Reports
                 </button>
               </div>
             </div>
 
-            <div style={{ 
-              padding: 20, 
-              borderRadius: 12, 
-              background: `linear-gradient(135deg, ${THEME.accent4}15, ${THEME.accent1}15)`, 
-              border: `1px solid ${THEME.accent4}30` 
-            }}>
-              <h4 style={{ margin: 0, color: THEME.text, fontSize: 14, fontWeight: 600 }}>Notifications</h4>
-              <ul style={{ margin: '12px 0 0', paddingLeft: 0, listStyle: 'none', color: 'rgba(230,238,243,0.85)', fontSize: 13 }}>
+            <div className="p-5 rounded-xl bg-gradient-to-br from-primary/10 to-destructive/10 border border-primary/30">
+              <h4 className="text-foreground text-sm font-semibold">Notifications</h4>
+              <ul className="mt-3 space-y-2">
                 {bookings.slice(0, 3).map((b) => (
-                  <li key={b.id} style={{ marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ 
-                      width: 6, 
-                      height: 6, 
-                      borderRadius: 999, 
-                      background: b.status === 'confirmed' ? THEME.accent3 : b.status === 'pending' ? THEME.accent2 : THEME.accent1 
-                    }}></span>
-                    <span style={{ color: b.status === 'confirmed' ? THEME.accent3 : b.status === 'pending' ? THEME.accent2 : THEME.accent1 }}>
+                  <li key={b.id} className="flex items-center gap-2 text-sm">
+                    <span className={`w-1.5 h-1.5 rounded-full ${
+                      b.status === 'confirmed' ? 'bg-green-500' : 
+                      b.status === 'pending' ? 'bg-yellow-500' : 'bg-red-400'
+                    }`}></span>
+                    <span className={
+                      b.status === 'confirmed' ? 'text-green-500' : 
+                      b.status === 'pending' ? 'text-yellow-500' : 'text-red-400'
+                    }>
                       {b.status === 'confirmed' ? 'Confirmed' : b.status === 'pending' ? 'New booking' : 'Cancelled'}
                     </span>
-                    <span style={{ color: 'rgba(230,238,243,0.5)' }}>#{b.id?.slice(0, 6)}</span>
+                    <span className="text-muted-foreground">#{b.id?.slice(0, 6)}</span>
                   </li>
                 ))}
                 {bookings.length === 0 && (
-                  <li style={{ color: 'rgba(230,238,243,0.4)' }}>No recent activity</li>
+                  <li className="text-muted-foreground text-sm">No recent activity</li>
                 )}
               </ul>
             </div>
