@@ -13,7 +13,7 @@ export default function CustomerProfile() {
     <DashboardLayout type="customer">
       <div className="space-y-6 max-w-4xl">
         <div>
-          <h1 className="text-3xl font-bold text-[#004165]">Profile & Settings</h1>
+          <h1 className="text-3xl font-bold text-foreground">Profile & Settings</h1>
           <p className="text-muted-foreground">Manage your personal information and account security.</p>
         </div>
 
@@ -26,7 +26,7 @@ export default function CustomerProfile() {
             <div className="flex items-center gap-6">
               <Avatar className="h-24 w-24">
                 <AvatarImage src="" />
-                <AvatarFallback className="text-2xl bg-slate-100">JD</AvatarFallback>
+                <AvatarFallback className="text-2xl bg-muted">JD</AvatarFallback>
               </Avatar>
               <Button variant="outline" onClick={() => toast({ title: "Change Avatar", description: "Opening image uploader..." })}>Change Avatar</Button>
             </div>
@@ -50,7 +50,7 @@ export default function CustomerProfile() {
               </div>
             </div>
             
-            <Button className="bg-[#004165]" onClick={() => toast({ title: "Profile Updated", description: "Your profile information has been updated." })}>Save Changes</Button>
+            <Button onClick={() => toast({ title: "Profile Updated", description: "Your profile information has been updated." })}>Save Changes</Button>
           </CardContent>
         </Card>
 

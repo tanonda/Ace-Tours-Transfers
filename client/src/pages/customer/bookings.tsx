@@ -1,5 +1,5 @@
 import { DashboardLayout } from "@/components/dashboard-layout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar, MapPin, Download, Eye, Pencil } from "lucide-react";
@@ -11,11 +11,11 @@ import { EditBookingDialog } from "@/components/customer/edit-booking-dialog";
 const initialBookings = [
   { 
     id: "BK-7821", 
-    customer: "James Doe", // Added for dialog compatibility
+    customer: "James Doe",
     tour: "Efate Scenic Tour", 
-    date: "2024-06-15", // Standardized date format
+    date: "2024-06-15",
     guests: 2, 
-    amount: "$240", // Renamed from total
+    amount: "$240",
     status: "confirmed",
     image: "https://images.unsplash.com/photo-1589308078059-be1415eab4c3?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80"
   },
@@ -59,7 +59,6 @@ export default function CustomerBookings() {
   };
 
   const handleSaveBooking = (updatedBooking: any) => {
-    // Preserve the image property when updating
     setBookings(prev => prev.map(b => b.id === updatedBooking.id ? { ...b, ...updatedBooking } : b));
     toast({ title: "Request Sent", description: `Change request for ${updatedBooking.id} has been submitted.` });
   };
@@ -68,7 +67,7 @@ export default function CustomerBookings() {
     <DashboardLayout type="customer">
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-[#004165]">My Bookings</h1>
+          <h1 className="text-3xl font-bold text-foreground">My Bookings</h1>
           <p className="text-muted-foreground">Manage your upcoming trips and view history.</p>
         </div>
 
@@ -87,40 +86,43 @@ export default function CustomerBookings() {
                   <div>
                     <div className="flex justify-between items-start mb-2">
                       <div>
-                        <h3 className="font-bold text-xl text-[#004165]">{booking.tour}</h3>
+                        <h3 className="font-bold text-xl text-foreground">{booking.tour}</h3>
                         <p className="text-sm text-muted-foreground">Ref: {booking.id}</p>
                       </div>
-                      <Badge variant={booking.status === "confirmed" ? "default" : "secondary"} className={booking.status === "confirmed" ? "bg-green-500 hover:bg-green-600" : ""}>
+                      <Badge 
+                        variant={booking.status === "confirmed" ? "default" : "secondary"} 
+                        className={booking.status === "confirmed" ? "bg-green-500 hover:bg-green-600" : ""}
+                      >
                         {booking.status.toUpperCase()}
                       </Badge>
                     </div>
                     
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 text-sm">
-                      <div className="flex items-center gap-2 text-slate-600">
+                      <div className="flex items-center gap-2 text-muted-foreground">
                         <Calendar className="h-4 w-4" />
                         {booking.date}
                       </div>
-                      <div className="flex items-center gap-2 text-slate-600">
+                      <div className="flex items-center gap-2 text-muted-foreground">
                         <MapPin className="h-4 w-4" />
                         Hotel Pickup
                       </div>
-                      <div>
+                      <div className="text-foreground">
                         <span className="font-medium">Guests:</span> {booking.guests}
                       </div>
-                      <div>
+                      <div className="text-foreground">
                         <span className="font-medium">Total:</span> {booking.amount}
                       </div>
                     </div>
                   </div>
                   
-                  <div className="flex justify-end gap-3 mt-6 pt-4 border-t flex-wrap">
+                  <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-border flex-wrap">
                     <Button variant="outline" size="sm" onClick={() => toast({ title: "Download Ticket", description: `Downloading ticket for ${booking.tour}` })}>
                       <Download className="h-4 w-4 mr-2" /> Download Ticket
                     </Button>
                     <Button variant="outline" size="sm" onClick={() => handleEditBooking(booking)}>
                       <Pencil className="h-4 w-4 mr-2" /> Modify
                     </Button>
-                    <Button size="sm" className="bg-[#004165]" onClick={() => handleViewBooking(booking)}>
+                    <Button size="sm" onClick={() => handleViewBooking(booking)}>
                       <Eye className="h-4 w-4 mr-2" /> View Details
                     </Button>
                   </div>
@@ -141,7 +143,7 @@ export default function CustomerBookings() {
           open={isEditOpen} 
           onOpenChange={setIsEditOpen} 
           onSave={handleSaveBooking}
-        />
+        /> 
       </div>
     </DashboardLayout>
   );

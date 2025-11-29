@@ -133,14 +133,7 @@ export function ProtectedRoute({
 
   if (isLoading) {
     return (
-      <div style={{ 
-        minHeight: "100vh", 
-        display: "flex", 
-        alignItems: "center", 
-        justifyContent: "center",
-        background: "#0f1724",
-        color: "#E6EEF3"
-      }}>
+      <div className="min-h-screen flex items-center justify-center bg-background text-foreground">
         Loading...
       </div>
     );
