@@ -69,6 +69,14 @@ export function DashboardLayout({ children, type }: DashboardLayoutProps) {
     setIsSidebarOpen(prev => !prev);
   }, []);
 
+  const handleNotificationClick = useCallback((link: string) => {
+    try {
+      navigate(link);
+    } catch (e) {
+      console.error('Navigation error:', e);
+    }
+  }, [navigate]);
+
   const adminNotifications = [
     {
       id: 1,
@@ -354,7 +362,7 @@ export function DashboardLayout({ children, type }: DashboardLayoutProps) {
                       {notifications.map((notification) => (
                         <div 
                           key={notification.id} 
-                          onClick={() => navigate(notification.link)}
+                          onClick={() => handleNotificationClick(notification.link)}
                           className={`p-4 border-b border-border/50 cursor-pointer hover:bg-muted/50 transition-all group ${
                             !notification.read ? 'bg-primary/5' : ''
                           }`}
