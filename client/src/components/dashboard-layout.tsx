@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { 
   LayoutDashboard, 
@@ -29,7 +29,6 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { useAuth } from "@/lib/auth-context";
-import { useTheme } from "@/lib/theme-context";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 interface DashboardLayoutProps {
@@ -41,41 +40,14 @@ export function DashboardLayout({ children, type }: DashboardLayoutProps) {
   const [location, navigate] = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const { user, logout } = useAuth();
-  const { theme } = useTheme();
-  const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const openSidebar = useCallback(() => {
-    if (closeTimeoutRef.current) {
-      clearTimeout(closeTimeoutRef.current);
-      closeTimeoutRef.current = null;
-    }
-    setIsSidebarOpen(true);
-  }, []);
-
-  const closeSidebar = useCallback(() => {
-    if (closeTimeoutRef.current) {
-      clearTimeout(closeTimeoutRef.current);
-    }
-    closeTimeoutRef.current = setTimeout(() => {
-      setIsSidebarOpen(false);
-    }, 150);
-  }, []);
-
-  const toggleSidebar = useCallback(() => {
-    if (closeTimeoutRef.current) {
-      clearTimeout(closeTimeoutRef.current);
-      closeTimeoutRef.current = null;
-    }
+  const toggleSidebar = () => {
     setIsSidebarOpen(prev => !prev);
-  }, []);
+  };
 
-  const handleNotificationClick = useCallback((link: string) => {
-    try {
-      navigate(link);
-    } catch (e) {
-      console.error('Navigation error:', e);
-    }
-  }, [navigate]);
+  const handleNotificationClick = (link: string) => {
+    navigate(link);
+  };
 
   const adminNotifications = [
     {
