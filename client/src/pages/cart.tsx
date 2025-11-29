@@ -6,8 +6,10 @@ import { Separator } from "@/components/ui/separator";
 import { Trash2, ArrowRight, ShoppingBag } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { format } from "date-fns";
+import { useTranslation } from "react-i18next";
 
 export default function Cart() {
+  const { t } = useTranslation();
   const { items, removeFromCart, total, clearCart } = useCart();
   const [, setLocation] = useLocation();
 
@@ -22,16 +24,16 @@ export default function Cart() {
           <div className="bg-muted/30 p-8 rounded-full mb-6">
             <ShoppingBag className="h-12 w-12 text-muted-foreground" />
           </div>
-          <h1 className="text-3xl font-serif font-bold mb-4">Your cart is empty</h1>
+          <h1 className="text-3xl font-serif font-bold mb-4">{t("cart.empty")}</h1>
           <p className="text-muted-foreground mb-8 text-center max-w-md">
-            Looks like you haven't added any tours or transfers yet. Explore our packages to get started.
+            {t("cart.emptyDesc")}
           </p>
           <div className="flex gap-4">
             <Link href="/tours">
-              <Button size="lg">Browse Tours</Button>
+              <Button size="lg">{t("cart.browseTours")}</Button>
             </Link>
             <Link href="/transfers">
-              <Button variant="outline" size="lg">View Transfers</Button>
+              <Button variant="outline" size="lg">{t("nav.viewAllTransfers")}</Button>
             </Link>
           </div>
         </div>
@@ -43,7 +45,7 @@ export default function Cart() {
     <Layout>
       <div className="pt-40 pb-12 bg-muted/30 min-h-screen">
         <div className="container mx-auto px-4">
-          <h1 className="text-3xl md:text-4xl font-serif font-bold mb-8">Shopping Cart</h1>
+          <h1 className="text-3xl md:text-4xl font-serif font-bold mb-8">{t("cart.title")}</h1>
           
           <div className="flex flex-col lg:flex-row gap-8">
             {/* Cart Items */}
@@ -65,8 +67,8 @@ export default function Cart() {
                             <div>
                               <h3 className="font-bold text-lg">{item.title}</h3>
                               <div className="text-sm text-muted-foreground mt-1 space-y-1">
-                                {item.date && <p>Date: {format(new Date(item.date), "PPP")}</p>}
-                                {item.guests && <p>Guests: {item.guests}</p>}
+                                {item.date && <p>{t("cart.date")}: {format(new Date(item.date), "PPP")}</p>}
+                                {item.guests && <p>{t("cart.guests")}: {item.guests}</p>}
                               </div>
                             </div>
                             <p className="font-bold text-lg">${item.price}</p>
@@ -83,7 +85,7 @@ export default function Cart() {
                               onClick={() => removeFromCart(item.id)}
                             >
                               <Trash2 className="h-4 w-4 mr-2" />
-                              Remove
+                              {t("cart.remove")}
                             </Button>
                           </div>
                         </div>
@@ -103,7 +105,7 @@ export default function Cart() {
             <div className="lg:w-1/3">
               <Card className="sticky top-24 shadow-lg border-none">
                 <CardHeader>
-                  <CardTitle>Order Summary</CardTitle>
+                  <CardTitle>{t("payment.orderSummary")}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
@@ -117,14 +119,14 @@ export default function Cart() {
                     </div>
                     <Separator />
                     <div className="flex justify-between font-bold text-lg">
-                      <span>Total</span>
+                      <span>{t("cart.total")}</span>
                       <span>${total.toLocaleString()}</span>
                     </div>
                   </div>
                 </CardContent>
                 <CardFooter>
                   <Button className="w-full py-6 text-lg" size="lg" onClick={handleCheckout}>
-                    Proceed to Checkout
+                    {t("cart.checkout")}
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </CardFooter>

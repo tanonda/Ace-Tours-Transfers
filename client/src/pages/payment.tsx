@@ -9,12 +9,15 @@ import { ShieldCheck, Lock, CreditCard, Loader2, ArrowLeft } from "lucide-react"
 import { useToast } from "@/hooks/use-toast";
 import { useCart } from "@/lib/cart-context";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { LanguageSelector } from "@/components/language-selector";
+import { useTranslation } from "react-i18next";
 
 export default function Payment() {
   const [isLoading, setIsLoading] = useState(false);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { total, clearCart } = useCart();
+  const { t } = useTranslation();
 
   const handlePayment = (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,9 +39,12 @@ export default function Payment() {
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-md mb-4 flex items-center justify-between">
         <Button variant="ghost" className="text-muted-foreground hover:text-foreground" onClick={() => setLocation("/cart")}>
-          <ArrowLeft className="mr-2 h-4 w-4" /> Back to Cart
+          <ArrowLeft className="mr-2 h-4 w-4" /> {t("cart.title")}
         </Button>
-        <ThemeToggle size="sm" />
+        <div className="flex items-center gap-2">
+          <LanguageSelector />
+          <ThemeToggle size="sm" />
+        </div>
       </div>
       <div className="w-full max-w-md">
         {/* ANZ Branding Header */}
@@ -55,9 +61,9 @@ export default function Payment() {
 
         <Card className="rounded-t-none border-t-0 shadow-lg">
           <CardHeader>
-            <CardTitle className="text-xl text-[#004165]">Complete Your Payment</CardTitle>
+            <CardTitle className="text-xl text-[#004165]">{t("payment.title")}</CardTitle>
             <CardDescription>
-              Please enter your card details below to finalize your booking.
+              {t("payment.paymentDetails")}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -79,12 +85,12 @@ export default function Payment() {
 
             <form onSubmit={handlePayment} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="cardName">Cardholder Name</Label>
+                <Label htmlFor="cardName">{t("payment.nameOnCard")}</Label>
                 <Input id="cardName" placeholder="As shown on card" required />
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="cardNumber">Card Number</Label>
+                <Label htmlFor="cardNumber">{t("payment.cardNumber")}</Label>
                 <div className="relative">
                   <CreditCard className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                   <Input id="cardNumber" className="pl-9" placeholder="0000 0000 0000 0000" required />
@@ -93,11 +99,11 @@ export default function Payment() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="expiry">Expiry Date</Label>
+                  <Label htmlFor="expiry">{t("payment.expiryDate")}</Label>
                   <Input id="expiry" placeholder="MM/YY" required />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="cvv">CVV / CVC</Label>
+                  <Label htmlFor="cvv">{t("payment.cvv")}</Label>
                   <Input id="cvv" placeholder="123" maxLength={4} required />
                 </div>
               </div>
@@ -111,10 +117,10 @@ export default function Payment() {
                   {isLoading ? (
                     <>
                       <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                      Processing...
+                      {t("payment.processing")}
                     </>
                   ) : (
-                    "Pay Now"
+                    t("payment.pay")
                   )}
                 </Button>
               </div>

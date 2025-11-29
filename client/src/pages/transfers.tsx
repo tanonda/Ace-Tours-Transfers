@@ -5,8 +5,10 @@ import { BookingModal } from "@/components/booking-modal";
 import { Check } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchTours } from "@/lib/api";
+import { useTranslation } from "react-i18next";
 
 export default function Transfers() {
+  const { t } = useTranslation();
   const { data: tours = [], isLoading } = useQuery({
     queryKey: ["tours"],
     queryFn: fetchTours,
@@ -18,13 +20,13 @@ export default function Transfers() {
     <Layout>
       <div className="bg-muted/30 pt-40 pb-20">
         <div className="container mx-auto px-4">
-          <h1 className="text-5xl font-serif font-bold text-center mb-6">Transfers & Packages</h1>
+          <h1 className="text-5xl font-serif font-bold text-center mb-6">{t("home.transfersTitle")}</h1>
           <p className="text-center text-muted-foreground max-w-2xl mx-auto mb-16 text-lg">
-            Reliable, comfortable, and professional transport services for every need.
+            {t("home.transfersDesc")}
           </p>
           
           {isLoading ? (
-            <div className="text-center py-12">Loading transfers...</div>
+            <div className="text-center py-12">{t("common.loading")}</div>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               {transfers.map((transfer, index) => (
@@ -44,7 +46,7 @@ export default function Transfers() {
                       </p>
                       <BookingModal 
                         preselectedService={transfer.title}
-                        trigger={<Button className="w-full">Request Quote</Button>}
+                        trigger={<Button className="w-full">{t("home.bookTransfer")}</Button>}
                       />
                     </div>
                   </div>
