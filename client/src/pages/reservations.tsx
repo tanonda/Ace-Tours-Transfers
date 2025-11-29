@@ -106,19 +106,19 @@ export default function Reservations() {
           <div className="h-1 w-16 bg-primary mx-auto rounded-full"></div>
         </div>
 
-        <Card className="max-w-5xl mx-auto border-none shadow-lg overflow-hidden">
-          <div className="bg-primary p-4">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div className="flex items-center gap-2">
-                 <Button variant="outline" size="sm" className="bg-white/10 border-white/20 text-white hover:bg-white/20 hover:text-white" onClick={() => setLocation("/")}>
+        <Card className="max-w-7xl mx-auto border-none shadow-lg overflow-hidden">
+          <div className="bg-primary px-6 py-4">
+            <div className="flex flex-wrap items-center justify-between gap-6">
+              <div className="flex items-center gap-3">
+                 <Button variant="outline" size="sm" className="bg-white/10 border-white/20 text-white hover:bg-white/20 hover:text-white px-4" onClick={() => setLocation("/")}>
                    Home
                  </Button>
                  
-                 <div className="flex items-center bg-white/10 rounded-md p-1">
+                 <div className="flex items-center bg-white/10 rounded-md p-1 gap-1">
                     <Button 
                       variant={activeTab === "my-reservations" ? "secondary" : "ghost"} 
                       size="sm" 
-                      className={activeTab === "my-reservations" ? "text-primary bg-white hover:bg-white/90 gap-2 font-medium" : "text-white hover:bg-white/20 hover:text-white gap-2 font-medium"}
+                      className={activeTab === "my-reservations" ? "text-primary bg-white hover:bg-white/90 gap-2 font-medium px-4" : "text-white hover:bg-white/20 hover:text-white gap-2 font-medium px-4"}
                       onClick={() => setActiveTab("my-reservations")}
                     >
                       <Car className="h-4 w-4" /> My reservations
@@ -126,7 +126,7 @@ export default function Reservations() {
                     <Button 
                       variant={activeTab === "book-new" ? "secondary" : "ghost"} 
                       size="sm" 
-                      className={activeTab === "book-new" ? "text-primary bg-white hover:bg-white/90 gap-2" : "text-white hover:bg-white/20 hover:text-white gap-2"}
+                      className={activeTab === "book-new" ? "text-primary bg-white hover:bg-white/90 gap-2 px-4" : "text-white hover:bg-white/20 hover:text-white gap-2 px-4"}
                       onClick={() => setActiveTab("book-new")}
                     >
                       <PlusCircle className="h-4 w-4" /> Book a New Reservation
@@ -134,41 +134,41 @@ export default function Reservations() {
                  </div>
               </div>
 
-              <div className="flex items-center gap-4 text-sm">
+              <div className="flex items-center gap-3 text-sm">
                  <ThemeToggle size="sm" />
                  
-                 <div className="h-4 w-px bg-white/30 mx-2"></div>
+                 <div className="h-5 w-px bg-white/30"></div>
                  
                  <Link href="/login">
-                   <Button variant="ghost" size="sm" className="text-white hover:bg-white/20 hover:text-white gap-2">
+                   <Button variant="ghost" size="sm" className="text-white hover:bg-white/20 hover:text-white gap-2 px-3">
                      <LogIn className="h-4 w-4" /> Login
                    </Button>
                  </Link>
                  <Link href="/register">
-                   <Button variant="ghost" size="sm" className="text-white hover:bg-white/20 hover:text-white gap-2">
+                   <Button variant="ghost" size="sm" className="text-white hover:bg-white/20 hover:text-white gap-2 px-3">
                      <UserPlus className="h-4 w-4" /> Register
                    </Button>
                  </Link>
                  
-                 <div className="h-4 w-px bg-white/30 mx-2"></div>
+                 <div className="h-5 w-px bg-white/30"></div>
                  
-                 <Button variant="ghost" size="sm" className="text-white hover:bg-white/20 hover:text-white gap-2">
+                 <Button variant="ghost" size="sm" className="text-white hover:bg-white/20 hover:text-white gap-2 px-3">
                    <img src="https://flagcdn.com/w20/us.png" alt="US Flag" className="h-3 w-auto" /> English
                  </Button>
                  
                  <Button 
                    variant={activeTab === "cart" ? "secondary" : "ghost"} 
                    size="sm" 
-                   className={activeTab === "cart" ? "text-primary bg-white hover:bg-white/90 gap-2 relative" : "text-white hover:bg-white/20 hover:text-white gap-2 relative"}
+                   className={activeTab === "cart" ? "text-primary bg-white hover:bg-white/90 gap-2 relative px-3" : "text-white hover:bg-white/20 hover:text-white gap-2 relative px-3"}
                    onClick={() => setActiveTab("cart")}
                  >
                     <ShoppingCart className="h-4 w-4" /> Cart {itemCount}
                  </Button>
                  
-                 <div className="h-4 w-px bg-white/30 mx-2"></div>
+                 <div className="h-5 w-px bg-white/30"></div>
 
                  <Link href="/tours">
-                  <Button className="bg-[#22c55e] hover:bg-[#16a34a] text-white font-semibold shadow-sm gap-2">
+                  <Button className="bg-[#22c55e] hover:bg-[#16a34a] text-white font-semibold shadow-sm gap-2 px-4">
                     <ArrowLeft className="h-4 w-4" /> Continue booking
                   </Button>
                  </Link>
