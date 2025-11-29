@@ -41,7 +41,7 @@ export default function Home() {
                   alt="Vanuatu Waterfall" 
                   className="rounded-2xl shadow-2xl w-full object-cover aspect-[4/3]" 
                 />
-                <div className="absolute -bottom-6 -right-6 bg-card p-6 rounded-xl shadow-xl max-w-xs hidden md:block border border-border/50">
+                <div className="absolute -bottom-6 -right-6 bg-card p-6 rounded-xl shadow-xl max-w-xs hidden md:block border border-border/50 transition-all duration-300 hover:shadow-2xl hover:shadow-primary/20 hover:border-primary/30 hover:-translate-y-1 cursor-default">
                   <p className="font-serif text-lg italic text-foreground">"Customer satisfaction, safety, and service are at the heart of everything we do."</p>
                 </div>
               </div>
