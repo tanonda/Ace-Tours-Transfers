@@ -19,6 +19,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { tours, transfers } from "@/lib/data";
 import { Separator } from "@/components/ui/separator";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const bookingFormSchema = z.object({
   name: z.string().min(2, "Name is required"),
@@ -134,6 +135,10 @@ export default function Reservations() {
               </div>
 
               <div className="flex items-center gap-4 text-sm">
+                 <ThemeToggle size="sm" />
+                 
+                 <div className="h-4 w-px bg-white/30 mx-2"></div>
+                 
                  <Link href="/login">
                    <Button variant="ghost" size="sm" className="text-white hover:bg-white/20 hover:text-white gap-2">
                      <LogIn className="h-4 w-4" /> Login
