@@ -127,6 +127,7 @@ export default function AdminDashboard() {
   const queryClient = useQueryClient();
   const [selectedBooking, setSelectedBooking] = useState<any>(null);
   const [statusFilter, setStatusFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const { data: bookings = [] } = useQuery({
     queryKey: ["bookings"],
@@ -165,9 +166,25 @@ export default function AdminDashboard() {
     }
   };
 
-  const filteredBookings = statusFilter === 'all' 
-    ? bookings 
-    : bookings.filter(b => b.status.toLowerCase() === statusFilter.toLowerCase());
+  const filteredBookings = bookings.filter(b => {
+    // Filter by status
+    const statusMatch = statusFilter === 'all' || b.status.toLowerCase() === statusFilter.toLowerCase();
+    
+    // Filter by search query (searches across multiple fields)
+    if (!searchQuery.trim()) return statusMatch;
+    
+    const query = searchQuery.toLowerCase();
+    const matches = 
+      b.customerName?.toLowerCase().includes(query) ||
+      b.tourName?.toLowerCase().includes(query) ||
+      b.id?.toLowerCase().includes(query) ||
+      b.amount?.toLowerCase().includes(query) ||
+      b.status?.toLowerCase().includes(query) ||
+      b.date?.toLowerCase().includes(query) ||
+      b.guests?.toString().includes(query);
+    
+    return statusMatch && matches;
+  });
 
   const recentBookings = filteredBookings.slice(0, 10);
   const totalRevenue = bookings.reduce((sum, b) => {
@@ -199,6 +216,8 @@ export default function AdminDashboard() {
             <input 
               data-testid="input-search" 
               placeholder="Search bookings..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               className="py-2.5 px-3.5 rounded-lg border border-border min-w-[200px] bg-background text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
             <button 
