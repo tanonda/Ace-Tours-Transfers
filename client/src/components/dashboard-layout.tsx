@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/popover";
 import { useAuth } from "@/lib/auth-context";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { LanguageSelector } from "@/components/language-selector";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -303,6 +304,7 @@ export function DashboardLayout({ children, type }: DashboardLayoutProps) {
           </button>
           
           <div className="flex items-center gap-3">
+            <LanguageSelector />
             <ThemeToggle size="sm" />
             
             <Popover>
