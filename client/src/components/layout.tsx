@@ -88,7 +88,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         }`}
       >
         {/* Logo Bar - Centered */}
-        <div className={`container mx-auto px-4 flex justify-center transition-all duration-300 ${isScrolled ? "py-2" : "pt-4 pb-2"}`}>
+        <div className={`container mx-auto px-4 py-3 flex justify-center ${isScrolled ? "py-2" : "py-4"}`}>
           <Link href="/" className="flex flex-col items-center gap-1">
             <img 
               src={logo} 
@@ -105,19 +105,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </Link>
         </div>
 
-        {/* Welcome Greeting */}
-        <div className={`container mx-auto px-4 flex justify-center transition-all duration-300 ${isScrolled ? "py-1" : "py-3"}`}>
-          <span className={`inline-block py-1.5 px-4 rounded-full text-sm font-medium tracking-wider uppercase transition-all duration-300 ${
-            isTransparent 
-              ? "bg-white/20 backdrop-blur-md border border-white/30 text-white" 
-              : "bg-primary/10 border border-primary/30 text-primary"
-          } ${isScrolled ? "text-xs py-1 px-3" : ""}`}>
-            Welcome to Vanuatu
-          </span>
-        </div>
-
         {/* Navigation Bar */}
-        <div className={`container mx-auto px-4 flex items-center justify-center transition-all duration-300 ${isScrolled ? "pb-1" : "pb-3"}`}>
+        <div className={`container mx-auto px-4 pb-2 flex items-center justify-center ${isScrolled ? "pb-1" : "pb-3"}`}>
           {/* Desktop Nav */}
           <nav className="hidden md:flex items-center gap-6">
             <NavigationMenu className="relative z-50">
