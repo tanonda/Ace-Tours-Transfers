@@ -1,124 +1,261 @@
-import { DashboardLayout } from "@/components/dashboard-layout";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Calendar, MapPin, Clock, ArrowRight, Heart } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { useToast } from "@/hooks/use-toast";
 
-const upcomingTrip = {
-  id: "BK-7821",
-  tour: "Efate Scenic Tour",
-  date: "June 15, 2024",
-  time: "08:00 AM",
-  guests: 2,
-  image: "https://images.unsplash.com/photo-1589308078059-be1415eab4c3?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-  status: "Confirmed"
+const THEME = {
+  accent1: '#FF6B6B',
+  accent2: '#FFD93D',
+  accent3: '#6BCB77',
+  accent4: '#4D96FF',
+  bg: '#0f1724',
+  surface: '#0b1220',
+  text: '#E6EEF3'
 };
 
-export default function CustomerDashboard() {
-  const { toast } = useToast();
+const fmtVT = (n?: number) => (n == null ? '-' : n.toLocaleString('en-US') + ' VT');
+
+function Topbar({ title }: { title: string }) {
   return (
-    <DashboardLayout type="customer">
-      <div className="space-y-8">
-        <div>
-          <h1 className="text-3xl font-bold text-[hsl(var(--foreground))]">Hello, James!</h1>
-          <p className="text-muted-foreground">Here's an overview of your upcoming adventures.</p>
-        </div>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: THEME.text }}>{title}</h2>
+        <div style={{ opacity: 0.7, fontSize: 13 }}>v1.0 • Popsy</div>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <button style={{ padding: '8px 12px', borderRadius: 8, border: 'none', cursor: 'pointer', background: `linear-gradient(90deg, ${THEME.accent4}, ${THEME.accent1})`, color: '#031428', fontWeight: 600 }}>Book Now</button>
+        <div style={{ width: 36, height: 36, borderRadius: 999, background: THEME.accent3, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#07203b', fontWeight: 700 }}>J</div>
+      </div>
+    </div>
+  );
+}
 
-        {/* Upcoming Trip Hero Card */}
-        <Card className="overflow-hidden border-none shadow-lg bg-[hsl(var(--foreground))] text-white">
-          <div className="flex flex-col md:flex-row">
-            <div className="w-full md:w-1/3 h-48 md:h-auto relative">
-               <img 
-                 src={upcomingTrip.image} 
-                 alt={upcomingTrip.tour} 
-                 className="w-full h-full object-cover absolute inset-0" 
-               />
+function Table({ rows }: { rows: any[] }) {
+  return (
+    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+      <thead style={{ textAlign: 'left', color: 'rgba(230,238,243,0.7)' }}>
+        <tr>
+          <th style={{ padding: 8 }}>ID</th>
+          <th style={{ padding: 8 }}>Tour</th>
+          <th style={{ padding: 8 }}>Date</th>
+          <th style={{ padding: 8 }}>Amount</th>
+          <th style={{ padding: 8 }}>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((r, i) => (
+          <tr key={r.id || i} style={{ borderTop: '1px solid rgba(255,255,255,0.03)' }}>
+            <td style={{ padding: 8, color: 'rgba(230,238,243,0.85)' }}>#{r.id}</td>
+            <td style={{ padding: 8, color: 'rgba(230,238,243,0.85)' }}>{r.route || r.tour}</td>
+            <td style={{ padding: 8, color: 'rgba(230,238,243,0.85)' }}>{r.date}</td>
+            <td style={{ padding: 8, color: 'rgba(230,238,243,0.85)' }}>{r.amount}</td>
+            <td style={{ padding: 8, color: 'rgba(230,238,243,0.85)' }}>
+              <span style={{
+                padding: '2px 8px',
+                borderRadius: 4,
+                fontSize: 11,
+                fontWeight: 600,
+                background: r.status === 'Paid' || r.status === 'confirmed' ? 'rgba(107,203,119,0.2)' : 
+                           r.status === 'Pending' || r.status === 'pending' ? 'rgba(255,217,61,0.2)' : 
+                           'rgba(255,107,107,0.2)',
+                color: r.status === 'Paid' || r.status === 'confirmed' ? THEME.accent3 : 
+                       r.status === 'Pending' || r.status === 'pending' ? THEME.accent2 : 
+                       THEME.accent1
+              }}>
+                {r.status}
+              </span>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+const fallbackBookings = [
+  { id: '1001', route: 'Efate Island Tour', date: '2024-12-01', amount: '15,000 VT', status: 'Paid' },
+  { id: '1002', route: 'Airport Transfer', date: '2024-12-05', amount: '5,500 VT', status: 'Paid' },
+  { id: '1003', route: 'Hideaway Island Snorkel', date: '2024-12-10', amount: '12,000 VT', status: 'Pending' },
+  { id: '1004', route: 'Mele Cascades Tour', date: '2024-12-15', amount: '18,000 VT', status: 'Paid' },
+];
+
+const upcomingTrips = [
+  { id: '1003', route: 'Hideaway Island Snorkel', date: 'Dec 10, 2024', time: '09:00 AM', amount: '12,000 VT', status: 'Confirmed' },
+  { id: '1005', route: 'Blue Lagoon Day Trip', date: 'Dec 20, 2024', time: '08:30 AM', amount: '22,000 VT', status: 'Confirmed' },
+];
+
+export default function CustomerDashboard() {
+  return (
+    <div style={{ 
+      minHeight: '100vh', 
+      background: `linear-gradient(180deg, ${THEME.bg}, ${THEME.surface})`, 
+      color: THEME.text, 
+      fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial'
+    }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: 18 }}>
+        <Topbar title="Customer — Ace Tours" />
+
+        <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr', gap: 16 }}>
+          <aside style={{ padding: 12, borderRadius: 12, background: 'linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01))' }}>
+            <div style={{ fontWeight: 800, color: THEME.text, marginBottom: 8 }}>Welcome, James</div>
+            <div style={{ fontSize: 13, color: 'rgba(230,238,243,0.7)' }}>Member since 2022</div>
+            <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <Link href="/tours">
+                <button style={{ 
+                  background: `linear-gradient(90deg, ${THEME.accent4}, ${THEME.accent1})`,
+                  color: '#031428', 
+                  padding: '8px 12px', 
+                  borderRadius: 8, 
+                  border: 'none', 
+                  fontWeight: 700, 
+                  cursor: 'pointer',
+                  width: '100%',
+                  fontSize: 13
+                }}>New Booking</button>
+              </Link>
+              <button style={{ 
+                background: 'transparent', 
+                color: 'rgba(230,238,243,0.9)', 
+                border: '1px solid rgba(255,255,255,0.04)', 
+                padding: '8px 12px', 
+                borderRadius: 8, 
+                cursor: 'pointer',
+                width: '100%',
+                fontSize: 13
+              }}>My Bookings</button>
+              <button style={{ 
+                background: 'transparent', 
+                color: 'rgba(230,238,243,0.9)', 
+                border: '1px solid rgba(255,255,255,0.04)', 
+                padding: '8px 12px', 
+                borderRadius: 8, 
+                cursor: 'pointer',
+                width: '100%',
+                fontSize: 13
+              }}>Payments</button>
+              <button style={{ 
+                background: 'transparent', 
+                color: 'rgba(230,238,243,0.9)', 
+                border: '1px solid rgba(255,255,255,0.04)', 
+                padding: '8px 12px', 
+                borderRadius: 8, 
+                cursor: 'pointer',
+                width: '100%',
+                fontSize: 13
+              }}>Support</button>
             </div>
-            <div className="p-6 md:p-8 flex-1 flex flex-col justify-center">
-              <div className="flex items-center gap-2 text-[hsl(var(--primary))] mb-2 text-sm font-medium uppercase tracking-wide">
-                <Calendar className="h-4 w-4" /> Upcoming Trip
+
+            <div style={{ marginTop: 24, padding: 12, borderRadius: 8, background: `linear-gradient(135deg, ${THEME.accent3}20, ${THEME.accent4}20)` }}>
+              <div style={{ fontSize: 12, color: 'rgba(230,238,243,0.7)', marginBottom: 4 }}>Loyalty Points</div>
+              <div style={{ fontWeight: 700, fontSize: 18 }}>2,450 pts</div>
+              <div style={{ fontSize: 11, color: 'rgba(230,238,243,0.6)', marginTop: 4 }}>Bronze Member</div>
+            </div>
+          </aside>
+
+          <main style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <section style={{ display: 'flex', gap: 12 }}>
+              <div style={{ flex: 1, padding: 12, borderRadius: 12, background: 'linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01))' }}>
+                <h3 style={{ margin: 0, color: THEME.text }}>Upcoming trips</h3>
+                <div style={{ marginTop: 12 }}>
+                  {upcomingTrips.length ? upcomingTrips.map(b => (
+                    <div key={b.id} style={{ padding: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid rgba(255,255,255,0.02)' }}>
+                      <div>
+                        <div style={{ fontWeight: 700 }}>{b.route}</div>
+                        <div style={{ fontSize: 12, color: 'rgba(230,238,243,0.7)' }}>{b.date} • {b.time}</div>
+                      </div>
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                        <div style={{ fontWeight: 700 }}>{b.amount}</div>
+                        <button style={{ 
+                          background: `linear-gradient(90deg, ${THEME.accent4}, ${THEME.accent1})`,
+                          color: '#031428', 
+                          padding: '6px 10px', 
+                          borderRadius: 6, 
+                          border: 'none', 
+                          fontWeight: 600, 
+                          cursor: 'pointer',
+                          fontSize: 12
+                        }}>Download ticket</button>
+                      </div>
+                    </div>
+                  )) : <div style={{ padding: 8, color: 'rgba(230,238,243,0.6)' }}>No upcoming trips. Book something fun!</div>}
+                </div>
               </div>
-              <h2 className="text-2xl md:text-3xl font-serif font-bold mb-4">{upcomingTrip.tour}</h2>
-              
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6 text-sm">
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-[hsl(var(--primary))]" />
-                  <span>{upcomingTrip.date}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-[hsl(var(--primary))]" />
-                  <span>{upcomingTrip.time}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-[hsl(var(--primary))]" />
-                  <span>Hotel Pickup</span>
+
+              <div style={{ width: 280, padding: 12, borderRadius: 12, background: 'linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01))' }}>
+                <h4 style={{ margin: 0, color: THEME.text }}>Wallet</h4>
+                <div style={{ marginTop: 8, fontWeight: 700, fontSize: 24, color: THEME.accent3 }}>{fmtVT(52300)}</div>
+                <div style={{ fontSize: 12, color: 'rgba(230,238,243,0.6)', marginTop: 4 }}>Available balance</div>
+                <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
+                  <button style={{ 
+                    background: `linear-gradient(90deg, ${THEME.accent4}, ${THEME.accent1})`,
+                    color: '#031428', 
+                    padding: '8px 12px', 
+                    borderRadius: 8, 
+                    border: 'none', 
+                    fontWeight: 700, 
+                    cursor: 'pointer',
+                    flex: 1,
+                    fontSize: 13
+                  }}>Top-up</button>
+                  <button style={{ 
+                    background: 'transparent', 
+                    color: 'rgba(230,238,243,0.9)', 
+                    border: '1px solid rgba(255,255,255,0.04)', 
+                    padding: '8px 12px', 
+                    borderRadius: 8, 
+                    cursor: 'pointer',
+                    flex: 1,
+                    fontSize: 13
+                  }}>Withdraw</button>
                 </div>
               </div>
-              
-              <div className="flex gap-3 mt-auto">
-                <Button className="bg-[hsl(var(--primary))] text-white hover:bg-[hsl(var(--primary))/90] font-semibold" onClick={() => toast({ title: "Downloading Ticket", description: "Your ticket for Efate Scenic Tour is downloading." })}>
-                  View Ticket
-                </Button>
-                <Button variant="outline" className="border-white/20 text-white hover:bg-white/10 hover:text-white" onClick={() => toast({ title: "Manage Booking", description: "Redirecting to booking management..." })}>
-                  Manage Booking
-                </Button>
+            </section>
+
+            <section style={{ padding: 12, borderRadius: 12, background: 'linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01))' }}>
+              <h4 style={{ margin: 0, color: THEME.text }}>Your recent activity</h4>
+              <div style={{ marginTop: 8 }}>
+                <Table rows={fallbackBookings} />
+              </div>
+            </section>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div style={{ padding: 12, borderRadius: 12, background: `linear-gradient(135deg, ${THEME.accent4}15, ${THEME.accent3}15)`, border: `1px solid ${THEME.accent4}30` }}>
+                <h4 style={{ margin: 0, color: THEME.text }}>Saved Tours</h4>
+                <div style={{ marginTop: 8, fontSize: 13, color: 'rgba(230,238,243,0.7)' }}>
+                  You have <strong style={{ color: THEME.accent2 }}>5 tours</strong> saved in your wishlist
+                </div>
+                <button style={{ 
+                  marginTop: 12,
+                  background: 'rgba(255,255,255,0.05)', 
+                  color: THEME.text, 
+                  padding: '8px 12px', 
+                  borderRadius: 8, 
+                  border: 'none', 
+                  cursor: 'pointer',
+                  fontSize: 12
+                }}>View Wishlist</button>
+              </div>
+
+              <div style={{ padding: 12, borderRadius: 12, background: `linear-gradient(135deg, ${THEME.accent1}15, ${THEME.accent2}15)`, border: `1px solid ${THEME.accent1}30` }}>
+                <h4 style={{ margin: 0, color: THEME.text }}>Need Help?</h4>
+                <div style={{ marginTop: 8, fontSize: 13, color: 'rgba(230,238,243,0.7)' }}>
+                  Have questions about your booking or need to make changes?
+                </div>
+                <Link href="/contact">
+                  <button style={{ 
+                    marginTop: 12,
+                    background: 'rgba(255,255,255,0.05)', 
+                    color: THEME.text, 
+                    padding: '8px 12px', 
+                    borderRadius: 8, 
+                    border: 'none', 
+                    cursor: 'pointer',
+                    fontSize: 12
+                  }}>Contact Support</button>
+                </Link>
               </div>
             </div>
-          </div>
-        </Card>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="bg-[hsl(var(--background))] border-[hsl(var(--border))]">
-            <CardHeader>
-              <CardTitle className="text-[hsl(var(--foreground))]">My Bookings</CardTitle>
-              <CardDescription>View your history</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold mb-2">3</div>
-              <p className="text-sm text-muted-foreground mb-4">1 Upcoming, 2 Completed</p>
-              <Link href="/dashboard/bookings">
-                <Button variant="outline" className="w-full justify-between group">
-                  View All <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-[hsl(var(--background))] border-[hsl(var(--border))]">
-            <CardHeader>
-              <CardTitle className="text-[hsl(var(--foreground))]">Saved Tours</CardTitle>
-              <CardDescription>Your wishlist</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold mb-2">5</div>
-              <p className="text-sm text-muted-foreground mb-4">Items in your wishlist</p>
-              <Link href="/dashboard/saved">
-                <Button variant="outline" className="w-full justify-between group">
-                  View Wishlist <Heart className="h-4 w-4 group-hover:text-red-500 transition-colors" />
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-[hsl(var(--card))] border-[hsl(var(--border))]">
-            <CardHeader>
-              <CardTitle className="text-[hsl(var(--foreground))]">Need Help?</CardTitle>
-              <CardDescription>We're here for you</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground mb-4">
-                Have questions about your booking or need to make changes?
-              </p>
-              <Link href="/contact">
-                <Button className="w-full bg-[hsl(var(--foreground))] hover:bg-[hsl(var(--foreground))/90]">
-                  Contact Support
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
+          </main>
         </div>
       </div>
-    </DashboardLayout>
+    </div>
   );
 }
