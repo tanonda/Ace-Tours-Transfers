@@ -129,6 +129,176 @@ async function seed() {
     }
   }
 
+  // Seed content blocks (CMS)
+  const contentBlocksData = [
+    {
+      slug: "hero",
+      label: "Hero Section",
+      description: "Main hero banner on the home page",
+      enabled: true,
+      config: { showCta: true, showScrollIndicator: true }
+    },
+    {
+      slug: "featured-tours",
+      label: "Featured Tours",
+      description: "Tour cards section on home page",
+      enabled: true,
+      config: { maxItems: 6 }
+    },
+    {
+      slug: "featured-transfers",
+      label: "Featured Transfers",
+      description: "Transfer cards section on home page",
+      enabled: true,
+      config: { maxItems: 3 }
+    },
+    {
+      slug: "about-section",
+      label: "About Us Section",
+      description: "About section on home page",
+      enabled: true,
+      config: {}
+    },
+    {
+      slug: "testimonials",
+      label: "Testimonials",
+      description: "Customer testimonials section",
+      enabled: true,
+      config: { maxItems: 3 }
+    },
+    {
+      slug: "contact-form",
+      label: "Contact Form",
+      description: "Contact form on contact page",
+      enabled: true,
+      config: {}
+    },
+    {
+      slug: "promotions-banner",
+      label: "Promotions Banner",
+      description: "Promotional banner across the site",
+      enabled: false,
+      config: { message: "", bgColor: "#f2800d" }
+    },
+    {
+      slug: "whatsapp-widget",
+      label: "WhatsApp Chat Widget",
+      description: "Floating WhatsApp chat button",
+      enabled: true,
+      config: {}
+    }
+  ];
+
+  for (const block of contentBlocksData) {
+    try {
+      await storage.upsertContentBlock(block);
+      console.log(`Created content block: ${block.label}`);
+    } catch (error) {
+      console.error(`Error creating content block ${block.label}:`, error);
+    }
+  }
+
+  // Seed site settings
+  const siteSettingsData = [
+    {
+      key: "whatsapp",
+      value: {
+        enabled: true,
+        phoneNumber: "+678 5551234",
+        greeting: "Hello! How can we help you with your Vanuatu adventure?",
+        position: "bottom-right"
+      }
+    },
+    {
+      key: "business_info",
+      value: {
+        name: "Ace Tours & Transfers Vanuatu",
+        email: "info@acetours.vu",
+        phone: "+678 5551234",
+        address: "Port Vila, Vanuatu"
+      }
+    }
+  ];
+
+  for (const setting of siteSettingsData) {
+    try {
+      await storage.upsertSiteSetting(setting);
+      console.log(`Created site setting: ${setting.key}`);
+    } catch (error) {
+      console.error(`Error creating site setting ${setting.key}:`, error);
+    }
+  }
+
+  // Seed payment gateways
+  const paymentGatewaysData = [
+    {
+      slug: "anz-egate",
+      displayName: "ANZ eGate",
+      description: "ANZ Bank Vanuatu online payment gateway",
+      active: true,
+      isDefault: true,
+      credentials: {
+        merchantId: "",
+        apiKey: "",
+        secretKey: "",
+        environment: "sandbox"
+      },
+      supportedCurrencies: ["VUV", "AUD", "USD"],
+      config: {
+        returnUrl: "/payment/success",
+        cancelUrl: "/payment/cancel",
+        notifyUrl: "/api/payments/callback"
+      }
+    },
+    {
+      slug: "bred",
+      displayName: "BRED Bank",
+      description: "BRED Bank Vanuatu payment gateway",
+      active: false,
+      isDefault: false,
+      credentials: {
+        merchantId: "",
+        apiKey: "",
+        secretKey: "",
+        environment: "sandbox"
+      },
+      supportedCurrencies: ["VUV", "EUR", "USD"],
+      config: {
+        returnUrl: "/payment/success",
+        cancelUrl: "/payment/cancel",
+        notifyUrl: "/api/payments/callback"
+      }
+    },
+    {
+      slug: "bsp",
+      displayName: "BSP (Bank of South Pacific)",
+      description: "Bank of South Pacific online payment gateway",
+      active: false,
+      isDefault: false,
+      credentials: {
+        merchantId: "",
+        apiKey: "",
+        secretKey: "",
+        environment: "sandbox"
+      },
+      supportedCurrencies: ["VUV", "PGK", "FJD", "SBD"],
+      config: {
+        returnUrl: "/payment/success",
+        cancelUrl: "/payment/cancel",
+        notifyUrl: "/api/payments/callback"
+      }
+    }
+  ];
+
+  for (const gateway of paymentGatewaysData) {
+    try {
+      await storage.upsertPaymentGateway(gateway);
+      console.log(`Created payment gateway: ${gateway.displayName}`);
+    } catch (error) {
+      console.error(`Error creating payment gateway ${gateway.displayName}:`, error);
+    }
+  }
+
   console.log("Database seeding completed!");
   process.exit(0);
 }

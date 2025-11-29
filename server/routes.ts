@@ -1,7 +1,7 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertBookingSchema, insertTourSchema, insertUserSchema } from "@shared/schema";
+import { insertBookingSchema, insertTourSchema, insertUserSchema, insertContentBlockSchema, insertSiteSettingSchema, insertPaymentGatewaySchema, insertPaymentSchema } from "@shared/schema";
 import bcrypt from "bcryptjs";
 
 // Auth middleware
@@ -307,6 +307,227 @@ export async function registerRoutes(
       res.json(customers);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch customers" });
+    }
+  });
+
+  // Content Blocks (CMS) API
+  app.get("/api/content-blocks", async (req, res) => {
+    try {
+      const blocks = await storage.getContentBlocks();
+      res.json(blocks);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch content blocks" });
+    }
+  });
+
+  app.get("/api/content-blocks/:slug", async (req, res) => {
+    try {
+      const block = await storage.getContentBlock(req.params.slug);
+      if (!block) {
+        return res.status(404).json({ error: "Content block not found" });
+      }
+      res.json(block);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch content block" });
+    }
+  });
+
+  app.put("/api/admin/content-blocks/:slug", requireAdmin, async (req, res) => {
+    try {
+      const block = await storage.updateContentBlock(req.params.slug, req.body);
+      res.json(block);
+    } catch (error) {
+      res.status(400).json({ error: "Failed to update content block" });
+    }
+  });
+
+  app.post("/api/admin/content-blocks", requireAdmin, async (req, res) => {
+    try {
+      const validatedData = insertContentBlockSchema.parse(req.body);
+      const block = await storage.upsertContentBlock(validatedData);
+      res.status(201).json(block);
+    } catch (error) {
+      res.status(400).json({ error: "Invalid content block data" });
+    }
+  });
+
+  // Site Settings API
+  app.get("/api/settings", async (req, res) => {
+    try {
+      const settings = await storage.getSiteSettings();
+      res.json(settings);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch settings" });
+    }
+  });
+
+  app.get("/api/settings/:key", async (req, res) => {
+    try {
+      const setting = await storage.getSiteSetting(req.params.key);
+      if (!setting) {
+        return res.status(404).json({ error: "Setting not found" });
+      }
+      res.json(setting);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch setting" });
+    }
+  });
+
+  app.put("/api/admin/settings/:key", requireAdmin, async (req, res) => {
+    try {
+      const setting = await storage.upsertSiteSetting({
+        key: req.params.key,
+        value: req.body.value
+      });
+      res.json(setting);
+    } catch (error) {
+      res.status(400).json({ error: "Failed to update setting" });
+    }
+  });
+
+  // Payment Gateways API
+  app.get("/api/payment-gateways", async (req, res) => {
+    try {
+      const gateways = await storage.getPaymentGateways();
+      // Don't expose credentials to non-admins
+      const safeGateways = gateways.map(g => ({
+        id: g.id,
+        slug: g.slug,
+        displayName: g.displayName,
+        description: g.description,
+        active: g.active,
+        isDefault: g.isDefault,
+        supportedCurrencies: g.supportedCurrencies
+      }));
+      res.json(safeGateways);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch payment gateways" });
+    }
+  });
+
+  app.get("/api/admin/payment-gateways", requireAdmin, async (req, res) => {
+    try {
+      const gateways = await storage.getPaymentGateways();
+      res.json(gateways);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch payment gateways" });
+    }
+  });
+
+  app.put("/api/admin/payment-gateways/:id", requireAdmin, async (req, res) => {
+    try {
+      const gateway = await storage.updatePaymentGateway(req.params.id, req.body);
+      res.json(gateway);
+    } catch (error) {
+      res.status(400).json({ error: "Failed to update payment gateway" });
+    }
+  });
+
+  app.post("/api/admin/payment-gateways/:id/set-default", requireAdmin, async (req, res) => {
+    try {
+      await storage.setDefaultPaymentGateway(req.params.id);
+      res.json({ message: "Default gateway set successfully" });
+    } catch (error) {
+      res.status(400).json({ error: "Failed to set default gateway" });
+    }
+  });
+
+  // Payments API
+  app.get("/api/admin/payments", requireAdmin, async (req, res) => {
+    try {
+      const payments = await storage.getPayments();
+      res.json(payments);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch payments" });
+    }
+  });
+
+  app.get("/api/payments/booking/:bookingId", requireAuth, async (req, res) => {
+    try {
+      const payments = await storage.getPaymentsByBooking(req.params.bookingId);
+      res.json(payments);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch payments" });
+    }
+  });
+
+  app.post("/api/payments/initiate", requireAuth, async (req, res) => {
+    try {
+      const { bookingId, gatewaySlug } = req.body;
+      
+      // Get the booking
+      const booking = await storage.getBooking(bookingId);
+      if (!booking) {
+        return res.status(404).json({ error: "Booking not found" });
+      }
+      
+      // Get the gateway
+      let gateway;
+      if (gatewaySlug) {
+        gateway = await storage.getPaymentGatewayBySlug(gatewaySlug);
+      } else {
+        gateway = await storage.getActivePaymentGateway();
+      }
+      
+      if (!gateway) {
+        return res.status(400).json({ error: "No active payment gateway found" });
+      }
+      
+      // Parse amount from booking (remove currency symbols)
+      const amountStr = booking.amount.replace(/[^0-9.]/g, '');
+      const amount = Math.round(parseFloat(amountStr) * 100); // Convert to cents/smallest unit
+      
+      // Create payment record
+      const payment = await storage.createPayment({
+        bookingId,
+        gatewayId: gateway.id,
+        amount,
+        currency: 'VUV',
+        status: 'pending'
+      });
+      
+      // Return payment info (in production, this would redirect to bank payment page)
+      res.json({
+        paymentId: payment.id,
+        gateway: gateway.displayName,
+        amount: payment.amount,
+        currency: payment.currency,
+        status: payment.status,
+        // In production, include redirect URL to bank payment page
+        redirectUrl: `/payment/process/${payment.id}`
+      });
+    } catch (error) {
+      console.error("Payment initiation error:", error);
+      res.status(400).json({ error: "Failed to initiate payment" });
+    }
+  });
+
+  // Payment callback/webhook (would be called by banks)
+  app.post("/api/payments/callback/:paymentId", async (req, res) => {
+    try {
+      const { paymentId } = req.params;
+      const { status, reference, response } = req.body;
+      
+      const payment = await storage.getPayment(paymentId);
+      if (!payment) {
+        return res.status(404).json({ error: "Payment not found" });
+      }
+      
+      // Update payment status
+      await storage.updatePayment(paymentId, {
+        status,
+        gatewayReference: reference,
+        gatewayResponse: response
+      });
+      
+      // If payment completed, update booking status
+      if (status === 'completed') {
+        await storage.updateBooking(payment.bookingId, { status: 'confirmed' });
+      }
+      
+      res.json({ message: "Payment updated successfully" });
+    } catch (error) {
+      res.status(400).json({ error: "Failed to process payment callback" });
     }
   });
 
