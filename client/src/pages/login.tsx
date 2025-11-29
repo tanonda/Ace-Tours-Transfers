@@ -87,44 +87,44 @@ export default function Login() {
           <div className="container mx-auto">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center max-w-6xl mx-auto">
               {/* Login Form */}
-              <Card className="w-full border-none shadow-2xl bg-card/95 backdrop-blur-sm">
+              <Card className="w-full border border-white/20 shadow-2xl bg-black/40 backdrop-blur-md text-white">
                 <CardHeader className="space-y-1">
-                  <CardTitle className="text-2xl font-serif font-bold text-center text-foreground">Sign in</CardTitle>
-                  <CardDescription className="text-center">
+                  <CardTitle className="text-2xl font-serif font-bold text-center text-white">Sign in</CardTitle>
+                  <CardDescription className="text-center text-white/70">
                     Enter your email and password to access your account
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   {/* Demo Accounts Alert */}
-                  <div className="mb-6 bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 rounded-md p-4 text-sm text-blue-800 dark:text-blue-200">
+                  <div className="mb-6 bg-white/10 border border-white/20 rounded-md p-4 text-sm text-white">
                     <p className="font-semibold mb-2 flex items-center gap-2">
-                      <Star className="h-4 w-4 fill-blue-600 text-blue-600 dark:fill-blue-400 dark:text-blue-400" /> 
+                      <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" /> 
                       Demo Accounts
                     </p>
                     <div className="grid grid-cols-2 gap-2">
                       <button 
                         onClick={() => fillCredentials('admin')}
-                        className="text-left p-2 rounded hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors border border-transparent hover:border-blue-200 dark:hover:border-blue-700"
+                        className="text-left p-2 rounded hover:bg-white/10 transition-colors border border-transparent hover:border-white/30"
                       >
-                        <span className="font-bold block text-xs uppercase tracking-wider text-blue-600 dark:text-blue-400 mb-0.5">Admin</span>
-                        <div className="text-xs opacity-80">admin@acetours.vu</div>
-                        <div className="text-xs opacity-60">admin123</div>
+                        <span className="font-bold block text-xs uppercase tracking-wider text-yellow-400 mb-0.5">Admin</span>
+                        <div className="text-xs text-white/80">admin@acetours.vu</div>
+                        <div className="text-xs text-white/60">admin123</div>
                       </button>
                       <button 
                         onClick={() => fillCredentials('customer')}
-                        className="text-left p-2 rounded hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors border border-transparent hover:border-blue-200 dark:hover:border-blue-700"
+                        className="text-left p-2 rounded hover:bg-white/10 transition-colors border border-transparent hover:border-white/30"
                       >
-                        <span className="font-bold block text-xs uppercase tracking-wider text-blue-600 dark:text-blue-400 mb-0.5">Customer</span>
-                        <div className="text-xs opacity-80">james@example.com</div>
-                        <div className="text-xs opacity-60">user123</div>
+                        <span className="font-bold block text-xs uppercase tracking-wider text-yellow-400 mb-0.5">Customer</span>
+                        <div className="text-xs text-white/80">james@example.com</div>
+                        <div className="text-xs text-white/60">user123</div>
                       </button>
                     </div>
-                    <p className="text-xs mt-2 text-blue-600/80 dark:text-blue-400/80 italic text-center">Click a card above to auto-fill credentials</p>
+                    <p className="text-xs mt-2 text-white/60 italic text-center">Click a card above to auto-fill credentials</p>
                   </div>
 
                   <form onSubmit={handleLogin} className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="email">Email</Label>
+                      <Label htmlFor="email" className="text-white">Email</Label>
                       <Input 
                         id="email" 
                         type="email" 
@@ -132,12 +132,13 @@ export default function Login() {
                         required 
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
+                        className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-white/40"
                       />
                     </div>
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <Label htmlFor="password">Password</Label>
-                        <a href="#" className="text-sm font-medium text-primary hover:underline">
+                        <Label htmlFor="password" className="text-white">Password</Label>
+                        <a href="#" className="text-sm font-medium text-white/80 hover:text-white hover:underline">
                           Forgot password?
                         </a>
                       </div>
@@ -147,18 +148,19 @@ export default function Login() {
                         required 
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
+                        className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-white/40"
                       />
                     </div>
                     <div className="flex items-center space-x-2">
-                      <Checkbox id="remember" />
+                      <Checkbox id="remember" className="border-white/40 data-[state=checked]:bg-primary" />
                       <label
                         htmlFor="remember"
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                        className="text-sm font-medium leading-none text-white/90"
                       >
                         Remember me
                       </label>
                     </div>
-                    <Button type="submit" className="w-full" disabled={isLoading}>
+                    <Button type="submit" className="w-full bg-white text-primary hover:bg-white/90 font-semibold" disabled={isLoading}>
                       {isLoading ? (
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -169,9 +171,9 @@ export default function Login() {
                       )}
                     </Button>
                   </form>
-                  <div className="mt-4 text-center text-sm">
+                  <div className="mt-4 text-center text-sm text-white/80">
                     Don't have an account?{" "}
-                    <Link href="/register" className="text-primary font-medium hover:underline">
+                    <Link href="/register" className="text-white font-medium hover:underline">
                       Sign up
                     </Link>
                   </div>
