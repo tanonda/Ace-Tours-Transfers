@@ -35,13 +35,13 @@ export default function Register() {
        {/* Simple Header */}
        <header className="bg-primary text-white shadow-md py-4">
         <div className="container mx-auto px-4 flex items-center justify-between">
-          <Link href="/">
-             <a className="font-serif font-bold text-xl tracking-tight">Ace Tours & Transfers</a>
+          <Link href="/" className="font-serif font-bold text-xl tracking-tight">
+            Ace Tours & Transfers
           </Link>
           <Link href="/">
-            <Button variant="ghost" size="sm" className="text-white hover:bg-white/20">
+            <span className="inline-flex items-center px-3 py-1.5 rounded text-sm font-medium text-white hover:bg-white/20 transition-colors cursor-pointer">
               <ArrowLeft className="mr-2 h-4 w-4" /> Back to Home
-            </Button>
+            </span>
           </Link>
         </div>
       </header>
@@ -94,8 +94,8 @@ export default function Register() {
               </form>
               <div className="mt-4 text-center text-sm">
                 Already have an account?{" "}
-                <Link href="/login">
-                  <a className="text-primary font-medium hover:underline">Sign in</a>
+                <Link href="/login" className="text-primary font-medium hover:underline">
+                  Sign in
                 </Link>
               </div>
             </CardContent>

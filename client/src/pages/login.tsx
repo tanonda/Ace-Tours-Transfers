@@ -59,9 +59,9 @@ export default function Login() {
              Ace Tours & Transfers
           </Link>
           <Link href="/">
-            <Button variant="ghost" size="sm" className="text-white hover:bg-white/20" asChild>
-              <span><ArrowLeft className="mr-2 h-4 w-4" /> Back to Home</span>
-            </Button>
+            <span className="inline-flex items-center px-3 py-1.5 rounded text-sm font-medium text-white hover:bg-white/20 transition-colors cursor-pointer">
+              <ArrowLeft className="mr-2 h-4 w-4" /> Back to Home
+            </span>
           </Link>
         </div>
       </header>

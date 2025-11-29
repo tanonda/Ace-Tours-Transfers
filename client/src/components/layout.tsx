@@ -20,28 +20,26 @@ import { ShoppingCart } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 const ListItem = forwardRef<
-  React.ElementRef<"a">,
-  React.ComponentPropsWithoutRef<"a"> & { href: string }
+  HTMLDivElement,
+  React.ComponentPropsWithoutRef<"div"> & { href: string; title: string }
 >(({ className, title, children, href, ...props }, ref) => {
   return (
     <li>
-      <NavigationMenuLink asChild>
-        <Link href={href}>
-          <a
-            ref={ref}
-            className={cn(
-              "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground",
-              className
-            )}
-            {...props}
-          >
-            <div className="text-sm font-medium leading-none">{title}</div>
-            <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-              {children}
-            </p>
-          </a>
-        </Link>
-      </NavigationMenuLink>
+      <Link href={href}>
+        <div
+          ref={ref}
+          className={cn(
+            "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground cursor-pointer",
+            className
+          )}
+          {...props}
+        >
+          <div className="text-sm font-medium leading-none">{title}</div>
+          <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
+            {children}
+          </p>
+        </div>
+      </Link>
     </li>
   )
 })
@@ -97,13 +95,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <NavigationMenu className="relative z-50">
               <NavigationMenuList>
                 <NavigationMenuItem>
-                  <Link href="/">
-                    <a className={cn(
-                      "group inline-flex h-9 w-max items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors focus:outline-none disabled:pointer-events-none disabled:opacity-50",
-                      navTextColor
-                    )}>
-                      Home
-                    </a>
+                  <Link href="/" className={cn(
+                    "group inline-flex h-9 w-max items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors focus:outline-none disabled:pointer-events-none disabled:opacity-50",
+                    navTextColor
+                  )}>
+                    Home
                   </Link>
                 </NavigationMenuItem>
               </NavigationMenuList>
@@ -164,13 +160,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <NavigationMenu className="relative z-50">
               <NavigationMenuList>
                 <NavigationMenuItem>
-                  <Link href="/about">
-                    <a className={cn(
-                      "group inline-flex h-9 w-max items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors focus:outline-none disabled:pointer-events-none disabled:opacity-50",
-                      navTextColor
-                    )}>
-                      About
-                    </a>
+                  <Link href="/about" className={cn(
+                    "group inline-flex h-9 w-max items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors focus:outline-none disabled:pointer-events-none disabled:opacity-50",
+                    navTextColor
+                  )}>
+                    About
                   </Link>
                 </NavigationMenuItem>
               </NavigationMenuList>
@@ -179,13 +173,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <NavigationMenu className="relative z-50">
               <NavigationMenuList>
                 <NavigationMenuItem>
-                  <Link href="/contact">
-                    <a className={cn(
-                      "group inline-flex h-9 w-max items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors focus:outline-none disabled:pointer-events-none disabled:opacity-50",
-                      navTextColor
-                    )}>
-                      Contact
-                    </a>
+                  <Link href="/contact" className={cn(
+                    "group inline-flex h-9 w-max items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors focus:outline-none disabled:pointer-events-none disabled:opacity-50",
+                    navTextColor
+                  )}>
+                    Contact
                   </Link>
                 </NavigationMenuItem>
               </NavigationMenuList>
