@@ -6,6 +6,9 @@ import {
   siteSettings,
   paymentGateways,
   payments,
+  wishlistItems,
+  newsletterSubscribers,
+  cmsContent,
   type User, 
   type InsertUser,
   type Tour,
@@ -19,7 +22,13 @@ import {
   type PaymentGateway,
   type InsertPaymentGateway,
   type Payment,
-  type InsertPayment
+  type InsertPayment,
+  type WishlistItem,
+  type InsertWishlistItem,
+  type NewsletterSubscriber,
+  type InsertNewsletterSubscriber,
+  type CmsContent,
+  type InsertCmsContent
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql } from "drizzle-orm";
@@ -77,6 +86,26 @@ export interface IStorage {
   getPaymentsByBooking(bookingId: string): Promise<Payment[]>;
   createPayment(payment: InsertPayment): Promise<Payment>;
   updatePayment(id: string, data: Partial<InsertPayment>): Promise<Payment>;
+  
+  // Wishlist
+  getWishlistItems(userId: string): Promise<WishlistItem[]>;
+  getWishlistItem(userId: string, tourId: string): Promise<WishlistItem | undefined>;
+  addToWishlist(item: InsertWishlistItem): Promise<WishlistItem>;
+  removeFromWishlist(userId: string, tourId: string): Promise<void>;
+  isInWishlist(userId: string, tourId: string): Promise<boolean>;
+  
+  // Newsletter
+  getNewsletterSubscribers(): Promise<NewsletterSubscriber[]>;
+  getNewsletterSubscriber(email: string): Promise<NewsletterSubscriber | undefined>;
+  subscribeNewsletter(subscriber: InsertNewsletterSubscriber): Promise<NewsletterSubscriber>;
+  unsubscribeNewsletter(email: string): Promise<void>;
+  
+  // CMS Content
+  getCmsContent(blockSlug: string, locale?: string): Promise<CmsContent[]>;
+  getCmsContentItem(id: string): Promise<CmsContent | undefined>;
+  createCmsContent(content: InsertCmsContent): Promise<CmsContent>;
+  updateCmsContent(id: string, data: Partial<InsertCmsContent>): Promise<CmsContent>;
+  deleteCmsContent(id: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -330,6 +359,106 @@ export class DatabaseStorage implements IStorage {
       .where(eq(payments.id, id))
       .returning();
     return payment;
+  }
+
+  // Wishlist operations
+  async getWishlistItems(userId: string): Promise<WishlistItem[]> {
+    return await db.select().from(wishlistItems).where(eq(wishlistItems.userId, userId));
+  }
+
+  async getWishlistItem(userId: string, tourId: string): Promise<WishlistItem | undefined> {
+    const [item] = await db
+      .select()
+      .from(wishlistItems)
+      .where(and(eq(wishlistItems.userId, userId), eq(wishlistItems.tourId, tourId)));
+    return item || undefined;
+  }
+
+  async addToWishlist(item: InsertWishlistItem): Promise<WishlistItem> {
+    const [created] = await db.insert(wishlistItems).values(item).returning();
+    return created;
+  }
+
+  async removeFromWishlist(userId: string, tourId: string): Promise<void> {
+    await db
+      .delete(wishlistItems)
+      .where(and(eq(wishlistItems.userId, userId), eq(wishlistItems.tourId, tourId)));
+  }
+
+  async isInWishlist(userId: string, tourId: string): Promise<boolean> {
+    const item = await this.getWishlistItem(userId, tourId);
+    return !!item;
+  }
+
+  // Newsletter operations
+  async getNewsletterSubscribers(): Promise<NewsletterSubscriber[]> {
+    return await db.select().from(newsletterSubscribers).orderBy(desc(newsletterSubscribers.subscribedAt));
+  }
+
+  async getNewsletterSubscriber(email: string): Promise<NewsletterSubscriber | undefined> {
+    const [subscriber] = await db.select().from(newsletterSubscribers).where(eq(newsletterSubscribers.email, email));
+    return subscriber || undefined;
+  }
+
+  async subscribeNewsletter(subscriber: InsertNewsletterSubscriber): Promise<NewsletterSubscriber> {
+    const existing = await this.getNewsletterSubscriber(subscriber.email);
+    if (existing) {
+      // Resubscribe if previously unsubscribed
+      const [updated] = await db
+        .update(newsletterSubscribers)
+        .set({ unsubscribedAt: null, confirmed: false })
+        .where(eq(newsletterSubscribers.email, subscriber.email))
+        .returning();
+      return updated;
+    }
+    const [created] = await db.insert(newsletterSubscribers).values(subscriber).returning();
+    return created;
+  }
+
+  async unsubscribeNewsletter(email: string): Promise<void> {
+    await db
+      .update(newsletterSubscribers)
+      .set({ unsubscribedAt: new Date() })
+      .where(eq(newsletterSubscribers.email, email));
+  }
+
+  // CMS Content operations
+  async getCmsContent(blockSlug: string, locale?: string): Promise<CmsContent[]> {
+    if (locale) {
+      return await db
+        .select()
+        .from(cmsContent)
+        .where(and(eq(cmsContent.blockSlug, blockSlug), eq(cmsContent.locale, locale)))
+        .orderBy(cmsContent.sortOrder);
+    }
+    return await db
+      .select()
+      .from(cmsContent)
+      .where(eq(cmsContent.blockSlug, blockSlug))
+      .orderBy(cmsContent.sortOrder);
+  }
+
+  async getCmsContentItem(id: string): Promise<CmsContent | undefined> {
+    const [item] = await db.select().from(cmsContent).where(eq(cmsContent.id, id));
+    return item || undefined;
+  }
+
+  async createCmsContent(content: InsertCmsContent): Promise<CmsContent> {
+    const [created] = await db.insert(cmsContent).values(content).returning();
+    return created;
+  }
+
+  async updateCmsContent(id: string, data: Partial<InsertCmsContent>): Promise<CmsContent> {
+    const [updated] = await db
+      .update(cmsContent)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(cmsContent.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteCmsContent(id: string): Promise<void> {
+    await db.delete(cmsContent).where(eq(cmsContent.id, id));
   }
 }
 

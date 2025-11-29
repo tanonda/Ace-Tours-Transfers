@@ -74,6 +74,39 @@ export const paymentGateways = pgTable("payment_gateways", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+// Wishlist Items - for saving tours/transfers
+export const wishlistItems = pgTable("wishlist_items", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  tourId: varchar("tour_id").notNull().references(() => tours.id),
+  addedAt: timestamp("added_at").notNull().defaultNow(),
+});
+
+// Newsletter Subscribers
+export const newsletterSubscribers = pgTable("newsletter_subscribers", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  email: text("email").notNull().unique(),
+  name: text("name"),
+  locale: text("locale").default("en"),
+  source: text("source").default("website"), // 'website', 'footer', 'popup'
+  subscribedAt: timestamp("subscribed_at").notNull().defaultNow(),
+  confirmed: boolean("confirmed").notNull().default(false),
+  unsubscribedAt: timestamp("unsubscribed_at"),
+});
+
+// CMS Content Entries - for editable content with descriptions and images
+export const cmsContent = pgTable("cms_content", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  blockSlug: text("block_slug").notNull(), // references content_blocks slug
+  contentKey: text("content_key").notNull(), // e.g., 'heading', 'description', 'image'
+  contentType: text("content_type").notNull().default("text"), // 'text', 'image', 'richtext'
+  value: text("value"), // The actual content or image URL
+  locale: text("locale").default("en"), // For i18n support
+  sortOrder: integer("sort_order").default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 // Payment Transactions
 export const payments = pgTable("payments", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -125,6 +158,24 @@ export const paymentGatewaysRelations = relations(paymentGateways, ({ many }) =>
   payments: many(payments),
 }));
 
+export const wishlistItemsRelations = relations(wishlistItems, ({ one }) => ({
+  user: one(users, {
+    fields: [wishlistItems.userId],
+    references: [users.id],
+  }),
+  tour: one(tours, {
+    fields: [wishlistItems.tourId],
+    references: [tours.id],
+  }),
+}));
+
+export const cmsContentRelations = relations(cmsContent, ({ one }) => ({
+  block: one(contentBlocks, {
+    fields: [cmsContent.blockSlug],
+    references: [contentBlocks.slug],
+  }),
+}));
+
 // Insert Schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -162,6 +213,23 @@ export const insertPaymentSchema = createInsertSchema(payments).omit({
   updatedAt: true,
 });
 
+export const insertWishlistItemSchema = createInsertSchema(wishlistItems).omit({
+  id: true,
+  addedAt: true,
+});
+
+export const insertNewsletterSubscriberSchema = createInsertSchema(newsletterSubscribers).omit({
+  id: true,
+  subscribedAt: true,
+  unsubscribedAt: true,
+});
+
+export const insertCmsContentSchema = createInsertSchema(cmsContent).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -177,3 +245,9 @@ export type InsertPaymentGateway = z.infer<typeof insertPaymentGatewaySchema>;
 export type PaymentGateway = typeof paymentGateways.$inferSelect;
 export type InsertPayment = z.infer<typeof insertPaymentSchema>;
 export type Payment = typeof payments.$inferSelect;
+export type InsertWishlistItem = z.infer<typeof insertWishlistItemSchema>;
+export type WishlistItem = typeof wishlistItems.$inferSelect;
+export type InsertNewsletterSubscriber = z.infer<typeof insertNewsletterSubscriberSchema>;
+export type NewsletterSubscriber = typeof newsletterSubscribers.$inferSelect;
+export type InsertCmsContent = z.infer<typeof insertCmsContentSchema>;
+export type CmsContent = typeof cmsContent.$inferSelect;
