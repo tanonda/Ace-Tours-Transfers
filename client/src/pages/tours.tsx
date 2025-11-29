@@ -14,7 +14,7 @@ export default function Tours() {
 
   return (
     <Layout>
-      <div className="bg-muted/30 pt-32 pb-20">
+      <div className="bg-muted/30 pt-40 pb-20">
         <div className="container mx-auto px-4">
           <h1 className="text-5xl font-serif font-bold text-center mb-6">Our Tours</h1>
           <p className="text-center text-muted-foreground max-w-2xl mx-auto mb-12 text-lg">
