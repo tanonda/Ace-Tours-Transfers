@@ -58,12 +58,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const userData = await res.json();
         setUser(userData);
         
-        // Redirect based on role
-        if (userData.role === "admin") {
-          setLocation("/admin/dashboard");
-        } else {
-          setLocation("/dashboard");
-        }
+        // Redirect based on role - use setTimeout to avoid navigation during render
+        setTimeout(() => {
+          if (userData.role === "admin") {
+            setLocation("/admin/dashboard");
+          } else {
+            setLocation("/dashboard");
+          }
+        }, 0);
         
         return { success: true };
       } else {

@@ -436,12 +436,12 @@ export function DashboardLayout({ children, type }: DashboardLayoutProps) {
         </main>
       </div>
 
-      {isSidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-          onClick={() => setIsSidebarOpen(false)}
-        />
-      )}
+      <div 
+        className={`fixed inset-0 bg-black/50 z-40 lg:hidden transition-opacity duration-200 ${
+          isSidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={() => setIsSidebarOpen(false)}
+      />
     </div>
   );
 }
