@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { Link, useLocation } from "wouter";
 import { 
   LayoutDashboard, 
@@ -42,6 +42,32 @@ export function DashboardLayout({ children, type }: DashboardLayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const { user, logout } = useAuth();
   const { theme } = useTheme();
+  const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const openSidebar = useCallback(() => {
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = null;
+    }
+    setIsSidebarOpen(true);
+  }, []);
+
+  const closeSidebar = useCallback(() => {
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current);
+    }
+    closeTimeoutRef.current = setTimeout(() => {
+      setIsSidebarOpen(false);
+    }, 150);
+  }, []);
+
+  const toggleSidebar = useCallback(() => {
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = null;
+    }
+    setIsSidebarOpen(prev => !prev);
+  }, []);
 
   const adminNotifications = [
     {
@@ -204,18 +230,18 @@ export function DashboardLayout({ children, type }: DashboardLayoutProps) {
       {!isSidebarOpen && (
         <div 
           className="fixed left-0 top-1/2 -translate-y-1/2 z-50 bg-primary p-2 rounded-r-lg cursor-pointer shadow-lg transition-all duration-300 w-8 flex items-center justify-center"
-          onMouseEnter={() => setIsSidebarOpen(true)}
+          onMouseEnter={openSidebar}
         >
           <div className="h-8 w-1 bg-primary-foreground/30 rounded" />
         </div>
       )}
 
       <aside 
-        className={`fixed inset-y-0 left-0 z-50 w-60 bg-background border-r border-border flex flex-col transition-transform duration-300 ${
+        className={`fixed inset-y-0 left-0 z-50 w-60 bg-background border-r border-border flex flex-col transition-transform duration-300 ease-in-out ${
           isSidebarOpen ? 'translate-x-0 shadow-xl' : '-translate-x-full'
         }`}
-        onMouseEnter={() => setIsSidebarOpen(true)}
-        onMouseLeave={() => setIsSidebarOpen(false)}
+        onMouseEnter={openSidebar}
+        onMouseLeave={closeSidebar}
       >
         <div className="flex items-center justify-between h-16 px-4 border-b border-border">
           <Link href="/">
@@ -232,7 +258,7 @@ export function DashboardLayout({ children, type }: DashboardLayoutProps) {
             </div>
           </Link>
           <button 
-            onClick={() => setIsSidebarOpen(false)} 
+            onClick={() => setIsSidebarOpen(false)}
             className="text-muted-foreground hover:text-foreground p-1 transition-colors"
           >
             <X size={20} />
@@ -291,14 +317,12 @@ export function DashboardLayout({ children, type }: DashboardLayoutProps) {
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <header className="bg-background border-b border-border h-16 flex items-center justify-between px-6 sticky top-0 z-40">
-          <div 
-            className="p-2 -ml-2 cursor-pointer text-muted-foreground rounded-lg transition-all hover:bg-accent hover:text-foreground"
-            onMouseEnter={(e) => {
-              setIsSidebarOpen(true);
-            }}
+          <button 
+            className="p-2 -ml-2 cursor-pointer text-muted-foreground rounded-lg transition-all hover:bg-accent hover:text-foreground border-none bg-transparent"
+            onClick={toggleSidebar}
           >
             <Menu size={24} />
-          </div>
+          </button>
           
           <div className="flex items-center gap-3">
             <ThemeToggle size="sm" />
