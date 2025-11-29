@@ -351,7 +351,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 <li className="flex items-start gap-3">
                   <Phone className="h-5 w-5 text-primary shrink-0 mt-0.5" />
                   <div className="text-white/70">
-                    <p>7114045 / 7342389</p>
+                    <p>
+                      <a href="tel:+6787114045" className="hover:text-white transition-colors">7114045</a>
+                      {" / "}
+                      <a href="tel:+6787342389" className="hover:text-white transition-colors">7342389</a>
+                    </p>
                     <p className="text-sm opacity-60">Available 24/7</p>
                   </div>
                 </li>
