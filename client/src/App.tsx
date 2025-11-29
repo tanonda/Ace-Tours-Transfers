@@ -19,6 +19,10 @@ import AdminBookings from "@/pages/admin/bookings";
 import AdminTours from "@/pages/admin/tours";
 import AdminCustomers from "@/pages/admin/customers";
 import AdminSettings from "@/pages/admin/settings";
+import AdminAnalytics from "@/pages/admin/analytics";
+import AdminReports from "@/pages/admin/reports";
+import AdminPromotions from "@/pages/admin/promotions";
+import AdminCalendar from "@/pages/admin/calendar";
 import CustomerDashboard from "@/pages/customer/dashboard";
 import CustomerBookings from "@/pages/customer/bookings";
 import CustomerSaved from "@/pages/customer/saved";
@@ -64,6 +68,26 @@ function Router() {
       <Route path="/admin/settings">
         <ProtectedRoute requireAdmin>
           <AdminSettings />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/admin/analytics">
+        <ProtectedRoute requireAdmin>
+          <AdminAnalytics />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/admin/reports">
+        <ProtectedRoute requireAdmin>
+          <AdminReports />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/admin/promotions">
+        <ProtectedRoute requireAdmin>
+          <AdminPromotions />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/admin/calendar">
+        <ProtectedRoute requireAdmin>
+          <AdminCalendar />
         </ProtectedRoute>
       </Route>
 

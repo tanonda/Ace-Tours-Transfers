@@ -15,7 +15,11 @@ import {
   User,
   Heart,
   Bell,
-  Check
+  Check,
+  BarChart3,
+  FileText,
+  Tag,
+  Calendar
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -61,9 +65,13 @@ export function DashboardLayout({ children, type }: DashboardLayoutProps) {
 
   const adminLinks = [
     { href: "/admin/dashboard", label: "Overview", icon: LayoutDashboard },
+    { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
     { href: "/admin/bookings", label: "Bookings", icon: CalendarDays },
+    { href: "/admin/calendar", label: "Calendar", icon: Calendar },
     { href: "/admin/tours", label: "Tours & Services", icon: Map },
     { href: "/admin/customers", label: "Customers", icon: Users },
+    { href: "/admin/promotions", label: "Promotions", icon: Tag },
+    { href: "/admin/reports", label: "Reports", icon: FileText },
     { href: "/admin/settings", label: "Settings", icon: Settings },
   ];
 
