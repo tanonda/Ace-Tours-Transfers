@@ -92,7 +92,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </Link>
 
           {/* Desktop Nav */}
-          <div className="hidden md:flex items-center gap-4">
+          <nav className="hidden md:flex items-center gap-6">
             <NavigationMenu className="relative z-50">
               <NavigationMenuList>
                 <NavigationMenuItem>
@@ -207,11 +207,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
               </NavigationMenuList>
             </NavigationMenu>
             
-            <div className="ml-4 flex items-center gap-4">
+            <div className="ml-2 flex items-center gap-4">
               <ThemeToggle size="sm" />
               <BookingModal trigger={<Button size="lg" className="font-semibold shadow-lg">Book Now</Button>} />
             </div>
-          </div>
+          </nav>
 
           {/* Mobile Nav */}
           <Sheet>
