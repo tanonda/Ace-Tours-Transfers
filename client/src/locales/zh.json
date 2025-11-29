@@ -206,6 +206,9 @@
   "dashboard.profile": "个人资料",
   "dashboard.saved": "已收藏",
   "dashboard.tours": "旅游",
+  "dashboard.guest": "访客",
+  "dashboard.vanuatu": "瓦努阿图",
+  "dashboard.currencySuffix": "瓦图",
   
   "common.search": "搜索",
   "common.searchPlaceholder": "搜索预订...",

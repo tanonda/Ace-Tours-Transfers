@@ -206,6 +206,9 @@
   "dashboard.profile": "Profile",
   "dashboard.saved": "Saved",
   "dashboard.tours": "Tours",
+  "dashboard.guest": "Guest",
+  "dashboard.vanuatu": "Vanuatu",
+  "dashboard.currencySuffix": "VT",
   
   "common.search": "Search",
   "common.searchPlaceholder": "Search bookings...",
