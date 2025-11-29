@@ -81,20 +81,32 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <header
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
           isScrolled 
-            ? "bg-background/95 backdrop-blur-md shadow-sm py-2 border-b border-border/50" 
+            ? "bg-background/95 backdrop-blur-md shadow-sm border-b border-border/50" 
             : isHome 
-              ? "bg-transparent py-4" 
-              : "bg-background/95 backdrop-blur-md py-3"
+              ? "bg-transparent" 
+              : "bg-background/95 backdrop-blur-md"
         }`}
       >
-        <div className="container mx-auto px-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 shrink-0">
-            <img src={logo} alt="Ace Tours Logo" className="h-10 md:h-12 w-auto rounded-full" />
-            <span className={`font-serif font-bold text-lg md:text-xl tracking-tight transition-colors ${logoTextColor}`}>
+        {/* Logo Bar - Centered */}
+        <div className={`container mx-auto px-4 py-3 flex justify-center ${isScrolled ? "py-2" : "py-4"}`}>
+          <Link href="/" className="flex flex-col items-center gap-1">
+            <img 
+              src={logo} 
+              alt="Ace Tours Logo" 
+              className={`rounded-full shadow-lg border-2 transition-all duration-300 ${
+                isTransparent ? "border-white/30" : "border-primary/30"
+              } ${isScrolled ? "h-12 w-12" : "h-16 w-16 md:h-20 md:w-20"}`}
+            />
+            <span className={`font-serif font-bold tracking-tight transition-all duration-300 ${logoTextColor} ${
+              isScrolled ? "text-lg" : "text-xl md:text-2xl"
+            }`}>
               Ace Tours & Transfers
             </span>
           </Link>
+        </div>
 
+        {/* Navigation Bar */}
+        <div className={`container mx-auto px-4 pb-2 flex items-center justify-center ${isScrolled ? "pb-1" : "pb-3"}`}>
           {/* Desktop Nav */}
           <nav className="hidden md:flex items-center gap-6">
             <NavigationMenu className="relative z-50">
