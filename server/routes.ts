@@ -386,6 +386,24 @@ export async function registerRoutes(
   });
 
   // Payment Gateways API
+  app.get("/api/payment-gateways/active", async (req, res) => {
+    try {
+      const gateway = await storage.getActivePaymentGateway();
+      if (!gateway) {
+        return res.status(404).json({ error: "No active payment gateway" });
+      }
+      res.json({
+        id: gateway.id,
+        slug: gateway.slug,
+        displayName: gateway.displayName,
+        active: gateway.active,
+        isDefault: gateway.isDefault
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch active payment gateway" });
+    }
+  });
+
   app.get("/api/payment-gateways", async (req, res) => {
     try {
       const gateways = await storage.getPaymentGateways();
