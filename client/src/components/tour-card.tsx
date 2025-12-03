@@ -8,6 +8,7 @@ import { WishlistButton } from "@/components/wishlist-button";
 import { ShareButton } from "@/components/share-button";
 import { motion } from "framer-motion";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 interface TourProps {
   id: string;
@@ -23,6 +24,7 @@ interface TourProps {
 
 export function TourCard({ tour, index }: { tour: TourProps; index: number }) {
   const [showQuickView, setShowQuickView] = useState(false);
+  const { t } = useTranslation();
 
   return (
     <>
@@ -54,7 +56,7 @@ export function TourCard({ tour, index }: { tour: TourProps; index: number }) {
           </div>
           <div className="absolute inset-0 flex items-center justify-center z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
             <Button variant="secondary" size="sm" className="shadow-lg font-semibold">
-              <Eye className="mr-2 h-4 w-4" /> Quick View
+              <Eye className="mr-2 h-4 w-4" /> {t("tour.quickView", "Quick View")}
             </Button>
           </div>
         </div>
@@ -91,12 +93,12 @@ export function TourCard({ tour, index }: { tour: TourProps; index: number }) {
         <CardFooter className="pt-4 border-t border-border/50 bg-muted/30" onClick={(e) => e.stopPropagation()}>
           <div className="w-full space-y-2">
              <div className="flex justify-between items-center text-sm text-muted-foreground mb-2">
-               <span>Starting from</span>
+               <span>{t("tour.startingFrom", "Starting from")}</span>
                <span className="font-bold text-foreground">{tour.price}</span>
              </div>
              <BookingModal 
                preselectedService={tour.title}
-               trigger={<Button className="w-full font-semibold" size="lg">Book Now</Button>} 
+               trigger={<Button className="w-full font-semibold" size="lg">{t("tour.bookNow", "Book Now")}</Button>} 
              />
           </div>
         </CardFooter>

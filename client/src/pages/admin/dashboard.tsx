@@ -5,6 +5,7 @@ import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/hooks/use-toast";
 import { DashboardLayout } from "@/components/dashboard-layout";
+import { useTranslation } from "react-i18next";
 
 const fmtVT = (n?: number) => (n == null ? '-' : n.toLocaleString('en-US') + ' VT');
 
@@ -29,19 +30,19 @@ function KPI({ label, value, delta, colorClass }: { label: string; value: string
   );
 }
 
-function BookingModal({ booking, onClose, onUpdate }: { booking: any; onClose: () => void; onUpdate: (status: string) => void }) {
+function BookingModal({ booking, onClose, onUpdate, t }: { booking: any; onClose: () => void; onUpdate: (status: string) => void; t: (key: string) => string }) {
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[1000]">
       <div className="bg-card p-6 rounded-2xl w-[400px] max-w-[90%] border border-border">
-        <h3 className="text-foreground text-lg font-semibold mb-4">Booking Details</h3>
+        <h3 className="text-foreground text-lg font-semibold mb-4">{t("dashboard.bookingDetails")}</h3>
         <div className="flex flex-col gap-3 text-muted-foreground">
-          <div><strong className="text-foreground">ID:</strong> #{booking.id?.slice(0, 8)}</div>
-          <div><strong className="text-foreground">Customer:</strong> {booking.customerName}</div>
-          <div><strong className="text-foreground">Tour:</strong> {booking.tourName}</div>
-          <div><strong className="text-foreground">Date:</strong> {booking.date}</div>
-          <div><strong className="text-foreground">Guests:</strong> {booking.guests}</div>
-          <div><strong className="text-foreground">Amount:</strong> {booking.amount}</div>
-          <div><strong className="text-foreground">Status:</strong> {booking.status}</div>
+          <div><strong className="text-foreground">{t("booking.id")}:</strong> #{booking.id?.slice(0, 8)}</div>
+          <div><strong className="text-foreground">{t("booking.customer")}:</strong> {booking.customerName}</div>
+          <div><strong className="text-foreground">{t("booking.tour")}:</strong> {booking.tourName}</div>
+          <div><strong className="text-foreground">{t("booking.date")}:</strong> {booking.date}</div>
+          <div><strong className="text-foreground">{t("booking.guests")}:</strong> {booking.guests}</div>
+          <div><strong className="text-foreground">{t("booking.amount")}:</strong> {booking.amount}</div>
+          <div><strong className="text-foreground">{t("booking.status")}:</strong> {booking.status}</div>
         </div>
         <div className="mt-5 flex gap-2">
           <button 
@@ -49,14 +50,14 @@ function BookingModal({ booking, onClose, onUpdate }: { booking: any; onClose: (
             onClick={() => onUpdate('confirmed')} 
             className="flex-1 py-2.5 rounded-lg border-none bg-green-500 text-white font-semibold cursor-pointer hover:bg-green-600 transition-colors"
           >
-            Confirm
+            {t("booking.confirm")}
           </button>
           <button 
             data-testid="button-cancel-booking" 
             onClick={() => onUpdate('cancelled')} 
             className="flex-1 py-2.5 rounded-lg border-none bg-red-500 text-white font-semibold cursor-pointer hover:bg-red-600 transition-colors"
           >
-            Cancel
+            {t("booking.cancel")}
           </button>
         </div>
         <button 
@@ -64,25 +65,34 @@ function BookingModal({ booking, onClose, onUpdate }: { booking: any; onClose: (
           onClick={onClose} 
           className="mt-3 w-full py-2.5 rounded-lg border border-border bg-transparent text-foreground cursor-pointer hover:bg-muted transition-colors"
         >
-          Close
+          {t("dashboard.close")}
         </button>
       </div>
     </div>
   );
 }
 
-function Table({ rows, onOpenBooking }: { rows: any[]; onOpenBooking: (booking: any) => void }) {
+function Table({ rows, onOpenBooking, t }: { rows: any[]; onOpenBooking: (booking: any) => void; t: (key: string) => string }) {
+  const getTranslatedStatus = (status: string) => {
+    const statusLower = status.toLowerCase();
+    if (statusLower === 'paid' || statusLower === 'confirmed') return t("booking.confirmed");
+    if (statusLower === 'pending') return t("booking.pending");
+    if (statusLower === 'completed') return t("booking.completed");
+    if (statusLower === 'cancelled') return t("booking.cancelled");
+    return status;
+  };
+  
   return (
     <table className="w-full border-collapse">
       <thead className="text-left text-muted-foreground">
         <tr>
-          <th className="py-3 px-2 text-xs uppercase tracking-wide border-b border-border">ID</th>
-          <th className="py-3 px-2 text-xs uppercase tracking-wide border-b border-border">Customer</th>
-          <th className="py-3 px-2 text-xs uppercase tracking-wide border-b border-border">Route</th>
-          <th className="py-3 px-2 text-xs uppercase tracking-wide border-b border-border">Date</th>
-          <th className="py-3 px-2 text-xs uppercase tracking-wide border-b border-border">Amount</th>
-          <th className="py-3 px-2 text-xs uppercase tracking-wide border-b border-border">Status</th>
-          <th className="py-3 px-2 text-xs uppercase tracking-wide border-b border-border">Action</th>
+          <th className="py-3 px-2 text-xs uppercase tracking-wide border-b border-border">{t("booking.id")}</th>
+          <th className="py-3 px-2 text-xs uppercase tracking-wide border-b border-border">{t("booking.customer")}</th>
+          <th className="py-3 px-2 text-xs uppercase tracking-wide border-b border-border">{t("dashboard.route")}</th>
+          <th className="py-3 px-2 text-xs uppercase tracking-wide border-b border-border">{t("booking.date")}</th>
+          <th className="py-3 px-2 text-xs uppercase tracking-wide border-b border-border">{t("booking.amount")}</th>
+          <th className="py-3 px-2 text-xs uppercase tracking-wide border-b border-border">{t("booking.status")}</th>
+          <th className="py-3 px-2 text-xs uppercase tracking-wide border-b border-border">{t("dashboard.action")}</th>
         </tr>
       </thead>
       <tbody>
@@ -101,7 +111,7 @@ function Table({ rows, onOpenBooking }: { rows: any[]; onOpenBooking: (booking: 
                     ? 'bg-yellow-500/15 text-yellow-500' 
                     : 'bg-red-500/15 text-red-500'
               }`}>
-                {r.status}
+                {getTranslatedStatus(r.status)}
               </span>
             </td>
             <td className="py-3 px-2">
@@ -110,7 +120,7 @@ function Table({ rows, onOpenBooking }: { rows: any[]; onOpenBooking: (booking: 
                 onClick={() => onOpenBooking(r)}
                 className="bg-primary text-primary-foreground px-3 py-1.5 rounded-md border-none font-semibold cursor-pointer text-xs hover:opacity-90 transition-opacity"
               >
-                View
+                {t("common.view")}
               </button>
             </td>
           </tr>
@@ -128,6 +138,7 @@ export default function AdminDashboard() {
   const [selectedBooking, setSelectedBooking] = useState<any>(null);
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const { t } = useTranslation();
 
   const { data: bookings = [] } = useQuery({
     queryKey: ["bookings"],
@@ -149,20 +160,20 @@ export default function AdminDashboard() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["bookings"] });
       queryClient.invalidateQueries({ queryKey: ["stats"] });
-      toast({ title: "Booking updated", description: "The booking status has been updated." });
+      toast({ title: t("dashboard.bookingUpdated"), description: t("dashboard.bookingUpdatedDesc") });
       setSelectedBooking(null);
     },
     onError: () => {
-      toast({ title: "Error", description: "Failed to update booking", variant: "destructive" });
+      toast({ title: t("common.error"), description: t("dashboard.updateFailed"), variant: "destructive" });
     }
   });
 
   const handleExportCSV = async () => {
     try {
       await exportBookingsCSV();
-      toast({ title: "Export complete", description: "Bookings CSV has been downloaded." });
+      toast({ title: t("dashboard.exportComplete"), description: t("dashboard.exportCompleteDesc") });
     } catch {
-      toast({ title: "Error", description: "Failed to export bookings", variant: "destructive" });
+      toast({ title: t("common.error"), description: t("dashboard.exportFailed"), variant: "destructive" });
     }
   };
 
@@ -199,6 +210,7 @@ export default function AdminDashboard() {
           booking={selectedBooking} 
           onClose={() => setSelectedBooking(null)}
           onUpdate={(status) => updateMutation.mutate({ id: selectedBooking.id, status })}
+          t={t}
         />
       )}
 
@@ -206,16 +218,16 @@ export default function AdminDashboard() {
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
             <h1 className="text-2xl font-bold text-foreground">
-              Welcome back, {user?.name || 'Admin'}
+              {t("dashboard.welcome")}, {user?.name || 'Admin'}
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Here's what's happening with your tours today
+              {t("dashboard.whatsHappening")}
             </p>
           </div>
           <div className="flex gap-2">
             <input 
               data-testid="input-search" 
-              placeholder="Search bookings..." 
+              placeholder={t("common.searchPlaceholder")} 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="py-2.5 px-3.5 rounded-lg border border-border min-w-[200px] bg-background text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
@@ -225,100 +237,100 @@ export default function AdminDashboard() {
               onClick={handleExportCSV} 
               className="bg-primary py-2.5 px-4 rounded-lg cursor-pointer border-none text-primary-foreground text-sm font-semibold hover:opacity-90 transition-opacity"
             >
-              Export CSV
+              {t("common.export")}
             </button>
           </div>
         </div>
         
         <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <KPI label="Revenue" value={fmtVT(totalRevenue * 100)} delta="+8%" colorClass="bg-yellow-500 text-yellow-950" />
-          <KPI label="Bookings" value={stats?.total || bookings.length} delta="+3%" colorClass="bg-blue-500 text-blue-950" />
-          <KPI label="Active Tours" value={tours.length} delta="+1%" colorClass="bg-green-500 text-green-950" />
-          <KPI label="Uptime" value="99.97%" delta="+0.01%" colorClass="bg-red-400 text-red-950" />
+          <KPI label={t("dashboard.revenue")} value={fmtVT(totalRevenue * 100)} delta="+8%" colorClass="bg-yellow-500 text-yellow-950" />
+          <KPI label={t("dashboard.bookings")} value={stats?.total || bookings.length} delta="+3%" colorClass="bg-blue-500 text-blue-950" />
+          <KPI label={t("dashboard.activeTours")} value={tours.length} delta="+1%" colorClass="bg-green-500 text-green-950" />
+          <KPI label={t("dashboard.uptime")} value="99.97%" delta="+0.01%" colorClass="bg-red-400 text-red-950" />
         </section>
 
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-5">
           <div className="p-5 rounded-xl bg-card border border-border">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-foreground text-base font-semibold">Recent Bookings</h3>
+              <h3 className="text-foreground text-base font-semibold">{t("dashboard.recentBookings")}</h3>
               <select 
                 data-testid="select-status-filter"
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
                 className="py-1.5 px-3 rounded-md bg-muted border border-border text-foreground text-xs cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50"
               >
-                <option value="all">All statuses</option>
-                <option value="confirmed">Confirmed</option>
-                <option value="pending">Pending</option>
-                <option value="cancelled">Cancelled</option>
+                <option value="all">{t("dashboard.allStatuses")}</option>
+                <option value="confirmed">{t("booking.confirmed")}</option>
+                <option value="pending">{t("booking.pending")}</option>
+                <option value="cancelled">{t("booking.cancelled")}</option>
               </select>
             </div>
             {recentBookings.length > 0 ? (
-              <Table rows={recentBookings} onOpenBooking={setSelectedBooking} />
+              <Table rows={recentBookings} onOpenBooking={setSelectedBooking} t={t} />
             ) : (
               <div className="py-10 text-center text-muted-foreground">
-                No bookings yet. Create your first booking to see it here.
+                {t("dashboard.noBookingsYet")}
               </div>
             )}
           </div>
 
           <div className="flex flex-col gap-4">
             <div className="p-5 rounded-xl bg-card border border-border">
-              <h4 className="text-foreground text-sm font-semibold mb-3">Revenue Breakdown</h4>
+              <h4 className="text-foreground text-sm font-semibold mb-3">{t("dashboard.revenueBreakdown")}</h4>
               <svg width="100%" height={120} viewBox="0 0 200 100" preserveAspectRatio="none">
                 <rect x="10" y="50" width="50" height="50" rx="6" className="fill-blue-500"></rect>
                 <rect x="75" y="25" width="50" height="75" rx="6" className="fill-red-400"></rect>
                 <rect x="140" y="10" width="50" height="90" rx="6" className="fill-green-500"></rect>
               </svg>
               <div className="flex justify-around mt-3 text-xs text-muted-foreground">
-                <span>Tours</span>
-                <span>Transfers</span>
+                <span>{t("nav.tours")}</span>
+                <span>{t("nav.transfers")}</span>
                 <span>Bus Hire</span>
               </div>
             </div>
 
             <div className="p-5 rounded-xl bg-card border border-border">
-              <h4 className="text-foreground text-sm font-semibold mb-3">System Health</h4>
+              <h4 className="text-foreground text-sm font-semibold mb-3">{t("dashboard.systemHealth")}</h4>
               <div className="text-sm text-muted-foreground">
                 <div className="flex items-center gap-2 mb-2">
                   <span className="w-2 h-2 rounded-full bg-green-500"></span>
-                  <span className="text-foreground">All systems nominal</span>
+                  <span className="text-foreground">{t("dashboard.allSystemsNominal")}</span>
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  API latency 120ms • DB connections 12/20
+                  {t("dashboard.apiLatency")} • {t("dashboard.dbConnections")}
                 </div>
               </div>
             </div>
 
             <div className="p-5 rounded-xl bg-card border border-border">
-              <h4 className="text-foreground text-sm font-semibold mb-3">Quick Actions</h4>
+              <h4 className="text-foreground text-sm font-semibold mb-3">{t("dashboard.quickActions")}</h4>
               <div className="flex flex-wrap gap-2">
                 <button 
                   data-testid="button-new-booking" 
                   onClick={() => setLocation('/tours')} 
                   className="bg-muted px-3 py-2 rounded-lg cursor-pointer border border-border text-foreground text-xs hover:bg-accent transition-colors"
                 >
-                  New Booking
+                  {t("dashboard.newBooking")}
                 </button>
                 <button 
                   data-testid="button-create-promo" 
                   onClick={() => setLocation('/admin/promotions')} 
                   className="bg-muted px-3 py-2 rounded-lg cursor-pointer border border-border text-foreground text-xs hover:bg-accent transition-colors"
                 >
-                  Create Promo
+                  {t("dashboard.createPromo")}
                 </button>
                 <button 
                   data-testid="button-view-reports" 
                   onClick={() => setLocation('/admin/reports')} 
                   className="bg-muted px-3 py-2 rounded-lg cursor-pointer border border-border text-foreground text-xs hover:bg-accent transition-colors"
                 >
-                  View Reports
+                  {t("dashboard.viewReports")}
                 </button>
               </div>
             </div>
 
             <div className="p-5 rounded-xl bg-gradient-to-br from-primary/10 to-destructive/10 border border-primary/30">
-              <h4 className="text-foreground text-sm font-semibold">Notifications</h4>
+              <h4 className="text-foreground text-sm font-semibold">{t("dashboard.notifications")}</h4>
               <ul className="mt-3 space-y-2">
                 {bookings.slice(0, 3).map((b) => (
                   <li key={b.id} className="flex items-center gap-2 text-sm">
@@ -330,13 +342,13 @@ export default function AdminDashboard() {
                       b.status === 'confirmed' ? 'text-green-500' : 
                       b.status === 'pending' ? 'text-yellow-500' : 'text-red-400'
                     }>
-                      {b.status === 'confirmed' ? 'Confirmed' : b.status === 'pending' ? 'New booking' : 'Cancelled'}
+                      {b.status === 'confirmed' ? t("booking.confirmed") : b.status === 'pending' ? t("dashboard.newBookingNotif") : t("booking.cancelled")}
                     </span>
                     <span className="text-muted-foreground">#{b.id?.slice(0, 6)}</span>
                   </li>
                 ))}
                 {bookings.length === 0 && (
-                  <li className="text-muted-foreground text-sm">No recent activity</li>
+                  <li className="text-muted-foreground text-sm">{t("dashboard.noRecentActivity")}</li>
                 )}
               </ul>
             </div>

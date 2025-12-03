@@ -16,6 +16,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { tours, transfers } from "@/lib/data";
 import { useLocation } from "wouter";
+import { useTranslation } from "react-i18next";
 
 const formSchema = z.object({
   name: z.string().min(2, "Name is required"),
@@ -31,6 +32,7 @@ export function BookingModal({ trigger, preselectedService }: { trigger: React.R
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [, setLocation] = useLocation();
+  const { t } = useTranslation();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -64,7 +66,7 @@ export function BookingModal({ trigger, preselectedService }: { trigger: React.R
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle className="font-serif text-2xl text-center mb-2">Plan Your Adventure</DialogTitle>
+          <DialogTitle className="font-serif text-2xl text-center mb-2">{t("booking.title", "Plan Your Adventure")}</DialogTitle>
         </DialogHeader>
         
         <Form {...form}>
@@ -74,9 +76,9 @@ export function BookingModal({ trigger, preselectedService }: { trigger: React.R
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Full Name</FormLabel>
+                  <FormLabel>{t("booking.fullName", "Full Name")}</FormLabel>
                   <FormControl>
-                    <Input placeholder="John Doe" {...field} />
+                    <Input placeholder={t("booking.namePlaceholder", "John Doe")} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -88,9 +90,9 @@ export function BookingModal({ trigger, preselectedService }: { trigger: React.R
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email</FormLabel>
+                  <FormLabel>{t("booking.email", "Email")}</FormLabel>
                   <FormControl>
-                    <Input placeholder="john@example.com" {...field} />
+                    <Input placeholder={t("booking.emailPlaceholder", "john@example.com")} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -103,20 +105,20 @@ export function BookingModal({ trigger, preselectedService }: { trigger: React.R
                 name="service"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Service</FormLabel>
+                    <FormLabel>{t("booking.service", "Service")}</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select tour/transfer" />
+                          <SelectValue placeholder={t("booking.selectService", "Select tour/transfer")} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="select" disabled>Select an option</SelectItem>
-                        {tours.map((t: any) => (
-                          <SelectItem key={t.id} value={t.title}>{t.title}</SelectItem>
+                        <SelectItem value="select" disabled>{t("booking.selectOption", "Select an option")}</SelectItem>
+                        {tours.map((tour: any) => (
+                          <SelectItem key={tour.id} value={tour.title}>{tour.title}</SelectItem>
                         ))}
-                        {transfers.map((t: any) => (
-                          <SelectItem key={t.id} value={t.title}>{t.title}</SelectItem>
+                        {transfers.map((transfer: any) => (
+                          <SelectItem key={transfer.id} value={transfer.title}>{transfer.title}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -130,7 +132,7 @@ export function BookingModal({ trigger, preselectedService }: { trigger: React.R
                 name="guests"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Guests</FormLabel>
+                    <FormLabel>{t("booking.guests", "Guests")}</FormLabel>
                     <FormControl>
                       <Input type="number" min="1" {...field} />
                     </FormControl>
@@ -145,7 +147,7 @@ export function BookingModal({ trigger, preselectedService }: { trigger: React.R
               name="date"
               render={({ field }) => (
                 <FormItem className="flex flex-col">
-                  <FormLabel>Preferred Date</FormLabel>
+                  <FormLabel>{t("booking.preferredDate", "Preferred Date")}</FormLabel>
                   <Popover>
                     <PopoverTrigger asChild>
                       <FormControl>
@@ -159,7 +161,7 @@ export function BookingModal({ trigger, preselectedService }: { trigger: React.R
                           {field.value ? (
                             format(field.value, "PPP")
                           ) : (
-                            <span>Pick a date</span>
+                            <span>{t("booking.pickDate", "Pick a date")}</span>
                           )}
                           <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                         </Button>
@@ -183,7 +185,7 @@ export function BookingModal({ trigger, preselectedService }: { trigger: React.R
             />
 
             <Button type="submit" className="w-full text-lg py-6" disabled={isLoading}>
-              {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Submit Request"}
+              {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : t("booking.submit", "Submit Request")}
             </Button>
           </form>
         </Form>

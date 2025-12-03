@@ -103,7 +103,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <div className={`transition-all duration-300 ${isScrolled ? "hidden" : "block"}`}>
           <div className={`container mx-auto px-4 py-2 flex flex-col md:flex-row items-center justify-between text-sm ${isTransparent ? "text-white/90" : "text-muted-foreground"}`}>
             <p className={`italic font-medium ${isTransparent ? "text-white" : "text-foreground"}`}>
-              "Your trusted partner for unforgettable Vanuatu adventures"
+              "{t("app.tagline")}"
             </p>
             <div className="flex items-center gap-4 mt-1 md:mt-0">
               <a href="tel:+6787114045" className={`flex items-center gap-1.5 hover:text-primary transition-colors ${isTransparent ? "hover:text-white" : ""}`}>
@@ -114,7 +114,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <a href="mailto:acetoursvanuatu@outlook.com" className={`flex items-center gap-1.5 hover:text-primary transition-colors ${isTransparent ? "hover:text-white" : ""}`}>
                 <Mail className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">acetoursvanuatu@outlook.com</span>
-                <span className="sm:hidden">Email Us</span>
+                <span className="sm:hidden">{t("nav.emailUs", "Email Us")}</span>
               </a>
             </div>
           </div>
@@ -172,8 +172,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
                           {tour.description[0]}
                         </ListItem>
                       ))}
-                      <ListItem href="/tours" title="View All Tours" className="bg-muted/50">
-                        See our complete range of tour packages
+                      <ListItem href="/tours" title={t("nav.viewAllTours")} className="bg-muted/50">
+                        {t("nav.seeAllTours")}
                       </ListItem>
                     </ul>
                   </NavigationMenuContent>
@@ -198,8 +198,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
                           {transfer.description}
                         </ListItem>
                       ))}
-                      <ListItem href="/transfers" title="View All Transfers" className="bg-muted/50">
-                        See our complete range of transfer options
+                      <ListItem href="/transfers" title={t("nav.viewAllTransfers")} className="bg-muted/50">
+                        {t("nav.seeAllTransfers")}
                       </ListItem>
                     </ul>
                   </NavigationMenuContent>
@@ -237,18 +237,18 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <NavigationMenuList>
                 <NavigationMenuItem>
                   <NavigationMenuTrigger className={cn("bg-transparent hover:bg-transparent focus:bg-transparent data-[state=open]:bg-transparent", navTextColor)}>
-                    My Bookings
+                    {t("nav.myBookings")}
                   </NavigationMenuTrigger>
                   <NavigationMenuContent>
                     <ul className="grid w-[200px] gap-2 p-4">
-                      <ListItem href="/reservations" title="Edit your trip">
-                        Manage existing bookings
+                      <ListItem href="/reservations" title={t("nav.editTrip")}>
+                        {t("nav.manageBookings", "Manage existing bookings")}
                       </ListItem>
-                      <ListItem href="/reservations" title="Cancel your trip">
-                        Cancel a reservation
+                      <ListItem href="/reservations" title={t("nav.cancelTrip")}>
+                        {t("nav.cancelReservation", "Cancel a reservation")}
                       </ListItem>
-                      <ListItem href="/reservations" title="Book ride">
-                        Start a new booking
+                      <ListItem href="/reservations" title={t("nav.bookRide")}>
+                        {t("nav.startNewBooking", "Start a new booking")}
                       </ListItem>
                     </ul>
                   </NavigationMenuContent>
@@ -259,7 +259,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <div className="ml-2 flex items-center gap-4">
               <LanguageSelector />
               <ThemeToggle size="sm" />
-              <BookingModal trigger={<Button size="lg" className="font-semibold shadow-lg">Book Now</Button>} />
+              <BookingModal trigger={<Button size="lg" className="font-semibold shadow-lg">{t("tour.bookNow")}</Button>} />
             </div>
           </nav>
 
@@ -305,25 +305,25 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 <Link href="/contact" className="text-lg font-medium hover:text-primary">{t("nav.contact")}</Link>
 
                 <div className="space-y-3">
-                  <span className="text-lg font-medium text-foreground block">My Bookings</span>
+                  <span className="text-lg font-medium text-foreground block">{t("nav.myBookings")}</span>
                   <div className="pl-4 space-y-2 border-l-2 border-muted">
-                    <Link href="/reservations" className="block text-sm text-muted-foreground hover:text-primary">Edit your trip</Link>
-                    <Link href="/reservations" className="block text-sm text-muted-foreground hover:text-primary">Cancel your trip</Link>
-                    <Link href="/reservations" className="block text-sm text-muted-foreground hover:text-primary">Book ride</Link>
+                    <Link href="/reservations" className="block text-sm text-muted-foreground hover:text-primary">{t("nav.editTrip")}</Link>
+                    <Link href="/reservations" className="block text-sm text-muted-foreground hover:text-primary">{t("nav.cancelTrip")}</Link>
+                    <Link href="/reservations" className="block text-sm text-muted-foreground hover:text-primary">{t("nav.bookRide")}</Link>
                   </div>
                 </div>
 
                 <div className="flex items-center justify-between py-2">
-                  <span className="text-lg font-medium text-foreground">Language</span>
+                  <span className="text-lg font-medium text-foreground">{t("common.language")}</span>
                   <LanguageSelector />
                 </div>
 
                 <div className="flex items-center justify-between py-2">
-                  <span className="text-lg font-medium text-foreground">Theme</span>
+                  <span className="text-lg font-medium text-foreground">{t("common.theme")}</span>
                   <ThemeToggle size="md" />
                 </div>
                 
-                <BookingModal trigger={<Button size="lg" className="w-full">Book Now</Button>} />
+                <BookingModal trigger={<Button size="lg" className="w-full">{t("tour.bookNow")}</Button>} />
               </div>
             </SheetContent>
           </Sheet>
@@ -345,7 +345,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 <span className="font-serif font-bold text-xl">Ace Tours</span>
               </div>
               <p className="text-white/70 leading-relaxed mb-6">
-                Experience the beauty of Efate Island with us. We offer meticulously pre-planned and custom-designed tour packages.
+                {t("footer.description", "Experience the beauty of Efate Island with us. We offer meticulously pre-planned and custom-designed tour packages.")}
               </p>
               <div className="flex gap-4">
                 <a href="https://www.facebook.com/share/16xVyw7m7m/" target="_blank" rel="noopener noreferrer" className="bg-white/10 p-2 rounded-full hover:bg-primary transition-colors">
@@ -358,13 +358,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </div>
 
             <div>
-              <h3 className="font-serif text-lg font-semibold mb-6 text-primary">Quick Links</h3>
+              <h3 className="font-serif text-lg font-semibold mb-6 text-primary">{t("footer.quickLinks")}</h3>
               <ul className="space-y-3">
-                <li><Link href="/" className="text-white/70 hover:text-white transition-colors">Home</Link></li>
-                <li><Link href="/tours" className="text-white/70 hover:text-white transition-colors">Tours</Link></li>
-                <li><Link href="/transfers" className="text-white/70 hover:text-white transition-colors">Transfers</Link></li>
-                <li><Link href="/about" className="text-white/70 hover:text-white transition-colors">About</Link></li>
-                <li><Link href="/contact" className="text-white/70 hover:text-white transition-colors">Contact</Link></li>
+                <li><Link href="/" className="text-white/70 hover:text-white transition-colors">{t("nav.home")}</Link></li>
+                <li><Link href="/tours" className="text-white/70 hover:text-white transition-colors">{t("nav.tours")}</Link></li>
+                <li><Link href="/transfers" className="text-white/70 hover:text-white transition-colors">{t("nav.transfers")}</Link></li>
+                <li><Link href="/about" className="text-white/70 hover:text-white transition-colors">{t("nav.about")}</Link></li>
+                <li><Link href="/contact" className="text-white/70 hover:text-white transition-colors">{t("nav.contact")}</Link></li>
               </ul>
             </div>
 
@@ -411,7 +411,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           )}
           
           <div className="border-t border-white/10 pt-8 text-center text-white/40 text-sm">
-            <p>&copy; {new Date().getFullYear()} Ace Tours & Transfers Vanuatu. All rights reserved.</p>
+            <p>&copy; {new Date().getFullYear()} {t("app.title")}. {t("footer.copyright")}</p>
           </div>
         </div>
       </footer>

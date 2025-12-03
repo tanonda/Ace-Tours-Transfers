@@ -27,8 +27,8 @@ export default function Register() {
     setTimeout(() => {
       setIsLoading(false);
       toast({
-        title: "Account created!",
-        description: "You can now log in to your account.",
+        title: t("auth.accountCreated"),
+        description: t("auth.accountCreatedDesc"),
       });
       setLocation("/login");
     }, 1500);
@@ -142,31 +142,31 @@ export default function Register() {
               <div className="hidden lg:flex flex-col space-y-8 text-white">
                 <div>
                   <span className="bg-primary text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-                    Join Our Community
+                    {t("auth.joinCommunity")}
                   </span>
                 </div>
-                <h2 className="text-4xl font-serif font-bold">Why join Ace Tours?</h2>
+                <h2 className="text-4xl font-serif font-bold">{t("auth.whyJoin")}</h2>
                 
                 <div className="space-y-5">
                   <div className="flex items-start gap-4">
                     <CheckCircle className="w-6 h-6 text-green-400 shrink-0 mt-0.5" />
                     <div>
-                      <h3 className="font-bold text-lg">Manage bookings easily</h3>
-                      <p className="text-white/80">View, modify, or cancel your reservations anytime, anywhere.</p>
+                      <h3 className="font-bold text-lg">{t("auth.manageBookings")}</h3>
+                      <p className="text-white/80">{t("auth.manageBookingsDesc")}</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-4">
                     <CheckCircle className="w-6 h-6 text-green-400 shrink-0 mt-0.5" />
                     <div>
-                      <h3 className="font-bold text-lg">Exclusive offers</h3>
-                      <p className="text-white/80">Get access to special member-only discounts and early access to new tour packages.</p>
+                      <h3 className="font-bold text-lg">{t("auth.exclusiveOffers")}</h3>
+                      <p className="text-white/80">{t("auth.exclusiveOffersDesc")}</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-4">
                     <CheckCircle className="w-6 h-6 text-green-400 shrink-0 mt-0.5" />
                     <div>
-                      <h3 className="font-bold text-lg">Faster checkout</h3>
-                      <p className="text-white/80">Save your details for a seamless booking experience next time.</p>
+                      <h3 className="font-bold text-lg">{t("auth.fasterCheckout")}</h3>
+                      <p className="text-white/80">{t("auth.fasterCheckoutDesc")}</p>
                     </div>
                   </div>
                 </div>
@@ -175,7 +175,7 @@ export default function Register() {
                 <div className="mt-4 bg-white/10 backdrop-blur-sm p-6 rounded-xl border border-white/20">
                   <Quote className="w-8 h-8 text-white/30 mb-3" />
                   <p className="text-white/90 italic mb-4">
-                    "We booked our entire family vacation through Ace Tours. Having an account made it so easy to coordinate multiple transfers and day trips. Highly recommend!"
+                    "{t("auth.testimonialRegister")}"
                   </p>
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center font-bold text-white">
@@ -198,7 +198,7 @@ export default function Register() {
       </main>
 
       <footer className="bg-[#291B12] text-white py-6 text-center text-sm opacity-90 relative z-20">
-         <p>&copy; {new Date().getFullYear()} Ace Tours & Transfers Vanuatu. All rights reserved.</p>
+         <p>&copy; {new Date().getFullYear()} {t("app.title")}. {t("footer.copyright")}</p>
       </footer>
     </div>
   );

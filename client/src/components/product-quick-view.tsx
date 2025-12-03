@@ -9,6 +9,7 @@ import { useCart } from "@/lib/cart-context";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { useTranslation } from "react-i18next";
 
 interface ProductQuickViewProps {
   isOpen: boolean;
@@ -20,6 +21,7 @@ export function ProductQuickView({ isOpen, onClose, product }: ProductQuickViewP
   const { addToCart } = useCart();
   const [guests, setGuests] = useState("2");
   const [date, setDate] = useState<string>("");
+  const { t } = useTranslation();
 
   if (!product) return null;
 
@@ -70,7 +72,7 @@ export function ProductQuickView({ isOpen, onClose, product }: ProductQuickViewP
                       <Star key={i} className="h-4 w-4 fill-current" />
                     ))}
                   </div>
-                  <span className="text-sm text-muted-foreground">(12 reviews)</span>
+                  <span className="text-sm text-muted-foreground">({t("quickView.reviews", "12 reviews")})</span>
                 </div>
                 <DialogTitle className="text-3xl font-serif font-bold mb-2">{product.title}</DialogTitle>
               </DialogHeader>
@@ -92,17 +94,17 @@ export function ProductQuickView({ isOpen, onClose, product }: ProductQuickViewP
 
               <div className="space-y-6">
                 <div>
-                  <h4 className="font-semibold mb-3">Overview</h4>
+                  <h4 className="font-semibold mb-3">{t("quickView.overview", "Overview")}</h4>
                   <p className="text-muted-foreground leading-relaxed">
                     {typeof product.description === 'string' 
                       ? product.description 
-                      : "Experience the best of Vanuatu with this curated package. Perfect for those looking to explore the culture and beauty of the islands."}
+                      : t("quickView.defaultDesc", "Experience the best of Vanuatu with this curated package. Perfect for those looking to explore the culture and beauty of the islands.")}
                   </p>
                 </div>
 
                 {Array.isArray(product.description) && (
                   <div>
-                    <h4 className="font-semibold mb-3">What's Included</h4>
+                    <h4 className="font-semibold mb-3">{t("quickView.whatsIncluded", "What's Included")}</h4>
                     <ul className="space-y-2">
                       {product.description.map((item: string, i: number) => (
                         <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
@@ -116,14 +118,14 @@ export function ProductQuickView({ isOpen, onClose, product }: ProductQuickViewP
 
                 {/* Price Options / Rates Mock */}
                 <div className="bg-muted/30 p-4 rounded-lg border border-border/50">
-                  <h4 className="font-semibold mb-2">Rates & Options</h4>
+                  <h4 className="font-semibold mb-2">{t("quickView.ratesOptions", "Rates & Options")}</h4>
                   <div className="flex justify-between items-center text-sm mb-1">
-                    <span>Adult</span>
+                    <span>{t("quickView.adult", "Adult")}</span>
                     <span className="font-medium">{product.price}</span>
                   </div>
                   {product.childPrice && (
                     <div className="flex justify-between items-center text-sm">
-                      <span>Child</span>
+                      <span>{t("quickView.child", "Child")}</span>
                       <span className="font-medium">{product.childPrice}</span>
                     </div>
                   )}
@@ -131,14 +133,14 @@ export function ProductQuickView({ isOpen, onClose, product }: ProductQuickViewP
                 
                 {/* Mock Reviews */}
                 <div>
-                  <h4 className="font-semibold mb-3">Recent Reviews</h4>
+                  <h4 className="font-semibold mb-3">{t("quickView.recentReviews", "Recent Reviews")}</h4>
                   <div className="space-y-4">
                     <div className="border-b pb-4 last:border-0">
                       <div className="flex items-center justify-between mb-1">
                         <span className="font-medium text-sm">Sarah M.</span>
-                        <span className="text-xs text-muted-foreground">2 days ago</span>
+                        <span className="text-xs text-muted-foreground">{t("quickView.daysAgo", "2 days ago")}</span>
                       </div>
-                      <p className="text-xs text-muted-foreground">"Absolutely amazing experience! The guides were so friendly and the sights were breathtaking."</p>
+                      <p className="text-xs text-muted-foreground">"{t("quickView.sampleReview", "Absolutely amazing experience! The guides were so friendly and the sights were breathtaking.")}"</p>
                     </div>
                   </div>
                 </div>
@@ -148,7 +150,7 @@ export function ProductQuickView({ isOpen, onClose, product }: ProductQuickViewP
             <div className="p-6 border-t bg-background">
               <div className="grid grid-cols-2 gap-4 mb-4">
                 <div className="space-y-1">
-                  <Label htmlFor="guests" className="text-xs">Guests</Label>
+                  <Label htmlFor="guests" className="text-xs">{t("booking.guests", "Guests")}</Label>
                   <Input 
                     id="guests" 
                     type="number" 
@@ -158,7 +160,7 @@ export function ProductQuickView({ isOpen, onClose, product }: ProductQuickViewP
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label htmlFor="date" className="text-xs">Date</Label>
+                  <Label htmlFor="date" className="text-xs">{t("cart.date", "Date")}</Label>
                   <Input 
                     id="date" 
                     type="date" 
@@ -169,7 +171,7 @@ export function ProductQuickView({ isOpen, onClose, product }: ProductQuickViewP
               </div>
               <Button className="w-full" size="lg" onClick={handleAddToCart}>
                 <ShoppingCart className="mr-2 h-4 w-4" />
-                Add to Cart
+                {t("cart.addToCart", "Add to Cart")}
               </Button>
             </div>
           </div>

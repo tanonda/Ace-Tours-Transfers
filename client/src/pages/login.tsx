@@ -131,7 +131,7 @@ export default function Login() {
                         onClick={() => fillCredentials('admin')}
                         className="text-left p-2 rounded hover:bg-white/10 transition-colors border border-transparent hover:border-white/30"
                       >
-                        <span className="font-bold block text-xs uppercase tracking-wider text-yellow-400 mb-0.5">Admin</span>
+                        <span className="font-bold block text-xs uppercase tracking-wider text-yellow-400 mb-0.5">{t("auth.adminAccount")}</span>
                         <div className="text-xs text-white/80">admin@acetours.vu</div>
                         <div className="text-xs text-white/60">admin123</div>
                       </button>
@@ -139,12 +139,12 @@ export default function Login() {
                         onClick={() => fillCredentials('customer')}
                         className="text-left p-2 rounded hover:bg-white/10 transition-colors border border-transparent hover:border-white/30"
                       >
-                        <span className="font-bold block text-xs uppercase tracking-wider text-yellow-400 mb-0.5">Customer</span>
+                        <span className="font-bold block text-xs uppercase tracking-wider text-yellow-400 mb-0.5">{t("auth.customerAccount")}</span>
                         <div className="text-xs text-white/80">james@example.com</div>
                         <div className="text-xs text-white/60">user123</div>
                       </button>
                     </div>
-                    <p className="text-xs mt-2 text-white/60 italic text-center">Click a card above to auto-fill credentials</p>
+                    <p className="text-xs mt-2 text-white/60 italic text-center">{t("auth.clickToFill")}</p>
                   </div>
 
                   <form onSubmit={handleLogin} className="space-y-4">
@@ -200,7 +200,7 @@ export default function Login() {
               <div className="hidden lg:flex flex-col space-y-6 text-white">
                 <div>
                   <span className="bg-primary text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-                    Featured Experience
+                    {t("auth.featuredExperience")}
                   </span>
                 </div>
                 <h2 className="text-4xl font-serif font-bold">{featuredTour.title}</h2>
@@ -213,11 +213,11 @@ export default function Login() {
                       <Star key={i} className="w-5 h-5 fill-current" />
                     ))}
                   </div>
-                  <span className="text-lg font-medium text-white/80">4.9 (120+ reviews)</span>
+                  <span className="text-lg font-medium text-white/80">4.9 ({t("auth.reviews")})</span>
                 </div>
                 <Link href="/tours">
                   <Button size="lg" className="bg-white text-primary hover:bg-white/90 font-semibold w-fit">
-                    View Details & Book
+                    {t("auth.viewDetailsBook")}
                   </Button>
                 </Link>
 
@@ -229,7 +229,7 @@ export default function Login() {
                     ))}
                   </div>
                   <p className="text-white/90 italic mb-4">
-                    "Logging in to manage my booking was seamless. I added an extra day tour last minute and the team handled it perfectly!"
+                    "{t("auth.testimonialLogin")}"
                   </p>
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center font-bold text-white">
@@ -237,7 +237,7 @@ export default function Login() {
                     </div>
                     <div>
                       <p className="font-bold text-sm text-white">James D.</p>
-                      <p className="text-xs text-white/70">Verified Traveler</p>
+                      <p className="text-xs text-white/70">{t("auth.verifiedTraveler")}</p>
                     </div>
                   </div>
                 </div>
@@ -248,7 +248,7 @@ export default function Login() {
       </main>
 
       <footer className="bg-[#291B12] text-white py-6 text-center text-sm opacity-90 relative z-20">
-         <p>&copy; {new Date().getFullYear()} Ace Tours & Transfers Vanuatu. All rights reserved.</p>
+         <p>&copy; {new Date().getFullYear()} {t("app.title")}. {t("footer.copyright")}</p>
       </footer>
     </div>
   );
