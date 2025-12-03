@@ -138,6 +138,10 @@
   "auth.accountCreated": "Compte créé!",
   "auth.accountCreatedDesc": "Vous pouvez maintenant vous connecter à votre compte.",
   "auth.clickToFill": "Cliquez sur une carte pour remplir automatiquement les identifiants",
+  "auth.vanuatuAdventure": "Aventure au Vanuatu",
+  "auth.vanuatuCulture": "Culture du Vanuatu",
+  "auth.fullNamePlaceholder": "Jean Dupont",
+  "auth.emailPlaceholder": "nom@exemple.com",
   
   "cart.title": "Votre Panier",
   "cart.empty": "Votre panier est vide",

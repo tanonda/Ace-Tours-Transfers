@@ -40,7 +40,7 @@ export default function Register() {
        <header className="bg-primary text-white shadow-md py-4 relative z-20">
         <div className="container mx-auto px-4 flex items-center justify-between">
           <Link href="/" className="font-serif font-bold text-xl tracking-tight">
-            Ace Tours & Transfers
+            {t("app.title")}
           </Link>
           <div className="flex items-center gap-4">
             <LanguageSelector />
@@ -60,7 +60,7 @@ export default function Register() {
         <div className="absolute inset-0">
           <img 
             src={featuredTour.image} 
-            alt="Vanuatu Culture"
+            alt={t("auth.vanuatuCulture")}
             className="w-full h-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-black/30" />
@@ -84,7 +84,7 @@ export default function Register() {
                       <Label htmlFor="fullName" className="text-white">{t("auth.fullName")}</Label>
                       <Input 
                         id="fullName" 
-                        placeholder="John Doe" 
+                        placeholder={t("auth.fullNamePlaceholder")} 
                         required 
                         className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-white/40"
                       />
@@ -94,7 +94,7 @@ export default function Register() {
                       <Input 
                         id="email" 
                         type="email" 
-                        placeholder="name@example.com" 
+                        placeholder={t("auth.emailPlaceholder")} 
                         required 
                         className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-white/40"
                       />

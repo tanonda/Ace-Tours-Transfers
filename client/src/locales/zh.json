@@ -138,6 +138,10 @@
   "auth.accountCreated": "账户已创建！",
   "auth.accountCreatedDesc": "您现在可以登录您的账户了。",
   "auth.clickToFill": "点击卡片自动填写凭据",
+  "auth.vanuatuAdventure": "瓦努阿图探险",
+  "auth.vanuatuCulture": "瓦努阿图文化",
+  "auth.fullNamePlaceholder": "张三",
+  "auth.emailPlaceholder": "名字@例子.com",
   
   "cart.title": "您的购物车",
   "cart.empty": "您的购物车是空的",

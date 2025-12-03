@@ -138,6 +138,10 @@
   "auth.accountCreated": "Account i created!",
   "auth.accountCreatedDesc": "Nao yu save login long account blong yu.",
   "auth.clickToFill": "Click long wan card blong auto-fill credentials",
+  "auth.vanuatuAdventure": "Vanuatu Adventure",
+  "auth.vanuatuCulture": "Vanuatu Culture",
+  "auth.fullNamePlaceholder": "Jon Doe",
+  "auth.emailPlaceholder": "name@example.com",
   
   "cart.title": "Cart blong yu",
   "cart.empty": "Cart blong yu i empty",

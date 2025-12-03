@@ -81,7 +81,7 @@ export default function Login() {
        <header className="bg-primary text-white shadow-md py-4 relative z-20">
         <div className="container mx-auto px-4 flex items-center justify-between">
           <Link href="/" className="font-serif font-bold text-xl tracking-tight">
-             Ace Tours & Transfers
+             {t("app.title")}
           </Link>
           <div className="flex items-center gap-4">
             <LanguageSelector />
@@ -101,7 +101,7 @@ export default function Login() {
         <div className="absolute inset-0">
           <img 
             src={featuredTour.image} 
-            alt="Vanuatu Adventure"
+            alt={t("auth.vanuatuAdventure")}
             className="w-full h-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-black/30" />
@@ -153,7 +153,7 @@ export default function Login() {
                       <Input 
                         id="email" 
                         type="email" 
-                        placeholder="name@example.com" 
+                        placeholder={t("auth.emailPlaceholder")} 
                         required 
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}

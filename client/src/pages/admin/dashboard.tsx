@@ -7,8 +7,6 @@ import { useToast } from "@/hooks/use-toast";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { useTranslation } from "react-i18next";
 
-const fmtVT = (n?: number) => (n == null ? '-' : n.toLocaleString('en-US') + ' VT');
-
 function KPI({ label, value, delta, colorClass }: { label: string; value: string | number; delta?: string; colorClass?: string }) {
   return (
     <div data-testid={`kpi-${label.toLowerCase().replace(/\s+/g, '-')}`} className="p-4 rounded-xl bg-card border border-border">
@@ -138,7 +136,13 @@ export default function AdminDashboard() {
   const [selectedBooking, setSelectedBooking] = useState<any>(null);
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  
+  const fmtVT = (n?: number) => {
+    if (n == null) return '-';
+    const locale = i18n.language === 'zh' ? 'zh-CN' : i18n.language === 'fr' ? 'fr-FR' : i18n.language === 'es' ? 'es-ES' : 'en-US';
+    return `${n.toLocaleString(locale)} ${t("dashboard.currencySuffix")}`;
+  };
 
   const { data: bookings = [] } = useQuery({
     queryKey: ["bookings"],
