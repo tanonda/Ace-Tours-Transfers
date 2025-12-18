@@ -285,6 +285,8 @@
   "common.actions": "Actions",
   "common.language": "Langue",
   "common.theme": "Thème",
+  "common.settings": "Paramètres",
+  "app.shortTitle": "Ace Tours",
   
   "footer.quickLinks": "Liens Rapides",
   "footer.ourServices": "Nos Services",

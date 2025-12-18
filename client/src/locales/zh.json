@@ -285,6 +285,8 @@
   "common.actions": "操作",
   "common.language": "语言",
   "common.theme": "主题",
+  "common.settings": "设置",
+  "app.shortTitle": "Ace旅游",
   
   "footer.quickLinks": "快速链接",
   "footer.ourServices": "我们的服务",

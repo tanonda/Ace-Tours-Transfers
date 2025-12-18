@@ -1,8 +1,8 @@
 import { Link, useLocation } from "wouter";
 import { useState, useEffect, forwardRef } from "react";
-import { Menu, Phone, Mail, Instagram, Facebook } from "lucide-react";
+import { Menu, Phone, Mail, Instagram, Facebook, X, ChevronRight, ShoppingCart, User, LogIn, UserPlus, Home, Map, Car, Info, MessageSquare, Calendar, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { BookingModal } from "@/components/booking-modal";
 import { NewsletterForm } from "@/components/newsletter-form";
 import logo from "@assets/thumbnail_1755110010542_1764279489018.jpg";
@@ -17,13 +17,18 @@ import {
 import { cn } from "@/lib/utils";
 import { tours, transfers } from "@/lib/data";
 import { useCart } from "@/lib/cart-context";
-import { ShoppingCart } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LanguageSelector } from "@/components/language-selector";
 import { useTranslation } from "react-i18next";
 import { SkipLinks } from "@/components/skip-links";
 import { useCMS } from "@/lib/cms-context";
+import { useAuth } from "@/lib/auth-context";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 const ListItem = forwardRef<
   HTMLDivElement,
@@ -53,12 +58,24 @@ ListItem.displayName = "ListItem"
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const [isScrolled, setIsScrolled] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [toursOpen, setToursOpen] = useState(false);
+  const [transfersOpen, setTransfersOpen] = useState(false);
+  const [bookingsOpen, setBookingsOpen] = useState(false);
   const [location] = useLocation();
   const { itemCount } = useCart();
   const { t } = useTranslation();
   const { isBlockEnabled } = useCMS();
+  const { user, logout } = useAuth();
   const isHome = location === "/";
   const showNewsletter = isBlockEnabled('newsletter');
+
+  const closeMobileMenu = () => {
+    setMobileMenuOpen(false);
+    setToursOpen(false);
+    setTransfersOpen(false);
+    setBookingsOpen(false);
+  };
 
   useEffect(() => {
     const handleScroll = () => {
@@ -264,66 +281,306 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </nav>
 
           {/* Mobile Nav */}
-          <Sheet>
+          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
             <SheetTrigger asChild className="md:hidden">
               <Button 
                 variant="ghost" 
                 size="icon" 
                 className={mobileButtonColor}
                 aria-label={t("accessibility.menuOpen")}
+                data-testid="button-mobile-menu"
               >
                 <Menu className="h-6 w-6" aria-hidden="true" />
               </Button>
             </SheetTrigger>
-            <SheetContent>
-              <div className="flex flex-col gap-6 mt-10">
-                <Link href="/" className="text-lg font-medium hover:text-primary">{t("nav.home")}</Link>
-                
-                <div className="space-y-3">
-                  <Link href="/tours" className="text-lg font-medium hover:text-primary block">{t("nav.tours")}</Link>
-                  <div className="pl-4 space-y-2 border-l-2 border-muted">
-                    {tours.map(tour => (
-                      <Link key={tour.id} href="/tours" className="block text-sm text-muted-foreground hover:text-primary">
-                        {tour.title}
+            <SheetContent 
+              side="left" 
+              className="w-[85vw] max-w-[320px] p-0 overflow-hidden"
+              data-testid="mobile-menu-panel"
+            >
+              {/* Mobile Menu Header */}
+              <div className="bg-primary text-white p-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <img 
+                    src={logo} 
+                    alt="Ace Tours Logo" 
+                    className="h-10 w-10 rounded-full border-2 border-white/30"
+                  />
+                  <span className="font-serif font-bold text-lg">{t("app.shortTitle", "Ace Tours")}</span>
+                </div>
+                <SheetClose asChild>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="text-white hover:bg-white/20"
+                    data-testid="button-close-mobile-menu"
+                  >
+                    <X className="h-5 w-5" />
+                  </Button>
+                </SheetClose>
+              </div>
+
+              {/* User Section */}
+              <div className="bg-muted/50 p-4 border-b border-border">
+                {user ? (
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
+                      <User className="h-5 w-5 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-foreground truncate">{user.name}</p>
+                      <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                    </div>
+                    <Link href={user.role === 'admin' ? '/admin/dashboard' : '/dashboard'} onClick={closeMobileMenu}>
+                      <Button variant="outline" size="sm" data-testid="button-mobile-dashboard">
+                        {t("nav.dashboard")}
+                      </Button>
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <Link href="/login" onClick={closeMobileMenu} className="flex-1">
+                      <Button variant="outline" size="sm" className="w-full" data-testid="button-mobile-login">
+                        <LogIn className="h-4 w-4 mr-2" />
+                        {t("nav.login")}
+                      </Button>
+                    </Link>
+                    <Link href="/register" onClick={closeMobileMenu} className="flex-1">
+                      <Button size="sm" className="w-full" data-testid="button-mobile-register">
+                        <UserPlus className="h-4 w-4 mr-2" />
+                        {t("nav.register")}
+                      </Button>
+                    </Link>
+                  </div>
+                )}
+              </div>
+
+              {/* Scrollable Navigation */}
+              <div className="overflow-y-auto h-[calc(100vh-200px)]">
+                <nav className="p-2">
+                  {/* Home */}
+                  <Link 
+                    href="/" 
+                    onClick={closeMobileMenu}
+                    className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors"
+                    data-testid="mobile-nav-home"
+                  >
+                    <Home className="h-5 w-5 text-primary" />
+                    <span className="font-medium">{t("nav.home")}</span>
+                  </Link>
+
+                  {/* Tours - Collapsible */}
+                  <Collapsible open={toursOpen} onOpenChange={setToursOpen}>
+                    <CollapsibleTrigger className="flex items-center justify-between w-full px-4 py-3 rounded-lg hover:bg-muted transition-colors">
+                      <div className="flex items-center gap-3">
+                        <Map className="h-5 w-5 text-primary" />
+                        <span className="font-medium">{t("nav.tours")}</span>
+                      </div>
+                      <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform duration-200", toursOpen && "rotate-180")} />
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="pl-12 pr-4 pb-2 space-y-1">
+                      {tours.map((tour) => (
+                        <Link 
+                          key={tour.id} 
+                          href="/tours" 
+                          onClick={closeMobileMenu}
+                          className="flex items-center gap-2 py-2 px-3 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                        >
+                          <ChevronRight className="h-3 w-3" />
+                          {tour.title}
+                        </Link>
+                      ))}
+                      <Link 
+                        href="/tours" 
+                        onClick={closeMobileMenu}
+                        className="flex items-center gap-2 py-2 px-3 rounded-md text-sm font-medium text-primary hover:bg-primary/10 transition-colors"
+                      >
+                        {t("nav.viewAllTours")}
                       </Link>
-                    ))}
-                  </div>
-                </div>
+                    </CollapsibleContent>
+                  </Collapsible>
 
-                <div className="space-y-3">
-                  <Link href="/transfers" className="text-lg font-medium hover:text-primary block">{t("nav.transfers")}</Link>
-                  <div className="pl-4 space-y-2 border-l-2 border-muted">
-                    {transfers.map(transfer => (
-                      <Link key={transfer.id} href="/transfers" className="block text-sm text-muted-foreground hover:text-primary">
-                        {transfer.title}
+                  {/* Transfers - Collapsible */}
+                  <Collapsible open={transfersOpen} onOpenChange={setTransfersOpen}>
+                    <CollapsibleTrigger className="flex items-center justify-between w-full px-4 py-3 rounded-lg hover:bg-muted transition-colors">
+                      <div className="flex items-center gap-3">
+                        <Car className="h-5 w-5 text-primary" />
+                        <span className="font-medium">{t("nav.transfers")}</span>
+                      </div>
+                      <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform duration-200", transfersOpen && "rotate-180")} />
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="pl-12 pr-4 pb-2 space-y-1">
+                      {transfers.map((transfer) => (
+                        <Link 
+                          key={transfer.id} 
+                          href="/transfers" 
+                          onClick={closeMobileMenu}
+                          className="flex items-center gap-2 py-2 px-3 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                        >
+                          <ChevronRight className="h-3 w-3" />
+                          {transfer.title}
+                        </Link>
+                      ))}
+                      <Link 
+                        href="/transfers" 
+                        onClick={closeMobileMenu}
+                        className="flex items-center gap-2 py-2 px-3 rounded-md text-sm font-medium text-primary hover:bg-primary/10 transition-colors"
+                      >
+                        {t("nav.viewAllTransfers")}
                       </Link>
-                    ))}
+                    </CollapsibleContent>
+                  </Collapsible>
+
+                  {/* About */}
+                  <Link 
+                    href="/about" 
+                    onClick={closeMobileMenu}
+                    className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors"
+                    data-testid="mobile-nav-about"
+                  >
+                    <Info className="h-5 w-5 text-primary" />
+                    <span className="font-medium">{t("nav.about")}</span>
+                  </Link>
+
+                  {/* Contact */}
+                  <Link 
+                    href="/contact" 
+                    onClick={closeMobileMenu}
+                    className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors"
+                    data-testid="mobile-nav-contact"
+                  >
+                    <MessageSquare className="h-5 w-5 text-primary" />
+                    <span className="font-medium">{t("nav.contact")}</span>
+                  </Link>
+
+                  {/* My Bookings - Collapsible */}
+                  <Collapsible open={bookingsOpen} onOpenChange={setBookingsOpen}>
+                    <CollapsibleTrigger className="flex items-center justify-between w-full px-4 py-3 rounded-lg hover:bg-muted transition-colors">
+                      <div className="flex items-center gap-3">
+                        <Calendar className="h-5 w-5 text-primary" />
+                        <span className="font-medium">{t("nav.myBookings")}</span>
+                      </div>
+                      <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform duration-200", bookingsOpen && "rotate-180")} />
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="pl-12 pr-4 pb-2 space-y-1">
+                      <Link 
+                        href="/reservations" 
+                        onClick={closeMobileMenu}
+                        className="flex items-center gap-2 py-2 px-3 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                      >
+                        <ChevronRight className="h-3 w-3" />
+                        {t("nav.editTrip")}
+                      </Link>
+                      <Link 
+                        href="/reservations" 
+                        onClick={closeMobileMenu}
+                        className="flex items-center gap-2 py-2 px-3 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                      >
+                        <ChevronRight className="h-3 w-3" />
+                        {t("nav.cancelTrip")}
+                      </Link>
+                      <Link 
+                        href="/reservations" 
+                        onClick={closeMobileMenu}
+                        className="flex items-center gap-2 py-2 px-3 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                      >
+                        <ChevronRight className="h-3 w-3" />
+                        {t("nav.bookRide")}
+                      </Link>
+                    </CollapsibleContent>
+                  </Collapsible>
+
+                  {/* Cart */}
+                  <Link 
+                    href="/cart" 
+                    onClick={closeMobileMenu}
+                    className="flex items-center justify-between px-4 py-3 rounded-lg hover:bg-muted transition-colors"
+                    data-testid="mobile-nav-cart"
+                  >
+                    <div className="flex items-center gap-3">
+                      <ShoppingCart className="h-5 w-5 text-primary" />
+                      <span className="font-medium">{t("cart.title")}</span>
+                    </div>
+                    {itemCount > 0 && (
+                      <Badge variant="default" className="bg-primary text-white">
+                        {itemCount}
+                      </Badge>
+                    )}
+                  </Link>
+
+                  {/* Divider */}
+                  <div className="my-3 border-t border-border" />
+
+                  {/* Settings Section */}
+                  <div className="px-4 py-2">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                      {t("common.settings", "Settings")}
+                    </p>
+                  </div>
+
+                  {/* Language */}
+                  <div className="flex items-center justify-between px-4 py-3 rounded-lg hover:bg-muted transition-colors">
+                    <span className="font-medium">{t("common.language")}</span>
+                    <LanguageSelector />
+                  </div>
+
+                  {/* Theme */}
+                  <div className="flex items-center justify-between px-4 py-3 rounded-lg hover:bg-muted transition-colors">
+                    <span className="font-medium">{t("common.theme")}</span>
+                    <ThemeToggle size="md" />
+                  </div>
+
+                  {/* Logout for logged-in users */}
+                  {user && (
+                    <button 
+                      onClick={() => {
+                        logout();
+                        closeMobileMenu();
+                      }}
+                      className="flex items-center gap-3 w-full px-4 py-3 rounded-lg hover:bg-destructive/10 text-destructive transition-colors"
+                      data-testid="button-mobile-logout"
+                    >
+                      <LogIn className="h-5 w-5 rotate-180" />
+                      <span className="font-medium">{t("nav.logout")}</span>
+                    </button>
+                  )}
+                </nav>
+
+                {/* Book Now CTA */}
+                <div className="p-4 border-t border-border">
+                  <BookingModal 
+                    trigger={
+                      <Button size="lg" className="w-full font-semibold shadow-lg" data-testid="button-mobile-book-now">
+                        {t("tour.bookNow")}
+                      </Button>
+                    } 
+                  />
+                </div>
+
+                {/* Contact Info */}
+                <div className="p-4 bg-muted/30 border-t border-border">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+                    {t("footer.contactUs")}
+                  </p>
+                  <div className="space-y-2 text-sm text-muted-foreground">
+                    <a href="tel:+6787114045" className="flex items-center gap-2 hover:text-primary transition-colors">
+                      <Phone className="h-4 w-4" />
+                      <span>7114045</span>
+                    </a>
+                    <a href="mailto:acetoursvanuatu@outlook.com" className="flex items-center gap-2 hover:text-primary transition-colors">
+                      <Mail className="h-4 w-4" />
+                      <span className="truncate">acetoursvanuatu@outlook.com</span>
+                    </a>
+                  </div>
+                  <div className="flex gap-3 mt-4">
+                    <a href="https://www.facebook.com/share/16xVyw7m7m/" target="_blank" rel="noopener noreferrer" className="bg-muted p-2 rounded-full hover:bg-primary hover:text-white transition-colors">
+                      <Facebook className="h-4 w-4" />
+                    </a>
+                    <a href="#" className="bg-muted p-2 rounded-full hover:bg-primary hover:text-white transition-colors">
+                      <Instagram className="h-4 w-4" />
+                    </a>
                   </div>
                 </div>
-
-                <Link href="/about" className="text-lg font-medium hover:text-primary">{t("nav.about")}</Link>
-                <Link href="/contact" className="text-lg font-medium hover:text-primary">{t("nav.contact")}</Link>
-
-                <div className="space-y-3">
-                  <span className="text-lg font-medium text-foreground block">{t("nav.myBookings")}</span>
-                  <div className="pl-4 space-y-2 border-l-2 border-muted">
-                    <Link href="/reservations" className="block text-sm text-muted-foreground hover:text-primary">{t("nav.editTrip")}</Link>
-                    <Link href="/reservations" className="block text-sm text-muted-foreground hover:text-primary">{t("nav.cancelTrip")}</Link>
-                    <Link href="/reservations" className="block text-sm text-muted-foreground hover:text-primary">{t("nav.bookRide")}</Link>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between py-2">
-                  <span className="text-lg font-medium text-foreground">{t("common.language")}</span>
-                  <LanguageSelector />
-                </div>
-
-                <div className="flex items-center justify-between py-2">
-                  <span className="text-lg font-medium text-foreground">{t("common.theme")}</span>
-                  <ThemeToggle size="md" />
-                </div>
-                
-                <BookingModal trigger={<Button size="lg" className="w-full">{t("tour.bookNow")}</Button>} />
               </div>
             </SheetContent>
           </Sheet>
