@@ -68,16 +68,16 @@ export function Hero() {
           transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}
           className="w-full max-w-4xl"
         >
-          <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl p-4 md:p-6 border border-white/20">
+          <div className="bg-gradient-to-br from-white/95 via-primary/5 to-white/90 backdrop-blur-md rounded-2xl shadow-2xl p-4 md:p-6 border border-primary/20 ring-1 ring-primary/10">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 md:items-end">
               {/* Service Type */}
               <div className="flex flex-col gap-2">
-                <label className="text-sm font-semibold text-foreground flex items-center gap-2">
+                <label className="text-sm font-semibold text-primary/80 flex items-center gap-2">
                   <Map className="h-4 w-4 text-primary" />
                   {t("hero.serviceType", "What are you looking for?")}
                 </label>
                 <Select value={serviceType} onValueChange={setServiceType}>
-                  <SelectTrigger className="h-14 text-base bg-background border-border" data-testid="select-service-type">
+                  <SelectTrigger className="h-14 text-base bg-white border-primary/20 hover:border-primary/40 focus:ring-primary/30 shadow-sm" data-testid="select-service-type">
                     <SelectValue placeholder={t("hero.selectService", "Tours & Transfers")} />
                   </SelectTrigger>
                   <SelectContent>
@@ -109,7 +109,7 @@ export function Hero() {
 
               {/* Date Picker */}
               <div className="flex flex-col gap-2">
-                <label className="text-sm font-semibold text-foreground flex items-center gap-2">
+                <label className="text-sm font-semibold text-primary/80 flex items-center gap-2">
                   <CalendarIcon className="h-4 w-4 text-primary" />
                   {t("hero.travelDate", "When?")}
                 </label>
@@ -118,7 +118,7 @@ export function Hero() {
                     <Button
                       variant="outline"
                       className={cn(
-                        "w-full h-14 justify-start text-left text-base font-normal bg-background",
+                        "w-full h-14 justify-start text-left text-base font-normal bg-white border-primary/20 hover:border-primary/40 shadow-sm",
                         !selectedDate && "text-muted-foreground"
                       )}
                       data-testid="button-date-picker"
@@ -142,19 +142,19 @@ export function Hero() {
 
               {/* Guests */}
               <div className="flex flex-col gap-2">
-                <label className="text-sm font-semibold text-foreground flex items-center gap-2">
+                <label className="text-sm font-semibold text-primary/80 flex items-center gap-2">
                   <Users className="h-4 w-4 text-primary" />
                   {t("hero.guests", "How many?")}
                 </label>
                 <div className="relative">
-                  <Users className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                  <Users className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-primary/50" />
                   <Input
                     type="number"
                     min="1"
                     max="50"
                     value={guests}
                     onChange={(e) => setGuests(e.target.value)}
-                    className="h-14 text-base pl-12 bg-background"
+                    className="h-14 text-base pl-12 bg-white border-primary/20 hover:border-primary/40 shadow-sm"
                     placeholder={t("hero.guestsPlaceholder", "2 guests")}
                     data-testid="input-guests"
                   />
@@ -166,7 +166,7 @@ export function Hero() {
                 <Button
                   onClick={handleSearch}
                   size="lg"
-                  className="w-full h-14 text-lg font-semibold shadow-lg hover:scale-[1.02] transition-transform"
+                  className="w-full h-14 text-lg font-semibold bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 hover:scale-[1.02] transition-all duration-200"
                   data-testid="button-check-availability"
                 >
                   <Search className="mr-2 h-5 w-5" />
@@ -176,20 +176,20 @@ export function Hero() {
             </div>
 
             {/* Quick Links */}
-            <div className="flex flex-wrap items-center justify-center gap-2 mt-4 pt-4 border-t border-border/50">
-              <span className="text-sm text-muted-foreground">{t("hero.popularSearches", "Popular:")}</span>
+            <div className="flex flex-wrap items-center justify-center gap-2 mt-4 pt-4 border-t border-primary/10">
+              <span className="text-sm text-primary/60 font-medium">{t("hero.popularSearches", "Popular:")}</span>
               <Link href="/tours">
-                <Button variant="ghost" size="sm" className="text-sm text-primary hover:bg-primary/10">
+                <Button variant="ghost" size="sm" className="text-sm text-primary font-medium hover:bg-primary/10 hover:text-primary">
                   {t("nav.tours")}
                 </Button>
               </Link>
               <Link href="/transfers">
-                <Button variant="ghost" size="sm" className="text-sm text-primary hover:bg-primary/10">
+                <Button variant="ghost" size="sm" className="text-sm text-primary font-medium hover:bg-primary/10 hover:text-primary">
                   {t("hero.airportTransfer", "Airport Transfer")}
                 </Button>
               </Link>
               <Link href="/tours">
-                <Button variant="ghost" size="sm" className="text-sm text-primary hover:bg-primary/10">
+                <Button variant="ghost" size="sm" className="text-sm text-primary font-medium hover:bg-primary/10 hover:text-primary">
                   {t("hero.dayTours", "Day Tours")}
                 </Button>
               </Link>
