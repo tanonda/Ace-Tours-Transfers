@@ -69,9 +69,9 @@ export function Hero() {
           className="w-full max-w-4xl"
         >
           <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl p-4 md:p-6 border border-white/20">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 md:items-end">
               {/* Service Type */}
-              <div className="space-y-2">
+              <div className="flex flex-col gap-2">
                 <label className="text-sm font-semibold text-foreground flex items-center gap-2">
                   <Map className="h-4 w-4 text-primary" />
                   {t("hero.serviceType", "What are you looking for?")}
@@ -108,7 +108,7 @@ export function Hero() {
               </div>
 
               {/* Date Picker */}
-              <div className="space-y-2">
+              <div className="flex flex-col gap-2">
                 <label className="text-sm font-semibold text-foreground flex items-center gap-2">
                   <CalendarIcon className="h-4 w-4 text-primary" />
                   {t("hero.travelDate", "When?")}
@@ -141,7 +141,7 @@ export function Hero() {
               </div>
 
               {/* Guests */}
-              <div className="space-y-2">
+              <div className="flex flex-col gap-2">
                 <label className="text-sm font-semibold text-foreground flex items-center gap-2">
                   <Users className="h-4 w-4 text-primary" />
                   {t("hero.guests", "How many?")}
@@ -162,8 +162,7 @@ export function Hero() {
               </div>
 
               {/* Search Button */}
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-transparent hidden md:block">Search</label>
+              <div className="flex flex-col gap-2 justify-end">
                 <Button
                   onClick={handleSearch}
                   size="lg"
