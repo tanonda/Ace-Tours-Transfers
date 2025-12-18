@@ -271,6 +271,58 @@ export async function registerRoutes(
     }
   });
 
+  // Public booking lookup (for guests without accounts)
+  app.post("/api/bookings/lookup", async (req, res) => {
+    try {
+      const { confirmationNumber, verificationType, verificationValue } = req.body;
+      
+      if (!confirmationNumber || !verificationType || !verificationValue) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+      
+      const booking = await storage.getBooking(confirmationNumber);
+      if (!booking) {
+        return res.status(404).json({ error: "Booking not found" });
+      }
+      
+      // Verify the booking based on verification type
+      let isVerified = false;
+      const user = booking.userId ? await storage.getUser(booking.userId) : null;
+      
+      switch (verificationType) {
+        case 'email':
+          isVerified = user?.email?.toLowerCase() === verificationValue.toLowerCase();
+          break;
+        case 'phone':
+          isVerified = user?.phone === verificationValue;
+          break;
+        case 'lastname':
+          isVerified = booking.customerName?.toLowerCase().includes(verificationValue.toLowerCase());
+          break;
+        default:
+          return res.status(400).json({ error: "Invalid verification type" });
+      }
+      
+      if (!isVerified) {
+        return res.status(401).json({ error: "Verification failed" });
+      }
+      
+      // Return limited booking info for security
+      res.json({
+        id: booking.id,
+        tourName: booking.tourName,
+        customerName: booking.customerName,
+        date: booking.date,
+        guests: booking.guests,
+        amount: booking.amount,
+        status: booking.status,
+      });
+    } catch (error) {
+      console.error("Booking lookup error:", error);
+      res.status(500).json({ error: "Failed to lookup booking" });
+    }
+  });
+
   // Analytics API (admin only)
   app.get("/api/analytics/stats", requireAdmin, async (req, res) => {
     try {

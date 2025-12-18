@@ -27,7 +27,8 @@ export function Hero() {
     if (serviceType) params.set("service", serviceType);
     if (guests) params.set("guests", guests);
     
-    if (serviceType && serviceType.startsWith("transfer")) {
+    const isTransfer = serviceType === "all-transfers" || serviceType.startsWith("transfer-");
+    if (isTransfer) {
       setLocation(`/transfers?${params.toString()}`);
     } else {
       setLocation(`/tours?${params.toString()}`);
