@@ -36,7 +36,7 @@ export function Hero() {
   };
 
   return (
-    <section className="relative h-screen min-h-[700px] w-full overflow-hidden">
+    <section className="relative min-h-screen w-full overflow-hidden">
       {/* Background Image with Overlay */}
       <div 
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
@@ -45,7 +45,7 @@ export function Hero() {
         <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px]" />
       </div>
       {/* Content */}
-      <div className="relative h-full container mx-auto px-4 flex flex-col justify-center items-center text-center text-white pt-24 md:pt-32">
+      <div className="relative container mx-auto px-4 flex flex-col justify-center items-center text-center text-white pt-28 pb-20 md:pt-36 md:pb-24 min-h-screen">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
