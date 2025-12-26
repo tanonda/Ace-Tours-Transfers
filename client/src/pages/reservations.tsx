@@ -249,7 +249,7 @@ export default function Reservations() {
 
   return (
     <Layout>
-      <div className="bg-muted/30 min-h-screen pt-32 pb-20">
+      <div className="bg-muted/30 min-h-screen pt-28 md:pt-36 pb-20">
         <div className="container mx-auto px-4">
           {/* Page Header */}
           <div className="text-center mb-10">
