@@ -9,6 +9,8 @@ import Home from "@/pages/home";
 import Tours from "@/pages/tours";
 import Transfers from "@/pages/transfers";
 import Payment from "@/pages/payment";
+import PaymentSuccess from "@/pages/payment-success";
+import PaymentCancel from "@/pages/payment-cancel";
 import About from "@/pages/about";
 import Contact from "@/pages/contact";
 import Cart from "@/pages/cart";
@@ -60,6 +62,8 @@ function Router() {
       <Route path="/contact" component={Contact} />
       <Route path="/cart" component={Cart} />
       <Route path="/payment" component={Payment} />
+      <Route path="/payment/success" component={PaymentSuccess} />
+      <Route path="/payment/cancel" component={PaymentCancel} />
       <Route path="/reservations" component={Reservations} />
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
