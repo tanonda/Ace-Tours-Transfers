@@ -3,6 +3,8 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertBookingSchema, insertTourSchema, insertUserSchema, insertContentBlockSchema, insertSiteSettingSchema, insertPaymentGatewaySchema, insertPaymentSchema, insertWishlistItemSchema, insertNewsletterSubscriberSchema, insertCmsContentSchema } from "@shared/schema";
 import bcrypt from "bcryptjs";
+import { paymentService } from "./paymentService";
+import { getStripePublishableKey } from "./stripeClient";
 
 // Auth middleware
 function requireAuth(req: Request, res: Response, next: NextFunction) {
@@ -808,6 +810,92 @@ export async function registerRoutes(
       res.json({ message: "Content deleted successfully" });
     } catch (error) {
       res.status(400).json({ error: "Failed to delete CMS content" });
+    }
+  });
+
+  // Payment API Routes
+  
+  // Get Stripe publishable key for frontend
+  app.get("/api/payments/config", async (req, res) => {
+    try {
+      const publishableKey = await getStripePublishableKey();
+      const gateways = await paymentService.getActiveGateways();
+      res.json({ 
+        stripePublishableKey: publishableKey,
+        availableGateways: gateways.map(g => ({
+          id: g.id,
+          slug: g.slug,
+          displayName: g.displayName,
+          isDefault: g.isDefault,
+        }))
+      });
+    } catch (error) {
+      console.error("Payment config error:", error);
+      res.status(500).json({ error: "Failed to get payment configuration" });
+    }
+  });
+
+  // Create checkout session
+  app.post("/api/payments/checkout", requireAuth, async (req, res) => {
+    try {
+      const { bookingId, provider } = req.body;
+      
+      if (!bookingId) {
+        return res.status(400).json({ error: "Booking ID is required" });
+      }
+
+      const booking = await storage.getBooking(bookingId);
+      if (!booking) {
+        return res.status(404).json({ error: "Booking not found" });
+      }
+
+      const user = await storage.getUser(req.session.userId!);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+
+      const amount = parseFloat(booking.amount.replace(/[^0-9.]/g, ''));
+      const baseUrl = `${req.protocol}://${req.get('host')}`;
+
+      const paymentIntent = await paymentService.createCheckoutSession({
+        bookingId: booking.id,
+        amount,
+        currency: 'USD',
+        customerEmail: user.email,
+        customerName: user.name,
+        description: `Booking: ${booking.tourName}`,
+        successUrl: `${baseUrl}/payment/success?booking=${bookingId}`,
+        cancelUrl: `${baseUrl}/payment/cancel?booking=${bookingId}`,
+        provider: provider || 'stripe',
+      });
+
+      res.json(paymentIntent);
+    } catch (error) {
+      console.error("Checkout error:", error);
+      res.status(500).json({ error: "Failed to create checkout session" });
+    }
+  });
+
+  // Get payment status
+  app.get("/api/payments/:id/status", async (req, res) => {
+    try {
+      const payment = await paymentService.getPaymentStatus(req.params.id);
+      if (!payment) {
+        return res.status(404).json({ error: "Payment not found" });
+      }
+      res.json(payment);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get payment status" });
+    }
+  });
+
+  // Get payments for a booking
+  app.get("/api/bookings/:id/payments", requireAuth, async (req, res) => {
+    try {
+      const payments = await paymentService.getBookingPayments(req.params.id);
+      res.json(payments);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get booking payments" });
     }
   });
 

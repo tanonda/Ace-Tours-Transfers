@@ -144,13 +144,27 @@ Preferred communication style: Simple, everyday language.
 
 ### Payment Gateway Integration
 
-**Supported Banks**
+**Stripe Integration (Primary)**
+- Stripe Checkout for international card payments
+- Replit Connector integration for secure API key management
+- stripe-replit-sync for automatic schema management and webhook handling
+- Supports USD, AUD, VUV, EUR currencies
+- Server files: stripeClient.ts, paymentService.ts, webhookHandlers.ts
+
+**Supported Vanuatu Banks (Future)**
 - ANZ eGate (Vanuatu)
 - BRED Bank
 - BSP (Bank of South Pacific)
 
+**Payment API Endpoints**
+- GET /api/payments/config - Get Stripe publishable key and available gateways
+- POST /api/payments/checkout - Create checkout session for a booking
+- GET /api/payments/:id/status - Check payment status
+- GET /api/bookings/:id/payments - Get payments for a booking
+
 **Modular Adapter Pattern**
-- Each gateway implements common interface
+- Each gateway implements common interface via paymentService.ts
+- Gateway records stored in payment_gateways table
 - Admin can toggle active gateway
 - Credentials stored securely in database
 - Support for sandbox/production environments
@@ -204,6 +218,7 @@ Preferred communication style: Simple, everyday language.
 ### Third-Party Services
 - **Neon Database** - Serverless PostgreSQL hosting with WebSocket support
 - **Replit Platform** - Deployment platform with development tools (cartographer, dev banner)
+- **Stripe** - Payment processing for international card payments via Replit Connector
 
 ### Key NPM Packages
 
@@ -225,6 +240,8 @@ Preferred communication style: Simple, everyday language.
 - express-session - Session middleware
 - bcryptjs - Password hashing
 - ws - WebSocket library (for Neon)
+- stripe - Stripe API client
+- stripe-replit-sync - Replit Stripe integration utilities
 
 **UI Components**
 - @radix-ui/* - 30+ accessible component primitives
