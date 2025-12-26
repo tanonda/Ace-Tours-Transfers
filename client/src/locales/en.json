@@ -172,6 +172,10 @@
   "payment.cancelledDesc": "Your payment was not completed. No charges have been made to your account.",
   "payment.tryAgain": "You can try again or choose a different payment method.",
   "payment.retryPayment": "Try Payment Again",
+  "payment.payByCard": "Pay by Card",
+  "payment.payByBank": "Pay by Local Bank",
+  "payment.pending": "Payment Received",
+  "payment.pendingDesc": "We're confirming your payment. This usually takes a moment.",
   
   "booking.id": "ID",
   "booking.customer": "Customer",

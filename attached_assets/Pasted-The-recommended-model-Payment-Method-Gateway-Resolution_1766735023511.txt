@@ -1,0 +1,149 @@
+The recommended model: Payment Method → Gateway Resolution
+
+Instead of:
+
+“Choose Stripe or Bank”
+
+You present:
+
+Pay by Card
+
+Pay by Local Bank
+
+Pay by Bank Transfer (if applicable)
+
+The system then resolves:
+
+Card → Stripe
+
+Bank (Vanuatu) → BRED / BSP
+
+Bank (NZ) → NZ eGate
+
+This preserves:
+
+user clarity
+
+gateway flexibility
+
+future swap-ability
+
+And it keeps your domain model clean.
+
+Why this matters architecturally (DDD lens)
+
+In your domain:
+
+PaymentMethod is a business concept
+
+PaymentGateway is infrastructure
+
+The user should never select infrastructure.
+
+So your domain language should look like:
+
+enum PaymentMethod {
+  CARD,
+  LOCAL_BANK
+}
+
+
+Then later, in application / infra:
+
+resolveGateway(method, locale)
+
+
+If you let users choose Stripe directly, you’ve inverted the dependency.
+
+About success & cancel pages (you did one thing very right)
+
+Your success/cancel pages with cart recovery are good—with one caveat.
+
+They must be treated as:
+
+UX affordances
+
+not sources of truth
+
+Correct pattern:
+
+Success page = “We’re waiting for confirmation”
+
+Cancel page = “Your booking is still pending”
+
+Especially for bank-hosted flows:
+
+redirect ≠ payment
+
+callback ≠ immediate
+
+So your success page should never say “Booking confirmed” unless the server says so.
+
+If you already did this: gold star. ⭐
+If not: small but critical fix.
+
+Cognitive load and conversion reality
+
+Every extra choice at checkout costs conversion. That’s not theory; it’s empirical and boring and cruel.
+
+So the ideal flow is:
+
+User fills booking details
+
+System suggests default payment method (based on locale/device/history)
+
+User can change it if needed
+
+System handles gateway routing silently
+
+Optional: disclose the gateway after selection:
+
+“Secure payment via Stripe”
+“You’ll be redirected to BSP”
+
+That’s transparency without burden.
+
+Your current approach vs recommended (plain truth)
+
+Your approach:
+
+Works
+
+Is explicit
+
+Slightly over-exposes internals
+
+Slightly increases checkout friction
+
+Recommended approach:
+
+Keeps user mental model simple
+
+Keeps system model clean
+
+Lets you swap Stripe tomorrow without UI changes
+
+Scales better as you add providers
+
+Concrete recommendation (no rewrites)
+
+Do not rip out what you built.
+
+Refactor the language and mapping:
+
+UI: “Choose payment method”
+
+Domain: PaymentMethod
+
+Application: resolve gateway
+
+Infra: Stripe / BRED / BSP adapters
+
+Internally nothing changes much. Externally everything feels calmer.
+
+Final systems maxim (worth memorizing)
+
+Let users express intent.
+Let systems resolve machinery.
+
+You’re very close already. This is a refinement, not a correction.

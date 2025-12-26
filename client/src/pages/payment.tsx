@@ -6,58 +6,36 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { ShieldCheck, Lock, CreditCard, Loader2, ArrowLeft, ExternalLink } from "lucide-react";
+import { ShieldCheck, Lock, CreditCard, Loader2, ArrowLeft, ExternalLink, Building2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useCart } from "@/lib/cart-context";
 import { useAuth } from "@/lib/auth-context";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LanguageSelector } from "@/components/language-selector";
 import { useTranslation } from "react-i18next";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 
-type PaymentGateway = {
-  id: string;
-  slug: string;
-  displayName: string;
-  isDefault: boolean;
-};
+type PaymentMethod = "card" | "local_bank";
 
-type PaymentConfig = {
-  stripePublishableKey: string;
-  availableGateways: PaymentGateway[];
+const resolveGateway = (method: PaymentMethod): string => {
+  switch (method) {
+    case "card":
+      return "stripe";
+    case "local_bank":
+      return "anz-egate";
+    default:
+      return "stripe";
+  }
 };
 
 export default function Payment() {
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedGateway, setSelectedGateway] = useState<string>("stripe");
+  const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>("card");
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { items, total, clearCart } = useCart();
   const { user, isAuthenticated } = useAuth();
   const { t } = useTranslation();
-
-  const { data: paymentConfig, isLoading: configLoading } = useQuery<PaymentConfig>({
-    queryKey: ["paymentConfig"],
-    queryFn: async () => {
-      const res = await fetch("/api/payments/config");
-      if (!res.ok) throw new Error("Failed to load payment config");
-      return res.json();
-    },
-  });
-
-  useEffect(() => {
-    if (paymentConfig?.availableGateways) {
-      const stripeGateway = paymentConfig.availableGateways.find(g => g.slug === "stripe");
-      if (stripeGateway) {
-        setSelectedGateway("stripe");
-      } else {
-        const defaultGateway = paymentConfig.availableGateways.find(g => g.isDefault);
-        if (defaultGateway) {
-          setSelectedGateway(defaultGateway.slug);
-        }
-      }
-    }
-  }, [paymentConfig]);
 
   const createBookingMutation = useMutation({
     mutationFn: async (item: typeof items[0]) => {
@@ -84,13 +62,14 @@ export default function Payment() {
 
   const checkoutMutation = useMutation({
     mutationFn: async (bookingId: string) => {
+      const gateway = resolveGateway(selectedMethod);
       const res = await fetch("/api/payments/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
           bookingId,
-          provider: selectedGateway,
+          provider: gateway,
         }),
       });
       if (!res.ok) throw new Error("Failed to create checkout session");
@@ -98,7 +77,7 @@ export default function Payment() {
     },
   });
 
-  const handleStripeCheckout = async () => {
+  const handleCheckout = async () => {
     if (!isAuthenticated) {
       toast({
         title: t("auth.loginRequired"),
@@ -152,15 +131,15 @@ export default function Payment() {
     setTimeout(() => {
       setIsLoading(false);
       toast({
-        title: "Payment Successful",
-        description: "Your booking has been confirmed.",
+        title: "Payment Submitted",
+        description: "Your payment is being processed.",
       });
       clearCart();
-      setLocation("/");
+      setLocation("/payment/success?booking=demo");
     }, 2000);
   };
 
-  const isStripeSelected = selectedGateway === "stripe";
+  const isCardMethod = selectedMethod === "card";
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
@@ -174,19 +153,9 @@ export default function Payment() {
         </div>
       </div>
       <div className="w-full max-w-md">
-        <div className={`${isStripeSelected ? "bg-[#635BFF]" : "bg-[#004165]"} text-white p-4 rounded-t-lg flex items-center justify-between shadow-md transition-colors`}>
+        <div className="bg-primary text-primary-foreground p-4 rounded-t-lg flex items-center justify-between shadow-md">
           <div className="flex items-center gap-2">
-            {isStripeSelected ? (
-              <>
-                <div className="bg-white text-[#635BFF] font-bold p-1 rounded text-xs px-2">Stripe</div>
-                <h1 className="font-semibold text-lg">Checkout</h1>
-              </>
-            ) : (
-              <>
-                <div className="bg-white text-[#004165] font-bold p-1 rounded text-xs">ANZ</div>
-                <h1 className="font-semibold text-lg">eGate</h1>
-              </>
-            )}
+            <h1 className="font-semibold text-lg">{t("payment.title")}</h1>
           </div>
           <div className="flex items-center gap-1 text-xs opacity-90">
             <Lock className="h-3 w-3" />
@@ -196,7 +165,7 @@ export default function Payment() {
 
         <Card className="rounded-t-none border-t-0 shadow-lg">
           <CardHeader>
-            <CardTitle className="text-xl">{t("payment.title")}</CardTitle>
+            <CardTitle className="text-xl">{t("payment.selectMethod") || "Choose Payment Method"}</CardTitle>
             <CardDescription>
               {t("payment.paymentDetails")}
             </CardDescription>
@@ -218,111 +187,123 @@ export default function Payment() {
               </div>
             </div>
 
-            {configLoading ? (
-              <div className="flex justify-center py-8">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              </div>
-            ) : (
-              <>
-                <div className="mb-6">
-                  <Label className="text-sm font-medium mb-3 block">{t("payment.selectMethod") || "Select Payment Method"}</Label>
-                  <RadioGroup value={selectedGateway} onValueChange={setSelectedGateway} className="space-y-2">
-                    {paymentConfig?.availableGateways.map((gateway) => (
-                      <div key={gateway.id} className="flex items-center space-x-3 border rounded-lg p-3 cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => setSelectedGateway(gateway.slug)}>
-                        <RadioGroupItem value={gateway.slug} id={gateway.slug} data-testid={`radio-gateway-${gateway.slug}`} />
-                        <Label htmlFor={gateway.slug} className="flex-grow cursor-pointer">
-                          <span className="font-medium">{gateway.displayName}</span>
-                          {gateway.slug === "stripe" && (
-                            <span className="text-xs text-muted-foreground ml-2">(Credit/Debit Cards)</span>
-                          )}
-                        </Label>
-                        {gateway.slug === "stripe" && (
-                          <div className="flex gap-1">
-                            <div className="h-6 w-9 bg-slate-100 rounded flex items-center justify-center text-[8px] font-bold border">VISA</div>
-                            <div className="h-6 w-9 bg-slate-100 rounded flex items-center justify-center text-[8px] font-bold border">MC</div>
-                          </div>
-                        )}
+            <div className="mb-6">
+              <RadioGroup value={selectedMethod} onValueChange={(v) => setSelectedMethod(v as PaymentMethod)} className="space-y-3">
+                <div 
+                  className={`flex items-center space-x-3 border-2 rounded-lg p-4 cursor-pointer transition-all ${selectedMethod === "card" ? "border-primary bg-primary/5" : "border-border hover:border-muted-foreground/50"}`}
+                  onClick={() => setSelectedMethod("card")}
+                >
+                  <RadioGroupItem value="card" id="card" data-testid="radio-method-card" />
+                  <div className="flex-grow">
+                    <Label htmlFor="card" className="cursor-pointer flex items-center gap-2">
+                      <CreditCard className="h-5 w-5 text-muted-foreground" />
+                      <div>
+                        <span className="font-medium block">{t("payment.payByCard") || "Pay by Card"}</span>
+                        <span className="text-xs text-muted-foreground">Credit or Debit Card</span>
                       </div>
-                    ))}
-                  </RadioGroup>
+                    </Label>
+                  </div>
+                  <div className="flex gap-1">
+                    <div className="h-6 w-9 bg-slate-100 dark:bg-slate-800 rounded flex items-center justify-center text-[8px] font-bold border">VISA</div>
+                    <div className="h-6 w-9 bg-slate-100 dark:bg-slate-800 rounded flex items-center justify-center text-[8px] font-bold border">MC</div>
+                  </div>
                 </div>
 
-                {isStripeSelected ? (
-                  <div className="pt-4">
-                    <Button 
-                      className="w-full bg-[#635BFF] hover:bg-[#5249E6] text-white py-6 text-lg"
-                      disabled={isLoading || items.length === 0}
-                      onClick={handleStripeCheckout}
-                      data-testid="button-stripe-checkout"
-                    >
-                      {isLoading ? (
-                        <>
-                          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                          {t("payment.processing")}
-                        </>
-                      ) : (
-                        <>
-                          {t("payment.pay")} with Stripe
-                          <ExternalLink className="ml-2 h-4 w-4" />
-                        </>
-                      )}
-                    </Button>
-                    <p className="text-xs text-muted-foreground text-center mt-3">
-                      You will be redirected to Stripe's secure checkout page
-                    </p>
+                <div 
+                  className={`flex items-center space-x-3 border-2 rounded-lg p-4 cursor-pointer transition-all ${selectedMethod === "local_bank" ? "border-primary bg-primary/5" : "border-border hover:border-muted-foreground/50"}`}
+                  onClick={() => setSelectedMethod("local_bank")}
+                >
+                  <RadioGroupItem value="local_bank" id="local_bank" data-testid="radio-method-bank" />
+                  <div className="flex-grow">
+                    <Label htmlFor="local_bank" className="cursor-pointer flex items-center gap-2">
+                      <Building2 className="h-5 w-5 text-muted-foreground" />
+                      <div>
+                        <span className="font-medium block">{t("payment.payByBank") || "Pay by Local Bank"}</span>
+                        <span className="text-xs text-muted-foreground">Vanuatu Bank Transfer</span>
+                      </div>
+                    </Label>
                   </div>
-                ) : (
-                  <form onSubmit={handleBankPayment} className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="cardName">{t("payment.nameOnCard")}</Label>
-                      <Input id="cardName" placeholder="As shown on card" required data-testid="input-card-name" />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="cardNumber">{t("payment.cardNumber")}</Label>
-                      <div className="relative">
-                        <CreditCard className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                        <Input id="cardNumber" className="pl-9" placeholder="0000 0000 0000 0000" required data-testid="input-card-number" />
-                      </div>
-                    </div>
+                </div>
+              </RadioGroup>
+            </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="expiry">{t("payment.expiryDate")}</Label>
-                        <Input id="expiry" placeholder="MM/YY" required data-testid="input-expiry" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="cvv">{t("payment.cvv")}</Label>
-                        <Input id="cvv" placeholder="123" maxLength={4} required data-testid="input-cvv" />
-                      </div>
-                    </div>
+            {isCardMethod ? (
+              <div className="pt-4">
+                <Button 
+                  className="w-full py-6 text-lg"
+                  disabled={isLoading || items.length === 0}
+                  onClick={handleCheckout}
+                  data-testid="button-checkout"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      {t("payment.processing")}
+                    </>
+                  ) : (
+                    <>
+                      {t("payment.pay")}
+                      <ExternalLink className="ml-2 h-4 w-4" />
+                    </>
+                  )}
+                </Button>
+                <p className="text-xs text-muted-foreground text-center mt-3">
+                  Secure card payment - you'll be redirected to complete
+                </p>
+              </div>
+            ) : (
+              <form onSubmit={handleBankPayment} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="cardName">{t("payment.nameOnCard")}</Label>
+                  <Input id="cardName" placeholder="As shown on card" required data-testid="input-card-name" />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="cardNumber">{t("payment.cardNumber")}</Label>
+                  <div className="relative">
+                    <CreditCard className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                    <Input id="cardNumber" className="pl-9" placeholder="0000 0000 0000 0000" required data-testid="input-card-number" />
+                  </div>
+                </div>
 
-                    <div className="pt-4">
-                      <Button 
-                        type="submit" 
-                        className="w-full bg-[#004165] hover:bg-[#00304d] text-white py-6 text-lg"
-                        disabled={isLoading || items.length === 0}
-                        data-testid="button-bank-pay"
-                      >
-                        {isLoading ? (
-                          <>
-                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                            {t("payment.processing")}
-                          </>
-                        ) : (
-                          t("payment.pay")
-                        )}
-                      </Button>
-                    </div>
-                  </form>
-                )}
-              </>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="expiry">{t("payment.expiryDate")}</Label>
+                    <Input id="expiry" placeholder="MM/YY" required data-testid="input-expiry" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="cvv">{t("payment.cvv")}</Label>
+                    <Input id="cvv" placeholder="123" maxLength={4} required data-testid="input-cvv" />
+                  </div>
+                </div>
+
+                <div className="pt-4">
+                  <Button 
+                    type="submit" 
+                    className="w-full py-6 text-lg"
+                    disabled={isLoading || items.length === 0}
+                    data-testid="button-bank-pay"
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                        {t("payment.processing")}
+                      </>
+                    ) : (
+                      t("payment.pay")
+                    )}
+                  </Button>
+                  <p className="text-xs text-muted-foreground text-center mt-3">
+                    You'll be redirected to complete payment
+                  </p>
+                </div>
+              </form>
             )}
           </CardContent>
           <CardFooter className="flex flex-col gap-4 bg-muted/30 border-t">
             <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
               <ShieldCheck className="h-3 w-3" />
-              <span>{isStripeSelected ? "Payments processed securely by Stripe" : "Payments processed securely by ANZ eGate"}</span>
+              <span>Your payment information is encrypted and secure</span>
             </div>
           </CardFooter>
         </Card>
