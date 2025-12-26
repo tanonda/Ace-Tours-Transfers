@@ -4,7 +4,7 @@ import { Hero } from "@/components/hero";
 import { TourCard } from "@/components/tour-card";
 import { motion } from "framer-motion";
 import aboutImg from "@assets/stock_images/vanuatu_rarru_waterf_a12f619f.jpg";
-import { CheckCircle, MapPin, Shield, Star } from "lucide-react";
+import { CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BookingModal } from "@/components/booking-modal";
 import { useQuery } from "@tanstack/react-query";
@@ -106,34 +106,17 @@ export default function Home() {
       </section>
 
       {/* Transfers Section */}
-      <section className="py-24 bg-[#291B12] text-white">
+      <section className="py-24 bg-muted/30">
         <div className="container mx-auto px-4">
           <div className="text-center max-w-3xl mx-auto mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold mb-6">{t("home.transfersTitle")}</h2>
-            <p className="text-white/70 text-lg">{t("home.transfersDesc")}</p>
+            <span className="text-primary font-semibold uppercase tracking-wider text-sm mb-2 block">{t("home.transfersLabel", "Airport & Hotel")}</span>
+            <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-6">{t("home.transfersTitle")}</h2>
+            <p className="text-lg text-muted-foreground">{t("home.transfersDesc")}</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {transfers.map((transfer, i) => (
-              <motion.div 
-                key={transfer.id}
-                className="bg-white/5 border border-white/10 rounded-xl p-8 hover:bg-white/10 transition-colors"
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.1 }}
-                viewport={{ once: true }}
-              >
-                <div className="w-12 h-12 bg-primary/20 rounded-full flex items-center justify-center mb-6 text-primary">
-                  {i === 0 ? <MapPin className="h-6 w-6" /> : i === 1 ? <Star className="h-6 w-6" /> : <Shield className="h-6 w-6" />}
-                </div>
-                <h3 className="text-xl font-bold mb-2 font-serif">{transfer.title}</h3>
-                <p className="text-primary font-medium mb-4">{transfer.price}</p>
-                <p className="text-white/70 mb-6 text-sm leading-relaxed">{transfer.description.join(", ")}</p>
-                <BookingModal 
-                  preselectedService={transfer.title}
-                  trigger={<Button variant="link" className="text-white p-0 h-auto hover:text-primary">{t("home.bookTransfer")} &rarr;</Button>}
-                />
-              </motion.div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {transfers.map((transfer, index) => (
+              <TourCard key={transfer.id} tour={transfer} index={index} />
             ))}
           </div>
         </div>
