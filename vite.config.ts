@@ -23,6 +23,9 @@ export default defineConfig({
         ]
       : []),
   ],
+  optimizeDeps: {
+    exclude: ["@replit/vite-plugin-cartographer", "@replit/vite-plugin-dev-banner"],
+  },
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "client", "src"),
@@ -41,11 +44,11 @@ export default defineConfig({
     emptyOutDir: true,
   },
   server: {
-    host: "0.0.0.0",
-    allowedHosts: true,
-    fs: {
-      strict: true,
-      deny: ["**/.*"],
+    hmr: {
+      protocol: "ws",
+      port: 5000,
+      clientPort: 5000,
+      path: "/vite-hmr",
     },
   },
 });

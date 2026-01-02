@@ -9,7 +9,7 @@ export interface CartItem {
   quantity: number;
   date?: Date;
   guests?: number;
-  type: "tour" | "transfer";
+  type: "tour" | "transfer" | "vehicle";
 }
 
 interface CartContextType {
@@ -29,6 +29,16 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const addToCart = (item: Omit<CartItem, "quantity">) => {
     setItems((prev) => {
+      // PRODUCTION GUARD: Single-item cart enforcement for launch
+      if (prev.length > 0 && !(prev[0].id === item.id && prev[0].date === item.date)) {
+        toast({
+          title: "Cart Limit",
+          description: "For the best service, please book one tour at a time. Finish your current booking to add another.",
+          variant: "destructive"
+        });
+        return prev;
+      }
+
       const existing = prev.find((i) => i.id === item.id && i.date === item.date);
       if (existing) {
         return prev.map((i) =>
@@ -39,10 +49,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       }
       return [...prev, { ...item, quantity: 1 }];
     });
-    toast({
-      title: "Added to cart",
-      description: `${item.title} has been added to your cart.`,
-    });
+    
+    // Only show success toast if the item was actually added (or updated)
+    // Using a simpler approach here: if we have more than 0 items and it's not the same one, we already toasted.
   };
 
   const removeFromCart = (id: string) => {

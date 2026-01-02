@@ -36,23 +36,39 @@ export default function Payment() {
   const { items, total, clearCart } = useCart();
   const { user, isAuthenticated } = useAuth();
   const { t } = useTranslation();
+  
+  const [guestName, setGuestName] = useState("");
+  const [guestEmail, setGuestEmail] = useState("");
+  const [dddConfig, setDddConfig] = useState<any>(null);
+
+  useEffect(() => {
+    fetch("/api/config")
+      .then(res => res.json())
+      .then(data => {
+        setDddConfig(data.ddd);
+        if (data.ddd?.cardPaymentsDisabled) {
+          setSelectedMethod("local_bank");
+        }
+      });
+  }, []);
 
   const createBookingMutation = useMutation({
     mutationFn: async (item: typeof items[0]) => {
-      const priceNum = typeof item.price === 'number' ? item.price : parseFloat(String(item.price).replace(/[^0-9.]/g, '')) || 0;
+      // Step 1: Create a hold (now integrated in CreateBookingFromCartService via items but we still might need holdId for older logic if not refactored fully)
+      // For DDD, the service handles it. We just pass items.
       const res = await fetch("/api/bookings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
-          userId: user?.id,
-          tourId: item.id,
-          tourName: item.title,
-          customerName: user?.name || "Guest",
-          date: item.date || new Date().toISOString().split("T")[0],
-          guests: item.guests || 1,
-          amount: `$${priceNum}`,
-          status: "pending",
+          customerName: user?.name || guestName,
+          customerEmail: user?.email || guestEmail,
+          items: items.map(i => ({
+            productId: i.id,
+            quantity: i.guests || 1,
+            date: i.date ? (typeof i.date === 'string' ? i.date : format(new Date(i.date), "yyyy-MM-dd")) : format(new Date(), "yyyy-MM-dd"),
+            slot: i.slot
+          }))
         }),
       });
       if (!res.ok) throw new Error("Failed to create booking");
@@ -78,13 +94,22 @@ export default function Payment() {
   });
 
   const handleCheckout = async () => {
-    if (!isAuthenticated) {
+    if (!isAuthenticated && (!guestName || !guestEmail)) {
       toast({
-        title: t("auth.loginRequired"),
-        description: "Please log in to complete your purchase.",
+        title: "Details Required",
+        description: "Please provide your name and email to continue as a guest.",
         variant: "destructive",
       });
-      setLocation("/login");
+      return;
+    }
+
+    // Basic email validation for guests
+    if (!isAuthenticated && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(guestEmail)) {
+      toast({
+        title: "Invalid Email",
+        description: "Please provide a valid email address.",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -100,18 +125,24 @@ export default function Payment() {
     setIsLoading(true);
 
     try {
-      const bookingPromises = items.map(item => createBookingMutation.mutateAsync(item));
-      const bookings = await Promise.all(bookingPromises);
+      // PRODUCTION FIX: Single-item cart handling
+      const item = items[0];
+      const booking = await createBookingMutation.mutateAsync(item);
+      const paymentInfo = await checkoutMutation.mutateAsync(booking.id);
       
-      const primaryBooking = bookings[0];
-      const paymentIntent = await checkoutMutation.mutateAsync(primaryBooking.id);
-      
-      if (paymentIntent.checkoutUrl) {
+      if (paymentInfo.checkoutUrl) {
+        // External Redirect (Stripe/Bank eGate)
         localStorage.setItem('pendingCart', JSON.stringify(items));
         clearCart();
-        window.location.href = paymentIntent.checkoutUrl;
+        window.location.href = paymentInfo.checkoutUrl;
       } else {
-        throw new Error("No checkout URL returned");
+        // Manual Payment (Bank Transfer / COD)
+        clearCart();
+        toast({
+          title: "Booking Created",
+          description: "Please follow the instructions on the next page to complete your payment.",
+        });
+        setLocation(`/payment/success?booking=${booking.id}&manual=true`);
       }
     } catch (error: any) {
       console.error("Checkout error:", error);
@@ -126,17 +157,8 @@ export default function Payment() {
 
   const handleBankPayment = (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    
-    setTimeout(() => {
-      setIsLoading(false);
-      toast({
-        title: "Payment Submitted",
-        description: "Your payment is being processed.",
-      });
-      clearCart();
-      setLocation("/payment/success?booking=demo");
-    }, 2000);
+    // Consolidating with handleCheckout to use real backend logic
+    handleCheckout();
   };
 
   const isCardMethod = selectedMethod === "card";
@@ -187,19 +209,54 @@ export default function Payment() {
               </div>
             </div>
 
+            {!isAuthenticated && (
+              <div className="space-y-4 mb-6 p-4 border rounded-lg bg-primary/5">
+                <h3 className="font-semibold text-sm flex items-center gap-2">
+                  <ExternalLink className="h-4 w-4" />
+                  Continue as Guest
+                </h3>
+                <div className="space-y-2">
+                  <Label htmlFor="guestName">Full Name</Label>
+                  <Input 
+                    id="guestName" 
+                    placeholder="Enter your full name" 
+                    value={guestName}
+                    onChange={(e) => setGuestName(e.target.value)}
+                    required 
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="guestEmail">Email Address</Label>
+                  <Input 
+                    id="guestEmail" 
+                    type="email" 
+                    placeholder="Enter your email" 
+                    value={guestEmail}
+                    onChange={(e) => setGuestEmail(e.target.value)}
+                    required 
+                  />
+                </div>
+                <p className="text-[10px] text-muted-foreground">
+                  We'll send your booking confirmation and receipt to this email.
+                </p>
+              </div>
+            )}
+
             <div className="mb-6">
               <RadioGroup value={selectedMethod} onValueChange={(v) => setSelectedMethod(v as PaymentMethod)} className="space-y-3">
                 <div 
-                  className={`flex items-center space-x-3 border-2 rounded-lg p-4 cursor-pointer transition-all ${selectedMethod === "card" ? "border-primary bg-primary/5" : "border-border hover:border-muted-foreground/50"}`}
-                  onClick={() => setSelectedMethod("card")}
+                  className={`flex items-center space-x-3 border-2 rounded-lg p-4 cursor-pointer transition-all ${selectedMethod === "card" ? "border-primary bg-primary/5" : "border-border hover:border-muted-foreground/50"} ${dddConfig?.cardPaymentsDisabled ? "opacity-50 grayscale cursor-not-allowed" : ""}`}
+                  onClick={() => !dddConfig?.cardPaymentsDisabled && setSelectedMethod("card")}
                 >
-                  <RadioGroupItem value="card" id="card" data-testid="radio-method-card" />
+                  <RadioGroupItem value="card" id="card" disabled={dddConfig?.cardPaymentsDisabled} data-testid="radio-method-card" />
                   <div className="flex-grow">
-                    <Label htmlFor="card" className="cursor-pointer flex items-center gap-2">
+                    <Label htmlFor="card" className={`flex items-center gap-2 ${dddConfig?.cardPaymentsDisabled ? "cursor-not-allowed" : "cursor-pointer"}`}>
                       <CreditCard className="h-5 w-5 text-muted-foreground" />
                       <div>
                         <span className="font-medium block">{t("payment.payByCard") || "Pay by Card"}</span>
-                        <span className="text-xs text-muted-foreground">Credit or Debit Card</span>
+                        <span className="text-xs text-muted-foreground">
+                          {dddConfig?.cardPaymentsDisabled ? "Temporarily Disabled" : "Credit or Debit Card"}
+                        </span>
                       </div>
                     </Label>
                   </div>

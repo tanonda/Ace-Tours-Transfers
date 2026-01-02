@@ -1,7 +1,7 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, timestamp, decimal, boolean, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, timestamp, decimal, boolean, jsonb, index } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
-import { createInsertSchema } from "drizzle-zod";
+import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 
 export const users = pgTable("users", {
@@ -24,19 +24,52 @@ export const tours = pgTable("tours", {
   minPax: text("min_pax"),
   image: text("image").notNull(),
   description: text("description").array().notNull(),
-  category: text("category").notNull(), // 'tour' or 'transfer'
+  category: text("category").notNull(), // 'tour', 'transfer', or 'vehicle'
+  defaultCapacity: integer("default_capacity").notNull().default(20),
+  vehicleDetails: jsonb("vehicle_details"), // { make, model, seats, transmission, features[] }
+});
+
+export const tourInstances = pgTable("tour_instances", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tourId: varchar("tour_id").notNull().references(() => tours.id),
+  serviceDate: text("service_date").notNull(),
+  timeSlot: text("time_slot"), // optional time slot
+  totalCapacity: integer("total_capacity").notNull(),
+  confirmedCount: integer("confirmed_count").notNull().default(0),
+  heldCount: integer("held_count").notNull().default(0),
+  blockedCount: integer("blocked_count").notNull().default(0),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  instanceUniqueIdx: index("idx_tour_instances_unique")
+    .on(table.tourId, table.serviceDate, table.timeSlot)
+}));
+
+export const availabilityHolds = pgTable("availability_holds", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tourInstanceId: varchar("tour_instance_id").notNull().references(() => tourInstances.id),
+  quantity: integer("quantity").notNull(),
+  status: text("status").notNull().default("ACTIVE"), // 'ACTIVE', 'EXPIRED', 'CONFIRMED', 'RELEASED'
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  bookingSessionId: text("booking_session_id").notNull(),
 });
 
 export const bookings = pgTable("bookings", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull().references(() => users.id),
+  userId: varchar("user_id").references(() => users.id),
+  bookingSessionId: text("booking_session_id").notNull().default(""),
   tourId: varchar("tour_id").notNull().references(() => tours.id),
+  tourInstanceId: varchar("tour_instance_id").references(() => tourInstances.id),
+  holdId: varchar("hold_id").references(() => availabilityHolds.id),
   date: text("date").notNull(),
   guests: integer("guests").notNull(),
   amount: text("amount").notNull(),
   status: text("status").notNull().default("pending"), // 'pending', 'confirmed', 'completed', 'cancelled'
+  paymentReference: text("payment_reference"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   customerName: text("customer_name").notNull(),
+  customerEmail: text("customer_email").notNull().default(""),
+  customerPhone: text("customer_phone"),
   tourName: text("tour_name").notNull(),
 });
 
@@ -118,7 +151,50 @@ export const payments = pgTable("payments", {
   gatewayReference: text("gateway_reference"), // External reference from bank
   gatewayResponse: jsonb("gateway_response"), // Full response from gateway
   metadata: jsonb("metadata"), // Additional payment data
+  expiresAt: timestamp("expires_at"),
+  failureReason: text("failure_reason"),
+  reconciledBy: varchar("reconciled_by").references(() => users.id),
+  reconciliationNote: text("reconciliation_note"),
+  lastReconciledAt: timestamp("last_reconciled_at"),
+  reconciliationAttempts: integer("reconciliation_attempts").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  reconciliationStaleIdx: index("idx_payments_reconciliation_stale")
+    .on(table.status, table.lastReconciledAt, table.createdAt)
+    .where(sql`status = 'processing'`),
+  pendingExpiryIdx: index("idx_payments_pending_expiry")
+    .on(table.status, table.expiresAt)
+    .where(sql`status IN ('pending', 'processing')`),
+}));
+
+// PROJECTIONS (Read Models)
+
+export const bookingSummaries = pgTable("booking_summaries", {
+  bookingId: varchar("booking_id").primaryKey(),
+  customerEmail: text("customer_email").notNull(),
+  customerName: text("customer_name").notNull(),
+  totalAmount: integer("total_amount").notNull(),
+  currency: text("currency").notNull(),
+  status: text("status").notNull(),
+  createdAt: timestamp("created_at").notNull(),
+  confirmedAt: timestamp("confirmed_at"),
+});
+
+export const revenueDaily = pgTable("revenue_daily", {
+  date: text("date").primaryKey(), // YYYY-MM-DD
+  totalGross: integer("total_gross").notNull().default(0),
+  totalVat: integer("total_vat").notNull().default(0),
+  currency: text("currency").notNull().default("VUV"),
+});
+
+export const paymentOverviews = pgTable("payment_overviews", {
+  paymentId: varchar("payment_id").primaryKey(),
+  bookingId: varchar("booking_id").notNull(),
+  method: text("method").notNull(),
+  status: text("status").notNull(),
+  amount: integer("amount").notNull(),
+  currency: text("currency").notNull(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
@@ -140,7 +216,32 @@ export const bookingsRelations = relations(bookings, ({ one, many }) => ({
     fields: [bookings.tourId],
     references: [tours.id],
   }),
+  tourInstance: one(tourInstances, {
+    fields: [bookings.tourInstanceId],
+    references: [tourInstances.id],
+  }),
+  hold: one(availabilityHolds, {
+    fields: [bookings.holdId],
+    references: [availabilityHolds.id],
+  }),
   payments: many(payments),
+}));
+
+export const tourInstancesRelations = relations(tourInstances, ({ one, many }) => ({
+  tour: one(tours, {
+    fields: [tourInstances.tourId],
+    references: [tours.id],
+  }),
+  bookings: many(bookings),
+  holds: many(availabilityHolds),
+}));
+
+export const availabilityHoldsRelations = relations(availabilityHolds, ({ one }) => ({
+  tourInstance: one(tourInstances, {
+    fields: [availabilityHolds.tourInstanceId],
+    references: [tourInstances.id],
+  }),
+  booking: one(bookings), // This might need a field if it's 1:1, but many bookings could technically exist for a hold if we failed something? Usually 1:1.
 }));
 
 export const paymentsRelations = relations(payments, ({ one }) => ({
@@ -179,6 +280,7 @@ export const cmsContentRelations = relations(cmsContent, ({ one }) => ({
 // Insert Schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
+  role: true,
   createdAt: true,
 });
 
@@ -213,6 +315,14 @@ export const insertPaymentSchema = createInsertSchema(payments).omit({
   updatedAt: true,
 });
 
+export const selectPublicPaymentSchema = createSelectSchema(payments).pick({
+  id: true,
+  status: true,
+  amount: true,
+  currency: true,
+  createdAt: true,
+});
+
 export const insertWishlistItemSchema = createInsertSchema(wishlistItems).omit({
   id: true,
   addedAt: true,
@@ -230,11 +340,25 @@ export const insertCmsContentSchema = createInsertSchema(cmsContent).omit({
   updatedAt: true,
 });
 
+export const insertTourInstanceSchema = createInsertSchema(tourInstances).omit({
+  id: true,
+  updatedAt: true,
+});
+
+export const insertAvailabilityHoldSchema = createInsertSchema(availabilityHolds).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertTour = z.infer<typeof insertTourSchema>;
 export type Tour = typeof tours.$inferSelect;
+export type InsertTourInstance = z.infer<typeof insertTourInstanceSchema>;
+export type TourInstance = typeof tourInstances.$inferSelect;
+export type InsertAvailabilityHold = z.infer<typeof insertAvailabilityHoldSchema>;
+export type AvailabilityHold = typeof availabilityHolds.$inferSelect;
 export type InsertBooking = z.infer<typeof insertBookingSchema>;
 export type Booking = typeof bookings.$inferSelect;
 export type InsertContentBlock = z.infer<typeof insertContentBlockSchema>;
@@ -245,6 +369,7 @@ export type InsertPaymentGateway = z.infer<typeof insertPaymentGatewaySchema>;
 export type PaymentGateway = typeof paymentGateways.$inferSelect;
 export type InsertPayment = z.infer<typeof insertPaymentSchema>;
 export type Payment = typeof payments.$inferSelect;
+export type PublicPaymentDTO = z.infer<typeof selectPublicPaymentSchema>;
 export type InsertWishlistItem = z.infer<typeof insertWishlistItemSchema>;
 export type WishlistItem = typeof wishlistItems.$inferSelect;
 export type InsertNewsletterSubscriber = z.infer<typeof insertNewsletterSubscriberSchema>;

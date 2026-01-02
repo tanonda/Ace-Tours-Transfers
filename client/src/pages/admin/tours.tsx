@@ -14,6 +14,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchTours, fetchBookings } from "@/lib/api";
 import { useState, useMemo, useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { ImageUpload } from "@/components/image-upload";
 import type { Tour } from "@shared/schema";
 
 interface TourFormData {
@@ -24,7 +25,14 @@ interface TourFormData {
   minPax: string;
   image: string;
   description: string[];
-  category: 'tour' | 'transfer';
+  category: 'tour' | 'transfer' | 'vehicle';
+  vehicleDetails?: {
+    make: string;
+    model: string;
+    seats: number;
+    transmission: string;
+    features: string[];
+  } | null;
 }
 
 const defaultFormData: TourFormData = {
@@ -35,7 +43,8 @@ const defaultFormData: TourFormData = {
   minPax: '1',
   image: '',
   description: [''],
-  category: 'tour'
+  category: 'tour',
+  vehicleDetails: null
 };
 
 export default function AdminTours() {
@@ -185,7 +194,8 @@ export default function AdminTours() {
       minPax: tour.minPax || '1',
       image: tour.image,
       description: tour.description,
-      category: tour.category as 'tour' | 'transfer'
+      category: tour.category as 'tour' | 'transfer' | 'vehicle',
+      vehicleDetails: tour.vehicleDetails as any || null
     });
   };
 
@@ -205,6 +215,7 @@ export default function AdminTours() {
   const tourStats = {
     totalTours: tours.filter(t => t.category === 'tour').length,
     totalTransfers: tours.filter(t => t.category === 'transfer').length,
+    totalVehicles: tours.filter(t => t.category === 'vehicle').length,
     totalBookings: bookings.length,
     totalRevenue: bookings.reduce((sum, b) => 
       sum + parseFloat(b.amount?.replace(/[^0-9.-]+/g, '') || '0'), 0
@@ -238,7 +249,19 @@ export default function AdminTours() {
                     <Label>Service Type</Label>
                     <Select 
                       value={formData.category} 
-                      onValueChange={(v: 'tour' | 'transfer') => setFormData({ ...formData, category: v })}
+                      onValueChange={(v: 'tour' | 'transfer' | 'vehicle') => {
+                        const newData: TourFormData = { ...formData, category: v };
+                        if (v === 'vehicle' && !formData.vehicleDetails) {
+                          newData.vehicleDetails = {
+                            make: '',
+                            model: '',
+                            seats: 4,
+                            transmission: 'Automatic',
+                            features: []
+                          };
+                        }
+                        setFormData(newData);
+                      }}
                     >
                       <SelectTrigger data-testid="select-category">
                         <SelectValue />
@@ -246,6 +269,7 @@ export default function AdminTours() {
                       <SelectContent>
                         <SelectItem value="tour">Tour Package</SelectItem>
                         <SelectItem value="transfer">Transfer Service</SelectItem>
+                        <SelectItem value="vehicle">Vehicle Hire</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -299,16 +323,75 @@ export default function AdminTours() {
                       data-testid="input-duration"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label>Image URL</Label>
-                    <Input 
-                      value={formData.image}
-                      onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                      placeholder="https://..."
-                      data-testid="input-image"
-                    />
-                  </div>
+                  <ImageUpload 
+                    value={formData.image}
+                    onChange={(url) => setFormData({ ...formData, image: url })}
+                    label="Service Image"
+                  />
                 </div>
+
+                {formData.category === 'vehicle' && formData.vehicleDetails && (
+                  <div className="p-4 bg-muted/50 rounded-lg space-y-4 border border-border">
+                    <h4 className="font-semibold text-sm flex items-center gap-2">
+                      <Plus className="h-4 w-4" /> Vehicle Specifications
+                    </h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Make *</Label>
+                        <Input 
+                          value={formData.vehicleDetails.make}
+                          onChange={(e) => setFormData({
+                            ...formData,
+                            vehicleDetails: { ...formData.vehicleDetails!, make: e.target.value }
+                          })}
+                          placeholder="e.g. Toyota"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Model *</Label>
+                        <Input 
+                          value={formData.vehicleDetails.model}
+                          onChange={(e) => setFormData({
+                            ...formData,
+                            vehicleDetails: { ...formData.vehicleDetails!, model: e.target.value }
+                          })}
+                          placeholder="e.g. Hilux"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Seats</Label>
+                        <Input 
+                          type="number"
+                          value={formData.vehicleDetails.seats}
+                          onChange={(e) => setFormData({
+                            ...formData,
+                            vehicleDetails: { ...formData.vehicleDetails!, seats: parseInt(e.target.value) || 0 }
+                          })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Transmission</Label>
+                        <Select 
+                          value={formData.vehicleDetails.transmission}
+                          onValueChange={(v) => setFormData({
+                            ...formData,
+                            vehicleDetails: { ...formData.vehicleDetails!, transmission: v }
+                          })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Automatic">Automatic</SelectItem>
+                            <SelectItem value="Manual">Manual</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 <div className="space-y-2">
                   <Label>Description</Label>
                   <Textarea 
@@ -374,6 +457,19 @@ export default function AdminTours() {
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center gap-4">
+                <div className="p-3 rounded-lg bg-orange-100">
+                  <Plus className="h-5 w-5 text-orange-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Vehicles</p>
+                  <p className="text-2xl font-bold">{tourStats.totalVehicles}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
                 <div className="p-3 rounded-lg bg-yellow-100">
                   <DollarSign className="h-5 w-5 text-yellow-600" />
                 </div>
@@ -407,6 +503,7 @@ export default function AdminTours() {
                   <SelectItem value="all">All Types</SelectItem>
                   <SelectItem value="tour">Tours</SelectItem>
                   <SelectItem value="transfer">Transfers</SelectItem>
+                  <SelectItem value="vehicle">Vehicles</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -456,11 +553,13 @@ export default function AdminTours() {
                         {tour.title}
                       </TableCell>
                       <TableCell>
-                        <Badge className={tour.category === 'tour' 
-                          ? 'bg-blue-100 text-blue-800' 
-                          : 'bg-green-100 text-green-800'
+                        <Badge className={
+                          tour.category === 'tour' ? 'bg-blue-100 text-blue-800' :
+                          tour.category === 'transfer' ? 'bg-green-100 text-green-800' :
+                          'bg-orange-100 text-orange-800'
                         }>
-                          {tour.category === 'tour' ? 'Tour' : 'Transfer'}
+                          {tour.category === 'tour' ? 'Tour' : 
+                           tour.category === 'transfer' ? 'Transfer' : 'Vehicle'}
                         </Badge>
                       </TableCell>
                       <TableCell>{tour.price}</TableCell>
@@ -520,7 +619,8 @@ export default function AdminTours() {
                 <DialogHeader>
                   <DialogTitle>{viewingTour.title}</DialogTitle>
                   <DialogDescription>
-                    {viewingTour.category === 'tour' ? 'Tour Package' : 'Transfer Service'} Details
+                    {viewingTour.category === 'tour' ? 'Tour Package' : 
+                     viewingTour.category === 'transfer' ? 'Transfer Service' : 'Vehicle Hire'} Details
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
@@ -531,7 +631,7 @@ export default function AdminTours() {
                   />
                   <div className="grid grid-cols-3 gap-4">
                     <div className="text-center p-3 bg-gray-50 rounded-lg">
-                      <p className="text-sm text-muted-foreground">Adult Price</p>
+                      <p className="text-sm text-muted-foreground">Price</p>
                       <p className="font-bold text-lg">{viewingTour.price}</p>
                     </div>
                     <div className="text-center p-3 bg-gray-50 rounded-lg">
@@ -539,10 +639,21 @@ export default function AdminTours() {
                       <p className="font-bold text-lg">{viewingTour.duration}</p>
                     </div>
                     <div className="text-center p-3 bg-gray-50 rounded-lg">
-                      <p className="text-sm text-muted-foreground">Min. Guests</p>
-                      <p className="font-bold text-lg">{viewingTour.minPax}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {viewingTour.category === 'vehicle' ? 'Seats' : 'Min. Guests'}
+                      </p>
+                      <p className="font-bold text-lg">
+                        {viewingTour.category === 'vehicle' ? ((viewingTour.vehicleDetails as any)?.seats ?? 'N/A') : viewingTour.minPax}
+                      </p>
                     </div>
                   </div>
+                  {viewingTour.category === 'vehicle' && !!viewingTour.vehicleDetails && (
+                    <div className="p-3 bg-blue-50 rounded-lg border border-blue-100 grid grid-cols-2 gap-2 text-sm">
+                      <div><span className="text-muted-foreground">Make:</span> <span className="font-medium">{(viewingTour.vehicleDetails as any).make}</span></div>
+                      <div><span className="text-muted-foreground">Model:</span> <span className="font-medium">{(viewingTour.vehicleDetails as any).model}</span></div>
+                      <div><span className="text-muted-foreground">Transmission:</span> <span className="font-medium">{(viewingTour.vehicleDetails as any).transmission}</span></div>
+                    </div>
+                  )}
                   <div>
                     <h4 className="font-medium mb-2">Description & Features</h4>
                     <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
@@ -581,7 +692,19 @@ export default function AdminTours() {
                   <Label>Service Type</Label>
                   <Select 
                     value={formData.category} 
-                    onValueChange={(v: 'tour' | 'transfer') => setFormData({ ...formData, category: v })}
+                    onValueChange={(v: 'tour' | 'transfer' | 'vehicle') => {
+                      const newData: TourFormData = { ...formData, category: v };
+                      if (v === 'vehicle' && !formData.vehicleDetails) {
+                        newData.vehicleDetails = {
+                          make: '',
+                          model: '',
+                          seats: 4,
+                          transmission: 'Automatic',
+                          features: []
+                        };
+                      }
+                      setFormData(newData);
+                    }}
                   >
                     <SelectTrigger data-testid="edit-select-category">
                       <SelectValue />
@@ -589,6 +712,7 @@ export default function AdminTours() {
                     <SelectContent>
                       <SelectItem value="tour">Tour Package</SelectItem>
                       <SelectItem value="transfer">Transfer Service</SelectItem>
+                      <SelectItem value="vehicle">Vehicle Hire</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -633,7 +757,7 @@ export default function AdminTours() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Min. Passengers</Label>
+                  <Label>Min. Passengers / Seats</Label>
                   <Input 
                     value={formData.minPax}
                     onChange={(e) => setFormData({ ...formData, minPax: e.target.value })}
@@ -642,15 +766,74 @@ export default function AdminTours() {
                   />
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label>Image URL</Label>
-                <Input 
-                  value={formData.image}
-                  onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                  placeholder="https://example.com/image.jpg"
-                  data-testid="edit-input-image"
-                />
-              </div>
+
+              {formData.category === 'vehicle' && formData.vehicleDetails && (
+                <div className="p-4 bg-muted/50 rounded-lg space-y-4 border border-border">
+                  <h4 className="font-semibold text-sm flex items-center gap-2">
+                    <Plus className="h-4 w-4" /> Vehicle Specifications
+                  </h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Make *</Label>
+                      <Input 
+                        value={formData.vehicleDetails.make}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          vehicleDetails: { ...formData.vehicleDetails!, make: e.target.value }
+                        })}
+                        placeholder="e.g. Toyota"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Model *</Label>
+                      <Input 
+                        value={formData.vehicleDetails.model}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          vehicleDetails: { ...formData.vehicleDetails!, model: e.target.value }
+                        })}
+                        placeholder="e.g. Hilux"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Seats</Label>
+                      <Input 
+                        type="number"
+                        value={formData.vehicleDetails.seats}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          vehicleDetails: { ...formData.vehicleDetails!, seats: parseInt(e.target.value) || 0 }
+                        })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Transmission</Label>
+                      <Select 
+                        value={formData.vehicleDetails.transmission}
+                        onValueChange={(v) => setFormData({
+                          ...formData,
+                          vehicleDetails: { ...formData.vehicleDetails!, transmission: v }
+                        })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Automatic">Automatic</SelectItem>
+                          <SelectItem value="Manual">Manual</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+              )}
+              <ImageUpload 
+                value={formData.image}
+                onChange={(url) => setFormData({ ...formData, image: url })}
+                label="Service Image"
+              />
               <div className="space-y-2">
                 <Label>Description & Features</Label>
                 {formData.description.map((desc, index) => (

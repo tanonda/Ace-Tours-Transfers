@@ -15,7 +15,8 @@ import {
   NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu";
 import { cn } from "@/lib/utils";
-import { tours, transfers } from "@/lib/data";
+import { useQuery } from "@tanstack/react-query";
+import { fetchTours } from "@/lib/api";
 import { useCart } from "@/lib/cart-context";
 import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -57,6 +58,30 @@ const ListItem = forwardRef<
 ListItem.displayName = "ListItem"
 
 export function Layout({ children }: { children: React.ReactNode }) {
+  const { data: allTours = [] } = useQuery({
+    queryKey: ["tours"],
+    queryFn: fetchTours,
+  });
+
+  // Deduplicate tours by normalized title to handle DB duplicates and naming variations
+  const uniqueTours = allTours.reduce<typeof allTours>((acc, current) => {
+    // Skip test data
+    if (current.title.toLowerCase().includes("verification")) return acc;
+    
+    const normalize = (t: string) => t.replace(/\s+Package$/i, "").trim();
+    const normalizedTitle = normalize(current.title);
+    
+    const existingIndex = acc.findIndex(item => normalize(item.title) === normalizedTitle);
+    
+    if (existingIndex === -1) {
+      acc.push(current);
+    }
+    return acc;
+  }, []);
+
+  const tours = uniqueTours.filter(t => t.category === "tour");
+  const transfers = uniqueTours.filter(t => t.category === "transfer");
+
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [toursOpen, setToursOpen] = useState(false);
@@ -184,7 +209,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                         <ListItem
                           key={tour.id}
                           title={tour.title}
-                          href="/tours"
+                          href={`/tours/${tour.id}`}
                         >
                           {tour.description[0]}
                         </ListItem>
@@ -210,7 +235,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                         <ListItem
                           key={transfer.id}
                           title={transfer.title}
-                          href="/transfers"
+                          href={`/transfers/${transfer.id}`}
                         >
                           {transfer.description}
                         </ListItem>
@@ -220,6 +245,19 @@ export function Layout({ children }: { children: React.ReactNode }) {
                       </ListItem>
                     </ul>
                   </NavigationMenuContent>
+                </NavigationMenuItem>
+              </NavigationMenuList>
+            </NavigationMenu>
+
+            <NavigationMenu className="relative z-50">
+              <NavigationMenuList>
+                <NavigationMenuItem>
+                  <Link href="/vehicles" className={cn(
+                    "group inline-flex h-9 w-max items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors focus:outline-none disabled:pointer-events-none disabled:opacity-50",
+                    navTextColor
+                  )}>
+                    {t("nav.vehicleHire", "Vehicle Hire")}
+                  </Link>
                 </NavigationMenuItem>
               </NavigationMenuList>
             </NavigationMenu>
@@ -382,7 +420,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                       {tours.map((tour) => (
                         <Link 
                           key={tour.id} 
-                          href="/tours" 
+                          href={`/tours/${tour.id}`} 
                           onClick={closeMobileMenu}
                           className="flex items-center gap-2 py-2 px-3 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
                         >
@@ -413,7 +451,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                       {transfers.map((transfer) => (
                         <Link 
                           key={transfer.id} 
-                          href="/transfers" 
+                          href={`/transfers/${transfer.id}`} 
                           onClick={closeMobileMenu}
                           className="flex items-center gap-2 py-2 px-3 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
                         >

@@ -1,35 +1,49 @@
+import { lazy, Suspense } from "react";
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ErrorBoundary } from "@/components/error-boundary";
-import NotFound from "@/pages/not-found";
-import Home from "@/pages/home";
-import Tours from "@/pages/tours";
-import Transfers from "@/pages/transfers";
-import Payment from "@/pages/payment";
-import PaymentSuccess from "@/pages/payment-success";
-import PaymentCancel from "@/pages/payment-cancel";
-import About from "@/pages/about";
-import Contact from "@/pages/contact";
-import Cart from "@/pages/cart";
-import Reservations from "@/pages/reservations";
-import Login from "@/pages/login";
-import Register from "@/pages/register";
-import AdminDashboard from "@/pages/admin/dashboard";
-import AdminBookings from "@/pages/admin/bookings";
-import AdminTours from "@/pages/admin/tours";
-import AdminCustomers from "@/pages/admin/customers";
-import AdminSettings from "@/pages/admin/settings";
-import AdminAnalytics from "@/pages/admin/analytics";
-import AdminReports from "@/pages/admin/reports";
-import AdminPromotions from "@/pages/admin/promotions";
-import AdminCalendar from "@/pages/admin/calendar";
-import CustomerDashboard from "@/pages/customer/dashboard";
-import CustomerBookings from "@/pages/customer/bookings";
-import CustomerSaved from "@/pages/customer/saved";
-import CustomerProfile from "@/pages/customer/profile";
+import { HelmetProvider } from "react-helmet-async";
+
+// Lazy-loaded pages
+const Home = lazy(() => import("@/pages/home"));
+const Tours = lazy(() => import("@/pages/tours"));
+const Transfers = lazy(() => import("@/pages/transfers"));
+const Payment = lazy(() => import("@/pages/payment"));
+const PaymentSuccess = lazy(() => import("@/pages/payment-success"));
+const PaymentCancel = lazy(() => import("@/pages/payment-cancel"));
+const About = lazy(() => import("@/pages/about"));
+const Contact = lazy(() => import("@/pages/contact"));
+const Cart = lazy(() => import("@/pages/cart"));
+const Reservations = lazy(() => import("@/pages/reservations"));
+const Login = lazy(() => import("@/pages/login"));
+const Register = lazy(() => import("@/pages/register"));
+const NotFound = lazy(() => import("@/pages/not-found"));
+const TourDetail = lazy(() => import("@/pages/tour-detail"));
+const TransferDetail = lazy(() => import("@/pages/transfer-detail"));
+const Vehicles = lazy(() => import("@/pages/vehicles"));
+const VehicleDetail = lazy(() => import("@/pages/vehicle-detail"));
+
+// Admin pages
+const AdminDashboard = lazy(() => import("@/pages/admin/dashboard"));
+const AdminBookings = lazy(() => import("@/pages/admin/bookings"));
+const AdminTours = lazy(() => import("@/pages/admin/tours"));
+const AdminCustomers = lazy(() => import("@/pages/admin/customers"));
+const AdminSettings = lazy(() => import("@/pages/admin/settings"));
+const AdminAnalytics = lazy(() => import("@/pages/admin/analytics"));
+const AdminReports = lazy(() => import("@/pages/admin/reports"));
+const AdminPromotions = lazy(() => import("@/pages/admin/promotions"));
+const AdminCalendar = lazy(() => import("@/pages/admin/calendar"));
+const AdminRecovery = lazy(() => import("@/pages/admin/recovery"));
+
+// Customer pages
+const CustomerDashboard = lazy(() => import("@/pages/customer/dashboard"));
+const CustomerBookings = lazy(() => import("@/pages/customer/bookings"));
+const CustomerSaved = lazy(() => import("@/pages/customer/saved"));
+const CustomerProfile = lazy(() => import("@/pages/customer/profile"));
+
 import { CartProvider } from "@/lib/cart-context";
 import { AuthProvider, ProtectedRoute } from "@/lib/auth-context";
 import { ThemeProvider } from "@/lib/theme-context";
@@ -52,119 +66,138 @@ if (typeof window !== 'undefined') {
   });
 }
 
+const Loader = () => (
+  <div className="flex items-center justify-center min-h-[50vh]">
+    <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+  </div>
+);
+
 function Router() {
   return (
-    <Switch>
-      <Route path="/" component={Home} />
-      <Route path="/tours" component={Tours} />
-      <Route path="/transfers" component={Transfers} />
-      <Route path="/about" component={About} />
-      <Route path="/contact" component={Contact} />
-      <Route path="/cart" component={Cart} />
-      <Route path="/payment" component={Payment} />
-      <Route path="/payment/success" component={PaymentSuccess} />
-      <Route path="/payment/cancel" component={PaymentCancel} />
-      <Route path="/reservations" component={Reservations} />
-      <Route path="/login" component={Login} />
-      <Route path="/register" component={Register} />
-      
-      {/* Admin Routes - Protected */}
-      <Route path="/admin/dashboard">
-        <ProtectedRoute requireAdmin>
-          <AdminDashboard />
-        </ProtectedRoute>
-      </Route>
-      <Route path="/admin/bookings">
-        <ProtectedRoute requireAdmin>
-          <AdminBookings />
-        </ProtectedRoute>
-      </Route>
-      <Route path="/admin/tours">
-        <ProtectedRoute requireAdmin>
-          <AdminTours />
-        </ProtectedRoute>
-      </Route>
-      <Route path="/admin/customers">
-        <ProtectedRoute requireAdmin>
-          <AdminCustomers />
-        </ProtectedRoute>
-      </Route>
-      <Route path="/admin/settings">
-        <ProtectedRoute requireAdmin>
-          <AdminSettings />
-        </ProtectedRoute>
-      </Route>
-      <Route path="/admin/analytics">
-        <ProtectedRoute requireAdmin>
-          <AdminAnalytics />
-        </ProtectedRoute>
-      </Route>
-      <Route path="/admin/reports">
-        <ProtectedRoute requireAdmin>
-          <AdminReports />
-        </ProtectedRoute>
-      </Route>
-      <Route path="/admin/promotions">
-        <ProtectedRoute requireAdmin>
-          <AdminPromotions />
-        </ProtectedRoute>
-      </Route>
-      <Route path="/admin/calendar">
-        <ProtectedRoute requireAdmin>
-          <AdminCalendar />
-        </ProtectedRoute>
-      </Route>
+    <Suspense fallback={<Loader />}>
+      <Switch>
+        <Route path="/" component={Home} />
+        <Route path="/tours" component={Tours} />
+        <Route path="/tours/:id" component={TourDetail} />
+        <Route path="/transfers" component={Transfers} />
+        <Route path="/transfers/:id" component={TransferDetail} />
+        <Route path="/vehicles" component={Vehicles} />
+        <Route path="/vehicles/:id" component={VehicleDetail} />
+        <Route path="/about" component={About} />
+        <Route path="/contact" component={Contact} />
+        <Route path="/cart" component={Cart} />
+        <Route path="/payment" component={Payment} />
+        <Route path="/payment/success" component={PaymentSuccess} />
+        <Route path="/payment/cancel" component={PaymentCancel} />
+        <Route path="/reservations" component={Reservations} />
+        <Route path="/login" component={Login} />
+        <Route path="/register" component={Register} />
+        
+        {/* Admin Routes - Protected */}
+        <Route path="/admin/dashboard">
+          <ProtectedRoute requireAdmin>
+            <AdminDashboard />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/admin/bookings">
+          <ProtectedRoute requireAdmin>
+            <AdminBookings />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/admin/tours">
+          <ProtectedRoute requireAdmin>
+            <AdminTours />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/admin/customers">
+          <ProtectedRoute requireAdmin>
+            <AdminCustomers />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/admin/settings">
+          <ProtectedRoute requireAdmin>
+            <AdminSettings />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/admin/analytics">
+          <ProtectedRoute requireAdmin>
+            <AdminAnalytics />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/admin/reports">
+          <ProtectedRoute requireAdmin>
+            <AdminReports />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/admin/promotions">
+          <ProtectedRoute requireAdmin>
+            <AdminPromotions />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/admin/calendar">
+          <ProtectedRoute requireAdmin>
+            <AdminCalendar />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/admin/recovery">
+          <ProtectedRoute requireAdmin>
+            <AdminRecovery />
+          </ProtectedRoute>
+        </Route>
 
-      {/* Customer Routes - Protected */}
-      <Route path="/dashboard">
-        <ProtectedRoute>
-          <CustomerDashboard />
-        </ProtectedRoute>
-      </Route>
-      <Route path="/customer/dashboard">
-        <ProtectedRoute>
-          <CustomerDashboard />
-        </ProtectedRoute>
-      </Route>
-      <Route path="/dashboard/bookings">
-        <ProtectedRoute>
-          <CustomerBookings />
-        </ProtectedRoute>
-      </Route>
-      <Route path="/dashboard/saved">
-        <ProtectedRoute>
-          <CustomerSaved />
-        </ProtectedRoute>
-      </Route>
-      <Route path="/dashboard/profile">
-        <ProtectedRoute>
-          <CustomerProfile />
-        </ProtectedRoute>
-      </Route>
+        {/* Customer Routes - Protected */}
+        <Route path="/dashboard">
+          <ProtectedRoute>
+            <CustomerDashboard />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/customer/dashboard">
+          <ProtectedRoute>
+            <CustomerDashboard />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/dashboard/bookings">
+          <ProtectedRoute>
+            <CustomerBookings />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/dashboard/saved">
+          <ProtectedRoute>
+            <CustomerSaved />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/dashboard/profile">
+          <ProtectedRoute>
+            <CustomerProfile />
+          </ProtectedRoute>
+        </Route>
 
-      <Route component={NotFound} />
-    </Switch>
+        <Route component={NotFound} />
+      </Switch>
+    </Suspense>
   );
 }
 
 function App() {
   return (
     <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <ThemeProvider>
-          <TooltipProvider>
-            <AuthProvider>
-              <CMSProvider>
-                <CartProvider>
-                  <Toaster />
-                  <Router />
-                  <WhatsAppWidget />
-                </CartProvider>
-              </CMSProvider>
-            </AuthProvider>
-          </TooltipProvider>
-        </ThemeProvider>
-      </QueryClientProvider>
+      <HelmetProvider>
+        <QueryClientProvider client={queryClient}>
+          <ThemeProvider>
+            <TooltipProvider>
+              <AuthProvider>
+                <CMSProvider>
+                  <CartProvider>
+                    <Toaster />
+                    <Router />
+                    <WhatsAppWidget />
+                  </CartProvider>
+                </CMSProvider>
+              </AuthProvider>
+            </TooltipProvider>
+          </ThemeProvider>
+        </QueryClientProvider>
+      </HelmetProvider>
     </ErrorBoundary>
   );
 }

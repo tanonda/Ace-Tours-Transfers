@@ -9,6 +9,11 @@ import {
   wishlistItems,
   newsletterSubscribers,
   cmsContent,
+  tourInstances,
+  availabilityHolds,
+  bookingSummaries,
+  revenueDaily,
+  paymentOverviews,
   type User, 
   type InsertUser,
   type Tour,
@@ -28,7 +33,11 @@ import {
   type NewsletterSubscriber,
   type InsertNewsletterSubscriber,
   type CmsContent,
-  type InsertCmsContent
+  type InsertCmsContent,
+  type TourInstance,
+  type InsertTourInstance,
+  type AvailabilityHold,
+  type InsertAvailabilityHold
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql } from "drizzle-orm";
@@ -39,6 +48,9 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  getAllUsers(): Promise<User[]>;
+  updateUserRole(id: string, role: string): Promise<User | undefined>;
+  updateUserPassword(id: string, password: string): Promise<User | undefined>;
   getCustomers(): Promise<User[]>;
   
   // Tour operations
@@ -52,8 +64,10 @@ export interface IStorage {
   getBookings(): Promise<Booking[]>;
   getBooking(id: string): Promise<Booking | undefined>;
   getUserBookings(userId: string): Promise<Booking[]>;
+  getBookingsBySession(sessionId: string): Promise<Booking[]>;
   createBooking(booking: InsertBooking): Promise<Booking>;
   updateBooking(id: string, booking: Partial<InsertBooking>): Promise<Booking>;
+  linkBookingsToUser(email: string, userId: string): Promise<void>;
   deleteBooking(id: string): Promise<void>;
   
   // Analytics
@@ -86,6 +100,8 @@ export interface IStorage {
   getPaymentsByBooking(bookingId: string): Promise<Payment[]>;
   createPayment(payment: InsertPayment): Promise<Payment>;
   updatePayment(id: string, data: Partial<InsertPayment>): Promise<Payment>;
+  checkPaymentExpiration(paymentId: string): Promise<boolean>;
+  getStaleProcessingPayments(batchSize: number): Promise<Payment[]>;
   
   // Wishlist
   getWishlistItems(userId: string): Promise<WishlistItem[]>;
@@ -106,9 +122,32 @@ export interface IStorage {
   createCmsContent(content: InsertCmsContent): Promise<CmsContent>;
   updateCmsContent(id: string, data: Partial<InsertCmsContent>): Promise<CmsContent>;
   deleteCmsContent(id: string): Promise<void>;
+
+  // Availability & Holds
+  getTourInstance(tourId: string, date: string, slot?: string): Promise<TourInstance | undefined>;
+  getTourInstanceById(id: string): Promise<TourInstance | undefined>;
+  createTourInstance(instance: InsertTourInstance): Promise<TourInstance>;
+  updateTourInstance(id: string, data: Partial<InsertTourInstance>): Promise<TourInstance>;
+  
+  getHold(id: string): Promise<AvailabilityHold | undefined>;
+  createHold(hold: InsertAvailabilityHold): Promise<AvailabilityHold>;
+  updateHold(id: string, data: Partial<InsertAvailabilityHold>): Promise<AvailabilityHold>;
+  getExpiredHolds(now: Date): Promise<AvailabilityHold[]>;
+
+  // Projections
+  upsertBookingSummary(summary: any): Promise<void>;
+  updateBookingSummary(bookingId: string, data: any): Promise<void>;
+  incrementDailyRevenue(date: string, amount: number, vat: number): Promise<void>;
+  upsertPaymentOverview(overview: any): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
+  public db = db;
+  public bookingSummaries = bookingSummaries;
+  public revenueDaily = revenueDaily;
+  public paymentOverviews = paymentOverviews;
+  public eq = eq;
+
   // User operations
   async getUser(id: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
@@ -131,6 +170,28 @@ export class DatabaseStorage implements IStorage {
       .values(insertUser)
       .returning();
     return user;
+  }
+
+  async getAllUsers(): Promise<User[]> {
+    return await db.select().from(users);
+  }
+
+  async updateUserRole(id: string, role: string): Promise<User | undefined> {
+    const [user] = await db
+      .update(users)
+      .set({ role })
+      .where(eq(users.id, id))
+      .returning();
+    return user || undefined;
+  }
+
+  async updateUserPassword(id: string, password: string): Promise<User | undefined> {
+    const [user] = await db
+      .update(users)
+      .set({ password })
+      .where(eq(users.id, id))
+      .returning();
+    return user || undefined;
   }
 
   async getCustomers(): Promise<User[]> {
@@ -186,6 +247,14 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(bookings.createdAt));
   }
 
+  async getBookingsBySession(sessionId: string): Promise<Booking[]> {
+    return await db
+      .select()
+      .from(bookings)
+      .where(eq(bookings.bookingSessionId, sessionId))
+      .orderBy(desc(bookings.createdAt));
+  }
+
   async createBooking(insertBooking: InsertBooking): Promise<Booking> {
     const [booking] = await db
       .insert(bookings)
@@ -201,6 +270,12 @@ export class DatabaseStorage implements IStorage {
       .where(eq(bookings.id, id))
       .returning();
     return booking;
+  }
+
+  async linkBookingsToUser(email: string, userId: string): Promise<void> {
+    await db.update(bookings)
+      .set({ userId })
+      .where(and(eq(bookings.customerEmail, email), sql`${bookings.userId} IS NULL`));
   }
 
   async deleteBooking(id: string): Promise<void> {
@@ -361,6 +436,30 @@ export class DatabaseStorage implements IStorage {
     return payment;
   }
 
+  async checkPaymentExpiration(paymentId: string): Promise<boolean> {
+    const [result] = await db
+      .select({ isExpired: sql<boolean>`NOW() > ${payments.expiresAt}` })
+      .from(payments)
+      .where(eq(payments.id, paymentId));
+    
+    return result?.isExpired || false;
+  }
+
+  async getStaleProcessingPayments(batchSize: number): Promise<Payment[]> {
+    // Stale if: status is processing AND (lastReconciledAt is null OR > 30m ago) AND (createdAt > 1h ago)
+    return await db
+      .select()
+      .from(payments)
+      .where(
+        and(
+          eq(payments.status, 'processing'),
+          sql`(${payments.lastReconciledAt} IS NULL OR ${payments.lastReconciledAt} < NOW() - INTERVAL '30 minutes')`,
+          sql`${payments.createdAt} < NOW() - INTERVAL '1 hour'`
+        )
+      )
+      .limit(batchSize);
+  }
+
   // Wishlist operations
   async getWishlistItems(userId: string): Promise<WishlistItem[]> {
     return await db.select().from(wishlistItems).where(eq(wishlistItems.userId, userId));
@@ -459,6 +558,115 @@ export class DatabaseStorage implements IStorage {
 
   async deleteCmsContent(id: string): Promise<void> {
     await db.delete(cmsContent).where(eq(cmsContent.id, id));
+  }
+
+  // Availability & Holds
+  async getTourInstance(tourId: string, date: string, slot?: string): Promise<TourInstance | undefined> {
+    const filters = [eq(tourInstances.tourId, tourId), eq(tourInstances.serviceDate, date)];
+    if (slot) {
+      filters.push(eq(tourInstances.timeSlot, slot));
+    } else {
+      filters.push(sql`${tourInstances.timeSlot} IS NULL`);
+    }
+    
+    const [instance] = await db.select().from(tourInstances).where(and(...filters));
+    return instance || undefined;
+  }
+
+  async getTourInstanceById(id: string): Promise<TourInstance | undefined> {
+    const [instance] = await db.select().from(tourInstances).where(eq(tourInstances.id, id));
+    return instance || undefined;
+  }
+
+  async createTourInstance(instance: InsertTourInstance): Promise<TourInstance> {
+    const [created] = await db.insert(tourInstances).values(instance).returning();
+    return created;
+  }
+
+  async updateTourInstance(id: string, data: Partial<InsertTourInstance>): Promise<TourInstance> {
+    const [updated] = await db
+      .update(tourInstances)
+      .set(data)
+      .where(eq(tourInstances.id, id))
+      .returning();
+    return updated;
+  }
+
+  async getHold(id: string): Promise<AvailabilityHold | undefined> {
+    const [hold] = await db.select().from(availabilityHolds).where(eq(availabilityHolds.id, id));
+    return hold || undefined;
+  }
+
+  async createHold(hold: InsertAvailabilityHold): Promise<AvailabilityHold> {
+    const [created] = await db.insert(availabilityHolds).values(hold).returning();
+    return created;
+  }
+
+  async updateHold(id: string, data: Partial<InsertAvailabilityHold>): Promise<AvailabilityHold> {
+    const [updated] = await db
+      .update(availabilityHolds)
+      .set(data)
+      .where(eq(availabilityHolds.id, id))
+      .returning();
+    return updated;
+  }
+
+  async getExpiredHolds(now: Date): Promise<AvailabilityHold[]> {
+    return await db
+      .select()
+      .from(availabilityHolds)
+      .where(
+        and(
+          eq(availabilityHolds.status, 'ACTIVE'),
+          sql`${availabilityHolds.expiresAt} < ${now}`
+        )
+      );
+  }
+
+  // Projection implementations
+  async upsertBookingSummary(summary: any): Promise<void> {
+    await db.insert(bookingSummaries)
+      .values(summary)
+      .onConflictDoUpdate({
+        target: bookingSummaries.bookingId,
+        set: summary
+      });
+  }
+
+  async updateBookingSummary(bookingId: string, data: any): Promise<void> {
+    await db.update(bookingSummaries)
+      .set(data)
+      .where(eq(bookingSummaries.bookingId, bookingId));
+  }
+
+  async incrementDailyRevenue(dateStr: string, amount: number, vat: number): Promise<void> {
+    await db.insert(revenueDaily)
+      .values({ date: dateStr, totalGross: amount, totalVat: vat })
+      .onConflictDoUpdate({
+        target: revenueDaily.date,
+        set: {
+          totalGross: sql`${revenueDaily.totalGross} + ${amount}`,
+          totalVat: sql`${revenueDaily.totalVat} + ${vat}`
+        }
+      });
+  }
+
+  async upsertPaymentOverview(overview: any): Promise<void> {
+    await db.insert(paymentOverviews)
+      .values(overview)
+      .onConflictDoUpdate({
+        target: paymentOverviews.paymentId,
+        set: {
+          ...overview,
+          updatedAt: new Date()
+        }
+      });
+  }
+
+  async clearProjections(): Promise<void> {
+    await db.delete(bookingSummaries);
+    await db.delete(revenueDaily);
+    await db.delete(paymentOverviews);
   }
 }
 

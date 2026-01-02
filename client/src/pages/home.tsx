@@ -13,13 +13,30 @@ import { useTranslation } from "react-i18next";
 
 export default function Home() {
   const { t } = useTranslation();
-  const { data: tours = [] } = useQuery({
+  const { data: allTours = [] } = useQuery({
     queryKey: ["tours"],
     queryFn: fetchTours,
   });
 
-  const toursList = tours.filter(t => t.category === "tour");
-  const transfers = tours.filter(t => t.category === "transfer");
+  // Deduplicate tours by normalized title to handle DB duplicates and naming variations
+  const uniqueTours = allTours.reduce<typeof allTours>((acc, current) => {
+    // Skip test data
+    if (current.title.toLowerCase().includes("verification")) return acc;
+    
+    const normalize = (t: string) => t.replace(/\s+Package$/i, "").trim();
+    const normalizedTitle = normalize(current.title);
+    
+    const existingIndex = acc.findIndex(item => normalize(item.title) === normalizedTitle);
+    
+    if (existingIndex === -1) {
+      acc.push(current);
+    }
+    return acc;
+  }, []);
+
+  const toursList = uniqueTours.filter(t => t.category === "tour");
+  const transfers = uniqueTours.filter(t => t.category === "transfer");
+  const vehicles = uniqueTours.filter(t => t.category === "vehicle");
 
   return (
     <Layout>
@@ -121,6 +138,25 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* Vehicle Hire Section */}
+      {vehicles.length > 0 && (
+        <section className="py-24 bg-background">
+          <div className="container mx-auto px-4">
+            <div className="text-center max-w-3xl mx-auto mb-16">
+              <span className="text-primary font-semibold uppercase tracking-wider text-sm mb-2 block">{t("vehicles.label", "Self-Drive")}</span>
+              <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-6">{t("vehicles.title", "Vehicle Hire")}</h2>
+              <p className="text-lg text-muted-foreground">{t("vehicles.description", "Explore Vanuatu at your own pace with our reliable vehicle hire service.")}</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {vehicles.slice(0, 3).map((vehicle, index) => (
+                <TourCard key={vehicle.id} tour={vehicle} index={index} />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* CTA Section */}
       <section className="py-20 bg-primary relative overflow-hidden">
