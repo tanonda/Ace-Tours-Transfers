@@ -85,6 +85,103 @@ async function seed() {
         "Professional service"
       ],
       category: "transfer"
+    },
+    // Vehicle Hire
+    {
+      title: "Toyota Hilux 4WD",
+      price: "$120 / day",
+      childPrice: null,
+      duration: "24 hours",
+      minPax: null,
+      image: "/attached_assets/stock_images/vanuatu_4wd_vehicle.jpg",
+      description: [
+        "Reliable 4WD pickup truck",
+        "Perfect for island exploration",
+        "Air conditioning",
+        "Automatic transmission",
+        "Unlimited kilometers",
+        "Full insurance included"
+      ],
+      category: "vehicle",
+      vehicleDetails: {
+        make: "Toyota",
+        model: "Hilux",
+        seats: 5,
+        transmission: "Automatic",
+        features: ["4WD", "Air Conditioning", "Bluetooth", "USB Charging"]
+      }
+    },
+    {
+      title: "Nissan X-Trail SUV",
+      price: "$100 / day",
+      childPrice: null,
+      duration: "24 hours",
+      minPax: null,
+      image: "/attached_assets/stock_images/vanuatu_suv_rental.jpg",
+      description: [
+        "Spacious family SUV",
+        "Comfortable highway cruiser",
+        "Air conditioning",
+        "Automatic transmission",
+        "GPS Navigation",
+        "Full insurance included"
+      ],
+      category: "vehicle",
+      vehicleDetails: {
+        make: "Nissan",
+        model: "X-Trail",
+        seats: 7,
+        transmission: "Automatic",
+        features: ["AWD", "Air Conditioning", "GPS", "Rear Camera", "Roof Rack"]
+      }
+    },
+    {
+      title: "Toyota Corolla Sedan",
+      price: "$70 / day",
+      childPrice: null,
+      duration: "24 hours",
+      minPax: null,
+      image: "/attached_assets/stock_images/vanuatu_sedan_rental.jpg",
+      description: [
+        "Economical sedan",
+        "Great fuel efficiency",
+        "Air conditioning",
+        "Automatic transmission",
+        "Perfect for city driving",
+        "Full insurance included"
+      ],
+      category: "vehicle",
+      vehicleDetails: {
+        make: "Toyota",
+        model: "Corolla",
+        seats: 5,
+        transmission: "Automatic",
+        features: ["Air Conditioning", "Bluetooth", "USB Charging", "Fuel Efficient"]
+      }
+    },
+    {
+      title: "Suzuki Jimny",
+      price: "$90 / day",
+      childPrice: null,
+      duration: "24 hours",
+      minPax: null,
+      image: "/attached_assets/stock_images/vanuatu_jimny_rental.jpg",
+      description: [
+        "Compact 4x4 off-roader",
+        "Great for adventure",
+        "Air conditioning",
+        "Manual transmission option",
+        "Go anywhere capability",
+        "Full insurance included"
+      ],
+      category: "vehicle",
+      vehicleDetails: {
+        make: "Suzuki",
+        model: "Jimny",
+        seats: 4,
+        transmission: "Manual",
+        features: ["4WD", "Air Conditioning", "Compact", "Off-Road Ready"]
+      }
     }
   ];
 

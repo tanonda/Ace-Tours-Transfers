@@ -14,7 +14,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { CalendarIcon, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { tours, transfers } from "@/lib/data";
+import { useQuery } from "@tanstack/react-query";
+import { fetchTours } from "@/lib/api";
 import { useLocation } from "wouter";
 import { useTranslation } from "react-i18next";
 
@@ -45,18 +46,101 @@ export function BookingModal({ trigger, preselectedService }: { trigger: React.R
     },
   });
 
+  const { data: allTours = [] } = useQuery({
+    queryKey: ["tours"], 
+    queryFn: fetchTours,
+  });
+
+  // Deduplicate tours by normalized title
+  const uniqueTours = allTours.reduce<typeof allTours>((acc, current) => {
+    // Skip test data
+    if (current.title.toLowerCase().includes("verification")) return acc;
+    
+    const normalize = (t: string) => t.replace(/\s+Package$/i, "").trim();
+    const normalizedTitle = normalize(current.title);
+    
+    const existingIndex = acc.findIndex(item => normalize(item.title) === normalizedTitle);
+    
+    if (existingIndex === -1) {
+      acc.push(current);
+    }
+    return acc;
+  }, []);
+
+  const tours = uniqueTours.filter(t => t.category === "tour");
+  const transfers = uniqueTours.filter(t => t.category === "transfer");
+  const vehicles = uniqueTours.filter(t => t.category === "vehicle");
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    
-    console.log(values);
-    setIsLoading(false);
-    setOpen(false);
-    form.reset();
-    
-    // Redirect to ANZ eGate payment page
-    setLocation("/payment");
+    try {
+      const selectedTour = [...tours, ...transfers, ...vehicles].find(t => t.title === values.service);
+      
+      // Step 1: Create a hold to reserve capacity
+      let holdId = null;
+      if (selectedTour) {
+        try {
+          const holdRes = await fetch("/api/holds", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              tourId: selectedTour.id,
+              date: format(values.date, "yyyy-MM-dd"),
+              quantity: parseInt(values.guests)
+            }),
+          });
+          if (holdRes.ok) {
+            const hold = await holdRes.json();
+            holdId = hold.id;
+          }
+        } catch (holdError) {
+          console.warn("Failed to create hold, proceeding without one:", holdError);
+        }
+      }
+
+      // Step 2: Create the booking
+      const res = await fetch("/api/bookings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          tourId: selectedTour?.id || "",
+          tourName: values.service,
+          customerName: values.name,
+          customerEmail: values.email,
+          date: format(values.date, "yyyy-MM-dd"),
+          guests: parseInt(values.guests),
+          amount: selectedTour ? selectedTour.price : "0",
+          status: "pending",
+          holdId: holdId
+        }),
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to create booking");
+      }
+
+      const booking = await res.json();
+      setIsLoading(false);
+      setOpen(false);
+      form.reset();
+      
+      toast({
+        title: t("common.success"),
+        description: t("reservations.bookingCreated", "Booking created successfully!"),
+      });
+
+      setLocation("/payment");
+    } catch (error: any) {
+      toast({
+        title: t("common.error"),
+        description: error.message || "Failed to create booking",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return (
@@ -112,13 +196,16 @@ export function BookingModal({ trigger, preselectedService }: { trigger: React.R
                           <SelectValue placeholder={t("booking.selectService", "Select tour/transfer")} />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent>
+                        <SelectContent>
                         <SelectItem value="select" disabled>{t("booking.selectOption", "Select an option")}</SelectItem>
                         {tours.map((tour: any) => (
                           <SelectItem key={tour.id} value={tour.title}>{tour.title}</SelectItem>
                         ))}
                         {transfers.map((transfer: any) => (
                           <SelectItem key={transfer.id} value={transfer.title}>{transfer.title}</SelectItem>
+                        ))}
+                        {vehicles.map((vehicle: any) => (
+                          <SelectItem key={vehicle.id} value={vehicle.title}>{vehicle.title}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>

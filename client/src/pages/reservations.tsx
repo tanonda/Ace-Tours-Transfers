@@ -126,39 +126,61 @@ export default function Reservations() {
   async function onBookingSubmit(values: z.infer<typeof bookingFormSchema>) {
     setIsBookingLoading(true);
     try {
-      if (isAuthenticated && user) {
-        const selectedTour = [...tours, ...transfers].find(t => t.title === values.service);
-        const bookingData = {
-          userId: user.id,
-          tourId: selectedTour?.id || "",
-          customerName: values.name,
-          tourName: values.service,
-          date: values.date.toISOString(),
-          guests: parseInt(values.guests),
-          amount: selectedTour ? parseInt(selectedTour.price.replace(/[^0-9]/g, '')) : 0,
-          status: "pending",
-        };
-        
-        const res = await fetch("/api/bookings", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify(bookingData),
-        });
-        
-        if (res.ok) {
-          queryClient.invalidateQueries({ queryKey: ["bookings"] });
-          toast({ title: t("common.success"), description: t("reservations.bookingCreated", "Booking created successfully!") });
-          bookingForm.reset();
-          setLocation("/payment");
-        } else {
-          throw new Error("Failed to create booking");
+      const selectedTour = [...tours, ...transfers].find(t => t.title === values.service);
+      
+      // Step 1: Create a hold to reserve capacity
+      let holdId = null;
+      if (selectedTour) {
+        try {
+          const holdRes = await fetch("/api/holds", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              tourId: selectedTour.id,
+              date: format(values.date, "yyyy-MM-dd"),
+              quantity: parseInt(values.guests)
+            }),
+          });
+          if (holdRes.ok) {
+            const hold = await holdRes.json();
+            holdId = hold.id;
+          }
+        } catch (holdError) {
+          console.warn("Failed to create hold, proceeding without one:", holdError);
         }
-      } else {
-        setLocation("/payment");
       }
-    } catch (error) {
-      toast({ title: t("common.error"), description: t("reservations.bookingFailed", "Failed to create booking"), variant: "destructive" });
+
+      const bookingData = {
+        userId: user?.id || null,
+        tourId: selectedTour?.id || "",
+        customerName: values.name,
+        customerEmail: values.email,
+        tourName: values.service,
+        date: format(values.date, "yyyy-MM-dd"),
+        guests: parseInt(values.guests),
+        amount: selectedTour ? selectedTour.price : "0",
+        status: "pending",
+        holdId: holdId,
+      };
+      
+      const res = await fetch("/api/bookings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(bookingData),
+      });
+      
+      if (res.ok) {
+        queryClient.invalidateQueries({ queryKey: ["bookings"] });
+        toast({ title: t("common.success"), description: t("reservations.bookingCreated", "Booking created successfully!") });
+        bookingForm.reset();
+        setLocation("/payment");
+      } else {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to create booking");
+      }
+    } catch (error: any) {
+      toast({ title: t("common.error"), description: error.message || t("reservations.bookingFailed", "Failed to create booking"), variant: "destructive" });
     } finally {
       setIsBookingLoading(false);
     }

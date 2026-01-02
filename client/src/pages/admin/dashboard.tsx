@@ -203,7 +203,7 @@ export default function AdminDashboard() {
 
   const recentBookings = filteredBookings.slice(0, 10);
   const totalRevenue = bookings.reduce((sum, b) => {
-    const amount = parseFloat(b.amount.replace('$', '').replace(',', '')) || 0;
+    const amount = parseFloat(String(b.amount).replace(/[^0-9.]/g, '')) || 0;
     return sum + amount;
   }, 0);
 

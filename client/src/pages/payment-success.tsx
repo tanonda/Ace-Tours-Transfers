@@ -2,11 +2,12 @@ import { useEffect } from "react";
 import { useSearch } from "wouter";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, ArrowRight, Home, Loader2, Clock } from "lucide-react";
+import { CheckCircle, ArrowRight, Home, Loader2, Clock, Building2 } from "lucide-react";
 import { Layout } from "@/components/layout";
 import { useTranslation } from "react-i18next";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import { Separator } from "@/components/ui/separator";
 
 export default function PaymentSuccess() {
   const { t } = useTranslation();
@@ -108,9 +109,46 @@ export default function PaymentSuccess() {
               </div>
             )}
             {isPending && (
-              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span>Checking payment status...</span>
+              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground ring-1 ring-amber-200 bg-amber-50 p-3 rounded-md">
+                <Loader2 className="h-4 w-4 animate-spin text-amber-600" />
+                <span className="text-amber-700">Checking payment status...</span>
+              </div>
+            )}
+            
+            {/* FIX #4: Manual Payment Instructions */}
+            {params.get("manual") === "true" && (
+              <div className="bg-primary/5 border-2 border-primary/20 p-6 rounded-lg text-left space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="flex items-center gap-2 text-primary font-bold">
+                  <Building2 className="h-5 w-5" />
+                  <h3>Manual Bank Transfer Instructions</h3>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  To complete your booking, please transfer the total amount to the following account and include your **Booking Reference** as the transfer memo.
+                </p>
+                <div className="grid grid-cols-1 gap-2 text-sm bg-background p-4 rounded border">
+                  <div>
+                    <span className="text-muted-foreground block text-[10px] uppercase font-bold">Bank Name</span>
+                    <span className="font-medium text-foreground">ANZ Bank (Vanuatu) Ltd</span>
+                  </div>
+                  <Separator />
+                  <div>
+                    <span className="text-muted-foreground block text-[10px] uppercase font-bold">Account Name</span>
+                    <span className="font-medium text-foreground">Ace Tours & Transfers</span>
+                  </div>
+                  <Separator />
+                  <div>
+                    <span className="text-muted-foreground block text-[10px] uppercase font-bold">Account Number</span>
+                    <span className="font-mono font-bold text-foreground">1234-567-890</span>
+                  </div>
+                  <Separator />
+                  <div>
+                    <span className="text-muted-foreground block text-[10px] uppercase font-bold">SWIFT Code</span>
+                    <span className="font-mono font-bold text-foreground">ANZBVUVU</span>
+                  </div>
+                </div>
+                <p className="text-[11px] text-amber-700 bg-amber-50 p-2 rounded border border-amber-200">
+                  <strong>Notice:</strong> Your booking will be automatically cancelled if payment is not received within 2 hours.
+                </p>
               </div>
             )}
             <p className="text-sm text-muted-foreground">

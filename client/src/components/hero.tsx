@@ -1,5 +1,5 @@
 
-import heroBg from "@assets/stock_images/vanuatu_tropical_bea_1818375e.jpg";
+import heroBg from "@assets/stock_images/vanuatu_beach_new.jpg";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { Link, useLocation } from "wouter";
@@ -12,7 +12,8 @@ import { Input } from "@/components/ui/input";
 import { CalendarIcon, Users, Search, Map, Car } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { tours, transfers } from "@/lib/data";
+import { useQuery } from "@tanstack/react-query";
+import { fetchTours } from "@/lib/api";
 
 export function Hero() {
   const { t } = useTranslation();
@@ -21,6 +22,31 @@ export function Hero() {
   const [serviceType, setServiceType] = useState<string>("");
   const [guests, setGuests] = useState<string>("2");
 
+  const { data: allTours = [] } = useQuery({
+    queryKey: ["tours"], 
+    queryFn: fetchTours,
+  });
+
+  // Deduplicate tours by normalized title
+  const uniqueTours = allTours.reduce<typeof allTours>((acc, current) => {
+    // Skip test data
+    if (current.title.toLowerCase().includes("verification")) return acc;
+    
+    const normalize = (t: string) => t.replace(/\s+Package$/i, "").trim();
+    const normalizedTitle = normalize(current.title);
+    
+    const existingIndex = acc.findIndex(item => normalize(item.title) === normalizedTitle);
+    
+    if (existingIndex === -1) {
+      acc.push(current);
+    }
+    return acc;
+  }, []);
+
+  const tours = uniqueTours.filter(t => t.category === "tour");
+  const transfers = uniqueTours.filter(t => t.category === "transfer");
+  const vehicles = uniqueTours.filter(t => t.category === "vehicle");
+
   const handleSearch = () => {
     const params = new URLSearchParams();
     if (selectedDate) params.set("date", format(selectedDate, "yyyy-MM-dd"));
@@ -28,7 +54,10 @@ export function Hero() {
     if (guests) params.set("guests", guests);
     
     const isTransfer = serviceType === "all-transfers" || serviceType.startsWith("transfer-");
-    if (isTransfer) {
+    const isVehicle = serviceType === "all-vehicles" || serviceType.startsWith("vehicle-");
+    if (isVehicle) {
+      setLocation(`/vehicles?${params.toString()}`);
+    } else if (isTransfer) {
       setLocation(`/transfers?${params.toString()}`);
     } else {
       setLocation(`/tours?${params.toString()}`);
@@ -39,11 +68,12 @@ export function Hero() {
     <section className="relative min-h-screen w-full overflow-hidden">
       {/* Background Image with Overlay */}
       <div 
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-transform duration-1000 scale-105"
         style={{ backgroundImage: `url(${heroBg})` }}
       >
-        <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/60 backdrop-blur-[0.5px]" />
       </div>
+      
       {/* Content */}
       <div className="relative container mx-auto px-4 flex flex-col justify-center items-center text-center text-white pt-28 pb-20 md:pt-36 md:pb-24 min-h-screen">
         <motion.div
@@ -52,11 +82,11 @@ export function Hero() {
           transition={{ duration: 0.8, ease: "easeOut" }}
           className="max-w-4xl"
         >
-          <h1 className="font-serif text-4xl md:text-6xl lg:text-7xl mb-4 leading-tight drop-shadow-xl">
-            <span className="text-white font-bold">{t("hero.titlePart1")} </span>
+          <h1 className="font-serif text-5xl md:text-7xl lg:text-8xl mb-6 leading-[1.1] drop-shadow-[0_4px_4px_rgba(0,0,0,0.5)]">
+            <span className="text-white font-bold block md:inline">{t("hero.titlePart1")} </span>
             <span className="text-[#f2800d] italic font-normal lowercase">{t("hero.titlePart2")}</span>
           </h1>
-          <p className="text-lg md:text-xl text-white/90 mb-8 max-w-2xl mx-auto font-light leading-relaxed">
+          <p className="text-xl md:text-2xl text-white drop-shadow-md mb-10 max-w-2xl mx-auto font-medium leading-relaxed">
             {t("home.toursDesc")}
           </p>
         </motion.div>
@@ -66,51 +96,68 @@ export function Hero() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}
-          className="w-full max-w-4xl"
+          className="w-full max-w-5xl"
         >
-          <div className="bg-gradient-to-br from-white/95 via-primary/5 to-white/90 backdrop-blur-md rounded-2xl shadow-2xl p-4 md:p-6 border border-primary/20 ring-1 ring-primary/10">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 md:items-end">
+          <div className="bg-white/95 backdrop-blur-xl rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.3)] p-5 md:p-8 border border-white/20 ring-1 ring-black/5">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 md:items-end">
               {/* Service Type */}
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-semibold text-primary/80 flex items-center gap-2">
-                  <Map className="h-4 w-4 text-primary" />
+              <div className="flex flex-col gap-2.5 md:col-span-4">
+                <label className="text-[0.8125rem] font-bold text-gray-800 flex items-center gap-2 px-1">
+                  <Map className="h-4 w-4 text-[#f2800d]" />
                   {t("hero.serviceType", "What are you looking for?")}
                 </label>
                 <Select value={serviceType} onValueChange={setServiceType}>
-                  <SelectTrigger className="h-14 text-base bg-white border-primary/20 hover:border-primary/40 focus:ring-primary/30 shadow-sm" data-testid="select-service-type">
-                    <SelectValue placeholder={t("hero.selectService", "Tours & Transfers")} />
+                  <SelectTrigger className="h-16 text-base bg-gray-50 border-gray-200 hover:border-[#f2800d]/50 focus:ring-[#f2800d]/20 shadow-inner rounded-2xl transition-all" data-testid="select-service-type">
+                    <SelectValue placeholder={t("hero.selectService", "Tours & Transfers")} className="text-gray-900 font-medium" />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all-tours" className="py-3">
-                      <div className="flex items-center gap-2">
-                        <Map className="h-4 w-4" />
-                        {t("hero.allTours", "All Tours")}
+                  <SelectContent className="rounded-2xl border-gray-200">
+                    <SelectItem value="all-tours" className="py-3 focus:bg-orange-50 focus:text-orange-950">
+                      <div className="flex items-center gap-3">
+                        <Map className="h-5 w-5 text-[#f2800d]" />
+                        <span className="font-semibold">{t("hero.allTours", "All Tours")}</span>
                       </div>
                     </SelectItem>
                     {tours.slice(0, 4).map((tour) => (
-                      <SelectItem key={tour.id} value={`tour-${tour.id}`} className="py-3">
-                        {tour.title}
+                      <SelectItem key={tour.id} value={`tour-${tour.id}`} className="py-3 focus:bg-orange-50 focus:text-orange-950">
+                        <span className="pl-8">{tour.title}</span>
                       </SelectItem>
                     ))}
-                    <SelectItem value="all-transfers" className="py-3">
-                      <div className="flex items-center gap-2">
-                        <Car className="h-4 w-4" />
-                        {t("hero.allTransfers", "All Transfers")}
+                    <div className="h-px bg-gray-100 my-1" />
+                    <SelectItem value="all-transfers" className="py-3 focus:bg-orange-50 focus:text-orange-950">
+                      <div className="flex items-center gap-3">
+                        <Car className="h-5 w-5 text-[#f2800d]" />
+                        <span className="font-semibold">{t("hero.allTransfers", "All Transfers")}</span>
                       </div>
                     </SelectItem>
                     {transfers.slice(0, 3).map((transfer) => (
-                      <SelectItem key={transfer.id} value={`transfer-${transfer.id}`} className="py-3">
-                        {transfer.title}
+                      <SelectItem key={transfer.id} value={`transfer-${transfer.id}`} className="py-3 focus:bg-orange-50 focus:text-orange-950">
+                        <span className="pl-8">{transfer.title}</span>
                       </SelectItem>
                     ))}
+                    {vehicles.length > 0 && (
+                      <>
+                        <div className="h-px bg-gray-100 my-1" />
+                        <SelectItem value="all-vehicles" className="py-3 focus:bg-orange-50 focus:text-orange-950">
+                          <div className="flex items-center gap-3">
+                            <Car className="h-5 w-5 text-[#f2800d]" />
+                            <span className="font-semibold">{t("hero.allVehicles", "Vehicle Hire")}</span>
+                          </div>
+                        </SelectItem>
+                        {vehicles.slice(0, 3).map((vehicle) => (
+                          <SelectItem key={vehicle.id} value={`vehicle-${vehicle.id}`} className="py-3 focus:bg-orange-50 focus:text-orange-950">
+                            <span className="pl-8">{vehicle.title}</span>
+                          </SelectItem>
+                        ))}
+                      </>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
 
               {/* Date Picker */}
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-semibold text-primary/80 flex items-center gap-2">
-                  <CalendarIcon className="h-4 w-4 text-primary" />
+              <div className="flex flex-col gap-2.5 md:col-span-3">
+                <label className="text-[0.8125rem] font-bold text-gray-800 flex items-center gap-2 px-1">
+                  <CalendarIcon className="h-4 w-4 text-[#f2800d]" />
                   {t("hero.travelDate", "When?")}
                 </label>
                 <Popover>
@@ -118,16 +165,16 @@ export function Hero() {
                     <Button
                       variant="outline"
                       className={cn(
-                        "w-full h-14 justify-start text-left text-base font-normal bg-white border-primary/20 hover:border-primary/40 shadow-sm",
-                        !selectedDate && "text-muted-foreground"
+                        "w-full h-16 justify-start text-left text-base font-medium bg-gray-50 border-gray-200 hover:border-[#f2800d]/50 shadow-inner rounded-2xl transition-all",
+                        !selectedDate && "text-gray-400"
                       )}
                       data-testid="button-date-picker"
                     >
-                      <CalendarIcon className="mr-2 h-5 w-5 text-muted-foreground" />
+                      <CalendarIcon className="mr-3 h-5 w-5 text-[#f2800d]/60" />
                       {selectedDate ? format(selectedDate, "EEE, MMM d, yyyy") : t("hero.pickDate", "Pick a date")}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
+                  <PopoverContent className="w-auto p-0 rounded-2xl border-gray-200" align="start">
                     <Calendar
                       mode="single"
                       selected={selectedDate}
@@ -141,70 +188,71 @@ export function Hero() {
               </div>
 
               {/* Guests */}
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-semibold text-primary/80 flex items-center gap-2">
-                  <Users className="h-4 w-4 text-primary" />
+              <div className="flex flex-col gap-2.5 md:col-span-2">
+                <label className="text-[0.8125rem] font-bold text-gray-800 flex items-center gap-2 px-1">
+                  <Users className="h-4 w-4 text-[#f2800d]" />
                   {t("hero.guests", "How many?")}
                 </label>
-                <div className="relative">
-                  <Users className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-primary/50" />
+                <div className="relative group">
                   <Input
                     type="number"
                     min="1"
                     max="50"
                     value={guests}
                     onChange={(e) => setGuests(e.target.value)}
-                    className="h-14 text-base pl-12 bg-white border-primary/20 hover:border-primary/40 shadow-sm"
+                    className="h-16 text-base px-5 bg-gray-50 border-gray-200 hover:border-[#f2800d]/50 focus:ring-[#f2800d]/20 shadow-inner rounded-2xl text-gray-900 font-medium"
                     placeholder={t("hero.guestsPlaceholder", "2 guests")}
                     data-testid="input-guests"
                   />
+                  <Users className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 group-hover:text-[#f2800d]/60 transition-colors" />
                 </div>
               </div>
 
               {/* Search Button */}
-              <div className="flex flex-col gap-2 justify-end">
+              <div className="md:col-span-3">
                 <Button
                   onClick={handleSearch}
                   size="lg"
-                  className="w-full h-14 text-lg font-semibold bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 hover:scale-[1.02] transition-all duration-200"
+                  className="w-full h-16 text-lg font-bold bg-[#f2800d] hover:bg-[#d9730b] text-white shadow-[0_10px_20px_rgba(242,128,13,0.3)] hover:shadow-[0_15px_30px_rgba(242,128,13,0.4)] hover:scale-[1.03] active:scale-[0.98] transition-all duration-300 rounded-2xl"
                   data-testid="button-check-availability"
                 >
-                  <Search className="mr-2 h-5 w-5" />
+                  <Search className="mr-2 h-6 w-6 stroke-[2.5]" />
                   {t("hero.checkAvailability", "Check Availability")}
                 </Button>
               </div>
             </div>
 
             {/* Quick Links */}
-            <div className="flex flex-wrap items-center justify-center gap-2 mt-4 pt-4 border-t border-primary/10">
-              <span className="text-sm text-primary/60 font-medium">{t("hero.popularSearches", "Popular:")}</span>
-              <Link href="/tours">
-                <Button variant="ghost" size="sm" className="text-sm text-primary font-medium hover:bg-primary/10 hover:text-primary">
-                  {t("nav.tours")}
-                </Button>
-              </Link>
-              <Link href="/transfers">
-                <Button variant="ghost" size="sm" className="text-sm text-primary font-medium hover:bg-primary/10 hover:text-primary">
-                  {t("hero.airportTransfer", "Airport Transfer")}
-                </Button>
-              </Link>
-              <Link href="/tours">
-                <Button variant="ghost" size="sm" className="text-sm text-primary font-medium hover:bg-primary/10 hover:text-primary">
-                  {t("hero.dayTours", "Day Tours")}
-                </Button>
-              </Link>
+            <div className="flex flex-wrap items-center justify-center gap-3 mt-6 pt-6 border-t border-gray-100">
+              <span className="text-sm text-gray-500 font-bold uppercase tracking-wider">{t("hero.popularSearches", "Popular:")}</span>
+              {[
+                { label: t("nav.tours"), href: "/tours" },
+                { label: t("hero.airportTransfer", "Airport Transfer"), href: "/transfers" },
+                { label: t("hero.dayTours", "Day Tours"), href: "/tours" }
+              ].map((link) => (
+                <Link key={link.label} href={link.href}>
+                  <Button variant="secondary" size="sm" className="bg-gray-100 hover:bg-[#f2800d]/10 text-gray-700 hover:text-[#f2800d] font-bold rounded-full border border-transparent hover:border-[#f2800d]/20 transition-all">
+                    {link.label}
+                  </Button>
+                </Link>
+              ))}
             </div>
           </div>
         </motion.div>
       </div>
+
       {/* Scroll Indicator */}
       <motion.div 
-        className="absolute bottom-6 left-1/2 -translate-x-1/2 text-white/60"
-        animate={{ y: [0, 10, 0] }}
-        transition={{ duration: 2, repeat: Infinity }}
+        className="absolute bottom-8 left-1/2 -translate-x-1/2 text-white/80"
+        animate={{ y: [0, 12, 0] }}
+        transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
       >
-        <div className="w-6 h-10 border-2 border-white/40 rounded-full flex justify-center p-1">
-          <div className="w-1 h-2 bg-white rounded-full" />
+        <div className="w-7 h-12 border-2 border-white/40 rounded-full flex justify-center p-1.5 backdrop-blur-sm">
+          <motion.div 
+            className="w-1.5 h-2.5 bg-[#f2800d] rounded-full"
+            animate={{ opacity: [1, 0.5, 1] }}
+            transition={{ duration: 1.5, repeat: Infinity }}
+          />
         </div>
       </motion.div>
     </section>

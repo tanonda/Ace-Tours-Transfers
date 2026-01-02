@@ -1,0 +1,46 @@
+# Ace Tours & Transfers: Go-Live Launch Checklist
+
+This checklist ensures the system is safe, auditable, and DDD-compliant before production activation.
+
+## 1. Governance Verification
+| # | Action | Expected Result | Failure Handling |
+|:---|:---|:---|:---|
+| 1.1 | Verify all Policy Docs exist in `docs/` and root. | README, CONTRIBUTING, VERSIONING_POLICY, KILL_SWITCH_POLICY, HOW_TO_ADD_PAYMENT_METHOD, and ARCHITECTURE_NARRATIVE are present. | Block launch; restore from backup or regenerate documentation. |
+| 1.2 | Audit ADRs 001–005 in `docs/adr/`. | All ADRs follow the template, are marked "Accepted", and signed by an authority. | Block launch; finalize and sign off on missing or incomplete ADRs. |
+
+## 2. Infrastructure & Safety Readiness
+| # | Action | Expected Result | Failure Handling |
+|:---|:---|:---|:---|
+| 2.1 | Test Kill Switches: `GLOBAL_PAYMENTS_PAUSE=true`. | API `initiateBookingPayment` returns "CRITICAL: Payment systems are currently paused" and logs `[KILL_SWITCH][BLOCKED]`. | Debug `server/application/payment.application-service.ts` enforcement. |
+| 2.2 | Test Kill Switches: `NEW_BOOKINGS_PAUSE=true`. | API `execute` (CreateBooking) throws error and blocks cart transition. | Debug `server/application/booking/CreateBookingFromCartService.ts` enforcement. |
+| 2.3 | Validate `ProjectionEngine` Rebuild. | Running `npm run rebuild-projections` completes without errors and read-models are synchronized. | Check handler idempotency; verify database connectivity and schema alignment. |
+| 2.4 | Test `BankTransferReconciliationSaga` Expiry. | An overdue pending payment is correctly expired by the saga, triggering booking cancellation. | Verify `PaymentApplicationService.expirePayment` and storage `expiresAt` logic. |
+
+## 3. Automated CI Verification
+| # | Action | Expected Result | Failure Handling |
+|:---|:---|:---|:---|
+| 3.1 | Run DDD Invariant Suite. | `npm run verify-ddd` reports "PASSED" for all cart, booking, and payment tests. | Identify broken invariant; do NOT patch data manually. Refactor aggregate logic. |
+| 3.2 | Run Architectural Compliance Check. | `npm run verify-architecture` reports "Architecture is safe" (all events/sagas have ADRs). | Create missing ADRs in `docs/adr/` before proceeding. |
+
+## 4. Payment & Booking Safety Gates
+| # | Action | Expected Result | Failure Handling |
+|:---|:---|:---|:---|
+| 4.1 | Verify Card Disabling (`DDD_DISABLE_CARD=true`). | Stripe or card-related gateways return "Card payments are currently disabled" error. | Fix `config.ts` or enforcement logic in `PaymentApplicationService`. |
+| 4.2 | Validate Pricing Accuracy. | `PricingService` calculates VAT (default 15%) correctly for diverse cart quantities. | Verify `vatRateOverride` in `config.ts` matches local tax requirements. |
+| 4.3 | Mandatory Guest Details Check. | Booking creation fails if guest email or name is missing or malformed. | Update `Booking` aggregate or `CreateBookingFromCartService` validation. |
+
+## 5. Operational Observability
+| # | Action | Expected Result | Failure Handling |
+|:---|:---|:---|:---|
+| 5.1 | Inspect Logs for Correlation IDs. | Every domain event log entry includes a `corr_...` prefix. | Fix `BaseDomainEvent` constructor or dispatcher logging. |
+| 5.2 | Audit Read-Model Disposable State. | Manually truncate a read-model table and verify it recovers via `rebuild`. | Ensure the specific projection handler implements idempotent upserts. |
+
+## 6. Hardening Validation (Optional / Redundancy)
+- [ ] **Chaos Simulation**: Run `tsx scripts/simulate-chaos.ts` (if available) to ensure system survives network/DB blips.
+- [ ] **Replay Integrity**: Verify that replaying the same event twice results in the same read-model state (Idempotency check).
+- [ ] **Admin Feature Flags**: Confirm admin dashboard respects `PAYMENTS_STRIPE_VISIBLE=false` in production env.
+
+---
+**Status:** [DRAFT/READY]  
+**Certified By:** ____________________  
+**Date:** ____________________

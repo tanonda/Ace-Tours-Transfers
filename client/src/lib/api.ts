@@ -15,6 +15,19 @@ export async function fetchTour(id: string): Promise<Tour> {
   return response.json();
 }
 
+// Vehicles API (Vehicle Hire feature)
+export async function fetchVehicles(): Promise<Tour[]> {
+  const response = await fetch(`${API_BASE}/vehicles`);
+  if (!response.ok) throw new Error("Failed to fetch vehicles");
+  return response.json();
+}
+
+export async function fetchVehicle(id: string): Promise<Tour> {
+  const response = await fetch(`${API_BASE}/vehicles/${id}`);
+  if (!response.ok) throw new Error("Failed to fetch vehicle");
+  return response.json();
+}
+
 // Bookings API
 export async function fetchBookings(): Promise<Booking[]> {
   const response = await fetch(`${API_BASE}/bookings`);

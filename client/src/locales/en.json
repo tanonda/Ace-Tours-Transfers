@@ -7,6 +7,7 @@
   "nav.transfers": "Transfers",
   "nav.about": "About",
   "nav.contact": "Contact",
+  "nav.vehicles": "Vehicle Hire",
   "nav.login": "Login",
   "nav.register": "Sign Up",
   "nav.dashboard": "Dashboard",
@@ -17,8 +18,10 @@
   "nav.bookRide": "Book ride",
   "nav.viewAllTours": "View All Tours",
   "nav.viewAllTransfers": "View All Transfers",
+  "nav.viewAllVehicles": "View All Vehicles",
   "nav.seeAllTours": "See our complete range of tour packages",
   "nav.seeAllTransfers": "See our complete range of transfer options",
+  "nav.seeAllVehicles": "See our complete range of vehicle hire options",
   "nav.emailUs": "Email Us",
   "nav.manageBookings": "Manage existing bookings",
   "nav.cancelReservation": "Cancel a reservation",
@@ -457,5 +460,16 @@
   "hero.checkAvailability": "Check Availability",
   "hero.popularSearches": "Popular:",
   "hero.airportTransfer": "Airport Transfer",
-  "hero.dayTours": "Day Tours"
+  "hero.dayTours": "Day Tours",
+
+  "vehicles.title": "Vehicle Hire",
+  "vehicles.description": "Explore Vanuatu at your own pace with our reliable vehicle hire service. Choose from our fleet of well-maintained vehicles.",
+  "vehicles.noVehicles": "No vehicles available at the moment.",
+  "vehicles.specs": "Specifications",
+  "vehicles.make": "Make",
+  "vehicles.model": "Model",
+  "vehicles.seats": "Seats",
+  "vehicles.transmission": "Transmission",
+  "vehicles.features": "Vehicle Features",
+  "vehicles.bookNow": "Hire Now"
 }

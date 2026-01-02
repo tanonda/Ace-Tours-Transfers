@@ -19,19 +19,55 @@ export default function Register() {
   
   const featuredTour = tours[1]; // Roots & Routes
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    
-    // Simulate registration delay
-    setTimeout(() => {
-      setIsLoading(false);
+    const formData = new FormData(e.target as HTMLFormElement);
+    const fullName = formData.get("fullName") as string;
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
+    const confirmPassword = formData.get("confirmPassword") as string;
+
+    if (password !== confirmPassword) {
       toast({
-        title: t("auth.accountCreated"),
-        description: t("auth.accountCreatedDesc"),
+        title: t("auth.error"),
+        description: t("auth.passwordsNotMatch"),
+        variant: "destructive",
       });
-      setLocation("/login");
-    }, 1500);
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const res = await fetch("/api/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: fullName,
+          email,
+          username: email, // Use email as username if not provided
+          password,
+        }),
+      });
+
+      if (res.ok) {
+        toast({
+          title: t("auth.accountCreated"),
+          description: t("auth.accountCreatedDesc"),
+        });
+        setLocation("/login");
+      } else {
+        const error = await res.json();
+        throw new Error(error.error || "Registration failed");
+      }
+    } catch (error: any) {
+      toast({
+        title: t("auth.error"),
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -84,6 +120,7 @@ export default function Register() {
                       <Label htmlFor="fullName" className="text-white">{t("auth.fullName")}</Label>
                       <Input 
                         id="fullName" 
+                        name="fullName"
                         placeholder={t("auth.fullNamePlaceholder")} 
                         required 
                         className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-white/40"
@@ -93,6 +130,7 @@ export default function Register() {
                       <Label htmlFor="email" className="text-white">{t("auth.email")}</Label>
                       <Input 
                         id="email" 
+                        name="email"
                         type="email" 
                         placeholder={t("auth.emailPlaceholder")} 
                         required 
@@ -103,6 +141,7 @@ export default function Register() {
                       <Label htmlFor="password" className="text-white">{t("auth.password")}</Label>
                       <Input 
                         id="password" 
+                        name="password"
                         type="password" 
                         required 
                         className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-white/40"
@@ -112,6 +151,7 @@ export default function Register() {
                       <Label htmlFor="confirmPassword" className="text-white">{t("auth.confirmPassword")}</Label>
                       <Input 
                         id="confirmPassword" 
+                        name="confirmPassword"
                         type="password" 
                         required 
                         className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-white/40"

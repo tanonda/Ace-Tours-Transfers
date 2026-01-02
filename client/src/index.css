@@ -115,9 +115,38 @@
   }
   body {
     @apply font-sans antialiased bg-background text-foreground;
+    font-size: 16px; /* Base size for rem calculations */
+    line-height: 1.6;
   }
   h1, h2, h3, h4, h5, h6 {
     @apply font-serif font-bold;
+    line-height: 1.2;
+  }
+  
+  /* Typography Scale - Luxury Travel Standard */
+  h1 {
+    font-size: clamp(2.25rem, 5vw, 4.5rem); /* 36px - 72px */
+  }
+  h2 {
+    font-size: clamp(1.75rem, 4vw, 3rem); /* 28px - 48px */
+  }
+  h3 {
+    font-size: clamp(1.25rem, 2.5vw, 1.75rem); /* 20px - 28px */
+  }
+  h4 {
+    font-size: clamp(1.125rem, 2vw, 1.5rem); /* 18px - 24px */
+  }
+  
+  /* Minimum text size enforcement for legibility */
+  p, span, li, label, a {
+    font-size: max(0.9375rem, 1em); /* Never below 15px */
+  }
+  
+  /* Navigation Typography - Confidence Weight */
+  nav a, nav button, [role="navigation"] a {
+    font-weight: 500;
+    font-size: max(0.9375rem, 1em); /* 15px minimum */
+    letter-spacing: 0.01em;
   }
 }
 
