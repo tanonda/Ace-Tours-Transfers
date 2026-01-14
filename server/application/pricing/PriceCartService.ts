@@ -1,8 +1,8 @@
 
-import { PricingService, PriceSnapshot } from "../../domain/pricing/PricingService";
-import { IStorage } from "../../storage";
-import { eventDispatcher } from "../../infrastructure/events/event-dispatcher";
-import { CartPriced } from "../../domain/events";
+import { PricingService, PriceSnapshot } from "../../domain/pricing/PricingService.js";
+import { IStorage } from "../../storage.js";
+import { eventDispatcher } from "../../infrastructure/events/event-dispatcher.js";
+import { CartPriced } from "../../domain/events.js";
 
 export class PriceCartService {
   constructor(private storage: IStorage) {}

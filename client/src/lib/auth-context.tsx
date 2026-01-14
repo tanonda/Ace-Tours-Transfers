@@ -3,10 +3,9 @@ import { useLocation } from "wouter";
 
 interface User {
   id: string;
-  username: string;
   email: string;
   name: string;
-  role: "admin" | "customer";
+  role: "admin" | "customer" | "field_service";
 }
 
 interface AuthContextType {

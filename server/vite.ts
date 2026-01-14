@@ -1,7 +1,7 @@
 import { type Express } from "express";
 import { createServer as createViteServer, createLogger } from "vite";
 import { type Server } from "http";
-import viteConfig from "../vite.config";
+import viteConfig from "../vite.config.js";
 import fs from "fs";
 import path from "path";
 import { nanoid } from "nanoid";
@@ -12,16 +12,27 @@ const viteLogger = createLogger();
 export async function setupVite(server: Server, app: Express) {
   const serverOptions = {
     middlewareMode: true,
+    host: "0.0.0.0",
+    proxy: {
+      "/api": {
+        target: "http://localhost:5001",
+        changeOrigin: true,
+      },
+    },
     hmr: {
-      server,
+      server, // Keep the existing server for HMR websocket
+      host: 'localhost',
+      protocol: "ws",
+      port: 5001, // Vite's internal HMR websocket port
+      clientPort: 5001,
       path: "/vite-hmr",
-      clientPort: 5000,
-      protocol: "ws"
     },
     allowedHosts: true as const,
+    port: 5001, // Explicitly set Vite's internal server port to match Express
     fs: {
       strict: true,
       allow: [".."],
+      deny: ["**/.*"],
     },
     watch: {
       usePolling: true,
@@ -61,6 +72,12 @@ export async function setupVite(server: Server, app: Express) {
 
   app.use("*", async (req, res, next) => {
     const url = req.originalUrl;
+    const pathName = req.path;
+
+    // Skip API and assets that should be handled by other middlewares
+    if (pathName.startsWith("/api") || pathName.includes(".")) {
+      return next();
+    }
 
     try {
       const clientTemplate = path.resolve(
@@ -70,8 +87,20 @@ export async function setupVite(server: Server, app: Express) {
         "index.html",
       );
 
+      if (!fs.existsSync(clientTemplate)) {
+        console.error(`Index template not found at ${clientTemplate}`);
+        return next();
+      }
+
       // always reload the index.html file from disk incase it changes
       let template = await fs.promises.readFile(clientTemplate, "utf-8");
+      
+      // Inject version to force main.tsx reload
+      template = template.replace(
+        `src="/src/main.tsx"`,
+        `src="/src/main.tsx?v=${nanoid()}"`,
+      );
+      
       const page = await vite.transformIndexHtml(url, template);
       res.status(200)
         .set({ 

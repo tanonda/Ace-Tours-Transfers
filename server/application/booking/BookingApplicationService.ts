@@ -1,5 +1,5 @@
-import { IStorage } from "../../storage";
-import { AvailabilityApplicationService } from "../availability/availability.application-service";
+import { IStorage } from "../../storage.js";
+import { AvailabilityApplicationService } from "../availability/availability.application-service.js";
 
 export class BookingApplicationService {
   private availabilityService: AvailabilityApplicationService;

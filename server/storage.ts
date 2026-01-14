@@ -1,5 +1,5 @@
-import { 
-  users, 
+import {
+  users,
   tours,
   bookings,
   contentBlocks,
@@ -14,7 +14,8 @@ import {
   bookingSummaries,
   revenueDaily,
   paymentOverviews,
-  type User, 
+  notifications,
+  type User,
   type InsertUser,
   type Tour,
   type InsertTour,
@@ -37,54 +38,57 @@ import {
   type TourInstance,
   type InsertTourInstance,
   type AvailabilityHold,
-  type InsertAvailabilityHold
-} from "@shared/schema";
-import { db } from "./db";
-import { eq, desc, and, sql } from "drizzle-orm";
+  type InsertAvailabilityHold,
+  type Notification,
+  type InsertNotification
+} from "../shared/schema.js";
+import { db } from "./db.js";
+import { eq, like, desc, and, or, isNull, sql } from "drizzle-orm";
 
 export interface IStorage {
   // User operations
   getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
   getAllUsers(): Promise<User[]>;
   updateUserRole(id: string, role: string): Promise<User | undefined>;
   updateUserPassword(id: string, password: string): Promise<User | undefined>;
+  createUser(user: InsertUser): Promise<User>;
   getCustomers(): Promise<User[]>;
-  
+
   // Tour operations
   getTours(): Promise<Tour[]>;
   getTour(id: string): Promise<Tour | undefined>;
   createTour(tour: InsertTour): Promise<Tour>;
   updateTour(id: string, tour: Partial<InsertTour>): Promise<Tour>;
   deleteTour(id: string): Promise<void>;
-  
+
   // Booking operations
   getBookings(): Promise<Booking[]>;
   getBooking(id: string): Promise<Booking | undefined>;
   getUserBookings(userId: string): Promise<Booking[]>;
+  getBookingsForServiceAndDate(serviceId: string, dateString: string): Promise<Booking[]>; 
   getBookingsBySession(sessionId: string): Promise<Booking[]>;
   createBooking(booking: InsertBooking): Promise<Booking>;
   updateBooking(id: string, booking: Partial<InsertBooking>): Promise<Booking>;
   linkBookingsToUser(email: string, userId: string): Promise<void>;
   deleteBooking(id: string): Promise<void>;
-  
+
   // Analytics
   getBookingStats(): Promise<{ total: number; confirmed: number; pending: number; completed: number; }>;
   getRevenueByMonth(): Promise<{ month: string; total: number; }[]>;
-  
+
   // Content Blocks (CMS)
   getContentBlocks(): Promise<ContentBlock[]>;
   getContentBlock(slug: string): Promise<ContentBlock | undefined>;
   upsertContentBlock(block: InsertContentBlock): Promise<ContentBlock>;
   updateContentBlock(slug: string, data: Partial<InsertContentBlock>): Promise<ContentBlock>;
-  
+
   // Site Settings
   getSiteSettings(): Promise<SiteSetting[]>;
   getSiteSetting(key: string): Promise<SiteSetting | undefined>;
   upsertSiteSetting(setting: InsertSiteSetting): Promise<SiteSetting>;
-  
+
   // Payment Gateways
   getPaymentGateways(): Promise<PaymentGateway[]>;
   getPaymentGateway(id: string): Promise<PaymentGateway | undefined>;
@@ -93,7 +97,7 @@ export interface IStorage {
   upsertPaymentGateway(gateway: InsertPaymentGateway): Promise<PaymentGateway>;
   updatePaymentGateway(id: string, data: Partial<InsertPaymentGateway>): Promise<PaymentGateway>;
   setDefaultPaymentGateway(id: string): Promise<void>;
-  
+
   // Payments
   getPayments(): Promise<Payment[]>;
   getPayment(id: string): Promise<Payment | undefined>;
@@ -102,20 +106,25 @@ export interface IStorage {
   updatePayment(id: string, data: Partial<InsertPayment>): Promise<Payment>;
   checkPaymentExpiration(paymentId: string): Promise<boolean>;
   getStaleProcessingPayments(batchSize: number): Promise<Payment[]>;
-  
+
+  // Notifications
+  createNotification(notification: InsertNotification): Promise<Notification>;
+  getUnreadNotifications(userId?: string): Promise<Notification[]>;
+  markNotificationAsRead(id: string): Promise<void>;
+
   // Wishlist
   getWishlistItems(userId: string): Promise<WishlistItem[]>;
   getWishlistItem(userId: string, tourId: string): Promise<WishlistItem | undefined>;
   addToWishlist(item: InsertWishlistItem): Promise<WishlistItem>;
   removeFromWishlist(userId: string, tourId: string): Promise<void>;
   isInWishlist(userId: string, tourId: string): Promise<boolean>;
-  
+
   // Newsletter
   getNewsletterSubscribers(): Promise<NewsletterSubscriber[]>;
   getNewsletterSubscriber(email: string): Promise<NewsletterSubscriber | undefined>;
   subscribeNewsletter(subscriber: InsertNewsletterSubscriber): Promise<NewsletterSubscriber>;
   unsubscribeNewsletter(email: string): Promise<void>;
-  
+
   // CMS Content
   getCmsContent(blockSlug: string, locale?: string): Promise<CmsContent[]>;
   getCmsContentItem(id: string): Promise<CmsContent | undefined>;
@@ -139,15 +148,10 @@ export interface IStorage {
   updateBookingSummary(bookingId: string, data: any): Promise<void>;
   incrementDailyRevenue(date: string, amount: number, vat: number): Promise<void>;
   upsertPaymentOverview(overview: any): Promise<void>;
+  clearProjections(): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
-  public db = db;
-  public bookingSummaries = bookingSummaries;
-  public revenueDaily = revenueDaily;
-  public paymentOverviews = paymentOverviews;
-  public eq = eq;
-
   // User operations
   async getUser(id: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
@@ -164,14 +168,6 @@ export class DatabaseStorage implements IStorage {
     return user || undefined;
   }
 
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const [user] = await db
-      .insert(users)
-      .values(insertUser)
-      .returning();
-    return user;
-  }
-
   async getAllUsers(): Promise<User[]> {
     return await db.select().from(users);
   }
@@ -179,7 +175,7 @@ export class DatabaseStorage implements IStorage {
   async updateUserRole(id: string, role: string): Promise<User | undefined> {
     const [user] = await db
       .update(users)
-      .set({ role })
+      .set({ role, updatedAt: new Date() })
       .where(eq(users.id, id))
       .returning();
     return user || undefined;
@@ -188,10 +184,15 @@ export class DatabaseStorage implements IStorage {
   async updateUserPassword(id: string, password: string): Promise<User | undefined> {
     const [user] = await db
       .update(users)
-      .set({ password })
+      .set({ password, updatedAt: new Date() })
       .where(eq(users.id, id))
       .returning();
     return user || undefined;
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const [user] = await db.insert(users).values(insertUser).returning();
+    return user;
   }
 
   async getCustomers(): Promise<User[]> {
@@ -211,7 +212,7 @@ export class DatabaseStorage implements IStorage {
   async createTour(insertTour: InsertTour): Promise<Tour> {
     const [tour] = await db
       .insert(tours)
-      .values(insertTour)
+      .values(insertTour as any)
       .returning();
     return tour;
   }
@@ -219,7 +220,7 @@ export class DatabaseStorage implements IStorage {
   async updateTour(id: string, updateData: Partial<InsertTour>): Promise<Tour> {
     const [tour] = await db
       .update(tours)
-      .set(updateData)
+      .set(updateData as any)
       .where(eq(tours.id, id))
       .returning();
     return tour;
@@ -245,6 +246,16 @@ export class DatabaseStorage implements IStorage {
       .from(bookings)
       .where(eq(bookings.userId, userId))
       .orderBy(desc(bookings.createdAt));
+  }
+
+  async getBookingsForServiceAndDate(serviceId: string, dateString: string): Promise<Booking[]> {
+    return await db
+      .select()
+      .from(bookings)
+      .where(and(
+        eq(bookings.tourId, serviceId),
+        eq(bookings.date, dateString)
+      ));
   }
 
   async getBookingsBySession(sessionId: string): Promise<Booking[]> {
@@ -287,21 +298,20 @@ export class DatabaseStorage implements IStorage {
     const allBookings = await db.select().from(bookings);
     return {
       total: allBookings.length,
-      confirmed: allBookings.filter(b => b.status === 'confirmed').length,
-      pending: allBookings.filter(b => b.status === 'pending').length,
-      completed: allBookings.filter(b => b.status === 'completed').length,
+      confirmed: allBookings.filter((b: Booking) => b.status === 'confirmed').length,
+      pending: allBookings.filter((b: Booking) => b.status === 'pending').length,
+      completed: allBookings.filter((b: Booking) => b.status === 'completed').length,
     };
   }
 
   async getRevenueByMonth(): Promise<{ month: string; total: number; }[]> {
-    // Simple aggregation - can be enhanced with actual SQL aggregation
     const allBookings = await db.select().from(bookings);
     const monthlyData: Record<string, number> = {};
-    
-    allBookings.forEach(booking => {
+
+    allBookings.forEach((booking: Booking) => {
       const date = new Date(booking.date);
       const monthKey = date.toLocaleDateString('en-US', { month: 'short' });
-      const amount = parseFloat(booking.amount.replace('$', '').replace(',', ''));
+      const amount = parseFloat(booking.amount.replace(/[^0-9.-]+/g, '') || '0');
       monthlyData[monthKey] = (monthlyData[monthKey] || 0) + amount;
     });
 
@@ -402,9 +412,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async setDefaultPaymentGateway(id: string): Promise<void> {
-    // First, unset all defaults
     await db.update(paymentGateways).set({ isDefault: false });
-    // Then set the new default
     await db.update(paymentGateways).set({ isDefault: true }).where(eq(paymentGateways.id, id));
   }
 
@@ -446,7 +454,6 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getStaleProcessingPayments(batchSize: number): Promise<Payment[]> {
-    // Stale if: status is processing AND (lastReconciledAt is null OR > 30m ago) AND (createdAt > 1h ago)
     return await db
       .select()
       .from(payments)
@@ -460,7 +467,38 @@ export class DatabaseStorage implements IStorage {
       .limit(batchSize);
   }
 
-  // Wishlist operations
+  // Notifications
+  async createNotification(notification: InsertNotification): Promise<Notification> {
+    const [created] = await db.insert(notifications).values(notification).returning();
+    return created;
+  }
+
+  async getUnreadNotifications(userId?: string): Promise<Notification[]> {
+    if (userId) {
+      return await db
+        .select()
+        .from(notifications)
+        .where(and(
+          eq(notifications.read, false),
+          or(eq(notifications.userId, userId), isNull(notifications.userId))
+        ))
+        .orderBy(desc(notifications.createdAt));
+    }
+    return await db
+      .select()
+      .from(notifications)
+      .where(and(eq(notifications.read, false), isNull(notifications.userId)))
+      .orderBy(desc(notifications.createdAt));
+  }
+
+  async markNotificationAsRead(id: string): Promise<void> {
+    await db
+      .update(notifications)
+      .set({ read: true })
+      .where(eq(notifications.id, id));
+  }
+
+  // Wishlist
   async getWishlistItems(userId: string): Promise<WishlistItem[]> {
     return await db.select().from(wishlistItems).where(eq(wishlistItems.userId, userId));
   }
@@ -489,7 +527,7 @@ export class DatabaseStorage implements IStorage {
     return !!item;
   }
 
-  // Newsletter operations
+  // Newsletter
   async getNewsletterSubscribers(): Promise<NewsletterSubscriber[]> {
     return await db.select().from(newsletterSubscribers).orderBy(desc(newsletterSubscribers.subscribedAt));
   }
@@ -502,7 +540,6 @@ export class DatabaseStorage implements IStorage {
   async subscribeNewsletter(subscriber: InsertNewsletterSubscriber): Promise<NewsletterSubscriber> {
     const existing = await this.getNewsletterSubscriber(subscriber.email);
     if (existing) {
-      // Resubscribe if previously unsubscribed
       const [updated] = await db
         .update(newsletterSubscribers)
         .set({ unsubscribedAt: null, confirmed: false })
@@ -521,7 +558,7 @@ export class DatabaseStorage implements IStorage {
       .where(eq(newsletterSubscribers.email, email));
   }
 
-  // CMS Content operations
+  // CMS Content
   async getCmsContent(blockSlug: string, locale?: string): Promise<CmsContent[]> {
     if (locale) {
       return await db
@@ -623,7 +660,7 @@ export class DatabaseStorage implements IStorage {
       );
   }
 
-  // Projection implementations
+  // Projections
   async upsertBookingSummary(summary: any): Promise<void> {
     await db.insert(bookingSummaries)
       .values(summary)

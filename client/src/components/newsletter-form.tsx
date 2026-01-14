@@ -12,19 +12,19 @@ interface NewsletterFormProps {
   variant?: "inline" | "stacked";
 }
 
-export function NewsletterForm({ 
-  source = "footer", 
+export function NewsletterForm({
+  source = "footer",
   className = "",
-  variant = "inline" 
+  variant = "inline"
 }: NewsletterFormProps) {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!email) {
       toast({
         title: t("newsletter.emailRequired", "Email Required"),
@@ -37,11 +37,9 @@ export function NewsletterForm({
     setIsLoading(true);
     try {
       await subscribeNewsletter({
-        email,
-        locale: i18n.language,
-        source,
+        email
       });
-      
+
       toast({
         title: t("newsletter.success", "Successfully Subscribed!"),
         description: t("newsletter.successDesc", "Thank you for subscribing to our newsletter"),
@@ -74,9 +72,9 @@ export function NewsletterForm({
           className="w-full"
           data-testid="input-newsletter-email"
         />
-        <Button 
-          type="submit" 
-          disabled={isLoading} 
+        <Button
+          type="submit"
+          disabled={isLoading}
           className="w-full"
           data-testid="button-newsletter-subscribe"
         >
@@ -105,8 +103,8 @@ export function NewsletterForm({
           data-testid="input-newsletter-email"
         />
       </div>
-      <Button 
-        type="submit" 
+      <Button
+        type="submit"
         disabled={isLoading}
         data-testid="button-newsletter-subscribe"
       >

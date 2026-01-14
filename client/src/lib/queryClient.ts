@@ -1,4 +1,4 @@
-import { QueryClient, QueryFunction } from "@tanstack/react-query";
+import { QueryClient, QueryFunction, QueryCache } from "@tanstack/react-query";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
@@ -43,6 +43,13 @@ export const getQueryFn: <T>(options: {
     return await res.json();
   };
 
+// Create a QueryCache instance with a global onError handler
+const queryCache = new QueryCache({
+  onError: (error) => {
+    console.error("Global query error:", error);
+  },
+});
+
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -56,4 +63,5 @@ export const queryClient = new QueryClient({
       retry: false,
     },
   },
+  queryCache, // Pass the custom queryCache instance
 });

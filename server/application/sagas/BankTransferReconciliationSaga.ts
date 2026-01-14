@@ -1,7 +1,7 @@
-import { IStorage } from "../../storage";
-import { eventDispatcher } from "../../infrastructure/events/event-dispatcher";
-import { PaymentInitiated, PaymentConfirmed } from "../../domain/events";
-import { PaymentStatus } from "../../domain/payments/interfaces";
+import { IStorage } from "../../storage.js";
+import { eventDispatcher } from "../../infrastructure/events/event-dispatcher.js";
+import { PaymentInitiated, PaymentConfirmed } from "../../domain/events.js";
+import { PaymentStatus } from "../../domain/payments/interfaces.js";
 
 export class BankTransferReconciliationSaga {
   private static PENDING_EXPIRY_HOURS = 48;
@@ -34,7 +34,7 @@ export class BankTransferReconciliationSaga {
     
     // FETCH: Get only payments that ARE pending and HAS an expiry date
     const stalePayments = await this.storage.getPayments(); 
-    const overdue = stalePayments.filter(p => 
+    const overdue = stalePayments.filter((p: any) => 
       p.status === PaymentStatus.Pending && 
       p.expiresAt && 
       p.expiresAt < now
@@ -44,7 +44,7 @@ export class BankTransferReconciliationSaga {
 
     console.log(`[SAGA] Found ${overdue.length} overdue payments. Orchestrating expiration.`);
 
-    const { PaymentApplicationService } = await import("../payment.application-service");
+    const { PaymentApplicationService } = await import("../payment.application-service.js");
     const paymentService = new PaymentApplicationService(this.storage);
 
     for (const payment of overdue) {

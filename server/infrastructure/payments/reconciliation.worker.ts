@@ -1,4 +1,4 @@
-import { PaymentReconciliationService } from "../../application/payment-reconciliation.service";
+import { PaymentReconciliationService } from "../../application/payment-reconciliation.service.js";
 
 export class ReconciliationWorker {
   private reconciliationService: PaymentReconciliationService;

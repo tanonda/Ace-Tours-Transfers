@@ -1,5 +1,5 @@
-import { IStorage } from "../../storage";
-import { AvailabilityService, HoldStatus } from "../../domain/availability/availability.service";
+import { IStorage } from "../../storage.js";
+import { AvailabilityService, HoldStatus } from "../../domain/availability/availability.service.js";
 
 export class HoldExpiryJob {
   private availabilityService: AvailabilityService;

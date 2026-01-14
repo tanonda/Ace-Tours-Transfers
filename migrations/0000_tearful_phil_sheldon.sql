@@ -8,9 +8,21 @@ CREATE TABLE "availability_holds" (
 	"booking_session_id" text NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE "booking_summaries" (
+	"booking_id" varchar PRIMARY KEY NOT NULL,
+	"customer_email" text NOT NULL,
+	"customer_name" text NOT NULL,
+	"total_amount" integer NOT NULL,
+	"currency" text NOT NULL,
+	"status" text NOT NULL,
+	"created_at" timestamp NOT NULL,
+	"confirmed_at" timestamp
+);
+--> statement-breakpoint
 CREATE TABLE "bookings" (
 	"id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"user_id" varchar NOT NULL,
+	"user_id" varchar,
+	"booking_session_id" text DEFAULT '' NOT NULL,
 	"tour_id" varchar NOT NULL,
 	"tour_instance_id" varchar,
 	"hold_id" varchar,
@@ -21,6 +33,8 @@ CREATE TABLE "bookings" (
 	"payment_reference" text,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"customer_name" text NOT NULL,
+	"customer_email" text DEFAULT '' NOT NULL,
+	"customer_phone" text,
 	"tour_name" text NOT NULL
 );
 --> statement-breakpoint
@@ -59,6 +73,17 @@ CREATE TABLE "newsletter_subscribers" (
 	CONSTRAINT "newsletter_subscribers_email_unique" UNIQUE("email")
 );
 --> statement-breakpoint
+CREATE TABLE "notifications" (
+	"id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"user_id" varchar,
+	"type" text DEFAULT 'info' NOT NULL,
+	"title" text NOT NULL,
+	"message" text NOT NULL,
+	"read" boolean DEFAULT false NOT NULL,
+	"link" text,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE "payment_gateways" (
 	"id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"slug" text NOT NULL,
@@ -66,12 +91,23 @@ CREATE TABLE "payment_gateways" (
 	"description" text,
 	"active" boolean DEFAULT false NOT NULL,
 	"is_default" boolean DEFAULT false NOT NULL,
+	"priority" integer DEFAULT 0 NOT NULL,
 	"credentials" jsonb,
-	"supported_currencies" text[] DEFAULT ARRAY['VUV']::text[],
+	"supported_currencies" jsonb DEFAULT '["VUV"]',
 	"config" jsonb,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL,
 	CONSTRAINT "payment_gateways_slug_unique" UNIQUE("slug")
+);
+--> statement-breakpoint
+CREATE TABLE "payment_overviews" (
+	"payment_id" varchar PRIMARY KEY NOT NULL,
+	"booking_id" varchar NOT NULL,
+	"method" text NOT NULL,
+	"status" text NOT NULL,
+	"amount" integer NOT NULL,
+	"currency" text NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "payments" (
@@ -92,6 +128,19 @@ CREATE TABLE "payments" (
 	"reconciliation_attempts" integer DEFAULT 0 NOT NULL,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "revenue_daily" (
+	"date" text PRIMARY KEY NOT NULL,
+	"total_gross" integer DEFAULT 0 NOT NULL,
+	"total_vat" integer DEFAULT 0 NOT NULL,
+	"currency" text DEFAULT 'VUV' NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "session" (
+	"sid" varchar PRIMARY KEY NOT NULL,
+	"sess" jsonb NOT NULL,
+	"expire" timestamp (6) NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "site_settings" (
@@ -123,7 +172,10 @@ CREATE TABLE "tours" (
 	"min_pax" text,
 	"image" text NOT NULL,
 	"description" text[] NOT NULL,
-	"category" text NOT NULL
+	"category" text NOT NULL,
+	"capacity" integer DEFAULT 999 NOT NULL,
+	"default_capacity" integer DEFAULT 20 NOT NULL,
+	"vehicle_details" jsonb
 );
 --> statement-breakpoint
 CREATE TABLE "users" (
@@ -135,6 +187,9 @@ CREATE TABLE "users" (
 	"name" text NOT NULL,
 	"phone" text,
 	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL,
+	"password_reset_token" text,
+	"password_reset_token_expiry" timestamp with time zone,
 	CONSTRAINT "users_username_unique" UNIQUE("username"),
 	CONSTRAINT "users_email_unique" UNIQUE("email")
 );
@@ -151,6 +206,7 @@ ALTER TABLE "bookings" ADD CONSTRAINT "bookings_user_id_users_id_fk" FOREIGN KEY
 ALTER TABLE "bookings" ADD CONSTRAINT "bookings_tour_id_tours_id_fk" FOREIGN KEY ("tour_id") REFERENCES "public"."tours"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "bookings" ADD CONSTRAINT "bookings_tour_instance_id_tour_instances_id_fk" FOREIGN KEY ("tour_instance_id") REFERENCES "public"."tour_instances"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "bookings" ADD CONSTRAINT "bookings_hold_id_availability_holds_id_fk" FOREIGN KEY ("hold_id") REFERENCES "public"."availability_holds"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "notifications" ADD CONSTRAINT "notifications_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "payments" ADD CONSTRAINT "payments_booking_id_bookings_id_fk" FOREIGN KEY ("booking_id") REFERENCES "public"."bookings"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "payments" ADD CONSTRAINT "payments_gateway_id_payment_gateways_id_fk" FOREIGN KEY ("gateway_id") REFERENCES "public"."payment_gateways"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "payments" ADD CONSTRAINT "payments_reconciled_by_users_id_fk" FOREIGN KEY ("reconciled_by") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint

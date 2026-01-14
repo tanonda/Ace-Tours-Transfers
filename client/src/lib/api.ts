@@ -1,249 +1,265 @@
-import type { Tour, Booking, User } from "@shared/schema";
+import { apiRequest } from "./queryClient";
+import type {
+  Tour,
+  Booking,
+  InsertBooking,
+  User,
+  InsertUser,
+  SiteSetting,
+  PaymentGateway,
+  Payment,
+  CmsContent,
+  Notification,
+} from "@shared/schema";
 
-const API_BASE = "/api";
+// Helper for image upload
+export async function uploadImage(file: File): Promise<{ url: string }> {
+  const formData = new FormData();
+  formData.append('image', file);
 
-// Tours API
+  const res = await fetch('/api/upload/image', {
+    method: 'POST',
+    body: formData
+  });
+
+  if (!res.ok) {
+    throw new Error('Upload failed');
+  }
+
+  return res.json();
+}
+
+// Auth
+export async function registerUser(user: any): Promise<User> {
+  const res = await apiRequest("POST", "/api/auth/register", user);
+  return res.json();
+}
+
+export async function logout() {
+  await apiRequest("POST", "/api/auth/logout");
+}
+
+export async function fetchAllUsers(): Promise<User[]> {
+  const res = await apiRequest("GET", "/api/users");
+  return res.json();
+}
+
+export async function resetUserPassword(userId: string, newPassword?: string): Promise<User> {
+  const res = await apiRequest("PATCH", `/api/users/${userId}/password`, { newPassword });
+  return res.json();
+}
+
+export async function createUser(user: InsertUser): Promise<User> {
+  const res = await apiRequest("POST", "/api/users", user);
+  return res.json();
+}
+
+
+export async function updateUserRole(id: string, role: string): Promise<User> {
+  const res = await apiRequest("PATCH", `/api/users/${id}/role`, { role });
+  return res.json();
+}
+
+// Tours
 export async function fetchTours(): Promise<Tour[]> {
-  const response = await fetch(`${API_BASE}/tours`);
-  if (!response.ok) throw new Error("Failed to fetch tours");
-  return response.json();
+  const res = await apiRequest("GET", "/api/tours");
+  return res.json();
 }
 
 export async function fetchTour(id: string): Promise<Tour> {
-  const response = await fetch(`${API_BASE}/tours/${id}`);
-  if (!response.ok) throw new Error("Failed to fetch tour");
-  return response.json();
+  const res = await apiRequest("GET", `/api/tours/${id}`);
+  return res.json();
 }
 
-// Vehicles API (Vehicle Hire feature)
+export async function createTour(tour: any): Promise<Tour> {
+  const res = await apiRequest("POST", "/api/tours", tour);
+  return res.json();
+}
+
+export async function updateTour(id: string, tour: any): Promise<Tour> {
+  const res = await apiRequest("PUT", `/api/tours/${id}`, tour);
+  return res.json();
+}
+
+export async function deleteTour(id: string): Promise<void> {
+  await apiRequest("DELETE", `/api/tours/${id}`);
+}
+
+// Vehicles API (Vehicle Hire feature) - using the common tours endpoint since they share schema
 export async function fetchVehicles(): Promise<Tour[]> {
-  const response = await fetch(`${API_BASE}/vehicles`);
-  if (!response.ok) throw new Error("Failed to fetch vehicles");
-  return response.json();
+    const tours = await fetchTours();
+    return tours.filter(t => t.category === 'vehicle');
 }
 
 export async function fetchVehicle(id: string): Promise<Tour> {
-  const response = await fetch(`${API_BASE}/vehicles/${id}`);
-  if (!response.ok) throw new Error("Failed to fetch vehicle");
-  return response.json();
+  return fetchTour(id);
 }
 
-// Bookings API
+// Bookings
 export async function fetchBookings(): Promise<Booking[]> {
-  const response = await fetch(`${API_BASE}/bookings`);
-  if (!response.ok) throw new Error("Failed to fetch bookings");
-  return response.json();
-}
-
-export async function fetchUserBookings(userId: string): Promise<Booking[]> {
-  const response = await fetch(`${API_BASE}/bookings/user/${userId}`);
-  if (!response.ok) throw new Error("Failed to fetch user bookings");
-  return response.json();
+  const res = await apiRequest("GET", "/api/bookings");
+  return res.json();
 }
 
 export async function fetchBooking(id: string): Promise<Booking> {
-  const response = await fetch(`${API_BASE}/bookings/${id}`);
-  if (!response.ok) throw new Error("Failed to fetch booking");
-  return response.json();
+  const res = await apiRequest("GET", `/api/bookings/${id}`);
+  return res.json();
 }
 
-export async function createBooking(booking: {
-  userId: string;
-  tourId: string;
-  date: string;
-  guests: number;
-  amount: string;
-  status: string;
-  customerName: string;
-  tourName: string;
-}): Promise<Booking> {
-  const response = await fetch(`${API_BASE}/bookings`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(booking),
-  });
-  if (!response.ok) throw new Error("Failed to create booking");
-  return response.json();
+export async function fetchBookingPayments(bookingId: string): Promise<Payment[]> {
+  const res = await apiRequest("GET", `/api/payments/booking/${bookingId}`);
+  return res.json();
+}
+
+export async function fetchUserBookings(userId: string): Promise<Booking[]> {
+  const res = await apiRequest("GET", `/api/bookings/user/${userId}`);
+  return res.json();
+}
+
+export async function fetchQrCode(bookingId: string): Promise<{ qrData: string }> {
+  const res = await apiRequest("GET", `/api/bookings/${bookingId}/qr`);
+  return res.json();
+}
+
+export async function createBooking(booking: InsertBooking): Promise<Booking> {
+  const res = await apiRequest("POST", "/api/bookings", booking);
+  return res.json();
 }
 
 export async function updateBooking(id: string, updates: Partial<Booking>): Promise<Booking> {
-  const response = await fetch(`${API_BASE}/bookings/${id}`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(updates),
-  });
-  if (!response.ok) throw new Error("Failed to update booking");
-  return response.json();
+  const res = await apiRequest("PATCH", `/api/bookings/${id}`, updates);
+  return res.json();
 }
 
 export async function deleteBooking(id: string): Promise<void> {
-  const response = await fetch(`${API_BASE}/bookings/${id}`, {
-    method: "DELETE",
-  });
-  if (!response.ok) throw new Error("Failed to delete booking");
+  await apiRequest("DELETE", `/api/bookings/${id}`);
 }
 
-// Analytics API
-export async function fetchBookingStats(): Promise<{
-  total: number;
-  confirmed: number;
-  pending: number;
-  completed: number;
-}> {
-  const response = await fetch(`${API_BASE}/analytics/stats`);
-  if (!response.ok) throw new Error("Failed to fetch stats");
-  return response.json();
+export async function initiatePayment(bookingId: string, gatewaySlug?: string): Promise<{ paymentId: string; redirectUrl: string }> {
+  const res = await apiRequest("POST", "/api/payments/initiate", { bookingId, gatewaySlug });
+  return res.json();
 }
 
-export async function fetchRevenue(): Promise<{ month: string; total: number }[]> {
-  const response = await fetch(`${API_BASE}/analytics/revenue`);
-  if (!response.ok) throw new Error("Failed to fetch revenue");
-  return response.json();
-}
-
-// Users API
-export async function fetchUser(id: string): Promise<User> {
-  const response = await fetch(`${API_BASE}/users/${id}`);
-  if (!response.ok) throw new Error("Failed to fetch user");
-  return response.json();
-}
-
-export async function fetchCustomers(): Promise<User[]> {
-  const response = await fetch(`${API_BASE}/customers`);
-  if (!response.ok) throw new Error("Failed to fetch customers");
-  return response.json();
-}
-
-// Export bookings as CSV
 export async function exportBookingsCSV(): Promise<void> {
-  const response = await fetch(`${API_BASE}/bookings/export`, {
-    credentials: "include"
-  });
-  if (!response.ok) throw new Error("Failed to export bookings");
-  
-  const blob = await response.blob();
+  const res = await apiRequest("GET", "/api/bookings/export");
+  const blob = await res.blob();
   const url = window.URL.createObjectURL(blob);
-  const a = document.createElement("a");
+  const a = document.createElement('a');
   a.href = url;
-  a.download = "bookings.csv";
+  a.download = 'bookings.csv';
   document.body.appendChild(a);
   a.click();
   window.URL.revokeObjectURL(url);
   document.body.removeChild(a);
 }
 
-// Wishlist API
-export async function fetchWishlist(): Promise<{ id: string; userId: string; tourId: string; addedAt: string }[]> {
-  const response = await fetch(`${API_BASE}/wishlist`, { credentials: "include" });
-  if (!response.ok) throw new Error("Failed to fetch wishlist");
-  return response.json();
+// Analytics
+export async function fetchBookingStats() {
+  const res = await apiRequest("GET", "/api/analytics/stats");
+  return res.json();
 }
 
-export async function checkWishlist(tourId: string): Promise<boolean> {
-  const response = await fetch(`${API_BASE}/wishlist/check/${tourId}`, { credentials: "include" });
-  if (!response.ok) return false;
-  const data = await response.json();
-  return data.inWishlist;
+export async function fetchRevenue(): Promise<{ month: string; total: number }[]> {
+  const res = await apiRequest("GET", "/api/analytics/revenue");
+  return res.json();
 }
 
-export async function addToWishlist(tourId: string): Promise<void> {
-  const response = await fetch(`${API_BASE}/wishlist`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
-    body: JSON.stringify({ tourId }),
-  });
-  if (!response.ok) throw new Error("Failed to add to wishlist");
+// Site Settings
+export async function fetchSiteSettings(): Promise<SiteSetting[]> {
+  const res = await apiRequest("GET", "/api/settings");
+  return res.json();
 }
 
-export async function removeFromWishlist(tourId: string): Promise<void> {
-  const response = await fetch(`${API_BASE}/wishlist/${tourId}`, {
-    method: "DELETE",
-    credentials: "include",
-  });
-  if (!response.ok) throw new Error("Failed to remove from wishlist");
+export async function updateSiteSetting(key: string, value: any): Promise<SiteSetting> {
+  const res = await apiRequest("PUT", `/api/admin/settings/${key}`, { value });
+  return res.json();
 }
 
-// Newsletter API
-export async function subscribeNewsletter(data: { 
-  email: string; 
-  name?: string; 
-  locale?: string; 
-  source?: string 
-}): Promise<{ message: string }> {
-  const response = await fetch(`${API_BASE}/newsletter/subscribe`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-  });
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || "Failed to subscribe");
-  }
-  return response.json();
+// Payment Gateways
+export async function fetchPaymentGateways(): Promise<PaymentGateway[]> {
+  const res = await apiRequest("GET", "/api/admin/payment-gateways");
+  return res.json();
 }
 
-export async function fetchNewsletterSubscribers(): Promise<any[]> {
-  const response = await fetch(`${API_BASE}/newsletter/subscribers`, { credentials: "include" });
-  if (!response.ok) throw new Error("Failed to fetch subscribers");
-  return response.json();
+export async function updatePaymentGateway(id: string, data: Partial<PaymentGateway>): Promise<PaymentGateway> {
+  const res = await apiRequest("PUT", `/api/admin/payment-gateways/${id}`, data);
+  return res.json();
 }
 
-// CMS Content API
-export async function fetchCmsContent(blockSlug: string, locale?: string): Promise<any[]> {
-  const url = locale 
-    ? `${API_BASE}/cms-content/${blockSlug}?locale=${locale}` 
-    : `${API_BASE}/cms-content/${blockSlug}`;
-  const response = await fetch(url);
-  if (!response.ok) throw new Error("Failed to fetch CMS content");
-  return response.json();
+export async function setDefaultPaymentGateway(id: string): Promise<void> {
+  await apiRequest("POST", `/api/admin/payment-gateways/${id}/set-default`);
 }
 
-export async function fetchAllCmsContent(): Promise<Record<string, any[]>> {
-  const response = await fetch(`${API_BASE}/cms-content`, { credentials: "include" });
-  if (!response.ok) throw new Error("Failed to fetch CMS content");
-  return response.json();
+// CMS Content
+export async function fetchAllCmsContent(): Promise<Record<string, CmsContent[]>> {
+  const res = await apiRequest("GET", "/api/cms-content");
+  return res.json();
 }
 
-export async function createCmsContent(data: {
-  blockSlug: string;
-  contentKey: string;
-  contentType: string;
-  value: string;
-  locale?: string;
-  sortOrder?: number;
-}): Promise<any> {
-  const response = await fetch(`${API_BASE}/cms-content`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
-    body: JSON.stringify(data),
-  });
-  if (!response.ok) throw new Error("Failed to create CMS content");
-  return response.json();
+export async function createCmsContent(data: any): Promise<CmsContent> {
+  const res = await apiRequest("POST", "/api/cms-content", data);
+  return res.json();
 }
 
-export async function updateCmsContent(id: string, data: Partial<{
-  contentKey: string;
-  contentType: string;
-  value: string;
-  locale: string;
-  sortOrder: number;
-}>): Promise<any> {
-  const response = await fetch(`${API_BASE}/cms-content/${id}`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
-    body: JSON.stringify(data),
-  });
-  if (!response.ok) throw new Error("Failed to update CMS content");
-  return response.json();
+export async function updateCmsContent(id: string, data: any): Promise<CmsContent> {
+  const res = await apiRequest("PATCH", `/api/cms-content/${id}`, data);
+  return res.json();
 }
 
 export async function deleteCmsContent(id: string): Promise<void> {
-  const response = await fetch(`${API_BASE}/cms-content/${id}`, {
-    method: "DELETE",
-    credentials: "include",
-  });
-  if (!response.ok) throw new Error("Failed to delete CMS content");
+  await apiRequest("DELETE", `/api/cms-content/${id}`);
+}
+
+// Newsletter
+export async function subscribeNewsletter(data: {
+  email: string;
+  name?: string;
+  locale?: string;
+  source?: string;
+}): Promise<void> {
+  await apiRequest("POST", "/api/newsletter/subscribe", data);
+}
+
+export async function fetchNewsletterSubscribers(): Promise<any[]> {
+  const res = await apiRequest("GET", "/api/newsletter/subscribers");
+  return res.json();
+}
+
+// Wishlist
+export async function fetchWishlist(): Promise<any[]> {
+  const res = await apiRequest("GET", "/api/wishlist");
+  return res.json();
+}
+
+export async function checkWishlist(tourId: string): Promise<boolean> {
+  const res = await apiRequest("GET", `/api/wishlist/check/${tourId}`);
+  return res.json().then(data => data.inWishlist);
+}
+
+export async function addToWishlist(tourId: string): Promise<void> {
+  await apiRequest("POST", "/api/wishlist", { tourId });
+}
+
+export async function removeFromWishlist(tourId: string): Promise<void> {
+  await apiRequest("DELETE", `/api/wishlist/${tourId}`);
+}
+
+// Notifications
+export async function fetchNotifications(): Promise<Notification[]> {
+  const res = await apiRequest("GET", "/api/notifications");
+  return res.json();
+}
+
+export async function markNotificationRead(id: string): Promise<void> {
+  await apiRequest("PATCH", `/api/notifications/${id}/read`);
+}
+
+export async function verifyBooking(data: { bookingId: string; type: string; value: string }): Promise<any> {
+  const res = await apiRequest("POST", "/api/bookings/verify", data);
+  return res.json();
+}
+
+export async function cancelBooking(id: string, verification: { type: string; value: string }): Promise<any> {
+  const res = await apiRequest("POST", `/api/bookings/${id}/cancel`, verification);
+  return res.json();
 }

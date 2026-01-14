@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { BookingModal } from "@/components/booking-modal";
 import { NewsletterForm } from "@/components/newsletter-form";
-import logo from "@assets/thumbnail_1755110010542_1764279489018.jpg";
+import { MobileBottomNav } from "@/components/mobile-bottom-nav";
+const logo = "https://res.cloudinary.com/dwro1dh5q/image/upload/v1765063924/ace-tours-assets/ace_tours_logo_official.jpg";
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -24,6 +25,7 @@ import { LanguageSelector } from "@/components/language-selector";
 import { useTranslation } from "react-i18next";
 import { SkipLinks } from "@/components/skip-links";
 import { useCMS } from "@/lib/cms-context";
+import { WhatsAppWidget } from "@/components/whatsapp-widget";
 import { useAuth } from "@/lib/auth-context";
 import {
   Collapsible,
@@ -111,37 +113,25 @@ export function Layout({ children }: { children: React.ReactNode }) {
   }, []);
 
   const isTransparent = isHome && !isScrolled;
-  
-  // Text color logic:
-  // If transparent (Home top): White text
-  // If scrolled OR not Home: Dark text (foreground)
+
   const navTextColor = isTransparent ? "text-white hover:text-white/80" : "text-foreground hover:text-primary";
   const logoTextColor = isTransparent ? "text-white" : "text-foreground";
   const mobileButtonColor = isTransparent ? "text-white" : "text-foreground";
 
-  const navLinks = [
-    { href: "/", label: t("nav.home") },
-    { href: "/about", label: t("nav.about") },
-    { href: "/contact", label: t("nav.contact") },
-  ];
-
   return (
     <div className="min-h-screen flex flex-col bg-background font-sans text-foreground">
       <SkipLinks />
-      
-      {/* Navigation */}
+
       <header
         id="main-navigation"
         role="banner"
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-          isScrolled 
-            ? "bg-background/95 backdrop-blur-md shadow-sm border-b border-border/50" 
-            : isHome 
-              ? "bg-transparent" 
-              : "bg-background/95 backdrop-blur-md"
-        }`}
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled
+          ? "bg-background/95 backdrop-blur-md shadow-sm border-b border-border/50"
+          : isHome
+            ? "bg-transparent"
+            : "bg-background/95 backdrop-blur-md"
+          }`}
       >
-        {/* Top Contact Bar */}
         <div className={`transition-all duration-300 ${isScrolled ? "hidden" : "block"}`}>
           <div className={`container mx-auto px-4 py-2 flex flex-col md:flex-row items-center justify-between text-sm ${isTransparent ? "text-white/90" : "text-muted-foreground"}`}>
             <p className={`italic font-medium ${isTransparent ? "text-white" : "text-foreground"}`}>
@@ -162,27 +152,22 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </div>
         </div>
 
-        {/* Logo Bar - Centered */}
         <div className={`container mx-auto px-4 flex justify-center transition-all duration-300 ${isScrolled ? "py-1" : "pt-1 pb-1"}`}>
           <Link href="/" className="flex items-center gap-3">
-            <img 
-              src={logo} 
-              alt="Ace Tours Logo" 
-              className={`rounded-full shadow-lg border-2 transition-all duration-300 ${
-                isTransparent ? "border-white/30" : "border-primary/30"
-              } ${isScrolled ? "h-10 w-10" : "h-14 w-14 md:h-16 md:w-16"}`}
+            <img
+              src={logo}
+              alt="Ace Tours Logo"
+              className={`rounded-full shadow-lg border-2 transition-all duration-300 ${isTransparent ? "border-white/30" : "border-primary/30"
+                } ${isScrolled ? "h-10 w-10" : "h-14 w-14 md:h-16 md:w-16"}`}
             />
-            <span className={`font-serif font-bold tracking-tight transition-all duration-300 ${logoTextColor} ${
-              isScrolled ? "text-base" : "text-lg md:text-xl"
-            }`}>
+            <span className={`font-serif font-bold tracking-tight transition-all duration-300 ${logoTextColor} ${isScrolled ? "text-base" : "text-lg md:text-xl"
+              }`}>
               Ace Tours & Transfers
             </span>
           </Link>
         </div>
 
-        {/* Navigation Bar */}
         <div className={`container mx-auto px-4 flex items-center justify-center transition-all duration-300 ${isScrolled ? "pb-1" : "pb-2"}`}>
-          {/* Desktop Nav */}
           <nav className="hidden md:flex items-center gap-6" aria-label="Main navigation">
             <NavigationMenu className="relative z-50">
               <NavigationMenuList>
@@ -310,7 +295,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 </NavigationMenuItem>
               </NavigationMenuList>
             </NavigationMenu>
-            
+
             <div className="ml-2 flex items-center gap-4">
               <LanguageSelector />
               <ThemeToggle size="sm" />
@@ -318,12 +303,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </div>
           </nav>
 
-          {/* Mobile Nav */}
           <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
             <SheetTrigger asChild className="md:hidden">
-              <Button 
-                variant="ghost" 
-                size="icon" 
+              <Button
+                variant="ghost"
+                size="icon"
                 className={mobileButtonColor}
                 aria-label={t("accessibility.menuOpen")}
                 data-testid="button-mobile-menu"
@@ -336,7 +320,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
               className="w-[85vw] max-w-[320px] p-0 overflow-hidden"
               data-testid="mobile-menu-panel"
             >
-              {/* Mobile Menu Header */}
               <div className="bg-primary text-white p-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <img 
@@ -358,7 +341,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 </SheetClose>
               </div>
 
-              {/* User Section */}
               <div className="bg-muted/50 p-4 border-b border-border">
                 {user ? (
                   <div className="flex items-center gap-3">
@@ -393,10 +375,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 )}
               </div>
 
-              {/* Scrollable Navigation */}
               <div className="overflow-y-auto h-[calc(100vh-200px)]">
                 <nav className="p-2">
-                  {/* Home */}
                   <Link 
                     href="/" 
                     onClick={closeMobileMenu}
@@ -407,7 +387,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     <span className="font-medium">{t("nav.home")}</span>
                   </Link>
 
-                  {/* Tours - Collapsible */}
                   <Collapsible open={toursOpen} onOpenChange={setToursOpen}>
                     <CollapsibleTrigger className="flex items-center justify-between w-full px-4 py-3 rounded-lg hover:bg-muted transition-colors">
                       <div className="flex items-center gap-3">
@@ -438,7 +417,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     </CollapsibleContent>
                   </Collapsible>
 
-                  {/* Transfers - Collapsible */}
                   <Collapsible open={transfersOpen} onOpenChange={setTransfersOpen}>
                     <CollapsibleTrigger className="flex items-center justify-between w-full px-4 py-3 rounded-lg hover:bg-muted transition-colors">
                       <div className="flex items-center gap-3">
@@ -469,7 +447,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     </CollapsibleContent>
                   </Collapsible>
 
-                  {/* About */}
                   <Link 
                     href="/about" 
                     onClick={closeMobileMenu}
@@ -480,7 +457,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     <span className="font-medium">{t("nav.about")}</span>
                   </Link>
 
-                  {/* Contact */}
                   <Link 
                     href="/contact" 
                     onClick={closeMobileMenu}
@@ -491,7 +467,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     <span className="font-medium">{t("nav.contact")}</span>
                   </Link>
 
-                  {/* My Bookings - Collapsible */}
                   <Collapsible open={bookingsOpen} onOpenChange={setBookingsOpen}>
                     <CollapsibleTrigger className="flex items-center justify-between w-full px-4 py-3 rounded-lg hover:bg-muted transition-colors">
                       <div className="flex items-center gap-3">
@@ -528,7 +503,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     </CollapsibleContent>
                   </Collapsible>
 
-                  {/* Cart */}
                   <Link 
                     href="/cart" 
                     onClick={closeMobileMenu}
@@ -546,29 +520,24 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     )}
                   </Link>
 
-                  {/* Divider */}
                   <div className="my-3 border-t border-border" />
 
-                  {/* Settings Section */}
                   <div className="px-4 py-2">
                     <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
                       {t("common.settings", "Settings")}
                     </p>
                   </div>
 
-                  {/* Language */}
                   <div className="flex items-center justify-between px-4 py-3 rounded-lg hover:bg-muted transition-colors">
                     <span className="font-medium">{t("common.language")}</span>
                     <LanguageSelector />
                   </div>
 
-                  {/* Theme */}
                   <div className="flex items-center justify-between px-4 py-3 rounded-lg hover:bg-muted transition-colors">
                     <span className="font-medium">{t("common.theme")}</span>
                     <ThemeToggle size="md" />
                   </div>
 
-                  {/* Logout for logged-in users */}
                   {user && (
                     <button 
                       onClick={() => {
@@ -584,7 +553,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   )}
                 </nav>
 
-                {/* Book Now CTA */}
                 <div className="p-4 border-t border-border">
                   <BookingModal 
                     trigger={
@@ -595,7 +563,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   />
                 </div>
 
-                {/* Contact Info */}
                 <div className="p-4 bg-muted/30 border-t border-border">
                   <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
                     {t("footer.contactUs")}
@@ -625,12 +592,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      {/* Main Content */}
-      <main id="main-content" role="main" className="flex-grow" tabIndex={-1}>
+      <main id="main-content" role="main" className="flex-grow has-bottom-nav" tabIndex={-1}>
         {children}
       </main>
 
-      {/* Footer */}
       <footer role="contentinfo" className="bg-[#291B12] text-white pt-16 pb-8">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
@@ -690,7 +655,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
               </ul>
             </div>
           </div>
-          
+
           {showNewsletter && (
             <div className="border-t border-white/10 py-8 mb-8">
               <div className="max-w-md mx-auto text-center">
@@ -704,12 +669,59 @@ export function Layout({ children }: { children: React.ReactNode }) {
               </div>
             </div>
           )}
-          
+
           <div className="border-t border-white/10 pt-8 text-center text-white/40 text-sm">
             <p>&copy; {new Date().getFullYear()} {t("app.title")}. {t("footer.copyright")}</p>
           </div>
         </div>
       </footer>
+
+      <MobileBottomNav
+        menuContent={
+          <div className="flex flex-col gap-6 mt-10">
+            <Link href="/" className="text-lg font-medium hover:text-primary">{t("nav.home")}</Link>
+
+            <div className="space-y-3">
+              <Link href="/tours" className="text-lg font-medium hover:text-primary block">{t("nav.tours")}</Link>
+              <div className="pl-4 space-y-2 border-l-2 border-muted">
+                {tours.map(tour => (
+                  <Link key={tour.id} href="/tours" className="block text-sm text-muted-foreground hover:text-primary">
+                    {tour.title}
+                  </Link>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <Link href="/transfers" className="text-lg font-medium hover:text-primary block">{t("nav.transfers")}</Link>
+              <div className="pl-4 space-y-2 border-l-2 border-muted">
+                {transfers.map(transfer => (
+                  <Link key={transfer.id} href="/transfers" className="block text-sm text-muted-foreground hover:text-primary">
+                    {transfer.title}
+                  </Link>
+                ))}
+              </div>
+            </div>
+
+            <Link href="/about" className="text-lg font-medium hover:text-primary">{t("nav.about")}</Link>
+            <Link href="/contact" className="text-lg font-medium hover:text-primary">{t("nav.contact")}</Link>
+            <Link href="/reservations" className="text-lg font-medium hover:text-primary">{t("nav.myBookings")}</Link>
+
+            <div className="flex items-center justify-between py-2">
+              <span className="text-lg font-medium text-foreground">{t("common.language")}</span>
+              <LanguageSelector />
+            </div>
+
+            <div className="flex items-center justify-between py-2">
+              <span className="text-lg font-medium text-foreground">{t("common.theme")}</span>
+              <ThemeToggle size="md" />
+            </div>
+
+            <BookingModal trigger={<Button size="lg" className="w-full">{t("tour.bookNow")}</Button>} />
+          </div>
+        }
+      />
+      <WhatsAppWidget />
     </div>
   );
 }

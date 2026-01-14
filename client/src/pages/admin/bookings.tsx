@@ -9,6 +9,7 @@ import { Search, Filter, MoreHorizontal, Eye } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { BookingDetailsDialog } from "@/components/admin/booking-details-dialog";
 import { EditBookingDialog } from "@/components/admin/edit-booking-dialog";
+import { CreateBookingDialog } from "@/components/admin/create-booking-dialog";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -27,6 +28,7 @@ export default function AdminBookings() {
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isCreateOpen, setIsCreateOpen] = useState(false); // New state for create dialog
 
   const updateMutation = useMutation({
     mutationFn: ({ id, updates }: { id: string; updates: Partial<Booking> }) =>
@@ -96,7 +98,7 @@ export default function AdminBookings() {
             <Button variant="outline" onClick={handleExportCSV} data-testid="button-export-csv">
               <Download className="h-4 w-4 mr-2" /> Export CSV
             </Button>
-            <Button className="bg-[#004165]" onClick={() => toast({ title: "Create Booking", description: "Opening booking creation form..." })}>Create Booking</Button>
+            <Button className="bg-[#004165]" onClick={() => setIsCreateOpen(true)}>Create Booking</Button>
           </div>
         </div>
 
@@ -193,13 +195,19 @@ export default function AdminBookings() {
           onOpenChange={setIsViewOpen} 
         />
 
-        <EditBookingDialog 
-          booking={selectedBooking} 
-          open={isEditOpen} 
-          onOpenChange={setIsEditOpen} 
-          onSave={handleSaveBooking}
-        />
-      </div>
+                <EditBookingDialog
+                  booking={selectedBooking}
+                  open={isEditOpen}
+                  onOpenChange={setIsEditOpen}
+                  onSave={handleSaveBooking}
+                />
+        
+                <CreateBookingDialog
+                  open={isCreateOpen}
+                  onOpenChange={setIsCreateOpen}
+                  onSuccess={() => queryClient.invalidateQueries({ queryKey: ["bookings"] })}
+                />
+              </div>
     </DashboardLayout>
   );
 }

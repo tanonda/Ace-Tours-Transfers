@@ -1,5 +1,6 @@
 
 import { Layout } from "@/components/layout";
+import { SEO } from "@/components/seo";
 import { TourCard } from "@/components/tour-card";
 import { useQuery } from "@tanstack/react-query";
 import { fetchTours } from "@/lib/api";
@@ -32,13 +33,17 @@ export default function Transfers() {
 
   return (
     <Layout>
+      <SEO
+        title={t("transfers.seoTitle", "Airport Transfers & Transport Services in Vanuatu")}
+        description={t("transfers.seoDesc", "Reliable and comfortable airport transfers, event transport, and VIP hospitality services in Vanuatu.")}
+      />
       <div className="bg-muted/30 pt-40 pb-20">
         <div className="container mx-auto px-4">
           <h1 className="text-5xl font-serif font-bold text-center mb-6">{t("home.transfersTitle")}</h1>
           <p className="text-center text-muted-foreground max-w-2xl mx-auto mb-16 text-lg">
             {t("home.transfersDesc")}
           </p>
-          
+
           {isLoading ? (
             <div className="text-center py-12">{t("common.loading")}</div>
           ) : (

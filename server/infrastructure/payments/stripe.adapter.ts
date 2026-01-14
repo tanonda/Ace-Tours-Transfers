@@ -1,5 +1,6 @@
+
 import Stripe from 'stripe';
-import { getUncachableStripeClient, getStripeSync } from '../../stripeClient';
+import { getUncachableStripeClient, getStripeSync } from '../../stripeClient.js';
 import { 
   PaymentGatewayService, 
   PaymentInitiationRequest, 
@@ -9,9 +10,13 @@ import {
   PaymentStatusResponse, 
   WebhookEvent, 
   WebhookResponse 
-} from '../../domain/payments/interfaces';
-import { Payment, PaymentGateway } from '@shared/schema';
+} from '../../domain/payments/interfaces.js';
+import { Payment, PaymentGateway } from '../../../shared/schema.js';
 
+/**
+ * Stripe Payment Gateway Adapter.
+ * Integrates with Replit Stripe Connector and stripe-replit-sync.
+ */
 export class StripeAdapter implements PaymentGatewayService {
   private gatewayConfig: PaymentGateway;
 
@@ -29,7 +34,7 @@ export class StripeAdapter implements PaymentGatewayService {
         customer_email: request.customerEmail,
         line_items: [{
           price_data: {
-            currency: request.currency.toLowerCase() || 'usd',
+            currency: request.currency.toLowerCase() || 'vuv',
             product_data: {
               name: request.customerName ? `Booking for ${request.customerName}` : 'Tour Booking',
               description: `Booking ID: ${request.bookingId}`,
@@ -78,7 +83,7 @@ export class StripeAdapter implements PaymentGatewayService {
 
       if (stripeEvent.type === 'checkout.session.completed') {
         const session = stripeEvent.data.object as any;
-        bookingId = session.metadata?.bookingId;
+        bookingId = session.metadata?.bookingId || session.client_reference_id;
         paymentId = session.metadata?.paymentId;
         newStatus = PaymentStatus.Completed;
         gatewayReference = session.payment_intent as string;
@@ -117,6 +122,7 @@ export class StripeAdapter implements PaymentGatewayService {
     }
 
     try {
+      // Try to retrieve as session first
       const session = await stripe.checkout.sessions.retrieve(request.gatewayReference);
       let status = PaymentStatus.Processing;
 
@@ -132,7 +138,7 @@ export class StripeAdapter implements PaymentGatewayService {
         status,
         gatewayReference: session.id,
         amount: session.amount_total || 0,
-        currency: session.currency?.toUpperCase() || 'USD',
+        currency: session.currency?.toUpperCase() || 'VUV',
       };
     } catch (error: any) {
       console.error('Stripe status query error:', error);

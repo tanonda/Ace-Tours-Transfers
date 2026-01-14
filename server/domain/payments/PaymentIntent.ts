@@ -1,6 +1,6 @@
 
-import { eventDispatcher } from "../../infrastructure/events/event-dispatcher";
-import { PaymentInitiated, PaymentConfirmed } from "../events";
+import { eventDispatcher } from "../../infrastructure/events/event-dispatcher.js";
+import { PaymentInitiated, PaymentConfirmed } from "../events.js";
 
 export enum PaymentIntentStatus {
   PENDING = 'PENDING',

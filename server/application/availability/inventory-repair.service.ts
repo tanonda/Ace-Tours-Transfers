@@ -1,7 +1,8 @@
-import { db } from "../../db";
-import { bookings, tourInstances, TourInstance } from "@shared/schema";
+
+import { db } from "../../db.js";
+import { bookings, tourInstances, type TourInstance } from "../../../shared/schema.js";
 import { eq, and, sql, sum } from "drizzle-orm";
-import { IStorage } from "../../storage";
+import { IStorage } from "../../storage.js";
 
 export interface RepairResult {
   instanceId: string;

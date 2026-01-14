@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { 
-  LayoutDashboard, 
-  CalendarDays, 
-  Map, 
-  Users, 
-  Settings, 
-  LogOut, 
+import {
+  LayoutDashboard,
+  CalendarDays,
+  Map,
+  Users,
+  Settings,
+  LogOut,
   Menu,
   X,
   ShoppingBag,
@@ -21,7 +21,8 @@ import {
   CreditCard,
   Clock,
   AlertCircle,
-  ChevronRight
+  ChevronRight,
+  UserCog
 } from "lucide-react";
 import {
   Popover,
@@ -29,8 +30,12 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { useAuth } from "@/lib/auth-context";
+import { Button } from "@/components/ui/button";
+import { NotificationsPopover } from "@/components/notifications-popover";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LanguageSelector } from "@/components/language-selector";
+
+const logo = "https://res.cloudinary.com/dwro1dh5q/image/upload/v1765063924/ace-tours-assets/ace_tours_logo_official.jpg";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -182,15 +187,18 @@ export function DashboardLayout({ children, type }: DashboardLayoutProps) {
   };
 
   const adminLinks = [
-    { href: "/admin/dashboard", label: "Overview", icon: LayoutDashboard, emoji: "📊" },
-    { href: "/admin/analytics", label: "Analytics", icon: BarChart3, emoji: "📈" },
-    { href: "/admin/bookings", label: "Bookings", icon: CalendarDays, emoji: "📅" },
-    { href: "/admin/calendar", label: "Calendar", icon: Calendar, emoji: "🗓️" },
-    { href: "/admin/tours", label: "Tours & Services", icon: Map, emoji: "🗺️" },
-    { href: "/admin/customers", label: "Customers", icon: Users, emoji: "👥" },
-    { href: "/admin/promotions", label: "Promotions", icon: Tag, emoji: "🏷️" },
-    { href: "/admin/reports", label: "Reports", icon: FileText, emoji: "📋" },
-    { href: "/admin/settings", label: "Settings", icon: Settings, emoji: "⚙️" },
+    { icon: LayoutDashboard, label: "Overview", href: "/admin/dashboard", show: true },
+    { icon: CalendarDays, label: "Bookings", href: "/admin/bookings", show: true },
+    { icon: Map, label: "Tours", href: "/admin/tours", show: true },
+    { icon: CalendarDays, label: "Calendar", href: "/admin/calendar", show: true },
+    { icon: UserCog, label: "Staff", href: "/admin/staff", show: user?.role === "admin" }, // Admin only
+    { icon: Users, label: "Customers", href: "/admin/customers", show: user?.role === "admin" }, // Admin only
+    { icon: Tag, label: "Promotions", href: "/admin/promotions", show: user?.role === "admin" }, // Admin only
+    { icon: FileText, label: "CMS Content", href: "/admin/cms", show: user?.role === "admin" }, // Admin only
+    { icon: BarChart3, label: "Analytics", href: "/admin/analytics", show: user?.role === "admin" }, // Admin only
+    { icon: FileText, label: "Reports", href: "/admin/reports", show: user?.role === "admin" }, // Admin only
+    { icon: CreditCard, label: "Payments", href: "/admin/payments", show: user?.role === "admin" }, // Admin only
+    { icon: Settings, label: "Settings", href: "/admin/settings", show: user?.role === "admin" }, // Admin only
   ];
 
   const customerLinks = [
@@ -208,26 +216,26 @@ export function DashboardLayout({ children, type }: DashboardLayoutProps) {
 
   return (
     <div className="min-h-screen bg-background text-foreground flex font-sans">
-      <div 
-        className={`fixed left-0 top-1/2 -translate-y-1/2 z-40 bg-primary p-2 rounded-r-lg cursor-pointer shadow-lg w-8 flex items-center justify-center transition-opacity duration-200 ${
-          isSidebarOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'
-        }`}
+      <div
+        className={`fixed left-0 top-1/2 -translate-y-1/2 z-40 bg-primary p-2 rounded-r-lg cursor-pointer shadow-lg w-8 flex items-center justify-center transition-opacity duration-200 ${isSidebarOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'
+          }`}
         onClick={toggleSidebar}
       >
         <div className="h-8 w-1 bg-primary-foreground/30 rounded" />
       </div>
 
-      <aside 
-        className={`fixed inset-y-0 left-0 z-50 w-60 bg-background border-r border-border flex flex-col transition-transform duration-300 ease-in-out will-change-transform ${
-          isSidebarOpen ? 'translate-x-0 shadow-xl' : '-translate-x-full'
-        }`}
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 w-60 bg-background border-r border-border flex flex-col transition-transform duration-300 ease-in-out will-change-transform ${isSidebarOpen ? 'translate-x-0 shadow-xl' : '-translate-x-full'
+          }`}
       >
         <div className="flex items-center justify-between h-16 px-4 border-b border-border">
           <Link href="/">
             <div className="flex items-center gap-2.5 cursor-pointer">
-              <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-extrabold text-xs">
-                AT
-              </div>
+              <img
+                src={logo}
+                alt="Ace Tours"
+                className="w-9 h-9 rounded-full border-2 border-primary/30 shadow-sm object-cover"
+              />
               <div>
                 <div className="text-foreground font-bold text-sm">Ace Tours</div>
                 <div className="text-muted-foreground text-xs">
@@ -236,7 +244,7 @@ export function DashboardLayout({ children, type }: DashboardLayoutProps) {
               </div>
             </div>
           </Link>
-          <button 
+          <button
             onClick={() => setIsSidebarOpen(false)}
             className="text-muted-foreground hover:text-foreground p-1 transition-colors"
           >
@@ -260,172 +268,68 @@ export function DashboardLayout({ children, type }: DashboardLayoutProps) {
           </div>
 
           <nav className="flex flex-col gap-1">
-            {links.map((link) => {
-              const isActive = location === link.href;
-              return (
+            {type === "admin" ? (
+              adminLinks.filter(link => link.show !== false).map((link) => (
                 <Link key={link.href} href={link.href}>
-                  <div 
-                    className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg cursor-pointer text-sm transition-colors duration-150 ${
-                      isActive 
-                        ? 'bg-accent text-accent-foreground font-semibold' 
-                        : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
-                    }`}
-                    data-testid={`nav-${link.label.toLowerCase().replace(/\s+/g, '-')}`}
+                  <div
+                    className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg cursor-pointer text-sm transition-colors duration-150 ${location === link.href
+                      ? 'bg-accent text-accent-foreground font-semibold'
+                      : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
+                      }`}
                   >
-                    <span className="text-sm">{link.emoji}</span>
-                    {link.label}
+                    <link.icon className={`h-4 w-4 ${location === link.href ? 'text-primary' : ''}`} />
+                    <span>{link.label}</span>
                   </div>
                 </Link>
-              );
-            })}
+              ))
+            ) : (
+              customerLinks.map((link) => {
+                const isActive = location === link.href;
+                return (
+                  <Link key={link.href} href={link.href}>
+                    <div
+                      className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg cursor-pointer text-sm transition-colors duration-150 ${isActive
+                        ? 'bg-accent text-accent-foreground font-semibold'
+                        : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
+                        }`}
+                      data-testid={`nav-${link.label.toLowerCase().replace(/\s+/g, '-')}`}
+                    >
+                      <span className="text-sm">{link.emoji}</span>
+                      <span>{link.label}</span>
+                    </div>
+                  </Link>
+                );
+              })
+            )}
           </nav>
-        </div>
+        </div >
 
         <div className="p-4 border-t border-border">
-          <Link href="/login">
-            <button 
-              onClick={handleLogout}
-              className="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-lg border-none bg-transparent text-muted-foreground cursor-pointer text-sm text-left transition-colors duration-150 hover:bg-destructive/10 hover:text-destructive"
-            >
-              <LogOut size={16} />
-              Sign Out
-            </button>
-          </Link>
+          <Button
+            variant="ghost"
+            className="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-lg text-muted-foreground cursor-pointer text-sm text-left transition-colors duration-150 hover:bg-destructive/10 hover:text-destructive"
+            onClick={handleLogout}
+          >
+            <LogOut size={16} />
+            Sign Out
+          </Button>
         </div>
-      </aside>
+      </aside >
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <header className="bg-background border-b border-border h-16 flex items-center justify-between px-6 sticky top-0 z-40">
-          <button 
+          <button
             className="p-2 -ml-2 cursor-pointer text-muted-foreground rounded-lg transition-colors duration-150 hover:bg-accent hover:text-foreground border-none bg-transparent"
             onClick={toggleSidebar}
           >
             <Menu size={24} />
           </button>
-          
+
           <div className="flex items-center gap-3">
             <LanguageSelector />
             <ThemeToggle size="sm" />
-            
-            <Popover>
-              <PopoverTrigger asChild>
-                <button className="relative bg-transparent border-none p-2 cursor-pointer text-muted-foreground rounded-lg hover:bg-accent hover:text-foreground transition-colors">
-                  <Bell size={20} />
-                  {unreadCount > 0 && (
-                    <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-destructive rounded-full border-2 border-background" />
-                  )}
-                </button>
-              </PopoverTrigger>
-              <PopoverContent 
-                className="w-96 p-0 mr-4 bg-card border-border" 
-                align="end"
-              >
-                <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/50">
-                  <h4 className="font-semibold text-sm text-foreground">Notifications</h4>
-                  {unreadCount > 0 && (
-                    <span className="bg-primary text-primary-foreground text-xs px-2 py-0.5 rounded-full font-bold">
-                      {unreadCount} New
-                    </span>
-                  )}
-                </div>
-                <div className="max-h-96 overflow-y-auto">
-                  {notifications.length > 0 ? (
-                    <div>
-                      {notifications.map((notification) => (
-                        <div 
-                          key={notification.id} 
-                          onClick={() => handleNotificationClick(notification.link)}
-                          className={`p-4 border-b border-border/50 cursor-pointer hover:bg-muted/50 transition-all group ${
-                            !notification.read ? 'bg-primary/5' : ''
-                          }`}
-                        >
-                          <div className="flex items-start gap-3">
-                            <div className={`mt-0.5 p-2 rounded-full ${
-                              notification.type === 'booking' ? 'bg-green-100 dark:bg-green-900/30' :
-                              notification.type === 'payment' ? 'bg-blue-100 dark:bg-blue-900/30' :
-                              notification.type === 'reminder' ? 'bg-orange-100 dark:bg-orange-900/30' :
-                              'bg-red-100 dark:bg-red-900/30'
-                            }`}>
-                              {getNotificationIcon(notification.type)}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex justify-between items-start gap-2 mb-1">
-                                <h5 className={`text-sm font-medium ${!notification.read ? 'text-primary' : 'text-foreground'}`}>
-                                  {notification.title}
-                                </h5>
-                                <span className="text-xs text-muted-foreground whitespace-nowrap">
-                                  {notification.time}
-                                </span>
-                              </div>
-                              <p className="text-xs text-muted-foreground mb-2">
-                                {notification.message}
-                              </p>
-                              <div className="bg-muted/50 rounded-md p-2 text-xs space-y-1">
-                                {notification.details.bookingId && (
-                                  <div className="flex justify-between">
-                                    <span className="text-muted-foreground">Booking ID:</span>
-                                    <span className="font-medium text-foreground">{notification.details.bookingId}</span>
-                                  </div>
-                                )}
-                                {notification.details.tour && (
-                                  <div className="flex justify-between">
-                                    <span className="text-muted-foreground">Tour:</span>
-                                    <span className="font-medium text-foreground truncate ml-2">{notification.details.tour}</span>
-                                  </div>
-                                )}
-                                {notification.details.date && (
-                                  <div className="flex justify-between">
-                                    <span className="text-muted-foreground">Date:</span>
-                                    <span className="font-medium text-foreground">{notification.details.date}</span>
-                                  </div>
-                                )}
-                                {notification.details.amount && (
-                                  <div className="flex justify-between">
-                                    <span className="text-muted-foreground">Amount:</span>
-                                    <span className="font-medium text-green-600 dark:text-green-400">{notification.details.amount}</span>
-                                  </div>
-                                )}
-                                {notification.details.guests && (
-                                  <div className="flex justify-between">
-                                    <span className="text-muted-foreground">Guests:</span>
-                                    <span className="font-medium text-foreground">{notification.details.guests}</span>
-                                  </div>
-                                )}
-                                {'pickup' in notification.details && notification.details.pickup && (
-                                  <div className="flex justify-between">
-                                    <span className="text-muted-foreground">Pickup:</span>
-                                    <span className="font-medium text-foreground">{notification.details.pickup}</span>
-                                  </div>
-                                )}
-                                {notification.details.time && (
-                                  <div className="flex justify-between">
-                                    <span className="text-muted-foreground">Time:</span>
-                                    <span className="font-medium text-foreground">{notification.details.time}</span>
-                                  </div>
-                                )}
-                              </div>
-                              <div className="flex items-center gap-1 mt-2 text-xs text-primary opacity-0 group-hover:opacity-100 transition-opacity">
-                                <span>View details</span>
-                                <ChevronRight className="h-3 w-3" />
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="py-8 text-center text-muted-foreground text-sm">
-                      No new notifications
-                    </div>
-                  )}
-                </div>
-                <div className="p-2 border-t border-border bg-muted/30">
-                  <button className="w-full py-2 bg-transparent border-none text-muted-foreground text-xs cursor-pointer rounded-md hover:bg-accent hover:text-foreground transition-colors">
-                    Mark all as read
-                  </button>
-                </div>
-              </PopoverContent>
-            </Popover>
+
+            <NotificationsPopover />
 
             <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold text-sm">
               {user?.name?.[0] || (type === "admin" ? "A" : "J")}
@@ -438,12 +342,11 @@ export function DashboardLayout({ children, type }: DashboardLayoutProps) {
         </main>
       </div>
 
-      <div 
-        className={`fixed inset-0 bg-black/50 z-40 lg:hidden transition-opacity duration-200 ${
-          isSidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
-        }`}
+      <div
+        className={`fixed inset-0 bg-black/50 z-40 lg:hidden transition-opacity duration-200 ${isSidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          }`}
         onClick={() => setIsSidebarOpen(false)}
       />
-    </div>
+    </div >
   );
 }

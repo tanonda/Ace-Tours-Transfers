@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { VerificationDialog } from "@/components/ui/verification-dialog";
 import { useState, useEffect } from "react";
 
 interface Booking {
@@ -31,6 +32,7 @@ interface EditBookingDialogProps {
 
 export function EditBookingDialog({ booking, open, onOpenChange, onSave }: EditBookingDialogProps) {
   const [formData, setFormData] = useState<Booking | null>(null);
+  const [showVerification, setShowVerification] = useState(false);
 
   useEffect(() => {
     if (booking) {
@@ -41,6 +43,10 @@ export function EditBookingDialog({ booking, open, onOpenChange, onSave }: EditB
   if (!booking || !formData) return null;
 
   const handleSave = () => {
+    setShowVerification(true);
+  };
+
+  const handleVerified = () => {
     onSave(formData);
     onOpenChange(false);
   };
@@ -136,6 +142,13 @@ export function EditBookingDialog({ booking, open, onOpenChange, onSave }: EditB
           <Button className="bg-[#004165]" onClick={handleSave}>Request Changes</Button>
         </DialogFooter>
       </DialogContent>
+
+      <VerificationDialog
+        bookingId={booking.id}
+        open={showVerification}
+        onOpenChange={setShowVerification}
+        onVerified={handleVerified}
+      />
     </Dialog>
   );
 }

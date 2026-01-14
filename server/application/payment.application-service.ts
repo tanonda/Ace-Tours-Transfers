@@ -1,18 +1,20 @@
-import { IStorage } from "../storage";
-import { 
-  PaymentGatewayService, 
-  PaymentInitiationRequest, 
-  PaymentInitiationResponse, 
-  PaymentStatus, 
-  WebhookEvent, 
-  WebhookResponse 
-} from "../domain/payments/interfaces";
-import { PaymentFactory } from "../infrastructure/payments/factory";
-import { PaymentGateway } from "@shared/schema";
-import { AvailabilityApplicationService } from "./availability/availability.application-service";
-import { config } from "../config";
-import { PaymentIntent } from "../domain/payments/PaymentIntent";
-import { eventDispatcher } from "../infrastructure/events/event-dispatcher";
+// server/application/payment.application-service.ts
+
+import { getPaymentGatewayService as getLegacyGatewayService } from '../domain/payments/factory.js';
+import {
+  PaymentInitiationRequest,
+  PaymentInitiationResponse,
+  PaymentStatus,
+  WebhookEvent,
+  WebhookResponse,
+} from '../domain/payments/interfaces.js';
+import { IStorage } from '../storage.js';
+import { PaymentFactory } from "../infrastructure/payments/factory.js";
+import { PaymentGateway, Booking } from '../../shared/schema.js';
+import { AvailabilityApplicationService } from "./availability/availability.application-service.js";
+import { config } from "../config.js";
+import { PaymentIntent } from "../domain/payments/PaymentIntent.js";
+import { eventDispatcher } from "../infrastructure/events/event-dispatcher.js";
 
 export interface PaymentOptions {
   bookingId: string;
@@ -24,16 +26,13 @@ export interface PaymentOptions {
 }
 
 export class PaymentApplicationService {
+
   private storage: IStorage;
   private availabilityService: AvailabilityApplicationService;
 
   constructor(storage: IStorage) {
     this.storage = storage;
     this.availabilityService = new AvailabilityApplicationService(storage);
-  }
-
-  private async notifyBookingStatus(bookingId: string, status: string, details?: any) {
-    console.log(`[NOTIFICATION] Booking ${bookingId}: ${status}`, details || '');
   }
 
   async initiateBookingPayment(options: PaymentOptions): Promise<PaymentInitiationResponse> {
@@ -102,8 +101,8 @@ export class PaymentApplicationService {
       }
     }
 
-    // PRODUCTION GUARD: Rule 2.3 disabled card providers
-    if (gateway.slug === 'stripe' || gateway.slug.includes('card')) {
+    // PRODUCTION GUARD: Card providers might be disabled
+    if ((gateway.slug === 'stripe' || gateway.slug.includes('card')) && config.killSwitches.cardPaymentsPaused) {
       return { success: false, message: "Card payments are currently disabled for maintenance. Please use Bank Transfer." };
     }
 
@@ -113,23 +112,13 @@ export class PaymentApplicationService {
 
     const amountCents = Math.round(parseFloat(booking.amount.replace(/[^0-9.]/g, '')) * 100);
 
-    // DDD Aggregate: Initiate PaymentIntent
-    const paymentId = `pay_${Date.now()}`;
-    const intent = PaymentIntent.initiate(
-      paymentId,
-      booking.id,
-      amountCents,
-      'Bank Transfer', // Explicit method
-      gateway.slug // Provider
-    );
-
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + 2);
 
     const payment = await this.storage.createPayment({
       bookingId: booking.id,
       gatewayId: gateway.id,
-      amount: intent.amount,
+      amount: amountCents,
       currency: 'VUV',
       status: PaymentStatus.Pending,
       expiresAt: expiresAt,
@@ -159,7 +148,6 @@ export class PaymentApplicationService {
         response.paymentId = payment.id;
         response.provider = gateway.slug;
       } else if (!response.success) {
-        intent.fail(response.failureReason || 'initiation_failed');
         await this.storage.updatePayment(payment.id, {
           status: PaymentStatus.Failed,
           failureReason: response.failureReason || 'initiation_failed'
@@ -168,7 +156,6 @@ export class PaymentApplicationService {
 
       return response;
     } catch (error: any) {
-      intent.fail('system_error');
       await this.storage.updatePayment(payment.id, {
         status: PaymentStatus.Failed,
         failureReason: 'system_error'
@@ -199,7 +186,7 @@ export class PaymentApplicationService {
         amount: existingPayment!.amount,
         currency: existingPayment!.currency,
         status: existingPayment!.status as any,
-        method: 'Bank Transfer',
+        method: gateway.slug.includes('manual') ? 'Bank Transfer' : (gateway.slug === 'stripe' ? 'Card' : 'Other'),
         provider: gateway.slug
       });
 
@@ -255,7 +242,7 @@ export class PaymentApplicationService {
       failureReason: 'expired_timeout'
     });
 
-    const { BookingApplicationService } = await import("./booking/BookingApplicationService");
+    const { BookingApplicationService } = await import("./booking/BookingApplicationService.js");
     const bookingService = new BookingApplicationService(this.storage);
     await bookingService.cancelBooking(payment.bookingId, "payment_expired");
   }

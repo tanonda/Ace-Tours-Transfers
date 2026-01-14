@@ -1,6 +1,6 @@
-import { IProjectionHandler } from "../../infrastructure/projections/projection-engine";
-import { BookingCreated, PaymentConfirmed } from "../../domain/events";
-import { IStorage } from "../../storage";
+import { IProjectionHandler } from "../../infrastructure/projections/projection-engine.js";
+import { BookingCreated, PaymentConfirmed } from "../../domain/events.js";
+import { IStorage } from "../../storage.js";
 
 export class BookingSummaryHandler implements IProjectionHandler<any> {
   constructor(private storage: IStorage) {}

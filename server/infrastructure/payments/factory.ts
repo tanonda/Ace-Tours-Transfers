@@ -1,11 +1,11 @@
-import { PaymentGateway } from "@shared/schema";
-import { PaymentGatewayService, PaymentStatus } from "../../domain/payments/interfaces";
-import { StripeAdapter } from "./stripe.adapter";
-import { ManualAdapter } from "./manual.adapter";
-import { AnzAdapter } from "./anz.adapter";
-import { BspAdapter } from "./bsp.adapter";
-import { BredAdapter } from "./bred.adapter";
-import { config } from "../../config";
+import { PaymentGateway } from "../../../shared/schema.js";
+import { PaymentGatewayService, PaymentStatus } from "../../domain/payments/interfaces.js";
+import { StripeAdapter } from "./stripe.adapter.js";
+import { ManualAdapter } from "./manual.adapter.js";
+import { AnzAdapter } from "./anz.adapter.js";
+import { BspAdapter } from "./bsp.adapter.js";
+import { BredAdapter } from "./bred.adapter.js";
+import { config } from "../../config.js";
 
 export class PaymentFactory {
   private static adapters: Record<string, new (config: PaymentGateway) => PaymentGatewayService> = {

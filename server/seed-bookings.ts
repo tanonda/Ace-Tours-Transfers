@@ -1,4 +1,5 @@
-import { storage } from "./storage";
+import { storage } from "./storage.js";
+import { Tour } from "../shared/schema.js";
 
 async function seedBookings() {
   console.log("Seeding sample bookings...");
@@ -12,9 +13,9 @@ async function seedBookings() {
     return;
   }
 
-  const scenicTour = tours.find(t => t.title.includes("Scenic"));
-  const airportTransfer = tours.find(t => t.title.includes("Airport"));
-  const rootsTour = tours.find(t => t.title.includes("Roots"));
+  const scenicTour = tours.find((t: Tour) => t.title.includes("Scenic"));
+  const airportTransfer = tours.find((t: Tour) => t.title.includes("Airport"));
+  const rootsTour = tours.find((t: Tour) => t.title.includes("Roots"));
 
   if (!scenicTour || !airportTransfer || !rootsTour) {
     console.error("Required tours not found");

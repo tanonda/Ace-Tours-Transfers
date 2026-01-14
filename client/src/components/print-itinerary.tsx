@@ -1,7 +1,11 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Printer, X, MapPin, Calendar, Users, Phone, Mail, Clock } from "lucide-react";
+import { Printer, X, MapPin, Calendar, Users, Phone, Mail, Clock, DollarSign, Download } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { Payment } from "@shared/schema";
+import html2pdf from "html2pdf.js";
+import QRCode from "qrcode";
+import React, { useState, useEffect } from "react"; 
 
 interface Booking {
   id: string;
@@ -15,17 +19,32 @@ interface Booking {
 
 interface PrintItineraryProps {
   booking: Booking;
+  payments: Payment[];
+  qrCodeData?: string;
   onClose: () => void;
 }
 
-export function PrintItinerary({ booking, onClose }: PrintItineraryProps) {
+export function PrintItinerary({ booking, payments, qrCodeData, onClose }: PrintItineraryProps) {
   const { t } = useTranslation();
+  const latestPayment = payments.length > 0 ? payments[0] : undefined;
+  const [qrCodeDataURL, setQrCodeDataURL] = useState<string | undefined>();
 
-  const handlePrint = () => {
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
+  useEffect(() => {
+    if (qrCodeData) {
+      QRCode.toDataURL(qrCodeData, { width: 150, errorCorrectionLevel: 'H' })
+        .then(url => {
+          setQrCodeDataURL(url);
+        })
+        .catch(err => {
+          console.error("Failed to generate QR code canvas:", err);
+        });
+    }
+  }, [qrCodeData]);
 
-    const printHTML = `
+  const getItineraryHtml = () => {
+    const qrCodeImage = qrCodeDataURL ? `<img src="${qrCodeDataURL}" alt="QR Code" style="width: 150px; height: 150px; margin-top: 15px; border: 1px solid #eee; padding: 5px;"/>` : '';
+
+    return `
       <!DOCTYPE html>
       <html>
         <head>
@@ -50,6 +69,13 @@ export function PrintItinerary({ booking, onClose }: PrintItineraryProps) {
               color: white;
               padding: 30px;
               text-align: center;
+              position: relative;
+            }
+            .header .logo {
+              position: absolute;
+              top: 20px;
+              left: 20px;
+              height: 50px; /* Adjust as needed */
             }
             .header h1 {
               font-size: 28px;
@@ -82,7 +108,7 @@ export function PrintItinerary({ booking, onClose }: PrintItineraryProps) {
               padding-bottom: 8px;
               margin-bottom: 15px;
             }
-            .tour-box {
+            .tour-box, .payment-box {
               background: #f8f9fa;
               padding: 20px;
               border-radius: 8px;
@@ -177,6 +203,10 @@ export function PrintItinerary({ booking, onClose }: PrintItineraryProps) {
               margin-top: 10px;
               font-style: italic;
             }
+            .qr-code-section {
+              text-align: center;
+              margin-top: 25px;
+            }
             @media print {
               body { padding: 0; }
               .itinerary-container { border: 1px solid #ddd; }
@@ -186,6 +216,7 @@ export function PrintItinerary({ booking, onClose }: PrintItineraryProps) {
         <body>
           <div class="itinerary-container">
             <div class="header">
+              <img src="/public/assets/logo.png" alt="Ace Tours & Transfers Logo" class="logo"/>
               <h1>Ace Tours & Transfers</h1>
               <p>Port Vila, Vanuatu</p>
               <div class="booking-badge">
@@ -223,6 +254,34 @@ export function PrintItinerary({ booking, onClose }: PrintItineraryProps) {
                   </div>
                 </div>
               </div>
+
+              ${latestPayment ? `
+                <div class="section">
+                  <div class="section-title">${t("itinerary.paymentInfo", "Payment Information")}</div>
+                  <div class="payment-box">
+                    <div class="info-grid">
+                      <div class="info-item">
+                        <div class="info-label">${t("payment.status")}</div>
+                        <div class="info-value" style="text-transform: capitalize;">${latestPayment.status}</div>
+                      </div>
+                      ${latestPayment.gatewayReference ? `
+                        <div class="info-item">
+                          <div class="info-label">${t("payment.transactionId")}</div>
+                          <div class="info-value">${latestPayment.gatewayReference}</div>
+                        </div>
+                      ` : ''}
+                      <div class="info-item">
+                        <div class="info-label">${t("payment.method")}</div>
+                        <div class="info-value">${latestPayment.gatewayId}</div>
+                      </div>
+                      <div class="info-item">
+                        <div class="info-label">${t("payment.amount")}</div>
+                        <div class="info-value">${latestPayment.amount / 100} ${latestPayment.currency}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ` : ''}
               
               <div class="total-section">
                 <span class="total-label">${t("itinerary.totalAmount", "Total Amount")}</span>
@@ -238,6 +297,14 @@ export function PrintItinerary({ booking, onClose }: PrintItineraryProps) {
                   <li>${t("itinerary.note4", "Present this itinerary upon arrival for check-in")}</li>
                 </ul>
               </div>
+
+              ${qrCodeData ? `
+                <div class="qr-code-section">
+                  <h3>${t("itinerary.qrCodeTitle", "Scan for Check-in")}</h3>
+                  ${qrCodeImage}
+                  <p style="font-size: 12px; color: #666; margin-top: 10px;">${t("itinerary.qrCodeInstruction", "Show this QR code to the tour guide upon arrival.")}</p>
+                </div>
+              ` : ''}
             </div>
             
             <div class="footer">
@@ -251,8 +318,12 @@ export function PrintItinerary({ booking, onClose }: PrintItineraryProps) {
         </body>
       </html>
     `;
+  };
 
-    printWindow.document.write(printHTML);
+  const handlePrint = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+    printWindow.document.write(getItineraryHtml());
     printWindow.document.close();
     printWindow.focus();
     
@@ -260,6 +331,19 @@ export function PrintItinerary({ booking, onClose }: PrintItineraryProps) {
       printWindow.print();
       printWindow.close();
     }, 500);
+  };
+
+  const handleDownloadPdf = () => {
+    const element = getItineraryHtml();
+    const opt = {
+      margin:       0.5,
+      filename:     `itinerary-${booking.id}.pdf`,
+      image:        { type: 'jpeg' as any, quality: 0.98 },
+      html2canvas:  { scale: 2 },
+      jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' as any }
+    };
+
+    html2pdf().from(element).set(opt).save();
   };
 
   return (
@@ -270,10 +354,15 @@ export function PrintItinerary({ booking, onClose }: PrintItineraryProps) {
             <Printer className="h-5 w-5" />
             {t("itinerary.title", "Travel Itinerary")}
           </DialogTitle>
+          <DialogDescription>
+            {t("itinerary.description", "A printable version of your booking details.")}
+          </DialogDescription>
         </DialogHeader>
 
-        <div className="itinerary-container">
-          <div className="header bg-gradient-to-r from-[#004165] to-[#006699] text-white p-6 text-center rounded-t-lg">
+        <div className="itinerary-container print:border-0">
+          <div className="header bg-gradient-to-r from-[#004165] to-[#006699] text-white p-6 text-center rounded-t-lg relative">
+            {/* Using a placeholder for logo, replace with actual path if available publicly */}
+            <img src="/public/assets/logo.png" alt="Ace Tours & Transfers Logo" className="h-12 absolute top-5 left-5" />
             <h1 className="text-2xl font-bold mb-1">Ace Tours & Transfers</h1>
             <p className="text-white/80 text-sm">Port Vila, Vanuatu</p>
             <div className="booking-badge inline-block bg-primary text-white px-4 py-2 rounded-full font-bold mt-3">
@@ -331,6 +420,37 @@ export function PrintItinerary({ booking, onClose }: PrintItineraryProps) {
               </div>
             </div>
 
+            {latestPayment && (
+              <div className="section">
+                <h3 className="section-title text-lg font-bold text-[#004165] border-b-2 border-primary pb-2 mb-4 flex items-center gap-2">
+                  <DollarSign className="h-5 w-5 text-primary" />
+                  {t("itinerary.paymentInfo", "Payment Information")}
+                </h3>
+                <div className="bg-muted/30 p-4 rounded-lg">
+                  <div className="info-grid grid grid-cols-2 gap-4">
+                    <div className="info-item">
+                      <div className="info-label text-xs text-muted-foreground uppercase">{t("payment.status")}</div>
+                      <div className="info-value font-semibold capitalize">{latestPayment.status}</div>
+                    </div>
+                    {latestPayment.gatewayReference && (
+                      <div className="info-item">
+                        <div className="info-label text-xs text-muted-foreground uppercase">{t("payment.transactionId")}</div>
+                        <div className="info-value font-semibold">{latestPayment.gatewayReference}</div>
+                      </div>
+                    )}
+                    <div className="info-item">
+                      <div className="info-label text-xs text-muted-foreground uppercase">{t("payment.method")}</div>
+                      <div className="info-value font-semibold capitalize">{latestPayment.gatewayId}</div>
+                    </div>
+                    <div className="info-item">
+                      <div className="info-label text-xs text-muted-foreground uppercase">{t("payment.amount")}</div>
+                      <div className="info-value font-semibold">{latestPayment.amount / 100} ${latestPayment.currency}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+              
             <div className="total-section bg-muted/30 p-5 rounded-lg flex justify-between items-center">
               <span className="total-label text-muted-foreground">{t("itinerary.totalAmount", "Total Amount")}</span>
               <span className="total-amount text-2xl font-bold text-[#004165]">{booking.amount}</span>
@@ -345,6 +465,24 @@ export function PrintItinerary({ booking, onClose }: PrintItineraryProps) {
                 <li>{t("itinerary.note4", "Present this itinerary upon arrival for check-in")}</li>
               </ul>
             </div>
+
+            {qrCodeData && (
+              <div className="qr-code-section text-center mt-6">
+                <h3 className="section-title text-lg font-bold text-[#004165] border-b-2 border-primary pb-2 mb-4 flex items-center justify-center gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-qr-code h-5 w-5 text-primary"><rect width="4" height="4" x="2" y="2"/><rect width="4" height="4" x="16" y="2"/><rect width="4" height="4" x="2" y="16"/><path d="M21 16h-3a2 2 0 0 0-2 2v3"/><path d="M21 21v.01"/><path d="M12 7v3a2 2 0 0 1-2 2H7"/><path d="M7 12v.01"/><path d="M12 17v.01"/><path d="M17 12v.01"/><path d="M17 7h.01"/><path d="M7 7h.01"/><path d="M12 12h.01"/><path d="M16 6V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h7"/><path d="M6 18H4c-.5 0-1-.5-1-1V4c0-.5.5-1 1-1h10c.5 0 1 .5 1 1v2"/></svg>
+                  {t("itinerary.qrCodeTitle", "Scan for Check-in")}
+                </h3>
+                <img 
+                  src={qrCodeDataURL} 
+                  alt="QR Code" 
+                  className="mx-auto mt-4 p-2 border border-gray-200 rounded-lg"
+                  style={{ maxWidth: '180px', height: 'auto' }}
+                />
+                <p className="text-muted-foreground text-sm mt-3">
+                  {t("itinerary.qrCodeInstruction", "Show this QR code to the tour guide upon arrival.")}
+                </p>
+              </div>
+            )}
           </div>
 
           <div className="footer bg-muted/30 p-5 text-center border-t">
@@ -364,7 +502,7 @@ export function PrintItinerary({ booking, onClose }: PrintItineraryProps) {
           </div>
         </div>
 
-        <div className="flex gap-2 mt-4">
+        <div className="flex flex-col sm:flex-row gap-2 mt-4">
           <Button 
             data-testid="button-print-itinerary" 
             onClick={handlePrint} 
@@ -372,6 +510,15 @@ export function PrintItinerary({ booking, onClose }: PrintItineraryProps) {
           >
             <Printer className="h-4 w-4 mr-2" />
             {t("itinerary.print", "Print Itinerary")}
+          </Button>
+          <Button 
+            data-testid="button-download-pdf" 
+            onClick={handleDownloadPdf} 
+            variant="outline"
+            className="flex-1"
+          >
+            <Download className="h-4 w-4 mr-2" />
+            {t("itinerary.downloadPdf", "Download PDF")}
           </Button>
           <Button 
             data-testid="button-close-itinerary" 

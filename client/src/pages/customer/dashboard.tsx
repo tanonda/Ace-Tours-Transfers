@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { fetchUserBookings } from "@/lib/api";
+import { fetchUserBookings, fetchBookingPayments } from "@/lib/api";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/hooks/use-toast";
@@ -132,6 +132,12 @@ export default function CustomerDashboard() {
     enabled: !!user?.id,
   });
 
+  const { data: bookingPayments = [], isLoading: isLoadingPayments } = useQuery({
+    queryKey: ["booking-payments", itineraryBooking?.id],
+    queryFn: () => itineraryBooking?.id ? fetchBookingPayments(itineraryBooking.id) : Promise.resolve([]),
+    enabled: !!itineraryBooking?.id,
+  });
+
   const upcomingTrips = bookings.filter(b => b.status === 'confirmed' || b.status === 'pending');
   const walletBalance = 52300;
 
@@ -142,7 +148,7 @@ export default function CustomerDashboard() {
       )}
       
       {itineraryBooking && (
-        <PrintItinerary booking={itineraryBooking} onClose={() => setItineraryBooking(null)} />
+        <PrintItinerary booking={itineraryBooking} payments={bookingPayments} onClose={() => setItineraryBooking(null)} />
       )}
 
       <div className="space-y-6">

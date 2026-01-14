@@ -1,10 +1,10 @@
-import { db } from "../db";
-import { bookings, tourInstances, payments, paymentGateways } from "@shared/schema";
+import { db } from "../db.js";
+import { bookings, tourInstances, payments, paymentGateways } from "../../shared/schema.js";
 import { eq, and, sql, desc } from "drizzle-orm";
-import { InventoryRepairService } from "../application/availability/inventory-repair.service";
-import { PaymentBookingDiffService } from "../application/recovery/recovery-report.service";
-import { storage } from "../storage";
-import { PaymentStatus } from "../domain/payments/interfaces";
+import { InventoryRepairService } from "../application/availability/inventory-repair.service.js";
+import { PaymentBookingDiffService } from "../application/recovery/recovery-report.service.js";
+import { storage } from "../storage.js";
+import { PaymentStatus } from "../domain/payments/interfaces.js";
 
 async function runVerification() {
   console.log("=== RECOVERY TOOLING VERIFICATION ===");
@@ -76,7 +76,7 @@ async function runVerification() {
     // Generate Diff Report
     console.log("- Generating Diff Report...");
     const report = await diffService.generateReport();
-    const issueEntry = report.entries.find(e => e.paymentId === testPayment.id);
+    const issueEntry = report.entries.find((e: any) => e.paymentId === testPayment.id);
     
     if (issueEntry && issueEntry.type === 'payment_without_inventory') {
       console.log(`✅ Inconsistency detected: ${issueEntry.description}`);

@@ -7,7 +7,7 @@ export interface PricedItem {
   subtotal: number;
 }
 
-import { config } from "../../config";
+import { config } from "../../config.js";
 
 export interface PriceSnapshot {
   items: PricedItem[];

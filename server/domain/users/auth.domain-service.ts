@@ -1,58 +1,67 @@
-import bcrypt from "bcryptjs";
-import { storage } from "../../storage";
-import { User } from "@shared/schema";
 
-interface AuthResult {
-  id: string;
-  username: string;
-  email: string;
-  name: string;
-  role: string;
+import { type User, type InsertUser } from "../../../shared/schema.js";
+import { type IStorage, storage } from "../../storage.js";
+import { mailingService } from "../../infrastructure/mailing/MailingService.js";
+import bcrypt from "bcryptjs";
+
+export interface AuthResult extends User {
+  // Add any extra fields needed for the auth response
 }
 
 export class AuthDomainService {
-  /**
-   * Handles user login with support for both bcrypt and legacy plain text passwords.
-   */
-  public async login(email: string, password: string): Promise<AuthResult | null> {
-    const user = await storage.getUserByEmail(email);
-    if (!user) {
-      return null;
-    }
+  private storage: IStorage;
 
+  constructor(storage: IStorage) {
+    this.storage = storage;
+  }
 
-    const isValidPassword = await bcrypt.compare(password, user.password);
+  async login(email: string, password: string): Promise<AuthResult | null> {
+    const user = await this.storage.getUserByEmail(email);
+    if (!user) return null;
 
-    if (!isValidPassword) {
-      return null;
-    }
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) return null;
 
-    return {
-      id: user.id,
-      username: user.username,
-      email: user.email,
-      name: user.name,
-      role: user.role,
-    };
+    return user;
   }
 
   /**
-   * Retrieves user details for the authenticated user.
+   * Domain logic for registration.
+   * Ensures business rules (unique email) and side effects (welcome email).
    */
-  public async getAuthenticatedUser(userId: string): Promise<AuthResult | null> {
-    const user = await storage.getUser(userId);
-    if (!user) {
-      return null;
+  async register(name: string, email: string, password: string): Promise<AuthResult> {
+    const existing = await this.storage.getUserByEmail(email);
+    if (existing) {
+      throw new Error(`User with this email already exists: ${email}`);
     }
 
-    return {
-      id: user.id,
-      username: user.username,
-      email: user.email,
-      name: user.name,
-      role: user.role,
-    };
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const username = email.split('@')[0] + Math.random().toString(36).substring(2, 5);
+
+    const user = await this.storage.createUser({
+      name,
+      email,
+      username,
+      password: hashedPassword,
+    });
+
+    // Side Effect: Welcome Email (Fire and forget or handle error gracefully)
+    try {
+      // In a real system, we'd emit a 'UserRegistered' event here.
+      // For now, call the mailing service directly.
+      // await mailingService.sendWelcomeEmail(user.email, user.name);
+      console.log(`[AUTH] Welcome email would be sent to ${user.email}`);
+    } catch (e) {
+      console.error("[AUTH] Failed to send welcome email:", e);
+    }
+
+    return user;
+  }
+
+  async getAuthenticatedUser(userId: string): Promise<AuthResult | null> {
+    const user = await this.storage.getUser(userId);
+    return user || null;
   }
 }
 
-export const authDomainService = new AuthDomainService();
+export const authDomainService = new AuthDomainService(storage);

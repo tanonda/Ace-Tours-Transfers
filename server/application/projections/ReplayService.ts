@@ -1,6 +1,7 @@
-import { storage } from "../storage";
-import { projectionEngine } from "../infrastructure/projections/projection-engine";
-import { BookingCreated, PaymentInitiated, PaymentConfirmed } from "../domain/events";
+
+import { storage } from "../../storage.js";
+import { projectionEngine } from "../../infrastructure/projections/projection-engine.js";
+import { BookingCreated, PaymentInitiated, PaymentConfirmed } from "../../domain/events.js";
 
 export class ReplayService {
   public static async rebuildAll(): Promise<void> {

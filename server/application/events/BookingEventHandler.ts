@@ -1,9 +1,9 @@
 
-import { eventDispatcher } from "../../infrastructure/events/event-dispatcher";
-import { PaymentConfirmed } from "../../domain/events";
-import { IStorage } from "../../storage";
-import { AvailabilityApplicationService } from "../availability/availability.application-service";
-import { mailingService } from "../../infrastructure/mailing/MailingService";
+import { eventDispatcher } from "../../infrastructure/events/event-dispatcher.js";
+import { PaymentConfirmed } from "../../domain/events.js";
+import { IStorage } from "../../storage.js";
+import { AvailabilityApplicationService } from "../availability/availability.application-service.js";
+import { mailingService } from "../../infrastructure/mailing/MailingService.js";
 
 export class BookingEventHandler {
   constructor(
@@ -41,7 +41,7 @@ export class BookingEventHandler {
         await mailingService.sendBookingConfirmation(booking.customerEmail, {
           id: booking.id,
           customerName: booking.customerName,
-          tourName: tour?.name || 'Your Tour',
+          tourName: tour?.title || 'Your Tour',
           date: booking.date,
           amount: booking.amount
         });

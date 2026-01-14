@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,6 +8,7 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, ArrowLeft, Quote, CheckCircle, Star } from "lucide-react";
 import { tours } from "@/lib/data";
+import { registerUser } from "@/lib/api";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LanguageSelector } from "@/components/language-selector";
 import { useTranslation } from "react-i18next";
@@ -16,53 +18,47 @@ export default function Register() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { t } = useTranslation();
-  
-  const featuredTour = tours[1]; // Roots & Routes
+
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+  });
+
+  const featuredTour = tours[1];
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    const formData = new FormData(e.target as HTMLFormElement);
-    const fullName = formData.get("fullName") as string;
-    const email = formData.get("email") as string;
-    const password = formData.get("password") as string;
-    const confirmPassword = formData.get("confirmPassword") as string;
-
-    if (password !== confirmPassword) {
-      toast({
-        title: t("auth.error"),
-        description: t("auth.passwordsNotMatch"),
-        variant: "destructive",
-      });
-      return;
-    }
-
     setIsLoading(true);
+
     try {
-      const res = await fetch("/api/users", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: fullName,
-          email,
-          username: email, // Use email as username if not provided
-          password,
-        }),
+      if (formData.password !== formData.confirmPassword) {
+        toast({
+          title: t("auth.error"),
+          description: t("auth.passwordsNotMatch"),
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      await registerUser({
+        name: formData.name,
+        email: formData.email,
+        username: formData.email,
+        password: formData.password,
       });
 
-      if (res.ok) {
-        toast({
-          title: t("auth.accountCreated"),
-          description: t("auth.accountCreatedDesc"),
-        });
-        setLocation("/login");
-      } else {
-        const error = await res.json();
-        throw new Error(error.error || "Registration failed");
-      }
+      toast({
+        title: t("auth.accountCreated"),
+        description: t("auth.accountCreatedDesc"),
+      });
+      setLocation("/login");
     } catch (error: any) {
       toast({
         title: t("auth.error"),
-        description: error.message,
+        description: error.message || "Registration failed",
         variant: "destructive",
       });
     } finally {
@@ -72,7 +68,6 @@ export default function Register() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background font-sans text-foreground">
-       {/* Simple Header */}
        <header className="bg-primary text-white shadow-md py-4 relative z-20">
         <div className="container mx-auto px-4 flex items-center justify-between">
           <Link href="/" className="font-serif font-bold text-xl tracking-tight">
@@ -90,9 +85,7 @@ export default function Register() {
         </div>
       </header>
 
-      {/* Main Section with Full-Width Background Image */}
       <main className="flex-grow relative">
-        {/* Background Image */}
         <div className="absolute inset-0">
           <img 
             src={featuredTour.image} 
@@ -102,11 +95,9 @@ export default function Register() {
           <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-black/30" />
         </div>
 
-        {/* Content Overlay */}
         <div className="relative z-10 flex items-center min-h-full py-12 px-4">
           <div className="container mx-auto">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center max-w-6xl mx-auto">
-              {/* Registration Form */}
               <Card className="w-full border border-white/20 shadow-2xl bg-black/40 backdrop-blur-md text-white">
                 <CardHeader className="space-y-1">
                   <CardTitle className="text-2xl font-serif font-bold text-center text-white">{t("auth.signUp")}</CardTitle>
@@ -118,42 +109,46 @@ export default function Register() {
                   <form onSubmit={handleRegister} className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="fullName" className="text-white">{t("auth.fullName")}</Label>
-                      <Input 
-                        id="fullName" 
-                        name="fullName"
-                        placeholder={t("auth.fullNamePlaceholder")} 
-                        required 
+                      <Input
+                        id="fullName"
+                        placeholder={t("auth.fullNamePlaceholder")}
+                        required
+                        value={formData.name}
+                        onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                         className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-white/40"
                       />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="email" className="text-white">{t("auth.email")}</Label>
-                      <Input 
-                        id="email" 
-                        name="email"
-                        type="email" 
-                        placeholder={t("auth.emailPlaceholder")} 
-                        required 
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder={t("auth.emailPlaceholder")}
+                        required
+                        value={formData.email}
+                        onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
                         className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-white/40"
                       />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="password" className="text-white">{t("auth.password")}</Label>
-                      <Input 
-                        id="password" 
-                        name="password"
-                        type="password" 
-                        required 
+                      <Input
+                        id="password"
+                        type="password"
+                        required
+                        value={formData.password}
+                        onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
                         className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-white/40"
                       />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="confirmPassword" className="text-white">{t("auth.confirmPassword")}</Label>
-                      <Input 
-                        id="confirmPassword" 
-                        name="confirmPassword"
-                        type="password" 
-                        required 
+                      <Input
+                        id="confirmPassword"
+                        type="password"
+                        required
+                        value={formData.confirmPassword}
+                        onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
                         className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-white/40"
                       />
                     </div>
@@ -178,7 +173,6 @@ export default function Register() {
                 </CardContent>
               </Card>
 
-              {/* Value Proposition & Testimonial */}
               <div className="hidden lg:flex flex-col space-y-8 text-white">
                 <div>
                   <span className="bg-primary text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
@@ -211,7 +205,6 @@ export default function Register() {
                   </div>
                 </div>
 
-                {/* Testimonial */}
                 <div className="mt-4 bg-white/10 backdrop-blur-sm p-6 rounded-xl border border-white/20">
                   <Quote className="w-8 h-8 text-white/30 mb-3" />
                   <p className="text-white/90 italic mb-4">

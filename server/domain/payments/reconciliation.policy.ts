@@ -1,4 +1,4 @@
-import { PaymentStatus } from "./interfaces";
+import { PaymentStatus } from "./interfaces.js";
 
 export class ReconciliationPolicy {
   /**

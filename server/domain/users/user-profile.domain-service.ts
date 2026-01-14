@@ -1,70 +1,108 @@
-import { storage } from "../../storage";
-import { User, InsertUser } from "@shared/schema";
+
+import { 
+  AuthDomainService, 
+  type AuthResult 
+} from "./auth.domain-service.js";
+import { 
+  type User, 
+  type InsertUser, 
+  tours, 
+  bookings, 
+  users 
+} from "../../../shared/schema.js";
+import { storage, type IStorage } from "../../storage.js";
+import { eq, and, sql } from "drizzle-orm";
+import { db } from "../../db.js";
+import bcrypt from "bcryptjs";
 
 export class UserProfileDomainService {
-  public async getAllUsers(): Promise<Omit<User, "password">[]> {
-    const users = await storage.getAllUsers();
-    return users.map(({ password, ...user }) => user);
+  private storage: IStorage;
+
+  constructor(storage: IStorage) {
+    this.storage = storage;
   }
 
-  public async createUser(userData: InsertUser): Promise<Omit<User, "password">> {
-    const user = await storage.createUser({
-      ...userData,
-      role: 'customer'
-    } as any);
+  async getAllUsers(): Promise<User[]> {
+    return this.storage.getAllUsers();
+  }
+
+  async getUserById(id: string): Promise<User | undefined> {
+    return this.storage.getUser(id);
+  }
+
+  async createUser(userData: InsertUser): Promise<User> {
+    const existingUserByEmail = await this.storage.getUserByEmail(userData.email);
+    if (existingUserByEmail) {
+      throw new Error(`User with this email already exists: ${userData.email}`);
+    }
+
+    const existingUserByUsername = await this.storage.getUserByUsername(userData.username);
+    if (existingUserByUsername) {
+      throw new Error(`User with this username already exists: ${userData.username}`);
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(userData.password, 10);
     
-    // Link any existing guest bookings with the same email
+    // Create the user
+    const user = await this.storage.createUser({
+      ...userData,
+      password: hashedPassword,
+    });
+
+    // Integrated logic: Link guest bookings to this new user if they exist
     try {
-      await storage.linkBookingsToUser(user.email, user.id);
+      await this.storage.linkBookingsToUser(user.email, user.id);
+      console.log(`[USER][LINK] Linked existing bookings for ${user.email} to UID ${user.id}`);
     } catch (linkError) {
-      console.error(`Failed to link bookings for user ${user.id}:`, linkError);
+      console.error(`[USER][ERROR] Failed to link bookings for ${user.email}:`, linkError);
+      // We don't throw here as user creation succeeded
     }
 
-    const { password, ...userWithoutPassword } = user;
-    return userWithoutPassword;
+    return user;
   }
 
-  public async updateUserRole(userId: string, role: string): Promise<Omit<User, "password"> | null> {
-    // Current valid roles in A are 'admin' and 'customer'
-    const validRoles = ["admin", "customer"];
+  async updateUserRole(id: string, role: string): Promise<User | undefined> {
+    const validRoles = ['admin', 'field_service', 'customer'];
     if (!validRoles.includes(role)) {
-      throw new Error("Invalid role provided");
+      throw new Error(`Invalid role: ${role}. Valid roles are: ${validRoles.join(', ')}`);
     }
-
-    const user = await storage.updateUserRole(userId, role);
-    if (!user) {
-      return null;
-    }
-    const { password, ...userWithoutPassword } = user;
-    return userWithoutPassword;
+    return this.storage.updateUserRole(id, role);
   }
 
-  public async updateUserPassword(userId: string, newPassword: string): Promise<Omit<User, "password"> | null> {
+  async updateUserPassword(id: string, newPassword: string): Promise<User | undefined> {
     if (!newPassword) {
       throw new Error("New password is required");
     }
-
-    const user = await storage.updateUserPassword(userId, newPassword);
-    if (!user) {
-      return null;
-    }
-    const { password, ...userWithoutPassword } = user;
-    return userWithoutPassword;
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    return this.storage.updateUserPassword(id, hashedPassword);
   }
 
-  public async getUserById(userId: string): Promise<Omit<User, "password"> | null> {
-    const user = await storage.getUser(userId);
-    if (!user) {
-      return null;
-    }
-    const { password, ...userWithoutPassword } = user;
-    return userWithoutPassword;
+  /**
+   * CUSTOMER MANAGEMENT
+   */
+  async getCustomers(): Promise<User[]> {
+    return this.storage.getCustomers();
   }
 
-  public async getCustomers(): Promise<Omit<User, "password">[]> {
-    const customers = await storage.getCustomers();
-    return customers.map(({ password, ...user }) => user);
+  /**
+   * GUEST FLOWS
+   */
+  async findOrCreateGuestUser(email: string, name: string): Promise<User> {
+    const existing = await this.storage.getUserByEmail(email);
+    if (existing) return existing;
+
+    // Create a shadow/guest user
+    const username = `guest_${Math.random().toString(36).substring(2, 9)}`;
+    const guestPassword = await bcrypt.hash(Math.random().toString(36), 10);
+
+    return this.storage.createUser({
+      username,
+      password: guestPassword,
+      email,
+      name
+    });
   }
 }
 
-export const userProfileDomainService = new UserProfileDomainService();
+export const userProfileDomainService = new UserProfileDomainService(storage);
