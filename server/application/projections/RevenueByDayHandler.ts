@@ -1,7 +1,7 @@
-import { IProjectionHandler } from "../../infrastructure/projections/projection-engine";
-import { PaymentConfirmed } from "../../domain/events";
-import { IStorage } from "../../storage";
-import { PricingService } from "../../domain/pricing/PricingService";
+import { IProjectionHandler } from "../../infrastructure/projections/projection-engine.js";
+import { PaymentConfirmed } from "../../domain/events.js";
+import { IStorage } from "../../storage.js";
+import { PricingService } from "../../domain/pricing/PricingService.js";
 
 export class RevenueByDayHandler implements IProjectionHandler<PaymentConfirmed> {
   constructor(private storage: IStorage) {}

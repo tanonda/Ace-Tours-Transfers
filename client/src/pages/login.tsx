@@ -22,10 +22,20 @@ export default function Login() {
 
   const featuredTour = tours[0];
 
+  const fillCredentials = (role: 'admin' | 'customer') => {
+    if (role === 'admin') {
+      setEmail("admin@acetours.vu");
+      setPassword("admin123");
+    } else {
+      setEmail("james@example.com");
+      setPassword("user123");
+    }
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
+
     try {
       const result = await login(email, password);
       setIsLoading(false);
@@ -65,23 +75,15 @@ export default function Login() {
     }
   };
 
-  const fillCredentials = (type: 'admin' | 'customer') => {
-    if (type === 'admin') {
-      setEmail("admin@acetours.vu");
-      setPassword("admin123");
-    } else {
-      setEmail("james@example.com");
-      setPassword("user123");
-    }
-  };
+
 
   return (
     <div className="min-h-screen flex flex-col bg-background font-sans text-foreground">
-       {/* Simple Header */}
-       <header className="bg-primary text-white shadow-md py-4 relative z-20">
+      {/* Simple Header */}
+      <header className="bg-primary text-white shadow-md py-4 relative z-20">
         <div className="container mx-auto px-4 flex items-center justify-between">
           <Link href="/" className="font-serif font-bold text-xl tracking-tight">
-             {t("app.title")}
+            {t("app.title")}
           </Link>
           <div className="flex items-center gap-4">
             <LanguageSelector />
@@ -99,8 +101,8 @@ export default function Login() {
       <main className="flex-grow relative">
         {/* Background Image */}
         <div className="absolute inset-0">
-          <img 
-            src={featuredTour.image} 
+          <img
+            src={featuredTour.image}
             alt={t("auth.vanuatuAdventure")}
             className="w-full h-full object-cover"
           />
@@ -150,11 +152,11 @@ export default function Login() {
                   <form onSubmit={handleLogin} className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="email" className="text-white">{t("auth.email")}</Label>
-                      <Input 
-                        id="email" 
-                        type="email" 
-                        placeholder={t("auth.emailPlaceholder")} 
-                        required 
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder={t("auth.emailPlaceholder")}
+                        required
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-white/40"
@@ -167,10 +169,10 @@ export default function Login() {
                           {t("auth.forgotPassword")}
                         </a>
                       </div>
-                      <Input 
-                        id="password" 
-                        type="password" 
-                        required 
+                      <Input
+                        id="password"
+                        type="password"
+                        required
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-white/40"
@@ -248,7 +250,7 @@ export default function Login() {
       </main>
 
       <footer className="bg-[#291B12] text-white py-6 text-center text-sm opacity-90 relative z-20">
-         <p>&copy; {new Date().getFullYear()} {t("app.title")}. {t("footer.copyright")}</p>
+        <p>&copy; {new Date().getFullYear()} {t("app.title")}. {t("footer.copyright")}</p>
       </footer>
     </div>
   );

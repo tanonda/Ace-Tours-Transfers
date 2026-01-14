@@ -1,10 +1,34 @@
-import { storage } from "./storage";
+import "dotenv/config";
+import { db } from "./db.js";
+import { users as usersTable, tours as toursTable } from "../shared/schema.js";
+import { storage } from "./storage.js";
+import bcrypt from "bcryptjs";
+import { eq } from "drizzle-orm";
 
-async function seed() {
+async function main() {
   console.log("Seeding database...");
 
-  // Seed tours
-  const tours = [
+  // 1. Seed Admin User
+  const adminEmail = "admin@acetours.vu";
+  const existingAdmin = await db.select().from(usersTable).where(eq(usersTable.email, adminEmail)).limit(1);
+  
+  if (existingAdmin.length === 0) {
+    const hashedPassword = await bcrypt.hash("adminpassword", 12);
+    await db.insert(usersTable).values({
+      username: adminEmail,
+      email: adminEmail,
+      name: "Admin User",
+      password: hashedPassword,
+      role: "admin",
+    });
+    console.log("Admin user created.");
+  } else {
+    console.log("Admin user already exists.");
+  }
+
+  // 2. Seed Tours, Transfers, and Vehicles
+  const demoServices = [
+    // Tours
     {
       title: "Efate Scenic Tour",
       price: "$120 / adult",
@@ -21,7 +45,8 @@ async function seed() {
         "Duty Free Shopping",
         "Includes entrance fees & refreshments"
       ],
-      category: "tour"
+      category: "tour",
+      defaultCapacity: 20
     },
     {
       title: "Roots & Routes Tour",
@@ -38,24 +63,43 @@ async function seed() {
         "Light refreshments provided",
         "Price includes entrance fees"
       ],
-      category: "tour"
+      category: "tour",
+      defaultCapacity: 15
     },
     {
-      title: "Bus Hire for the Day",
-      price: "A$400 / day",
-      childPrice: null,
-      duration: "5-8 Hours",
-      minPax: null,
-      image: "/attached_assets/stock_images/comfortable_tour_bus_ac9e66db.jpg",
+      title: "Blue Lagoon & Turtle Bay Combo",
+      price: "$95 / adult",
+      childPrice: "$50 / child",
+      duration: "Half Day",
+      minPax: "Min 4 pax",
+      image: "/attached_assets/stock_images/vanuatu_rarru_waterf_a12f619f.jpg",
       description: [
-        "Hire the bus for the day",
-        "Choose your own stops",
-        "Light refreshments provided",
-        "You take care of your entrance fees",
-        "Ideal for large groups"
+        "Swim in crystal clear blue waters",
+        "Visit Turtle sanctuary",
+        "Great for families",
+        "Snack included"
       ],
-      category: "tour"
+      category: "tour",
+      defaultCapacity: 12
     },
+    {
+      title: "Pele Island Beach Day",
+      price: "$110 / person",
+      childPrice: "$55 / child",
+      duration: "Full Day",
+      minPax: "Min 6 pax",
+      image: "/attached_assets/stock_images/vanuatu_cultural_v_49e2db39.jpg",
+      description: [
+        "Boat transfer to Pele Island",
+        "Snorkeling on pristine reefs",
+        "BBQ Lunch included",
+        "Relax on white sandy beaches"
+      ],
+      category: "tour",
+      defaultCapacity: 10
+    },
+
+    // Transfers
     {
       title: "Airport Transfer",
       price: "$15 / person one-way",
@@ -69,24 +113,56 @@ async function seed() {
         "Air-conditioned vehicles",
         "Door-to-door service"
       ],
-      category: "transfer"
+      category: "transfer",
+      defaultCapacity: 50
     },
     {
-      title: "Event Transfer",
-      price: "$50 / hour",
+      title: "Wharf / Cruise Ship Transfer",
+      price: "$10 / person",
       childPrice: null,
-      duration: "Flexible",
+      duration: "20 minutes",
       minPax: null,
-      image: "/attached_assets/stock_images/comfortable_tour_bus_ac9e66db.jpg",
+      image: "/attached_assets/stock_images/vanuatu_rarru_waterf_a12f619f.jpg",
       description: [
-        "Private transport for special events",
-        "Wedding and corporate events",
-        "Flexible scheduling",
-        "Professional service"
+        "Pickup from Main Wharf",
+        "Transfer to Port Vila Town",
+        "Air-conditioned buses"
       ],
-      category: "transfer"
+      category: "transfer",
+      defaultCapacity: 100
     },
-    // Vehicle Hire
+    {
+      title: "Dinner Transfer (Round Trip)",
+      price: "$20 / person",
+      childPrice: null,
+      duration: "Variable",
+      minPax: "2 pax",
+      image: "/attached_assets/stock_images/vanuatu_rarru_waterf_a12f619f.jpg",
+      description: [
+        "Safe transport to local restaurants",
+        "Driver waits or returns for pickup",
+        "Enjoy your evening worry-free"
+      ],
+      category: "transfer",
+      defaultCapacity: 20
+    },
+    {
+      title: "VIP Executive Transfer",
+      price: "$50 / trip",
+      childPrice: null,
+      duration: "30 minutes",
+      minPax: null,
+      image: "/attached_assets/stock_images/vanuatu_4wd_vehicle.jpg",
+      description: [
+        "Private luxury vehicle",
+        "Meet and greet service",
+        "Cold towels and water provided"
+      ],
+      category: "transfer",
+      defaultCapacity: 3
+    },
+
+    // Vehicles
     {
       title: "Toyota Hilux 4WD",
       price: "$120 / day",
@@ -97,317 +173,145 @@ async function seed() {
       description: [
         "Reliable 4WD pickup truck",
         "Perfect for island exploration",
-        "Air conditioning",
-        "Automatic transmission",
-        "Unlimited kilometers",
         "Full insurance included"
       ],
       category: "vehicle",
+      defaultCapacity: 1,
       vehicleDetails: {
         make: "Toyota",
         model: "Hilux",
         seats: 5,
         transmission: "Automatic",
-        features: ["4WD", "Air Conditioning", "Bluetooth", "USB Charging"]
+        features: ["4WD", "Air Conditioning", "Bluetooth"]
       }
     },
     {
-      title: "Nissan X-Trail SUV",
-      price: "$100 / day",
-      childPrice: null,
-      duration: "24 hours",
-      minPax: null,
-      image: "/attached_assets/stock_images/vanuatu_suv_rental.jpg",
-      description: [
-        "Spacious family SUV",
-        "Comfortable highway cruiser",
-        "Air conditioning",
-        "Automatic transmission",
-        "GPS Navigation",
-        "Full insurance included"
-      ],
-      category: "vehicle",
-      vehicleDetails: {
-        make: "Nissan",
-        model: "X-Trail",
-        seats: 7,
-        transmission: "Automatic",
-        features: ["AWD", "Air Conditioning", "GPS", "Rear Camera", "Roof Rack"]
-      }
-    },
-    {
-      title: "Toyota Corolla Sedan",
+      title: "Hyundai Grand i10",
       price: "$70 / day",
       childPrice: null,
       duration: "24 hours",
       minPax: null,
-      image: "/attached_assets/stock_images/vanuatu_sedan_rental.jpg",
+      image: "/attached_assets/stock_images/vanuatu_4wd_vehicle.jpg",
       description: [
-        "Economical sedan",
-        "Great fuel efficiency",
-        "Air conditioning",
-        "Automatic transmission",
-        "Perfect for city driving",
-        "Full insurance included"
+        "Compact and fuel efficient",
+        "Easy to park in town",
+        "Great for couples"
       ],
       category: "vehicle",
+      defaultCapacity: 1,
       vehicleDetails: {
-        make: "Toyota",
-        model: "Corolla",
-        seats: 5,
+        make: "Hyundai",
+        model: "Grand i10",
+        seats: 4,
         transmission: "Automatic",
-        features: ["Air Conditioning", "Bluetooth", "USB Charging", "Fuel Efficient"]
+        features: ["Air Conditioning", "Bluetooth", "Compact"]
       }
     },
     {
       title: "Suzuki Jimny",
-      price: "$90 / day",
+      price: "$100 / day",
       childPrice: null,
       duration: "24 hours",
       minPax: null,
-      image: "/attached_assets/stock_images/vanuatu_jimny_rental.jpg",
+      image: "/attached_assets/stock_images/vanuatu_4wd_vehicle.jpg",
       description: [
-        "Compact 4x4 off-roader",
-        "Great for adventure",
-        "Air conditioning",
-        "Manual transmission option",
-        "Go anywhere capability",
-        "Full insurance included"
+        "Fun compact 4WD",
+        "Iconic island style",
+        "Go anywhere vehicle"
       ],
       category: "vehicle",
+      defaultCapacity: 1,
       vehicleDetails: {
         make: "Suzuki",
         model: "Jimny",
         seats: 4,
         transmission: "Manual",
-        features: ["4WD", "Air Conditioning", "Compact", "Off-Road Ready"]
+        features: ["4WD", "Convertible Top", "Rugged"]
+      }
+    },
+    {
+      title: "Toyota Hiace Bus",
+      price: "$150 / day",
+      childPrice: null,
+      duration: "24 hours",
+      minPax: null,
+      image: "/attached_assets/stock_images/vanuatu_4wd_vehicle.jpg",
+      description: [
+        "12-seater mini bus",
+        "Perfect for large groups",
+        "Spacious and comfortable"
+      ],
+      category: "vehicle",
+      defaultCapacity: 1,
+      vehicleDetails: {
+        make: "Toyota",
+        model: "Hiace",
+        seats: 12,
+        transmission: "Automatic",
+        features: ["Air Conditioning", "High Roof", "Group Travel"]
+      }
+    },
+    {
+      title: "Kia Cerato Sedan",
+      price: "$90 / day",
+      childPrice: null,
+      duration: "24 hours",
+      minPax: null,
+      image: "/attached_assets/stock_images/vanuatu_4wd_vehicle.jpg",
+      description: [
+        "Comfortable family sedan",
+        "Smooth ride for round island trips",
+        "Large boot space"
+      ],
+      category: "vehicle",
+      defaultCapacity: 1,
+      vehicleDetails: {
+        make: "Kia",
+        model: "Cerato",
+        seats: 5,
+        transmission: "Automatic",
+        features: ["Cruise Control", "Apple CarPlay", "Spacious"]
+      }
+    },
+    {
+      title: "Ford Ranger Wildtrak",
+      price: "$140 / day",
+      childPrice: null,
+      duration: "24 hours",
+      minPax: null,
+      image: "/attached_assets/stock_images/vanuatu_4wd_vehicle.jpg",
+      description: [
+        "Premium 4WD experience",
+        "Leather interior",
+        "Top of the line features"
+      ],
+      category: "vehicle",
+      defaultCapacity: 1,
+      vehicleDetails: {
+        make: "Ford",
+        model: "Ranger",
+        seats: 5,
+        transmission: "Automatic",
+        features: ["GPS Navigation", "Leather Seats", "Tow Bar"]
       }
     }
   ];
 
-  for (const tour of tours) {
-    try {
-      await storage.createTour(tour);
-      console.log(`Created tour: ${tour.title}`);
-    } catch (error) {
-      console.error(`Error creating tour ${tour.title}:`, error);
+  for (const service of demoServices) {
+    const existing = await db.select().from(toursTable).where(eq(toursTable.title, service.title)).limit(1);
+    if (existing.length === 0) {
+      await storage.createTour(service as any);
+      console.log(`Created service: ${service.title}`);
+    } else {
+      console.log(`Service already exists: ${service.title}`);
     }
   }
 
-  // Create demo users
-  const users = [
-    {
-      username: "admin",
-      password: "admin123",
-      email: "admin@acetours.vu",
-      role: "admin",
-      name: "Admin User",
-      phone: "+678 123 4567"
-    },
-    {
-      username: "james",
-      password: "user123",
-      email: "james@example.com",
-      role: "customer",
-      name: "James Doe",
-      phone: "+678 987 6543"
-    }
-  ];
-
-  for (const user of users) {
-    try {
-      const existing = await storage.getUserByEmail(user.email);
-      if (!existing) {
-        await storage.createUser(user);
-        console.log(`Created user: ${user.name}`);
-      }
-    } catch (error) {
-      console.error(`Error creating user ${user.name}:`, error);
-    }
-  }
-
-  // Seed content blocks (CMS)
-  const contentBlocksData = [
-    {
-      slug: "hero",
-      label: "Hero Section",
-      description: "Main hero banner on the home page",
-      enabled: true,
-      config: { showCta: true, showScrollIndicator: true }
-    },
-    {
-      slug: "featured-tours",
-      label: "Featured Tours",
-      description: "Tour cards section on home page",
-      enabled: true,
-      config: { maxItems: 6 }
-    },
-    {
-      slug: "featured-transfers",
-      label: "Featured Transfers",
-      description: "Transfer cards section on home page",
-      enabled: true,
-      config: { maxItems: 3 }
-    },
-    {
-      slug: "about-section",
-      label: "About Us Section",
-      description: "About section on home page",
-      enabled: true,
-      config: {}
-    },
-    {
-      slug: "testimonials",
-      label: "Testimonials",
-      description: "Customer testimonials section",
-      enabled: true,
-      config: { maxItems: 3 }
-    },
-    {
-      slug: "contact-form",
-      label: "Contact Form",
-      description: "Contact form on contact page",
-      enabled: true,
-      config: {}
-    },
-    {
-      slug: "promotions-banner",
-      label: "Promotions Banner",
-      description: "Promotional banner across the site",
-      enabled: false,
-      config: { message: "", bgColor: "#f2800d" }
-    },
-    {
-      slug: "whatsapp-widget",
-      label: "WhatsApp Chat Widget",
-      description: "Floating WhatsApp chat button",
-      enabled: true,
-      config: {}
-    },
-    {
-      slug: "newsletter",
-      label: "Newsletter Subscription",
-      description: "Newsletter signup form in footer",
-      enabled: true,
-      config: {}
-    }
-  ];
-
-  for (const block of contentBlocksData) {
-    try {
-      await storage.upsertContentBlock(block);
-      console.log(`Created content block: ${block.label}`);
-    } catch (error) {
-      console.error(`Error creating content block ${block.label}:`, error);
-    }
-  }
-
-  // Seed site settings
-  const siteSettingsData = [
-    {
-      key: "whatsapp",
-      value: {
-        enabled: true,
-        phoneNumber: "+678 5551234",
-        greeting: "Hello! How can we help you with your Vanuatu adventure?",
-        position: "bottom-right"
-      }
-    },
-    {
-      key: "business_info",
-      value: {
-        name: "Ace Tours & Transfers Vanuatu",
-        email: "info@acetours.vu",
-        phone: "+678 5551234",
-        address: "Port Vila, Vanuatu"
-      }
-    }
-  ];
-
-  for (const setting of siteSettingsData) {
-    try {
-      await storage.upsertSiteSetting(setting);
-      console.log(`Created site setting: ${setting.key}`);
-    } catch (error) {
-      console.error(`Error creating site setting ${setting.key}:`, error);
-    }
-  }
-
-  // Seed payment gateways
-  const paymentGatewaysData = [
-    {
-      slug: "anz-egate",
-      displayName: "ANZ eGate",
-      description: "ANZ Bank Vanuatu online payment gateway",
-      active: true,
-      isDefault: true,
-      credentials: {
-        merchantId: "",
-        apiKey: "",
-        secretKey: "",
-        environment: "sandbox"
-      },
-      supportedCurrencies: ["VUV", "AUD", "USD"],
-      config: {
-        returnUrl: "/payment/success",
-        cancelUrl: "/payment/cancel",
-        notifyUrl: "/api/payments/callback"
-      }
-    },
-    {
-      slug: "bred",
-      displayName: "BRED Bank",
-      description: "BRED Bank Vanuatu payment gateway",
-      active: false,
-      isDefault: false,
-      credentials: {
-        merchantId: "",
-        apiKey: "",
-        secretKey: "",
-        environment: "sandbox"
-      },
-      supportedCurrencies: ["VUV", "EUR", "USD"],
-      config: {
-        returnUrl: "/payment/success",
-        cancelUrl: "/payment/cancel",
-        notifyUrl: "/api/payments/callback"
-      }
-    },
-    {
-      slug: "bsp",
-      displayName: "BSP (Bank of South Pacific)",
-      description: "Bank of South Pacific online payment gateway",
-      active: false,
-      isDefault: false,
-      credentials: {
-        merchantId: "",
-        apiKey: "",
-        secretKey: "",
-        environment: "sandbox"
-      },
-      supportedCurrencies: ["VUV", "PGK", "FJD", "SBD"],
-      config: {
-        returnUrl: "/payment/success",
-        cancelUrl: "/payment/cancel",
-        notifyUrl: "/api/payments/callback"
-      }
-    }
-  ];
-
-  for (const gateway of paymentGatewaysData) {
-    try {
-      await storage.upsertPaymentGateway(gateway);
-      console.log(`Created payment gateway: ${gateway.displayName}`);
-    } catch (error) {
-      console.error(`Error creating payment gateway ${gateway.displayName}:`, error);
-    }
-  }
-
-  console.log("Database seeding completed!");
+  console.log("Database seeding complete!");
   process.exit(0);
 }
 
-seed().catch((error) => {
-  console.error("Seeding failed:", error);
+main().catch((err) => {
+  console.error(err);
   process.exit(1);
 });

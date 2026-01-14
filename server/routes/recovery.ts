@@ -1,9 +1,10 @@
+
 import { Express, Request, Response } from "express";
-import { IStorage } from "../storage";
-import { InventoryRepairService } from "../application/availability/inventory-repair.service";
-import { PaymentBookingDiffService } from "../application/recovery/recovery-report.service";
-import { BackupIntegrityGuard } from "../infrastructure/recovery/integrity-guard";
-import { requireAdmin } from "../routes";
+import { IStorage } from "../storage.js";
+import { InventoryRepairService } from "../application/availability/inventory-repair.service.js";
+import { PaymentBookingDiffService } from "../application/recovery/recovery-report.service.js";
+import { BackupIntegrityGuard } from "../infrastructure/recovery/integrity-guard.js";
+import { requireAdmin } from "../routes.js";
 
 export async function registerRecoveryRoutes(app: Express, storage: IStorage) {
   const repairService = new InventoryRepairService(storage);

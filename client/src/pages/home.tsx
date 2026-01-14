@@ -1,15 +1,18 @@
 
 import { Layout } from "@/components/layout";
+import { SEO } from "@/components/seo";
 import { Hero } from "@/components/hero";
 import { TourCard } from "@/components/tour-card";
 import { motion } from "framer-motion";
-import aboutImg from "@assets/stock_images/vanuatu_rarru_waterf_a12f619f.jpg";
-import { CheckCircle } from "lucide-react";
+import { CheckCircle, MapPin, Shield, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BookingModal } from "@/components/booking-modal";
 import { useQuery } from "@tanstack/react-query";
 import { fetchTours } from "@/lib/api";
 import { useTranslation } from "react-i18next";
+
+// Using Cloudinary URL instead of local import
+const aboutImg = "https://res.cloudinary.com/dwro1dh5q/image/upload/v1764939968/ace-tours-stock/1764939966139_vanuatu_rarru_waterf_a12f619f.jpg.jpg";
 
 export default function Home() {
   const { t } = useTranslation();
@@ -40,13 +43,54 @@ export default function Home() {
 
   return (
     <Layout>
+      <SEO
+        title={t("home.seoTitle", "Ace Tours & Transfers - Private Tours in Vanuatu")}
+        description={t("home.seoDesc", "Experience the best of Vanuatu with Ace Tours & Transfers. Meticulously pre-planned and custom-designed tour packages in Port Vila.")}
+      />
       <Hero />
+
+      {/* Trust Indicators - Why Choose Us */}
+      <section className="py-12 bg-primary/5 border-b border-primary/10">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="flex items-center gap-4 p-4 bg-background rounded-xl shadow-sm border border-border/50">
+              <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
+                <Shield className="w-6 h-6 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-bold text-lg">{t("trust.licensed", "Fully Licensed")}</h3>
+                <p className="text-sm text-muted-foreground">{t("trust.licensedDesc", "Official JTB Approved Operator")}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4 p-4 bg-background rounded-xl shadow-sm border border-border/50">
+              <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
+                <Star className="w-6 h-6 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-bold text-lg">{t("trust.rated", "Top Rated")}</h3>
+                <p className="text-sm text-muted-foreground">{t("trust.ratedDesc", "5-Star Service Guarantee")}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4 p-4 bg-background rounded-xl shadow-sm border border-border/50">
+              <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
+                <CheckCircle className="w-6 h-6 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-bold text-lg">{t("trust.secure", "Secure Booking")}</h3>
+                <p className="text-sm text-muted-foreground">{t("trust.secureDesc", "Instant Confirmation & Support")}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* About Section */}
       <section className="py-20 bg-muted/30 overflow-hidden">
         <div className="container mx-auto px-4">
           <div className="flex flex-col lg:flex-row items-center gap-16">
-            <motion.div 
+            <motion.div
               className="lg:w-1/2"
               initial={{ opacity: 0, x: -50 }}
               whileInView={{ opacity: 1, x: 0 }}
@@ -55,10 +99,10 @@ export default function Home() {
             >
               <div className="relative">
                 <div className="absolute -top-4 -left-4 w-24 h-24 bg-primary/10 rounded-full -z-10" />
-                <img 
-                  src={aboutImg} 
-                  alt="Vanuatu Waterfall" 
-                  className="rounded-2xl shadow-2xl w-full object-cover aspect-[4/3]" 
+                <img
+                  src={aboutImg}
+                  alt="Vanuatu Waterfall"
+                  className="rounded-2xl shadow-2xl w-full object-cover aspect-[4/3]"
                 />
                 <div className="absolute -bottom-6 -right-6 bg-card p-6 rounded-xl shadow-xl max-w-xs hidden md:block border border-border/50 transition-all duration-300 hover:shadow-2xl hover:shadow-primary/20 hover:border-primary/30 hover:-translate-y-1 cursor-default">
                   <p className="font-serif text-lg italic text-foreground">"{t("home.quote")}"</p>
@@ -66,7 +110,7 @@ export default function Home() {
               </div>
             </motion.div>
 
-            <motion.div 
+            <motion.div
               className="lg:w-1/2"
               initial={{ opacity: 0, x: 50 }}
               whileInView={{ opacity: 1, x: 0 }}
@@ -84,7 +128,7 @@ export default function Home() {
               <p className="text-lg text-muted-foreground mb-8 leading-relaxed">
                 {t("home.aboutDesc2")}
               </p>
-              
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
                 {[
                   t("home.fullyInsured"),
@@ -170,3 +214,6 @@ export default function Home() {
     </Layout>
   );
 }
+
+
+

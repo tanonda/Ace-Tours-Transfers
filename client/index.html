@@ -1,42 +1,62 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
 
-    <meta property="og:title" content="Ace Tours & Transfers Vanuatu" />
-    <meta property="og:description" content="Meticulously pre-planned and custom-designed tour packages in Port Vila, Vanuatu." />
-    <meta property="og:type" content="website" />
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Ace Tours & Transfers Vanuatu" />
-    <meta name="twitter:description" content="Experience the best of Efate Island with Ace Tours & Transfers." />
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5, viewport-fit=cover" />
 
-    <link rel="icon" type="image/png" href="/favicon.png" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,100..1000&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet">
-  </head>
-  <body>
-    <div id="root"></div>
-    <script>
-      // Suppress Vite error overlay for non-Error objects
-      window.__VITE_ERROR_OVERLAY_PATCHED__ = false;
-      const origDefineProperty = Object.defineProperty;
-      Object.defineProperty = function(obj, prop, desc) {
-        if (prop === 'ErrorOverlay' && desc && desc.value) {
-          const OriginalErrorOverlay = desc.value;
-          desc.value = function(err, links) {
-            if (!err || typeof err !== 'object' || !err.message) {
-              console.warn('Suppressed non-Error overlay:', err);
-              return document.createElement('div');
-            }
-            return new OriginalErrorOverlay(err, links);
-          };
-          desc.value.prototype = OriginalErrorOverlay.prototype;
-        }
-        return origDefineProperty.call(this, obj, prop, desc);
-      };
-    </script>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+  <!-- PWA & Mobile App Meta Tags -->
+  <meta name="theme-color" content="#f97316" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Ace Tours" />
+  <meta name="mobile-web-app-capable" content="yes" />
+
+  <meta property="og:title" content="Ace Tours &amp; Transfers Vanuatu" />
+  <meta property="og:description"
+    content="Meticulously pre-planned and custom-designed tour packages in Port Vila, Vanuatu." />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Ace Tours &amp; Transfers Vanuatu" />
+  <meta name="twitter:description" content="Experience the best of Efate Island with Ace Tours &amp; Transfers." />
+
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,100..1000&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap"
+    rel="stylesheet">
+    <link rel="icon" type="image/png" sizes="16x16" href="https://res.cloudinary.com/dwro1dh5q/image/upload/v1765162737/favicons/favicon-16x16.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="https://res.cloudinary.com/dwro1dh5q/image/upload/v1765162738/favicons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="48x48" href="https://res.cloudinary.com/dwro1dh5q/image/upload/v1765162739/favicons/favicon-48x48.png">
+    <link rel="icon" type="image/png" sizes="64x64" href="https://res.cloudinary.com/dwro1dh5q/image/upload/v1765162740/favicons/favicon-64x64.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="https://res.cloudinary.com/dwro1dh5q/image/upload/v1765162742/favicons/favicon-192x192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="https://res.cloudinary.com/dwro1dh5q/image/upload/v1765162743/favicons/favicon-512x512.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="https://res.cloudinary.com/dwro1dh5q/image/upload/v1765162742/favicons/favicon-192x192.png">
+    <link rel="icon" type="image/png" href="https://res.cloudinary.com/dwro1dh5q/image/upload/v1765162738/favicons/favicon-32x32.png">
+</head>
+
+<body>
+  <div id="root"></div>
+  <script>
+    // Suppress Vite error overlay for non-Error objects
+    window.__VITE_ERROR_OVERLAY_PATCHED__ = false;
+    const origDefineProperty = Object.defineProperty;
+    Object.defineProperty = function (obj, prop, desc) {
+      if (prop === 'ErrorOverlay' && desc && desc.value) {
+        const OriginalErrorOverlay = desc.value;
+        desc.value = function (err, links) {
+          if (!err || typeof err !== 'object' || !err.message) {
+            console.warn('Suppressed non-Error overlay:', err);
+            return document.createElement('div');
+          }
+          return new OriginalErrorOverlay(err, links);
+        };
+        desc.value.prototype = OriginalErrorOverlay.prototype;
+      }
+      return origDefineProperty.call(this, obj, prop, desc);
+    };
+  </script>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+
 </html>

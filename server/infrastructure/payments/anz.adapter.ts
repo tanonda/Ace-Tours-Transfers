@@ -8,9 +8,9 @@ import {
   PaymentStatusResponse, 
   WebhookEvent, 
   WebhookResponse 
-} from "../../domain/payments/interfaces";
-import { config } from "../../config";
-import { PaymentGateway } from "@shared/schema";
+} from "../../domain/payments/interfaces.js";
+import { config } from "../../config.js";
+import { PaymentGateway } from "../../../shared/schema.js";
 
 /**
  * ANZ eGate Hosted Checkout Adapter (Stub)
@@ -23,7 +23,7 @@ export class AnzAdapter implements HostedBankGatewayAdapter {
     this.gatewayConfig = gatewayConfig;
   }
 
-  async initiatePayment(request: PaymentInitiationRequest): Promise<PaymentInitiationResponse & { redirectUrl?: string; gatewayReference?: string }> {
+  async initiatePayment(request: PaymentInitiationRequest): Promise<PaymentInitiationResponse & { success: boolean; redirectUrl?: string; gatewayReference?: string }> {
     const mode = config.payments.anz.mode;
     if (mode === 'live' && !process.env.ANZ_MERCHANT_ID) {
       throw new Error("[ANZ] Merchant ID missing for LIVE environment.");
@@ -39,8 +39,8 @@ export class AnzAdapter implements HostedBankGatewayAdapter {
     };
   }
 
-  async handleWebhook(event: WebhookEvent): Promise<WebhookResponse & { normalizedStatus?: PaymentStatus }> {
-    return { success: true, normalizedStatus: PaymentStatus.Pending };
+  async handleWebhook(event: WebhookEvent): Promise<WebhookResponse & { normalizedStatus?: 'completed' | 'failed' | 'cancelled' | 'expired'; gatewayReference?: string; failureReason?: string }> {
+    return { success: true, normalizedStatus: 'completed' as const };
   }
 
   async queryPaymentStatus(request: PaymentStatusRequest): Promise<PaymentStatusResponse> {

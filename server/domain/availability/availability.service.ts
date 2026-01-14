@@ -1,4 +1,4 @@
-import { IStorage } from "../../storage";
+import { IStorage } from "../../storage.js";
 import { 
   TourInstance, 
   AvailabilityHold, 
@@ -8,8 +8,8 @@ import {
   tours, // Added tours import
   availabilityHolds,
   bookings
-} from "@shared/schema";
-import { db } from "../../db";
+} from "../../../shared/schema.js";
+import { db } from "../../db.js";
 import { eq, and, sql } from "drizzle-orm";
 
 export enum HoldStatus {
@@ -57,7 +57,7 @@ export class AvailabilityService {
     slot?: string,
     ttlMinutes: number = 15
   ): Promise<AvailabilityHold> {
-    return await db.transaction(async (tx) => {
+    return await db.transaction(async (tx: any) => {
       // 1. Get or Create TourInstance with LOCK
       let instance = await this.getOrCreateInstanceLocked(tx, tourId, date, slot);
 
@@ -96,7 +96,7 @@ export class AvailabilityService {
    * Confirms a hold (converts to confirmed booking count).
    */
   async confirmBooking(holdId: string): Promise<void> {
-    await db.transaction(async (tx) => {
+    await db.transaction(async (tx: any) => {
       // 1. Lock Hold
       const [hold] = await tx
         .select()
@@ -137,7 +137,7 @@ export class AvailabilityService {
    * Releases a hold (manual cancellation or expiry).
    */
   async releaseHold(holdId: string, status: HoldStatus = HoldStatus.RELEASED): Promise<void> {
-    await db.transaction(async (tx) => {
+    await db.transaction(async (tx: any) => {
       const [hold] = await tx
         .select()
         .from(availabilityHolds)
@@ -170,7 +170,7 @@ export class AvailabilityService {
    * Admin capacity override.
    */
   async adminOverride(instanceId: string, update: { totalCapacity?: number; blockedCount?: number }): Promise<TourInstance> {
-    return await db.transaction(async (tx) => {
+    return await db.transaction(async (tx: any) => {
       const [instance] = await tx
         .select()
         .from(tourInstances)

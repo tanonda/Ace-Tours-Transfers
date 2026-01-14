@@ -1,8 +1,8 @@
 
-import { Cart } from "./Cart";
-import { PriceSnapshot } from "../pricing/PricingService";
-import { eventDispatcher } from "../../infrastructure/events/event-dispatcher";
-import { BookingCreated } from "../events";
+import { Cart } from "./Cart.js";
+import { PriceSnapshot } from "../pricing/PricingService.js";
+import { eventDispatcher } from "../../infrastructure/events/event-dispatcher.js";
+import { BookingCreated } from "../events.js";
 
 export enum BookingStatus {
   CREATED = 'CREATED',

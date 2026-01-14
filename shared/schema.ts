@@ -9,10 +9,13 @@ export const users = pgTable("users", {
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
   email: text("email").notNull().unique(),
-  role: text("role").notNull().default("customer"), // 'admin' or 'customer'
+  role: text("role").notNull().default("customer"), // 'admin', 'field_service', 'customer'
   name: text("name").notNull(),
   phone: text("phone"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  passwordResetToken: text("password_reset_token"),
+  passwordResetTokenExpiry: timestamp("password_reset_token_expiry", { withTimezone: true }),
 });
 
 export const tours = pgTable("tours", {
@@ -25,6 +28,7 @@ export const tours = pgTable("tours", {
   image: text("image").notNull(),
   description: text("description").array().notNull(),
   category: text("category").notNull(), // 'tour', 'transfer', or 'vehicle'
+  capacity: integer("capacity").notNull().default(999),
   defaultCapacity: integer("default_capacity").notNull().default(20),
   vehicleDetails: jsonb("vehicle_details"), // { make, model, seats, transmission, features[] }
 });
@@ -100,8 +104,9 @@ export const paymentGateways = pgTable("payment_gateways", {
   description: text("description"),
   active: boolean("active").notNull().default(false),
   isDefault: boolean("is_default").notNull().default(false),
+  priority: integer("priority").notNull().default(0), // NEW: Priority for failover logic
   credentials: jsonb("credentials"), // Encrypted credentials stored as JSON
-  supportedCurrencies: text("supported_currencies").array().default(sql`ARRAY['VUV']::text[]`),
+  supportedCurrencies: jsonb("supported_currencies").default(sql`'["VUV"]'`),
   config: jsonb("config"), // Gateway-specific configuration
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -282,13 +287,16 @@ export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
   role: true,
   createdAt: true,
+  updatedAt: true,
 });
 
 export const insertTourSchema = createInsertSchema(tours).omit({
   id: true,
 });
 
-export const insertBookingSchema = createInsertSchema(bookings).omit({
+export const insertBookingSchema = createInsertSchema(bookings, {
+  userId: z.string().optional(),
+}).omit({
   id: true,
   createdAt: true,
 });
@@ -303,7 +311,191 @@ export const insertSiteSettingSchema = createInsertSchema(siteSettings).omit({
   updatedAt: true,
 });
 
-export const insertPaymentGatewaySchema = createInsertSchema(paymentGateways).omit({
+// Add this new schema
+export const MastercardGatewayCredentialsSchema = z.object({
+  merchantId: z.string(),
+  accessCode: z.string(),
+  secureHashSecret: z.string(),
+  apiEndpoint: z.string().url(),
+  version: z.string().optional(), // API Version if required
+});
+
+// Placeholder for Stripe Credentials Schema
+export const StripeCredentialsSchema = z.object({
+  secretKey: z.string(),
+  publishableKey: z.string().optional(),
+  webhookSecret: z.string(),
+});
+
+// Refined: Google Pay Credentials Schema
+export const GooglePayCredentialsSchema = z.object({
+  merchantId: z.string(),
+  gateway: z.string(), // e.g., "paypal" or "bred"
+  gatewayMerchantId: z.string().optional(),
+});
+
+// Refined: Apple Pay Credentials Schema
+export const ApplePayCredentialsSchema = z.object({
+  merchantIdentifier: z.string(),
+  domainName: z.string().url(),
+  paymentProcessingCertificateUrl: z.string().url().optional(), // URL to uploaded cert
+  gateway: z.string(), // e.g., "paypal" or "bred"
+});
+
+// Refined: PayPal Credentials Schema
+export const PayPalCredentialsSchema = z.object({
+  clientId: z.string(),
+  clientSecret: z.string(),
+  mode: z.enum(["sandbox", "live"]),
+  merchantAccountType: z.enum(["BUSINESS_VERIFIED", "PERSONAL_UNVERIFIED"]).optional(),
+  ipnWebhookUrl: z.string().url().optional(),
+  settlementCurrency: z.string().optional(),
+  checkoutExperience: z.enum(["PAY_WITH_PAYPAL", "PAY_WITH_CARD_OR_PAYPAL"]).optional(),
+});
+
+// Placeholder for E-Wallet Credentials Schema (generic)
+export const EWalletCredentialsSchema = z.object({
+  apiKey: z.string(),
+  apiSecret: z.string(),
+}).partial();
+
+// Placeholder for Generic Local Bank Credentials Schema
+export const GenericLocalBankCredentialsSchema = z.object({
+  bankName: z.string(),
+  accountName: z.string(),
+  accountNumber: z.string(),
+  swiftCode: z.string().optional(),
+}).partial(); // Keep this one partial as it's generic
+
+
+// NEW: WanTok Credentials Schema
+export const WanTokCredentialsSchema = z.object({
+  merchantId: z.string(),
+  apiKey: z.string(),
+  apiSecret: z.string(),
+  integrationType: z.enum(["API", "USSD", "QR"]),
+});
+
+// NEW: Digicel Mobile Money Credentials Schema
+export const DigicelMobileMoneyCredentialsSchema = z.object({
+  merchantId: z.string(),
+  apiKey: z.string(),
+  apiSecret: z.string(),
+  ussdCode: z.string().optional(),
+  paymentBusinessNumber: z.string().optional(),
+  integrationType: z.enum(["API", "USSD", "QR"]),
+});
+
+// NEW: KwikPay Credentials Schema
+export const KwikPayCredentialsSchema = z.object({
+  merchantId: z.string(),
+  apiKey: z.string(),
+  apiSecret: z.string(),
+  integrationType: z.enum(["API", "USSD", "QR"]),
+});
+
+// NEW: Generic Local E-Wallet Config Schema
+export const LocalEWalletConfigSchema = z.object({
+  webhookUrl: z.string().url().optional(),
+  signatureVerificationKey: z.string().optional(),
+  transactionExpiryMinutes: z.number().int().positive().optional(),
+  transactionFeeRate: z.union([z.number(), z.string()]).optional(),
+  dailyLimit: z.number().positive().optional(),
+  monthlyLimit: z.number().positive().optional(),
+  customerPromptText: z.string().optional(),
+  logoUrl: z.string().url().optional(),
+});
+
+
+// NEW: Local Bank Common Config Schema
+export const LocalBankConfigSchema = z.object({
+  terminalId: z.string().optional(),
+  integrationType: z.enum(["HOSTED_REDIRECT", "DIRECT_API_POST"]),
+  bankApiEndpointUrl: z.string().url(),
+  settlementAccountId: z.string(),
+  supportedCurrencies: z.array(z.string()).min(1),
+  defaultDisplayCurrency: z.string(),
+  merchantDiscountRate: z.union([z.number(), z.string()]).optional(),
+  enforce3DSecure: z.boolean(),
+  threeDSecureThreshold: z.number().positive().optional(),
+  callbackWebhookUrl: z.string().url().optional(),
+  checkoutLogoUrl: z.string().url().optional(),
+  nameOnCheckout: z.string().optional(),
+});
+
+// Refined: ANZ eGate Credentials Schema - extends Mastercard Gateway with optional specific fields
+export const AnzEGateCredentialsSchema = MastercardGatewayCredentialsSchema;
+
+// Refined: Bred Bank Credentials Schema
+export const BredBankCredentialsSchema = z.object({
+  merchantId: z.string(),
+  accessCode: z.string(),
+  secureHashSecret: z.string(),
+  apiEndpoint: z.string().url(),
+  integrationType: z.enum(["HOSTED_REDIRECT", "DIRECT_API_POST"]),
+  terminalId: z.string().optional(),
+});
+
+// Refined: BSP Bank Credentials Schema
+export const BspBankCredentialsSchema = z.object({
+  merchantId: z.string(),
+  password: z.string(),
+  apiEndpoint: z.string().url(),
+  integrationType: z.enum(["HOSTED_REDIRECT", "DIRECT_API_POST"]),
+  terminalId: z.string().optional(),
+});
+
+// NEW: Digital Wallet Common Config Schema (for Apple Pay/Google Pay specifically)
+export const DigitalWalletConfigSchema = z.object({
+  paymentProcessorSelector: z.enum(["PAYPAL", "BRED", "BSP"]).optional(), // The underlying processor
+  applePayMerchantId: z.string().optional(),
+  applePayCertificate: z.string().url().optional(), // URL or identifier for the certificate
+  googlePayMerchantId: z.string().optional(),
+});
+
+// NEW: International Fallback Config Schema
+export const InternationalFallbackConfigSchema = z.object({
+  primaryFallbackGatewaySlug: z.string().optional(), // Slug of the chosen international processor
+  geoIpTargetingEnabled: z.boolean().optional(),
+});
+
+
+// Placeholder for Stripe Config Schema (no change here, still relevant if configured)
+export const StripeConfigSchema = z.object({
+  currency: z.string(),
+});
+
+
+
+
+// Update insertPaymentGatewaySchema - significantly updated to reflect new schemas
+export const insertPaymentGatewaySchema = createInsertSchema(paymentGateways, {
+  priority: z.number().int().default(0), // Allow setting priority on insert
+  credentials: z.union([
+    MastercardGatewayCredentialsSchema,
+    StripeCredentialsSchema,
+    GooglePayCredentialsSchema,
+    ApplePayCredentialsSchema,
+    PayPalCredentialsSchema,
+    EWalletCredentialsSchema,
+    AnzEGateCredentialsSchema,
+    BredBankCredentialsSchema,
+    BspBankCredentialsSchema,
+    GenericLocalBankCredentialsSchema,
+    WanTokCredentialsSchema,       // NEW
+    DigicelMobileMoneyCredentialsSchema, // NEW
+    KwikPayCredentialsSchema,       // NEW
+    z.record(z.any()), // Fallback for truly unknown credentials
+  ]).optional(),
+  config: z.union([
+    StripeConfigSchema,
+    LocalEWalletConfigSchema,      // NEW
+    LocalBankConfigSchema,         // NEW
+    DigitalWalletConfigSchema,     // NEW
+    InternationalFallbackConfigSchema, // NEW
+    z.record(z.any()), // Fallback for unknown config
+  ]).optional(),
+}).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
@@ -360,7 +552,7 @@ export type TourInstance = typeof tourInstances.$inferSelect;
 export type InsertAvailabilityHold = z.infer<typeof insertAvailabilityHoldSchema>;
 export type AvailabilityHold = typeof availabilityHolds.$inferSelect;
 export type InsertBooking = z.infer<typeof insertBookingSchema>;
-export type Booking = typeof bookings.$inferSelect;
+export type Booking = typeof bookings.$inferSelect & { customerEmail?: string, customerName?: string };
 export type InsertContentBlock = z.infer<typeof insertContentBlockSchema>;
 export type ContentBlock = typeof contentBlocks.$inferSelect;
 export type InsertSiteSetting = z.infer<typeof insertSiteSettingSchema>;
@@ -376,3 +568,37 @@ export type InsertNewsletterSubscriber = z.infer<typeof insertNewsletterSubscrib
 export type NewsletterSubscriber = typeof newsletterSubscribers.$inferSelect;
 export type InsertCmsContent = z.infer<typeof insertCmsContentSchema>;
 export type CmsContent = typeof cmsContent.$inferSelect;
+export type BookingStatus = "pending" | "confirmed" | "completed" | "cancelled";
+
+// Notifications
+export const notifications = pgTable("notifications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id), // Optional: if null, it's a system/admin notification
+  type: text("type").notNull().default("info"), // 'info', 'success', 'warning', 'error'
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  read: boolean("read").notNull().default(false),
+  link: text("link"), // Optional link to redirect to
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+}));
+
+export const insertNotificationSchema = createInsertSchema(notifications).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertNotification = z.infer<typeof insertNotificationSchema>;
+export type Notification = typeof notifications.$inferSelect;
+
+export const session = pgTable("session", {
+  sid: varchar("sid").primaryKey(),
+  sess: jsonb("sess").notNull(),
+  expire: timestamp("expire", { mode: 'date', precision: 6 }).notNull(),
+});

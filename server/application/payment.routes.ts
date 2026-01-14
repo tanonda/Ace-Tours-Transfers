@@ -1,9 +1,9 @@
 import { Express, Request, Response } from "express";
-import { PaymentApplicationService } from "./payment.application-service";
-import { IStorage } from "../storage";
-import { getStripePublishableKey } from "../stripeClient";
-import { requireAuth, requireAdmin } from "../routes";
-import { config } from "../config";
+import { PaymentApplicationService } from "./payment.application-service.js";
+import { IStorage } from "../storage.js";
+import { getStripePublishableKey } from "../stripeClient.js";
+import { requireAuth, requireAdmin } from "../routes.js";
+import { config } from "../config.js";
 
 export function registerPaymentRoutes(app: Express, storage: IStorage) {
   const paymentAppService = new PaymentApplicationService(storage);
@@ -15,7 +15,7 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
       const gateways = await storage.getPaymentGateways();
       
       // Filter gateways based on VISIBLE feature flags
-      const visibleGateways = gateways.filter(g => {
+      const visibleGateways = gateways.filter((g: any) => {
         if (!g.active) return false;
         const slug = g.slug.toLowerCase();
         
@@ -33,7 +33,7 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
 
       res.json({ 
         stripePublishableKey: publishableKey,
-        availableGateways: visibleGateways.map(g => ({
+        availableGateways: visibleGateways.map((g: any) => ({
           id: g.id,
           slug: g.slug,
           displayName: g.displayName,
@@ -100,7 +100,7 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
 
       // SECURITY: Mask PII for non-admins
       if (!isAdmin) {
-        const { selectPublicPaymentSchema } = await import("@shared/schema");
+        const { selectPublicPaymentSchema } = await import("../../shared/schema.js");
         return res.json(selectPublicPaymentSchema.parse(payment));
       }
 
@@ -127,8 +127,8 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
       
       // Mask PII for non-admins
       if (!isAdmin) {
-        const { selectPublicPaymentSchema } = await import("@shared/schema");
-        return res.json(payments.map(p => selectPublicPaymentSchema.parse(p)));
+        const { selectPublicPaymentSchema } = await import("../../shared/schema.js");
+        return res.json(payments.map((p: any) => selectPublicPaymentSchema.parse(p)));
       }
 
       res.json(payments);
@@ -176,7 +176,7 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
   app.get("/api/payment-gateways", async (req, res) => {
     try {
       const gateways = await storage.getPaymentGateways();
-      res.json(gateways.map(g => ({
+      res.json(gateways.map((g: any) => ({
         id: g.id,
         slug: g.slug,
         displayName: g.displayName,
@@ -229,7 +229,7 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
   // Admin: Manual reconciliation
   app.post("/api/admin/payments/:id/reconcile", requireAdmin, async (req, res) => {
     try {
-      const { PaymentReconciliationService } = await import("./payment-reconciliation.service");
+      const { PaymentReconciliationService } = await import("./payment-reconciliation.service.js");
       const reconService = new PaymentReconciliationService(storage);
       
       const { note, forceStatus } = req.body;
@@ -254,7 +254,7 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
   // Admin: Trigger sync for a specific payment
   app.post("/api/admin/payments/:id/sync", requireAdmin, async (req, res) => {
     try {
-      const { PaymentReconciliationService } = await import("./payment-reconciliation.service");
+      const { PaymentReconciliationService } = await import("./payment-reconciliation.service.js");
       const reconService = new PaymentReconciliationService(storage);
       
       await reconService.syncPaymentStatus(req.params.id);

@@ -70,6 +70,7 @@ export const config = {
     paymentsPaused: process.env.GLOBAL_PAYMENTS_PAUSE === 'true',
     bookingsPaused: process.env.NEW_BOOKINGS_PAUSE === 'true',
     bankTransferPaused: process.env.PAUSE_BANK_TRANSFER === 'true',
+    cardPaymentsPaused: process.env.PAUSE_CARD_PAYMENTS === 'true',
   },
   cloudinary: {
     url: process.env.CLOUDINARY_URL,

@@ -1,0 +1,8 @@
+client/src/components/newsletter-form.tsx(41,9): error TS2353: Object literal may only specify known properties, and 'locale' does not exist in type '{ email: string; }'.
+client/src/pages/admin/cms.tsx(145,51): error TS2339: Property 'id' does not exist on type '{ value: string | null; id: string; createdAt: Date; updatedAt: Date; locale: string | null; blockSlug: string; contentKey: string; contentType: string; sortOrder: number | null; key?: undefined; type?: undefined; } | { ...; }'.
+  Property 'id' does not exist on type '{ key: string; value: string; type: string; }'.
+client/src/pages/admin/cms.tsx(154,61): error TS2322: Type 'string | null' is not assignable to type 'string | number | readonly string[] | undefined'.
+  Type 'null' is not assignable to type 'string | number | readonly string[] | undefined'.
+client/src/pages/admin/cms.tsx(192,61): error TS2322: Type 'string | null' is not assignable to type 'string | number | readonly string[] | undefined'.
+  Type 'null' is not assignable to type 'string | number | readonly string[] | undefined'.
+server/lib/mail.ts(1,24): error TS2307: Cannot find module 'nodemailer' or its corresponding type declarations.

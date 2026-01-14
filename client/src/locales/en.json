@@ -1,7 +1,6 @@
 {
   "app.title": "Ace Tours & Transfers Vanuatu",
   "app.tagline": "Your trusted partner for unforgettable Vanuatu adventures",
-  
   "nav.home": "Home",
   "nav.tours": "Tours",
   "nav.transfers": "Transfers",
@@ -26,13 +25,11 @@
   "nav.manageBookings": "Manage existing bookings",
   "nav.cancelReservation": "Cancel a reservation",
   "nav.startNewBooking": "Start a new booking",
-  
   "hero.title": "Time for your next adventure",
   "hero.titlePart1": "Time for your",
   "hero.titlePart2": "next adventure",
   "hero.subtitle": "Discover Vanuatu with Ace Tours & Transfers",
   "hero.cta": "Book Now",
-  
   "home.aboutLabel": "About Us",
   "home.aboutTitle": "Travel made easy",
   "home.aboutDesc1": "Welcome to Ace Tours & Transfers. Our mission is to offer meticulously pre-planned and custom-designed tour packages that ensure your stay in Port Vila is nothing short of extraordinary.",
@@ -43,19 +40,15 @@
   "home.safetyFirst": "Safety First",
   "home.learnMore": "Learn More About Us",
   "home.quote": "Customer satisfaction, safety, and service are at the heart of everything we do.",
-  
   "home.toursLabel": "Our Packages",
   "home.toursTitle": "Unforgettable Tours",
   "home.toursDesc": "Discover the best of Efate Island with our curated experiences.",
-  
   "home.transfersTitle": "Reliable Transfers",
   "home.transfersDesc": "Professional transport solutions for any occasion.",
   "home.bookTransfer": "Book Transfer",
-  
   "home.ctaTitle": "Ready for your next adventure?",
   "home.ctaDesc": "Let us handle the details while you make the memories.",
   "home.ctaButton": "Start Planning Now",
-  
   "about.title": "About Ace Tours",
   "about.subtitle": "Your trusted partner for exploring the beautiful islands of Vanuatu.",
   "about.storyTitle": "Our Story",
@@ -74,7 +67,6 @@
   "about.reliableServiceDesc": "Punctuality and reliability are our hallmarks. You can count on us to be there when you need us.",
   "about.safetyFirst": "Safety First",
   "about.safetyFirstDesc": "Your safety is our priority. Our vehicles are regularly maintained and our drivers are professionally trained.",
-  
   "contact.title": "Contact Us",
   "contact.subtitle": "Have questions? We'd love to hear from you.",
   "contact.getInTouch": "Get in Touch",
@@ -97,7 +89,6 @@
   "contact.sending": "Sending...",
   "contact.messageSent": "Message Sent!",
   "contact.messageSuccess": "We'll get back to you as soon as possible.",
-  
   "auth.signIn": "Sign in",
   "auth.signInDesc": "Enter your email and password to access your account",
   "auth.signUp": "Sign up",
@@ -145,7 +136,6 @@
   "auth.vanuatuCulture": "Vanuatu Culture",
   "auth.fullNamePlaceholder": "John Doe",
   "auth.emailPlaceholder": "name@example.com",
-  
   "cart.title": "Your Cart",
   "cart.empty": "Your cart is empty",
   "cart.emptyDesc": "Add some tours or transfers to get started",
@@ -156,7 +146,6 @@
   "cart.guests": "Guests",
   "cart.date": "Date",
   "cart.addToCart": "Add to Cart",
-  
   "payment.title": "Complete Your Booking",
   "payment.orderSummary": "Order Summary",
   "payment.paymentDetails": "Payment Details",
@@ -179,7 +168,6 @@
   "payment.payByBank": "Pay by Local Bank",
   "payment.pending": "Payment Received",
   "payment.pendingDesc": "We're confirming your payment. This usually takes a moment.",
-  
   "booking.id": "ID",
   "booking.customer": "Customer",
   "booking.tour": "Tour",
@@ -204,7 +192,6 @@
   "booking.preferredDate": "Preferred Date",
   "booking.pickDate": "Pick a date",
   "booking.submit": "Submit Request",
-  
   "tour.price": "Price",
   "tour.duration": "Duration",
   "tour.minPax": "Minimum Pax",
@@ -213,7 +200,6 @@
   "tour.viewDetails": "View Details",
   "tour.quickView": "Quick View",
   "tour.startingFrom": "Starting from",
-  
   "dashboard.welcome": "Welcome back",
   "dashboard.welcomeDesc": "Here's an overview of your travel activities.",
   "dashboard.revenue": "Revenue",
@@ -285,7 +271,6 @@
   "dashboard.noBookingsYet": "No bookings yet. Create your first booking to see it here.",
   "dashboard.route": "Route",
   "dashboard.action": "Action",
-  
   "common.search": "Search",
   "common.searchPlaceholder": "Search bookings...",
   "common.export": "Export CSV",
@@ -302,7 +287,6 @@
   "common.theme": "Theme",
   "common.settings": "Settings",
   "app.shortTitle": "Ace Tours",
-  
   "footer.quickLinks": "Quick Links",
   "footer.ourServices": "Our Services",
   "footer.contactInfo": "Contact Info",
@@ -313,7 +297,6 @@
   "footer.description": "Experience the beauty of Efate Island with us. We offer meticulously pre-planned and custom-designed tour packages.",
   "footer.privacyPolicy": "Privacy Policy",
   "footer.termsOfService": "Terms of Service",
-  
   "newsletter.title": "Subscribe to our newsletter",
   "newsletter.footerTitle": "Stay Updated",
   "newsletter.footerDesc": "Subscribe to our newsletter for exclusive deals and travel tips",
@@ -328,7 +311,6 @@
   "newsletter.errorDesc": "Please try again later",
   "newsletter.alreadySubscribed": "Already subscribed",
   "newsletter.alreadySubscribedDesc": "This email is already subscribed",
-  
   "wishlist.add": "Add to Wishlist",
   "wishlist.remove": "Remove from Wishlist",
   "wishlist.added": "Added to Wishlist",
@@ -340,7 +322,6 @@
   "wishlist.save": "Save",
   "wishlist.saved": "Saved",
   "wishlist.error": "Failed to update wishlist",
-  
   "share.title": "Share",
   "share.shareVia": "Share via",
   "share.moreOptions": "More options...",
@@ -351,20 +332,17 @@
   "share.whatsapp": "Share on WhatsApp",
   "share.facebook": "Share on Facebook",
   "share.twitter": "Share on X",
-  
   "whatsapp.defaultGreeting": "Hello! How can we help you with your Vanuatu adventure?",
   "whatsapp.typicallyReplies": "Typically replies within minutes",
   "whatsapp.startChat": "Start Chat",
   "whatsapp.openChat": "Open WhatsApp chat",
   "whatsapp.close": "Close",
-  
   "cms.title": "Content Management",
   "cms.description": "Toggle site sections on or off",
   "cms.enabled": "Enabled",
   "cms.disabled": "Disabled",
   "cms.saveChanges": "Save Changes",
   "cms.updated": "Settings updated successfully",
-  
   "payments.title": "Payment Gateways",
   "payments.description": "Configure payment processing options",
   "payments.active": "Active",
@@ -379,12 +357,10 @@
   "payments.environment": "Environment",
   "payments.sandbox": "Sandbox",
   "payments.production": "Production",
-  
   "accessibility.skipToMain": "Skip to main content",
   "accessibility.skipToNav": "Skip to navigation",
   "accessibility.menuOpen": "Open menu",
   "accessibility.menuClose": "Close menu",
-  
   "itinerary.title": "Travel Itinerary",
   "itinerary.print": "Print Itinerary",
   "itinerary.confirmationNumber": "Confirmation",
@@ -399,7 +375,6 @@
   "itinerary.note3": "Water and light refreshments are provided",
   "itinerary.note4": "Present this itinerary upon arrival for check-in",
   "itinerary.footerNote": "Thank you for choosing Ace Tours & Transfers. Have a wonderful trip!",
-  
   "quickView.reviews": "12 reviews",
   "quickView.overview": "Overview",
   "quickView.defaultDesc": "Experience the best of Vanuatu with this curated package. Perfect for those looking to explore the culture and beauty of the islands.",
@@ -410,7 +385,36 @@
   "quickView.recentReviews": "Recent Reviews",
   "quickView.daysAgo": "2 days ago",
   "quickView.sampleReview": "Absolutely amazing experience! The guides were so friendly and the sights were breathtaking.",
-  
+  "trust.licensed": "Fully Licensed",
+  "trust.licensedDesc": "Official JTB Approved Operator",
+  "trust.rated": "Top Rated",
+  "trust.ratedDesc": "5-Star Service Guarantee",
+  "trust.secure": "Secure Booking",
+  "trust.secureDesc": "Instant Confirmation & Support",
+  "admin.toursManagement": "Tours Management",
+  "admin.manageToursDesc": "Add, edit, and remove tour packages and transfer options",
+  "admin.addTour": "Add Tour",
+  "admin.editTour": "Edit Tour",
+  "admin.tourTitle": "Title",
+  "admin.category": "Category",
+  "admin.price": "Price",
+  "admin.childPrice": "Child Price",
+  "admin.duration": "Duration",
+  "admin.minPax": "Minimum Pax",
+  "admin.description": "Description",
+  "admin.image": "Image",
+  "admin.tourCreated": "Tour Created",
+  "admin.tourCreatedDesc": "The new tour has been successfully added.",
+  "admin.createFailed": "Failed to create tour",
+  "admin.tourUpdated": "Tour Updated",
+  "admin.tourUpdatedDesc": "The tour details have been updated.",
+  "admin.updateFailed": "Failed to update tour",
+  "admin.tourDeleted": "Tour Deleted",
+  "admin.tourDeletedDesc": "The tour has been removed from the system.",
+  "admin.deleteFailed": "Failed to delete tour",
+  "admin.deleteTourTitle": "Delete Tour",
+  "admin.deleteTourConfirm": "Are you sure you want to delete this tour? This action cannot be undone.",
+  "admin.noToursFound": "No tours found. Add your first tour to get started.",
   "reservations.title": "Reservation Portal",
   "reservations.adminDesc": "Manage all bookings and reservations for tours and transfers",
   "reservations.guestDesc": "View your booking history, look up reservations, or start a new booking",
@@ -448,7 +452,6 @@
   "reservations.notFound": "No booking found with that confirmation number",
   "reservations.verificationFailed": "Verification failed. Please check your details.",
   "reservations.lookupFailed": "Failed to lookup booking",
-  
   "hero.serviceType": "What are you looking for?",
   "hero.selectService": "Tours & Transfers",
   "hero.allTours": "All Tours",

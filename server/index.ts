@@ -1,12 +1,15 @@
 import "dotenv/config";
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
-import { registerRoutes } from "./routes";
-import { serveStatic } from "./static";
+import connectPgSimple from "connect-pg-simple";
+import { pool as neonPool } from "./db.js";
+import { registerRoutes } from "./routes.js";
+import { serveStatic } from "./static.js";
 import { createServer } from "http";
+import path from "path";
 import { runMigrations } from 'stripe-replit-sync';
-import { getStripeSync } from './stripeClient';
-import { config, validateConfig } from "./config";
+import { getStripeSync } from './stripeClient.js';
+import { config, validateConfig } from "./config.js";
 
 // 1. Validate environment & Log posture
 validateConfig();
@@ -68,16 +71,16 @@ async function initStripe() {
   }
 }
 
-initStripe().catch(err => {
-  console.error('Critical Stripe Init Failure:', err);
-});
-
-// Modular Webhook Body Parser - must be BEFORE express.json()
+// Middleware to get raw body for webhooks, and JSON for others
 app.use((req, res, next) => {
-  if (req.path === '/api/stripe/webhook' || req.path.startsWith('/api/payments/webhook/')) {
-    express.raw({ type: 'application/json' })(req, res, next);
+  if (req.path === '/api/stripe/webhook' || req.path.startsWith('/api/payments/webhook/') || req.path.startsWith('/api/webhooks/')) {
+    express.raw({ type: '*/*' })(req, res, next);
   } else {
-    next();
+    express.json({
+      verify: (req: any, _res, buf) => {
+        req.rawBody = buf;
+      },
+    })(req, res, next);
   }
 });
 
@@ -97,8 +100,8 @@ app.post(
 
       // Redirect to modular payment service for processing
       // We pass 'stripe' as the gateway slug
-      const { PaymentApplicationService } = await import('./application/payment.application-service');
-      const { storage } = await import('./storage');
+      const { PaymentApplicationService } = await import('./application/payment.application-service.js');
+      const { storage } = await import('./storage.js');
       const paymentAppService = new PaymentApplicationService(storage);
 
       const result = await paymentAppService.handlePaymentWebhook({
@@ -119,19 +122,26 @@ app.post(
   }
 );
 
-app.use(
-  express.json({
-    verify: (req, _res, buf) => {
-      req.rawBody = buf;
-    },
-  }),
-);
-
 app.use(express.urlencoded({ extended: false }));
+
+const PGStore = connectPgSimple(session);
+const pgPool = neonPool;
+
+const sessionStore = new PGStore({
+  pool: pgPool,
+  tableName: "session",
+  pruneSessionInterval: 0, // Disable automatic pruning to avoid Neon pool compatibility issues
+});
+
+// Add error handling for session store
+sessionStore.on('error', (err: Error) => {
+  log(`[SESSION ERROR] ${err.message}`, 'session');
+});
 
 app.use(
   session({
-    secret: config.session.secret!,
+    store: sessionStore,
+    secret: config.session.secret || process.env.SESSION_SECRET || "ace-tours-secret-key-2024",
     resave: false,
     saveUninitialized: false,
     cookie: {
@@ -182,7 +192,7 @@ app.use((req, res, next) => {
 (async () => {
   // 1. Database Integrity Protection
   try {
-    const { BackupIntegrityGuard } = await import('./infrastructure/recovery/integrity-guard');
+    const { BackupIntegrityGuard } = await import('./infrastructure/recovery/integrity-guard.js');
     const integrityGuard = new BackupIntegrityGuard();
     const status = await integrityGuard.checkIntegrity();
     if (!status.isSafe) {
@@ -194,13 +204,14 @@ app.use((req, res, next) => {
     console.error('[INTEGRITY] Failed to perform initial integrity check:', error);
   }
 
+  await initStripe();
   await registerRoutes(httpServer, app);
 
   // Initialize Reconciliation Worker (Phase 4)
   try {
-    const { storage } = await import('./storage');
-    const { PaymentReconciliationService } = await import('./application/payment-reconciliation.service');
-    const { ReconciliationWorker } = await import('./infrastructure/payments/reconciliation.worker');
+    const { storage } = await import('./storage.js');
+    const { PaymentReconciliationService } = await import('./application/payment-reconciliation.service.js');
+    const { ReconciliationWorker } = await import('./infrastructure/payments/reconciliation.worker.js');
 
     const reconService = new PaymentReconciliationService(storage);
     const reconWorker = new ReconciliationWorker(reconService, 15);
@@ -211,8 +222,8 @@ app.use((req, res, next) => {
 
   // Initialize Hold Expiry Job
   try {
-    const { storage } = await import('./storage');
-    const { HoldExpiryJob } = await import('./infrastructure/jobs/hold-expiry.job');
+    const { storage } = await import('./storage.js');
+    const { HoldExpiryJob } = await import('./infrastructure/jobs/hold-expiry.job.js');
     const holdExpiryJob = new HoldExpiryJob(storage);
     holdExpiryJob.start(60000); // Check every minute
   } catch (holdError) {
@@ -221,28 +232,28 @@ app.use((req, res, next) => {
 
   // Initialize Domain Event Handlers
   try {
-    const { storage } = await import('./storage');
-    const { AvailabilityApplicationService } = await import('./application/availability/availability.application-service');
-    const { BookingEventHandler } = await import('./application/events/BookingEventHandler');
+    const { storage } = await import('./storage.js');
+    const { AvailabilityApplicationService } = await import('./application/availability/availability.application-service.js');
+    const { BookingEventHandler } = await import('./application/events/BookingEventHandler.js');
     
     const availabilityService = new AvailabilityApplicationService(storage);
     const bookingEventHandler = new BookingEventHandler(storage, availabilityService);
     bookingEventHandler.register();
 
     // Initialize Projections
-    const { projectionEngine } = await import('./infrastructure/projections/projection-engine');
-    const { BookingSummaryHandler } = await import('./application/projections/BookingSummaryHandler');
-    const { RevenueByDayHandler } = await import('./application/projections/RevenueByDayHandler');
-    const { PaymentOverviewHandler } = await import('./application/projections/PaymentOverviewHandler');
+    const { projectionEngine } = await import('./infrastructure/projections/projection-engine.js');
+    const { BookingSummaryHandler } = await import('./application/projections/BookingSummaryHandler.js');
+    const { RevenueByDayHandler } = await import('./application/projections/RevenueByDayHandler.js');
+    const { PaymentOverviewHandler } = await import('./application/projections/PaymentOverviewHandler.js');
 
-    projectionEngine.register(await import('./domain/events').then(m => m.BookingCreated), new BookingSummaryHandler(storage));
-    projectionEngine.register(await import('./domain/events').then(m => m.PaymentConfirmed), new BookingSummaryHandler(storage));
-    projectionEngine.register(await import('./domain/events').then(m => m.PaymentConfirmed), new RevenueByDayHandler(storage));
-    projectionEngine.register(await import('./domain/events').then(m => m.PaymentInitiated), new PaymentOverviewHandler(storage));
-    projectionEngine.register(await import('./domain/events').then(m => m.PaymentConfirmed), new PaymentOverviewHandler(storage));
+    projectionEngine.register(await import('./domain/events.js').then(m => m.BookingCreated), new BookingSummaryHandler(storage));
+    projectionEngine.register(await import('./domain/events.js').then(m => m.PaymentConfirmed), new BookingSummaryHandler(storage));
+    projectionEngine.register(await import('./domain/events.js').then(m => m.PaymentConfirmed), new RevenueByDayHandler(storage));
+    projectionEngine.register(await import('./domain/events.js').then(m => m.PaymentInitiated), new PaymentOverviewHandler(storage));
+    projectionEngine.register(await import('./domain/events.js').then(m => m.PaymentConfirmed), new PaymentOverviewHandler(storage));
 
     // Initialize Sagas
-    const { BankTransferReconciliationSaga } = await import('./application/sagas/BankTransferReconciliationSaga');
+    const { BankTransferReconciliationSaga } = await import('./application/sagas/BankTransferReconciliationSaga.js');
     const saga = new BankTransferReconciliationSaga(storage);
     saga.register();
 
@@ -263,7 +274,6 @@ app.use((req, res, next) => {
     const message = err.message || "Internal Server Error";
 
     res.status(status).json({ message });
-    throw err;
   });
 
   // importantly only setup vite in development and after
@@ -272,15 +282,16 @@ app.use((req, res, next) => {
   if (process.env.NODE_ENV === "production") {
     serveStatic(app);
   } else {
-    const { setupVite } = await import("./vite");
+    const { setupVite } = await import("./vite.js");
     await setupVite(httpServer, app);
   }
+
 
   // ALWAYS serve the app on the port specified in the environment variable PORT
   // Other ports are firewalled. Default to 5000 if not specified.
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
-  const port = parseInt(process.env.PORT || "5000", 10);
+  const port = parseInt(process.env.PORT || "5001", 10);
   httpServer.listen(
     {
       port,

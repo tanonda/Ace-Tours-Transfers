@@ -1,7 +1,8 @@
-import { db } from "../../db";
-import { payments, bookings, tourInstances } from "@shared/schema";
+
+import { db } from "../../db.js";
+import { payments, bookings, tourInstances } from "../../../shared/schema.js";
 import { eq, isNull, and, sql, notInArray } from "drizzle-orm";
-import { PaymentStatus } from "../../domain/payments/interfaces";
+import { PaymentStatus } from "../../domain/payments/interfaces.js";
 
 export type OrphanSeverity = 'INFO' | 'WARNING' | 'CRITICAL';
 

@@ -1,5 +1,5 @@
 
-import { DomainEvent } from "../../domain/events";
+import { DomainEvent } from "../../domain/events.js";
 
 export type EventHandler<T extends DomainEvent> = (event: T) => Promise<void> | void;
 

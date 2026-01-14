@@ -38,7 +38,7 @@ async function getCredentials() {
     }
   });
 
-  const data = await response.json();
+  const data = await response.json() as any;
   
   connectionSettings = data.items?.[0];
 
@@ -56,7 +56,7 @@ export async function getUncachableStripeClient() {
   const { secretKey } = await getCredentials();
 
   return new Stripe(secretKey, {
-    apiVersion: '2025-11-17.clover',
+    apiVersion: '2025-11-17.clover' as any,
   });
 }
 

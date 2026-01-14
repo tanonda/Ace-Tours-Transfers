@@ -1,8 +1,9 @@
-import { IStorage } from "../storage";
-import { PaymentFactory } from "../infrastructure/payments/factory";
-import { PaymentStatus, PaymentStatusResponse } from "../domain/payments/interfaces";
-import { ReconciliationPolicy } from "../domain/payments/reconciliation.policy";
-import { AvailabilityApplicationService } from "./availability/availability.application-service";
+
+import { IStorage } from "../storage.js";
+import { PaymentFactory } from "../infrastructure/payments/factory.js";
+import { PaymentStatus, type PaymentStatusResponse } from "../domain/payments/interfaces.js";
+import { ReconciliationPolicy } from "../domain/payments/reconciliation.policy.js";
+import { AvailabilityApplicationService } from "./availability/availability.application-service.js";
 
 export class PaymentReconciliationService {
   private storage: IStorage;

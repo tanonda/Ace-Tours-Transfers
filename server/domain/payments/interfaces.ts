@@ -1,4 +1,5 @@
-import { Payment, Booking } from "@shared/schema";
+
+import { Payment, Booking } from '../../../shared/schema.js';
 
 export enum PaymentStatus {
   Pending = 'pending',
@@ -71,6 +72,7 @@ export interface PaymentGatewayService {
   queryPaymentStatus(request: PaymentStatusRequest): Promise<PaymentStatusResponse>;
   refundPayment?(payment: Payment, amount?: number, reason?: string): Promise<PaymentStatusResponse>;
 }
+
 export interface HostedBankGatewayAdapter extends PaymentGatewayService {
   readonly providerSlug: 'anz' | 'bsp' | 'bred';
 

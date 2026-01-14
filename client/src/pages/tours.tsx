@@ -1,5 +1,6 @@
 
 import { Layout } from "@/components/layout";
+import { SEO } from "@/components/seo";
 import { TourCard } from "@/components/tour-card";
 import { useQuery } from "@tanstack/react-query";
 import { fetchTours } from "@/lib/api";
@@ -32,6 +33,10 @@ export default function Tours() {
 
   return (
     <Layout>
+      <SEO
+        title={t("tours.seoTitle", "Our Tours - Explore Vanuatu's Best Attractions")}
+        description={t("tours.seoDesc", "Discover our range of meticulously planned tours in Vanuatu. From scenic cultural tours to bus hire for large groups.")}
+      />
       <div className="bg-muted/30 pt-40 pb-20">
         <div className="container mx-auto px-4">
           <h1 className="text-5xl font-serif font-bold text-center mb-6">{t("home.toursTitle")}</h1>

@@ -1,18 +1,9 @@
-import { Express, Request, Response } from "express";
-import { authDomainService } from "../domain/users/auth.domain-service";
-import { AuthApplicationService } from "./auth.application-service";
-import { ExpressSessionAdapter } from "../infrastructure/session.adapter";
 
-/**
- * Middleware adapter to use the requireAuth from the main routes file if needed,
- * or we can define a simple one here that uses the session adapter.
- */
-function requireAuth(req: Request, res: Response, next: any) {
-  if (!req.session.userId) {
-    return res.status(401).json({ error: "Authentication required" });
-  }
-  next();
-}
+import { Express, Request, Response } from "express";
+import { authDomainService } from "../domain/users/auth.domain-service.js";
+import { AuthApplicationService } from "./auth.application-service.js";
+import { ExpressSessionAdapter } from "../infrastructure/session.adapter.js";
+import { requireAuth } from "../routes.js";
 
 export function registerAuthRoutes(app: Express) {
   app.post("/api/auth/login", async (req: Request, res: Response) => {
@@ -38,6 +29,25 @@ export function registerAuthRoutes(app: Express) {
     } catch (error) {
       console.error("Login error:", error);
       res.status(500).json({ error: "Login failed" });
+    }
+  });
+
+  app.post("/api/auth/register", async (req: Request, res: Response) => {
+    try {
+      const authAppService = new AuthApplicationService(
+        authDomainService,
+        new ExpressSessionAdapter(req)
+      );
+      const { name, email, password } = req.body;
+      const authResult = await authAppService.register(name, email, password);
+
+      res.status(201).json(authResult);
+    } catch (error: any) {
+      console.error("Registration error:", error);
+      if (error.message.includes("User with this email already exists")) {
+        return res.status(409).json({ error: error.message });
+      }
+      res.status(500).json({ error: "Registration failed" });
     }
   });
 
@@ -69,7 +79,7 @@ export function registerAuthRoutes(app: Express) {
       const authResult = await authAppService.getAuthenticatedUser();
 
       if (!authResult) {
-        req.session.destroy(() => {});
+        await new ExpressSessionAdapter(req).destroySession();
         return res.status(401).json({ error: "User not found" });
       }
 

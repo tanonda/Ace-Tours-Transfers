@@ -7,14 +7,72 @@ import { Trash2, ArrowRight, ShoppingBag } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { format } from "date-fns";
 import { useTranslation } from "react-i18next";
+import { useAuth } from "@/lib/auth-context";
+import { createBooking } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
 
 export default function Cart() {
   const { t } = useTranslation();
   const { items, removeFromCart, total, clearCart } = useCart();
   const [, setLocation] = useLocation();
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  const handleCheckout = () => {
-    setLocation("/payment");
+  const handleCheckout = async () => {
+    if (!user) {
+      toast({
+        title: t("common.error"),
+        description: "Please log in to proceed with checkout.",
+        variant: "destructive"
+      });
+      setLocation("/login");
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      // Create bookings for each cart item
+      const bookingPromises = items.map(async (item) => {
+        const bookingData = {
+          tourId: item.id,
+          date: item.date ? format(item.date, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
+          guests: item.guests || 1,
+          amount: `$${item.price * item.quantity}`,
+          status: "pending",
+          customerName: user.name,
+          tourName: item.title,
+          userId: user.id,
+        };
+        return createBooking(bookingData);
+      });
+
+      const bookings = await Promise.all(bookingPromises);
+
+      // Clear cart after successful booking creation
+      clearCart();
+
+      // Redirect to payment with the first booking ID (or handle multiple if needed)
+      if (bookings.length > 0) {
+        setLocation(`/payment?id=${bookings[0].id}`);
+      } else {
+        toast({
+          title: t("common.error"),
+          description: "No bookings were created.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error("Checkout error:", error);
+      toast({
+        title: t("common.error"),
+        description: error instanceof Error ? error.message : "Failed to create bookings",
+        variant: "destructive"
+      });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   if (items.length === 0) {
@@ -125,8 +183,8 @@ export default function Cart() {
                   </div>
                 </CardContent>
                 <CardFooter>
-                  <Button className="w-full py-6 text-lg" size="lg" onClick={handleCheckout}>
-                    {t("cart.checkout")}
+                  <Button className="w-full py-6 text-lg" size="lg" onClick={handleCheckout} disabled={isProcessing}>
+                    {isProcessing ? "Processing..." : t("cart.checkout")}
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </CardFooter>

@@ -1,5 +1,5 @@
-import { eventDispatcher } from "../events/event-dispatcher";
-import { DomainEvent } from "../../domain/events";
+import { eventDispatcher } from "../events/event-dispatcher.js";
+import { DomainEvent } from "../../domain/events.js";
 
 export interface IProjectionHandler<T extends DomainEvent> {
   handle(event: T): Promise<void>;
@@ -31,7 +31,7 @@ export class ProjectionEngine {
 
     // Only subscribe to the dispatcher if it's the class version (for live events)
     if (typeof eventClass !== 'string') {
-      eventDispatcher.subscribe(eventClass, (event) => {
+      eventDispatcher.subscribe(eventClass, (event: T) => {
         handler.handle(event).catch(err => {
           console.error(`[PROJECTION][ERROR] Failed to project ${event.constructor.name}:`, err);
         });

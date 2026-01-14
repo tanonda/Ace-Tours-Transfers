@@ -1,8 +1,5 @@
 
-import scenicImg from "@assets/stock_images/vanuatu_blue_lagoon__7251a31e.jpg";
-import culturalImg from "@assets/stock_images/vanuatu_cultural_vil_dc131252.jpg";
-import busImg from "@assets/stock_images/modern_tourist_shutt_9102d81d.jpg";
-import airportImg from "@assets/stock_images/modern_tourist_shutt_9102d81d.jpg"; // Reuse bus for airport for now
+
 
 export const tours = [
   {
@@ -12,7 +9,7 @@ export const tours = [
     childPrice: "$60 / child (<12)",
     duration: "8am to 3pm",
     minPax: "Min 10-14 pax",
-    image: scenicImg,
+    image: "https://res.cloudinary.com/dwro1dh5q/image/upload/v1765064618/ace-tours-assets/tour_scenic_efate.jpg",
     description: [
       "Round island trip (8am to 3pm)",
       "Local chocolate factory visit",
@@ -21,7 +18,8 @@ export const tours = [
       "Lunch at Banana Bay Beach Club",
       "Duty Free Shopping",
       "Includes entrance fees & refreshments"
-    ]
+    ],
+    capacity: 20 // Default capacity for tours
   },
   {
     id: "roots",
@@ -29,7 +27,7 @@ export const tours = [
     price: "$100 / person",
     duration: "4-5 Hours",
     minPax: "10-14 pax",
-    image: culturalImg,
+    image: "https://res.cloudinary.com/dwro1dh5q/image/upload/v1765064621/ace-tours-assets/tour_cultural_roots.jpg",
     description: [
       "A taste for custom & tradition",
       "Cultural Village Tour & Experience",
@@ -37,21 +35,24 @@ export const tours = [
       "Cultural Centre Visit",
       "Light refreshments provided",
       "Price includes entrance fees"
-    ]
+    ],
+    capacity: 20 // Default capacity for tours
   },
   {
     id: "bus",
     title: "Bus Hire for the Day",
     price: "A$400 / day",
     duration: "5-8 Hours",
-    image: busImg,
+    minPax: "Ideal for large groups",
+    image: "https://res.cloudinary.com/dwro1dh5q/image/upload/v1765064623/ace-tours-assets/tour_bus_hire.jpg",
     description: [
       "Hire the bus for the day",
       "Choose your own stops",
       "Light refreshments provided",
       "You take care of your entrance fees",
       "Ideal for large groups"
-    ]
+    ],
+    capacity: 999 // High capacity for private hire
   }
 ];
 
@@ -60,24 +61,49 @@ export const transfers = [
     id: "airport",
     title: "Airport Transfer Package",
     price: "A$15 per adult",
-    details: "Min 5 pax. Babies FOC.",
-    description: "Airport pickups and drop-offs, flight tracking, and meet-and-greet services. VIP transfers available.",
-    image: airportImg
+    duration: "24/7 Availability",
+    minPax: "Min 5 pax",
+    childPrice: "Babies FOC",
+    description: [
+      "Airport pickups and drop-offs",
+      "Flight tracking included",
+      "Meet-and-greet services",
+      "VIP transfers available",
+      "Babies travel free of charge"
+    ],
+    image: "https://res.cloudinary.com/dwro1dh5q/image/upload/v1765064625/ace-tours-assets/transfer_airport_van.jpg",
+    capacity: 15 // Default capacity for transfers
   },
   {
     id: "event",
     title: "Event Transfer Package",
     price: "VT 25,000 (5 hours)",
-    details: "+ VT1000/hr up to 8 hours",
-    description: "Group transportation, coordination with event planners, and on-site support. Ideal for corporate events.",
-    image: busImg
+    duration: "5 Hours",
+    minPax: "+ VT1000/hr extra",
+    description: [
+      "Group transportation for events",
+      "Coordination with event planners",
+      "On-site support included",
+      "Ideal for corporate events",
+      "Weddings and special occasions"
+    ],
+    image: "https://res.cloudinary.com/dwro1dh5q/image/upload/v1765064625/ace-tours-assets/transfer_airport_van.jpg",
+    capacity: 15 // Default capacity for transfers
   },
   {
     id: "hospitality",
     title: "Hospitality Package",
     price: "VT 25,000 bus hire",
-    details: "Up to 10 hours max",
-    description: "Customized itineraries, pick up and drop off for all meetings. Ideal for hosting out-of-town clients.",
-    image: scenicImg
+    duration: "Up to 10 hours",
+    minPax: "Max 10 hours",
+    description: [
+      "Customized itineraries",
+      "Pick up and drop off for all meetings",
+      "Ideal for hosting out-of-town clients",
+      "Professional dedicated driver",
+      "Comfortable air-conditioned transport"
+    ],
+    image: "https://res.cloudinary.com/dwro1dh5q/image/upload/v1765064623/ace-tours-assets/tour_bus_hire.jpg",
+    capacity: 999 // High capacity for private hire
   }
 ];

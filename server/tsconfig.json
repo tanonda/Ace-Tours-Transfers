@@ -1,0 +1,27 @@
+{
+  "compilerOptions": {
+    "incremental": true,
+    "tsBuildInfoFile": "./node_modules/typescript/tsbuildinfo",
+    "noEmit": true,
+    "module": "NodeNext",
+    "strict": true,
+    "lib": ["esnext"],
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "allowImportingTsExtensions": true,
+    "moduleResolution": "NodeNext",
+    "baseUrl": "..",
+    "types": ["node"],
+    "paths": {
+      "@/server/*": ["./server/*"],
+      "@shared/*": ["./shared/*"]
+    },
+    "outDir": "../dist",
+
+  },
+  "include": [
+    "./**/*",
+    "../shared/**/*"
+  ],
+  "exclude": ["../node_modules", "../dist"]
+}

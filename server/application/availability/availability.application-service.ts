@@ -1,6 +1,6 @@
-import { IStorage } from "../../storage";
-import { AvailabilityService, HoldStatus } from "../../domain/availability/availability.service";
-import { AvailabilityHold, TourInstance } from "@shared/schema";
+import { IStorage } from "../../storage.js";
+import { AvailabilityService, HoldStatus } from "../../domain/availability/availability.service.js";
+import { AvailabilityHold, TourInstance } from "../../../shared/schema.js";
 
 export interface HoldRequest {
   tourId: string;

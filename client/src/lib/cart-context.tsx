@@ -9,6 +9,7 @@ export interface CartItem {
   quantity: number;
   date?: Date;
   guests?: number;
+  slot?: string;
   type: "tour" | "transfer" | "vehicle";
 }
 

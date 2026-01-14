@@ -1,5 +1,5 @@
 
-import heroBg from "@assets/stock_images/vanuatu_beach_new.jpg";
+const heroBg = "https://res.cloudinary.com/dwro1dh5q/image/upload/v1765063929/ace-tours-assets/ace_tours_hero_beach.jpg";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { Link, useLocation } from "wouter";
@@ -101,7 +101,7 @@ export function Hero() {
           <div className="bg-white/95 backdrop-blur-xl rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.3)] p-5 md:p-8 border border-white/20 ring-1 ring-black/5">
             <div className="grid grid-cols-1 md:grid-cols-12 gap-6 md:items-end">
               {/* Service Type */}
-              <div className="flex flex-col gap-2.5 md:col-span-4">
+              <div className="flex flex-col gap-2.5 md:col-span-4 transition-all">
                 <label className="text-[0.8125rem] font-bold text-gray-800 flex items-center gap-2 px-1">
                   <Map className="h-4 w-4 text-[#f2800d]" />
                   {t("hero.serviceType", "What are you looking for?")}
@@ -111,40 +111,40 @@ export function Hero() {
                     <SelectValue placeholder={t("hero.selectService", "Tours & Transfers")} className="text-gray-900 font-medium" />
                   </SelectTrigger>
                   <SelectContent className="rounded-2xl border-gray-200">
-                    <SelectItem value="all-tours" className="py-3 focus:bg-orange-50 focus:text-orange-950">
+                    <SelectItem value="all-tours" className="py-3 focus:bg-orange-50 focus:text-orange-950 text-foreground">
                       <div className="flex items-center gap-3">
                         <Map className="h-5 w-5 text-[#f2800d]" />
                         <span className="font-semibold">{t("hero.allTours", "All Tours")}</span>
                       </div>
                     </SelectItem>
                     {tours.slice(0, 4).map((tour) => (
-                      <SelectItem key={tour.id} value={`tour-${tour.id}`} className="py-3 focus:bg-orange-50 focus:text-orange-950">
+                      <SelectItem key={tour.id} value={`tour-${tour.id}`} className="py-3 focus:bg-orange-50 focus:text-orange-950 text-foreground">
                         <span className="pl-8">{tour.title}</span>
                       </SelectItem>
                     ))}
                     <div className="h-px bg-gray-100 my-1" />
-                    <SelectItem value="all-transfers" className="py-3 focus:bg-orange-50 focus:text-orange-950">
+                    <SelectItem value="all-transfers" className="py-3 focus:bg-orange-50 focus:text-orange-950 text-foreground">
                       <div className="flex items-center gap-3">
                         <Car className="h-5 w-5 text-[#f2800d]" />
                         <span className="font-semibold">{t("hero.allTransfers", "All Transfers")}</span>
                       </div>
                     </SelectItem>
                     {transfers.slice(0, 3).map((transfer) => (
-                      <SelectItem key={transfer.id} value={`transfer-${transfer.id}`} className="py-3 focus:bg-orange-50 focus:text-orange-950">
+                      <SelectItem key={transfer.id} value={`transfer-${transfer.id}`} className="py-3 focus:bg-orange-50 focus:text-orange-950 text-foreground">
                         <span className="pl-8">{transfer.title}</span>
                       </SelectItem>
                     ))}
                     {vehicles.length > 0 && (
                       <>
                         <div className="h-px bg-gray-100 my-1" />
-                        <SelectItem value="all-vehicles" className="py-3 focus:bg-orange-50 focus:text-orange-950">
+                        <SelectItem value="all-vehicles" className="py-3 focus:bg-orange-50 focus:text-orange-950 text-foreground">
                           <div className="flex items-center gap-3">
                             <Car className="h-5 w-5 text-[#f2800d]" />
                             <span className="font-semibold">{t("hero.allVehicles", "Vehicle Hire")}</span>
                           </div>
                         </SelectItem>
                         {vehicles.slice(0, 3).map((vehicle) => (
-                          <SelectItem key={vehicle.id} value={`vehicle-${vehicle.id}`} className="py-3 focus:bg-orange-50 focus:text-orange-950">
+                          <SelectItem key={vehicle.id} value={`vehicle-${vehicle.id}`} className="py-3 focus:bg-orange-50 focus:text-orange-950 text-foreground">
                             <span className="pl-8">{vehicle.title}</span>
                           </SelectItem>
                         ))}
@@ -155,7 +155,7 @@ export function Hero() {
               </div>
 
               {/* Date Picker */}
-              <div className="flex flex-col gap-2.5 md:col-span-3">
+              <div className="flex flex-col gap-2.5 md:col-span-3 transition-all">
                 <label className="text-[0.8125rem] font-bold text-gray-800 flex items-center gap-2 px-1">
                   <CalendarIcon className="h-4 w-4 text-[#f2800d]" />
                   {t("hero.travelDate", "When?")}
@@ -188,7 +188,7 @@ export function Hero() {
               </div>
 
               {/* Guests */}
-              <div className="flex flex-col gap-2.5 md:col-span-2">
+              <div className="flex flex-col gap-2.5 md:col-span-2 transition-all">
                 <label className="text-[0.8125rem] font-bold text-gray-800 flex items-center gap-2 px-1">
                   <Users className="h-4 w-4 text-[#f2800d]" />
                   {t("hero.guests", "How many?")}
@@ -200,7 +200,7 @@ export function Hero() {
                     max="50"
                     value={guests}
                     onChange={(e) => setGuests(e.target.value)}
-                    className="h-16 text-base px-5 bg-gray-50 border-gray-200 hover:border-[#f2800d]/50 focus:ring-[#f2800d]/20 shadow-inner rounded-2xl text-gray-900 font-medium"
+                    className="h-16 text-base px-5 bg-gray-50 border-gray-200 hover:border-[#f2800d]/50 focus:ring-[#f2800d]/20 shadow-inner rounded-2xl text-foreground font-medium"
                     placeholder={t("hero.guestsPlaceholder", "2 guests")}
                     data-testid="input-guests"
                   />
@@ -209,7 +209,7 @@ export function Hero() {
               </div>
 
               {/* Search Button */}
-              <div className="md:col-span-3">
+              <div className="md:col-span-3 transition-all">
                 <Button
                   onClick={handleSearch}
                   size="lg"

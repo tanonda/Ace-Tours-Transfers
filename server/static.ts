@@ -12,6 +12,9 @@ export function serveStatic(app: Express) {
 
   app.use(express.static(distPath));
 
+  // Note: Local image serving removed - all images now served from Cloudinary
+  // app.use('/attached_assets', express.static(path.resolve(__dirname, '../../attached_assets')));
+
   // fall through to index.html if the file doesn't exist
   app.use("*", (_req, res) => {
     res.sendFile(path.resolve(distPath, "index.html"));

@@ -8,8 +8,8 @@ import {
   PaymentStatusResponse, 
   WebhookEvent, 
   WebhookResponse 
-} from "../../domain/payments/interfaces";
-import { PaymentGateway } from "@shared/schema";
+} from "../../domain/payments/interfaces.js";
+import { PaymentGateway } from "../../../shared/schema.js";
 
 /**
  * Manual Payment Adapter

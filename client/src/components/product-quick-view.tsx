@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -75,6 +75,7 @@ export function ProductQuickView({ isOpen, onClose, product }: ProductQuickViewP
                   <span className="text-sm text-muted-foreground">({t("quickView.reviews", "12 reviews")})</span>
                 </div>
                 <DialogTitle className="text-3xl font-serif font-bold mb-2">{product.title}</DialogTitle>
+                <DialogDescription>{t("quickView.description", "A quick look at the tour details and options.")}</DialogDescription>
               </DialogHeader>
 
               <div className="flex items-center gap-4 text-muted-foreground text-sm mb-6">

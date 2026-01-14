@@ -1,12 +1,12 @@
 
-import { IStorage } from "../../storage";
-import { Cart, CartLineItem } from "../../domain/booking/Cart";
-import { Booking } from "../../domain/booking/Booking";
-import { PriceCartService } from "../pricing/PriceCartService";
-import { eventDispatcher } from "../../infrastructure/events/event-dispatcher";
-import { BookingCreated } from "../../domain/events";
-import { PricingService } from "../../domain/pricing/PricingService";
-import { config } from "../../config";
+import { IStorage } from "../../storage.js";
+import { Cart, CartLineItem } from "../../domain/booking/Cart.js";
+import { Booking } from "../../domain/booking/Booking.js";
+import { PriceCartService } from "../pricing/PriceCartService.js";
+import { eventDispatcher } from "../../infrastructure/events/event-dispatcher.js";
+import { BookingCreated } from "../../domain/events.js";
+import { PricingService } from "../../domain/pricing/PricingService.js";
+import { config } from "../../config.js";
 
 export interface CreateBookingRequest {
   customerName: string;

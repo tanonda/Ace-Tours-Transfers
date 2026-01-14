@@ -1,0 +1,49 @@
+client/src/components/newsletter-form.tsx(7,10): error TS2305: Module '"@/lib/api"' has no exported member 'subscribeNewsletter'.
+client/src/components/wishlist-button.tsx(6,10): error TS2305: Module '"@/lib/api"' has no exported member 'addToWishlist'.
+client/src/components/wishlist-button.tsx(6,25): error TS2305: Module '"@/lib/api"' has no exported member 'removeFromWishlist'.
+client/src/components/wishlist-button.tsx(6,45): error TS2305: Module '"@/lib/api"' has no exported member 'checkWishlist'.
+client/src/lib/api.ts(5,3): error TS2305: Module '"@shared/schema"' has no exported member 'BookingStatus'.
+client/src/pages/admin/analytics.tsx(6,56): error TS2305: Module '"@/lib/api"' has no exported member 'fetchRevenue'.
+client/src/pages/admin/bookings.tsx(15,40): error TS2305: Module '"@/lib/api"' has no exported member 'deleteBooking'.
+client/src/pages/admin/bookings.tsx(74,29): error TS2345: Argument of type 'string' is not assignable to parameter of type 'void'.
+client/src/pages/admin/cms.tsx(2,10): error TS2305: Module '"@/lib/api"' has no exported member 'fetchAllCmsContent'.
+client/src/pages/admin/cms.tsx(2,30): error TS2305: Module '"@/lib/api"' has no exported member 'createCmsContent'.
+client/src/pages/admin/cms.tsx(2,48): error TS2305: Module '"@/lib/api"' has no exported member 'updateCmsContent'.
+client/src/pages/admin/cms.tsx(50,35): error TS2345: Argument of type '{ blockSlug: string; contentKey: any; contentType: any; value: string; locale: string; }' is not assignable to parameter of type 'void'.
+client/src/pages/admin/cms.tsx(78,30): error TS18046: 'content' is of type 'unknown'.
+client/src/pages/admin/customers.tsx(12,10): error TS2305: Module '"@/lib/api"' has no exported member 'fetchCustomers'.
+client/src/pages/admin/customers.tsx(32,29): error TS18046: 'customers' is of type 'unknown'.
+client/src/pages/admin/customers.tsx(32,46): error TS7006: Parameter 'customer' implicitly has an 'any' type.
+client/src/pages/admin/customers.tsx(50,26): error TS18046: 'customers' is of type 'unknown'.
+client/src/pages/admin/customers.tsx(50,43): error TS7006: Parameter 'c' implicitly has an 'any' type.
+client/src/pages/admin/customers.tsx(51,45): error TS7006: Parameter 'sum' implicitly has an 'any' type.
+client/src/pages/admin/customers.tsx(51,50): error TS7006: Parameter 'c' implicitly has an 'any' type.
+client/src/pages/admin/customers.tsx(53,49): error TS7006: Parameter 'c' implicitly has an 'any' type.
+client/src/pages/admin/customers.tsx(66,32): error TS7006: Parameter 'c' implicitly has an 'any' type.
+client/src/pages/admin/customers.tsx(197,42): error TS7006: Parameter 'customer' implicitly has an 'any' type.
+client/src/pages/admin/customers.tsx(207,64): error TS7006: Parameter 'n' implicitly has an 'any' type.
+client/src/pages/admin/reports.tsx(2,10): error TS2305: Module '"@/lib/api"' has no exported member 'fetchRevenue'.
+client/src/pages/admin/reports.tsx(39,24): error TS18046: 'revenueData' is of type 'unknown'.
+client/src/pages/admin/reports.tsx(39,44): error TS7006: Parameter 'acc' implicitly has an 'any' type.
+client/src/pages/admin/reports.tsx(39,49): error TS7006: Parameter 'curr' implicitly has an 'any' type.
+client/src/pages/admin/reports.tsx(40,42): error TS18046: 'revenueData' is of type 'unknown'.
+client/src/pages/admin/reports.tsx(111,27): error TS2322: Type 'unknown' is not assignable to type 'any[] | undefined'.
+client/src/pages/register.tsx(10,10): error TS2305: Module '"@/lib/api"' has no exported member 'registerUser'.
+server/storage.ts(153,15): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(value: { title: string | SQL<unknown> | Placeholder<string, any>; price: string | SQL<unknown> | Placeholder<string, any>; duration: string | SQL<unknown> | Placeholder<...>; ... 5 more ...; minPax?: string | ... 3 more ... | undefined; }): PgInsertBase<...>', gave the following error.
+    Argument of type '{ title: string; price: string; duration: string; image: string; description: { [x: number]: string; length: number; toString: () => string; toLocaleString: { (): string; (locales: string | string[], options?: (NumberFormatOptions & DateTimeFormatOptions) | undefined): string; }; ... 37 more ...; readonly [Symbol.un...' is not assignable to parameter of type '{ title: string | SQL<unknown> | Placeholder<string, any>; price: string | SQL<unknown> | Placeholder<string, any>; duration: string | SQL<unknown> | Placeholder<...>; ... 5 more ...; minPax?: string | ... 3 more ... | undefined; }'.
+      Types of property 'description' are incompatible.
+        Type '{ [x: number]: string; length: number; toString: () => string; toLocaleString: { (): string; (locales: string | string[], options?: (NumberFormatOptions & DateTimeFormatOptions) | undefined): string; }; ... 37 more ...; readonly [Symbol.unscopables]: { ...; }; }' is not assignable to type 'string[] | SQL<unknown> | Placeholder<string, any>'.
+          Type '{ [x: number]: string; length: number; toString: () => string; toLocaleString: { (): string; (locales: string | string[], options?: (NumberFormatOptions & DateTimeFormatOptions) | undefined): string; }; ... 37 more ...; readonly [Symbol.unscopables]: { ...; }; }' is not assignable to type 'string[]'.
+            The types returned by 'pop()' are incompatible between these types.
+              Type 'unknown' is not assignable to type 'string | undefined'.
+  Overload 2 of 2, '(values: { title: string | SQL<unknown> | Placeholder<string, any>; price: string | SQL<unknown> | Placeholder<string, any>; duration: string | SQL<unknown> | Placeholder<...>; ... 5 more ...; minPax?: string | ... 3 more ... | undefined; }[]): PgInsertBase<...>', gave the following error.
+    Argument of type '{ title: string; price: string; duration: string; image: string; description: { [x: number]: string; length: number; toString: () => string; toLocaleString: { (): string; (locales: string | string[], options?: (NumberFormatOptions & DateTimeFormatOptions) | undefined): string; }; ... 37 more ...; readonly [Symbol.un...' is not assignable to parameter of type '{ title: string | SQL<unknown> | Placeholder<string, any>; price: string | SQL<unknown> | Placeholder<string, any>; duration: string | SQL<unknown> | Placeholder<...>; ... 5 more ...; minPax?: string | ... 3 more ... | undefined; }[]'.
+      Type '{ title: string; price: string; duration: string; image: string; description: { [x: number]: string; length: number; toString: () => string; toLocaleString: { (): string; (locales: string | string[], options?: (NumberFormatOptions & DateTimeFormatOptions) | undefined): string; }; ... 37 more ...; readonly [Symbol.un...' is missing the following properties from type '{ title: string | SQL<unknown> | Placeholder<string, any>; price: string | SQL<unknown> | Placeholder<string, any>; duration: string | SQL<unknown> | Placeholder<...>; ... 5 more ...; minPax?: string | ... 3 more ... | undefined; }[]': length, pop, push, concat, and 35 more.
+server/storage.ts(161,12): error TS2345: Argument of type 'Partial<{ title: string; price: string; duration: string; image: string; description: { [x: number]: string; length: number; toString: () => string; toLocaleString: { (): string; (locales: string | string[], options?: (NumberFormatOptions & DateTimeFormatOptions) | undefined): string; }; ... 37 more ...; readonly [S...' is not assignable to parameter of type '{ title?: string | SQL<unknown> | PgColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}> | undefined; price?: string | SQL<unknown> | PgColumn<...> | undefined; ... 6 more ...; minPax?: string | ... 3 more ... | undefined; }'.
+  Types of property 'description' are incompatible.
+    Type '{ [x: number]: string; length: number; toString: () => string; toLocaleString: { (): string; (locales: string | string[], options?: (NumberFormatOptions & DateTimeFormatOptions) | undefined): string; }; ... 37 more ...; readonly [Symbol.unscopables]: { ...; }; } | undefined' is not assignable to type 'string[] | SQL<unknown> | PgColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}> | undefined'.
+      Type '{ [x: number]: string; length: number; toString: () => string; toLocaleString: { (): string; (locales: string | string[], options?: (NumberFormatOptions & DateTimeFormatOptions) | undefined): string; }; ... 37 more ...; readonly [Symbol.unscopables]: { ...; }; }' is not assignable to type 'string[] | SQL<unknown> | PgColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}> | undefined'.
+        Type '{ [x: number]: string; length: number; toString: () => string; toLocaleString: { (): string; (locales: string | string[], options?: (NumberFormatOptions & DateTimeFormatOptions) | undefined): string; }; ... 37 more ...; readonly [Symbol.unscopables]: { ...; }; }' is not assignable to type 'string[]'.
+          The types returned by 'pop()' are incompatible between these types.
+            Type 'unknown' is not assignable to type 'string | undefined'.

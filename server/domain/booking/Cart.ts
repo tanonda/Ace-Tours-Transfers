@@ -1,5 +1,5 @@
 
-import { PriceSnapshot } from "../pricing/PricingService";
+import { PriceSnapshot } from "../pricing/PricingService.js";
 
 export interface CartLineItem {
   productId: string;

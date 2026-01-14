@@ -1,142 +1,175 @@
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
-import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Loader2 } from "lucide-react";
+import { CalendarIcon, Loader2, User, Mail, MapPin, Users, Shield, Star, Sparkles } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { fetchTours } from "@/lib/api";
 import { useLocation } from "wouter";
 import { useTranslation } from "react-i18next";
+import { createBooking } from "@/lib/api";
+import { useAuth } from "@/lib/auth-context";
+import { BookingForm, bookingFormSchema } from "./booking-form";
 
-const formSchema = z.object({
-  name: z.string().min(2, "Name is required"),
-  email: z.string().email("Invalid email address"),
-  service: z.string().min(1, "Please select a service"),
-  date: z.date({ required_error: "Date is required" }),
-  guests: z.string().min(1, "Number of guests is required"),
-  notes: z.string().optional(),
-});
+const logo = "https://res.cloudinary.com/dwro1dh5q/image/upload/v1765063924/ace-tours-assets/ace_tours_logo_official.jpg";
 
 export function BookingModal({ trigger, preselectedService }: { trigger: React.ReactNode; preselectedService?: string }) {
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [isAvailable, setIsAvailable] = useState<boolean | null>(null); // null: not checked, true: available, false: unavailable
+  const [availabilityMessage, setAvailabilityMessage] = useState<string>("");
+  const [isCheckingAvailability, setIsCheckingAvailability] = useState<boolean>(false);
   const [, setLocation] = useLocation();
   const { t } = useTranslation();
-
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      name: "",
-      email: "",
-      service: preselectedService || "",
-      guests: "2",
-      notes: "",
-    },
-  });
+  const { user } = useAuth();
 
   const { data: allTours = [] } = useQuery({
     queryKey: ["tours"], 
     queryFn: fetchTours,
   });
 
-  // Deduplicate tours by normalized title
-  const uniqueTours = allTours.reduce<typeof allTours>((acc, current) => {
-    // Skip test data
-    if (current.title.toLowerCase().includes("verification")) return acc;
-    
-    const normalize = (t: string) => t.replace(/\s+Package$/i, "").trim();
-    const normalizedTitle = normalize(current.title);
-    
-    const existingIndex = acc.findIndex(item => normalize(item.title) === normalizedTitle);
-    
-    if (existingIndex === -1) {
-      acc.push(current);
+  const getServiceIdFromTitle = (title: string) => {
+    const service = allTours.find(s => s.title === title);
+    return service?.id;
+  };
+
+  const initialFormValues = {
+    name: user?.name || "",
+    email: user?.email || "",
+    service: preselectedService || "",
+    guests: "2",
+    notes: "",
+  };
+
+  const handleAvailabilityCheck = async (serviceTitle: string, date: Date, guests: number) => {
+    setIsCheckingAvailability(true);
+    setIsAvailable(null); // Reset availability status
+    setAvailabilityMessage("");
+
+    const serviceId = getServiceIdFromTitle(serviceTitle);
+    if (!serviceId) {
+      setAvailabilityMessage("Selected service not found.");
+      setIsAvailable(false);
+      setIsCheckingAvailability(false);
+      return;
     }
-    return acc;
-  }, []);
 
-  const tours = uniqueTours.filter(t => t.category === "tour");
-  const transfers = uniqueTours.filter(t => t.category === "transfer");
-  const vehicles = uniqueTours.filter(t => t.category === "vehicle");
-
-  async function onSubmit(values: z.infer<typeof formSchema>) {
-    setIsLoading(true);
     try {
-      const selectedTour = [...tours, ...transfers, ...vehicles].find(t => t.title === values.service);
-      
-      // Step 1: Create a hold to reserve capacity
-      let holdId = null;
-      if (selectedTour) {
-        try {
-          const holdRes = await fetch("/api/holds", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              tourId: selectedTour.id,
-              date: format(values.date, "yyyy-MM-dd"),
-              quantity: parseInt(values.guests)
-            }),
-          });
-          if (holdRes.ok) {
-            const hold = await holdRes.json();
-            holdId = hold.id;
-          }
-        } catch (holdError) {
-          console.warn("Failed to create hold, proceeding without one:", holdError);
-        }
-      }
-
-      // Step 2: Create the booking
-      const res = await fetch("/api/bookings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
+      const response = await fetch('/api/availability/check', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
-          tourId: selectedTour?.id || "",
-          tourName: values.service,
-          customerName: values.name,
-          customerEmail: values.email,
-          date: format(values.date, "yyyy-MM-dd"),
-          guests: parseInt(values.guests),
-          amount: selectedTour ? selectedTour.price : "0",
-          status: "pending",
-          holdId: holdId
+          serviceId,
+          date: format(date, "yyyy-MM-dd"),
+          guests,
         }),
       });
 
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || "Failed to create booking");
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to check availability.");
       }
 
-      const booking = await res.json();
-      setIsLoading(false);
-      setOpen(false);
-      form.reset();
-      
+      const result = await response.json();
+      setIsAvailable(result.isAvailable);
+      setAvailabilityMessage(result.message);
+
+    } catch (error) {
+      console.error("Availability check failed:", error);
+      setIsAvailable(false);
+      setAvailabilityMessage(error instanceof Error ? error.message : "Error checking availability.");
       toast({
-        title: t("common.success"),
-        description: t("reservations.bookingCreated", "Booking created successfully!"),
+        title: "Availability Check Failed",
+        description: error instanceof Error ? error.message : "An error occurred during availability check.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsCheckingAvailability(false);
+    }
+  };
+
+  async function handleBookingSubmit(values: z.infer<typeof bookingFormSchema>) {
+    // Prevent booking if not available or not checked yet
+    if (isAvailable === null || isAvailable === false) {
+      toast({
+        title: "Booking Not Possible",
+        description: availabilityMessage || "Please check availability before booking.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const selectedService = allTours.find(s => s.title === values.service);
+
+      if (!selectedService) {
+        throw new Error("Invalid service selected");
+      }
+
+      // Step 1: Create a hold to reserve capacity
+      let holdId = null;
+      try {
+        const holdRes = await fetch("/api/holds", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            tourId: selectedService.id,
+            date: format(values.date, "yyyy-MM-dd"),
+            quantity: parseInt(values.guests)
+          }),
+        });
+        if (holdRes.ok) {
+          const hold = await holdRes.json();
+          holdId = hold.id;
+        }
+      } catch (holdError) {
+        console.warn("Failed to create hold, proceeding without one:", holdError);
+      }
+
+      // Parse price (remove $ and ,)
+      const priceStr = selectedService.price.replace(/[^0-9.]/g, '');
+      const pricePerPerson = parseFloat(priceStr) || 0;
+      const totalAmount = `$${(pricePerPerson * parseInt(values.guests)).toFixed(2)}`;
+
+      const bookingData: any = {
+        tourId: selectedService.id,
+        date: format(values.date, "yyyy-MM-dd"),
+        guests: parseInt(values.guests),
+        amount: totalAmount,
+        status: "pending",
+        customerName: values.name,
+        tourName: values.service,
+        customerEmail: values.email, // production uses customerEmail
+        holdId: holdId
+      };
+
+      if (user) {
+        bookingData.userId = user.id;
+      }
+
+      const booking = await createBooking(bookingData);
+
+      toast({
+        title: "Booking Request Sent",
+        description: "We have received your booking request. We will contact you shortly to confirm."
       });
 
-      setLocation("/payment");
+      setOpen(false);
+      setLocation(`/payment?bookingId=${booking.id}`);
+
     } catch (error: any) {
       toast({
-        title: t("common.error"),
-        description: error.message || "Failed to create booking",
-        variant: "destructive",
+        title: "Booking Failed",
+        description: error.message || "An error occurred",
+        variant: "destructive"
       });
     } finally {
       setIsLoading(false);
@@ -148,134 +181,53 @@ export function BookingModal({ trigger, preselectedService }: { trigger: React.R
       <DialogTrigger asChild>
         {trigger}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle className="font-serif text-2xl text-center mb-2">{t("booking.title", "Plan Your Adventure")}</DialogTitle>
-        </DialogHeader>
-        
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t("booking.fullName", "Full Name")}</FormLabel>
-                  <FormControl>
-                    <Input placeholder={t("booking.namePlaceholder", "John Doe")} {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t("booking.email", "Email")}</FormLabel>
-                  <FormControl>
-                    <Input placeholder={t("booking.emailPlaceholder", "john@example.com")} {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+      <DialogContent className="sm:max-w-[520px] p-0 overflow-hidden border-0 shadow-2xl">
+        <div className="relative bg-gradient-to-br from-primary via-primary to-orange-600 px-6 pt-6 pb-8 text-white overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+          <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
+          <Sparkles className="absolute top-4 right-4 h-5 w-5 text-white/40 animate-pulse" />
 
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="service"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t("booking.service", "Service")}</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder={t("booking.selectService", "Select tour/transfer")} />
-                        </SelectTrigger>
-                      </FormControl>
-                        <SelectContent>
-                        <SelectItem value="select" disabled>{t("booking.selectOption", "Select an option")}</SelectItem>
-                        {tours.map((tour: any) => (
-                          <SelectItem key={tour.id} value={tour.title}>{tour.title}</SelectItem>
-                        ))}
-                        {transfers.map((transfer: any) => (
-                          <SelectItem key={transfer.id} value={transfer.title}>{transfer.title}</SelectItem>
-                        ))}
-                        {vehicles.map((vehicle: any) => (
-                          <SelectItem key={vehicle.id} value={vehicle.title}>{vehicle.title}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="guests"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t("booking.guests", "Guests")}</FormLabel>
-                    <FormControl>
-                      <Input type="number" min="1" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+          <div className="relative flex items-center gap-4">
+            <img
+              src={logo}
+              alt="Ace Tours"
+              className="h-14 w-14 rounded-full border-2 border-white/30 shadow-lg"
+            />
+            <div>
+              <DialogTitle className="font-serif text-2xl font-bold text-white mb-1">
+                {t("booking.title", "Plan Your Adventure")}
+              </DialogTitle>
+              <DialogDescription className="text-white/80 text-sm">
+                {t("app.tagline", "Experience Vanuatu Like Never Before")}
+              </DialogDescription>
             </div>
+          </div>
 
-            <FormField
-              control={form.control}
-              name="date"
-              render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel>{t("booking.preferredDate", "Preferred Date")}</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant={"outline"}
-                          className={cn(
-                            "w-full pl-3 text-left font-normal",
-                            !field.value && "text-muted-foreground"
-                          )}
-                        >
-                          {field.value ? (
-                            format(field.value, "PPP")
-                          ) : (
-                            <span>{t("booking.pickDate", "Pick a date")}</span>
-                          )}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={field.value}
-                        onSelect={field.onChange}
-                        disabled={(date) =>
-                          date < new Date() || date < new Date("1900-01-01")
-                        }
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+          <div className="relative flex items-center gap-4 mt-4 text-xs text-white/70">
+            <div className="flex items-center gap-1">
+              <Shield className="h-3.5 w-3.5" />
+              <span>{t("booking.secure", "Secure Booking")}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <Star className="h-3.5 w-3.5" />
+              <span>{t("booking.rated", "5-Star Service")}</span>
+            </div>
+          </div>
+        </div>
 
-            <Button type="submit" className="w-full text-lg py-6" disabled={isLoading}>
-              {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : t("booking.submit", "Submit Request")}
-            </Button>
-          </form>
-        </Form>
+        <div className="px-6 py-6 bg-gradient-to-b from-background to-muted/30">
+          <BookingForm
+            initialValues={initialFormValues}
+            onSubmit={handleBookingSubmit}
+            isLoading={isLoading}
+            submitButtonText={t("booking.submit", "Submit Request")}
+            showPrice={true}
+            onAvailabilityCheck={handleAvailabilityCheck}
+            isAvailable={isAvailable}
+            availabilityMessage={availabilityMessage}
+            isCheckingAvailability={isCheckingAvailability}
+          />
+        </div>
       </DialogContent>
     </Dialog>
   );
