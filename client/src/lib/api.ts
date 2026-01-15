@@ -106,6 +106,11 @@ export async function fetchBooking(id: string): Promise<Booking> {
   return res.json();
 }
 
+export async function fetchBookingItems(bookingId: string): Promise<any[]> {
+  const res = await apiRequest("GET", `/api/bookings/${bookingId}/items`);
+  return res.json();
+}
+
 export async function fetchBookingPayments(bookingId: string): Promise<Payment[]> {
   const res = await apiRequest("GET", `/api/payments/booking/${bookingId}`);
   return res.json();

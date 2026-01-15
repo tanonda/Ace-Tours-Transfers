@@ -21,7 +21,8 @@ export const bookingFormSchema = z.object({
   email: z.string().email("Invalid email address"),
   service: z.string().min(1, "Please select a service"),
   date: z.date({ required_error: "Date is required" }),
-  guests: z.string().min(1, "Number of guests is required"),
+  adultPax: z.string().min(1, "Number of adults is required"),
+  childPax: z.string().min(1, "Number of children is required"),
   notes: z.string().optional(),
 });
 
@@ -57,7 +58,8 @@ export function BookingForm({
       name: user?.name || initialValues?.name || "",
       email: user?.email || initialValues?.email || "",
       service: initialValues?.service || "",
-      guests: initialValues?.guests || "2",
+      adultPax: initialValues?.adultPax || "2",
+      childPax: initialValues?.childPax || "0",
       notes: initialValues?.notes || "",
     },
   });
@@ -77,15 +79,17 @@ export function BookingForm({
 
 
   const watchedService = form.watch("service");
-  const watchedGuests = form.watch("guests");
+  const watchedAdultPax = form.watch("adultPax");
+  const watchedChildPax = form.watch("childPax");
   const watchedDate = form.watch("date"); // Watch date field
   const [estimatedTotal, setEstimatedTotal] = useState("$0.00");
 
   useEffect(() => {
-    if (onAvailabilityCheck && watchedService && watchedDate && watchedGuests && parseInt(watchedGuests) > 0) {
-      onAvailabilityCheck(watchedService, watchedDate, parseInt(watchedGuests));
+    const totalPax = parseInt(watchedAdultPax || "0") + parseInt(watchedChildPax || "0");
+    if (onAvailabilityCheck && watchedService && watchedDate && totalPax > 0) {
+      onAvailabilityCheck(watchedService, watchedDate, totalPax);
     }
-  }, [watchedService, watchedDate, watchedGuests, onAvailabilityCheck]);
+  }, [watchedService, watchedDate, watchedAdultPax, watchedChildPax, onAvailabilityCheck]);
 
   // Determine if the submit button should be disabled
   const isSubmitDisabled = isLoading || isCheckingAvailability || !isAvailable;
@@ -168,16 +172,38 @@ export function BookingForm({
 
           <FormField
             control={form.control}
-            name="guests"
+            name="adultPax"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-sm font-medium">{t("booking.guests", "Guests")}</FormLabel>
+                <FormLabel className="text-sm font-medium">{t("booking.adults", "Adults")}</FormLabel>
                 <FormControl>
                   <div className="relative">
                     <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                       type="number"
                       min="1"
+                      className="pl-10 h-11 border-border/50 bg-background/80 backdrop-blur-sm focus:border-primary focus:ring-primary/20"
+                      {...field}
+                    />
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="childPax"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-sm font-medium">{t("booking.children", "Children")}</FormLabel>
+                <FormControl>
+                  <div className="relative">
+                    <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      type="number"
+                      min="0"
                       className="pl-10 h-11 border-border/50 bg-background/80 backdrop-blur-sm focus:border-primary focus:ring-primary/20"
                       {...field}
                     />
@@ -231,7 +257,7 @@ export function BookingForm({
           )}
         />
 
-        {onAvailabilityCheck && (watchedService && watchedDate && watchedGuests && parseInt(watchedGuests) > 0) && (
+        {onAvailabilityCheck && (watchedService && watchedDate && (parseInt(watchedAdultPax || "0") + parseInt(watchedChildPax || "0")) > 0) && (
             <div className="mt-4 text-sm">
                 {isCheckingAvailability ? (
                     <p className="text-muted-foreground flex items-center gap-2">

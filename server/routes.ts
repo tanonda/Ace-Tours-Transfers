@@ -324,6 +324,15 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/bookings/:id/items", async (req, res) => {
+    try {
+      const items = await storage.getBookingItems(req.params.id);
+      res.json(items);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch booking items" });
+    }
+  });
+
   app.post("/api/bookings", async (req, res) => {
     try {
       const { CreateBookingFromCartService } = await import("./application/booking/CreateBookingFromCartService.js");
@@ -365,8 +374,9 @@ export async function registerRoutes(
     try {
       const settings = await storage.getSiteSettings();
       res.json(settings);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch settings" });
+    } catch (error: any) {
+      console.error("[SETTINGS ERROR]", error);
+      res.status(500).json({ error: "Failed to fetch settings", details: error.message });
     }
   });
 

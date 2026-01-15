@@ -4,11 +4,12 @@ import { useToast } from "@/hooks/use-toast";
 export interface CartItem {
   id: string;
   title: string;
-  price: number;
+  price: number; // For display, usually adult price
   image: string;
   quantity: number;
   date?: Date;
-  guests?: number;
+  adultPax: number;
+  childPax: number;
   slot?: string;
   type: "tour" | "transfer" | "vehicle";
 }
@@ -16,7 +17,7 @@ export interface CartItem {
 interface CartContextType {
   items: CartItem[];
   addToCart: (item: Omit<CartItem, "quantity">) => void;
-  removeFromCart: (id: string) => void;
+  removeFromCart: (id: string, date?: Date, slot?: string) => void;
   clearCart: () => void;
   total: number;
   itemCount: number;
@@ -30,41 +31,47 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const addToCart = (item: Omit<CartItem, "quantity">) => {
     setItems((prev) => {
-      // PRODUCTION GUARD: Single-item cart enforcement for launch
-      if (prev.length > 0 && !(prev[0].id === item.id && prev[0].date === item.date)) {
-        toast({
-          title: "Cart Limit",
-          description: "For the best service, please book one tour at a time. Finish your current booking to add another.",
-          variant: "destructive"
-        });
-        return prev;
-      }
+      // Multi-Product Booking Enabled
+      const existing = prev.find((i) => 
+        i.id === item.id && 
+        i.date?.getTime() === item.date?.getTime() && 
+        i.slot === item.slot
+      );
 
-      const existing = prev.find((i) => i.id === item.id && i.date === item.date);
       if (existing) {
         return prev.map((i) =>
-          i.id === item.id && i.date === item.date
-            ? { ...i, quantity: i.quantity + 1 }
+          (i.id === item.id && i.date?.getTime() === item.date?.getTime() && i.slot === item.slot)
+            ? { 
+                ...i, 
+                quantity: i.quantity + 1,
+                adultPax: i.adultPax + item.adultPax,
+                childPax: i.childPax + item.childPax
+              }
             : i
         );
       }
       return [...prev, { ...item, quantity: 1 }];
     });
     
-    // Only show success toast if the item was actually added (or updated)
-    // Using a simpler approach here: if we have more than 0 items and it's not the same one, we already toasted.
+    toast({
+      title: "Added to Cart",
+      description: `${item.title} has been added to your booking list.`,
+    });
   };
 
-  const removeFromCart = (id: string) => {
-    setItems((prev) => prev.filter((i) => i.id !== id));
+  const removeFromCart = (id: string, date?: Date, slot?: string) => {
+    setItems((prev) => prev.filter((i) => 
+      !(i.id === id && i.date?.getTime() === date?.getTime() && i.slot === slot)
+    ));
   };
 
   const clearCart = () => {
     setItems([]);
   };
 
-  const total = items.reduce((acc, item) => acc + item.price * item.quantity, 0);
-  const itemCount = items.reduce((acc, item) => acc + item.quantity, 0);
+  // Note: This total is a client-side estimation. Server-side PriceResolver is the truth.
+  const total = items.reduce((acc, item) => acc + (item.price * item.adultPax), 0);
+  const itemCount = items.length;
 
   return (
     <CartContext.Provider value={{ items, addToCart, removeFromCart, clearCart, total, itemCount }}>

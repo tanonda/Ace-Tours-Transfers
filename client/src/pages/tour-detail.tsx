@@ -18,7 +18,8 @@ export default function TourDetail() {
   const { id } = useParams<{ id: string }>();
   const { t } = useTranslation();
   const { addToCart } = useCart();
-  const [guests, setGuests] = useState("2");
+  const [adultPax, setAdultPax] = useState("2");
+  const [childPax, setChildPax] = useState("0");
   const [date, setDate] = useState<string>("");
 
   const { data: tour, isLoading, error } = useQuery({
@@ -63,7 +64,8 @@ export default function TourDetail() {
       price: finalPrice,
       image: tour.image,
       type: "tour",
-      guests: parseInt(guests),
+      adultPax: parseInt(adultPax),
+      childPax: parseInt(childPax),
       date: date ? new Date(date) : new Date(),
     });
   };
@@ -144,7 +146,7 @@ export default function TourDetail() {
                         {tour.description.map((item, i) => (
                           <li key={i} className="flex items-start gap-3 text-muted-foreground">
                             <div className="mt-1 h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                              <Check className="h-3 w-3 text-primary" />
+                               <Check className="h-3 w-3 text-primary" />
                             </div>
                             <span>{item}</span>
                           </li>
@@ -157,13 +159,13 @@ export default function TourDetail() {
                   <div className="bg-muted/30 p-6 rounded-2xl border border-border/50">
                     <h3 className="text-xl font-bold mb-4 font-serif text-primary">{t("quickView.ratesOptions", "Rates & Options")}</h3>
                     <div className="flex justify-between items-center text-lg mb-2">
-                      <span>{t("quickView.adult", "Adult")}</span>
-                      <span className="font-bold text-foreground">{tour.price}</span>
+                       <span>{t("quickView.adult", "Adult")}</span>
+                       <span className="font-bold text-foreground">{tour.price}</span>
                     </div>
                     {tour.childPrice && (
                       <div className="flex justify-between items-center text-lg">
-                        <span>{t("quickView.child", "Child")}</span>
-                        <span className="font-bold text-foreground">{tour.childPrice}</span>
+                         <span>{t("quickView.child", "Child")}</span>
+                         <span className="font-bold text-foreground">{tour.childPrice}</span>
                       </div>
                     )}
                   </div>
@@ -172,7 +174,7 @@ export default function TourDetail() {
                   <div className="bg-card p-6 rounded-2xl border border-border/50 shadow-sm">
                     <h3 className="text-xl font-bold mb-4 font-serif text-primary">{t("quickView.recentReviews", "Recent Reviews")}</h3>
                     <div className="space-y-4">
-                      <div className="border-b pb-4 border-border/50">
+                       <div className="border-b pb-4 border-border/50">
                         <div className="flex items-center justify-between mb-2">
                           <span className="font-semibold">Sarah M.</span>
                           <span className="text-sm text-muted-foreground">{t("quickView.daysAgo", "2 days ago")}</span>
@@ -185,17 +187,31 @@ export default function TourDetail() {
 
                 {/* Booking Card */}
                 <div className="mt-auto bg-primary/5 p-8 rounded-3xl border-2 border-primary/20 shadow-inner">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                     <div className="space-y-2">
-                      <Label htmlFor="detail-guests" className="text-sm font-bold ml-1">{t("booking.guests", "Guests")}</Label>
+                      <Label htmlFor="detail-adults" className="text-sm font-bold ml-1">{t("booking.adults", "Adults")}</Label>
                       <div className="relative">
                         <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input 
-                          id="detail-guests" 
+                          id="detail-adults" 
                           type="number" 
                           min="1" 
-                          value={guests} 
-                          onChange={(e) => setGuests(e.target.value)} 
+                          value={adultPax} 
+                          onChange={(e) => setAdultPax(e.target.value)} 
+                          className="pl-10 h-12 bg-background border-primary/20 focus:border-primary"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="detail-children" className="text-sm font-bold ml-1">{t("booking.children", "Children")}</Label>
+                      <div className="relative">
+                        <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input 
+                          id="detail-children" 
+                          type="number" 
+                          min="0" 
+                          value={childPax} 
+                          onChange={(e) => setChildPax(e.target.value)} 
                           className="pl-10 h-12 bg-background border-primary/20 focus:border-primary"
                         />
                       </div>

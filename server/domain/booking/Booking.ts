@@ -1,8 +1,6 @@
 
 import { Cart } from "./Cart.js";
 import { PriceSnapshot } from "../pricing/PricingService.js";
-import { eventDispatcher } from "../../infrastructure/events/event-dispatcher.js";
-import { BookingCreated } from "../events.js";
 
 export enum BookingStatus {
   CREATED = 'CREATED',
@@ -16,7 +14,7 @@ export interface BookingProps {
   cartId: string;
   customerName: string;
   customerEmail: string;
-  amount: number;
+  amountCents: number;
   status: BookingStatus;
   createdAt: Date;
 }
@@ -33,7 +31,7 @@ export class Booking {
     if (!props.customerEmail || !props.customerEmail.includes('@')) {
       throw new Error("Guest email is mandatory and must be valid");
     }
-    if (props.amount <= 0) {
+    if (props.amountCents <= 0) {
       throw new Error("Booking amount must be greater than zero");
     }
   }
@@ -50,13 +48,11 @@ export class Booking {
       cartId: cart.id,
       customerName: customer.name,
       customerEmail: customer.email,
-      amount: snapshot.total,
+      amountCents: snapshot.totalCents,
       status: BookingStatus.CREATED,
       createdAt: new Date()
     });
 
-    // Domain Event happens after successful creation logic
-    // Usually handled by the application service to ensure persistence first
     return booking;
   }
 
@@ -68,7 +64,6 @@ export class Booking {
   }
 
   public confirm(): void {
-    // Invariant: Booking cannot be confirmed without being in a state that allows it
     if (this.props.status !== BookingStatus.AWAITING_PAYMENT) {
       throw new Error(`Cannot confirm booking in state ${this.props.status}`);
     }
@@ -84,7 +79,7 @@ export class Booking {
 
   public get id(): string { return this.props.id; }
   public get status(): BookingStatus { return this.props.status; }
-  public get amount(): number { return this.props.amount; }
+  public get amountCents(): number { return this.props.amountCents; }
   public get customerEmail(): string { return this.props.customerEmail; }
   public get customerName(): string { return this.props.customerName; }
 }

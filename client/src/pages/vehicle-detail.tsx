@@ -64,7 +64,9 @@ export default function VehicleDetail() {
   const handleAddToCart = () => {
     const priceMatch = vehicle.price.match(/(\d+)/);
     const numericPrice = priceMatch ? parseInt(priceMatch[0]) : 100;
-    const finalPrice = numericPrice * parseInt(days);
+    const finalPrice = numericPrice; // We pass the daily rate, Cart or Server handles multiplication?
+    // Actually, in the current Cart implementation, total = price * adultPax.
+    // For vehicles, we should probably treat price as daily rate and quantity as days.
 
     addToCart({
       id: vehicle.id,
@@ -72,7 +74,9 @@ export default function VehicleDetail() {
       price: finalPrice,
       image: vehicle.image,
       type: "vehicle",
-      guests: 1,
+      adultPax: 1,
+      childPax: 0,
+      quantity: parseInt(days),
       date: date ? new Date(date) : new Date(),
     });
   };
