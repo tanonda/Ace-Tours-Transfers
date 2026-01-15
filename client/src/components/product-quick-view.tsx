@@ -19,7 +19,8 @@ interface ProductQuickViewProps {
 
 export function ProductQuickView({ isOpen, onClose, product }: ProductQuickViewProps) {
   const { addToCart } = useCart();
-  const [guests, setGuests] = useState("2");
+  const [adultPax, setAdultPax] = useState("2");
+  const [childPax, setChildPax] = useState("0");
   const [date, setDate] = useState<string>("");
   const { t } = useTranslation();
 
@@ -38,7 +39,8 @@ export function ProductQuickView({ isOpen, onClose, product }: ProductQuickViewP
       price: finalPrice,
       image: product.image,
       type: product.id.includes("transfer") ? "transfer" : "tour",
-      guests: parseInt(guests),
+      adultPax: parseInt(adultPax),
+      childPax: parseInt(childPax),
       date: date ? new Date(date) : new Date(),
     });
     onClose();
@@ -149,15 +151,25 @@ export function ProductQuickView({ isOpen, onClose, product }: ProductQuickViewP
             </ScrollArea>
 
             <div className="p-6 border-t bg-background">
-              <div className="grid grid-cols-2 gap-4 mb-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                 <div className="space-y-1">
-                  <Label htmlFor="guests" className="text-xs">{t("booking.guests", "Guests")}</Label>
+                  <Label htmlFor="adults" className="text-xs">{t("booking.adults", "Adults")}</Label>
                   <Input 
-                    id="guests" 
+                    id="adults" 
                     type="number" 
                     min="1" 
-                    value={guests} 
-                    onChange={(e) => setGuests(e.target.value)} 
+                    value={adultPax} 
+                    onChange={(e) => setAdultPax(e.target.value)} 
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="children" className="text-xs">{t("booking.children", "Children")}</Label>
+                  <Input 
+                    id="children" 
+                    type="number" 
+                    min="0" 
+                    value={childPax} 
+                    onChange={(e) => setChildPax(e.target.value)} 
                   />
                 </div>
                 <div className="space-y-1">

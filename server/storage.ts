@@ -40,7 +40,10 @@ import {
   type AvailabilityHold,
   type InsertAvailabilityHold,
   type Notification,
-  type InsertNotification
+  type InsertNotification,
+  type BookingItem,
+  type InsertBookingItem,
+  bookingItems
 } from "../shared/schema.js";
 import { db } from "./db.js";
 import { eq, like, desc, and, or, isNull, sql } from "drizzle-orm";
@@ -73,6 +76,8 @@ export interface IStorage {
   updateBooking(id: string, booking: Partial<InsertBooking>): Promise<Booking>;
   linkBookingsToUser(email: string, userId: string): Promise<void>;
   deleteBooking(id: string): Promise<void>;
+  createBookingItem(item: InsertBookingItem): Promise<BookingItem>;
+  getBookingItems(bookingId: string): Promise<BookingItem[]>;
 
   // Analytics
   getBookingStats(): Promise<{ total: number; confirmed: number; pending: number; completed: number; }>;
@@ -291,6 +296,15 @@ export class DatabaseStorage implements IStorage {
 
   async deleteBooking(id: string): Promise<void> {
     await db.delete(bookings).where(eq(bookings.id, id));
+  }
+
+  async createBookingItem(item: InsertBookingItem): Promise<BookingItem> {
+    const [newItem] = await db.insert(bookingItems).values(item).returning();
+    return newItem;
+  }
+
+  async getBookingItems(bookingId: string): Promise<BookingItem[]> {
+    return await db.select().from(bookingItems).where(eq(bookingItems.bookingId, bookingId));
   }
 
   // Analytics

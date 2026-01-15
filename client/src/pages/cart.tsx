@@ -31,48 +31,8 @@ export default function Cart() {
       return;
     }
 
-    setIsProcessing(true);
-    try {
-      // Create bookings for each cart item
-      const bookingPromises = items.map(async (item) => {
-        const bookingData = {
-          tourId: item.id,
-          date: item.date ? format(item.date, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
-          guests: item.guests || 1,
-          amount: `$${item.price * item.quantity}`,
-          status: "pending",
-          customerName: user.name,
-          tourName: item.title,
-          userId: user.id,
-        };
-        return createBooking(bookingData);
-      });
-
-      const bookings = await Promise.all(bookingPromises);
-
-      // Clear cart after successful booking creation
-      clearCart();
-
-      // Redirect to payment with the first booking ID (or handle multiple if needed)
-      if (bookings.length > 0) {
-        setLocation(`/payment?id=${bookings[0].id}`);
-      } else {
-        toast({
-          title: t("common.error"),
-          description: "No bookings were created.",
-          variant: "destructive"
-        });
-      }
-    } catch (error) {
-      console.error("Checkout error:", error);
-      toast({
-        title: t("common.error"),
-        description: error instanceof Error ? error.message : "Failed to create bookings",
-        variant: "destructive"
-      });
-    } finally {
-      setIsProcessing(false);
-    }
+    // Redirect to the unified payment page which now handles multi-item bookings
+    setLocation("/payment");
   };
 
   if (items.length === 0) {
@@ -110,7 +70,7 @@ export default function Cart() {
             <div className="lg:w-2/3">
               <div className="space-y-4">
                 {items.map((item, index) => (
-                  <Card key={`${item.id}-${index}`} className="overflow-hidden border-none shadow-sm">
+                  <Card key={`${item.id}-${index}-${item.date?.getTime()}`} className="overflow-hidden border-none shadow-sm">
                     <CardContent className="p-0">
                       <div className="flex flex-col sm:flex-row">
                         <div className="w-full sm:w-40 h-40 sm:h-auto relative">
@@ -126,7 +86,11 @@ export default function Cart() {
                               <h3 className="font-bold text-lg">{item.title}</h3>
                               <div className="text-sm text-muted-foreground mt-1 space-y-1">
                                 {item.date && <p>{t("cart.date")}: {format(new Date(item.date), "PPP")}</p>}
-                                {item.guests && <p>{t("cart.guests")}: {item.guests}</p>}
+                                <div className="flex gap-4">
+                                  <p>{t("booking.adults")}: {item.adultPax}</p>
+                                  <p>{t("booking.children")}: {item.childPax}</p>
+                                </div>
+                                {item.slot && <p>Slot: {item.slot}</p>}
                               </div>
                             </div>
                             <p className="font-bold text-lg">${item.price}</p>
@@ -134,13 +98,13 @@ export default function Cart() {
                           
                           <div className="flex justify-between items-end mt-4">
                             <div className="text-sm text-muted-foreground">
-                              Quantity: {item.quantity}
+                              {item.type === 'vehicle' ? `Days: ${item.quantity}` : `Total PAX: ${item.adultPax + item.childPax}`}
                             </div>
                             <Button 
                               variant="ghost" 
                               size="sm" 
                               className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                              onClick={() => removeFromCart(item.id)}
+                              onClick={() => removeFromCart(item.id, item.date, item.slot)}
                             >
                               <Trash2 className="h-4 w-4 mr-2" />
                               {t("cart.remove")}

@@ -101,7 +101,8 @@ export default function Payment() {
           customerEmail: user?.email || guestEmail,
           items: items.map(i => ({
             productId: i.id,
-            quantity: i.guests || 1,
+            adultPax: i.adultPax,
+            childPax: i.childPax,
             date: i.date ? (typeof i.date === 'string' ? i.date : format(new Date(i.date), "yyyy-MM-dd")) : format(new Date(), "yyyy-MM-dd"),
             slot: i.slot
           }))
@@ -116,16 +117,16 @@ export default function Payment() {
   });
 
   const initiatePaymentMutation = useMutation({
-    mutationFn: async (data: { bookingId: string; gatewaySlug: string; successUrl: string; cancelUrl: string; }) => {
-      const res = await apiRequest("POST", "/api/payments/initiate", data);
+    mutationFn: async (data: { bookingId: string; provider: string; successUrl: string; cancelUrl: string; }) => {
+      const res = await apiRequest("POST", "/api/payments/checkout", data);
       return res.json();
     },
     onSuccess: (data) => {
       clearCart();
-      if (data.redirectUrl) {
-        window.location.href = data.redirectUrl;
+      if (data.checkoutUrl) {
+        window.location.href = data.checkoutUrl;
       } else {
-        setLocation(`/payment/success?id=${data.paymentId}&manual=true`);
+        setLocation(`/payment/success?id=${data.id}&manual=true`);
       }
     },
   });
@@ -161,7 +162,7 @@ export default function Payment() {
 
       initiatePaymentMutation.mutate({
         bookingId: currentBookingId!,
-        gatewaySlug: paymentMethod,
+        provider: paymentMethod,
         successUrl,
         cancelUrl,
       });

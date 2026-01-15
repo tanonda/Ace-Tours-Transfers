@@ -4,10 +4,13 @@ import { PriceSnapshot } from "../pricing/PricingService.js";
 export interface CartLineItem {
   productId: string;
   name: string;
-  unitPrice: number;
+  unitPriceCents: number;
   quantity: number;
+  adultPax: number;
+  childPax: number;
   date: string;
   slot?: string;
+  productType: string;
 }
 
 export class Cart {
@@ -26,6 +29,8 @@ export class Cart {
 
     if (existing) {
       existing.quantity += item.quantity;
+      existing.adultPax += item.adultPax;
+      existing.childPax += item.childPax;
     } else {
       this.items.push(item);
     }
