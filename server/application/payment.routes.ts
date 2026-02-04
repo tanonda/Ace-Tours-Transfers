@@ -13,22 +13,25 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
     try {
       const publishableKey = await getStripePublishableKey();
       const gateways = await storage.getPaymentGateways();
+      const flags = await storage.getFeatureFlags();
       
-      // Filter gateways based on VISIBLE feature flags
+      const isFlagEnabled = (slug: string) => {
+        const flag = flags.find(f => f.slug === slug);
+        return flag ? flag.enabled : false;
+      };
+
+      // Filter gateways based on FEATURE FLAGS
       const visibleGateways = gateways.filter((g: any) => {
         if (!g.active) return false;
         const slug = g.slug.toLowerCase();
         
-        // Manual legacy slugs should be visible if manual is generally allowed
-        if (slug === 'manual') return (config.payments.manual as any)?.visible ?? true;
+        if (slug === 'stripe') return isFlagEnabled('payment-stripe');
+        if (slug === 'bank-transfer' || slug === 'manual' || slug === 'bank') {
+          return isFlagEnabled('payment-bank-transfer');
+        }
         
-        // Handle bank specific flags
-        if (slug === 'anz' || slug === 'anz-egate') return config.payments.anz.visible;
-        if (slug === 'bsp') return config.payments.bsp.visible;
-        if (slug === 'bred' || slug === 'bred-bank') return config.payments.bred.visible;
-        if (slug === 'stripe') return config.payments.stripe.visible;
-        
-        return false;
+        // Default to active if no specific flag
+        return true;
       });
 
       res.json({ 
@@ -51,6 +54,17 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
     try {
       const { bookingId, provider } = req.body;
       const baseUrl = `${req.protocol}://${req.get('host')}`;
+
+      // FEATURE FLAG GUARD
+      const flags = await storage.getFeatureFlags();
+      const isFlagEnabled = (slug: string) => flags.find(f => f.slug === slug)?.enabled ?? false;
+
+      if (provider === 'stripe' && !isFlagEnabled('payment-stripe')) {
+        return res.status(403).json({ error: "Stripe payments are currently disabled" });
+      }
+      if ((provider === 'manual' || provider === 'bank-transfer') && !isFlagEnabled('payment-bank-transfer')) {
+        return res.status(403).json({ error: "Bank transfer payments are currently disabled" });
+      }
 
       const result = await paymentAppService.initiateBookingPayment({
         bookingId,

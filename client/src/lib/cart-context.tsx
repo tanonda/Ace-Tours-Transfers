@@ -16,7 +16,7 @@ export interface CartItem {
 
 interface CartContextType {
   items: CartItem[];
-  addToCart: (item: Omit<CartItem, "quantity">) => void;
+  addToCart: (item: Omit<CartItem, "quantity"> & { quantity?: number }) => void;
   removeFromCart: (id: string, date?: Date, slot?: string) => void;
   clearCart: () => void;
   total: number;
@@ -29,7 +29,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const { toast } = useToast();
 
-  const addToCart = (item: Omit<CartItem, "quantity">) => {
+  const addToCart = (item: Omit<CartItem, "quantity"> & { quantity?: number }) => {
     setItems((prev) => {
       // Multi-Product Booking Enabled
       const existing = prev.find((i) => 
@@ -43,14 +43,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           (i.id === item.id && i.date?.getTime() === item.date?.getTime() && i.slot === item.slot)
             ? { 
                 ...i, 
-                quantity: i.quantity + 1,
+                quantity: i.quantity + (item.quantity || 1),
                 adultPax: i.adultPax + item.adultPax,
                 childPax: i.childPax + item.childPax
               }
             : i
         );
       }
-      return [...prev, { ...item, quantity: 1 }];
+      return [...prev, { ...item, quantity: item.quantity || 1 }];
     });
     
     toast({

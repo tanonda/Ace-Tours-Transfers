@@ -7,26 +7,30 @@ import { eventDispatcher } from "../../infrastructure/events/event-dispatcher.js
 import { BookingCreated } from "../../domain/events.js";
 import { PriceResolver } from "../../domain/pricing/PriceResolver.js";
 import { config } from "../../config.js";
-
+import { AvailabilityApplicationService } from "../availability/availability.application-service.js";
 export interface CreateBookingRequest {
   customerName: string;
   customerEmail: string;
+  sessionId?: string;
   items: { 
     productId: string; 
     adultPax: number; 
     childPax: number; 
     date: string; 
-    slot?: string 
+    slot?: string;
+    quantity?: number;
   }[];
 }
 
 export class CreateBookingFromCartService {
   private priceCartService: PriceCartService;
   private priceResolver: PriceResolver;
+  private availabilityService: AvailabilityApplicationService;
 
   constructor(private storage: IStorage) {
     this.priceCartService = new PriceCartService(storage);
     this.priceResolver = new PriceResolver(storage);
+    this.availabilityService = new AvailabilityApplicationService(storage);
   }
 
   async execute(request: CreateBookingRequest): Promise<Booking> {
@@ -34,36 +38,86 @@ export class CreateBookingFromCartService {
       throw new Error("CRITICAL: Booking systems are currently paused for maintenance.");
     }
 
-    const cartId = `cart_${Date.now()}`;
+    const cartId = request.sessionId || `cart_${Date.now()}`;
     const cart = new Cart(cartId);
+    const createdHolds: string[] = [];
 
-    // 1. Build Cart items and add to aggregate
-    for (const item of request.items) {
-      const product = await this.storage.getTour(item.productId);
-      if (!product) throw new Error(`Product ${item.productId} not found`);
-      
-      const rates = await this.priceResolver.getTourRate(item.productId);
-      if (!rates) throw new Error(`Rates for product ${item.productId} not found`);
+    try {
+      // 1. Build Cart items and add to aggregate
+      for (const item of request.items) {
+        const product = await this.storage.getTour(item.productId);
+        if (!product) throw new Error(`Product ${item.productId} not found`);
+        
+        const rates = await this.priceResolver.getTourRate(item.productId);
+        if (!rates) throw new Error(`Rates for product ${item.productId} not found`);
 
-      const subtotalCents = this.priceResolver.calculateItemTotal(item.adultPax, item.childPax, rates);
-      const totalPax = item.adultPax + item.childPax;
-      const unitPriceCents = totalPax > 0 ? Math.round(subtotalCents / totalPax) : 0;
+        // ATOMIC AVAILABILITY LOCKING
+        const totalQuantity = item.adultPax + item.childPax;
+        if (totalQuantity > 0) {
+          const isVehicle = product.category === 'vehicle';
+          const duration = isVehicle ? (item.quantity || 1) : 1;
 
-      cart.addItem({
-        productId: product.id,
-        name: product.title,
-        unitPriceCents: unitPriceCents,
-        quantity: totalPax,
-        adultPax: item.adultPax,
-        childPax: item.childPax,
-        date: item.date,
-        slot: item.slot,
-        productType: product.category
-      });
+          if (isVehicle && duration > 1) {
+            // Multi-day lock for vehicles
+            const startDate = new Date(item.date);
+            for (let d = 0; d < duration; d++) {
+              const currentDate = new Date(startDate);
+              currentDate.setDate(startDate.getDate() + d);
+              const dateStr = currentDate.toISOString().split('T')[0];
+              
+              const hold = await this.availabilityService.createHold({
+                tourId: product.id,
+                date: dateStr,
+                slot: item.slot,
+                quantity: totalQuantity,
+                sessionId: cartId
+              });
+              createdHolds.push(hold.id);
+            }
+          } else {
+            // Single day lock
+            const hold = await this.availabilityService.createHold({
+              tourId: product.id,
+              date: item.date,
+              slot: item.slot,
+              quantity: totalQuantity,
+              sessionId: cartId
+            });
+            createdHolds.push(hold.id);
+          }
+        }
+
+        const subtotalCents = this.priceResolver.calculateItemTotal(item.adultPax, item.childPax, rates);
+        const unitPriceCents = totalQuantity > 0 ? Math.round(subtotalCents / totalQuantity) : 0;
+
+        cart.addItem({
+          productId: product.id,
+          name: product.title,
+          unitPriceCents: unitPriceCents,
+          quantity: totalQuantity,
+          adultPax: item.adultPax,
+          childPax: item.childPax,
+          date: item.date,
+          slot: item.slot,
+          productType: product.category
+        });
+      }
+    } catch (error) {
+      // ROLLBACK: Release any holds created if one fails
+      console.error("[AVAILABILITY] Hold creation failed, rolling back holds:", createdHolds);
+      for (const holdId of createdHolds) {
+        await this.availabilityService.releaseHold(holdId).catch(console.error);
+      }
+      throw error;
     }
 
     // 2. Price the Cart via Pricing Context
-    const snapshot = await this.priceCartService.priceCart(cartId, request.items);
+    const snapshot = await this.priceCartService.priceCart(cartId, request.items.map(i => ({
+      productId: i.productId,
+      adultPax: i.adultPax,
+      childPax: i.childPax,
+      quantity: i.quantity
+    })));
     cart.setPricedSnapshot(snapshot);
 
     // 3. Create Booking Aggregate
@@ -75,10 +129,9 @@ export class CreateBookingFromCartService {
 
     // 4. Persist (Mapping Domain object to DB schema)
     await this.storage.createBooking({
-      id: booking.id,
       customerName: booking.customerName,
       customerEmail: booking.customerEmail,
-      amount: snapshot.totalCents.toString(), // Legacy support but we use numeric field too
+      amount: snapshot.totalCents.toString(), 
       totalAmountCents: snapshot.totalCents,
       status: 'pending',
       date: request.items[0].date,
@@ -87,13 +140,13 @@ export class CreateBookingFromCartService {
       tourName: cart.getItems()[0].name,
       adultPaxTotal: request.items.reduce((sum, i) => sum + i.adultPax, 0),
       childPaxTotal: request.items.reduce((sum, i) => sum + i.childPax, 0),
-      createdAt: new Date()
+      holdId: createdHolds[0] || null, // Link primary hold (minimal corrective change)
+      bookingSessionId: cartId
     });
 
     // Persist all items
     for (const item of cart.getItems()) {
       await this.storage.createBookingItem({
-        id: `bi_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         bookingId: booking.id,
         productId: item.productId,
         productName: item.name,
@@ -102,8 +155,7 @@ export class CreateBookingFromCartService {
         unitPriceCents: item.unitPriceCents,
         subtotalCents: item.unitPriceCents * item.quantity, // Simplification, in reality use PriceResolver logic per item
         adultPax: item.adultPax,
-        childPax: item.childPax,
-        createdAt: new Date()
+        childPax: item.childPax
       });
     }
 

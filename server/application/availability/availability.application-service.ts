@@ -38,6 +38,10 @@ export class AvailabilityApplicationService {
     await this.availabilityService.confirmBooking(holdId);
   }
 
+  async confirmSessionHolds(sessionId: string): Promise<void> {
+    await this.availabilityService.confirmHoldsBySession(sessionId);
+  }
+
   async releaseHold(holdId: string): Promise<void> {
     await this.availabilityService.releaseHold(holdId, HoldStatus.RELEASED);
   }

@@ -27,9 +27,21 @@ export class PriceResolver {
     const tour = await this.storage.getTour(tourId);
     if (!tour) return null;
 
+    // Use cents if available, otherwise fallback to parsing deprecated text fields
+    let adultPriceCents = tour.adultPriceCents;
+    let childPriceCents = tour.childPriceCents;
+
+    if (!adultPriceCents || adultPriceCents === 0) {
+      adultPriceCents = PriceResolver.parseAmountTextToCents(tour.price);
+    }
+
+    if (!childPriceCents || childPriceCents === 0) {
+      childPriceCents = PriceResolver.parseAmountTextToCents(tour.childPrice);
+    }
+
     return {
-      adultPriceCents: tour.adultPriceCents || 0,
-      childPriceCents: tour.childPriceCents || 0,
+      adultPriceCents: adultPriceCents || 0,
+      childPriceCents: childPriceCents || 0,
     };
   }
 

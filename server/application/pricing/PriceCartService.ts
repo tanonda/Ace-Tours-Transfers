@@ -12,7 +12,7 @@ export class PriceCartService {
     this.priceResolver = new PriceResolver(storage);
   }
 
-  async priceCart(cartId: string, items: { productId: string; adultPax: number; childPax: number }[]): Promise<PriceSnapshot> {
+  async priceCart(cartId: string, items: { productId: string; adultPax: number; childPax: number; quantity?: number }[]): Promise<PriceSnapshot> {
     const pricedItems = await Promise.all(items.map(async item => {
       const product = await this.storage.getTour(item.productId);
       if (!product) {
@@ -24,11 +24,15 @@ export class PriceCartService {
         throw new Error(`Rates for product ${item.productId} not found`);
       }
 
-      // For the snapshot, we use the average unit price for now if PricingService expects one,
-      // or we can just pass the total cent value.
-      const subtotalCents = this.priceResolver.calculateItemTotal(item.adultPax, item.childPax, rates);
-      const totalPax = item.adultPax + item.childPax;
-      const unitPriceCents = totalPax > 0 ? Math.round(subtotalCents / totalPax) : 0;
+      // For the snapshot, we use the average unit price for now
+      let subtotalCents = this.priceResolver.calculateItemTotal(item.adultPax, item.childPax, rates);
+      
+      // If it's a vehicle (or any duration-based product), multiply by quantity (days)
+      const duration = (product.category === 'vehicle') ? (item.quantity || 1) : 1;
+      subtotalCents *= duration;
+
+      const totalQuantityCount = item.adultPax + item.childPax;
+      const unitPriceCents = totalQuantityCount > 0 ? Math.round(subtotalCents / totalQuantityCount) : 0;
 
       return {
         unitPriceCents,
@@ -36,7 +40,7 @@ export class PriceCartService {
         childPax: item.childPax,
         productId: product.id,
         name: product.title,
-        quantity: totalPax
+        quantity: totalQuantityCount
       };
     }));
 

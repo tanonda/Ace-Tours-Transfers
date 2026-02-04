@@ -28,6 +28,16 @@ export default function TourDetail() {
     enabled: !!id,
   });
 
+  const { data: reviews = [] } = useQuery({
+    queryKey: ["tour-reviews", id],
+    queryFn: () => fetch(`/api/tours/${id}/reviews`).then(res => res.json()),
+    enabled: !!id,
+  });
+
+  const averageRating = reviews.length > 0 
+    ? reviews.reduce((acc: number, r: any) => acc + r.rating, 0) / reviews.length 
+    : 5;
+
   if (isLoading) {
     return (
       <Layout>
@@ -107,10 +117,10 @@ export default function TourDetail() {
                 <div className="flex items-center gap-2 mb-4">
                   <div className="flex text-yellow-400">
                     {[1, 2, 3, 4, 5].map((i) => (
-                      <Star key={i} className="h-5 w-5 fill-current" />
+                      <Star key={i} className={`h-5 w-5 ${i <= averageRating ? 'fill-current' : 'text-muted'}`} />
                     ))}
                   </div>
-                  <span className="text-muted-foreground font-medium">({t("quickView.reviews", "12 reviews")})</span>
+                  <span className="text-muted-foreground font-medium">({reviews.length} {t("quickView.reviews", "reviews")})</span>
                   <Badge variant="outline" className="ml-2 uppercase tracking-wider">{tour.category}</Badge>
                 </div>
 
@@ -174,13 +184,24 @@ export default function TourDetail() {
                   <div className="bg-card p-6 rounded-2xl border border-border/50 shadow-sm">
                     <h3 className="text-xl font-bold mb-4 font-serif text-primary">{t("quickView.recentReviews", "Recent Reviews")}</h3>
                     <div className="space-y-4">
-                       <div className="border-b pb-4 border-border/50">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="font-semibold">Sarah M.</span>
-                          <span className="text-sm text-muted-foreground">{t("quickView.daysAgo", "2 days ago")}</span>
-                        </div>
-                        <p className="text-muted-foreground italic">"{t("quickView.sampleReview", "Absolutely amazing experience! The guides were so friendly and the sights were breathtaking.")}"</p>
-                      </div>
+                      {reviews.length > 0 ? (
+                        reviews.map((r: any) => (
+                          <div key={r.id} className="border-b pb-4 border-border/50 last:border-0 last:pb-0">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="font-semibold">{r.userName || t("common.guest", "Guest")}</span>
+                              <span className="text-sm text-muted-foreground">{new Date(r.createdAt).toLocaleDateString()}</span>
+                            </div>
+                            <div className="flex text-yellow-400 mb-2">
+                              {[1, 2, 3, 4, 5].map((star) => (
+                                <Star key={star} className={`h-3 w-3 ${star <= r.rating ? 'fill-current' : 'text-muted'}`} />
+                              ))}
+                            </div>
+                            <p className="text-muted-foreground italic">"{r.comment}"</p>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-muted-foreground italic">{t("quickView.noReviews", "No reviews yet. Be the first to leave one!")}</p>
+                      )}
                     </div>
                   </div>
                 </div>
