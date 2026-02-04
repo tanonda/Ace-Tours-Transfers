@@ -14,11 +14,18 @@ async function test(name, url) {
 }
 
 async function run() {
-  const poolerUrl = "postgresql://neondb_owner:npg_tQGrj0ezm6vq@ep-bitter-frog-a7zxak3x-pooler.ap-southeast-2.aws.neon.tech/neondb";
-  const directUrl = "postgresql://neondb_owner:npg_tQGrj0ezm6vq@ep-bitter-frog-a7zxak3x.ap-southeast-2.aws.neon.tech/neondb";
+  const url = process.env.DATABASE_URL;
   
-  await test("Pooler", poolerUrl);
-  await test("Direct", directUrl);
+  if (!url) {
+    console.error("❌ Error: DATABASE_URL environment variable is not set.");
+    console.log("Please check your .env file.");
+    process.exit(1);
+  }
+
+  // Use the same URL for both tests if only one is provided via env
+  // This script was originally for comparing pooler vs direct, 
+  // but for safety in production/CI we use the configured env var.
+  await test("Database Connection", url);
   
   process.exit(0);
 }
