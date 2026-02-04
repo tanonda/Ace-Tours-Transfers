@@ -104,7 +104,8 @@ export default function Payment() {
             adultPax: i.adultPax,
             childPax: i.childPax,
             date: i.date ? (typeof i.date === 'string' ? i.date : format(new Date(i.date), "yyyy-MM-dd")) : format(new Date(), "yyyy-MM-dd"),
-            slot: i.slot
+            slot: i.slot,
+            quantity: i.quantity
           }))
         }),
       });

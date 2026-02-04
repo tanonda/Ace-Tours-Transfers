@@ -193,6 +193,15 @@ export const payments = pgTable("payments", {
     .where(sql`status IN ('pending', 'processing')`),
 }));
 
+export const featureFlags = pgTable("feature_flags", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  slug: text("slug").notNull().unique(), // e.g., 'client-dashboard', 'reviews-system'
+  enabled: boolean("enabled").notNull().default(false),
+  displayName: text("display_name").notNull(),
+  description: text("description"),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 // PROJECTIONS (Read Models)
 
 export const bookingSummaries = pgTable("booking_summaries", {
@@ -575,6 +584,11 @@ export const insertAvailabilityHoldSchema = createInsertSchema(availabilityHolds
   createdAt: true,
 });
 
+export const insertFeatureFlagSchema = createInsertSchema(featureFlags).omit({
+  id: true,
+  updatedAt: true,
+});
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -603,6 +617,8 @@ export type InsertNewsletterSubscriber = z.infer<typeof insertNewsletterSubscrib
 export type NewsletterSubscriber = typeof newsletterSubscribers.$inferSelect;
 export type InsertCmsContent = z.infer<typeof insertCmsContentSchema>;
 export type CmsContent = typeof cmsContent.$inferSelect;
+export type InsertFeatureFlag = z.infer<typeof insertFeatureFlagSchema>;
+export type FeatureFlag = typeof featureFlags.$inferSelect;
 export type BookingStatus = "pending" | "confirmed" | "completed" | "cancelled";
 
 // Notifications
@@ -624,6 +640,31 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
   }),
 }));
 
+export const reviews = pgTable("reviews", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  tourId: varchar("tour_id").notNull().references(() => tours.id),
+  bookingId: varchar("booking_id").notNull().references(() => bookings.id),
+  rating: integer("rating").notNull(), // 1 to 5
+  comment: text("comment"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const reviewsRelations = relations(reviews, ({ one }) => ({
+  user: one(users, {
+    fields: [reviews.userId],
+    references: [users.id],
+  }),
+  tour: one(tours, {
+    fields: [reviews.tourId],
+    references: [tours.id],
+  }),
+  booking: one(bookings, {
+    fields: [reviews.bookingId],
+    references: [bookings.id],
+  }),
+}));
+
 export const insertNotificationSchema = createInsertSchema(notifications).omit({
   id: true,
   createdAt: true,
@@ -631,6 +672,14 @@ export const insertNotificationSchema = createInsertSchema(notifications).omit({
 
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 export type Notification = typeof notifications.$inferSelect;
+
+export const insertReviewSchema = createInsertSchema(reviews).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertReview = z.infer<typeof insertReviewSchema>;
+export type Review = typeof reviews.$inferSelect;
 
 export const session = pgTable("session", {
   sid: varchar("sid").primaryKey(),

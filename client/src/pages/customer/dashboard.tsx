@@ -9,9 +9,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Calendar, Wallet, Heart, HelpCircle, Ticket, Download, X, Printer, FileText } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { PrintItinerary } from "@/components/print-itinerary";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Star, Loader2, Calendar, Wallet, Heart, HelpCircle, Ticket, Download, X, Printer, FileText } from "lucide-react";
 
 function TicketModal({ booking, onClose, t }: { booking: any; onClose: () => void; t: (key: string) => string }) {
   return (
@@ -52,7 +54,81 @@ function TicketModal({ booking, onClose, t }: { booking: any; onClose: () => voi
   );
 }
 
-function BookingsTable({ rows, onViewTicket, t }: { rows: any[]; onViewTicket: (booking: any) => void; t: (key: string) => string }) {
+function ReviewModal({ booking, onClose, t, toast }: { booking: any; onClose: () => void; t: (key: string) => string; toast: any }) {
+  const [rating, setRating] = useState(5);
+  const [comment, setComment] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async () => {
+    setIsSubmitting(true);
+    try {
+      const res = await fetch("/api/reviews", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          bookingId: booking.id,
+          tourId: booking.tourId,
+          rating,
+          comment
+        })
+      });
+      if (!res.ok) throw new Error("Failed to submit review");
+      toast({ title: t("common.success"), description: "Review submitted successfully!" });
+      onClose();
+    } catch (error: any) {
+      toast({ title: t("common.error"), description: error.message, variant: "destructive" });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <Dialog open={true} onOpenChange={() => onClose()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>{t("dashboard.rateYourExperience", "Rate your experience")}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <div className="flex flex-col items-center gap-2">
+            <div className="text-sm font-medium mb-2">{t("dashboard.howWasYourTour", "How was your tour?")}</div>
+            <div className="flex gap-2">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  onClick={() => setRating(star)}
+                  className={`h-10 w-10 rounded-full flex items-center justify-center transition-colors ${rating >= star ? 'bg-yellow-400 text-white' : 'bg-muted text-muted-foreground'}`}
+                >
+                  <Star className="h-6 w-6 fill-current" />
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="review-comment">{t("dashboard.comment", "Comment")}</Label>
+            <Textarea
+              id="review-comment"
+              placeholder={t("dashboard.reviewPlaceholder", "Tell us more about your trip...")}
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              className="resize-none h-32"
+            />
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <Button onClick={handleSubmit} disabled={isSubmitting} className="flex-1">
+            {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+            {t("common.submit", "Submit")}
+          </Button>
+          <Button variant="outline" onClick={onClose} className="flex-1">
+            {t("common.cancel", "Cancel")}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function BookingsTable({ rows, onViewTicket, onLeaveReview, t }: { rows: any[]; onViewTicket: (booking: any) => void; onLeaveReview: (booking: any) => void; t: (key: string) => string }) {
   const getTranslatedStatus = (status: string) => {
     const statusLower = status.toLowerCase();
     if (statusLower === 'paid' || statusLower === 'confirmed') return t("booking.confirmed");
@@ -95,14 +171,26 @@ function BookingsTable({ rows, onViewTicket, t }: { rows: any[]; onViewTicket: (
               <td className="p-3 text-foreground/90">{r.amount}</td>
               <td className="p-3">{getStatusBadge(r.status)}</td>
               <td className="p-3">
-                <Button 
-                  data-testid={`button-view-ticket-${r.id || i}`}
-                  onClick={() => onViewTicket(r)}
-                  size="sm"
-                  className="text-xs"
-                >
-                  <Ticket className="h-3 w-3 mr-1" /> {t("dashboard.viewTicket")}
-                </Button>
+                <div className="flex gap-2">
+                  <Button 
+                    data-testid={`button-view-ticket-${r.id || i}`}
+                    onClick={() => onViewTicket(r)}
+                    size="sm"
+                    className="text-xs"
+                  >
+                    <Ticket className="h-3 w-3 mr-1" /> {t("dashboard.viewTicket")}
+                  </Button>
+                  {r.status === 'completed' && (
+                    <Button 
+                      variant="outline"
+                      size="sm"
+                      className="text-xs border-primary text-primary hover:bg-primary/10"
+                      onClick={() => onLeaveReview(r)}
+                    >
+                      <Star className="h-3 w-3 mr-1" /> {t("dashboard.leaveReview", "Review")}
+                    </Button>
+                  )}
+                </div>
               </td>
             </tr>
           ))}
@@ -117,6 +205,7 @@ export default function CustomerDashboard() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [selectedBooking, setSelectedBooking] = useState<any>(null);
+  const [reviewBooking, setReviewBooking] = useState<any>(null);
   const [itineraryBooking, setItineraryBooking] = useState<any>(null);
   const { t, i18n } = useTranslation();
   
@@ -145,6 +234,10 @@ export default function CustomerDashboard() {
     <DashboardLayout type="customer">
       {selectedBooking && (
         <TicketModal booking={selectedBooking} onClose={() => setSelectedBooking(null)} t={t} />
+      )}
+      
+      {reviewBooking && (
+        <ReviewModal booking={reviewBooking} onClose={() => setReviewBooking(null)} t={t} toast={toast} />
       )}
       
       {itineraryBooking && (
@@ -255,7 +348,7 @@ export default function CustomerDashboard() {
           </CardHeader>
           <CardContent>
             {bookings.length > 0 ? (
-              <BookingsTable rows={bookings} onViewTicket={setSelectedBooking} t={t} />
+              <BookingsTable rows={bookings} onViewTicket={setSelectedBooking} onLeaveReview={setReviewBooking} t={t} />
             ) : (
               <div className="text-center py-8 text-muted-foreground">
                 {t("dashboard.noBookingHistory")} <Link href="/tours" className="text-primary hover:underline">{t("dashboard.startExploringTours")}</Link>

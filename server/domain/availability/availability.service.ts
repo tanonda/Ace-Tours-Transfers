@@ -134,6 +134,49 @@ export class AvailabilityService {
   }
 
   /**
+   * Confirms all active holds for a given session.
+   */
+  async confirmHoldsBySession(sessionId: string): Promise<void> {
+    await db.transaction(async (tx: any) => {
+      // 1. Get all active holds for session with LOCK
+      const sessionHolds = await tx
+        .select()
+        .from(availabilityHolds)
+        .where(and(
+          eq(availabilityHolds.bookingSessionId, sessionId),
+          eq(availabilityHolds.status, HoldStatus.ACTIVE)
+        ))
+        .for('update');
+
+      for (const hold of sessionHolds) {
+        // 2. Lock Instance
+        const [instance] = await tx
+          .select()
+          .from(tourInstances)
+          .where(eq(tourInstances.id, hold.tourInstanceId))
+          .for('update');
+
+        if (instance) {
+          // 3. Transition counts
+          await tx
+            .update(tourInstances)
+            .set({ 
+              heldCount: Math.max(0, instance.heldCount - hold.quantity),
+              confirmedCount: instance.confirmedCount + hold.quantity
+            })
+            .where(eq(tourInstances.id, instance.id));
+        }
+
+        // 4. Update Hold status
+        await tx
+          .update(availabilityHolds)
+          .set({ status: HoldStatus.CONFIRMED })
+          .where(eq(availabilityHolds.id, hold.id));
+      }
+    });
+  }
+
+  /**
    * Releases a hold (manual cancellation or expiry).
    */
   async releaseHold(holdId: string, status: HoldStatus = HoldStatus.RELEASED): Promise<void> {

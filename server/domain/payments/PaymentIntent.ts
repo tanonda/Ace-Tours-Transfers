@@ -1,6 +1,6 @@
 
 import { eventDispatcher } from "../../infrastructure/events/event-dispatcher.js";
-import { PaymentInitiated, PaymentConfirmed } from "../events.js";
+import { PaymentInitiated, PaymentConfirmed, PaymentFailed, PaymentExpired } from "../events.js";
 
 export enum PaymentIntentStatus {
   PENDING = 'PENDING',
@@ -69,6 +69,12 @@ export class PaymentIntent {
     }
     this.props.status = PaymentIntentStatus.FAILED;
     console.log(`[PAYMENT][FAILED] Intent ${this.props.id} failed: ${reason}`);
+
+    if (reason === 'expired_timeout') {
+      eventDispatcher.dispatch(new PaymentExpired(this.props.id, this.props.bookingId));
+    } else {
+      eventDispatcher.dispatch(new PaymentFailed(this.props.id, this.props.bookingId, reason));
+    }
   }
 
   public get id(): string { return this.props.id; }

@@ -10,6 +10,7 @@ import type {
   Payment,
   CmsContent,
   Notification,
+  FeatureFlag,
 } from "@shared/schema";
 
 // Helper for image upload
@@ -266,5 +267,16 @@ export async function verifyBooking(data: { bookingId: string; type: string; val
 
 export async function cancelBooking(id: string, verification: { type: string; value: string }): Promise<any> {
   const res = await apiRequest("POST", `/api/bookings/${id}/cancel`, verification);
+  return res.json();
+}
+
+// Feature Flags
+export async function fetchFeatureFlags(): Promise<FeatureFlag[]> {
+  const res = await apiRequest("GET", "/api/feature-flags");
+  return res.json();
+}
+
+export async function updateFeatureFlag(slug: string, enabled: boolean): Promise<FeatureFlag> {
+  const res = await apiRequest("PATCH", `/api/admin/feature-flags/${slug}`, { enabled });
   return res.json();
 }
