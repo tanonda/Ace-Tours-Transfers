@@ -17,6 +17,11 @@ validateConfig();
 const app = express();
 const httpServer = createServer(app);
 
+// Trust proxy for production (Render, etc.)
+if (process.env.NODE_ENV === "production") {
+  app.set("trust proxy", 1);
+}
+
 declare module "http" {
   interface IncomingMessage {
     rawBody: unknown;
@@ -148,6 +153,7 @@ app.use(
       secure: config.env === "production",
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      sameSite: config.env === "production" ? "none" : "lax",
     },
   })
 );
