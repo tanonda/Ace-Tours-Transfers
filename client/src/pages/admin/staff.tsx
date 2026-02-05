@@ -7,9 +7,9 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Search, Mail, Shield, ShieldAlert, UserCog } from "lucide-react";
+import { Search, Mail, Shield, ShieldAlert, UserCog, Plus, Trash2, Loader2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchAllUsers, updateUserRole } from "@/lib/api";
+import { fetchAllUsers, updateUserRole, createUser } from "@/lib/api";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import type { User } from "@shared/schema";
@@ -23,6 +23,8 @@ export default function AdminStaff() {
     const [promoteDialogOpen, setPromoteDialogOpen] = useState(false);
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
     const [targetRole, setTargetRole] = useState<string>("");
+    const [createDialogOpen, setCreateDialogOpen] = useState(false);
+    const [newStaff, setNewStaff] = useState({ name: '', email: '', password: '', role: 'field_service' });
 
     const { data: users = [], isLoading } = useQuery({
         queryKey: ["users"],
@@ -38,6 +40,19 @@ export default function AdminStaff() {
         },
         onError: () => {
             toast({ title: "Error", description: "Failed to update role.", variant: "destructive" });
+        },
+    });
+
+    const createMutation = useMutation({
+        mutationFn: createUser,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["users"] });
+            toast({ title: "Staff Created", description: "New staff account has been created." });
+            setCreateDialogOpen(false);
+            setNewStaff({ name: '', email: '', password: '', role: 'field_service' });
+        },
+        onError: () => {
+            toast({ title: "Error", description: "Failed to create staff account.", variant: "destructive" });
         },
     });
 
@@ -74,6 +89,9 @@ export default function AdminStaff() {
                         <h1 className="text-3xl font-bold text-[#004165]">Staff Management</h1>
                         <p className="text-muted-foreground">Manage user roles and access permissions.</p>
                     </div>
+                    <Button onClick={() => setCreateDialogOpen(true)}>
+                        <Plus className="mr-2 h-4 w-4" /> Add Staff
+                    </Button>
                 </div>
 
                 <Card>
@@ -176,6 +194,79 @@ export default function AdminStaff() {
                             <Button onClick={confirmRoleChange} disabled={updateRoleMutation.isPending}>
                                 {updateRoleMutation.isPending && <span className="animate-spin mr-2">⏳</span>}
                                 Confirm Change
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+
+                {/* Create Staff Dialog */}
+                <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Add New Staff Member</DialogTitle>
+                            <DialogDescription>
+                                Create a new staff account with appropriate role.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4 py-4">
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">Full Name</label>
+                                <Input
+                                    placeholder="Enter full name"
+                                    value={newStaff.name}
+                                    onChange={(e) => setNewStaff(s => ({ ...s, name: e.target.value }))}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">Email</label>
+                                <Input
+                                    type="email"
+                                    placeholder="staff@acetours.vu"
+                                    value={newStaff.email}
+                                    onChange={(e) => setNewStaff(s => ({ ...s, email: e.target.value }))}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">Password</label>
+                                <Input
+                                    type="password"
+                                    placeholder="Enter password"
+                                    value={newStaff.password}
+                                    onChange={(e) => setNewStaff(s => ({ ...s, password: e.target.value }))}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">Role</label>
+                                <Select
+                                    value={newStaff.role}
+                                    onValueChange={(val) => setNewStaff(s => ({ ...s, role: val }))}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="field_service">
+                                            <div className="flex items-center gap-2">
+                                                <UserCog className="h-4 w-4" /> Field Service
+                                            </div>
+                                        </SelectItem>
+                                        <SelectItem value="admin">
+                                            <div className="flex items-center gap-2">
+                                                <ShieldAlert className="h-4 w-4" /> Admin
+                                            </div>
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>Cancel</Button>
+                            <Button
+                                onClick={() => createMutation.mutate(newStaff)}
+                                disabled={createMutation.isPending || !newStaff.name || !newStaff.email || !newStaff.password}
+                            >
+                                {createMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Create Staff
                             </Button>
                         </DialogFooter>
                     </DialogContent>

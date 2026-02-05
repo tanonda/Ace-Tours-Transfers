@@ -9,11 +9,14 @@ import { ShareButton } from "@/components/share-button";
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { formatPrice } from "@/lib/product.types";
 
 interface TourProps {
   id: string;
   title: string;
-  price: string;
+  price: string;   // Deprecated, for fallback
+  adultPriceCents: number;
+  childPriceCents: number;
   duration: string;
   minPax?: string | null;
   childPrice?: string | null;
@@ -52,7 +55,7 @@ export function TourCard({ tour, index }: { tour: TourProps; index: number }) {
             </div>
             <div className="absolute top-4 right-4 z-20">
               <Badge className="bg-background/90 text-foreground hover:bg-background text-sm font-bold px-3 py-1 shadow-sm backdrop-blur-sm border border-border/50">
-                {tour.price}
+                {formatPrice(tour.adultPriceCents)}
               </Badge>
             </div>
             <div className="absolute inset-0 flex items-center justify-center z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -95,7 +98,7 @@ export function TourCard({ tour, index }: { tour: TourProps; index: number }) {
             <div className="w-full space-y-2">
               <div className="flex justify-between items-center text-sm text-muted-foreground mb-2">
                 <span>{t("tour.startingFrom", "Starting from")}</span>
-                <span className="font-bold text-foreground">{tour.price}</span>
+                <span className="font-bold text-foreground">{formatPrice(tour.adultPriceCents)}</span>
               </div>
               <BookingModal
                 preselectedService={tour.title}
