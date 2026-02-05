@@ -19,7 +19,8 @@
     "verify-architecture": "tsx scripts/check-adr-compliance.ts",
     "check-architecture": "npm run verify-architecture && npm run verify-ddd",
     "rebuild-projections": "tsx scripts/verify-projections.ts --rebuild",
-    "go-live-verify": "tsx scripts/go-live-verify.ts"
+    "go-live-verify": "tsx scripts/go-live-verify.ts",
+    "upload-images": "tsx scripts/upload-product-images.ts"
   },
   "dependencies": {
     "@cloudinary/react": "^1.14.3",
