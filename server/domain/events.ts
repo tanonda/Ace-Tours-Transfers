@@ -50,3 +50,32 @@ export class PaymentConfirmed extends BaseDomainEvent {
     super();
   }
 }
+
+export class PaymentFailed extends BaseDomainEvent {
+  constructor(
+    public readonly paymentId: string,
+    public readonly bookingId: string,
+    public readonly reason: string
+  ) {
+    super();
+  }
+}
+
+export class PaymentExpired extends BaseDomainEvent {
+  constructor(
+    public readonly paymentId: string,
+    public readonly bookingId: string
+  ) {
+    super();
+  }
+}
+
+// Registered as per ADR-006
+export class HoldReleased extends BaseDomainEvent {
+  constructor(
+    public readonly holdId: string,
+    public readonly reason: string
+  ) {
+    super();
+  }
+}

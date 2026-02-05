@@ -14,17 +14,29 @@ interface Booking {
   date: string;
   guests: number;
   amount: string;
+  totalAmountCents?: number;
   status: string;
+}
+
+interface BookingItem {
+  productName: string;
+  productType: string;
+  quantity: number;
+  unitPriceCents: number;
+  subtotalCents: number;
+  adultPax: number;
+  childPax: number;
 }
 
 interface PrintItineraryProps {
   booking: Booking;
+  items?: BookingItem[];
   payments: Payment[];
   qrCodeData?: string;
   onClose: () => void;
 }
 
-export function PrintItinerary({ booking, payments, qrCodeData, onClose }: PrintItineraryProps) {
+export function PrintItinerary({ booking, items, payments, qrCodeData, onClose }: PrintItineraryProps) {
   const { t } = useTranslation();
   const latestPayment = payments.length > 0 ? payments[0] : undefined;
   const [qrCodeDataURL, setQrCodeDataURL] = useState<string | undefined>();
@@ -283,9 +295,34 @@ export function PrintItinerary({ booking, payments, qrCodeData, onClose }: Print
                 </div>
               ` : ''}
               
+              ${items && items.length > 0 ? `
+                <div class="section">
+                  <div class="section-title">${t("itinerary.itemizedBreakdown", "Itemized Breakdown")}</div>
+                  <div class="payment-box">
+                    ${items.map(item => `
+                      <div style="display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px;">
+                        <div>
+                          <div style="font-weight: bold;">${item.productName}</div>
+                          <div style="font-size: 12px; color: #666;">
+                            ${item.adultPax > 0 ? `${item.adultPax} Adults` : ''}
+                            ${item.adultPax > 0 && item.childPax > 0 ? ' + ' : ''}
+                            ${item.childPax > 0 ? `${item.childPax} Children` : ''}
+                            ${item.productType === 'vehicle' ? ` (${item.quantity} Days)` : ''}
+                          </div>
+                        </div>
+                        <div style="text-align: right;">
+                          <div style="font-weight: bold;">${(item.subtotalCents / 100).toLocaleString()} VUV</div>
+                          <div style="font-size: 11px; color: #888;">${(item.unitPriceCents / 100).toLocaleString()} / unit</div>
+                        </div>
+                      </div>
+                    `).join('')}
+                  </div>
+                </div>
+              ` : ''}
+              
               <div class="total-section">
                 <span class="total-label">${t("itinerary.totalAmount", "Total Amount")}</span>
-                <span class="total-amount">${booking.amount}</span>
+                <span class="total-amount">${booking.totalAmountCents ? `${(booking.totalAmountCents / 100).toLocaleString()} VUV` : booking.amount}</span>
               </div>
               
               <div class="notes">
@@ -451,9 +488,39 @@ export function PrintItinerary({ booking, payments, qrCodeData, onClose }: Print
               </div>
             )}
               
+            {items && items.length > 0 && (
+              <div className="section">
+                <h3 className="section-title text-lg font-bold text-[#004165] border-b-2 border-primary pb-2 mb-4">
+                  {t("itinerary.itemizedBreakdown", "Itemized Breakdown")}
+                </h3>
+                <div className="space-y-4 bg-muted/20 p-4 rounded-lg">
+                  {items.map((item, idx) => (
+                    <div key={idx} className="flex justify-between items-start border-b border-border/50 pb-3 last:border-0 last:pb-0">
+                      <div>
+                        <div className="font-semibold text-foreground">{item.productName}</div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {item.adultPax > 0 && `${item.adultPax} Adults`}
+                          {item.adultPax > 0 && item.childPax > 0 && " + "}
+                          {item.childPax > 0 && `${item.childPax} Children`}
+                          {item.productType === 'vehicle' && ` (${item.quantity} Days)`}
+                          <span className="mx-2">•</span>
+                          {(item.unitPriceCents / 100).toLocaleString()} / unit
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-bold text-primary">{(item.subtotalCents / 100).toLocaleString()} VUV</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+              
             <div className="total-section bg-muted/30 p-5 rounded-lg flex justify-between items-center">
               <span className="total-label text-muted-foreground">{t("itinerary.totalAmount", "Total Amount")}</span>
-              <span className="total-amount text-2xl font-bold text-[#004165]">{booking.amount}</span>
+              <span className="total-amount text-2xl font-bold text-[#004165]">
+                {booking.totalAmountCents ? `${(booking.totalAmountCents / 100).toLocaleString()} VUV` : booking.amount}
+              </span>
             </div>
 
             <div className="notes bg-amber-50 dark:bg-amber-900/20 border-l-4 border-primary p-4 rounded-r-lg">

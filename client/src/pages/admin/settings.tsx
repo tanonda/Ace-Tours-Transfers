@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchSiteSettings, updateSiteSetting } from "@/lib/api";
+import { fetchSiteSettings, updateSiteSetting, fetchFeatureFlags, updateFeatureFlag } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { useTranslation } from "react-i18next";
@@ -8,8 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Save } from "lucide-react";
+import { Loader2, Save, Flag } from "lucide-react";
 import { useState, useEffect } from "react";
+import { Switch } from "@/components/ui/switch";
 
 export default function AdminSettings() {
   const { t } = useTranslation();
@@ -35,6 +36,11 @@ export default function AdminSettings() {
     }
   }, [settings]);
 
+  const { data: flags = [], isLoading: isFlagsLoading } = useQuery({
+    queryKey: ["feature-flags"],
+    queryFn: fetchFeatureFlags,
+  });
+
   const updateMutation = useMutation({
     mutationFn: ({ key, value }: { key: string; value: string }) => updateSiteSetting(key, value),
     onSuccess: () => {
@@ -43,6 +49,17 @@ export default function AdminSettings() {
     },
     onError: () => {
       toast({ title: t("common.error"), description: "Failed to save setting.", variant: "destructive" });
+    },
+  });
+
+  const toggleFlagMutation = useMutation({
+    mutationFn: ({ slug, enabled }: { slug: string; enabled: boolean }) => updateFeatureFlag(slug, enabled),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["feature-flags"] });
+      toast({ title: t("cms.updated"), description: "Feature flag updated." });
+    },
+    onError: () => {
+      toast({ title: t("common.error"), description: "Failed to update feature flag.", variant: "destructive" });
     },
   });
 
@@ -67,7 +84,7 @@ export default function AdminSettings() {
     ]
   };
 
-  if (isLoading) {
+  if (isLoading || isFlagsLoading) {
     return (
       <DashboardLayout type="admin">
         <div className="flex items-center justify-center min-h-[50vh]">
@@ -89,6 +106,7 @@ export default function AdminSettings() {
           <TabsList>
             <TabsTrigger value="contact">{t("footer.contactInfo")}</TabsTrigger>
             <TabsTrigger value="social">Social Media</TabsTrigger>
+            <TabsTrigger value="flags">Feature Flags</TabsTrigger>
           </TabsList>
 
           <TabsContent value="contact" className="mt-4">
@@ -149,6 +167,37 @@ export default function AdminSettings() {
                     >
                       {updateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                     </Button>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="flags" className="mt-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Feature Flags</CardTitle>
+                <CardDescription>
+                  Enable or disable system features. Disabled features will be hidden from the public UI.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {flags.map((flag: any) => (
+                  <div key={flag.slug} className="flex items-center justify-between space-x-2">
+                    <div className="flex flex-col space-y-1">
+                      <Label htmlFor={flag.slug} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                        {flag.displayName}
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        {flag.description}
+                      </p>
+                    </div>
+                    <Switch
+                      id={flag.slug}
+                      checked={flag.enabled}
+                      onCheckedChange={(checked) => toggleFlagMutation.mutate({ slug: flag.slug, enabled: checked })}
+                      disabled={toggleFlagMutation.isPending}
+                    />
                   </div>
                 ))}
               </CardContent>

@@ -110,7 +110,7 @@ export class PaymentApplicationService {
       return { success: false, message: "Bank transfers are currently paused. Please try again later." };
     }
 
-    const amountCents = Math.round(parseFloat(booking.amount.replace(/[^0-9.]/g, '')) * 100);
+    const amountCents = booking.totalAmountCents;
 
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + 2);

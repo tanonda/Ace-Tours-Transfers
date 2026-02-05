@@ -40,7 +40,16 @@ import {
   type AvailabilityHold,
   type InsertAvailabilityHold,
   type Notification,
-  type InsertNotification
+  type InsertNotification,
+  type BookingItem,
+  type InsertBookingItem,
+  bookingItems,
+  featureFlags,
+  type FeatureFlag,
+  type InsertFeatureFlag,
+  reviews,
+  type Review,
+  type InsertReview
 } from "../shared/schema.js";
 import { db } from "./db.js";
 import { eq, like, desc, and, or, isNull, sql } from "drizzle-orm";
@@ -73,10 +82,14 @@ export interface IStorage {
   updateBooking(id: string, booking: Partial<InsertBooking>): Promise<Booking>;
   linkBookingsToUser(email: string, userId: string): Promise<void>;
   deleteBooking(id: string): Promise<void>;
+  createBookingItem(item: InsertBookingItem): Promise<BookingItem>;
+  getBookingItems(bookingId: string): Promise<BookingItem[]>;
 
   // Analytics
   getBookingStats(): Promise<{ total: number; confirmed: number; pending: number; completed: number; }>;
   getRevenueByMonth(): Promise<{ month: string; total: number; }[]>;
+  getRevenueDaily(days: number): Promise<{ date: string; amount: number; }[]>;
+  getTopPerformingTours(limit: number): Promise<{ tourName: string; bookingCount: number; revenue: number; }[]>;
 
   // Content Blocks (CMS)
   getContentBlocks(): Promise<ContentBlock[]>;
@@ -107,10 +120,12 @@ export interface IStorage {
   checkPaymentExpiration(paymentId: string): Promise<boolean>;
   getStaleProcessingPayments(batchSize: number): Promise<Payment[]>;
 
-  // Notifications
-  createNotification(notification: InsertNotification): Promise<Notification>;
-  getUnreadNotifications(userId?: string): Promise<Notification[]>;
   markNotificationAsRead(id: string): Promise<void>;
+
+  // Reviews
+  createReview(review: InsertReview): Promise<Review>;
+  getTourReviews(tourId: string): Promise<Review[]>;
+  getUserReviews(userId: string): Promise<Review[]>;
 
   // Wishlist
   getWishlistItems(userId: string): Promise<WishlistItem[]>;
@@ -149,6 +164,11 @@ export interface IStorage {
   incrementDailyRevenue(date: string, amount: number, vat: number): Promise<void>;
   upsertPaymentOverview(overview: any): Promise<void>;
   clearProjections(): Promise<void>;
+
+  // Feature Flags
+  getFeatureFlags(): Promise<FeatureFlag[]>;
+  getFeatureFlag(slug: string): Promise<FeatureFlag | undefined>;
+  upsertFeatureFlag(flag: InsertFeatureFlag): Promise<FeatureFlag>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -293,6 +313,15 @@ export class DatabaseStorage implements IStorage {
     await db.delete(bookings).where(eq(bookings.id, id));
   }
 
+  async createBookingItem(item: InsertBookingItem): Promise<BookingItem> {
+    const [newItem] = await db.insert(bookingItems).values(item).returning();
+    return newItem;
+  }
+
+  async getBookingItems(bookingId: string): Promise<BookingItem[]> {
+    return await db.select().from(bookingItems).where(eq(bookingItems.bookingId, bookingId));
+  }
+
   // Analytics
   async getBookingStats(): Promise<{ total: number; confirmed: number; pending: number; completed: number; }> {
     const allBookings = await db.select().from(bookings);
@@ -316,6 +345,39 @@ export class DatabaseStorage implements IStorage {
     });
 
     return Object.entries(monthlyData).map(([month, total]) => ({ month, total }));
+  }
+
+  async getRevenueDaily(days: number): Promise<{ date: string; amount: number; }[]> {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - days);
+    const dateStr = cutoffDate.toISOString().split('T')[0];
+
+    const results = await db
+      .select({
+        date: revenueDaily.date,
+        amount: revenueDaily.totalGross
+      })
+      .from(revenueDaily)
+      .where(sql`${revenueDaily.date} >= ${dateStr}`)
+      .orderBy(revenueDaily.date);
+    
+    return results;
+  }
+
+  async getTopPerformingTours(limit: number): Promise<{ tourName: string; bookingCount: number; revenue: number; }[]> {
+    const results = await db
+      .select({
+        tourName: bookings.tourName,
+        bookingCount: sql<number>`count(${bookings.id})`.mapWith(Number),
+        revenue: sql<number>`sum(${bookings.totalAmountCents})`.mapWith(Number)
+      })
+      .from(bookings)
+      .where(eq(bookings.status, 'confirmed'))
+      .groupBy(bookings.tourName)
+      .orderBy(desc(sql`sum(${bookings.totalAmountCents})`))
+      .limit(limit);
+    
+    return results;
   }
 
   // Content Blocks (CMS)
@@ -496,6 +558,31 @@ export class DatabaseStorage implements IStorage {
       .update(notifications)
       .set({ read: true })
       .where(eq(notifications.id, id));
+  }
+
+  // Reviews
+  async createReview(insertReview: InsertReview): Promise<Review> {
+    const [review] = await db.insert(reviews).values(insertReview as any).returning();
+    return review;
+  }
+
+  async getTourReviews(tourId: string): Promise<any[]> {
+    return await db
+      .select({
+        id: reviews.id,
+        rating: reviews.rating,
+        comment: reviews.comment,
+        createdAt: reviews.createdAt,
+        userName: users.name
+      })
+      .from(reviews)
+      .leftJoin(users, eq(reviews.userId, users.id))
+      .where(eq(reviews.tourId, tourId))
+      .orderBy(desc(reviews.createdAt));
+  }
+
+  async getUserReviews(userId: string): Promise<Review[]> {
+    return await db.select().from(reviews).where(eq(reviews.userId, userId)).orderBy(desc(reviews.createdAt));
   }
 
   // Wishlist
@@ -704,6 +791,30 @@ export class DatabaseStorage implements IStorage {
     await db.delete(bookingSummaries);
     await db.delete(revenueDaily);
     await db.delete(paymentOverviews);
+  }
+
+  // Feature Flags
+  async getFeatureFlags(): Promise<FeatureFlag[]> {
+    return await db.select().from(featureFlags);
+  }
+
+  async getFeatureFlag(slug: string): Promise<FeatureFlag | undefined> {
+    const [flag] = await db.select().from(featureFlags).where(eq(featureFlags.slug, slug));
+    return flag || undefined;
+  }
+
+  async upsertFeatureFlag(flag: InsertFeatureFlag): Promise<FeatureFlag> {
+    const existing = await this.getFeatureFlag(flag.slug);
+    if (existing) {
+      const [updated] = await db
+        .update(featureFlags)
+        .set({ ...flag, updatedAt: new Date() })
+        .where(eq(featureFlags.slug, flag.slug))
+        .returning();
+      return updated;
+    }
+    const [created] = await db.insert(featureFlags).values(flag).returning();
+    return created;
   }
 }
 
