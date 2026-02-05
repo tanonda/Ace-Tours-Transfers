@@ -32,9 +32,10 @@ export class StripeAdapter implements PaymentGatewayService {
         payment_method_types: ['card'],
         mode: 'payment',
         customer_email: request.customerEmail,
+        allow_promotion_codes: true,
         line_items: [{
           price_data: {
-            currency: request.currency.toLowerCase() || 'vuv',
+            currency: request.currency?.toLowerCase() || 'vuv',
             product_data: {
               name: request.customerName ? `Booking for ${request.customerName}` : 'Tour Booking',
               description: `Booking ID: ${request.bookingId}`,

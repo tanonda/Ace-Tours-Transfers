@@ -26,14 +26,18 @@ export class ManualAdapter implements PaymentGatewayService {
   }
 
   async initiatePayment(request: PaymentInitiationRequest): Promise<PaymentInitiationResponse> {
-    console.log(`[MANUAL] Initiating manual payment for booking ${request.bookingId}.`);
+    console.log(`[MANUAL] Initiating manual payment (${request.provider}) for booking ${request.bookingId}.`);
     
+    const message = request.provider === 'cash' 
+      ? "Cash on delivery - customer will pay at pickup/start of service." 
+      : "Bank transfer initiated - awaiting customer transfer.";
+
     return {
       success: true,
-      message: "Manual payment instructions will be provided.",
+      message,
       // No redirect URL for manual payments
       transactionId: `manual_${Date.now()}_${request.bookingId.slice(0, 8)}`,
-      provider: 'manual'
+      provider: request.provider
     };
   }
 
