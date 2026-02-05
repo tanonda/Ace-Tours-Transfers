@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { motion } from "framer-motion";
 import { BookingModal } from "@/components/booking-modal";
+import { formatPrice } from "@/lib/product.types";
 
 interface VehicleDetails {
   make: string;
@@ -62,16 +63,11 @@ export default function VehicleDetail() {
   const vehicleDetails = vehicle.vehicleDetails as VehicleDetails | undefined;
 
   const handleAddToCart = () => {
-    const priceMatch = vehicle.price.match(/(\d+)/);
-    const numericPrice = priceMatch ? parseInt(priceMatch[0]) : 100;
-    const finalPrice = numericPrice; // We pass the daily rate, Cart or Server handles multiplication?
-    // Actually, in the current Cart implementation, total = price * adultPax.
-    // For vehicles, we should probably treat price as daily rate and quantity as days.
-
     addToCart({
       id: vehicle.id,
       title: vehicle.title,
-      price: finalPrice,
+      price: vehicle.adultPriceCents,
+      childPrice: 0, // Vehicles don't have child pricing
       image: vehicle.image,
       type: "vehicle",
       adultPax: 1,
@@ -108,7 +104,7 @@ export default function VehicleDetail() {
                 />
                 <div className="absolute top-6 left-6 flex gap-3">
                   <Badge className="bg-primary text-white text-lg px-4 py-2 shadow-xl">
-                    {vehicle.price}
+                    {formatPrice(vehicle.adultPriceCents)} / day
                   </Badge>
                 </div>
               </div>

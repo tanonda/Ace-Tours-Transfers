@@ -227,6 +227,7 @@ export function BookingModal({ trigger, preselectedService }: { trigger: React.R
             isAvailable={isAvailable}
             availabilityMessage={availabilityMessage}
             isCheckingAvailability={isCheckingAvailability}
+            services={allTours}
           />
         </div>
       </DialogContent>

@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useTranslation } from "react-i18next";
+import { formatPrice, type ProductCategory } from "@/lib/product.types";
 
 interface ProductQuickViewProps {
   isOpen: boolean;
@@ -27,18 +28,13 @@ export function ProductQuickView({ isOpen, onClose, product }: ProductQuickViewP
   if (!product) return null;
 
   const handleAddToCart = () => {
-    // Extract numeric price
-    const priceMatch = product.price.match(/(\d+)/);
-    const numericPrice = priceMatch ? parseInt(priceMatch[0]) : 100; // Default fallback
-    // Adjust if price is in VUV (usually larger numbers) vs AUD
-    const finalPrice = product.price.includes("VT") ? numericPrice : numericPrice * 80; // Rough conversion if needed, or just keep as is
-
     addToCart({
       id: product.id,
       title: product.title,
-      price: finalPrice,
+      price: product.adultPriceCents,
+      childPrice: product.childPriceCents || 0,
       image: product.image,
-      type: product.id.includes("transfer") ? "transfer" : "tour",
+      type: (product.category || "tour") as ProductCategory,
       adultPax: parseInt(adultPax),
       childPax: parseInt(childPax),
       date: date ? new Date(date) : new Date(),
@@ -59,7 +55,7 @@ export function ProductQuickView({ isOpen, onClose, product }: ProductQuickViewP
             />
             <div className="absolute top-4 left-4">
               <Badge className="bg-background/90 text-foreground hover:bg-background font-bold shadow-sm backdrop-blur-sm border border-border/50">
-                {product.price}
+                {formatPrice(product.adultPriceCents)}
               </Badge>
             </div>
           </div>
@@ -124,12 +120,12 @@ export function ProductQuickView({ isOpen, onClose, product }: ProductQuickViewP
                   <h4 className="font-semibold mb-2">{t("quickView.ratesOptions", "Rates & Options")}</h4>
                   <div className="flex justify-between items-center text-sm mb-1">
                     <span>{t("quickView.adult", "Adult")}</span>
-                    <span className="font-medium">{product.price}</span>
+                    <span className="font-medium">{formatPrice(product.adultPriceCents)}</span>
                   </div>
-                  {product.childPrice && (
+                  {product.childPriceCents > 0 && (
                     <div className="flex justify-between items-center text-sm">
                       <span>{t("quickView.child", "Child")}</span>
-                      <span className="font-medium">{product.childPrice}</span>
+                      <span className="font-medium">{formatPrice(product.childPriceCents)}</span>
                     </div>
                   )}
                 </div>

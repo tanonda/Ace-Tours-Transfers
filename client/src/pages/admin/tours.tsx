@@ -6,7 +6,8 @@ import { useToast } from "@/hooks/use-toast";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import { Plus, Pencil, Trash, Search, Map, Car, LayoutGrid, DollarSign, Users, Clock, Image as ImageIcon, Loader2 } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus, Pencil, Trash, Search, Map, Car, LayoutGrid, DollarSign, Users, Clock, Image as ImageIcon, Loader2, Package } from "lucide-react";
 import { TourDialog } from "@/components/admin/tour-dialog";
 import {
   AlertDialog,
@@ -20,6 +21,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
+import { formatPrice } from "@/lib/product.types";
 
 export default function AdminTours() {
   const { t } = useTranslation();
@@ -30,6 +32,7 @@ export default function AdminTours() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [tourToDelete, setTourToDelete] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeTab, setActiveTab] = useState<"all" | "tour" | "transfer" | "vehicle">("all");
 
   const { data: tours = [], isLoading } = useQuery({
     queryKey: ["tours"],
@@ -102,18 +105,20 @@ export default function AdminTours() {
     }
   };
 
-  const filteredTours = tours.filter(tour =>
-    tour.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    tour.category.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredTours = tours.filter(tour => {
+    const matchesSearch = tour.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      tour.category.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = activeTab === "all" || tour.category === activeTab;
+    return matchesSearch && matchesCategory;
+  });
 
   const tourStats = {
     totalTours: tours.filter(t => t.category === 'tour').length,
     totalTransfers: tours.filter(t => t.category === 'transfer').length,
     totalVehicles: tours.filter(t => t.category === 'vehicle').length,
     totalBookings: bookings.length,
-    totalRevenue: bookings.reduce((sum, b) => 
-      sum + parseFloat(String(b.amount).replace(/[^0-9.-]+/g, '') || '0'), 0
+    totalRevenueCents: bookings.reduce((sum, b) => 
+      sum + (b.totalAmountCents || 0), 0
     )
   };
 
@@ -122,20 +127,37 @@ export default function AdminTours() {
       <div className="flex flex-col gap-6">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">{t("admin.toursManagement")}</h1>
-            <p className="text-sm text-muted-foreground">{t("admin.manageToursDesc")}</p>
+            <h1 className="text-2xl font-bold text-foreground">Products Management</h1>
+            <p className="text-sm text-muted-foreground">Manage tours, transfers, and vehicle hire listings</p>
           </div>
           <Button onClick={handleCreate}>
-            <Plus className="mr-2 h-4 w-4" /> {t("admin.addTour")}
+            <Plus className="mr-2 h-4 w-4" /> Add Product
           </Button>
         </div>
+
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="all" className="flex items-center gap-2">
+              <Package className="h-4 w-4" /> All ({tours.length})
+            </TabsTrigger>
+            <TabsTrigger value="tour" className="flex items-center gap-2">
+              <Map className="h-4 w-4" /> Tours ({tourStats.totalTours})
+            </TabsTrigger>
+            <TabsTrigger value="transfer" className="flex items-center gap-2">
+              <Car className="h-4 w-4" /> Transfers ({tourStats.totalTransfers})
+            </TabsTrigger>
+            <TabsTrigger value="vehicle" className="flex items-center gap-2">
+              <LayoutGrid className="h-4 w-4" /> Vehicles ({tourStats.totalVehicles})
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
 
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <Card><CardContent className="p-4 flex items-center gap-3"><ImageIcon className="h-5 w-5 text-blue-500" /><div><p className="text-xs text-muted-foreground">Tours</p><p className="text-xl font-bold">{tourStats.totalTours}</p></div></CardContent></Card>
           <Card><CardContent className="p-4 flex items-center gap-3"><Car className="h-5 w-5 text-green-500" /><div><p className="text-xs text-muted-foreground">Transfers</p><p className="text-xl font-bold">{tourStats.totalTransfers}</p></div></CardContent></Card>
           <Card><CardContent className="p-4 flex items-center gap-3"><LayoutGrid className="h-5 w-5 text-orange-500" /><div><p className="text-xs text-muted-foreground">Vehicles</p><p className="text-xl font-bold">{tourStats.totalVehicles}</p></div></CardContent></Card>
           <Card><CardContent className="p-4 flex items-center gap-3"><Users className="h-5 w-5 text-purple-500" /><div><p className="text-xs text-muted-foreground">Bookings</p><p className="text-xl font-bold">{tourStats.totalBookings}</p></div></CardContent></Card>
-          <Card><CardContent className="p-4 flex items-center gap-3"><DollarSign className="h-5 w-5 text-yellow-500" /><div><p className="text-xs text-muted-foreground">Revenue</p><p className="text-xl font-bold">${tourStats.totalRevenue.toLocaleString()}</p></div></CardContent></Card>
+          <Card><CardContent className="p-4 flex items-center gap-3"><DollarSign className="h-5 w-5 text-yellow-500" /><div><p className="text-xs text-muted-foreground">Revenue</p><p className="text-xl font-bold">{formatPrice(tourStats.totalRevenueCents)}</p></div></CardContent></Card>
         </div>
 
         <div className="flex items-center gap-4 bg-card p-4 rounded-xl border border-border">
@@ -166,7 +188,7 @@ export default function AdminTours() {
                 <div className="p-4">
                   <h3 className="font-bold text-lg mb-1 line-clamp-1">{tour.title}</h3>
                   <div className="flex items-center justify-between text-muted-foreground text-sm mb-4">
-                    <span className="font-bold text-foreground">{tour.price}</span>
+                    <span className="font-bold text-foreground">{formatPrice(tour.adultPriceCents)}</span>
                     <span>{tour.duration}</span>
                   </div>
                   <div className="flex gap-2">
