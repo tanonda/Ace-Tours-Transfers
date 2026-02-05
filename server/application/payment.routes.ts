@@ -29,6 +29,9 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
         if (slug === 'bank-transfer' || slug === 'manual' || slug === 'bank') {
           return isFlagEnabled('payment-bank-transfer');
         }
+        if (slug === 'cash') {
+          return isFlagEnabled('payment-cash-on-delivery');
+        }
         
         // Default to active if no specific flag
         return true;
@@ -64,6 +67,9 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
       }
       if ((provider === 'manual' || provider === 'bank-transfer') && !isFlagEnabled('payment-bank-transfer')) {
         return res.status(403).json({ error: "Bank transfer payments are currently disabled" });
+      }
+      if (provider === 'cash' && !isFlagEnabled('payment-cash-on-delivery')) {
+        return res.status(403).json({ error: "Cash on delivery is currently disabled" });
       }
 
       const result = await paymentAppService.initiateBookingPayment({

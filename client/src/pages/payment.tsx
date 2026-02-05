@@ -23,6 +23,7 @@ import { fetchPaymentGateways } from "@/lib/api";
 import { apiRequest } from "@/lib/queryClient";
 import { PaymentGateway } from "@shared/schema";
 import { format } from "date-fns";
+import { formatCurrency } from "@/lib/payment-service";
 
 const gatewayIcons: Record<string, React.ElementType> = {
   'anz-egate': Landmark,
@@ -214,7 +215,7 @@ export default function Payment() {
             <div className="bg-muted/50 p-4 rounded-md mb-6 border border-border">
               <div className="flex justify-between items-center">
                 <span className="font-semibold">Total Amount</span>
-                <span className="font-bold text-lg">${total > 0 ? total.toLocaleString() : "0"}</span>
+                <span className="font-bold text-lg">{formatCurrency(total)}</span>
               </div>
             </div>
 
@@ -253,9 +254,18 @@ export default function Payment() {
               </RadioGroup>
 
               {selectedGateway?.slug === 'manual_transfer' && (
-                <div className="rounded-md bg-blue-50 p-4 border border-blue-100 mb-4">
-                  <h3 className="font-semibold text-blue-900 mb-2">Bank Details</h3>
-                  <p className="text-sm text-blue-800 italic text-center">Refer to confirmation email for details</p>
+                <div className="rounded-md bg-blue-50 p-4 border border-blue-100 mb-4 flex flex-col items-center">
+                  <Landmark className="h-8 w-8 text-blue-600 mb-2" />
+                  <h3 className="font-semibold text-blue-900 mb-2">Bank Transfer Details</h3>
+                  <p className="text-sm text-blue-800 text-center">Refer to confirmation email for bank account details.</p>
+                </div>
+              )}
+
+              {selectedGateway?.slug === 'cash' && (
+                <div className="rounded-md bg-green-50 p-4 border border-green-100 mb-4 flex flex-col items-center">
+                  <Banknote className="h-8 w-8 text-green-600 mb-2" />
+                  <h3 className="font-semibold text-green-900 mb-2">Cash on Delivery</h3>
+                  <p className="text-sm text-green-800 text-center">Please pay at the start of your tour or vehicle pickup.</p>
                 </div>
               )}
 

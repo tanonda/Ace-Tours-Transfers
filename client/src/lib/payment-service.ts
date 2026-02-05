@@ -80,6 +80,7 @@ export function formatCurrency(amount: number, currency: string = 'VUV'): string
   }
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
-    currency
+    currency: currency,
+    minimumFractionDigits: currency === 'VUV' ? 0 : 2
   }).format(amount);
 }
