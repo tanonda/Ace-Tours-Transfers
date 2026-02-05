@@ -12,7 +12,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { CalendarIcon, Loader2, User, Mail, MapPin, Users, Sparkles } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { tours, transfers } from "@/lib/data";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/lib/auth-context";
 
@@ -26,6 +25,13 @@ export const bookingFormSchema = z.object({
   notes: z.string().optional(),
 });
 
+// Service type for the dropdown
+export interface BookingService {
+  id: string;
+  title: string;
+  category?: string;
+}
+
 interface BookingFormProps {
   initialValues?: Partial<z.infer<typeof bookingFormSchema>>;
   onSubmit: (values: z.infer<typeof bookingFormSchema>) => Promise<void>;
@@ -36,6 +42,7 @@ interface BookingFormProps {
   isAvailable?: boolean | null; // null for not yet checked, true/false for result
   availabilityMessage?: string;
   isCheckingAvailability?: boolean;
+  services?: BookingService[]; // API-driven services list
 }
 
 export function BookingForm({
@@ -48,6 +55,7 @@ export function BookingForm({
   isAvailable = null,
   availabilityMessage,
   isCheckingAvailability = false,
+  services = [],
 }: BookingFormProps) {
   const { t } = useTranslation();
   const { user } = useAuth();
@@ -157,11 +165,14 @@ export function BookingForm({
                   </FormControl>
                   <SelectContent>
                     <SelectItem value="select" disabled>{t("booking.selectOption", "Select an option")}</SelectItem>
-                    {tours.map((tour: any) => (
-                      <SelectItem key={tour.id} value={tour.title}>{tour.title}</SelectItem>
+                    {services.filter(s => s.category === 'tour').map((service) => (
+                      <SelectItem key={service.id} value={service.title}>{service.title}</SelectItem>
                     ))}
-                    {transfers.map((transfer: any) => (
-                      <SelectItem key={transfer.id} value={transfer.title}>{transfer.title}</SelectItem>
+                    {services.filter(s => s.category === 'transfer').map((service) => (
+                      <SelectItem key={service.id} value={service.title}>{service.title}</SelectItem>
+                    ))}
+                    {services.filter(s => s.category === 'vehicle').map((service) => (
+                      <SelectItem key={service.id} value={service.title}>{service.title}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

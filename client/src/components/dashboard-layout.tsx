@@ -189,7 +189,7 @@ export function DashboardLayout({ children, type }: DashboardLayoutProps) {
   const adminLinks = [
     { icon: LayoutDashboard, label: "Overview", href: "/admin/dashboard", show: true },
     { icon: CalendarDays, label: "Bookings", href: "/admin/bookings", show: true },
-    { icon: Map, label: "Tours", href: "/admin/tours", show: true },
+    { icon: Map, label: "Products", href: "/admin/tours", show: true },
     { icon: CalendarDays, label: "Calendar", href: "/admin/calendar", show: true },
     { icon: UserCog, label: "Staff", href: "/admin/staff", show: user?.role === "admin" }, // Admin only
     { icon: Users, label: "Customers", href: "/admin/customers", show: user?.role === "admin" }, // Admin only
@@ -331,9 +331,32 @@ export function DashboardLayout({ children, type }: DashboardLayoutProps) {
 
             <NotificationsPopover />
 
-            <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold text-sm">
-              {user?.name?.[0] || (type === "admin" ? "A" : "J")}
-            </div>
+            <Popover>
+              <PopoverTrigger asChild>
+                <button className="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold text-sm cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all">
+                  {user?.name?.[0] || (type === "admin" ? "A" : "J")}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-56 p-2" align="end">
+                <div className="px-2 py-3 border-b border-border mb-2">
+                  <p className="font-semibold text-sm">{user?.name || 'User'}</p>
+                  <p className="text-xs text-muted-foreground">{user?.email || ''}</p>
+                </div>
+                <Link href={type === 'admin' ? '/admin/settings' : '/dashboard/profile'}>
+                  <div className="flex items-center gap-2 px-2 py-2 rounded-md text-sm hover:bg-accent cursor-pointer">
+                    <User className="h-4 w-4" />
+                    Profile & Settings
+                  </div>
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-2 px-2 py-2 rounded-md text-sm w-full hover:bg-destructive/10 hover:text-destructive cursor-pointer text-left"
+                >
+                  <LogOut className="h-4 w-4" />
+                  Sign Out
+                </button>
+              </PopoverContent>
+            </Popover>
           </div>
         </header>
 

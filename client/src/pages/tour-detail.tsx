@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { motion } from "framer-motion";
 import { BookingModal } from "@/components/booking-modal";
+import { formatPrice, type ProductCategory } from "@/lib/product.types";
 
 export default function TourDetail() {
   const { id } = useParams<{ id: string }>();
@@ -63,17 +64,13 @@ export default function TourDetail() {
   }
 
   const handleAddToCart = () => {
-    // Extract numeric price
-    const priceMatch = tour.price.match(/(\d+)/);
-    const numericPrice = priceMatch ? parseInt(priceMatch[0]) : 100;
-    const finalPrice = tour.price.includes("VT") ? numericPrice : numericPrice * 80;
-
     addToCart({
       id: tour.id,
       title: tour.title,
-      price: finalPrice,
+      price: tour.adultPriceCents,
+      childPrice: tour.childPriceCents,
       image: tour.image,
-      type: "tour",
+      type: (tour.category || "tour") as ProductCategory,
       adultPax: parseInt(adultPax),
       childPax: parseInt(childPax),
       date: date ? new Date(date) : new Date(),
@@ -107,7 +104,7 @@ export default function TourDetail() {
                 />
                 <div className="absolute top-6 left-6 flex gap-3">
                   <Badge className="bg-primary text-white text-lg px-4 py-2 shadow-xl">
-                    {tour.price}
+                    {formatPrice(tour.adultPriceCents)}
                   </Badge>
                 </div>
               </div>
@@ -170,12 +167,12 @@ export default function TourDetail() {
                     <h3 className="text-xl font-bold mb-4 font-serif text-primary">{t("quickView.ratesOptions", "Rates & Options")}</h3>
                     <div className="flex justify-between items-center text-lg mb-2">
                        <span>{t("quickView.adult", "Adult")}</span>
-                       <span className="font-bold text-foreground">{tour.price}</span>
+                       <span className="font-bold text-foreground">{formatPrice(tour.adultPriceCents)}</span>
                     </div>
-                    {tour.childPrice && (
+                    {tour.childPriceCents > 0 && (
                       <div className="flex justify-between items-center text-lg">
                          <span>{t("quickView.child", "Child")}</span>
-                         <span className="font-bold text-foreground">{tour.childPrice}</span>
+                         <span className="font-bold text-foreground">{formatPrice(tour.childPriceCents)}</span>
                       </div>
                     )}
                   </div>

@@ -325,28 +325,37 @@ export function TourDialog({ tour, open, onOpenChange, onSave }: TourDialogProps
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>{t("admin.image")}</FormLabel>
-                                    <div className="flex items-center gap-4">
+                                    <div className="space-y-3">
                                         {field.value && (
                                             <img
                                                 src={field.value}
                                                 alt="Preview"
-                                                className="w-16 h-16 object-cover rounded-md border border-border"
+                                                className="w-full h-32 object-cover rounded-md border border-border"
                                             />
                                         )}
-                                        <div className="flex-1">
+                                        <div className="space-y-2">
                                             <FormControl>
-                                                <div className="flex items-center gap-2">
-                                                    <Input
-                                                        type="file"
-                                                        accept="image/*"
-                                                        onChange={handleImageUpload}
-                                                        disabled={isUploading}
-                                                        className="cursor-pointer"
-                                                    />
-                                                    {isUploading && <Loader2 className="animate-spin h-4 w-4" />}
-                                                </div>
+                                                <Input
+                                                    placeholder="Paste Cloudinary or image URL..."
+                                                    value={field.value || ""}
+                                                    onChange={(e) => field.onChange(e.target.value)}
+                                                />
                                             </FormControl>
-                                            <input type="hidden" {...field} />
+                                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                                <span className="flex-1 border-t border-border"></span>
+                                                <span>or upload</span>
+                                                <span className="flex-1 border-t border-border"></span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <Input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    onChange={handleImageUpload}
+                                                    disabled={isUploading}
+                                                    className="cursor-pointer"
+                                                />
+                                                {isUploading && <Loader2 className="animate-spin h-4 w-4" />}
+                                            </div>
                                         </div>
                                     </div>
                                     <FormMessage />
