@@ -11,6 +11,7 @@ import { useAuth } from "@/lib/auth-context";
 import { createBooking } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
+import { formatCurrency } from "@/lib/payment-service";
 
 export default function Cart() {
   const { t } = useTranslation();
@@ -93,7 +94,7 @@ export default function Cart() {
                                 {item.slot && <p>Slot: {item.slot}</p>}
                               </div>
                             </div>
-                            <p className="font-bold text-lg">${item.price}</p>
+                            <p className="font-bold text-lg">{formatCurrency(item.price)}</p>
                           </div>
                           
                           <div className="flex justify-between items-end mt-4">
@@ -131,18 +132,15 @@ export default function Cart() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Subtotal</span>
-                      <span>${total.toLocaleString()}</span>
-                    </div>
+                      <span>{formatCurrency(total)}</span>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Taxes & Fees</span>
-                      <span>$0.00</span>
+                      <span>{formatCurrency(0)}</span>
                     </div>
                     <Separator />
                     <div className="flex justify-between font-bold text-lg">
                       <span>{t("cart.total")}</span>
-                      <span>${total.toLocaleString()}</span>
+                      <span>{formatCurrency(total)}</span>
                     </div>
                   </div>
                 </CardContent>
