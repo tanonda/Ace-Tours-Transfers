@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { motion } from "framer-motion";
 import { BookingModal } from "@/components/booking-modal";
+import { formatPrice, type ProductCategory } from "@/lib/product.types";
 
 export default function TransferDetail() {
   const { id } = useParams<{ id: string }>();
@@ -53,16 +54,13 @@ export default function TransferDetail() {
   }
 
   const handleAddToCart = () => {
-    const priceMatch = transfer.price.match(/(\d+)/);
-    const numericPrice = priceMatch ? parseInt(priceMatch[0]) : 15;
-    const finalPrice = transfer.price.includes("VT") ? numericPrice : numericPrice * 80;
-
     addToCart({
       id: transfer.id,
       title: transfer.title,
-      price: finalPrice,
+      price: transfer.adultPriceCents,
+      childPrice: transfer.childPriceCents,
       image: transfer.image,
-      type: "transfer",
+      type: (transfer.category || "transfer") as ProductCategory,
       adultPax: parseInt(adultPax),
       childPax: parseInt(childPax),
       date: date ? new Date(date) : new Date(),
@@ -96,7 +94,7 @@ export default function TransferDetail() {
                 />
                 <div className="absolute top-6 left-6 flex gap-3">
                   <Badge className="bg-primary text-white text-lg px-4 py-2 shadow-xl">
-                    {transfer.price}
+                    {formatPrice(transfer.adultPriceCents)}
                   </Badge>
                 </div>
               </div>
@@ -159,12 +157,12 @@ export default function TransferDetail() {
                     <h3 className="text-xl font-bold mb-4 font-serif text-primary">{t("quickView.ratesOptions", "Rates & Options")}</h3>
                     <div className="flex justify-between items-center text-lg mb-2">
                        <span>{t("quickView.adult", "Per Person")}</span>
-                       <span className="font-bold text-foreground">{transfer.price}</span>
+                       <span className="font-bold text-foreground">{formatPrice(transfer.adultPriceCents)}</span>
                     </div>
-                    {transfer.childPrice && (
+                    {transfer.childPriceCents > 0 && (
                       <div className="flex justify-between items-center text-lg">
                          <span>{t("quickView.child", "Child")}</span>
-                         <span className="font-bold text-foreground">{transfer.childPrice}</span>
+                         <span className="font-bold text-foreground">{formatPrice(transfer.childPriceCents)}</span>
                       </div>
                     )}
                   </div>

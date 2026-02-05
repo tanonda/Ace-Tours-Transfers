@@ -1,17 +1,19 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { calculateLineTotal, type ProductCategory } from "./product.types";
 
 export interface CartItem {
   id: string;
   title: string;
-  price: number; // For display, usually adult price
+  price: number;         // adultPriceCents
+  childPrice: number;    // childPriceCents
   image: string;
   quantity: number;
   date?: Date;
   adultPax: number;
   childPax: number;
   slot?: string;
-  type: "tour" | "transfer" | "vehicle";
+  type: ProductCategory;
 }
 
 interface CartContextType {
@@ -69,8 +71,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setItems([]);
   };
 
-  // Note: This total is a client-side estimation. Server-side PriceResolver is the truth.
-  const total = items.reduce((acc, item) => acc + (item.price * item.adultPax), 0);
+  // Note: This total is a client-side estimation. Server-side PriceResolver is the source of truth.
+  const total = items.reduce((acc, item) => 
+    acc + calculateLineTotal(item.price, item.childPrice, item.adultPax, item.childPax)
+  , 0);
   const itemCount = items.length;
 
   return (
