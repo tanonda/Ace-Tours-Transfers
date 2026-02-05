@@ -70,6 +70,7 @@ export class PaymentExpired extends BaseDomainEvent {
   }
 }
 
+// Registered as per ADR-006
 export class HoldReleased extends BaseDomainEvent {
   constructor(
     public readonly holdId: string,
