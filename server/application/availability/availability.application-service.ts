@@ -1,6 +1,8 @@
 import { IStorage } from "../../storage.js";
 import { AvailabilityService, HoldStatus } from "../../domain/availability/availability.service.js";
 import { AvailabilityHold, TourInstance } from "../../../shared/schema.js";
+import { eventDispatcher } from "../../infrastructure/events/event-dispatcher.js";
+import { HoldReleased } from "../../domain/events.js";
 
 export interface HoldRequest {
   tourId: string;
@@ -38,8 +40,13 @@ export class AvailabilityApplicationService {
     await this.availabilityService.confirmBooking(holdId);
   }
 
+  async confirmSessionHolds(sessionId: string): Promise<void> {
+    await this.availabilityService.confirmHoldsBySession(sessionId);
+  }
+
   async releaseHold(holdId: string): Promise<void> {
     await this.availabilityService.releaseHold(holdId, HoldStatus.RELEASED);
+    await eventDispatcher.dispatch(new HoldReleased(holdId, "manual_release"));
   }
 
   async adminOverrideCapacity(instanceId: string, totalCapacity: number): Promise<TourInstance> {

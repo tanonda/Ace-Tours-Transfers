@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { fetchBooking, fetchBookingPayments, fetchQrCode, initiatePayment } from "@/lib/api";
+import { fetchBooking, fetchBookingItems, fetchBookingPayments, fetchQrCode, initiatePayment } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
@@ -28,10 +28,16 @@ export default function ConfirmationPage() {
     enabled: !!bookingId && !!booking, // Only fetch payments if booking exists
   });
 
+  const { data: bookingItems, isLoading: isLoadingItems } = useQuery({
+    queryKey: ["bookingItems", bookingId],
+    queryFn: () => fetchBookingItems(bookingId!),
+    enabled: !!bookingId && !!booking,
+  });
+
   const { data: qrCode, isLoading: isLoadingQrCode, error: qrCodeError } = useQuery({
     queryKey: ["qrCode", bookingId],
     queryFn: () => fetchQrCode(bookingId!),
-    enabled: !!bookingId && !!booking, // Only fetch QR code if booking exists
+    enabled: !!bookingId && !!booking,
   });
 
   const handlePayNow = async () => {
@@ -49,7 +55,7 @@ export default function ConfirmationPage() {
     }
   };
 
-  if (isLoading || isLoadingPayments || isLoadingQrCode) {
+  if (isLoading || isLoadingPayments || isLoadingQrCode || isLoadingItems) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -103,8 +109,33 @@ export default function ConfirmationPage() {
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Amount</span>
-                <span className="font-semibold">{booking.amount}</span>
+                <span className="font-semibold">{booking.totalAmountCents ? `${(booking.totalAmountCents / 100).toLocaleString()} VUV` : booking.amount}</span>
               </div>
+              
+              {bookingItems && bookingItems.length > 0 && (
+                <div className="mt-4 pt-4 border-t border-border/50">
+                  <h4 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Itemized Breakdown</h4>
+                  <div className="space-y-4">
+                    {bookingItems.map((item, idx) => (
+                      <div key={idx} className="space-y-1">
+                        <div className="flex justify-between items-start">
+                          <span className="font-medium">{item.productName}</span>
+                          <span className="font-medium">{(item.subtotalCents / 100).toLocaleString()} VUV</span>
+                        </div>
+                        <div className="flex justify-between text-xs text-muted-foreground">
+                          <span>
+                            {item.adultPax > 0 && `${item.adultPax} Adults`}
+                            {item.adultPax > 0 && item.childPax > 0 && " + "}
+                            {item.childPax > 0 && `${item.childPax} Children`}
+                            {item.productType === 'vehicle' && `${item.quantity} Days`}
+                          </span>
+                          <span>{(item.unitPriceCents / 100).toLocaleString()} / unit</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Status</span>
                 <span className="capitalize">{booking.status}</span>
@@ -179,6 +210,7 @@ export default function ConfirmationPage() {
       {showPrintItinerary && booking && (
         <PrintItinerary
           booking={booking}
+          items={bookingItems}
           payments={payments || []}
           qrCodeData={qrCode?.qrData}
           onClose={() => setShowPrintItinerary(false)}

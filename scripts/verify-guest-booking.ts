@@ -23,9 +23,9 @@ async function verifyGuestBooking() {
       active: true,
       isDefault: false,
       credentials: {
-        apiKey: "sk_test_mock",
-        secretKey: "sk_test_mock",
-        publishableKey: "pk_test_mock"
+        apiKey: "REPLACE_WITH_STRIPE_API_KEY",
+        secretKey: "REPLACE_WITH_STRIPE_SECRET_KEY",
+        publishableKey: "REPLACE_WITH_STRIPE_PUBLISHABLE_KEY"
       },
       supportedCurrencies: ["USD", "AUD", "VUV"],
       config: {}

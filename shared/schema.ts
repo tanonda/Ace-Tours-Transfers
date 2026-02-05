@@ -21,8 +21,10 @@ export const users = pgTable("users", {
 export const tours = pgTable("tours", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   title: text("title").notNull(),
-  price: text("price").notNull(),
-  childPrice: text("child_price"),
+  price: text("price").notNull(), // DEPRECATED: use adultPriceCents
+  childPrice: text("child_price"), // DEPRECATED: use childPriceCents
+  adultPriceCents: integer("adult_price_cents").notNull().default(0),
+  childPriceCents: integer("child_price_cents").notNull().default(0),
   duration: text("duration").notNull(),
   minPax: text("min_pax"),
   image: text("image").notNull(),
@@ -62,12 +64,16 @@ export const bookings = pgTable("bookings", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").references(() => users.id),
   bookingSessionId: text("booking_session_id").notNull().default(""),
-  tourId: varchar("tour_id").notNull().references(() => tours.id),
+  tourId: varchar("tour_id").notNull().references(() => tours.id), // Legacy: First item for quick ref
   tourInstanceId: varchar("tour_instance_id").references(() => tourInstances.id),
   holdId: varchar("hold_id").references(() => availabilityHolds.id),
   date: text("date").notNull(),
   guests: integer("guests").notNull(),
-  amount: text("amount").notNull(),
+  amount: text("amount").notNull(), // DEPRECATED: use totalAmountCents
+  totalAmountCents: integer("total_amount_cents").notNull().default(0),
+  currency: varchar("currency", { length: 3 }).notNull().default("VUV"),
+  adultPaxTotal: integer("adult_pax_total").notNull().default(0),
+  childPaxTotal: integer("child_pax_total").notNull().default(0),
   status: text("status").notNull().default("pending"), // 'pending', 'confirmed', 'completed', 'cancelled'
   paymentReference: text("payment_reference"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -75,6 +81,20 @@ export const bookings = pgTable("bookings", {
   customerEmail: text("customer_email").notNull().default(""),
   customerPhone: text("customer_phone"),
   tourName: text("tour_name").notNull(),
+});
+
+export const bookingItems = pgTable("booking_items", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  bookingId: varchar("booking_id").notNull().references(() => bookings.id, { onDelete: "cascade" }),
+  productType: text("product_type").notNull(), // 'tour', 'transfer', 'vehicle'
+  productId: varchar("product_id").notNull(),
+  productName: text("product_name").notNull(),
+  quantity: integer("quantity").notNull().default(1),
+  unitPriceCents: integer("unit_price_cents").notNull(),
+  subtotalCents: integer("subtotal_cents").notNull(),
+  adultPax: integer("adult_pax").notNull().default(0),
+  childPax: integer("child_pax").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 // CMS Content Blocks - for toggling site sections on/off
@@ -173,6 +193,15 @@ export const payments = pgTable("payments", {
     .where(sql`status IN ('pending', 'processing')`),
 }));
 
+export const featureFlags = pgTable("feature_flags", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  slug: text("slug").notNull().unique(), // e.g., 'client-dashboard', 'reviews-system'
+  enabled: boolean("enabled").notNull().default(false),
+  displayName: text("display_name").notNull(),
+  description: text("description"),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 // PROJECTIONS (Read Models)
 
 export const bookingSummaries = pgTable("booking_summaries", {
@@ -230,6 +259,14 @@ export const bookingsRelations = relations(bookings, ({ one, many }) => ({
     references: [availabilityHolds.id],
   }),
   payments: many(payments),
+  items: many(bookingItems),
+}));
+
+export const bookingItemsRelations = relations(bookingItems, ({ one }) => ({
+  booking: one(bookings, {
+    fields: [bookingItems.bookingId],
+    references: [bookings.id],
+  }),
 }));
 
 export const tourInstancesRelations = relations(tourInstances, ({ one, many }) => ({
@@ -297,6 +334,11 @@ export const insertTourSchema = createInsertSchema(tours).omit({
 export const insertBookingSchema = createInsertSchema(bookings, {
   userId: z.string().optional(),
 }).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertBookingItemSchema = createInsertSchema(bookingItems).omit({
   id: true,
   createdAt: true,
 });
@@ -542,6 +584,11 @@ export const insertAvailabilityHoldSchema = createInsertSchema(availabilityHolds
   createdAt: true,
 });
 
+export const insertFeatureFlagSchema = createInsertSchema(featureFlags).omit({
+  id: true,
+  updatedAt: true,
+});
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -561,6 +608,8 @@ export type InsertPaymentGateway = z.infer<typeof insertPaymentGatewaySchema>;
 export type PaymentGateway = typeof paymentGateways.$inferSelect;
 export type InsertPayment = z.infer<typeof insertPaymentSchema>;
 export type Payment = typeof payments.$inferSelect;
+export type InsertBookingItem = z.infer<typeof insertBookingItemSchema>;
+export type BookingItem = typeof bookingItems.$inferSelect;
 export type PublicPaymentDTO = z.infer<typeof selectPublicPaymentSchema>;
 export type InsertWishlistItem = z.infer<typeof insertWishlistItemSchema>;
 export type WishlistItem = typeof wishlistItems.$inferSelect;
@@ -568,6 +617,8 @@ export type InsertNewsletterSubscriber = z.infer<typeof insertNewsletterSubscrib
 export type NewsletterSubscriber = typeof newsletterSubscribers.$inferSelect;
 export type InsertCmsContent = z.infer<typeof insertCmsContentSchema>;
 export type CmsContent = typeof cmsContent.$inferSelect;
+export type InsertFeatureFlag = z.infer<typeof insertFeatureFlagSchema>;
+export type FeatureFlag = typeof featureFlags.$inferSelect;
 export type BookingStatus = "pending" | "confirmed" | "completed" | "cancelled";
 
 // Notifications
@@ -589,6 +640,31 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
   }),
 }));
 
+export const reviews = pgTable("reviews", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  tourId: varchar("tour_id").notNull().references(() => tours.id),
+  bookingId: varchar("booking_id").notNull().references(() => bookings.id),
+  rating: integer("rating").notNull(), // 1 to 5
+  comment: text("comment"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const reviewsRelations = relations(reviews, ({ one }) => ({
+  user: one(users, {
+    fields: [reviews.userId],
+    references: [users.id],
+  }),
+  tour: one(tours, {
+    fields: [reviews.tourId],
+    references: [tours.id],
+  }),
+  booking: one(bookings, {
+    fields: [reviews.bookingId],
+    references: [bookings.id],
+  }),
+}));
+
 export const insertNotificationSchema = createInsertSchema(notifications).omit({
   id: true,
   createdAt: true,
@@ -596,6 +672,14 @@ export const insertNotificationSchema = createInsertSchema(notifications).omit({
 
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 export type Notification = typeof notifications.$inferSelect;
+
+export const insertReviewSchema = createInsertSchema(reviews).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertReview = z.infer<typeof insertReviewSchema>;
+export type Review = typeof reviews.$inferSelect;
 
 export const session = pgTable("session", {
   sid: varchar("sid").primaryKey(),

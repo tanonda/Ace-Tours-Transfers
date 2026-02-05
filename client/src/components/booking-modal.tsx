@@ -42,7 +42,8 @@ export function BookingModal({ trigger, preselectedService }: { trigger: React.R
     name: user?.name || "",
     email: user?.email || "",
     service: preselectedService || "",
-    guests: "2",
+    adultPax: "2",
+    childPax: "0",
     notes: "",
   };
 
@@ -114,6 +115,9 @@ export function BookingModal({ trigger, preselectedService }: { trigger: React.R
         throw new Error("Invalid service selected");
       }
 
+      // Capacity reservation logic remains using total pax
+      const totalPax = parseInt(values.adultPax) + parseInt(values.childPax);
+      
       // Step 1: Create a hold to reserve capacity
       let holdId = null;
       try {
@@ -123,7 +127,7 @@ export function BookingModal({ trigger, preselectedService }: { trigger: React.R
           body: JSON.stringify({
             tourId: selectedService.id,
             date: format(values.date, "yyyy-MM-dd"),
-            quantity: parseInt(values.guests)
+            quantity: totalPax
           }),
         });
         if (holdRes.ok) {
@@ -134,20 +138,17 @@ export function BookingModal({ trigger, preselectedService }: { trigger: React.R
         console.warn("Failed to create hold, proceeding without one:", holdError);
       }
 
-      // Parse price (remove $ and ,)
-      const priceStr = selectedService.price.replace(/[^0-9.]/g, '');
-      const pricePerPerson = parseFloat(priceStr) || 0;
-      const totalAmount = `$${(pricePerPerson * parseInt(values.guests)).toFixed(2)}`;
-
       const bookingData: any = {
-        tourId: selectedService.id,
-        date: format(values.date, "yyyy-MM-dd"),
-        guests: parseInt(values.guests),
-        amount: totalAmount,
-        status: "pending",
         customerName: values.name,
-        tourName: values.service,
-        customerEmail: values.email, // production uses customerEmail
+        customerEmail: values.email,
+        items: [
+          {
+            productId: selectedService.id,
+            adultPax: parseInt(values.adultPax),
+            childPax: parseInt(values.childPax),
+            date: format(values.date, "yyyy-MM-dd"),
+          }
+        ],
         holdId: holdId
       };
 

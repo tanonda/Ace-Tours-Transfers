@@ -14,6 +14,7 @@ import {
   insertCmsContentSchema,
   insertAvailabilityHoldSchema,
   insertTourInstanceSchema,
+  insertReviewSchema,
   Booking,
   PaymentGateway,
 } from "../shared/schema.js";
@@ -222,6 +223,33 @@ export async function registerRoutes(
     }
   });
 
+  // Reviews
+  app.get("/api/tours/:id/reviews", async (req, res) => {
+    try {
+      const reviews = await storage.getTourReviews(req.params.id);
+      res.json(reviews);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/reviews", requireAuth, async (req, res) => {
+    try {
+      const parsedReview = insertReviewSchema.parse(req.body);
+      const review = await storage.createReview({
+        ...parsedReview,
+        userId: req.session.userId!
+      });
+      res.json(review);
+    } catch (error: any) {
+      if (error instanceof ZodError) {
+        res.status(400).json({ error: error.errors });
+      } else {
+        res.status(500).json({ error: error.message });
+      }
+    }
+  });
+
   app.post("/api/tours", requireAdmin, async (req, res) => {
     try {
       const validatedData = insertTourSchema.parse(req.body);
@@ -302,6 +330,26 @@ export async function registerRoutes(
     }
   });
 
+  // Advanced Analytics (Admin only)
+  app.get("/api/analytics/revenue/daily", requireAdmin, async (req, res) => {
+    try {
+      const days = parseInt(req.query.days as string) || 30;
+      const data = await storage.getRevenueDaily(days);
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/analytics/top-tours", requireAdmin, async (_req, res) => {
+    try {
+      const data = await storage.getTopPerformingTours(5);
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.get("/api/bookings/user/:userId", requireAuth, async (req, res) => {
     try {
       if (req.session.userRole !== 'admin' && req.session.userId !== req.params.userId) {
@@ -324,13 +372,27 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/bookings/:id/items", async (req, res) => {
+    try {
+      const items = await storage.getBookingItems(req.params.id);
+      res.json(items);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch booking items" });
+    }
+  });
+
   app.post("/api/bookings", async (req, res) => {
     try {
       const { CreateBookingFromCartService } = await import("./application/booking/CreateBookingFromCartService.js");
       const bookingService = new CreateBookingFromCartService(storage);
       const { items, customerName, customerEmail } = req.body;
       if (!items || !items.length) return res.status(400).json({ error: "Cart is empty" });
-      const booking = await bookingService.execute({ customerName, customerEmail, items });
+      const booking = await bookingService.execute({ 
+        customerName, 
+        customerEmail, 
+        items,
+        sessionId: req.sessionID
+      });
       res.status(201).json(booking);
     } catch (error: any) {
       res.status(400).json({ error: error.message });
@@ -365,8 +427,9 @@ export async function registerRoutes(
     try {
       const settings = await storage.getSiteSettings();
       res.json(settings);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch settings" });
+    } catch (error: any) {
+      console.error("[SETTINGS ERROR]", error);
+      res.status(500).json({ error: "Failed to fetch settings", details: error.message });
     }
   });
 
@@ -468,6 +531,42 @@ export async function registerRoutes(
       res.status(201).json(content);
     } catch (error) {
       res.status(400).json({ error: "Failed to create content" });
+    }
+  });
+
+  // Feature Flags
+  app.get("/api/feature-flags", async (_req, res) => {
+    try {
+      const flags = await storage.getFeatureFlags();
+      res.json(flags);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch feature flags" });
+    }
+  });
+
+  app.patch("/api/admin/feature-flags/:slug", requireAdmin, async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const { enabled } = req.body;
+      
+      if (typeof enabled !== 'boolean') {
+        return res.status(400).json({ error: "Enabled state must be a boolean" });
+      }
+
+      const flag = await storage.getFeatureFlag(slug);
+      if (!flag) {
+        return res.status(404).json({ error: "Feature flag not found" });
+      }
+
+      const updated = await storage.upsertFeatureFlag({
+        ...flag,
+        enabled
+      });
+
+      console.log(`[FEATURE-FLAG] ${updated.slug} toggled to ${updated.enabled ? 'ON' : 'OFF'} by admin`);
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update feature flag" });
     }
   });
 

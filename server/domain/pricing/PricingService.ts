@@ -3,17 +3,19 @@ export interface PricedItem {
   productId: string;
   name: string;
   quantity: number;
-  unitPrice: number;
-  subtotal: number;
+  adultPax: number;
+  childPax: number;
+  unitPriceCents: number;
+  subtotalCents: number;
 }
 
 import { config } from "../../config.js";
 
 export interface PriceSnapshot {
   items: PricedItem[];
-  baseAmount: number;
-  vatAmount: number;
-  total: number;
+  baseAmountCents: number;
+  vatAmountCents: number;
+  totalCents: number;
   currency: string;
 }
 
@@ -24,33 +26,49 @@ export class PricingService {
     return unitPrice * quantity;
   }
 
-  public static calculateVAT(amount: number): number {
-    return amount * this.VAT_RATE;
+  public static calculateVAT(amountCents: number): number {
+    return Math.round(amountCents * this.VAT_RATE);
   }
 
-  public static createSnapshot(items: { price: number; quantity: number; productId: string; name: string }[]): PriceSnapshot {
-    const pricedItems: PricedItem[] = items.map(item => ({
-      productId: item.productId,
-      name: item.name,
-      unitPrice: item.price,
-      quantity: item.quantity,
-      subtotal: this.calculatePrice(item.price, item.quantity)
-    }));
+  public static createSnapshot(items: { 
+    unitPriceCents: number; 
+    adultPax: number; 
+    childPax: number; 
+    productId: string; 
+    name: string;
+    quantity?: number; // fallback for legacy
+  }[]): PriceSnapshot {
+    const pricedItems: PricedItem[] = items.map(item => {
+      const quantity = item.quantity || (item.adultPax + item.childPax);
+      // For now, if unitPriceCents is provided as a single value, we use it for all pax.
+      // But the PriceResolver will eventually provide specific adult/child rates.
+      const subtotalCents = item.unitPriceCents * quantity;
 
-    const baseAmount = pricedItems.reduce((sum, item) => sum + item.subtotal, 0);
-    const vatAmount = this.calculateVAT(baseAmount);
-    const total = baseAmount + vatAmount;
+      return {
+        productId: item.productId,
+        name: item.name,
+        quantity,
+        adultPax: item.adultPax,
+        childPax: item.childPax,
+        unitPriceCents: item.unitPriceCents,
+        subtotalCents
+      };
+    });
+
+    const baseAmountCents = pricedItems.reduce((sum, item) => sum + item.subtotalCents, 0);
+    const vatAmountCents = this.calculateVAT(baseAmountCents);
+    const totalCents = baseAmountCents + vatAmountCents;
 
     return {
       items: pricedItems,
-      baseAmount,
-      vatAmount,
-      total,
+      baseAmountCents,
+      vatAmountCents,
+      totalCents,
       currency: 'VUV'
     };
   }
 
-  public static formatTotal(amount: number): string {
-    return `VUV ${amount.toLocaleString()}`;
+  public static formatTotal(amountCents: number): string {
+    return `VUV ${(amountCents / 100).toLocaleString()}`;
   }
 }
