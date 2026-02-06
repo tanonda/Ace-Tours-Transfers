@@ -1,7 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { z } from "zod";
 import { CalendarIcon, Loader2, User, Mail, MapPin, Users, Shield, Star, Sparkles } from "lucide-react";
 import { format } from "date-fns";
@@ -29,40 +29,35 @@ export function BookingModal({ trigger, preselectedService }: { trigger: React.R
   const { addToCart } = useCart();
 
   const { data: allTours = [] } = useQuery({
-    queryKey: ["tours"], 
+    queryKey: ["tours"],
     queryFn: fetchTours,
   });
 
   // Track selected service for dynamic pricing
   const [selectedServiceTitle, setSelectedServiceTitle] = useState<string>(preselectedService || "");
 
-  const getServiceIdFromTitle = (title: string) => {
-    const service = allTours.find(s => s.title === title);
-    return service?.id;
-  };
-
   // Get pricing from selected service
   const selectedService = allTours.find(s => s.title === selectedServiceTitle);
   const adultPriceCents = selectedService?.adultPriceCents ?? 0;
   const childPriceCents = selectedService?.childPriceCents ?? 0;
 
-  const initialFormValues = {
+  const initialFormValues = useMemo(() => ({
     name: user?.name || "",
     email: user?.email || "",
     service: preselectedService || "",
     adultPax: "2",
     childPax: "0",
     notes: "",
-  };
+  }), [user?.name, user?.email, preselectedService]);
 
-  const handleAvailabilityCheck = async (serviceTitle: string, date: Date, guests: number) => {
+  const handleAvailabilityCheck = useCallback(async (serviceTitle: string, date: Date, guests: number) => {
     // Update selected service for pricing
     setSelectedServiceTitle(serviceTitle);
     setIsCheckingAvailability(true);
     setIsAvailable(null); // Reset availability status
     setAvailabilityMessage("");
 
-    const serviceId = getServiceIdFromTitle(serviceTitle);
+    const serviceId = allTours.find(s => s.title === serviceTitle)?.id;
     if (!serviceId) {
       setAvailabilityMessage("Selected service not found.");
       setIsAvailable(false);
@@ -104,7 +99,7 @@ export function BookingModal({ trigger, preselectedService }: { trigger: React.R
     } finally {
       setIsCheckingAvailability(false);
     }
-  };
+  }, [allTours, toast]);
 
   async function handleBookingSubmit(values: z.infer<typeof bookingFormSchema>) {
     // Prevent booking if not available or not checked yet
@@ -145,7 +140,7 @@ export function BookingModal({ trigger, preselectedService }: { trigger: React.R
       });
 
       setOpen(false);
-      
+
       // Navigate to payment page - booking will be created from cart items
       setLocation("/payment");
 
