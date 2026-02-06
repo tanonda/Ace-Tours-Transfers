@@ -1,4 +1,3 @@
-
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -11,8 +10,8 @@ import { useQuery } from "@tanstack/react-query";
 import { fetchTours } from "@/lib/api";
 import { useLocation } from "wouter";
 import { useTranslation } from "react-i18next";
-import { createBooking } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { useCart } from "@/lib/cart-context";
 import { BookingForm, bookingFormSchema } from "./booking-form";
 
 const logo = "https://res.cloudinary.com/dwro1dh5q/image/upload/v1765063924/ace-tours-assets/ace_tours_logo_official.jpg";
@@ -27,6 +26,7 @@ export function BookingModal({ trigger, preselectedService }: { trigger: React.R
   const [, setLocation] = useLocation();
   const { t } = useTranslation();
   const { user } = useAuth();
+  const { addToCart } = useCart();
 
   const { data: allTours = [] } = useQuery({
     queryKey: ["tours"], 
@@ -125,56 +125,29 @@ export function BookingModal({ trigger, preselectedService }: { trigger: React.R
         throw new Error("Invalid service selected");
       }
 
-      // Capacity reservation logic remains using total pax
-      const totalPax = parseInt(values.adultPax) + parseInt(values.childPax);
-      
-      // Step 1: Create a hold to reserve capacity
-      let holdId = null;
-      try {
-        const holdRes = await fetch("/api/holds", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            tourId: selectedService.id,
-            date: format(values.date, "yyyy-MM-dd"),
-            quantity: totalPax
-          }),
-        });
-        if (holdRes.ok) {
-          const hold = await holdRes.json();
-          holdId = hold.id;
-        }
-      } catch (holdError) {
-        console.warn("Failed to create hold, proceeding without one:", holdError);
-      }
-
-      const bookingData: any = {
-        customerName: values.name,
-        customerEmail: values.email,
-        items: [
-          {
-            productId: selectedService.id,
-            adultPax: parseInt(values.adultPax),
-            childPax: parseInt(values.childPax),
-            date: format(values.date, "yyyy-MM-dd"),
-          }
-        ],
-        holdId: holdId
-      };
-
-      if (user) {
-        bookingData.userId = user.id;
-      }
-
-      const booking = await createBooking(bookingData);
+      // Add item to cart instead of creating booking directly
+      // This unifies the modal booking path with the cart flow
+      addToCart({
+        id: String(selectedService.id),
+        title: selectedService.title,
+        price: selectedService.adultPriceCents ?? 0,
+        childPrice: selectedService.childPriceCents ?? 0,
+        image: selectedService.imageUrl || "",
+        date: values.date,
+        adultPax: parseInt(values.adultPax),
+        childPax: parseInt(values.childPax),
+        type: selectedService.serviceType as "tour" | "transfer" | "vehicle",
+      });
 
       toast({
-        title: "Booking Request Sent",
-        description: "We have received your booking request. We will contact you shortly to confirm."
+        title: t("cart.itemAdded", "Item Added to Cart"),
+        description: t("booking.redirectToPayment", "Redirecting you to complete your booking..."),
       });
 
       setOpen(false);
-      setLocation(`/payment?bookingId=${booking.id}`);
+      
+      // Navigate to payment page - booking will be created from cart items
+      setLocation("/payment");
 
     } catch (error: any) {
       toast({
