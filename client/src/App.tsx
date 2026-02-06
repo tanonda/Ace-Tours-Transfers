@@ -7,6 +7,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { CartProvider } from "@/lib/cart-context";
+import { BookingStateProvider } from "@/lib/booking-state-context";
 import { AuthProvider, ProtectedRoute } from "@/lib/auth-context";
 import { ThemeProvider } from "@/lib/theme-context";
 import { CMSProvider } from "@/lib/cms-context";
@@ -207,9 +208,11 @@ function App() {
               <AuthProvider>
                 <CMSProvider>
                   <CartProvider>
-                    <Toaster />
-                    <Router />
-                    <WhatsAppWidget />
+                    <BookingStateProvider>
+                      <Toaster />
+                      <Router />
+                      <WhatsAppWidget />
+                    </BookingStateProvider>
                   </CartProvider>
                 </CMSProvider>
               </AuthProvider>

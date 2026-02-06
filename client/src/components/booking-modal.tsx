@@ -16,7 +16,21 @@ import { BookingForm, bookingFormSchema } from "./booking-form";
 
 const logo = "https://res.cloudinary.com/dwro1dh5q/image/upload/v1765063924/ace-tours-assets/ace_tours_logo_official.jpg";
 
-export function BookingModal({ trigger, preselectedService }: { trigger: React.ReactNode; preselectedService?: string }) {
+interface BookingModalProps {
+  trigger: React.ReactNode;
+  preselectedService?: string;
+  initialAdultPax?: string;
+  initialChildPax?: string;
+  initialDate?: Date;
+}
+
+export function BookingModal({
+  trigger,
+  preselectedService,
+  initialAdultPax,
+  initialChildPax,
+  initialDate
+}: BookingModalProps) {
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
@@ -45,10 +59,11 @@ export function BookingModal({ trigger, preselectedService }: { trigger: React.R
     name: user?.name || "",
     email: user?.email || "",
     service: preselectedService || "",
-    adultPax: "2",
-    childPax: "0",
+    adultPax: initialAdultPax || "2",
+    childPax: initialChildPax || "0",
+    date: initialDate,
     notes: "",
-  }), [user?.name, user?.email, preselectedService]);
+  }), [user?.name, user?.email, preselectedService, initialAdultPax, initialChildPax, initialDate]);
 
   const handleAvailabilityCheck = useCallback(async (serviceTitle: string, date: Date, guests: number) => {
     // Update selected service for pricing

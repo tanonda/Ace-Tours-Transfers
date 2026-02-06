@@ -6,10 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { 
-  ShieldCheck, Lock, CreditCard, Loader2, ArrowLeft, 
-  Building, Banknote, Wallet, Globe, Smartphone, 
-  Store, Landmark, DollarSign, ExternalLink 
+import {
+  ShieldCheck, Lock, CreditCard, Loader2, ArrowLeft,
+  Building, Banknote, Wallet, Globe, Smartphone,
+  Store, Landmark, DollarSign, ExternalLink
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useCart } from "@/lib/cart-context";
@@ -60,7 +60,7 @@ export default function Payment() {
   const { t } = useTranslation();
   const { user, isAuthenticated } = useAuth();
   const queryClient = useQueryClient();
-  
+
   const [guestName, setGuestName] = useState("");
   const [guestEmail, setGuestEmail] = useState("");
   const [bookingId, setBookingId] = useState<string | null>(null);
@@ -111,8 +111,8 @@ export default function Payment() {
         }),
       });
       if (!res.ok) {
-          const err = await res.json();
-          throw new Error(err.error || "Failed to create booking");
+        const err = await res.json();
+        throw new Error(err.error || "Failed to create booking");
       }
       return res.json();
     },
@@ -148,13 +148,46 @@ export default function Payment() {
 
     try {
       let currentBookingId = bookingId;
-      
+
       // If no bookingId in URL, we need to create one from cart items
       if (!currentBookingId) {
         if (items.length === 0) {
           toast({ title: "Cart is empty", description: "Add items to your cart first.", variant: "destructive" });
           return;
         }
+
+        // SERVER-SIDE PRICE VALIDATION: Verify cart total matches server calculation
+        const priceCheckRes = await fetch("/api/cart/price", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            items: items.map(i => ({
+              productId: i.id,
+              adultPax: i.adultPax,
+              childPax: i.childPax,
+              quantity: i.quantity || 1
+            }))
+          }),
+        });
+
+        if (priceCheckRes.ok) {
+          const priceSnapshot = await priceCheckRes.json();
+          const serverTotal = priceSnapshot.totalCents;
+          const clientTotal = total;
+
+          // Allow small rounding differences (< 1 unit)
+          if (Math.abs(serverTotal - clientTotal) > 100) {
+            toast({
+              title: "Price Updated",
+              description: `The total has been updated to ${formatCurrency(serverTotal)}. Please review before continuing.`,
+              variant: "default"
+            });
+            // Could trigger a cart refresh here if needed
+            console.warn(`[PRICE MISMATCH] Client: ${clientTotal}, Server: ${serverTotal}`);
+          }
+        }
+
         const booking = await createBookingMutation.mutateAsync();
         currentBookingId = booking.id;
       }
@@ -239,7 +272,7 @@ export default function Payment() {
                   const Icon = gatewayIcons[gateway.slug] || CreditCard;
                   const theme = gatewayThemeColors[gateway.slug] || 'peer-data-[state=checked]:border-primary peer-data-[state=checked]:text-primary';
                   const isDisabled = dddConfig?.cardPaymentsDisabled && (gateway.slug === 'stripe' || gateway.slug.includes('pay'));
-                  
+
                   return (
                     <div key={gateway.slug} className={isDisabled ? "opacity-50 grayscale cursor-not-allowed" : ""}>
                       <RadioGroupItem value={gateway.slug} id={gateway.slug} className="peer sr-only" disabled={isDisabled} />

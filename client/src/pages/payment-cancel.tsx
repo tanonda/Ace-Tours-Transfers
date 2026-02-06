@@ -26,9 +26,11 @@ export default function PaymentCancel() {
             id: item.id,
             title: item.title,
             price: item.price,
+            childPrice: item.childPrice || 0,
             image: item.image,
             date: item.date,
-            guests: item.guests,
+            adultPax: item.adultPax || item.guests || 1,
+            childPax: item.childPax || 0,
             type: item.type || "tour",
           });
         });

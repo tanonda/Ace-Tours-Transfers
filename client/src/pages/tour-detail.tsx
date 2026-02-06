@@ -7,8 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Clock, Users, Check, Star, ShoppingCart, ArrowLeft, Calendar } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useCart } from "@/lib/cart-context";
+import { useBookingDraft, usePrefillFromCart } from "@/lib/booking-state-context";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { motion } from "framer-motion";
@@ -19,9 +20,25 @@ export default function TourDetail() {
   const { id } = useParams<{ id: string }>();
   const { t } = useTranslation();
   const { addToCart } = useCart();
-  const [adultPax, setAdultPax] = useState("2");
-  const [childPax, setChildPax] = useState("0");
-  const [date, setDate] = useState<string>("");
+  const { updateDraft } = useBookingDraft();
+
+  // Get prefilled values from cart or defaults
+  const prefill = usePrefillFromCart(id || "");
+  const [adultPax, setAdultPax] = useState(String(prefill.adultPax));
+  const [childPax, setChildPax] = useState(String(prefill.childPax));
+  const [date, setDate] = useState(prefill.date);
+
+  // Sync local state changes to booking draft context
+  useEffect(() => {
+    if (id) {
+      updateDraft({
+        productId: id,
+        adultPax: parseInt(adultPax) || 2,
+        childPax: parseInt(childPax) || 0,
+        date,
+      });
+    }
+  }, [id, adultPax, childPax, date, updateDraft]);
 
   const { data: tour, isLoading, error } = useQuery({
     queryKey: ["tour", id],
@@ -35,8 +52,8 @@ export default function TourDetail() {
     enabled: !!id,
   });
 
-  const averageRating = reviews.length > 0 
-    ? reviews.reduce((acc: number, r: any) => acc + r.rating, 0) / reviews.length 
+  const averageRating = reviews.length > 0
+    ? reviews.reduce((acc: number, r: any) => acc + r.rating, 0) / reviews.length
     : 5;
 
   if (isLoading) {
@@ -81,13 +98,13 @@ export default function TourDetail() {
     <Layout>
       <div className="pt-40 pb-20 bg-background">
         <div className="container mx-auto px-4">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               className="mb-8 hover:bg-primary/10 hover:text-primary transition-colors"
               onClick={() => window.history.back()}
             >
@@ -97,9 +114,9 @@ export default function TourDetail() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
               {/* Image Section */}
               <div className="relative rounded-2xl overflow-hidden shadow-2xl h-[400px] md:h-[600px]">
-                <img 
-                  src={tour.image} 
-                  alt={tour.title} 
+                <img
+                  src={tour.image}
+                  alt={tour.title}
                   className="w-full h-full object-cover"
                 />
                 <div className="absolute top-6 left-6 flex gap-3">
@@ -140,8 +157,8 @@ export default function TourDetail() {
                   <div className="bg-card p-6 rounded-2xl border border-border/50 shadow-sm transition-all hover:shadow-md">
                     <h3 className="text-xl font-bold mb-4 font-serif text-primary">{t("quickView.overview", "Overview")}</h3>
                     <p className="text-muted-foreground leading-relaxed text-lg italic">
-                      {typeof tour.description === 'string' 
-                        ? tour.description 
+                      {typeof tour.description === 'string'
+                        ? tour.description
                         : t("quickView.defaultDesc", "Experience the best of Vanuatu with this curated package. Perfect for those looking to explore the culture and beauty of the islands.")}
                     </p>
                   </div>
@@ -153,7 +170,7 @@ export default function TourDetail() {
                         {tour.description.map((item, i) => (
                           <li key={i} className="flex items-start gap-3 text-muted-foreground">
                             <div className="mt-1 h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                               <Check className="h-3 w-3 text-primary" />
+                              <Check className="h-3 w-3 text-primary" />
                             </div>
                             <span>{item}</span>
                           </li>
@@ -166,13 +183,13 @@ export default function TourDetail() {
                   <div className="bg-muted/30 p-6 rounded-2xl border border-border/50">
                     <h3 className="text-xl font-bold mb-4 font-serif text-primary">{t("quickView.ratesOptions", "Rates & Options")}</h3>
                     <div className="flex justify-between items-center text-lg mb-2">
-                       <span>{t("quickView.adult", "Adult")}</span>
-                       <span className="font-bold text-foreground">{formatPrice(tour.adultPriceCents)}</span>
+                      <span>{t("quickView.adult", "Adult")}</span>
+                      <span className="font-bold text-foreground">{formatPrice(tour.adultPriceCents)}</span>
                     </div>
                     {tour.childPriceCents > 0 && (
                       <div className="flex justify-between items-center text-lg">
-                         <span>{t("quickView.child", "Child")}</span>
-                         <span className="font-bold text-foreground">{formatPrice(tour.childPriceCents)}</span>
+                        <span>{t("quickView.child", "Child")}</span>
+                        <span className="font-bold text-foreground">{formatPrice(tour.childPriceCents)}</span>
                       </div>
                     )}
                   </div>
@@ -210,12 +227,12 @@ export default function TourDetail() {
                       <Label htmlFor="detail-adults" className="text-sm font-bold ml-1">{t("booking.adults", "Adults")}</Label>
                       <div className="relative">
                         <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input 
-                          id="detail-adults" 
-                          type="number" 
-                          min="1" 
-                          value={adultPax} 
-                          onChange={(e) => setAdultPax(e.target.value)} 
+                        <Input
+                          id="detail-adults"
+                          type="number"
+                          min="1"
+                          value={adultPax}
+                          onChange={(e) => setAdultPax(e.target.value)}
                           className="pl-10 h-12 bg-background border-primary/20 focus:border-primary"
                         />
                       </div>
@@ -224,46 +241,49 @@ export default function TourDetail() {
                       <Label htmlFor="detail-children" className="text-sm font-bold ml-1">{t("booking.children", "Children")}</Label>
                       <div className="relative">
                         <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input 
-                          id="detail-children" 
-                          type="number" 
-                          min="0" 
-                          value={childPax} 
-                          onChange={(e) => setChildPax(e.target.value)} 
+                        <Input
+                          id="detail-children"
+                          type="number"
+                          min="0"
+                          value={childPax}
+                          onChange={(e) => setChildPax(e.target.value)}
                           className="pl-10 h-12 bg-background border-primary/20 focus:border-primary"
                         />
                       </div>
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="detail-date" className="text-sm font-bold ml-1">{t("cart.date", "Date")}</Label>
-                        <div className="relative">
-                          <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                          <Input 
-                            id="detail-date" 
-                            type="date" 
-                            value={date} 
-                            onChange={(e) => setDate(e.target.value)} 
-                            className="pl-10 h-12 bg-background border-primary/20 focus:border-primary"
-                          />
-                        </div>
+                      <Label htmlFor="detail-date" className="text-sm font-bold ml-1">{t("cart.date", "Date")}</Label>
+                      <div className="relative">
+                        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="detail-date"
+                          type="date"
+                          value={date}
+                          onChange={(e) => setDate(e.target.value)}
+                          className="pl-10 h-12 bg-background border-primary/20 focus:border-primary"
+                        />
+                      </div>
                     </div>
                   </div>
 
                   <div className="flex flex-col sm:flex-row gap-4">
-                    <Button 
-                      className="flex-1 h-16 text-xl font-bold shadow-lg shadow-primary/20" 
+                    <Button
+                      className="flex-1 h-16 text-xl font-bold shadow-lg shadow-primary/20"
                       onClick={handleAddToCart}
                     >
                       <ShoppingCart className="mr-2 h-6 w-6" />
                       {t("cart.addToCart", "Add to Cart")}
                     </Button>
-                    <BookingModal 
+                    <BookingModal
                       preselectedService={tour.title}
+                      initialAdultPax={adultPax}
+                      initialChildPax={childPax}
+                      initialDate={date ? new Date(date) : undefined}
                       trigger={
                         <Button variant="secondary" className="flex-1 h-16 text-xl font-bold bg-white border-2 border-primary text-primary hover:bg-primary/5 transition-all">
                           {t("tour.bookNow", "Book Now")}
                         </Button>
-                      } 
+                      }
                     />
                   </div>
                 </div>

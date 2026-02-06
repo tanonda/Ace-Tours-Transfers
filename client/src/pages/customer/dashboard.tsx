@@ -15,7 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Star, Loader2, Calendar, Wallet, Heart, HelpCircle, Ticket, Download, X, Printer, FileText } from "lucide-react";
 
-function TicketModal({ booking, onClose, t }: { booking: any; onClose: () => void; t: (key: string) => string }) {
+function TicketModal({ booking, onClose, t }: { booking: any; onClose: () => void; t: any }) {
   return (
     <Dialog open={true} onOpenChange={() => onClose()}>
       <DialogContent className="sm:max-w-md">
@@ -54,7 +54,7 @@ function TicketModal({ booking, onClose, t }: { booking: any; onClose: () => voi
   );
 }
 
-function ReviewModal({ booking, onClose, t, toast }: { booking: any; onClose: () => void; t: (key: string) => string; toast: any }) {
+function ReviewModal({ booking, onClose, t, toast }: { booking: any; onClose: () => void; t: any; toast: any }) {
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -128,7 +128,7 @@ function ReviewModal({ booking, onClose, t, toast }: { booking: any; onClose: ()
   );
 }
 
-function BookingsTable({ rows, onViewTicket, onLeaveReview, t }: { rows: any[]; onViewTicket: (booking: any) => void; onLeaveReview: (booking: any) => void; t: (key: string) => string }) {
+function BookingsTable({ rows, onViewTicket, onLeaveReview, t }: { rows: any[]; onViewTicket: (booking: any) => void; onLeaveReview: (booking: any) => void; t: any }) {
   const getTranslatedStatus = (status: string) => {
     const statusLower = status.toLowerCase();
     if (statusLower === 'paid' || statusLower === 'confirmed') return t("booking.confirmed");
@@ -137,7 +137,7 @@ function BookingsTable({ rows, onViewTicket, onLeaveReview, t }: { rows: any[]; 
     if (statusLower === 'cancelled') return t("booking.cancelled");
     return status;
   };
-  
+
   const getStatusBadge = (status: string) => {
     const translatedStatus = getTranslatedStatus(status);
     if (status === 'Paid' || status === 'confirmed') {
@@ -172,7 +172,7 @@ function BookingsTable({ rows, onViewTicket, onLeaveReview, t }: { rows: any[]; 
               <td className="p-3">{getStatusBadge(r.status)}</td>
               <td className="p-3">
                 <div className="flex gap-2">
-                  <Button 
+                  <Button
                     data-testid={`button-view-ticket-${r.id || i}`}
                     onClick={() => onViewTicket(r)}
                     size="sm"
@@ -181,7 +181,7 @@ function BookingsTable({ rows, onViewTicket, onLeaveReview, t }: { rows: any[]; 
                     <Ticket className="h-3 w-3 mr-1" /> {t("dashboard.viewTicket")}
                   </Button>
                   {r.status === 'completed' && (
-                    <Button 
+                    <Button
                       variant="outline"
                       size="sm"
                       className="text-xs border-primary text-primary hover:bg-primary/10"
@@ -208,7 +208,7 @@ export default function CustomerDashboard() {
   const [reviewBooking, setReviewBooking] = useState<any>(null);
   const [itineraryBooking, setItineraryBooking] = useState<any>(null);
   const { t, i18n } = useTranslation();
-  
+
   const fmtVT = (n?: number) => {
     if (n == null) return '-';
     const formattedNumber = n.toLocaleString(i18n.language === 'zh' ? 'zh-CN' : i18n.language === 'fr' ? 'fr-FR' : i18n.language === 'es' ? 'es-ES' : 'en-US');
@@ -235,11 +235,11 @@ export default function CustomerDashboard() {
       {selectedBooking && (
         <TicketModal booking={selectedBooking} onClose={() => setSelectedBooking(null)} t={t} />
       )}
-      
+
       {reviewBooking && (
         <ReviewModal booking={reviewBooking} onClose={() => setReviewBooking(null)} t={t} toast={toast} />
       )}
-      
+
       {itineraryBooking && (
         <PrintItinerary booking={itineraryBooking} payments={bookingPayments} onClose={() => setItineraryBooking(null)} />
       )}
@@ -265,9 +265,9 @@ export default function CustomerDashboard() {
               {upcomingTrips.length ? (
                 <div className="space-y-3">
                   {upcomingTrips.map(b => (
-                    <div 
-                      key={b.id} 
-                      data-testid={`upcoming-trip-${b.id}`} 
+                    <div
+                      key={b.id}
+                      data-testid={`upcoming-trip-${b.id}`}
                       className="flex justify-between items-center p-3 bg-muted/30 rounded-lg border border-border/50"
                     >
                       <div>
@@ -276,7 +276,7 @@ export default function CustomerDashboard() {
                       </div>
                       <div className="flex gap-2 items-center">
                         <span className="font-bold text-foreground">{b.amount}</span>
-                        <Button 
+                        <Button
                           data-testid={`button-download-ticket-${b.id}`}
                           onClick={() => setSelectedBooking(b)}
                           size="sm"
@@ -284,7 +284,7 @@ export default function CustomerDashboard() {
                         >
                           <Ticket className="h-4 w-4 mr-1" /> {t("dashboard.ticket")}
                         </Button>
-                        <Button 
+                        <Button
                           data-testid={`button-print-itinerary-${b.id}`}
                           onClick={() => setItineraryBooking(b)}
                           size="sm"
@@ -315,7 +315,7 @@ export default function CustomerDashboard() {
               <div className="text-3xl font-bold text-primary mb-1">{fmtVT(walletBalance)}</div>
               <p className="text-sm text-muted-foreground mb-4">{t("dashboard.availableBalance")}</p>
               <div className="flex gap-2">
-                <Button 
+                <Button
                   data-testid="button-topup"
                   onClick={() => toast({ title: t("dashboard.topUp"), description: t("dashboard.topUpComingSoon") })}
                   size="sm"
@@ -323,7 +323,7 @@ export default function CustomerDashboard() {
                 >
                   {t("dashboard.topUp")}
                 </Button>
-                <Button 
+                <Button
                   data-testid="button-withdraw"
                   onClick={() => toast({ title: t("dashboard.withdraw"), description: t("dashboard.withdrawComingSoon") })}
                   size="sm"
@@ -369,7 +369,7 @@ export default function CustomerDashboard() {
               <p className="text-sm text-muted-foreground mb-3">
                 {t("dashboard.savedInWishlist", { count: 5 })}
               </p>
-              <Button 
+              <Button
                 data-testid="button-view-wishlist"
                 onClick={() => setLocation('/dashboard/saved')}
                 variant="secondary"
@@ -392,7 +392,7 @@ export default function CustomerDashboard() {
                 {t("dashboard.needHelpDesc")}
               </p>
               <Link href="/contact">
-                <Button 
+                <Button
                   data-testid="button-contact-support"
                   variant="secondary"
                   size="sm"
