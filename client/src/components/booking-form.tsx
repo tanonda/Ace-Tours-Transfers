@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -77,15 +77,22 @@ export function BookingForm({
     },
   });
 
-  // Update form defaults when user loads or initialValues change
+  // Track if initial values have been applied to prevent resetting on re-renders
+  const hasAppliedInitialValues = useRef(false);
+
+  // Update form defaults when user loads - only apply initialValues once on mount
   useEffect(() => {
     if (user && !form.getValues("name")) {
       form.setValue("name", user.name);
       form.setValue("email", user.email);
     }
-    if (initialValues) {
+    // Only apply initialValues once to prevent resetting user-entered values
+    if (initialValues && !hasAppliedInitialValues.current) {
+        hasAppliedInitialValues.current = true;
         Object.entries(initialValues).forEach(([key, value]) => {
-            form.setValue(key as keyof z.infer<typeof bookingFormSchema>, value as any);
+            if (value !== undefined && value !== "") {
+                form.setValue(key as keyof z.infer<typeof bookingFormSchema>, value as any);
+            }
         });
     }
   }, [user, initialValues, form]);
