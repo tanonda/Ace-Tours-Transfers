@@ -7,8 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Clock, Users, Check, Star, ShoppingCart, ArrowLeft, Calendar, Car, Fuel, Settings } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useCart } from "@/lib/cart-context";
+import { useBookingDraft, usePrefillFromCart } from "@/lib/booking-state-context";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { motion } from "framer-motion";
@@ -27,8 +28,24 @@ export default function VehicleDetail() {
   const { id } = useParams<{ id: string }>();
   const { t } = useTranslation();
   const { addToCart } = useCart();
+  const { updateDraft } = useBookingDraft();
+
+  // Vehicle uses days instead of pax, get prefill for date
+  const prefill = usePrefillFromCart(id || "");
   const [days, setDays] = useState("1");
-  const [date, setDate] = useState<string>("");
+  const [date, setDate] = useState(prefill.date);
+
+  // Sync local state changes to booking draft context
+  useEffect(() => {
+    if (id) {
+      updateDraft({
+        productId: id,
+        adultPax: 1,
+        childPax: 0,
+        date,
+      });
+    }
+  }, [id, date, updateDraft]);
 
   const { data: vehicle, isLoading, error } = useQuery({
     queryKey: ["vehicle", id],
@@ -81,13 +98,13 @@ export default function VehicleDetail() {
     <Layout>
       <div className="pt-40 pb-20 bg-background">
         <div className="container mx-auto px-4">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               className="mb-8 hover:bg-primary/10 hover:text-primary transition-colors"
               onClick={() => window.history.back()}
             >
@@ -97,9 +114,9 @@ export default function VehicleDetail() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
               {/* Image Section */}
               <div className="relative rounded-2xl overflow-hidden shadow-2xl h-[400px] md:h-[600px]">
-                <img 
-                  src={vehicle.image} 
-                  alt={vehicle.title} 
+                <img
+                  src={vehicle.image}
+                  alt={vehicle.title}
                   className="w-full h-full object-cover"
                 />
                 <div className="absolute top-6 left-6 flex gap-3">
@@ -187,7 +204,7 @@ export default function VehicleDetail() {
                     <h3 className="text-xl font-bold mb-4 font-serif text-primary">{t("quickView.ratesOptions", "Rates")}</h3>
                     <div className="flex justify-between items-center text-lg mb-2">
                       <span>{t("vehicles.perDay", "Per Day")}</span>
-                      <span className="font-bold text-foreground">{vehicle.price}</span>
+                      <span className="font-bold text-foreground">{formatPrice(vehicle.adultPriceCents)} / day</span>
                     </div>
                   </div>
                 </div>
@@ -199,46 +216,47 @@ export default function VehicleDetail() {
                       <Label htmlFor="detail-days" className="text-sm font-bold ml-1">{t("vehicles.rentalDays", "Rental Days")}</Label>
                       <div className="relative">
                         <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input 
-                          id="detail-days" 
-                          type="number" 
-                          min="1" 
-                          value={days} 
-                          onChange={(e) => setDays(e.target.value)} 
+                        <Input
+                          id="detail-days"
+                          type="number"
+                          min="1"
+                          value={days}
+                          onChange={(e) => setDays(e.target.value)}
                           className="pl-10 h-12 bg-background border-primary/20 focus:border-primary"
                         />
                       </div>
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="detail-date" className="text-sm font-bold ml-1">{t("itinerary.bookingInfo", "Pickup Date")}</Label>
-                        <div className="relative">
-                          <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                          <Input 
-                            id="detail-date" 
-                            type="date" 
-                            value={date} 
-                            onChange={(e) => setDate(e.target.value)} 
-                            className="pl-10 h-12 bg-background border-primary/20 focus:border-primary"
-                          />
-                        </div>
+                      <Label htmlFor="detail-date" className="text-sm font-bold ml-1">{t("itinerary.bookingInfo", "Pickup Date")}</Label>
+                      <div className="relative">
+                        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="detail-date"
+                          type="date"
+                          value={date}
+                          onChange={(e) => setDate(e.target.value)}
+                          className="pl-10 h-12 bg-background border-primary/20 focus:border-primary"
+                        />
+                      </div>
                     </div>
                   </div>
 
                   <div className="flex flex-col sm:flex-row gap-4">
-                    <Button 
-                      className="flex-1 h-16 text-xl font-bold shadow-lg shadow-primary/20" 
+                    <Button
+                      className="flex-1 h-16 text-xl font-bold shadow-lg shadow-primary/20"
                       onClick={handleAddToCart}
                     >
                       <ShoppingCart className="mr-2 h-6 w-6" />
                       {t("cart.addToCart", "Add to Cart")}
                     </Button>
-                    <BookingModal 
+                    <BookingModal
                       preselectedService={vehicle.title}
+                      initialDate={date ? new Date(date) : undefined}
                       trigger={
                         <Button variant="secondary" className="flex-1 h-16 text-xl font-bold bg-white border-2 border-primary text-primary hover:bg-primary/5 transition-all">
                           {t("vehicles.bookNow", "Hire Now")}
                         </Button>
-                      } 
+                      }
                     />
                   </div>
                 </div>

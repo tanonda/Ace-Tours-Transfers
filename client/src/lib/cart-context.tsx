@@ -33,41 +33,46 @@ interface CartContextType {
   total: number;
   itemCount: number;
   isHydrated: boolean;
+  expiresAt: number | null;
+  isExpiringSoon: boolean;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 // Helper to safely parse stored cart with date revival
-function loadCartFromStorage(): CartItem[] {
-  if (typeof window === 'undefined') return [];
-  
+function loadCartFromStorage(): { items: CartItem[]; expiresAt: number | null } {
+  if (typeof window === 'undefined') return { items: [], expiresAt: null };
+
   try {
     const stored = localStorage.getItem(CART_STORAGE_KEY);
-    if (!stored) return [];
-    
+    if (!stored) return { items: [], expiresAt: null };
+
     const parsed: PersistedCart = JSON.parse(stored);
-    
+    const expiresAt = parsed.timestamp + CART_EXPIRY_MS;
+
     // Check expiry - clear if older than 24 hours
-    if (Date.now() - parsed.timestamp > CART_EXPIRY_MS) {
+    if (Date.now() > expiresAt) {
       localStorage.removeItem(CART_STORAGE_KEY);
-      return [];
+      return { items: [], expiresAt: null };
     }
-    
+
     // Revive Date objects from ISO strings
-    return parsed.items.map(item => ({
+    const items = parsed.items.map(item => ({
       ...item,
       date: item.date ? new Date(item.date) : undefined,
     }));
+
+    return { items, expiresAt };
   } catch (error) {
     console.warn('[Cart] Failed to load cart from storage:', error);
     localStorage.removeItem(CART_STORAGE_KEY);
-    return [];
+    return { items: [], expiresAt: null };
   }
 }
 
 function saveCartToStorage(items: CartItem[]): void {
   if (typeof window === 'undefined') return;
-  
+
   try {
     const payload: PersistedCart = {
       items,
@@ -83,48 +88,56 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   // Initialize with empty array, hydrate from storage in useEffect
   const [items, setItems] = useState<CartItem[]>([]);
   const [isHydrated, setIsHydrated] = useState(false);
+  const [expiresAt, setExpiresAt] = useState<number | null>(null);
   const { toast } = useToast();
 
   // Hydrate cart from localStorage on mount
   useEffect(() => {
-    const storedItems = loadCartFromStorage();
-    if (storedItems.length > 0) {
-      setItems(storedItems);
+    const stored = loadCartFromStorage();
+    if (stored.items.length > 0) {
+      setItems(stored.items);
+      setExpiresAt(stored.expiresAt);
     }
     setIsHydrated(true);
   }, []);
 
   // Persist cart to localStorage whenever items change (after hydration)
   useEffect(() => {
-    if (isHydrated) {
+    if (isHydrated && items.length > 0) {
       saveCartToStorage(items);
+      // Update expiry to 24 hours from now when cart changes
+      setExpiresAt(Date.now() + CART_EXPIRY_MS);
     }
   }, [items, isHydrated]);
+
+  // Check if cart is expiring soon (< 1 hour remaining)
+  const EXPIRY_WARNING_THRESHOLD = 60 * 60 * 1000; // 1 hour
+  const isExpiringSoon = expiresAt !== null && (expiresAt - Date.now() < EXPIRY_WARNING_THRESHOLD) && items.length > 0;
 
   const addToCart = useCallback((item: Omit<CartItem, "quantity"> & { quantity?: number }) => {
     setItems((prev) => {
       // Multi-Product Booking Enabled
-      const existing = prev.find((i) => 
-        i.id === item.id && 
-        i.date?.getTime() === item.date?.getTime() && 
+      const existing = prev.find((i) =>
+        i.id === item.id &&
+        i.date?.getTime() === item.date?.getTime() &&
         i.slot === item.slot
       );
 
       if (existing) {
         return prev.map((i) =>
           (i.id === item.id && i.date?.getTime() === item.date?.getTime() && i.slot === item.slot)
-            ? { 
-                ...i, 
-                quantity: i.quantity + (item.quantity || 1),
-                adultPax: i.adultPax + item.adultPax,
-                childPax: i.childPax + item.childPax
-              }
+            ? {
+              ...i,
+              quantity: i.quantity + (item.quantity || 1),
+              adultPax: i.adultPax + item.adultPax,
+              childPax: i.childPax + item.childPax
+            }
             : i
         );
       }
       return [...prev, { ...item, quantity: item.quantity || 1 }];
     });
-    
+
     toast({
       title: "Added to Cart",
       description: `${item.title} has been added to your booking list.`,
@@ -132,13 +145,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, [toast]);
 
   const removeFromCart = useCallback((id: string, date?: Date, slot?: string) => {
-    setItems((prev) => prev.filter((i) => 
+    setItems((prev) => prev.filter((i) =>
       !(i.id === id && i.date?.getTime() === date?.getTime() && i.slot === slot)
     ));
   }, []);
 
   const updateCartItem = useCallback((id: string, updates: Partial<CartItem>, date?: Date, slot?: string) => {
-    setItems((prev) => prev.map((i) => 
+    setItems((prev) => prev.map((i) =>
       (i.id === id && i.date?.getTime() === date?.getTime() && i.slot === slot)
         ? { ...i, ...updates }
         : i
@@ -151,21 +164,23 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // Note: This total is a client-side estimation. Server-side PriceResolver is the source of truth.
-  const total = items.reduce((acc, item) => 
+  const total = items.reduce((acc, item) =>
     acc + calculateLineTotal(item.price, item.childPrice, item.adultPax, item.childPax)
-  , 0);
+    , 0);
   const itemCount = items.length;
 
   return (
-    <CartContext.Provider value={{ 
-      items, 
-      addToCart, 
-      removeFromCart, 
+    <CartContext.Provider value={{
+      items,
+      addToCart,
+      removeFromCart,
       updateCartItem,
-      clearCart, 
-      total, 
+      clearCart,
+      total,
       itemCount,
-      isHydrated 
+      isHydrated,
+      expiresAt,
+      isExpiringSoon
     }}>
       {children}
     </CartContext.Provider>

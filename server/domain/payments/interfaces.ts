@@ -18,6 +18,7 @@ export interface PaymentInitiationRequest {
   currency: string;
   successUrl: string;
   cancelUrl: string;
+  provider?: string; // Gateway/provider identifier (e.g., 'cash', 'manual_transfer')
   customerEmail?: string;
   customerName?: string;
   metadata?: Record<string, any>; // Gateway-specific metadata
@@ -50,17 +51,17 @@ export interface PaymentStatusResponse {
 }
 
 export interface WebhookEvent {
-  gatewaySlug: string; 
-  rawEvent: any; 
-  signature?: string; 
-  headers?: Record<string, string>; 
+  gatewaySlug: string;
+  rawEvent: any;
+  signature?: string;
+  headers?: Record<string, string>;
 }
 
 export interface WebhookResponse {
   success: boolean;
   message?: string;
-  paymentId?: string; 
-  bookingId?: string; 
+  paymentId?: string;
+  bookingId?: string;
   newPaymentStatus?: PaymentStatus;
   gatewayReference?: string;
   failureReason?: string;
@@ -82,7 +83,7 @@ export interface HostedBankGatewayAdapter extends PaymentGatewayService {
    */
   initiatePayment(
     request: PaymentInitiationRequest
-  ): Promise<PaymentInitiationResponse & { 
+  ): Promise<PaymentInitiationResponse & {
     success: boolean;
     redirectUrl?: string;
     gatewayReference?: string;

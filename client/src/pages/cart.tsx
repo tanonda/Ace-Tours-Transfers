@@ -3,7 +3,7 @@ import { useCart } from "@/lib/cart-context";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Trash2, ArrowRight, ShoppingBag } from "lucide-react";
+import { Trash2, ArrowRight, ShoppingBag, Clock, AlertTriangle } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { format } from "date-fns";
 import { useTranslation } from "react-i18next";
@@ -15,7 +15,7 @@ import { formatCurrency } from "@/lib/payment-service";
 
 export default function Cart() {
   const { t } = useTranslation();
-  const { items, removeFromCart, total, clearCart } = useCart();
+  const { items, removeFromCart, total, clearCart, isExpiringSoon, expiresAt } = useCart();
   const [, setLocation] = useLocation();
   const { user } = useAuth();
   const { toast } = useToast();
@@ -64,8 +64,23 @@ export default function Cart() {
     <Layout>
       <div className="pt-40 pb-12 bg-muted/30 min-h-screen">
         <div className="container mx-auto px-4">
-          <h1 className="text-3xl md:text-4xl font-serif font-bold mb-8">{t("cart.title")}</h1>
-          
+          <h1 className="text-3xl md:text-4xl font-serif font-bold mb-4">{t("cart.title")}</h1>
+
+          {/* Cart Expiry Warning Banner */}
+          {isExpiringSoon && (
+            <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-4 mb-6 flex items-center gap-3">
+              <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0" />
+              <div>
+                <p className="text-amber-800 dark:text-amber-200 font-medium">
+                  {t("cart.expiringWarning", "Your cart will expire soon")}
+                </p>
+                <p className="text-amber-600 dark:text-amber-400 text-sm">
+                  {t("cart.expiringDesc", "Complete your booking within the next hour to secure your items.")}
+                </p>
+              </div>
+            </div>
+          )}
+
           <div className="flex flex-col lg:flex-row gap-8">
             {/* Cart Items */}
             <div className="lg:w-2/3">
@@ -75,10 +90,10 @@ export default function Cart() {
                     <CardContent className="p-0">
                       <div className="flex flex-col sm:flex-row">
                         <div className="w-full sm:w-40 h-40 sm:h-auto relative">
-                          <img 
-                            src={item.image} 
-                            alt={item.title} 
-                            className="w-full h-full object-cover absolute inset-0" 
+                          <img
+                            src={item.image}
+                            alt={item.title}
+                            className="w-full h-full object-cover absolute inset-0"
                           />
                         </div>
                         <div className="p-6 flex-grow flex flex-col justify-between">
@@ -96,14 +111,14 @@ export default function Cart() {
                             </div>
                             <p className="font-bold text-lg">{formatCurrency(item.price)}</p>
                           </div>
-                          
+
                           <div className="flex justify-between items-end mt-4">
                             <div className="text-sm text-muted-foreground">
                               {item.type === 'vehicle' ? `Days: ${item.quantity}` : `Total PAX: ${item.adultPax + item.childPax}`}
                             </div>
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
+                            <Button
+                              variant="ghost"
+                              size="sm"
                               className="text-destructive hover:text-destructive hover:bg-destructive/10"
                               onClick={() => removeFromCart(item.id, item.date, item.slot)}
                             >
@@ -132,7 +147,7 @@ export default function Cart() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                      <span>{formatCurrency(total)}</span>
+                    <span>{formatCurrency(total)}</span>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Taxes & Fees</span>
                       <span>{formatCurrency(0)}</span>

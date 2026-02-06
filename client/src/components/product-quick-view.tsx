@@ -4,8 +4,9 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Star, Clock, Users, Check, ShoppingCart } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useCart } from "@/lib/cart-context";
+import { usePrefillFromCart } from "@/lib/booking-state-context";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -20,10 +21,22 @@ interface ProductQuickViewProps {
 
 export function ProductQuickView({ isOpen, onClose, product }: ProductQuickViewProps) {
   const { addToCart } = useCart();
-  const [adultPax, setAdultPax] = useState("2");
-  const [childPax, setChildPax] = useState("0");
-  const [date, setDate] = useState<string>("");
   const { t } = useTranslation();
+
+  // Get prefilled values from cart if this product is already in cart
+  const prefill = usePrefillFromCart(product?.id || "");
+  const [adultPax, setAdultPax] = useState(String(prefill.adultPax));
+  const [childPax, setChildPax] = useState(String(prefill.childPax));
+  const [date, setDate] = useState(prefill.date);
+
+  // Reset form when product changes or dialog opens
+  useEffect(() => {
+    if (isOpen && product) {
+      setAdultPax(String(prefill.adultPax));
+      setChildPax(String(prefill.childPax));
+      setDate(prefill.date);
+    }
+  }, [isOpen, product?.id, prefill.adultPax, prefill.childPax, prefill.date]);
 
   if (!product) return null;
 
@@ -48,9 +61,9 @@ export function ProductQuickView({ isOpen, onClose, product }: ProductQuickViewP
         <div className="flex flex-col md:flex-row h-full">
           {/* Image Side */}
           <div className="w-full md:w-1/2 relative h-48 md:h-auto">
-            <img 
-              src={product.image} 
-              alt={product.title} 
+            <img
+              src={product.image}
+              alt={product.title}
               className="w-full h-full object-cover"
             />
             <div className="absolute top-4 left-4">
@@ -95,8 +108,8 @@ export function ProductQuickView({ isOpen, onClose, product }: ProductQuickViewP
                 <div>
                   <h4 className="font-semibold mb-3">{t("quickView.overview", "Overview")}</h4>
                   <p className="text-muted-foreground leading-relaxed">
-                    {typeof product.description === 'string' 
-                      ? product.description 
+                    {typeof product.description === 'string'
+                      ? product.description
                       : t("quickView.defaultDesc", "Experience the best of Vanuatu with this curated package. Perfect for those looking to explore the culture and beauty of the islands.")}
                   </p>
                 </div>
@@ -129,7 +142,7 @@ export function ProductQuickView({ isOpen, onClose, product }: ProductQuickViewP
                     </div>
                   )}
                 </div>
-                
+
                 {/* Mock Reviews */}
                 <div>
                   <h4 className="font-semibold mb-3">{t("quickView.recentReviews", "Recent Reviews")}</h4>
@@ -150,31 +163,31 @@ export function ProductQuickView({ isOpen, onClose, product }: ProductQuickViewP
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                 <div className="space-y-1">
                   <Label htmlFor="adults" className="text-xs">{t("booking.adults", "Adults")}</Label>
-                  <Input 
-                    id="adults" 
-                    type="number" 
-                    min="1" 
-                    value={adultPax} 
-                    onChange={(e) => setAdultPax(e.target.value)} 
+                  <Input
+                    id="adults"
+                    type="number"
+                    min="1"
+                    value={adultPax}
+                    onChange={(e) => setAdultPax(e.target.value)}
                   />
                 </div>
                 <div className="space-y-1">
                   <Label htmlFor="children" className="text-xs">{t("booking.children", "Children")}</Label>
-                  <Input 
-                    id="children" 
-                    type="number" 
-                    min="0" 
-                    value={childPax} 
-                    onChange={(e) => setChildPax(e.target.value)} 
+                  <Input
+                    id="children"
+                    type="number"
+                    min="0"
+                    value={childPax}
+                    onChange={(e) => setChildPax(e.target.value)}
                   />
                 </div>
                 <div className="space-y-1">
                   <Label htmlFor="date" className="text-xs">{t("cart.date", "Date")}</Label>
-                  <Input 
-                    id="date" 
-                    type="date" 
-                    value={date} 
-                    onChange={(e) => setDate(e.target.value)} 
+                  <Input
+                    id="date"
+                    type="date"
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
                   />
                 </div>
               </div>

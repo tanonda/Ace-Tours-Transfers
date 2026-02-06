@@ -5,9 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useCart } from "@/lib/cart-context";
-import { 
-  Car, PlusCircle, Search, Calendar as CalendarIcon, Loader2, 
-  ShoppingBag, Trash2, ArrowRight, ClipboardList, History, 
+import {
+  Car, PlusCircle, Search, Calendar as CalendarIcon, Loader2,
+  ShoppingBag, Trash2, ArrowRight, ClipboardList, History,
   MapPin, Clock, Users, CheckCircle, XCircle, AlertCircle,
   Filter, Download, Eye, Printer, LogIn, UserPlus, Globe, ShoppingCart, Eraser, ArrowLeft, CheckCircle2, CreditCard, AlertTriangle
 } from "lucide-react";
@@ -70,7 +70,7 @@ export default function Reservations() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
-  
+
   const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
   const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
   const [availabilityMessage, setAvailabilityMessage] = useState("");
@@ -118,9 +118,9 @@ export default function Reservations() {
   });
 
   const cancelMutation = useMutation({
-    mutationFn: (id: string) => cancelBooking(id, { 
-      type: lookupForm.getValues("verificationType"), 
-      value: lookupForm.getValues("verificationValue") 
+    mutationFn: (id: string) => cancelBooking(id, {
+      type: lookupForm.getValues("verificationType"),
+      value: lookupForm.getValues("verificationValue")
     }),
     onSuccess: () => {
       toast({ title: t("common.success"), description: t("reservations.bookingCancelled", "Booking cancelled successfully") });
@@ -181,7 +181,8 @@ export default function Reservations() {
       name: user?.name || "",
       email: user?.email || "",
       service: "",
-      guests: "2",
+      adultPax: "2",
+      childPax: "0",
       notes: "",
     },
   });
@@ -199,7 +200,7 @@ export default function Reservations() {
     setIsBookingLoading(true);
     try {
       const selectedTour = [...tours, ...transfers].find(t => t.title === values.service);
-      
+
       let holdId = null;
       if (selectedTour) {
         try {
@@ -209,7 +210,7 @@ export default function Reservations() {
             body: JSON.stringify({
               tourId: selectedTour.id,
               date: format(values.date, "yyyy-MM-dd"),
-              quantity: parseInt(values.guests)
+              quantity: parseInt(values.adultPax)
             }),
           });
           if (holdRes.ok) {
@@ -228,19 +229,19 @@ export default function Reservations() {
         customerEmail: values.email,
         tourName: values.service,
         date: format(values.date, "yyyy-MM-dd"),
-        guests: parseInt(values.guests),
+        guests: parseInt(values.adultPax) + parseInt(values.childPax),
         amount: selectedTour ? selectedTour.price : "0",
         status: "pending",
         holdId: holdId,
       };
-      
+
       const res = await fetch("/api/bookings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify(bookingData),
       });
-      
+
       if (res.ok) {
         const booking = await res.json();
         queryClient.invalidateQueries({ queryKey: ["bookings"] });
@@ -273,19 +274,19 @@ export default function Reservations() {
           value: values.verificationValue,
         }),
       });
-      
+
       if (res.ok) {
         const booking = await res.json();
         setLookupResult(booking);
         toast({ title: t("common.success"), description: t("reservations.bookingFound") });
       } else {
         const error = await res.json();
-        toast({ 
-          title: t("common.error"), 
-          description: error.error === "Booking not found" 
-            ? t("reservations.notFound") 
-            : t("reservations.verificationFailed"), 
-          variant: "destructive" 
+        toast({
+          title: t("common.error"),
+          description: error.error === "Booking not found"
+            ? t("reservations.notFound")
+            : t("reservations.verificationFailed"),
+          variant: "destructive"
         });
       }
     } catch (error) {
@@ -297,7 +298,7 @@ export default function Reservations() {
 
   const filteredBookings = bookings.filter(b => {
     const matchesStatus = statusFilter === "all" || b.status === statusFilter;
-    const matchesSearch = searchQuery === "" || 
+    const matchesSearch = searchQuery === "" ||
       b.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       b.tourName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       b.id.toLowerCase().includes(searchQuery.toLowerCase());
@@ -330,7 +331,7 @@ export default function Reservations() {
               {t("reservations.title", "Reservation Portal")}
             </h1>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              {isAdmin 
+              {isAdmin
                 ? t("reservations.adminDesc", "Manage all bookings and reservations")
                 : t("reservations.guestDesc", "View your history or look up a reservation")}
             </p>
@@ -552,7 +553,7 @@ export default function Reservations() {
                       <div className="space-y-4">
                         {items.map((item) => (
                           <div key={item.id} className="flex justify-between items-center border-b pb-4">
-                            <div><p className="font-bold">{item.title}</p><p className="text-sm text-muted-foreground">{item.guests} guests</p></div>
+                            <div><p className="font-bold">{item.title}</p><p className="text-sm text-muted-foreground">{item.adultPax + item.childPax} guests</p></div>
                             <div className="flex items-center gap-4">
                               <p className="font-bold">{item.price.toLocaleString()} VT</p>
                               <Button variant="ghost" size="sm" onClick={() => removeFromCart(item.id)}><Trash2 className="h-4 w-4" /></Button>

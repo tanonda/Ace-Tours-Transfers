@@ -54,12 +54,12 @@ export function formatPrice(
 ): string {
   const { includeDecimals = false, includeCurrency = true } = options;
   const amount = cents / 100;
-  
+
   const formatted = amount.toLocaleString('en-US', {
     minimumFractionDigits: includeDecimals ? 2 : 0,
     maximumFractionDigits: includeDecimals ? 2 : 0,
   });
-  
+
   return includeCurrency ? `VUV ${formatted}` : formatted;
 }
 
@@ -100,4 +100,25 @@ export function isTransfer(product: ProductData): boolean {
  */
 export function isTour(product: ProductData): boolean {
   return product.category === "tour";
+}
+
+/**
+ * Formats price in standard display format: "VUV 12,000"
+ * Use this for product detail pages, booking forms, and modal views.
+ */
+export function formatPriceDisplay(cents: number): string {
+  return formatPrice(cents, { includeCurrency: true, includeDecimals: false });
+}
+
+/**
+ * Formats price in short format: "12,000 VT"
+ * Use this for cart, payment, and checkout views for consistency.
+ */
+export function formatPriceShort(cents: number): string {
+  const amount = cents / 100;
+  const formatted = amount.toLocaleString('en-US', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  });
+  return `${formatted} VT`;
 }

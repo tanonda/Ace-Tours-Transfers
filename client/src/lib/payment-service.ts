@@ -74,8 +74,13 @@ export async function checkPaymentStatus(paymentId: string): Promise<{
   }
 }
 
+/**
+ * Formats currency for display in cart and payment views.
+ * @deprecated Use formatPriceShort from product.types.ts for new code
+ */
 export function formatCurrency(amount: number, currency: string = 'VUV'): string {
   if (currency === 'VUV') {
+    // Amount is already in cents from cart-context, convert to VT display
     return `${amount.toLocaleString()} VT`;
   }
   return new Intl.NumberFormat('en-US', {

@@ -24,7 +24,7 @@ export default function AdminStaff() {
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
     const [targetRole, setTargetRole] = useState<string>("");
     const [createDialogOpen, setCreateDialogOpen] = useState(false);
-    const [newStaff, setNewStaff] = useState({ name: '', email: '', password: '', role: 'field_service' });
+    const [newStaff, setNewStaff] = useState({ name: '', email: '', password: '', role: 'field_service', username: '' });
 
     const { data: users = [], isLoading } = useQuery({
         queryKey: ["users"],
@@ -49,7 +49,7 @@ export default function AdminStaff() {
             queryClient.invalidateQueries({ queryKey: ["users"] });
             toast({ title: "Staff Created", description: "New staff account has been created." });
             setCreateDialogOpen(false);
-            setNewStaff({ name: '', email: '', password: '', role: 'field_service' });
+            setNewStaff({ name: '', email: '', password: '', role: 'field_service', username: '' });
         },
         onError: () => {
             toast({ title: "Error", description: "Failed to create staff account.", variant: "destructive" });
@@ -227,6 +227,14 @@ export default function AdminStaff() {
                                 />
                             </div>
                             <div className="space-y-2">
+                                <label className="text-sm font-medium">Username</label>
+                                <Input
+                                    placeholder="Enter username"
+                                    value={newStaff.username}
+                                    onChange={(e) => setNewStaff(s => ({ ...s, username: e.target.value }))}
+                                />
+                            </div>
+                            <div className="space-y-2">
                                 <label className="text-sm font-medium">Password</label>
                                 <Input
                                     type="password"
@@ -263,7 +271,7 @@ export default function AdminStaff() {
                             <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>Cancel</Button>
                             <Button
                                 onClick={() => createMutation.mutate(newStaff)}
-                                disabled={createMutation.isPending || !newStaff.name || !newStaff.email || !newStaff.password}
+                                disabled={createMutation.isPending || !newStaff.name || !newStaff.email || !newStaff.password || !newStaff.username}
                             >
                                 {createMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 Create Staff
