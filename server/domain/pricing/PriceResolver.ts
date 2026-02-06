@@ -47,15 +47,34 @@ export class PriceResolver {
 
   /**
    * Calculate the total for a booking item: (adult_pax * adult_rate) + (child_pax * child_rate)
+   * Applies group discounts and seasonal surcharges.
    */
   calculateItemTotal(
     adultPax: number,
     childPax: number,
-    rates: TourRate
+    rates: TourRate,
+    addonTotalCents: number = 0,
+    date?: string
   ): number {
-    const adultSubtotal = adultPax * rates.adultPriceCents;
-    const childSubtotal = childPax * rates.childPriceCents;
-    return adultSubtotal + childSubtotal;
+    let adultSubtotal = adultPax * rates.adultPriceCents;
+    let childSubtotal = childPax * rates.childPriceCents;
+    let total = adultSubtotal + childSubtotal + addonTotalCents;
+
+    // RULE: Group Discount - 10% off for 7+ adults
+    if (adultPax >= 7) {
+      total = Math.round(total * 0.9);
+    }
+
+    // RULE: Seasonal Pricing - 20% surcharge in Peak Season (December & January)
+    if (date) {
+      const bookingDate = new Date(date);
+      const month = bookingDate.getMonth(); // 0-indexed, 11 = Dec, 0 = Jan
+      if (month === 11 || month === 0) {
+        total = Math.round(total * 1.2);
+      }
+    }
+
+    return total;
   }
 
   /**

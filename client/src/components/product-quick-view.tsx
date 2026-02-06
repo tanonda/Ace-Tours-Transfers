@@ -11,7 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useTranslation } from "react-i18next";
-import { formatPrice, type ProductCategory } from "@/lib/product.types";
+import { formatPriceDisplay, type ProductCategory } from "@/lib/product.types";
+import { useCurrency } from "@/lib/currency-context";
 
 interface ProductQuickViewProps {
   isOpen: boolean;
@@ -22,6 +23,7 @@ interface ProductQuickViewProps {
 export function ProductQuickView({ isOpen, onClose, product }: ProductQuickViewProps) {
   const { addToCart } = useCart();
   const { t } = useTranslation();
+  const { currency } = useCurrency();
 
   // Get prefilled values from cart if this product is already in cart
   const prefill = usePrefillFromCart(product?.id || "");
@@ -68,7 +70,7 @@ export function ProductQuickView({ isOpen, onClose, product }: ProductQuickViewP
             />
             <div className="absolute top-4 left-4">
               <Badge className="bg-background/90 text-foreground hover:bg-background font-bold shadow-sm backdrop-blur-sm border border-border/50">
-                {formatPrice(product.adultPriceCents)}
+                {formatPriceDisplay(product.adultPriceCents, currency)}
               </Badge>
             </div>
           </div>
@@ -133,12 +135,12 @@ export function ProductQuickView({ isOpen, onClose, product }: ProductQuickViewP
                   <h4 className="font-semibold mb-2">{t("quickView.ratesOptions", "Rates & Options")}</h4>
                   <div className="flex justify-between items-center text-sm mb-1">
                     <span>{t("quickView.adult", "Adult")}</span>
-                    <span className="font-medium">{formatPrice(product.adultPriceCents)}</span>
+                    <span className="font-medium">{formatPriceDisplay(product.adultPriceCents, currency)}</span>
                   </div>
                   {product.childPriceCents > 0 && (
                     <div className="flex justify-between items-center text-sm">
                       <span>{t("quickView.child", "Child")}</span>
-                      <span className="font-medium">{formatPrice(product.childPriceCents)}</span>
+                      <span className="font-medium">{formatPriceDisplay(product.childPriceCents, currency)}</span>
                     </div>
                   )}
                 </div>

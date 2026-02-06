@@ -3,15 +3,18 @@ import { useCart } from "@/lib/cart-context";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Trash2, ArrowRight, ShoppingBag, Clock, AlertTriangle } from "lucide-react";
+import { Trash2, ArrowRight, ShoppingBag, Clock, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { format } from "date-fns";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/lib/auth-context";
-import { createBooking } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
-import { formatCurrency } from "@/lib/payment-service";
+import { useCurrency } from "@/lib/currency-context";
+import { formatPriceDisplay, calculateLineTotal } from "@/lib/product.types";
+import type { Addon } from "@shared/schema";
+import { useQuery } from "@tanstack/react-query";
+import { fetchAddons } from "@/lib/api";
 
 export default function Cart() {
   const { t } = useTranslation();
@@ -19,7 +22,17 @@ export default function Cart() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
   const { toast } = useToast();
+  const { currency } = useCurrency();
   const [isProcessing, setIsProcessing] = useState(false);
+
+  const { data: addons = [] } = useQuery<Addon[]>({
+    queryKey: ["/api/addons"],
+    queryFn: fetchAddons,
+  });
+
+  const getAddonName = (id: string) => {
+    return addons.find((a: any) => a.id === id)?.name || id;
+  };
 
   const handleCheckout = async () => {
     if (!user) {
@@ -85,52 +98,85 @@ export default function Cart() {
             {/* Cart Items */}
             <div className="lg:w-2/3">
               <div className="space-y-4">
-                {items.map((item, index) => (
-                  <Card key={`${item.id}-${index}-${item.date?.getTime()}`} className="overflow-hidden border-none shadow-sm">
-                    <CardContent className="p-0">
-                      <div className="flex flex-col sm:flex-row">
-                        <div className="w-full sm:w-40 h-40 sm:h-auto relative">
-                          <img
-                            src={item.image}
-                            alt={item.title}
-                            className="w-full h-full object-cover absolute inset-0"
-                          />
-                        </div>
-                        <div className="p-6 flex-grow flex flex-col justify-between">
-                          <div className="flex justify-between items-start mb-2">
-                            <div>
-                              <h3 className="font-bold text-lg">{item.title}</h3>
-                              <div className="text-sm text-muted-foreground mt-1 space-y-1">
-                                {item.date && <p>{t("cart.date")}: {format(new Date(item.date), "PPP")}</p>}
-                                <div className="flex gap-4">
-                                  <p>{t("booking.adults")}: {item.adultPax}</p>
-                                  <p>{t("booking.children")}: {item.childPax}</p>
+                {items.map((item, index) => {
+                  const itemSubtotal = calculateLineTotal(item.price, item.childPrice, item.adultPax, item.childPax, item.addonTotal || 0);
+                  let finalItemSubtotal = itemSubtotal;
+                  let hasGroupDiscount = false;
+
+                  if (item.adultPax >= 7) {
+                    finalItemSubtotal = Math.round(finalItemSubtotal * 0.9);
+                    hasGroupDiscount = true;
+                  }
+
+                  const isSeasonal = item.date && (item.date.getMonth() === 11 || item.date.getMonth() === 0);
+                  if (isSeasonal) {
+                    finalItemSubtotal = Math.round(finalItemSubtotal * 1.2);
+                  }
+
+                  return (
+                    <Card key={`${item.id}-${index}-${item.date?.getTime()}`} className="overflow-hidden border-none shadow-sm">
+                      <CardContent className="p-0">
+                        <div className="flex flex-col sm:flex-row">
+                          <div className="w-full sm:w-40 h-40 sm:h-auto relative">
+                            <img
+                              src={item.image}
+                              alt={item.title}
+                              className="w-full h-full object-cover absolute inset-0"
+                            />
+                          </div>
+                          <div className="p-6 flex-grow flex flex-col justify-between">
+                            <div className="flex justify-between items-start mb-2">
+                              <div>
+                                <h3 className="font-bold text-lg">{item.title}</h3>
+                                <div className="text-sm text-muted-foreground mt-1 space-y-1">
+                                  {item.date && <p>{t("cart.date")}: {format(new Date(item.date), "PPP")}</p>}
+                                  <div className="flex gap-4">
+                                    <p>{t("booking.adults")}: {item.adultPax}</p>
+                                    <p>{t("booking.children")}: {item.childPax}</p>
+                                  </div>
+                                  {item.slot && <p>Slot: {item.slot}</p>}
+                                  {item.addonIds && item.addonIds.length > 0 && (
+                                    <div className="pt-1">
+                                      <p className="font-medium text-foreground text-xs uppercase tracking-wider">{t("booking.addons", "Add-ons")}:</p>
+                                      <div className="flex flex-wrap gap-1 mt-1">
+                                        {item.addonIds.map(id => (
+                                          <span key={id} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary">
+                                            <CheckCircle2 className="h-3 w-3 mr-1" />
+                                            {getAddonName(id)}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
-                                {item.slot && <p>Slot: {item.slot}</p>}
+                              </div>
+                              <div className="text-right">
+                                <p className="font-bold text-lg">{formatPriceDisplay(finalItemSubtotal * item.quantity, currency)}</p>
+                                {hasGroupDiscount && <p className="text-xs text-green-600 font-medium">10% Group Discount Applied</p>}
+                                {isSeasonal && <p className="text-xs text-orange-600 font-medium">20% Seasonal Peak Surcharge</p>}
                               </div>
                             </div>
-                            <p className="font-bold text-lg">{formatCurrency(item.price)}</p>
-                          </div>
 
-                          <div className="flex justify-between items-end mt-4">
-                            <div className="text-sm text-muted-foreground">
-                              {item.type === 'vehicle' ? `Days: ${item.quantity}` : `Total PAX: ${item.adultPax + item.childPax}`}
+                            <div className="flex justify-between items-end mt-4">
+                              <div className="text-sm text-muted-foreground">
+                                {item.type === 'vehicle' ? `Days: ${item.quantity}` : `Total PAX: ${item.adultPax + item.childPax}`}
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                onClick={() => removeFromCart(item.id, item.date, item.slot)}
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                {t("cart.remove")}
+                              </Button>
                             </div>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                              onClick={() => removeFromCart(item.id, item.date, item.slot)}
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              {t("cart.remove")}
-                            </Button>
                           </div>
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </div>
               <div className="mt-6 text-right">
                 <Button variant="outline" onClick={clearCart} size="sm" className="text-muted-foreground">
@@ -147,15 +193,9 @@ export default function Cart() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    <span>{formatCurrency(total)}</span>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Taxes & Fees</span>
-                      <span>{formatCurrency(0)}</span>
-                    </div>
-                    <Separator />
-                    <div className="flex justify-between font-bold text-lg">
+                    <div className="flex justify-between font-bold text-lg pt-2 border-t mt-2">
                       <span>{t("cart.total")}</span>
-                      <span>{formatCurrency(total)}</span>
+                      <span>{formatPriceDisplay(total, currency)}</span>
                     </div>
                   </div>
                 </CardContent>

@@ -17,6 +17,8 @@ export interface CartItem {
   childPax: number;
   slot?: string;
   type: ProductCategory;
+  addonIds?: string[];
+  addonTotal?: number;
 }
 
 interface PersistedCart {
@@ -120,12 +122,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       const existing = prev.find((i) =>
         i.id === item.id &&
         i.date?.getTime() === item.date?.getTime() &&
-        i.slot === item.slot
+        i.slot === item.slot &&
+        JSON.stringify(i.addonIds) === JSON.stringify(item.addonIds)
       );
 
       if (existing) {
         return prev.map((i) =>
-          (i.id === item.id && i.date?.getTime() === item.date?.getTime() && i.slot === item.slot)
+          (i.id === item.id && i.date?.getTime() === item.date?.getTime() && i.slot === item.slot && JSON.stringify(i.addonIds) === JSON.stringify(item.addonIds))
             ? {
               ...i,
               quantity: i.quantity + (item.quantity || 1),
@@ -164,9 +167,24 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // Note: This total is a client-side estimation. Server-side PriceResolver is the source of truth.
-  const total = items.reduce((acc, item) =>
-    acc + calculateLineTotal(item.price, item.childPrice, item.adultPax, item.childPax)
-    , 0);
+  const total = items.reduce((acc, item) => {
+    let lineTotal = calculateLineTotal(item.price, item.childPrice, item.adultPax, item.childPax, item.addonTotal || 0);
+
+    // Apply Group Discount (10% off for 7+ adults)
+    if (item.adultPax >= 7) {
+      lineTotal = Math.round(lineTotal * 0.9);
+    }
+
+    // Apply Seasonal Surcharge (20% in Dec/Jan)
+    if (item.date) {
+      const month = item.date.getMonth();
+      if (month === 11 || month === 0) {
+        lineTotal = Math.round(lineTotal * 1.2);
+      }
+    }
+
+    return acc + (lineTotal * item.quantity);
+  }, 0);
   const itemCount = items.length;
 
   return (

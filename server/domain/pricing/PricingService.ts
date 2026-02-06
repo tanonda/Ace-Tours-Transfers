@@ -9,6 +9,7 @@ export interface PricedItem {
   subtotalCents: number;
 }
 
+import { CurrencyService } from "./CurrencyService.js";
 import { config } from "../../config.js";
 
 export interface PriceSnapshot {
@@ -17,6 +18,8 @@ export interface PriceSnapshot {
   vatAmountCents: number;
   totalCents: number;
   currency: string;
+  convertedTotal?: number; // Total in requested currency
+  currencySymbol?: string;
 }
 
 export class PricingService {
@@ -30,18 +33,16 @@ export class PricingService {
     return Math.round(amountCents * this.VAT_RATE);
   }
 
-  public static createSnapshot(items: { 
-    unitPriceCents: number; 
-    adultPax: number; 
-    childPax: number; 
-    productId: string; 
+  public static createSnapshot(items: {
+    unitPriceCents: number;
+    adultPax: number;
+    childPax: number;
+    productId: string;
     name: string;
     quantity?: number; // fallback for legacy
-  }[]): PriceSnapshot {
+  }[], currency: string = 'VUV'): PriceSnapshot {
     const pricedItems: PricedItem[] = items.map(item => {
       const quantity = item.quantity || (item.adultPax + item.childPax);
-      // For now, if unitPriceCents is provided as a single value, we use it for all pax.
-      // But the PriceResolver will eventually provide specific adult/child rates.
       const subtotalCents = item.unitPriceCents * quantity;
 
       return {
@@ -59,13 +60,20 @@ export class PricingService {
     const vatAmountCents = this.calculateVAT(baseAmountCents);
     const totalCents = baseAmountCents + vatAmountCents;
 
-    return {
+    const snapshot: PriceSnapshot = {
       items: pricedItems,
       baseAmountCents,
       vatAmountCents,
       totalCents,
-      currency: 'VUV'
+      currency: currency.toUpperCase()
     };
+
+    if (currency.toUpperCase() !== 'VUV') {
+      snapshot.convertedTotal = CurrencyService.convertFromVatu(totalCents, currency);
+      snapshot.currencySymbol = CurrencyService.getSymbol(currency);
+    }
+
+    return snapshot;
   }
 
   public static formatTotal(amountCents: number): string {

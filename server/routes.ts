@@ -1,16 +1,16 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage.js";
-import { 
-  insertBookingSchema, 
-  insertTourSchema, 
-  insertUserSchema, 
-  insertContentBlockSchema, 
-  insertSiteSettingSchema, 
-  insertPaymentGatewaySchema, 
-  insertPaymentSchema, 
-  insertWishlistItemSchema, 
-  insertNewsletterSubscriberSchema, 
+import {
+  insertBookingSchema,
+  insertTourSchema,
+  insertUserSchema,
+  insertContentBlockSchema,
+  insertSiteSettingSchema,
+  insertPaymentGatewaySchema,
+  insertPaymentSchema,
+  insertWishlistItemSchema,
+  insertNewsletterSubscriberSchema,
   insertCmsContentSchema,
   insertAvailabilityHoldSchema,
   insertTourInstanceSchema,
@@ -37,15 +37,15 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import * as cloudinary from "cloudinary";
-import { 
-  sendEmail, 
-  getBookingConfirmationTemplate, 
-  getAdminNewBookingTemplate, 
-  getPaymentConfirmationTemplate, 
-  getBookingStatusUpdateTemplate, 
-  getNewsletterConfirmationTemplate, 
-  getContactFormTemplate, 
-  getTestEmailTemplate 
+import {
+  sendEmail,
+  getBookingConfirmationTemplate,
+  getAdminNewBookingTemplate,
+  getPaymentConfirmationTemplate,
+  getBookingStatusUpdateTemplate,
+  getNewsletterConfirmationTemplate,
+  getContactFormTemplate,
+  getTestEmailTemplate
 } from "./lib/mail.js";
 import { ZodError, z } from "zod";
 
@@ -56,7 +56,7 @@ if (!fs.existsSync(uploadDir)) {
 }
 
 // Multer configuration
-const upload = multer({ 
+const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
 });
@@ -132,7 +132,7 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
-  
+
   // 1. Enforce Integrity Guard
   app.use(BackupIntegrityGuard.enforceReadOnly);
 
@@ -205,7 +205,8 @@ export async function registerRoutes(
         productId: String(item.productId || item.id),
         adultPax: parseInt(item.adultPax) || 0,
         childPax: parseInt(item.childPax) || 0,
-        quantity: parseInt(item.quantity) || 1
+        quantity: parseInt(item.quantity) || 1,
+        addonIds: item.addonIds || []
       })));
       res.json(snapshot);
     } catch (error: any) {
@@ -298,6 +299,16 @@ export async function registerRoutes(
       res.json({ message: "Tour deleted successfully" });
     } catch (error) {
       res.status(500).json({ error: "Failed to delete tour" });
+    }
+  });
+
+  // Addons API
+  app.get("/api/addons", async (_req, res) => {
+    try {
+      const addons = await storage.getActiveAddons();
+      res.json(addons);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch addons" });
     }
   });
 
@@ -410,9 +421,9 @@ export async function registerRoutes(
       const bookingService = new CreateBookingFromCartService(storage);
       const { items, customerName, customerEmail } = req.body;
       if (!items || !items.length) return res.status(400).json({ error: "Cart is empty" });
-      const booking = await bookingService.execute({ 
-        customerName, 
-        customerEmail, 
+      const booking = await bookingService.execute({
+        customerName,
+        customerEmail,
         items,
         sessionId: req.sessionID
       });
@@ -571,7 +582,7 @@ export async function registerRoutes(
     try {
       const { slug } = req.params;
       const { enabled } = req.body;
-      
+
       if (typeof enabled !== 'boolean') {
         return res.status(400).json({ error: "Enabled state must be a boolean" });
       }

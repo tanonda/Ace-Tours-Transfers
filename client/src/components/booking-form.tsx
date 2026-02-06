@@ -14,7 +14,10 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/lib/auth-context";
-import { formatPrice } from "@/lib/product.types";
+import { formatPrice, formatPriceDisplay, Addon } from "@/lib/product.types";
+import { useCurrency } from "@/lib/currency-context";
+import { useQuery } from "@tanstack/react-query";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export const bookingFormSchema = z.object({
   name: z.string().min(2, "Name is required"),
@@ -24,6 +27,7 @@ export const bookingFormSchema = z.object({
   adultPax: z.string().min(1, "Number of adults is required"),
   childPax: z.string().min(1, "Number of children is required"),
   notes: z.string().optional(),
+  addonIds: z.array(z.string()).default([]),
 });
 
 // Service type for the dropdown
@@ -64,6 +68,11 @@ export function BookingForm({
 }: BookingFormProps) {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const { currency } = useCurrency();
+
+  const { data: availableAddons = [] } = useQuery<Addon[]>({
+    queryKey: ["/api/addons"],
+  });
 
   const form = useForm<z.infer<typeof bookingFormSchema>>({
     resolver: zodResolver(bookingFormSchema),
@@ -74,6 +83,7 @@ export function BookingForm({
       adultPax: initialValues?.adultPax || "2",
       childPax: initialValues?.childPax || "0",
       notes: initialValues?.notes || "",
+      addonIds: initialValues?.addonIds || [],
     },
   });
 
@@ -88,12 +98,12 @@ export function BookingForm({
     }
     // Only apply initialValues once to prevent resetting user-entered values
     if (initialValues && !hasAppliedInitialValues.current) {
-        hasAppliedInitialValues.current = true;
-        Object.entries(initialValues).forEach(([key, value]) => {
-            if (value !== undefined && value !== "") {
-                form.setValue(key as keyof z.infer<typeof bookingFormSchema>, value as any);
-            }
-        });
+      hasAppliedInitialValues.current = true;
+      Object.entries(initialValues).forEach(([key, value]) => {
+        if (value !== undefined && value !== "") {
+          form.setValue(key as keyof z.infer<typeof bookingFormSchema>, value as any);
+        }
+      });
     }
   }, [user, initialValues, form]);
 
@@ -102,13 +112,39 @@ export function BookingForm({
   const watchedAdultPax = form.watch("adultPax");
   const watchedChildPax = form.watch("childPax");
   const watchedDate = form.watch("date"); // Watch date field
+  const watchedAddonIds = form.watch("addonIds");
+
   // Calculate estimated total from props and form values
   const estimatedTotal = useMemo(() => {
     const adults = parseInt(watchedAdultPax || "0");
     const children = parseInt(watchedChildPax || "0");
-    const totalCents = (adults * adultPriceCents) + (children * childPriceCents);
-    return formatPrice(totalCents);
-  }, [watchedAdultPax, watchedChildPax, adultPriceCents, childPriceCents]);
+
+    // 1. Base price
+    let totalCents = (adults * adultPriceCents) + (children * childPriceCents);
+
+    // 2. Applying Rules: Group Discount (10% off for 7+ adults)
+    if (adults >= 7) {
+      totalCents = Math.round(totalCents * 0.9);
+    }
+
+    // 3. Applying Rules: Seasonal Pricing (20% surcharge in Dec/Jan)
+    if (watchedDate) {
+      const month = watchedDate.getMonth();
+      if (month === 11 || month === 0) {
+        totalCents = Math.round(totalCents * 1.2);
+      }
+    }
+
+    // 4. Add-ons
+    const selectedAddonsPrice = watchedAddonIds.reduce((sum, id) => {
+      const addon = availableAddons.find(a => a.id === id);
+      return sum + (addon?.priceCents || 0);
+    }, 0);
+
+    totalCents += selectedAddonsPrice;
+
+    return formatPriceDisplay(totalCents, currency);
+  }, [watchedAdultPax, watchedChildPax, adultPriceCents, childPriceCents, watchedDate, watchedAddonIds, availableAddons, currency]);
 
   useEffect(() => {
     const totalPax = parseInt(watchedAdultPax || "0") + parseInt(watchedChildPax || "0");
@@ -286,23 +322,67 @@ export function BookingForm({
           )}
         />
 
-        {onAvailabilityCheck && (watchedService && watchedDate && (parseInt(watchedAdultPax || "0") + parseInt(watchedChildPax || "0")) > 0) && (
-            <div className="mt-4 text-sm">
-                {isCheckingAvailability ? (
-                    <p className="text-muted-foreground flex items-center gap-2">
-                        <Loader2 className="h-4 w-4 animate-spin" /> Checking availability...
-                    </p>
-                ) : (
-                    availabilityMessage && (
-                        <p className={cn(
-                            "font-medium",
-                            isAvailable ? "text-green-600" : "text-red-600"
-                        )}>
-                            {availabilityMessage}
+        {availableAddons.length > 0 && (
+          <div className="space-y-3 pt-2">
+            <FormLabel className="text-sm font-medium">{t("booking.addons", "Special Add-ons")}</FormLabel>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {availableAddons.map((addon) => (
+                <FormField
+                  key={addon.id}
+                  control={form.control}
+                  name="addonIds"
+                  render={({ field }) => (
+                    <FormItem
+                      key={addon.id}
+                      className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-3 shadow-sm bg-background/50"
+                    >
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value?.includes(addon.id)}
+                          onCheckedChange={(checked) => {
+                            return checked
+                              ? field.onChange([...field.value, addon.id])
+                              : field.onChange(
+                                field.value?.filter(
+                                  (value) => value !== addon.id
+                                )
+                              )
+                          }}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel className="text-sm font-medium cursor-pointer">
+                          {addon.name}
+                        </FormLabel>
+                        <p className="text-xs text-muted-foreground">
+                          +{formatPriceDisplay(addon.priceCents, currency)}
                         </p>
-                    )
-                )}
+                      </div>
+                    </FormItem>
+                  )}
+                />
+              ))}
             </div>
+          </div>
+        )}
+
+        {onAvailabilityCheck && (watchedService && watchedDate && (parseInt(watchedAdultPax || "0") + parseInt(watchedChildPax || "0")) > 0) && (
+          <div className="mt-4 text-sm">
+            {isCheckingAvailability ? (
+              <p className="text-muted-foreground flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" /> Checking availability...
+              </p>
+            ) : (
+              availabilityMessage && (
+                <p className={cn(
+                  "font-medium",
+                  isAvailable ? "text-green-600" : "text-red-600"
+                )}>
+                  {availabilityMessage}
+                </p>
+              )
+            )}
+          </div>
         )}
 
         {showPrice && (

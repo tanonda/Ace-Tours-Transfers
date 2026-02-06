@@ -11,6 +11,7 @@ import type {
   CmsContent,
   Notification,
   FeatureFlag,
+  Addon,
 } from "@shared/schema";
 
 // Helper for image upload
@@ -86,10 +87,16 @@ export async function deleteTour(id: string): Promise<void> {
   await apiRequest("DELETE", `/api/tours/${id}`);
 }
 
+// Addons
+export async function fetchAddons(): Promise<Addon[]> {
+  const res = await apiRequest("GET", "/api/addons");
+  return res.json();
+}
+
 // Vehicles API (Vehicle Hire feature) - using the common tours endpoint since they share schema
 export async function fetchVehicles(): Promise<Tour[]> {
-    const tours = await fetchTours();
-    return tours.filter(t => t.category === 'vehicle');
+  const tours = await fetchTours();
+  return tours.filter(t => t.category === 'vehicle');
 }
 
 export async function fetchVehicle(id: string): Promise<Tour> {

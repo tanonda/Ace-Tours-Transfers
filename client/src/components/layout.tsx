@@ -22,6 +22,7 @@ import { useCart } from "@/lib/cart-context";
 import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LanguageSelector } from "@/components/language-selector";
+import { CurrencySelector } from "@/components/currency-selector";
 import { useTranslation } from "react-i18next";
 import { SkipLinks } from "@/components/skip-links";
 import { useCMS } from "@/lib/cms-context";
@@ -69,12 +70,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const uniqueTours = allTours.reduce<typeof allTours>((acc, current) => {
     // Skip test data
     if (current.title.toLowerCase().includes("verification")) return acc;
-    
+
     const normalize = (t: string) => t.replace(/\s+Package$/i, "").trim();
     const normalizedTitle = normalize(current.title);
-    
+
     const existingIndex = acc.findIndex(item => normalize(item.title) === normalizedTitle);
-    
+
     if (existingIndex === -1) {
       acc.push(current);
     }
@@ -297,6 +298,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </NavigationMenu>
 
             <div className="ml-2 flex items-center gap-4">
+              <CurrencySelector />
               <LanguageSelector />
               <ThemeToggle size="sm" />
               <BookingModal trigger={<Button size="lg" className="font-semibold shadow-lg">{t("tour.bookNow")}</Button>} />
@@ -315,24 +317,24 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 <Menu className="h-6 w-6" aria-hidden="true" />
               </Button>
             </SheetTrigger>
-            <SheetContent 
-              side="left" 
+            <SheetContent
+              side="left"
               className="w-[85vw] max-w-[320px] p-0 overflow-hidden"
               data-testid="mobile-menu-panel"
             >
               <div className="bg-primary text-white p-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <img 
-                    src={logo} 
-                    alt="Ace Tours Logo" 
+                  <img
+                    src={logo}
+                    alt="Ace Tours Logo"
                     className="h-10 w-10 rounded-full border-2 border-white/30"
                   />
                   <span className="font-serif font-bold text-lg">{t("app.shortTitle", "Ace Tours")}</span>
                 </div>
                 <SheetClose asChild>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     className="text-white hover:bg-white/20"
                     data-testid="button-close-mobile-menu"
                   >
@@ -377,8 +379,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
               <div className="overflow-y-auto h-[calc(100vh-200px)]">
                 <nav className="p-2">
-                  <Link 
-                    href="/" 
+                  <Link
+                    href="/"
                     onClick={closeMobileMenu}
                     className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors"
                     data-testid="mobile-nav-home"
@@ -397,9 +399,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     </CollapsibleTrigger>
                     <CollapsibleContent className="pl-12 pr-4 pb-2 space-y-1">
                       {tours.map((tour) => (
-                        <Link 
-                          key={tour.id} 
-                          href={`/tours/${tour.id}`} 
+                        <Link
+                          key={tour.id}
+                          href={`/tours/${tour.id}`}
                           onClick={closeMobileMenu}
                           className="flex items-center gap-2 py-2 px-3 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
                         >
@@ -407,8 +409,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
                           {tour.title}
                         </Link>
                       ))}
-                      <Link 
-                        href="/tours" 
+                      <Link
+                        href="/tours"
                         onClick={closeMobileMenu}
                         className="flex items-center gap-2 py-2 px-3 rounded-md text-sm font-medium text-primary hover:bg-primary/10 transition-colors"
                       >
@@ -427,9 +429,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     </CollapsibleTrigger>
                     <CollapsibleContent className="pl-12 pr-4 pb-2 space-y-1">
                       {transfers.map((transfer) => (
-                        <Link 
-                          key={transfer.id} 
-                          href={`/transfers/${transfer.id}`} 
+                        <Link
+                          key={transfer.id}
+                          href={`/transfers/${transfer.id}`}
                           onClick={closeMobileMenu}
                           className="flex items-center gap-2 py-2 px-3 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
                         >
@@ -437,8 +439,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
                           {transfer.title}
                         </Link>
                       ))}
-                      <Link 
-                        href="/transfers" 
+                      <Link
+                        href="/transfers"
                         onClick={closeMobileMenu}
                         className="flex items-center gap-2 py-2 px-3 rounded-md text-sm font-medium text-primary hover:bg-primary/10 transition-colors"
                       >
@@ -447,8 +449,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     </CollapsibleContent>
                   </Collapsible>
 
-                  <Link 
-                    href="/about" 
+                  <Link
+                    href="/about"
                     onClick={closeMobileMenu}
                     className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors"
                     data-testid="mobile-nav-about"
@@ -457,8 +459,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     <span className="font-medium">{t("nav.about")}</span>
                   </Link>
 
-                  <Link 
-                    href="/contact" 
+                  <Link
+                    href="/contact"
                     onClick={closeMobileMenu}
                     className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors"
                     data-testid="mobile-nav-contact"
@@ -476,24 +478,24 @@ export function Layout({ children }: { children: React.ReactNode }) {
                       <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform duration-200", bookingsOpen && "rotate-180")} />
                     </CollapsibleTrigger>
                     <CollapsibleContent className="pl-12 pr-4 pb-2 space-y-1">
-                      <Link 
-                        href="/reservations" 
+                      <Link
+                        href="/reservations"
                         onClick={closeMobileMenu}
                         className="flex items-center gap-2 py-2 px-3 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
                       >
                         <ChevronRight className="h-3 w-3" />
                         {t("nav.editTrip")}
                       </Link>
-                      <Link 
-                        href="/reservations" 
+                      <Link
+                        href="/reservations"
                         onClick={closeMobileMenu}
                         className="flex items-center gap-2 py-2 px-3 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
                       >
                         <ChevronRight className="h-3 w-3" />
                         {t("nav.cancelTrip")}
                       </Link>
-                      <Link 
-                        href="/reservations" 
+                      <Link
+                        href="/reservations"
                         onClick={closeMobileMenu}
                         className="flex items-center gap-2 py-2 px-3 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
                       >
@@ -503,8 +505,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     </CollapsibleContent>
                   </Collapsible>
 
-                  <Link 
-                    href="/cart" 
+                  <Link
+                    href="/cart"
                     onClick={closeMobileMenu}
                     className="flex items-center justify-between px-4 py-3 rounded-lg hover:bg-muted transition-colors"
                     data-testid="mobile-nav-cart"
@@ -529,6 +531,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   </div>
 
                   <div className="flex items-center justify-between px-4 py-3 rounded-lg hover:bg-muted transition-colors">
+                    <span className="font-medium">Currency</span>
+                    <CurrencySelector />
+                  </div>
+
+                  <div className="flex items-center justify-between px-4 py-3 rounded-lg hover:bg-muted transition-colors">
                     <span className="font-medium">{t("common.language")}</span>
                     <LanguageSelector />
                   </div>
@@ -539,7 +546,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   </div>
 
                   {user && (
-                    <button 
+                    <button
                       onClick={() => {
                         logout();
                         closeMobileMenu();
@@ -554,12 +561,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 </nav>
 
                 <div className="p-4 border-t border-border">
-                  <BookingModal 
+                  <BookingModal
                     trigger={
                       <Button size="lg" className="w-full font-semibold shadow-lg" data-testid="button-mobile-book-now">
                         {t("tour.bookNow")}
                       </Button>
-                    } 
+                    }
                   />
                 </div>
 
@@ -706,6 +713,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <Link href="/about" className="text-lg font-medium hover:text-primary">{t("nav.about")}</Link>
             <Link href="/contact" className="text-lg font-medium hover:text-primary">{t("nav.contact")}</Link>
             <Link href="/reservations" className="text-lg font-medium hover:text-primary">{t("nav.myBookings")}</Link>
+
+            <div className="flex items-center justify-between py-2">
+              <span className="text-lg font-medium text-foreground">Currency</span>
+              <CurrencySelector />
+            </div>
 
             <div className="flex items-center justify-between py-2">
               <span className="text-lg font-medium text-foreground">{t("common.language")}</span>
