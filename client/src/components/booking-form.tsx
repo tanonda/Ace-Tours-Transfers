@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -14,6 +14,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/lib/auth-context";
+import { formatPrice } from "@/lib/product.types";
 
 export const bookingFormSchema = z.object({
   name: z.string().min(2, "Name is required"),
@@ -38,6 +39,8 @@ interface BookingFormProps {
   isLoading: boolean;
   submitButtonText?: string;
   showPrice?: boolean;
+  adultPriceCents?: number;  // Price per adult in cents
+  childPriceCents?: number;  // Price per child in cents
   onAvailabilityCheck?: (serviceTitle: string, date: Date, guests: number) => void;
   isAvailable?: boolean | null; // null for not yet checked, true/false for result
   availabilityMessage?: string;
@@ -51,6 +54,8 @@ export function BookingForm({
   isLoading,
   submitButtonText = "Submit Request",
   showPrice = false,
+  adultPriceCents = 0,
+  childPriceCents = 0,
   onAvailabilityCheck,
   isAvailable = null,
   availabilityMessage,
@@ -90,7 +95,13 @@ export function BookingForm({
   const watchedAdultPax = form.watch("adultPax");
   const watchedChildPax = form.watch("childPax");
   const watchedDate = form.watch("date"); // Watch date field
-  const [estimatedTotal, setEstimatedTotal] = useState("$0.00");
+  // Calculate estimated total from props and form values
+  const estimatedTotal = useMemo(() => {
+    const adults = parseInt(watchedAdultPax || "0");
+    const children = parseInt(watchedChildPax || "0");
+    const totalCents = (adults * adultPriceCents) + (children * childPriceCents);
+    return formatPrice(totalCents);
+  }, [watchedAdultPax, watchedChildPax, adultPriceCents, childPriceCents]);
 
   useEffect(() => {
     const totalPax = parseInt(watchedAdultPax || "0") + parseInt(watchedChildPax || "0");
