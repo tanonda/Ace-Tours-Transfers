@@ -14,7 +14,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { motion } from "framer-motion";
 import { BookingModal } from "@/components/booking-modal";
-import { formatPrice } from "@/lib/product.types";
+import { formatPriceDisplay } from "@/lib/product.types";
+import { useCurrency } from "@/lib/currency-context";
 
 interface VehicleDetails {
   make: string;
@@ -29,6 +30,7 @@ export default function VehicleDetail() {
   const { t } = useTranslation();
   const { addToCart } = useCart();
   const { updateDraft } = useBookingDraft();
+  const { currency } = useCurrency();
 
   // Vehicle uses days instead of pax, get prefill for date
   const prefill = usePrefillFromCart(id || "");
@@ -121,7 +123,7 @@ export default function VehicleDetail() {
                 />
                 <div className="absolute top-6 left-6 flex gap-3">
                   <Badge className="bg-primary text-white text-lg px-4 py-2 shadow-xl">
-                    {formatPrice(vehicle.adultPriceCents)} / day
+                    {formatPriceDisplay(vehicle.adultPriceCents, currency)} / day
                   </Badge>
                 </div>
               </div>
@@ -204,7 +206,7 @@ export default function VehicleDetail() {
                     <h3 className="text-xl font-bold mb-4 font-serif text-primary">{t("quickView.ratesOptions", "Rates")}</h3>
                     <div className="flex justify-between items-center text-lg mb-2">
                       <span>{t("vehicles.perDay", "Per Day")}</span>
-                      <span className="font-bold text-foreground">{formatPrice(vehicle.adultPriceCents)} / day</span>
+                      <span className="font-bold text-foreground">{formatPriceDisplay(vehicle.adultPriceCents, currency)} / day</span>
                     </div>
                   </div>
                 </div>

@@ -41,33 +41,33 @@ const defaultDraft: BookingDraft = {
 const BookingStateContext = createContext<BookingStateContextType | undefined>(undefined);
 
 /**
- * Load booking draft from sessionStorage
+ * Load booking draft from localStorage
  */
 function loadDraftFromStorage(): BookingDraft | null {
     if (typeof window === 'undefined') return null;
 
     try {
-        const stored = sessionStorage.getItem(DRAFT_STORAGE_KEY);
+        const stored = localStorage.getItem(DRAFT_STORAGE_KEY);
         if (!stored) return null;
         return JSON.parse(stored);
     } catch (error) {
         console.warn('[BookingState] Failed to load draft from storage:', error);
-        sessionStorage.removeItem(DRAFT_STORAGE_KEY);
+        localStorage.removeItem(DRAFT_STORAGE_KEY);
         return null;
     }
 }
 
 /**
- * Save booking draft to sessionStorage
+ * Save booking draft to localStorage
  */
 function saveDraftToStorage(draft: BookingDraft | null): void {
     if (typeof window === 'undefined') return;
 
     try {
         if (draft && draft.productId) {
-            sessionStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft));
+            localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft));
         } else {
-            sessionStorage.removeItem(DRAFT_STORAGE_KEY);
+            localStorage.removeItem(DRAFT_STORAGE_KEY);
         }
     } catch (error) {
         console.warn('[BookingState] Failed to save draft to storage:', error);
@@ -77,7 +77,7 @@ function saveDraftToStorage(draft: BookingDraft | null): void {
 export function BookingStateProvider({ children }: { children: React.ReactNode }) {
     const [draft, setDraftState] = useState<BookingDraft | null>(null);
 
-    // Hydrate from sessionStorage on mount
+    // Hydrate from localStorage on mount
     useEffect(() => {
         const storedDraft = loadDraftFromStorage();
         if (storedDraft) {
@@ -85,7 +85,7 @@ export function BookingStateProvider({ children }: { children: React.ReactNode }
         }
     }, []);
 
-    // Persist to sessionStorage on change
+    // Persist to localStorage on change
     useEffect(() => {
         saveDraftToStorage(draft);
     }, [draft]);
@@ -106,7 +106,7 @@ export function BookingStateProvider({ children }: { children: React.ReactNode }
 
     const clearDraft = useCallback(() => {
         setDraftState(null);
-        sessionStorage.removeItem(DRAFT_STORAGE_KEY);
+        localStorage.removeItem(DRAFT_STORAGE_KEY);
     }, []);
 
     const getDraftForProduct = useCallback((productId: string): BookingDraft | null => {

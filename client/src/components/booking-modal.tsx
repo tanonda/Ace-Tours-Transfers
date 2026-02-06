@@ -7,12 +7,13 @@ import { CalendarIcon, Loader2, User, Mail, MapPin, Users, Shield, Star, Sparkle
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
-import { fetchTours } from "@/lib/api";
+import { fetchTours, fetchAddons } from "@/lib/api";
 import { useLocation } from "wouter";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/lib/auth-context";
 import { useCart } from "@/lib/cart-context";
 import { BookingForm, bookingFormSchema } from "./booking-form";
+import type { Addon } from "@shared/schema";
 
 const logo = "https://res.cloudinary.com/dwro1dh5q/image/upload/v1765063924/ace-tours-assets/ace_tours_logo_official.jpg";
 
@@ -45,6 +46,11 @@ export function BookingModal({
   const { data: allTours = [] } = useQuery({
     queryKey: ["tours"],
     queryFn: fetchTours,
+  });
+
+  const { data: availableAddons = [] } = useQuery<Addon[]>({
+    queryKey: ["/api/addons"],
+    queryFn: fetchAddons,
   });
 
   // Track selected service for dynamic pricing
@@ -137,6 +143,11 @@ export function BookingModal({
 
       // Add item to cart instead of creating booking directly
       // This unifies the modal booking path with the cart flow
+      const addonTotal = (values.addonIds || []).reduce((sum, id) => {
+        const addon = availableAddons?.find((a: any) => a.id === id);
+        return sum + (addon?.priceCents || 0);
+      }, 0);
+
       addToCart({
         id: String(selectedService.id),
         title: selectedService.title,
@@ -147,6 +158,8 @@ export function BookingModal({
         adultPax: parseInt(values.adultPax),
         childPax: parseInt(values.childPax),
         type: selectedService.category as "tour" | "transfer" | "vehicle",
+        addonIds: values.addonIds,
+        addonTotal: addonTotal,
       });
 
       toast({

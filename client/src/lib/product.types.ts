@@ -10,6 +10,14 @@
 
 export type ProductCategory = "tour" | "transfer" | "vehicle";
 
+export interface Addon {
+  id: string;
+  name: string;
+  description: string | null;
+  priceCents: number;
+  active: boolean;
+}
+
 export interface VehicleDetails {
   make?: string;
   model?: string;
@@ -33,34 +41,50 @@ export interface ProductData {
   capacity: number;
   defaultCapacity?: number;
   vehicleDetails?: VehicleDetails;
+  addons?: Addon[];
   // Legacy fields (deprecated - do not use for calculations)
   price?: string;
   childPrice?: string;
 }
 
 /**
- * Formats a price in VUV cents to a display string.
- * 
- * @param cents - Price in VUV cents (e.g., 1200000 = 12,000 VUV)
- * @param options - Formatting options
- * @returns Formatted price string (e.g., "VUV 12,000")
+ * Exchange rates relative to VUV (matching server-side CurrencyService)
+ */
+export const EXCHANGE_RATES: Record<string, { rate: number; symbol: string }> = {
+  VUV: { rate: 1, symbol: 'VT' },
+  USD: { rate: 0.0084, symbol: '$' },
+  AUD: { rate: 0.013, symbol: 'A$' },
+  EUR: { rate: 0.0078, symbol: '€' },
+};
+
+/**
+ * Formats a price in VUV cents to a display string with optional currency conversion.
  */
 export function formatPrice(
   cents: number,
   options: {
     includeDecimals?: boolean;
     includeCurrency?: boolean;
+    currencyCode?: string;
   } = {}
 ): string {
-  const { includeDecimals = false, includeCurrency = true } = options;
-  const amount = cents / 100;
+  const { includeDecimals = false, includeCurrency = true, currencyCode = 'VUV' } = options;
+  const exchange = EXCHANGE_RATES[currencyCode.toUpperCase()] || EXCHANGE_RATES.VUV;
+
+  const amount = (cents / 100) * exchange.rate;
 
   const formatted = amount.toLocaleString('en-US', {
-    minimumFractionDigits: includeDecimals ? 2 : 0,
-    maximumFractionDigits: includeDecimals ? 2 : 0,
+    minimumFractionDigits: includeDecimals ? (currencyCode === 'VUV' ? 0 : 2) : 0,
+    maximumFractionDigits: includeDecimals ? (currencyCode === 'VUV' ? 0 : 2) : 0,
   });
 
-  return includeCurrency ? `VUV ${formatted}` : formatted;
+  if (!includeCurrency) return formatted;
+
+  if (currencyCode === 'VUV') {
+    return `VUV ${formatted}`;
+  }
+
+  return `${exchange.symbol}${formatted}`;
 }
 
 /**
@@ -76,9 +100,10 @@ export function calculateLineTotal(
   adultPriceCents: number,
   childPriceCents: number,
   adultCount: number,
-  childCount: number
+  childCount: number,
+  addonTotalCents: number = 0
 ): number {
-  return (adultPriceCents * adultCount) + (childPriceCents * childCount);
+  return (adultPriceCents * adultCount) + (childPriceCents * childCount) + addonTotalCents;
 }
 
 /**
@@ -106,19 +131,22 @@ export function isTour(product: ProductData): boolean {
  * Formats price in standard display format: "VUV 12,000"
  * Use this for product detail pages, booking forms, and modal views.
  */
-export function formatPriceDisplay(cents: number): string {
-  return formatPrice(cents, { includeCurrency: true, includeDecimals: false });
+export function formatPriceDisplay(cents: number, currencyCode: string = 'VUV'): string {
+  return formatPrice(cents, { includeCurrency: true, includeDecimals: false, currencyCode });
 }
 
 /**
  * Formats price in short format: "12,000 VT"
  * Use this for cart, payment, and checkout views for consistency.
  */
-export function formatPriceShort(cents: number): string {
-  const amount = cents / 100;
+export function formatPriceShort(cents: number, currencyCode: string = 'VUV'): string {
+  const exchange = EXCHANGE_RATES[currencyCode.toUpperCase()] || EXCHANGE_RATES.VUV;
+  const amount = (cents / 100) * exchange.rate;
+
   const formatted = amount.toLocaleString('en-US', {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   });
-  return `${formatted} VT`;
+
+  return currencyCode === 'VUV' ? `${formatted} VT` : `${exchange.symbol}${formatted}`;
 }

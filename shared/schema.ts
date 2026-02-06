@@ -140,6 +140,26 @@ export const wishlistItems = pgTable("wishlist_items", {
   addedAt: timestamp("added_at").notNull().defaultNow(),
 });
 
+// Add-on Products (e.g., lunch, snorkeling gear, insurance)
+export const addons = pgTable("addons", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  description: text("description"),
+  priceCents: integer("price_cents").notNull().default(0),
+  active: boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Link between bookings and addons
+export const bookingAddons = pgTable("booking_addons", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  bookingId: varchar("booking_id").notNull().references(() => bookings.id, { onDelete: "cascade" }),
+  addonId: varchar("addon_id").notNull().references(() => addons.id),
+  unitPriceCents: integer("unit_price_cents").notNull(),
+  quantity: integer("quantity").notNull().default(1),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 // Newsletter Subscribers
 export const newsletterSubscribers = pgTable("newsletter_subscribers", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -260,6 +280,7 @@ export const bookingsRelations = relations(bookings, ({ one, many }) => ({
   }),
   payments: many(payments),
   items: many(bookingItems),
+  addons: many(bookingAddons),
 }));
 
 export const bookingItemsRelations = relations(bookingItems, ({ one }) => ({
@@ -276,6 +297,21 @@ export const tourInstancesRelations = relations(tourInstances, ({ one, many }) =
   }),
   bookings: many(bookings),
   holds: many(availabilityHolds),
+}));
+
+export const addonsRelations = relations(addons, ({ many }) => ({
+  bookingAddons: many(bookingAddons),
+}));
+
+export const bookingAddonsRelations = relations(bookingAddons, ({ one }) => ({
+  booking: one(bookings, {
+    fields: [bookingAddons.bookingId],
+    references: [bookings.id],
+  }),
+  addon: one(addons, {
+    fields: [bookingAddons.addonId],
+    references: [addons.id],
+  }),
 }));
 
 export const availabilityHoldsRelations = relations(availabilityHolds, ({ one }) => ({
@@ -339,6 +375,16 @@ export const insertBookingSchema = createInsertSchema(bookings, {
 });
 
 export const insertBookingItemSchema = createInsertSchema(bookingItems).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertAddonSchema = createInsertSchema(addons).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertBookingAddonSchema = createInsertSchema(bookingAddons).omit({
   id: true,
   createdAt: true,
 });
@@ -610,6 +656,10 @@ export type InsertPayment = z.infer<typeof insertPaymentSchema>;
 export type Payment = typeof payments.$inferSelect;
 export type InsertBookingItem = z.infer<typeof insertBookingItemSchema>;
 export type BookingItem = typeof bookingItems.$inferSelect;
+export type InsertAddon = z.infer<typeof insertAddonSchema>;
+export type Addon = typeof addons.$inferSelect;
+export type InsertBookingAddon = z.infer<typeof insertBookingAddonSchema>;
+export type BookingAddon = typeof bookingAddons.$inferSelect;
 export type PublicPaymentDTO = z.infer<typeof selectPublicPaymentSchema>;
 export type InsertWishlistItem = z.infer<typeof insertWishlistItemSchema>;
 export type WishlistItem = typeof wishlistItems.$inferSelect;

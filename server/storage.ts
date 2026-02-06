@@ -49,7 +49,13 @@ import {
   type InsertFeatureFlag,
   reviews,
   type Review,
-  type InsertReview
+  type InsertReview,
+  addons,
+  type Addon,
+  type InsertAddon,
+  bookingAddons,
+  type BookingAddon,
+  type InsertBookingAddon
 } from "../shared/schema.js";
 import { db } from "./db.js";
 import { eq, like, desc, and, or, isNull, sql } from "drizzle-orm";
@@ -76,7 +82,7 @@ export interface IStorage {
   getBookings(): Promise<Booking[]>;
   getBooking(id: string): Promise<Booking | undefined>;
   getUserBookings(userId: string): Promise<Booking[]>;
-  getBookingsForServiceAndDate(serviceId: string, dateString: string): Promise<Booking[]>; 
+  getBookingsForServiceAndDate(serviceId: string, dateString: string): Promise<Booking[]>;
   getBookingsBySession(sessionId: string): Promise<Booking[]>;
   createBooking(booking: InsertBooking): Promise<Booking>;
   updateBooking(id: string, booking: Partial<InsertBooking>): Promise<Booking>;
@@ -140,6 +146,16 @@ export interface IStorage {
   subscribeNewsletter(subscriber: InsertNewsletterSubscriber): Promise<NewsletterSubscriber>;
   unsubscribeNewsletter(email: string): Promise<void>;
 
+  // Addon operations
+  getAddons(): Promise<Addon[]>;
+  getActiveAddons(): Promise<Addon[]>;
+  getAddon(id: string): Promise<Addon | undefined>;
+  createAddon(addon: InsertAddon): Promise<Addon>;
+  updateAddon(id: string, addon: Partial<InsertAddon>): Promise<Addon>;
+  deleteAddon(id: string): Promise<void>;
+  createBookingAddon(item: InsertBookingAddon): Promise<BookingAddon>;
+  getBookingAddons(bookingId: string): Promise<BookingAddon[]>;
+
   // CMS Content
   getCmsContent(blockSlug: string, locale?: string): Promise<CmsContent[]>;
   getCmsContentItem(id: string): Promise<CmsContent | undefined>;
@@ -152,7 +168,7 @@ export interface IStorage {
   getTourInstanceById(id: string): Promise<TourInstance | undefined>;
   createTourInstance(instance: InsertTourInstance): Promise<TourInstance>;
   updateTourInstance(id: string, data: Partial<InsertTourInstance>): Promise<TourInstance>;
-  
+
   getHold(id: string): Promise<AvailabilityHold | undefined>;
   createHold(hold: InsertAvailabilityHold): Promise<AvailabilityHold>;
   updateHold(id: string, data: Partial<InsertAvailabilityHold>): Promise<AvailabilityHold>;
@@ -360,7 +376,7 @@ export class DatabaseStorage implements IStorage {
       .from(revenueDaily)
       .where(sql`${revenueDaily.date} >= ${dateStr}`)
       .orderBy(revenueDaily.date);
-    
+
     return results;
   }
 
@@ -376,7 +392,7 @@ export class DatabaseStorage implements IStorage {
       .groupBy(bookings.tourName)
       .orderBy(desc(sql`sum(${bookings.totalAmountCents})`))
       .limit(limit);
-    
+
     return results;
   }
 
@@ -511,7 +527,7 @@ export class DatabaseStorage implements IStorage {
       .select({ isExpired: sql<boolean>`NOW() > ${payments.expiresAt}` })
       .from(payments)
       .where(eq(payments.id, paymentId));
-    
+
     return result?.isExpired || false;
   }
 
@@ -645,6 +661,47 @@ export class DatabaseStorage implements IStorage {
       .where(eq(newsletterSubscribers.email, email));
   }
 
+  // Addon operations
+  async getAddons(): Promise<Addon[]> {
+    return await db.select().from(addons).orderBy(desc(addons.createdAt));
+  }
+
+  async getActiveAddons(): Promise<Addon[]> {
+    return await db.select().from(addons).where(eq(addons.active, true)).orderBy(desc(addons.createdAt));
+  }
+
+  async getAddon(id: string): Promise<Addon | undefined> {
+    const [addon] = await db.select().from(addons).where(eq(addons.id, id));
+    return addon || undefined;
+  }
+
+  async createAddon(insertAddon: InsertAddon): Promise<Addon> {
+    const [addon] = await db.insert(addons).values(insertAddon).returning();
+    return addon;
+  }
+
+  async updateAddon(id: string, updateData: Partial<InsertAddon>): Promise<Addon> {
+    const [addon] = await db
+      .update(addons)
+      .set({ ...updateData })
+      .where(eq(addons.id, id))
+      .returning();
+    return addon;
+  }
+
+  async deleteAddon(id: string): Promise<void> {
+    await db.delete(addons).where(eq(addons.id, id));
+  }
+
+  async createBookingAddon(item: InsertBookingAddon): Promise<BookingAddon> {
+    const [newAddon] = await db.insert(bookingAddons).values(item).returning();
+    return newAddon;
+  }
+
+  async getBookingAddons(bookingId: string): Promise<BookingAddon[]> {
+    return await db.select().from(bookingAddons).where(eq(bookingAddons.bookingId, bookingId));
+  }
+
   // CMS Content
   async getCmsContent(blockSlug: string, locale?: string): Promise<CmsContent[]> {
     if (locale) {
@@ -692,7 +749,7 @@ export class DatabaseStorage implements IStorage {
     } else {
       filters.push(sql`${tourInstances.timeSlot} IS NULL`);
     }
-    
+
     const [instance] = await db.select().from(tourInstances).where(and(...filters));
     return instance || undefined;
   }

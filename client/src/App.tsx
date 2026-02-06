@@ -8,6 +8,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { CartProvider } from "@/lib/cart-context";
 import { BookingStateProvider } from "@/lib/booking-state-context";
+import { CurrencyProvider } from "@/lib/currency-context";
 import { AuthProvider, ProtectedRoute } from "@/lib/auth-context";
 import { ThemeProvider } from "@/lib/theme-context";
 import { CMSProvider } from "@/lib/cms-context";
@@ -207,13 +208,15 @@ function App() {
             <TooltipProvider>
               <AuthProvider>
                 <CMSProvider>
-                  <CartProvider>
-                    <BookingStateProvider>
-                      <Toaster />
-                      <Router />
-                      <WhatsAppWidget />
-                    </BookingStateProvider>
-                  </CartProvider>
+                  <CurrencyProvider>
+                    <CartProvider>
+                      <BookingStateProvider>
+                        <Toaster />
+                        <Router />
+                        <WhatsAppWidget />
+                      </BookingStateProvider>
+                    </CartProvider>
+                  </CurrencyProvider>
                 </CMSProvider>
               </AuthProvider>
             </TooltipProvider>

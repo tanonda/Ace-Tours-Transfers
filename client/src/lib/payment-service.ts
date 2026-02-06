@@ -1,3 +1,5 @@
+import { formatPriceShort } from "./product.types";
+
 export interface PaymentRequest {
   bookingId: string;
   amount: number;
@@ -73,15 +75,13 @@ export async function checkPaymentStatus(paymentId: string): Promise<{
     return { status: 'pending', message: 'Network error' };
   }
 }
-
 /**
  * Formats currency for display in cart and payment views.
  * @deprecated Use formatPriceShort from product.types.ts for new code
  */
 export function formatCurrency(amount: number, currency: string = 'VUV'): string {
   if (currency === 'VUV') {
-    // Amount is already in cents from cart-context, convert to VT display
-    return `${amount.toLocaleString()} VT`;
+    return formatPriceShort(amount);
   }
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
@@ -89,3 +89,4 @@ export function formatCurrency(amount: number, currency: string = 'VUV'): string
     minimumFractionDigits: currency === 'VUV' ? 0 : 2
   }).format(amount);
 }
+

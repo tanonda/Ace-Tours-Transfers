@@ -23,7 +23,8 @@ import { fetchPaymentGateways } from "@/lib/api";
 import { apiRequest } from "@/lib/queryClient";
 import { PaymentGateway } from "@shared/schema";
 import { format } from "date-fns";
-import { formatCurrency } from "@/lib/payment-service";
+import { formatPriceDisplay } from "@/lib/product.types";
+import { useCurrency } from "@/lib/currency-context";
 
 const gatewayIcons: Record<string, React.ElementType> = {
   'anz-egate': Landmark,
@@ -59,6 +60,7 @@ export default function Payment() {
   const { total, clearCart, items } = useCart();
   const { t } = useTranslation();
   const { user, isAuthenticated } = useAuth();
+  const { currency } = useCurrency();
   const queryClient = useQueryClient();
 
   const [guestName, setGuestName] = useState("");
@@ -106,7 +108,8 @@ export default function Payment() {
             childPax: i.childPax,
             date: i.date ? (typeof i.date === 'string' ? i.date : format(new Date(i.date), "yyyy-MM-dd")) : format(new Date(), "yyyy-MM-dd"),
             slot: i.slot,
-            quantity: i.quantity
+            quantity: i.quantity,
+            addonIds: i.addonIds || []
           }))
         }),
       });
@@ -180,7 +183,7 @@ export default function Payment() {
           if (Math.abs(serverTotal - clientTotal) > 100) {
             toast({
               title: "Price Updated",
-              description: `The total has been updated to ${formatCurrency(serverTotal)}. Please review before continuing.`,
+              description: `The total has been updated to ${formatPriceDisplay(serverTotal, currency)}. Please review before continuing.`,
               variant: "default"
             });
             // Could trigger a cart refresh here if needed
@@ -248,7 +251,7 @@ export default function Payment() {
             <div className="bg-muted/50 p-4 rounded-md mb-6 border border-border">
               <div className="flex justify-between items-center">
                 <span className="font-semibold">Total Amount</span>
-                <span className="font-bold text-lg">{formatCurrency(total)}</span>
+                <span className="font-bold text-lg">{formatPriceDisplay(total, currency)}</span>
               </div>
             </div>
 

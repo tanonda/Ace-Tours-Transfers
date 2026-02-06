@@ -12,7 +12,10 @@ export class PriceCartService {
     this.priceResolver = new PriceResolver(storage);
   }
 
-  async priceCart(cartId: string, items: { productId: string; adultPax: number; childPax: number; quantity?: number }[]): Promise<PriceSnapshot> {
+  async priceCart(
+    cartId: string,
+    items: { productId: string; adultPax: number; childPax: number; date?: string; quantity?: number; addonIds?: string[] }[]
+  ): Promise<PriceSnapshot> {
     const pricedItems = await Promise.all(items.map(async item => {
       const product = await this.storage.getTour(item.productId);
       if (!product) {
@@ -24,10 +27,17 @@ export class PriceCartService {
         throw new Error(`Rates for product ${item.productId} not found`);
       }
 
-      // For the snapshot, we use the average unit price for now
-      let subtotalCents = this.priceResolver.calculateItemTotal(item.adultPax, item.childPax, rates);
-      
-      // If it's a vehicle (or any duration-based product), multiply by quantity (days)
+      // 1. Add-ons calculation
+      let addonTotalCents = 0;
+      if (item.addonIds && item.addonIds.length > 0) {
+        const addons = await Promise.all(item.addonIds.map(id => this.storage.getAddon(id)));
+        addonTotalCents = addons.reduce((sum, addon) => sum + (addon?.priceCents || 0), 0);
+      }
+
+      // 2. Calculate base item total with rules (group discounts, seasonal) and add-ons
+      let subtotalCents = this.priceResolver.calculateItemTotal(item.adultPax, item.childPax, rates, addonTotalCents, item.date);
+
+      // 3. If it's a vehicle (or any duration-based product), multiply by quantity (days)
       const duration = (product.category === 'vehicle') ? (item.quantity || 1) : 1;
       subtotalCents *= duration;
 
