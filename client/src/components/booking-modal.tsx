@@ -132,11 +132,11 @@ export function BookingModal({ trigger, preselectedService }: { trigger: React.R
         title: selectedService.title,
         price: selectedService.adultPriceCents ?? 0,
         childPrice: selectedService.childPriceCents ?? 0,
-        image: selectedService.imageUrl || "",
+        image: selectedService.image || "",
         date: values.date,
         adultPax: parseInt(values.adultPax),
         childPax: parseInt(values.childPax),
-        type: selectedService.serviceType as "tour" | "transfer" | "vehicle",
+        type: selectedService.category as "tour" | "transfer" | "vehicle",
       });
 
       toast({
