@@ -33,10 +33,18 @@ export function BookingModal({ trigger, preselectedService }: { trigger: React.R
     queryFn: fetchTours,
   });
 
+  // Track selected service for dynamic pricing
+  const [selectedServiceTitle, setSelectedServiceTitle] = useState<string>(preselectedService || "");
+
   const getServiceIdFromTitle = (title: string) => {
     const service = allTours.find(s => s.title === title);
     return service?.id;
   };
+
+  // Get pricing from selected service
+  const selectedService = allTours.find(s => s.title === selectedServiceTitle);
+  const adultPriceCents = selectedService?.adultPriceCents ?? 0;
+  const childPriceCents = selectedService?.childPriceCents ?? 0;
 
   const initialFormValues = {
     name: user?.name || "",
@@ -48,6 +56,8 @@ export function BookingModal({ trigger, preselectedService }: { trigger: React.R
   };
 
   const handleAvailabilityCheck = async (serviceTitle: string, date: Date, guests: number) => {
+    // Update selected service for pricing
+    setSelectedServiceTitle(serviceTitle);
     setIsCheckingAvailability(true);
     setIsAvailable(null); // Reset availability status
     setAvailabilityMessage("");
@@ -223,6 +233,8 @@ export function BookingModal({ trigger, preselectedService }: { trigger: React.R
             isLoading={isLoading}
             submitButtonText={t("booking.submit", "Submit Request")}
             showPrice={true}
+            adultPriceCents={adultPriceCents}
+            childPriceCents={childPriceCents}
             onAvailabilityCheck={handleAvailabilityCheck}
             isAvailable={isAvailable}
             availabilityMessage={availabilityMessage}
