@@ -29,6 +29,7 @@ import { BackupIntegrityGuard } from "./infrastructure/recovery/integrity-guard.
 import { ExpressSessionAdapter } from "./infrastructure/session.adapter.js";
 import { AvailabilityDomainService } from "./domain/services/availability.domain-service.js";
 import { BookingApplicationService } from "./application/booking.application-service.js";
+import { PriceCartService } from "./application/pricing/PriceCartService.js";
 import { cloudinaryService } from "./infrastructure/storage/cloudinary-service.js";
 
 import crypto from "crypto";
@@ -188,6 +189,28 @@ export async function registerRoutes(
       res.json(result);
     } catch (error: any) {
       res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Cart Pricing API - Server-side price validation
+  const priceCartService = new PriceCartService(storage);
+  app.post("/api/cart/price", async (req, res) => {
+    try {
+      const { items } = req.body;
+      if (!items || !Array.isArray(items) || items.length === 0) {
+        return res.status(400).json({ error: "Missing or invalid items array" });
+      }
+      const cartId = req.sessionID || 'anonymous';
+      const snapshot = await priceCartService.priceCart(cartId, items.map((item: any) => ({
+        productId: String(item.productId || item.id),
+        adultPax: parseInt(item.adultPax) || 0,
+        childPax: parseInt(item.childPax) || 0,
+        quantity: parseInt(item.quantity) || 1
+      })));
+      res.json(snapshot);
+    } catch (error: any) {
+      console.error("Cart pricing error:", error);
+      res.status(400).json({ error: error.message || "Failed to price cart" });
     }
   });
 
