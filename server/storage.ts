@@ -950,7 +950,10 @@ export class DatabaseStorage implements IStorage {
         sql`${availabilityHolds.resourceId} IS NOT NULL`
       ));
 
-    confirmedHoldResources.forEach(h => { if (h.resourceId) heldResourceIds.add(h.resourceId); });
+    const heldResourceIds = new Set<string>();
+    activeHoldResources.forEach(h => {
+      if (h.resourceId) heldResourceIds.add(h.resourceId);
+    });
 
     return allResources.filter(r => !heldResourceIds.has(r.id));
   }
