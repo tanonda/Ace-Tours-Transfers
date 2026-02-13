@@ -45,7 +45,7 @@ interface BookingFormProps {
   showPrice?: boolean;
   adultPriceCents?: number;  // Price per adult in cents
   childPriceCents?: number;  // Price per child in cents
-  onAvailabilityCheck?: (serviceTitle: string, date: Date, guests: number) => void;
+  onAvailabilityCheck?: (serviceTitle: string, date: Date, adultPax: number, childPax: number) => void;
   isAvailable?: boolean | null; // null for not yet checked, true/false for result
   availabilityMessage?: string;
   isCheckingAvailability?: boolean;
@@ -147,9 +147,12 @@ export function BookingForm({
   }, [watchedAdultPax, watchedChildPax, adultPriceCents, childPriceCents, watchedDate, watchedAddonIds, availableAddons, currency]);
 
   useEffect(() => {
-    const totalPax = parseInt(watchedAdultPax || "0") + parseInt(watchedChildPax || "0");
+    const adultPax = parseInt(watchedAdultPax || "0");
+    const childPax = parseInt(watchedChildPax || "0");
+    const totalPax = adultPax + childPax;
+
     if (onAvailabilityCheck && watchedService && watchedDate && totalPax > 0) {
-      onAvailabilityCheck(watchedService, watchedDate, totalPax);
+      onAvailabilityCheck(watchedService, watchedDate, adultPax, childPax);
     }
   }, [watchedService, watchedDate, watchedAdultPax, watchedChildPax, onAvailabilityCheck]);
 

@@ -27,6 +27,7 @@ const tourSchema = z.object({
     duration: z.string().min(1, "Duration is required"),
     minPax: z.string().optional(),
     category: z.string(),
+    defaultCapacity: z.number().min(1, "Capacity must be at least 1").max(10000, "Capacity cannot exceed 10000"),
     description: z.string().min(10, "Description is required"),
     image: z.string().min(1, "Image is required"),
     vehicleDetails: z.object({
@@ -60,6 +61,7 @@ export function TourDialog({ tour, open, onOpenChange, onSave }: TourDialogProps
             duration: "",
             minPax: "",
             category: "tour",
+            defaultCapacity: 20,
             description: "",
             image: "",
             vehicleDetails: null,
@@ -75,6 +77,7 @@ export function TourDialog({ tour, open, onOpenChange, onSave }: TourDialogProps
                 duration: tour.duration,
                 minPax: tour.minPax || "",
                 category: tour.category || "tour",
+                defaultCapacity: tour.defaultCapacity || 20,
                 description: Array.isArray(tour.description) ? tour.description.join("\n") : tour.description,
                 image: tour.image,
                 vehicleDetails: tour.vehicleDetails || null,
@@ -87,6 +90,7 @@ export function TourDialog({ tour, open, onOpenChange, onSave }: TourDialogProps
                 duration: "",
                 minPax: "",
                 category: "tour",
+                defaultCapacity: 20,
                 description: "",
                 image: "",
                 vehicleDetails: null,
@@ -149,22 +153,22 @@ export function TourDialog({ tour, open, onOpenChange, onSave }: TourDialogProps
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>{t("admin.category")}</FormLabel>
-                                        <Select 
-                                          onValueChange={(v) => {
-                                            field.onChange(v);
-                                            if (v === 'vehicle' && !form.getValues('vehicleDetails')) {
-                                              form.setValue('vehicleDetails', {
-                                                make: "",
-                                                model: "",
-                                                seats: 5,
-                                                transmission: "Automatic",
-                                                features: []
-                                              });
-                                            } else if (v !== 'vehicle') {
-                                              form.setValue('vehicleDetails', null);
-                                            }
-                                          }} 
-                                          value={field.value}
+                                        <Select
+                                            onValueChange={(v) => {
+                                                field.onChange(v);
+                                                if (v === 'vehicle' && !form.getValues('vehicleDetails')) {
+                                                    form.setValue('vehicleDetails', {
+                                                        make: "",
+                                                        model: "",
+                                                        seats: 5,
+                                                        transmission: "Automatic",
+                                                        features: []
+                                                    });
+                                                } else if (v !== 'vehicle') {
+                                                    form.setValue('vehicleDetails', null);
+                                                }
+                                            }}
+                                            value={field.value}
                                         >
                                             <FormControl>
                                                 <SelectTrigger>
@@ -184,63 +188,63 @@ export function TourDialog({ tour, open, onOpenChange, onSave }: TourDialogProps
                         </div>
 
                         {category === 'vehicle' && (
-                          <div className="p-4 bg-muted/50 rounded-lg space-y-4 border border-border">
-                            <h4 className="font-semibold text-sm">Vehicle Specifications</h4>
-                            <div className="grid grid-cols-2 gap-4">
-                              <FormField
-                                control={form.control}
-                                name="vehicleDetails.make"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Make</FormLabel>
-                                    <FormControl><Input placeholder="Toyota" {...field} /></FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                               <FormField
-                                control={form.control}
-                                name="vehicleDetails.model"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Model</FormLabel>
-                                    <FormControl><Input placeholder="Hilux" {...field} /></FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
+                            <div className="p-4 bg-muted/50 rounded-lg space-y-4 border border-border">
+                                <h4 className="font-semibold text-sm">Vehicle Specifications</h4>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <FormField
+                                        control={form.control}
+                                        name="vehicleDetails.make"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Make</FormLabel>
+                                                <FormControl><Input placeholder="Toyota" {...field} /></FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="vehicleDetails.model"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Model</FormLabel>
+                                                <FormControl><Input placeholder="Hilux" {...field} /></FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <FormField
+                                        control={form.control}
+                                        name="vehicleDetails.seats"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Seats</FormLabel>
+                                                <FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value))} /></FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="vehicleDetails.transmission"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Transmission</FormLabel>
+                                                <Select onValueChange={field.onChange} value={field.value}>
+                                                    <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                                                    <SelectContent>
+                                                        <SelectItem value="Automatic">Automatic</SelectItem>
+                                                        <SelectItem value="Manual">Manual</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
-                              <FormField
-                                control={form.control}
-                                name="vehicleDetails.seats"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Seats</FormLabel>
-                                    <FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value))} /></FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                              <FormField
-                                control={form.control}
-                                name="vehicleDetails.transmission"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Transmission</FormLabel>
-                                    <Select onValueChange={field.onChange} value={field.value}>
-                                      <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                                      <SelectContent>
-                                        <SelectItem value="Automatic">Automatic</SelectItem>
-                                        <SelectItem value="Manual">Manual</SelectItem>
-                                      </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                            </div>
-                          </div>
                         )}
 
                         <div className="grid grid-cols-2 gap-4">
@@ -300,6 +304,30 @@ export function TourDialog({ tour, open, onOpenChange, onSave }: TourDialogProps
                                 )}
                             />
                         </div>
+
+                        <FormField
+                            control={form.control}
+                            name="defaultCapacity"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Default Capacity *</FormLabel>
+                                    <FormControl>
+                                        <Input
+                                            type="number"
+                                            min="1"
+                                            max="10000"
+                                            placeholder="20"
+                                            {...field}
+                                            onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                                        />
+                                    </FormControl>
+                                    <p className="text-xs text-muted-foreground">
+                                        Maximum {category === 'vehicle' ? 'vehicles' : 'guests'} available per day. Can be overridden for specific dates.
+                                    </p>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
 
                         <FormField
                             control={form.control}

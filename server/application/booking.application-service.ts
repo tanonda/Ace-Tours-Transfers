@@ -1,10 +1,10 @@
 import { Tour, Booking } from "../../shared/schema.js";
 import { AvailabilityDomainService, AvailabilityResult } from "../domain/services/availability.domain-service.js";
-import { storage, IStorage } from "../storage.js"; // Assuming Storage acts as a repository interface
+import { storage, IStorage } from "../storage.js";
 
 export class BookingApplicationService {
   private availabilityService: AvailabilityDomainService;
-  private storage: IStorage; // Dependency injection of storage
+  private storage: IStorage;
 
   constructor(storage: IStorage, availabilityService: AvailabilityDomainService) {
     this.storage = storage;
@@ -13,28 +13,28 @@ export class BookingApplicationService {
 
   /**
    * Checks the availability of a specific service for a given date and number of guests.
-   * @param serviceId The ID of the tour or transfer service.
-   * @param dateString The date in YYYY-MM-DD format.
-   * @param guests The number of guests for the booking.
-   * @returns An AvailabilityResult object.
+   * Uses the unified availability domain service for consistent validation and pricing.
+   * 
+   * @param serviceId - The ID of the tour or transfer service
+   * @param dateString - The date in YYYY-MM-DD format
+   * @param guests - Combined object with adult and child counts
+   * @returns An AvailabilityResult object with capacity and pricing
    */
-  async checkServiceAvailability(serviceId: string, dateString: string, guests: number): Promise<AvailabilityResult> {
-    const service = await this.storage.getTour(serviceId); // Assuming getTour can fetch any service (tour/transfer)
-    if (!service) {
-      return { isAvailable: false, availableSlots: 0, message: "Service not found." };
-    }
+  async checkServiceAvailability(
+    serviceId: string,
+    dateString: string,
+    guests: { adultPax: number; childPax: number; addonIds?: string[] }
+  ): Promise<AvailabilityResult> {
+    const totalGuests = guests.adultPax + guests.childPax;
 
-    const bookingDate = new Date(dateString);
-    if (isNaN(bookingDate.getTime())) {
-      return { isAvailable: false, availableSlots: 0, message: "Invalid date format." };
-    }
-
-    // Fetch existing bookings for this service on this date
-    // Note: storage.getBookingsForServiceAndDate needs to be implemented or adjusted
-    const existingBookings = await this.storage.getBookingsForServiceAndDate(serviceId, dateString);
-
-    return this.availabilityService.checkAvailability(service, bookingDate, guests, existingBookings);
+    return await this.availabilityService.checkAvailability(
+      serviceId,
+      dateString,
+      totalGuests,
+      guests.adultPax,
+      guests.childPax,
+      undefined, // slot
+      guests.addonIds
+    );
   }
-
-  // Future methods like createBooking, updateBooking could live here
 }

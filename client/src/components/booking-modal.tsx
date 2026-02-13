@@ -71,7 +71,7 @@ export function BookingModal({
     notes: "",
   }), [user?.name, user?.email, preselectedService, initialAdultPax, initialChildPax, initialDate]);
 
-  const handleAvailabilityCheck = useCallback(async (serviceTitle: string, date: Date, guests: number) => {
+  const handleAvailabilityCheck = useCallback(async (serviceTitle: string, date: Date, adultPax: number, childPax: number) => {
     // Update selected service for pricing
     setSelectedServiceTitle(serviceTitle);
     setIsCheckingAvailability(true);
@@ -95,7 +95,8 @@ export function BookingModal({
         body: JSON.stringify({
           serviceId,
           date: format(date, "yyyy-MM-dd"),
-          guests,
+          adultPax,
+          childPax,
         }),
       });
 
@@ -106,7 +107,18 @@ export function BookingModal({
 
       const result = await response.json();
       setIsAvailable(result.isAvailable);
-      setAvailabilityMessage(result.message);
+
+      // Enhanced message with pricing and discounts
+      let message = result.message;
+      if (result.pricing) {
+        const formattedPrice = `VUV ${(result.pricing.subtotalCents / 100).toLocaleString()}`;
+        message += ` Subtotal: ${formattedPrice}`;
+
+        if (result.pricing.appliedDiscounts && result.pricing.appliedDiscounts.length > 0) {
+          message += ` (${result.pricing.appliedDiscounts.join(', ')})`;
+        }
+      }
+      setAvailabilityMessage(message);
 
     } catch (error) {
       console.error("Availability check failed:", error);

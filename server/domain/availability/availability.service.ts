@@ -1,8 +1,8 @@
 import { IStorage } from "../../storage.js";
-import { 
-  TourInstance, 
-  AvailabilityHold, 
-  InsertTourInstance, 
+import {
+  TourInstance,
+  AvailabilityHold,
+  InsertTourInstance,
   InsertAvailabilityHold,
   tourInstances,
   tours, // Added tours import
@@ -11,6 +11,7 @@ import {
 } from "../../../shared/schema.js";
 import { db } from "../../db.js";
 import { eq, and, sql } from "drizzle-orm";
+import { availabilityCache } from "../../infrastructure/cache/availability-cache.service.js";
 
 export enum HoldStatus {
   ACTIVE = 'ACTIVE',
@@ -39,7 +40,7 @@ export class AvailabilityService {
       const tour = await this.storage.getTour(tourId);
       if (!tour) return 0;
       return 0; // Require admin to set capacity for production safety? 
-                 // Or we could have a default_capacity on Tour.
+      // Or we could have a default_capacity on Tour.
     }
 
     return instance.totalCapacity - (instance.confirmedCount + instance.heldCount + instance.blockedCount);
@@ -50,9 +51,9 @@ export class AvailabilityService {
    * Atomically locks the inventory record.
    */
   async createHold(
-    tourId: string, 
-    date: string, 
-    quantity: number, 
+    tourId: string,
+    date: string,
+    quantity: number,
     sessionId: string,
     slot?: string,
     ttlMinutes: number = 15
@@ -93,6 +94,32 @@ export class AvailabilityService {
   }
 
   /**
+   * CRITICAL: Invalidate cache after creating a hold
+   */
+  async createHoldWithInvalidation(params: {
+    tourId: string;
+    date: string;
+    slot?: string;
+    quantity: number;
+    sessionId: string;
+    ttlMinutes?: number;
+  }): Promise<AvailabilityHold> {
+    const hold = await this.createHold(
+      params.tourId,
+      params.date,
+      params.quantity,
+      params.sessionId,
+      params.slot,
+      params.ttlMinutes
+    );
+
+    // Invalidate cache for this tour instance
+    availabilityCache.invalidate(params.tourId, params.date, params.slot);
+
+    return hold;
+  }
+
+  /**
    * Confirms a hold (converts to confirmed booking count).
    */
   async confirmBooking(holdId: string): Promise<void> {
@@ -119,7 +146,7 @@ export class AvailabilityService {
       // 3. Transition counts
       await tx
         .update(tourInstances)
-        .set({ 
+        .set({
           heldCount: Math.max(0, instance.heldCount - hold.quantity),
           confirmedCount: instance.confirmedCount + hold.quantity
         })
@@ -131,6 +158,34 @@ export class AvailabilityService {
         .set({ status: HoldStatus.CONFIRMED })
         .where(eq(availabilityHolds.id, holdId));
     });
+
+    // CRITICAL: Invalidate cache after confirming booking
+    // We need to get the hold to extract tourId and date
+    const [holdData] = await db
+      .select({
+        tourInstanceId: availabilityHolds.tourInstanceId,
+      })
+      .from(availabilityHolds)
+      .where(eq(availabilityHolds.id, holdId));
+
+    if (holdData) {
+      const [instanceData] = await db
+        .select({
+          tourId: tourInstances.tourId,
+          serviceDate: tourInstances.serviceDate,
+          timeSlot: tourInstances.timeSlot,
+        })
+        .from(tourInstances)
+        .where(eq(tourInstances.id, holdData.tourInstanceId));
+
+      if (instanceData) {
+        availabilityCache.invalidate(
+          instanceData.tourId,
+          instanceData.serviceDate,
+          instanceData.timeSlot || undefined
+        );
+      }
+    }
   }
 
   /**
@@ -160,7 +215,7 @@ export class AvailabilityService {
           // 3. Transition counts
           await tx
             .update(tourInstances)
-            .set({ 
+            .set({
               heldCount: Math.max(0, instance.heldCount - hold.quantity),
               confirmedCount: instance.confirmedCount + hold.quantity
             })
@@ -264,7 +319,20 @@ export class AvailabilityService {
     try {
       // Fetch the tour template to get default capacity
       const [tour] = await tx.select().from(tours).where(eq(tours.id, tourId));
-      const capacity = tour?.defaultCapacity ?? 20;
+
+      // CRITICAL: Capacity must be explicitly configured - no silent defaults
+      if (!tour) {
+        throw new Error(`Tour ${tourId} not found - cannot create tour instance`);
+      }
+
+      if (tour.defaultCapacity === null || tour.defaultCapacity === undefined || tour.defaultCapacity <= 0) {
+        throw new Error(
+          `Tour "${tour.title}" (${tourId}) has no default capacity configured. ` +
+          `Please set a valid capacity value in the admin panel before bookings can be made.`
+        );
+      }
+
+      const capacity = tour.defaultCapacity;
 
       const [created] = await tx
         .insert(tourInstances)
@@ -275,7 +343,7 @@ export class AvailabilityService {
           totalCapacity: capacity,
         })
         .returning();
-      
+
       // Re-lock the newly created record to be consistent
       const [locked] = await tx.select().from(tourInstances).where(eq(tourInstances.id, created.id)).for('update');
       return locked;
