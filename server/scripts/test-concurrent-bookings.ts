@@ -33,7 +33,7 @@ async function setupTestTour(): Promise<void> {
     await db.delete(tours).where(eq(tours.id, TEST_TOUR_ID));
 
     // Create test tour
-    const testTour: InsertTour = {
+    const testTour: any = {
         id: TEST_TOUR_ID,
         title: "Concurrent Booking Test Tour",
         description: [`Test tour for concurrent booking validation with ${TOTAL_CAPACITY} seats`],
