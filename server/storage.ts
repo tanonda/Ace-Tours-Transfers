@@ -341,10 +341,29 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createBooking(insertBooking: InsertBooking): Promise<Booking> {
-    const [booking] = await db
-      .insert(bookings)
-      .values(insertBooking)
-      .returning();
+    // If an idempotencyKey is provided, attempt an insert with ON CONFLICT DO NOTHING
+    // and return the existing record when a conflict occurs. This enforces idempotent
+    // booking creation at the DB level (Phase 6).
+    if ((insertBooking as any).idempotencyKey) {
+      const idempotencyKey = (insertBooking as any).idempotencyKey;
+
+      const inserted = await db
+        .insert(bookings)
+        .values(insertBooking)
+        .onConflictDoNothing({ target: bookings.idempotencyKey })
+        .returning();
+
+      if (inserted.length > 0) {
+        return inserted[0];
+      }
+
+      // If no row was returned, it means a conflict occurred — fetch and return existing
+      const [existing] = await db.select().from(bookings).where(eq(bookings.idempotencyKey, idempotencyKey));
+      if (existing) return existing;
+      // Fallback to a normal insert attempt
+    }
+
+    const [booking] = await db.insert(bookings).values(insertBooking).returning();
     return booking;
   }
 
@@ -828,7 +847,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createHold(hold: InsertAvailabilityHold): Promise<AvailabilityHold> {
-    const [created] = await db.insert(availabilityHolds).values(hold).returning();
+    // Ensure expiresAt and status defaults to prevent accidental non-expiring holds
+    const normalized = { ...hold } as any;
+    if (!normalized.expiresAt) {
+      const expires = new Date();
+      expires.setMinutes(expires.getMinutes() + 15); // default TTL 15 minutes
+      normalized.expiresAt = expires;
+    }
+    if (!normalized.status) normalized.status = 'ACTIVE';
+
+    const [created] = await db.insert(availabilityHolds).values(normalized).returning();
     return created;
   }
 
@@ -850,7 +878,12 @@ export class DatabaseStorage implements IStorage {
           eq(availabilityHolds.status, 'ACTIVE'),
           sql`${availabilityHolds.expiresAt} < ${now}`
         )
-      );
+      )
+      .orderBy(availabilityHolds.expiresAt);
+  }
+
+  async getHoldsBySession(sessionId: string): Promise<AvailabilityHold[]> {
+    return await db.select().from(availabilityHolds).where(and(eq(availabilityHolds.bookingSessionId, sessionId), eq(availabilityHolds.status, 'ACTIVE')));
   }
 
   // Projections

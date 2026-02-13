@@ -50,8 +50,10 @@ export const tourInstances = pgTable("tour_instances", {
   blockedCount: integer("blocked_count").notNull().default(0),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => ({
+  // Unique constraint expanded to include start/end times so multiple
+  // sessions per day can be represented without relying solely on `timeSlot`.
   instanceUniqueIdx: uniqueIndex("idx_tour_instances_unique")
-    .on(table.tourId, table.serviceDate, table.timeSlot)
+    .on(table.tourId, table.serviceDate, table.timeSlot, table.startTime, table.endTime)
 }));
 
 // Phase 1: Resources table for asset-allocated products (vehicles, specific transfer buses)
@@ -75,7 +77,9 @@ export const availabilityHolds = pgTable("availability_holds", {
   expiresAt: timestamp("expires_at").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   bookingSessionId: text("booking_session_id").notNull(),
-});
+}, (table) => ({
+  expiryIdx: index("idx_availability_holds_expiry").on(table.status, table.expiresAt),
+}));
 
 export const bookings = pgTable("bookings", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -101,7 +105,9 @@ export const bookings = pgTable("bookings", {
   customerEmail: text("customer_email").notNull().default(""),
   customerPhone: text("customer_phone"),
   tourName: text("tour_name").notNull(),
-});
+}, (table) => ({
+  holdUniqueIdx: uniqueIndex("idx_bookings_hold_unique").on(table.holdId),
+}));
 
 export const bookingItems = pgTable("booking_items", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

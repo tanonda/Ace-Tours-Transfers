@@ -287,3 +287,29 @@ export async function updateFeatureFlag(slug: string, enabled: boolean): Promise
   const res = await apiRequest("PATCH", `/api/admin/feature-flags/${slug}`, { enabled });
   return res.json();
 }
+
+// Blackout Dates (Phase 4)
+export async function fetchBlackoutDates(productId: string): Promise<any[]> {
+  const res = await apiRequest("GET", `/api/admin/blackouts/${productId}`);
+  return res.json();
+}
+
+export async function createBlackoutDate(data: { productId: string; date: string; reason?: string }): Promise<any> {
+  const res = await apiRequest("POST", `/api/admin/blackouts`, data);
+  return res.json();
+}
+
+export async function deleteBlackoutDate(id: string): Promise<void> {
+  await apiRequest("DELETE", `/api/admin/blackouts/${id}`);
+}
+
+// Capacity Audit Log (Phase 7)
+export async function fetchAuditLogs(filters?: { productId?: string; action?: string; limit?: number; offset?: number }) {
+  const qs = new URLSearchParams();
+  if (filters?.productId) qs.set('productId', filters.productId);
+  if (filters?.action) qs.set('action', filters.action);
+  if (filters?.limit) qs.set('limit', String(filters.limit));
+  if (filters?.offset) qs.set('offset', String(filters.offset));
+  const res = await apiRequest("GET", `/api/admin/audit-log?${qs.toString()}`);
+  return res.json();
+}

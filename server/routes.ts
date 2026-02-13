@@ -32,6 +32,7 @@ import { AvailabilityDomainService } from "./domain/services/availability.domain
 import { BookingApplicationService } from "./application/booking.application-service.js";
 import { PriceCartService } from "./application/pricing/PriceCartService.js";
 import { cloudinaryService } from "./infrastructure/storage/cloudinary-service.js";
+import { metricsService } from "./infrastructure/metrics/metrics.service.js";
 
 import crypto from "crypto";
 import multer from "multer";
@@ -150,8 +151,10 @@ export async function registerRoutes(
       const tourId = req.query.tourId as string;
       const date = req.query.date as string;
       const slot = req.query.slot as string | undefined;
+      const startTime = req.query.startTime as string | undefined;
+      const endTime = req.query.endTime as string | undefined;
       if (!tourId || !date) return res.status(400).json({ error: "Missing tourId or date" });
-      const result = await availabilityAppService.getAvailability(tourId, date, slot);
+      const result = await availabilityAppService.getAvailability(tourId, date, slot, startTime, endTime);
       res.json(result);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch availability" });
@@ -219,6 +222,70 @@ export async function registerRoutes(
     } catch (error) {
       console.error("[CAPACITY OVERVIEW ERROR]", error);
       res.status(500).json({ error: "Failed to fetch capacity overview" });
+    }
+  });
+
+  // Admin: Blackout Dates CRUD
+  app.get("/api/admin/blackouts/:productId", requireAdmin, async (req, res) => {
+    try {
+      const productId = req.params.productId;
+      const dates = await storage.getBlackoutDates(productId);
+      res.json(dates);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch blackout dates" });
+    }
+  });
+
+  app.post("/api/admin/blackouts", requireAdmin, async (req, res) => {
+    try {
+      const { productId, date, reason } = req.body;
+      if (!productId || !date) return res.status(400).json({ error: "Missing productId or date" });
+      const created = await storage.createBlackoutDate({ productId, date, reason, createdBy: req.session.userId });
+      res.status(201).json(created);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/admin/blackouts/:id", requireAdmin, async (req, res) => {
+    try {
+      await storage.deleteBlackoutDate(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete blackout date" });
+    }
+  });
+
+  // Admin: Pricing Versions CRUD
+  app.get("/api/admin/pricing/:productId", requireAdmin, async (req, res) => {
+    try {
+      const productId = req.params.productId;
+      const versions = await storage.getPricingVersions(productId);
+      res.json(versions);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch pricing versions" });
+    }
+  });
+
+  app.post("/api/admin/pricing", requireAdmin, async (req, res) => {
+    try {
+      const { productId, effectiveFrom, adultPriceCents, childPriceCents, ruleMetadata } = req.body;
+      if (!productId || !effectiveFrom || adultPriceCents === undefined) return res.status(400).json({ error: "Missing required pricing fields" });
+      const created = await storage.createPricingVersion({ productId, effectiveFrom, adultPriceCents, childPriceCents: childPriceCents || 0, ruleMetadata, createdBy: req.session.userId });
+      res.status(201).json(created);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Admin Metrics & Alerts
+  app.get("/api/admin/metrics", requireAdmin, async (_req, res) => {
+    try {
+      const metrics = await metricsService.getMetrics();
+      const alerts = await metricsService.getAlerts();
+      res.json({ metrics, alerts });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch metrics" });
     }
   });
 
@@ -479,12 +546,14 @@ export async function registerRoutes(
       const { CreateBookingFromCartService } = await import("./application/booking/CreateBookingFromCartService.js");
       const bookingService = new CreateBookingFromCartService(storage);
       const { items, customerName, customerEmail } = req.body;
+      const idempotencyKey = (req.headers['idempotency-key'] || req.body.idempotencyKey) as string | undefined;
       if (!items || !items.length) return res.status(400).json({ error: "Cart is empty" });
       const booking = await bookingService.execute({
         customerName,
         customerEmail,
         items,
-        sessionId: req.sessionID
+        sessionId: req.sessionID,
+        idempotencyKey
       });
       res.status(201).json(booking);
     } catch (error: any) {
@@ -499,7 +568,32 @@ export async function registerRoutes(
       if (req.session.userRole !== 'admin' && existing.userId !== req.session.userId) {
         return res.status(403).json({ error: "Access denied" });
       }
-      const booking = await storage.updateBooking(req.params.id, req.body);
+      // If cancelling, release holds associated with this booking
+      const updates = { ...req.body } as any;
+      if (updates.status === 'cancelled' && existing) {
+        try {
+          // Release primary hold if exists
+          if (existing.holdId) {
+            const { AvailabilityApplicationService } = await import("./application/availability/availability.application-service.js");
+            const svc = new AvailabilityApplicationService(storage);
+            await svc.releaseHold(existing.holdId).catch(console.error);
+          }
+
+          // Release session holds
+          if (existing.bookingSessionId) {
+            const holds = await storage.getHoldsBySession(existing.bookingSessionId);
+            const { AvailabilityApplicationService } = await import("./application/availability/availability.application-service.js");
+            const svc = new AvailabilityApplicationService(storage);
+            for (const h of holds) {
+              await svc.releaseHold(h.id).catch(console.error);
+            }
+          }
+        } catch (err) {
+          console.error('[BOOKING][CANCEL] Error releasing holds for booking', existing.id, err);
+        }
+      }
+
+      const booking = await storage.updateBooking(req.params.id, updates);
       res.json(booking);
     } catch (error) {
       res.status(400).json({ error: "Failed to update booking" });

@@ -40,11 +40,20 @@ class MetricsService {
         const utilization: Record<string, number> = {};
 
         for (const tour of tours) {
-            // Basic utilization: current confirmed / total capacity for today or lately
-            // For a real system we'd look at a date range, but let's do a simple snapshot
-            // We'll peek at the audit log or instances?
-            // For now, let's keep it simple: total confirmed across all time? 
-            // No, let's just return our counters.
+                // Compute utilization snapshot for today's instances
+                try {
+                    const today = new Date().toISOString().split('T')[0];
+                    const instances = await storage.getTourInstances(tour.id, today);
+                    if (instances && instances.length > 0) {
+                        const totalCap = instances.reduce((s, i) => s + (i.totalCapacity || 0), 0);
+                        const totalConfirmed = instances.reduce((s, i) => s + (i.confirmedCount || 0), 0);
+                        utilization[tour.id] = totalCap > 0 ? Math.round((totalConfirmed / totalCap) * 10000) / 100 : 0;
+                    } else {
+                        utilization[tour.id] = 0;
+                    }
+                } catch (e) {
+                    utilization[tour.id] = 0;
+                }
         }
 
         return {

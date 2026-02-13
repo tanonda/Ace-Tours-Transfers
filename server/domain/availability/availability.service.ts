@@ -491,25 +491,24 @@ export class AvailabilityService {
     startTime?: string,
     endTime?: string
   ): Promise<TourInstance> {
-    let filters = [eq(tourInstances.tourId, tourId), eq(tourInstances.serviceDate, date)];
-    if (slot) {
-      filters.push(eq(tourInstances.timeSlot, slot));
-    } else {
-      // In Drizzle, we often use isNull for nullable fields if we want exact match
-      // but for simplicity in this schema let's check null
-      // sql`${tourInstances.timeSlot} IS NULL`
-    }
-
-    // Attempt to lock existing
+    // Build a selector that accounts for slot OR start/end times.
     let query = tx.select().from(tourInstances);
     if (slot) {
       query = query.where(and(eq(tourInstances.tourId, tourId), eq(tourInstances.serviceDate, date), eq(tourInstances.timeSlot, slot)));
+    } else if (startTime !== undefined || endTime !== undefined) {
+      // Match exact start/end pair (both nulls treated as null)
+      query = query.where(and(
+        eq(tourInstances.tourId, tourId),
+        eq(tourInstances.serviceDate, date),
+        (startTime ? eq(tourInstances.startTime, startTime) : sql`${tourInstances.startTime} IS NULL`),
+        (endTime ? eq(tourInstances.endTime, endTime) : sql`${tourInstances.endTime} IS NULL`)
+      ));
     } else {
+      // Legacy behavior: timeSlot IS NULL and start/end null
       query = query.where(and(eq(tourInstances.tourId, tourId), eq(tourInstances.serviceDate, date), sql`time_slot IS NULL`));
     }
 
     const [existing] = await query.for('update');
-
     if (existing) return existing;
 
     // Create if not exists (Double checked lock pattern within transaction)
@@ -540,8 +539,8 @@ export class AvailabilityService {
           serviceDate: date,
           timeSlot: slot || null,
           totalCapacity: capacity,
-          startTime: startTime || null,
-          endTime: endTime || null,
+          startTime: startTime ?? null,
+          endTime: endTime ?? null,
         })
         .returning();
 
@@ -550,11 +549,19 @@ export class AvailabilityService {
       return locked;
     } catch (e) {
       // If someone else inserted it between our check and insert, query it again
-      let retryQuery = tx.select().from(tourInstances).where(and(eq(tourInstances.tourId, tourId), eq(tourInstances.serviceDate, date)));
+      // Another transaction may have created the instance; re-query using same matching rules
+      let retryQuery = tx.select().from(tourInstances);
       if (slot) {
-        retryQuery = retryQuery.where(eq(tourInstances.timeSlot, slot));
+        retryQuery = retryQuery.where(and(eq(tourInstances.tourId, tourId), eq(tourInstances.serviceDate, date), eq(tourInstances.timeSlot, slot)));
+      } else if (startTime !== undefined || endTime !== undefined) {
+        retryQuery = retryQuery.where(and(
+          eq(tourInstances.tourId, tourId),
+          eq(tourInstances.serviceDate, date),
+          (startTime ? eq(tourInstances.startTime, startTime) : sql`${tourInstances.startTime} IS NULL`),
+          (endTime ? eq(tourInstances.endTime, endTime) : sql`${tourInstances.endTime} IS NULL`)
+        ));
       } else {
-        retryQuery = retryQuery.where(sql`time_slot IS NULL`);
+        retryQuery = retryQuery.where(and(eq(tourInstances.tourId, tourId), eq(tourInstances.serviceDate, date), sql`time_slot IS NULL`));
       }
       const [retry] = await retryQuery.for('update');
       if (retry) return retry;

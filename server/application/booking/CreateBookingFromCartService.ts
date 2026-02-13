@@ -13,6 +13,7 @@ export interface CreateBookingRequest {
   customerName: string;
   customerEmail: string;
   sessionId?: string;
+  idempotencyKey?: string;
   items: {
     productId: string;
     adultPax: number;
@@ -155,6 +156,18 @@ export class CreateBookingFromCartService {
     });
 
     // 4. Persist (Mapping Domain object to DB schema)
+    // Compute aggregate start/end for the booking (earliest start, latest end among items)
+    let aggregateStart: string | null = null;
+    let aggregateEnd: string | null = null;
+    for (const it of request.items) {
+      if (it.startTime) {
+        if (!aggregateStart || it.startTime < aggregateStart) aggregateStart = it.startTime;
+      }
+      if (it.endTime) {
+        if (!aggregateEnd || it.endTime > aggregateEnd) aggregateEnd = it.endTime;
+      }
+    }
+
     await this.storage.createBooking({
       customerName: booking.customerName,
       customerEmail: booking.customerEmail,
@@ -169,8 +182,9 @@ export class CreateBookingFromCartService {
       childPaxTotal: request.items.reduce((sum, i) => sum + i.childPax, 0),
       holdId: createdHolds[0] || null, // Link primary hold (minimal corrective change)
       bookingSessionId: cartId,
-      startTime: request.items[0]?.startTime || null,
-      endTime: request.items[0]?.endTime || null
+      idempotencyKey: request.idempotencyKey || null,
+      startTime: aggregateStart,
+      endTime: aggregateEnd
     });
 
     // Persist all items
