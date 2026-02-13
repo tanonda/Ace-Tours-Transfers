@@ -117,7 +117,7 @@ export default function AdminTours() {
     totalTransfers: tours.filter(t => t.category === 'transfer').length,
     totalVehicles: tours.filter(t => t.category === 'vehicle').length,
     totalBookings: bookings.length,
-    totalRevenueCents: bookings.reduce((sum, b) => 
+    totalRevenueCents: bookings.reduce((sum, b) =>
       sum + (b.totalAmountCents || 0), 0
     )
   };
@@ -187,9 +187,13 @@ export default function AdminTours() {
                 </div>
                 <div className="p-4">
                   <h3 className="font-bold text-lg mb-1 line-clamp-1">{tour.title}</h3>
-                  <div className="flex items-center justify-between text-muted-foreground text-sm mb-4">
+                  <div className="flex items-center justify-between text-muted-foreground text-sm mb-2">
                     <span className="font-bold text-foreground">{formatPrice(tour.adultPriceCents)}</span>
                     <span>{tour.duration}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground mb-4 ">
+                    <Users className="h-3 w-3" />
+                    <span>Capacity: <span className="font-semibold text-foreground">{tour.defaultCapacity || 'Not set'}</span> {tour.category === 'vehicle' ? 'vehicles' : 'pax'}</span>
                   </div>
                   <div className="flex gap-2">
                     <Button variant="outline" size="sm" className="flex-1" onClick={() => handleEdit(tour)}>

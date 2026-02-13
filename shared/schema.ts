@@ -30,6 +30,8 @@ export const tours = pgTable("tours", {
   image: text("image").notNull(),
   description: text("description").array().notNull(),
   category: text("category").notNull(), // 'tour', 'transfer', or 'vehicle'
+  // DEPRECATED: Use defaultCapacity instead. This column will be removed in v2.0
+  // Keeping for backward compatibility only. Do not use in new code.
   capacity: integer("capacity").notNull().default(999),
   defaultCapacity: integer("default_capacity").notNull().default(20),
   vehicleDetails: jsonb("vehicle_details"), // { make, model, seats, transmission, features[] }

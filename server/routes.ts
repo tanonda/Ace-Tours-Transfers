@@ -139,7 +139,7 @@ export async function registerRoutes(
   registerAuthRoutes(app);
   registerUserRoutes(app);
 
-  const availabilityDomainService = new AvailabilityDomainService();
+  const availabilityDomainService = new AvailabilityDomainService(storage);
   const bookingApplicationService = new BookingApplicationService(storage, availabilityDomainService);
   const availabilityAppService = new AvailabilityApplicationService(storage);
 
@@ -159,11 +159,21 @@ export async function registerRoutes(
 
   app.post("/api/availability/check", async (req, res) => {
     try {
-      const { serviceId, date, guests } = req.body;
-      if (!serviceId || !date || !guests) return res.status(400).json({ error: "Missing required fields" });
-      const result = await bookingApplicationService.checkServiceAvailability(serviceId, date, guests);
+      const { serviceId, date, adultPax, childPax, addonIds } = req.body;
+
+      if (!serviceId || !date || adultPax === undefined || childPax === undefined) {
+        return res.status(400).json({ error: "Missing required fields: serviceId, date, adultPax, childPax" });
+      }
+
+      const result = await bookingApplicationService.checkServiceAvailability(
+        serviceId,
+        date,
+        { adultPax: parseInt(adultPax), childPax: parseInt(childPax), addonIds }
+      );
+
       res.json(result);
     } catch (error) {
+      console.error("[AVAILABILITY CHECK ERROR]", error);
       res.status(500).json({ error: "Failed to check availability" });
     }
   });
@@ -179,6 +189,40 @@ export async function registerRoutes(
       res.status(400).json({ error: error.message });
     }
   });
+
+  // Admin: Capacity Overview Dashboard
+  app.get("/api/admin/capacity-overview", requireAdmin, async (req, res) => {
+    try {
+      const startDate = (req.query.start as string) || new Date().toISOString().split("T")[0];
+      const endDate = (req.query.end as string) || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+
+      const { CapacityOverviewService } = await import("./application/admin/capacity-overview.service.js");
+      const service = new CapacityOverviewService(storage);
+      const overview = await service.getCapacityOverview(startDate, endDate);
+
+      res.json(overview);
+    } catch (error) {
+      console.error("[CAPACITY OVERVIEW ERROR]", error);
+      res.status(500).json({ error: "Failed to fetch capacity overview" });
+    }
+  });
+
+  app.get("/api/admin/capacity-summary", requireAdmin, async (req, res) => {
+    try {
+      const startDate = (req.query.start as string) || new Date().toISOString().split("T")[0];
+      const endDate = (req.query.end as string) || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+
+      const { CapacityOverviewService } = await import("./application/admin/capacity-overview.service.js");
+      const service = new CapacityOverviewService(storage);
+      const summary = await service.getCapacitySummary(startDate, endDate);
+
+      res.json(summary);
+    } catch (error) {
+      console.error("[CAPACITY SUMMARY ERROR]", error);
+      res.status(500).json({ error: "Failed to fetch capacity summary" });
+    }
+  });
+
 
   // Admin Capacity Override
   app.post("/api/admin/capacity/override", requireAdmin, async (req, res) => {

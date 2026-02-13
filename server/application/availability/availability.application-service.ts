@@ -27,13 +27,13 @@ export class AvailabilityApplicationService {
   }
 
   async createHold(request: HoldRequest): Promise<AvailabilityHold> {
-    return await this.availabilityService.createHold(
-      request.tourId,
-      request.date,
-      request.quantity,
-      request.sessionId,
-      request.slot
-    );
+    return await this.availabilityService.createHoldWithInvalidation({
+      tourId: request.tourId,
+      date: request.date,
+      quantity: request.quantity,
+      sessionId: request.sessionId,
+      slot: request.slot,
+    });
   }
 
   async confirmBooking(holdId: string): Promise<void> {
