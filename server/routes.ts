@@ -25,6 +25,7 @@ import { registerUserRoutes } from "./application/user.routes.js";
 import { registerPaymentRoutes } from "./application/payment.routes.js";
 import { AvailabilityApplicationService } from "./application/availability/availability.application-service.js";
 import { registerRecoveryRoutes } from "./routes/recovery.js";
+import { registerBookingEngineRoutes } from "./routes/booking-engine.js";
 import { BackupIntegrityGuard } from "./infrastructure/recovery/integrity-guard.js";
 import { ExpressSessionAdapter } from "./infrastructure/session.adapter.js";
 import { AvailabilityDomainService } from "./domain/services/availability.domain-service.js";
@@ -159,7 +160,7 @@ export async function registerRoutes(
 
   app.post("/api/availability/check", async (req, res) => {
     try {
-      const { serviceId, date, adultPax, childPax, addonIds } = req.body;
+      const { serviceId, date, adultPax, childPax, addonIds, startTime, endTime } = req.body;
 
       if (!serviceId || !date || adultPax === undefined || childPax === undefined) {
         return res.status(400).json({ error: "Missing required fields: serviceId, date, adultPax, childPax" });
@@ -168,7 +169,13 @@ export async function registerRoutes(
       const result = await bookingApplicationService.checkServiceAvailability(
         serviceId,
         date,
-        { adultPax: parseInt(adultPax), childPax: parseInt(childPax), addonIds }
+        {
+          adultPax: parseInt(adultPax),
+          childPax: parseInt(childPax),
+          addonIds,
+          startTime,
+          endTime
+        }
       );
 
       res.json(result);
@@ -180,10 +187,18 @@ export async function registerRoutes(
 
   app.post("/api/holds", async (req, res) => {
     try {
-      const { tourId, date, slot, quantity } = req.body;
+      const { tourId, date, slot, quantity, startTime, endTime } = req.body;
       const sessionId = req.sessionID;
       if (!tourId || !date || !quantity) return res.status(400).json({ error: "Missing required fields" });
-      const hold = await availabilityAppService.createHold({ tourId, date, slot, quantity: parseInt(quantity), sessionId });
+      const hold = await availabilityAppService.createHold({
+        tourId,
+        date,
+        slot,
+        quantity: parseInt(quantity),
+        sessionId,
+        startTime,
+        endTime
+      });
       res.status(201).json(hold);
     } catch (error: any) {
       res.status(400).json({ error: error.message });
@@ -666,6 +681,7 @@ export async function registerRoutes(
 
   registerPaymentRoutes(app, storage);
   await registerRecoveryRoutes(app, storage);
+  registerBookingEngineRoutes(app, storage, requireAdmin);
 
   return httpServer;
 }

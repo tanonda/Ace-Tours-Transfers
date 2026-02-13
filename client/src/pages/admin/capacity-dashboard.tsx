@@ -40,6 +40,11 @@ export default function CapacityDashboard() {
         refetchInterval: 30000,
     });
 
+    const { data: alerts = [] } = useQuery<string[]>({
+        queryKey: ["/api/admin/alerts"],
+        refetchInterval: 15000,
+    });
+
     const getStatusBadge = (status: TourCapacity["status"]) => {
         const variants: Record<TourCapacity["status"], { variant: "default" | "secondary" | "destructive" | "outline", label: string }> = {
             available: { variant: "default", label: "Available" },
@@ -57,6 +62,25 @@ export default function CapacityDashboard() {
                 <h1 className="text-3xl font-bold">Capacity Dashboard</h1>
                 <p className="text-muted-foreground">Real-time capacity utilization across all tours</p>
             </div>
+
+            {/* System Alerts Section */}
+            {alerts.length > 0 && (
+                <Card className="border-destructive bg-destructive/5">
+                    <CardHeader className="pb-2">
+                        <div className="flex items-center gap-2 text-destructive font-semibold">
+                            <AlertCircle className="h-5 w-5" />
+                            <CardTitle className="text-lg">System Alerts</CardTitle>
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        <ul className="list-disc list-inside space-y-1">
+                            {alerts.map((alert, idx) => (
+                                <li key={idx} className="text-sm text-destructive">{alert}</li>
+                            ))}
+                        </ul>
+                    </CardContent>
+                </Card>
+            )}
 
             {/* Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

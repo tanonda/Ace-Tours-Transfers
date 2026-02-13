@@ -23,7 +23,7 @@ export class BookingApplicationService {
   async checkServiceAvailability(
     serviceId: string,
     dateString: string,
-    guests: { adultPax: number; childPax: number; addonIds?: string[] }
+    guests: { adultPax: number; childPax: number; addonIds?: string[]; startTime?: string; endTime?: string }
   ): Promise<AvailabilityResult> {
     const totalGuests = guests.adultPax + guests.childPax;
 
@@ -34,7 +34,9 @@ export class BookingApplicationService {
       guests.adultPax,
       guests.childPax,
       undefined, // slot
-      guests.addonIds
+      guests.addonIds,
+      guests.startTime,
+      guests.endTime
     );
   }
 }

@@ -5,13 +5,17 @@ import {
   InsertTourInstance,
   InsertAvailabilityHold,
   tourInstances,
-  tours, // Added tours import
+  tours,
   availabilityHolds,
-  bookings
+  bookings,
+  resources
 } from "../../../shared/schema.js";
 import { db } from "../../db.js";
 import { eq, and, sql } from "drizzle-orm";
 import { availabilityCache } from "../../infrastructure/cache/availability-cache.service.js";
+import { AuditLogService } from "../../infrastructure/audit/audit-log.service.js";
+import { TimeInterval, intervalsOverlap, getDefaultInterval } from "./time-interval.js";
+import { metricsService } from "../../infrastructure/metrics/metrics.service.js";
 
 export enum HoldStatus {
   ACTIVE = 'ACTIVE',
@@ -22,28 +26,46 @@ export enum HoldStatus {
 
 export class AvailabilityService {
   private storage: IStorage;
+  private auditLog: AuditLogService;
 
   constructor(storage: IStorage) {
     this.storage = storage;
+    this.auditLog = new AuditLogService(storage);
   }
 
   /**
    * Checks availability for a given tour and date.
+   * Phase 2: Refactored to handle multiple sessions per day via overlap detection.
    * Note: This is ADVISORY and not authoritative.
    */
-  async checkAvailability(tourId: string, date: string, slot?: string): Promise<number> {
-    const instance = await this.storage.getTourInstance(tourId, date, slot);
-    if (!instance) {
-      // If no instance exists, we might return total capacity if we have a default for the tour,
-      // but for now let's assume instances are pre-created or lazy-created with a default.
-      // Re-evaluating: Admin should setup capacity. If not setup, default to 0 or a tour default.
-      const tour = await this.storage.getTour(tourId);
-      if (!tour) return 0;
-      return 0; // Require admin to set capacity for production safety? 
-      // Or we could have a default_capacity on Tour.
+  async checkAvailability(tourId: string, date: string, slot?: string, startTime?: string, endTime?: string): Promise<number> {
+    const product = await this.storage.getTour(tourId);
+    if (!product) return 0;
+
+    const requestedInterval = getDefaultInterval(product.category, startTime, endTime);
+
+    // Fetch all instances for this product on this date
+    const allInstances = await this.storage.getTourInstances(tourId, date);
+
+    // Find instances that overlap with the requested interval
+    const overlappingInstances = allInstances.filter(instance => {
+      if (slot && instance.timeSlot === slot) return true;
+      const instanceInterval: TimeInterval = { startTime: instance.startTime, endTime: instance.endTime };
+      return intervalsOverlap(requestedInterval, instanceInterval);
+    });
+
+    if (overlappingInstances.length === 0) {
+      return product.defaultCapacity || 0;
     }
 
-    return instance.totalCapacity - (instance.confirmedCount + instance.heldCount + instance.blockedCount);
+    // Minimum remaining capacity across all overlapping pools
+    let minAvailable = Infinity;
+    for (const instance of overlappingInstances) {
+      const available = instance.totalCapacity - (instance.confirmedCount + instance.heldCount + instance.blockedCount);
+      if (available < minAvailable) minAvailable = available;
+    }
+
+    return minAvailable === Infinity ? 0 : Math.max(0, minAvailable);
   }
 
   /**
@@ -56,16 +78,66 @@ export class AvailabilityService {
     quantity: number,
     sessionId: string,
     slot?: string,
-    ttlMinutes: number = 15
+    ttlMinutes: number = 15,
+    startTime?: string,
+    endTime?: string,
+    pinnedResourceId?: string // Phase 1: Support pinning a resource for multi-day consistency
   ): Promise<AvailabilityHold> {
+    // Phase 4: Check blackout dates (applies to all product types: tours, transfers, vehicles)
+    const isBlacked = await this.storage.isBlackedOut(tourId, date);
+    if (isBlacked) {
+      throw new Error(`This date (${date}) is not available for bookings (blackout period).`);
+    }
+
+    // Phase 1: Determine if this is a vehicle (asset-allocated) product
+    const product = await this.storage.getTour(tourId);
+    if (!product) throw new Error(`Product ${tourId} not found`);
+    const isVehicle = product.category === 'vehicle';
+
     return await db.transaction(async (tx: any) => {
       // 1. Get or Create TourInstance with LOCK
-      let instance = await this.getOrCreateInstanceLocked(tx, tourId, date, slot);
+      let instance = await this.getOrCreateInstanceLocked(tx, tourId, date, slot, startTime, endTime);
+
+      const previousState = {
+        confirmedCount: instance.confirmedCount,
+        heldCount: instance.heldCount,
+        blockedCount: instance.blockedCount,
+      };
 
       // 2. Validate Capacity
       const available = instance.totalCapacity - (instance.confirmedCount + instance.heldCount + instance.blockedCount);
       if (available < quantity) {
         throw new Error(`Insufficient availability. Requested ${quantity}, available ${available}`);
+      }
+
+      // Phase 1: Resource allocation for vehicles
+      let resourceId: string | null = pinnedResourceId || null;
+      if (isVehicle) {
+        if (resourceId) {
+          // Verify pinned resource is actually available on this date (locked within instance tx)
+          const isHeld = await tx
+            .select()
+            .from(availabilityHolds)
+            .where(and(
+              eq(availabilityHolds.tourInstanceId, instance.id),
+              eq(availabilityHolds.resourceId, resourceId),
+              sql`status IN ('ACTIVE', 'CONFIRMED')`
+            ))
+            .limit(1);
+
+          if (isHeld.length > 0) {
+            throw new Error(`Vehicle ${resourceId} is already reserved for ${date}`);
+          }
+        } else {
+          const availableResources = await this.storage.getAvailableResources(tourId, date);
+          if (availableResources.length === 0) {
+            throw new Error(
+              `No available ${product.title} units for ${date}. All vehicles are currently reserved.`
+            );
+          }
+          // Allocate first available resource
+          resourceId = availableResources[0].id;
+        }
       }
 
       // 3. Update held count
@@ -74,20 +146,50 @@ export class AvailabilityService {
         .set({ heldCount: instance.heldCount + quantity })
         .where(eq(tourInstances.id, instance.id));
 
-      // 4. Create Hold record
+      // 4. Create Hold record (with optional resourceId for vehicles)
       const expiresAt = new Date();
       expiresAt.setMinutes(expiresAt.getMinutes() + ttlMinutes);
 
+      const holdValues: any = {
+        tourInstanceId: instance.id,
+        quantity,
+        status: HoldStatus.ACTIVE,
+        expiresAt,
+        bookingSessionId: sessionId,
+      };
+      if (resourceId) {
+        holdValues.resourceId = resourceId;
+      }
+
       const [hold] = await tx
         .insert(availabilityHolds)
-        .values({
-          tourInstanceId: instance.id,
-          quantity,
-          status: HoldStatus.ACTIVE,
-          expiresAt,
-          bookingSessionId: sessionId
-        })
+        .values(holdValues)
         .returning();
+
+      // Phase 7: Audit log
+      await this.auditLog.log({
+        tourInstanceId: instance.id,
+        productId: tourId,
+        action: 'hold_created',
+        quantity,
+        previousState,
+        newState: {
+          confirmedCount: instance.confirmedCount,
+          heldCount: instance.heldCount + quantity,
+          blockedCount: instance.blockedCount,
+        },
+        metadata: {
+          holdId: hold.id,
+          sessionId,
+          slot,
+          resourceId,
+          productCategory: product.category,
+          expiresAt: expiresAt.toISOString(),
+        },
+      }, tx);
+
+      // Phase 8: Metrics
+      metricsService.incrementHoldCreation();
 
       return hold;
     });
@@ -103,6 +205,9 @@ export class AvailabilityService {
     quantity: number;
     sessionId: string;
     ttlMinutes?: number;
+    startTime?: string;
+    endTime?: string;
+    pinnedResourceId?: string;
   }): Promise<AvailabilityHold> {
     const hold = await this.createHold(
       params.tourId,
@@ -110,7 +215,10 @@ export class AvailabilityService {
       params.quantity,
       params.sessionId,
       params.slot,
-      params.ttlMinutes
+      params.ttlMinutes,
+      params.startTime,
+      params.endTime,
+      params.pinnedResourceId
     );
 
     // Invalidate cache for this tour instance
@@ -132,6 +240,11 @@ export class AvailabilityService {
         .for('update');
 
       if (!hold) throw new Error("Hold not found");
+
+      // Phase 6: Idempotent confirmation — if already confirmed, return silently
+      if (hold.status === HoldStatus.CONFIRMED) {
+        return;
+      }
       if (hold.status !== HoldStatus.ACTIVE) {
         throw new Error(`Cannot confirm hold in status: ${hold.status}`);
       }
@@ -143,12 +256,20 @@ export class AvailabilityService {
         .where(eq(tourInstances.id, hold.tourInstanceId))
         .for('update');
 
+      const previousState = {
+        confirmedCount: instance.confirmedCount,
+        heldCount: instance.heldCount,
+        blockedCount: instance.blockedCount,
+      };
+
       // 3. Transition counts
+      const newHeldCount = Math.max(0, instance.heldCount - hold.quantity);
+      const newConfirmedCount = instance.confirmedCount + hold.quantity;
       await tx
         .update(tourInstances)
         .set({
-          heldCount: Math.max(0, instance.heldCount - hold.quantity),
-          confirmedCount: instance.confirmedCount + hold.quantity
+          heldCount: newHeldCount,
+          confirmedCount: newConfirmedCount
         })
         .where(eq(tourInstances.id, instance.id));
 
@@ -157,10 +278,27 @@ export class AvailabilityService {
         .update(availabilityHolds)
         .set({ status: HoldStatus.CONFIRMED })
         .where(eq(availabilityHolds.id, holdId));
+
+      // Phase 7: Audit log
+      await this.auditLog.log({
+        tourInstanceId: instance.id,
+        productId: instance.tourId,
+        action: 'booking_confirmed',
+        quantity: hold.quantity,
+        previousState,
+        newState: {
+          confirmedCount: newConfirmedCount,
+          heldCount: newHeldCount,
+          blockedCount: instance.blockedCount,
+        },
+        metadata: { holdId, resourceId: hold.resourceId },
+      }, tx);
+
+      // Phase 8: Metrics
+      metricsService.incrementHoldConfirmation();
     });
 
     // CRITICAL: Invalidate cache after confirming booking
-    // We need to get the hold to extract tourId and date
     const [holdData] = await db
       .select({
         tourInstanceId: availabilityHolds.tourInstanceId,
@@ -251,10 +389,38 @@ export class AvailabilityService {
         .for('update');
 
       if (instance) {
+        const previousState = {
+          confirmedCount: instance.confirmedCount,
+          heldCount: instance.heldCount,
+          blockedCount: instance.blockedCount,
+        };
+        const newHeldCount = Math.max(0, instance.heldCount - hold.quantity);
+
         await tx
           .update(tourInstances)
-          .set({ heldCount: Math.max(0, instance.heldCount - hold.quantity) })
+          .set({ heldCount: newHeldCount })
           .where(eq(tourInstances.id, instance.id));
+
+        // Phase 7: Audit log
+        const action = status === HoldStatus.EXPIRED ? 'hold_expired' : 'hold_released';
+        await this.auditLog.log({
+          tourInstanceId: instance.id,
+          productId: instance.tourId,
+          action,
+          quantity: hold.quantity,
+          previousState,
+          newState: {
+            confirmedCount: instance.confirmedCount,
+            heldCount: newHeldCount,
+            blockedCount: instance.blockedCount,
+          },
+          metadata: { holdId, resourceId: hold.resourceId },
+        }, tx);
+
+        // Phase 8: Metrics
+        if (status === HoldStatus.EXPIRED) {
+          metricsService.incrementHoldExpiration();
+        }
       }
 
       await tx
@@ -277,21 +443,54 @@ export class AvailabilityService {
 
       if (!instance) throw new Error("Instance not found");
 
+      const previousState = {
+        confirmedCount: instance.confirmedCount,
+        heldCount: instance.heldCount,
+        blockedCount: instance.blockedCount,
+      };
+
+      const newTotalCapacity = update.totalCapacity ?? instance.totalCapacity;
+      const newBlockedCount = update.blockedCount ?? instance.blockedCount;
+
       const [updated] = await tx
         .update(tourInstances)
         .set({
-          totalCapacity: update.totalCapacity ?? instance.totalCapacity,
-          blockedCount: update.blockedCount ?? instance.blockedCount,
+          totalCapacity: newTotalCapacity,
+          blockedCount: newBlockedCount,
           updatedAt: new Date()
         })
         .where(eq(tourInstances.id, instanceId))
         .returning();
 
+      // Phase 7: Audit log
+      await this.auditLog.log({
+        tourInstanceId: instanceId,
+        productId: instance.tourId,
+        action: 'manual_adjustment',
+        previousState,
+        newState: {
+          confirmedCount: instance.confirmedCount,
+          heldCount: instance.heldCount,
+          blockedCount: newBlockedCount,
+        },
+        metadata: {
+          totalCapacityChange: update.totalCapacity !== undefined ? { from: instance.totalCapacity, to: newTotalCapacity } : undefined,
+          blockedCountChange: update.blockedCount !== undefined ? { from: instance.blockedCount, to: newBlockedCount } : undefined,
+        },
+      }, tx);
+
       return updated;
     });
   }
 
-  private async getOrCreateInstanceLocked(tx: any, tourId: string, date: string, slot?: string): Promise<TourInstance> {
+  private async getOrCreateInstanceLocked(
+    tx: any,
+    tourId: string,
+    date: string,
+    slot?: string,
+    startTime?: string,
+    endTime?: string
+  ): Promise<TourInstance> {
     let filters = [eq(tourInstances.tourId, tourId), eq(tourInstances.serviceDate, date)];
     if (slot) {
       filters.push(eq(tourInstances.timeSlot, slot));
@@ -341,6 +540,8 @@ export class AvailabilityService {
           serviceDate: date,
           timeSlot: slot || null,
           totalCapacity: capacity,
+          startTime: startTime || null,
+          endTime: endTime || null,
         })
         .returning();
 
@@ -349,7 +550,13 @@ export class AvailabilityService {
       return locked;
     } catch (e) {
       // If someone else inserted it between our check and insert, query it again
-      const [retry] = await tx.select().from(tourInstances).where(and(eq(tourInstances.tourId, tourId), eq(tourInstances.serviceDate, date))).for('update');
+      let retryQuery = tx.select().from(tourInstances).where(and(eq(tourInstances.tourId, tourId), eq(tourInstances.serviceDate, date)));
+      if (slot) {
+        retryQuery = retryQuery.where(eq(tourInstances.timeSlot, slot));
+      } else {
+        retryQuery = retryQuery.where(sql`time_slot IS NULL`);
+      }
+      const [retry] = await retryQuery.for('update');
       if (retry) return retry;
       throw e;
     }

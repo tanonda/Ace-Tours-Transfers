@@ -15,6 +15,10 @@ import {
   revenueDaily,
   paymentOverviews,
   notifications,
+  resources,
+  productBlackoutDates,
+  pricingVersions,
+  capacityAuditLog,
   type User,
   type InsertUser,
   type Tour,
@@ -55,10 +59,18 @@ import {
   type InsertAddon,
   bookingAddons,
   type BookingAddon,
-  type InsertBookingAddon
+  type InsertBookingAddon,
+  type Resource,
+  type InsertResource,
+  type BlackoutDate,
+  type InsertBlackoutDate,
+  type PricingVersion,
+  type InsertPricingVersion,
+  type CapacityAuditLog,
+  type InsertCapacityAuditLog
 } from "../shared/schema.js";
 import { db } from "./db.js";
-import { eq, like, desc, and, or, isNull, sql } from "drizzle-orm";
+import { eq, like, desc, and, or, isNull, sql, lte, asc } from "drizzle-orm";
 
 export interface IStorage {
   // User operations
@@ -164,10 +176,12 @@ export interface IStorage {
   deleteCmsContent(id: string): Promise<void>;
 
   // Availability & Holds
+  getTourInstances(tourId: string, date: string): Promise<TourInstance[]>;
   getTourInstance(tourId: string, date: string, slot?: string): Promise<TourInstance | undefined>;
   getTourInstanceById(id: string): Promise<TourInstance | undefined>;
   createTourInstance(instance: InsertTourInstance): Promise<TourInstance>;
   updateTourInstance(id: string, data: Partial<InsertTourInstance>): Promise<TourInstance>;
+  deleteTourInstance(id: string): Promise<void>;
 
   getHold(id: string): Promise<AvailabilityHold | undefined>;
   createHold(hold: InsertAvailabilityHold): Promise<AvailabilityHold>;
@@ -185,6 +199,30 @@ export interface IStorage {
   getFeatureFlags(): Promise<FeatureFlag[]>;
   getFeatureFlag(slug: string): Promise<FeatureFlag | undefined>;
   upsertFeatureFlag(flag: InsertFeatureFlag): Promise<FeatureFlag>;
+
+  // Resources (Phase 1 — vehicles & asset-allocated products)
+  getResourcesByProduct(productId: string): Promise<Resource[]>;
+  getResource(id: string): Promise<Resource | undefined>;
+  getAvailableResources(productId: string, date: string): Promise<Resource[]>;
+  getAvailableResourcesMultiDay(productId: string, startDate: string, duration: number): Promise<Resource[]>;
+  createResource(resource: InsertResource): Promise<Resource>;
+  updateResource(id: string, data: Partial<InsertResource>): Promise<Resource>;
+  deleteResource(id: string): Promise<void>;
+
+  // Blackout Dates (Phase 4 — tours, transfers, vehicles)
+  getBlackoutDates(productId: string): Promise<BlackoutDate[]>;
+  isBlackedOut(productId: string, date: string): Promise<boolean>;
+  createBlackoutDate(data: InsertBlackoutDate): Promise<BlackoutDate>;
+  deleteBlackoutDate(id: string): Promise<void>;
+
+  // Pricing Versions (Phase 5)
+  getPricingVersions(productId: string): Promise<PricingVersion[]>;
+  getEffectivePricingVersion(productId: string, date: string): Promise<PricingVersion | undefined>;
+  createPricingVersion(version: InsertPricingVersion): Promise<PricingVersion>;
+
+  // Capacity Audit Log (Phase 7)
+  createAuditLogEntry(entry: InsertCapacityAuditLog, tx?: any): Promise<CapacityAuditLog>;
+  getAuditLog(filters?: { productId?: string; action?: string; limit?: number; offset?: number }): Promise<CapacityAuditLog[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -742,6 +780,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Availability & Holds
+  async getTourInstances(tourId: string, date: string): Promise<TourInstance[]> {
+    return await db
+      .select()
+      .from(tourInstances)
+      .where(and(eq(tourInstances.tourId, tourId), eq(tourInstances.serviceDate, date)));
+  }
+
   async getTourInstance(tourId: string, date: string, slot?: string): Promise<TourInstance | undefined> {
     const filters = [eq(tourInstances.tourId, tourId), eq(tourInstances.serviceDate, date)];
     if (slot) {
@@ -771,6 +816,10 @@ export class DatabaseStorage implements IStorage {
       .where(eq(tourInstances.id, id))
       .returning();
     return updated;
+  }
+
+  async deleteTourInstance(id: string): Promise<void> {
+    await db.delete(tourInstances).where(eq(tourInstances.id, id));
   }
 
   async getHold(id: string): Promise<AvailabilityHold | undefined> {
@@ -872,6 +921,171 @@ export class DatabaseStorage implements IStorage {
     }
     const [created] = await db.insert(featureFlags).values(flag).returning();
     return created;
+  }
+
+  // Resources (Phase 1)
+  async getResourcesByProduct(productId: string): Promise<Resource[]> {
+    return await db.select().from(resources).where(eq(resources.productId, productId));
+  }
+
+  async getResource(id: string): Promise<Resource | undefined> {
+    const [resource] = await db.select().from(resources).where(eq(resources.id, id));
+    return resource || undefined;
+  }
+
+  async getAvailableResources(productId: string, date: string): Promise<Resource[]> {
+    // Find resources for this product that are active and NOT held on the given date
+    const allResources = await db.select().from(resources)
+      .where(and(eq(resources.productId, productId), eq(resources.status, 'active')));
+
+    // Get all active holds for this product on this date
+    const activeHoldResources = await db
+      .select({ resourceId: availabilityHolds.resourceId })
+      .from(availabilityHolds)
+      .innerJoin(tourInstances, eq(availabilityHolds.tourInstanceId, tourInstances.id))
+      .where(and(
+        eq(tourInstances.tourId, productId),
+        eq(tourInstances.serviceDate, date),
+        eq(availabilityHolds.status, 'ACTIVE'),
+        sql`${availabilityHolds.resourceId} IS NOT NULL`
+      ));
+
+    confirmedHoldResources.forEach(h => { if (h.resourceId) heldResourceIds.add(h.resourceId); });
+
+    return allResources.filter(r => !heldResourceIds.has(r.id));
+  }
+
+  async getAvailableResourcesMultiDay(productId: string, startDate: string, duration: number): Promise<Resource[]> {
+    const start = new Date(startDate);
+    const dates: string[] = [];
+    for (let i = 0; i < duration; i++) {
+      const d = new Date(start);
+      d.setDate(start.getDate() + i);
+      dates.push(d.toISOString().split('T')[0]);
+    }
+
+    // A resource is available for the multi-day period if it is available on EACH day
+    const allResources = await db.select().from(resources)
+      .where(and(eq(resources.productId, productId), eq(resources.status, 'active')));
+
+    // Get all active or confirmed holds for this product across ANY of the requested dates
+    const heldResources = await db
+      .select({ resourceId: availabilityHolds.resourceId, date: tourInstances.serviceDate })
+      .from(availabilityHolds)
+      .innerJoin(tourInstances, eq(availabilityHolds.tourInstanceId, tourInstances.id))
+      .where(and(
+        eq(tourInstances.tourId, productId),
+        sql`tour_instances.service_date IN ${dates}`,
+        sql`availability_holds.status IN ('ACTIVE', 'CONFIRMED')`,
+        sql`${availabilityHolds.resourceId} IS NOT NULL`
+      ));
+
+    const heldResourceIdsByDate = new Map<string, Set<string>>();
+    heldResources.forEach(h => {
+      if (!h.resourceId) return;
+      if (!heldResourceIdsByDate.has(h.date)) {
+        heldResourceIdsByDate.set(h.date, new Set());
+      }
+      heldResourceIdsByDate.get(h.date)!.add(h.resourceId);
+    });
+
+    return allResources.filter(resource => {
+      // Resource must be free on EVERY day
+      return dates.every(date => {
+        const heldOnDate = heldResourceIdsByDate.get(date);
+        return !heldOnDate || !heldOnDate.has(resource.id);
+      });
+    });
+  }
+
+  async createResource(resource: InsertResource): Promise<Resource> {
+    const [created] = await db.insert(resources).values(resource).returning();
+    return created;
+  }
+
+  async updateResource(id: string, data: Partial<InsertResource>): Promise<Resource> {
+    const [updated] = await db
+      .update(resources)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(resources.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteResource(id: string): Promise<void> {
+    await db.delete(resources).where(eq(resources.id, id));
+  }
+
+  // Blackout Dates (Phase 4)
+  async getBlackoutDates(productId: string): Promise<BlackoutDate[]> {
+    return await db.select().from(productBlackoutDates)
+      .where(eq(productBlackoutDates.productId, productId))
+      .orderBy(productBlackoutDates.date);
+  }
+
+  async isBlackedOut(productId: string, date: string): Promise<boolean> {
+    const [result] = await db.select().from(productBlackoutDates)
+      .where(and(
+        eq(productBlackoutDates.productId, productId),
+        eq(productBlackoutDates.date, date)
+      ));
+    return !!result;
+  }
+
+  async createBlackoutDate(data: InsertBlackoutDate): Promise<BlackoutDate> {
+    const [created] = await db.insert(productBlackoutDates).values(data).returning();
+    return created;
+  }
+
+  async deleteBlackoutDate(id: string): Promise<void> {
+    await db.delete(productBlackoutDates).where(eq(productBlackoutDates.id, id));
+  }
+
+  // Pricing Versions (Phase 5)
+  async getPricingVersions(productId: string): Promise<PricingVersion[]> {
+    return await db.select().from(pricingVersions)
+      .where(eq(pricingVersions.productId, productId))
+      .orderBy(desc(pricingVersions.effectiveFrom));
+  }
+
+  async getEffectivePricingVersion(productId: string, date: string): Promise<PricingVersion | undefined> {
+    // Find the most recent version effective on or before the given date
+    const [version] = await db.select().from(pricingVersions)
+      .where(and(
+        eq(pricingVersions.productId, productId),
+        lte(pricingVersions.effectiveFrom, date)
+      ))
+      .orderBy(desc(pricingVersions.effectiveFrom))
+      .limit(1);
+    return version || undefined;
+  }
+
+  async createPricingVersion(version: InsertPricingVersion): Promise<PricingVersion> {
+    const [created] = await db.insert(pricingVersions).values(version).returning();
+    return created;
+  }
+
+  // Capacity Audit Log (Phase 7)
+  async createAuditLogEntry(entry: InsertCapacityAuditLog, tx?: any): Promise<CapacityAuditLog> {
+    const executor = tx || db;
+    const [created] = await executor.insert(capacityAuditLog).values(entry).returning();
+    return created;
+  }
+
+  async getAuditLog(filters?: { productId?: string; action?: string; limit?: number; offset?: number }): Promise<CapacityAuditLog[]> {
+    const conditions = [];
+    if (filters?.productId) conditions.push(eq(capacityAuditLog.productId, filters.productId));
+    if (filters?.action) conditions.push(eq(capacityAuditLog.action, filters.action));
+
+    const query = db.select().from(capacityAuditLog)
+      .orderBy(desc(capacityAuditLog.createdAt))
+      .limit(filters?.limit || 100)
+      .offset(filters?.offset || 0);
+
+    if (conditions.length > 0) {
+      return await query.where(and(...conditions));
+    }
+    return await query;
   }
 }
 

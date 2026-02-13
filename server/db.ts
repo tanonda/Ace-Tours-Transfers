@@ -18,8 +18,8 @@ console.log("Initializing database connection...");
 export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   connectionTimeoutMillis: 30000, // 30 seconds
-  max: 20, 
-  idleTimeoutMillis: 60000, 
+  max: 20,
+  idleTimeoutMillis: 60000,
 });
 
 // Add error handling for the pool

@@ -10,6 +10,9 @@ export interface HoldRequest {
   slot?: string;
   quantity: number;
   sessionId: string;
+  startTime?: string;
+  endTime?: string;
+  pinnedResourceId?: string;
 }
 
 export class AvailabilityApplicationService {
@@ -33,6 +36,9 @@ export class AvailabilityApplicationService {
       quantity: request.quantity,
       sessionId: request.sessionId,
       slot: request.slot,
+      startTime: request.startTime,
+      endTime: request.endTime,
+      pinnedResourceId: request.pinnedResourceId
     });
   }
 

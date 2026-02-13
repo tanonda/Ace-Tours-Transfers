@@ -22,7 +22,7 @@ export class PriceCartService {
         throw new Error(`Product ${item.productId} not found`);
       }
 
-      const rates = await this.priceResolver.getTourRate(item.productId);
+      const rates = await this.priceResolver.getTourRate(item.productId, item.date);
       if (!rates) {
         throw new Error(`Rates for product ${item.productId} not found`);
       }
