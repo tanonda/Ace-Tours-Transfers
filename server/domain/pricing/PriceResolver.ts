@@ -21,13 +21,28 @@ export class PriceResolver {
   }
 
   /**
-   * Fetch the current rates for a tour.
+   * Fetch the effective rates for a tour at a given point in time.
+   * Phase 5: First checks pricing_versions for a versioned rate,
+   * then falls back to the product's current price columns.
+   * @param tourId Product ID
+   * @param date Optional booking date (YYYY-MM-DD) for versioned pricing lookup
    */
-  async getTourRate(tourId: string): Promise<TourRate | null> {
+  async getTourRate(tourId: string, date?: string): Promise<TourRate | null> {
     const tour = await this.storage.getTour(tourId);
     if (!tour) return null;
 
-    // Use cents if available, otherwise fallback to parsing deprecated text fields
+    // Phase 5: Try versioned pricing first
+    if (date) {
+      const version = await this.storage.getEffectivePricingVersion(tourId, date);
+      if (version) {
+        return {
+          adultPriceCents: version.adultPriceCents,
+          childPriceCents: version.childPriceCents,
+        };
+      }
+    }
+
+    // Fallback: Use product's current price (cents if available, otherwise parse text)
     let adultPriceCents = tour.adultPriceCents;
     let childPriceCents = tour.childPriceCents;
 

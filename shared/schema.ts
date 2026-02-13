@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, timestamp, decimal, boolean, jsonb, index } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, timestamp, decimal, boolean, jsonb, index, uniqueIndex } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -42,19 +42,34 @@ export const tourInstances = pgTable("tour_instances", {
   tourId: varchar("tour_id").notNull().references(() => tours.id),
   serviceDate: text("service_date").notNull(),
   timeSlot: text("time_slot"), // optional time slot
+  startTime: text("start_time"), // HH:MM format, null = full day (Phase 2)
+  endTime: text("end_time"),     // HH:MM format, null = full day (Phase 2)
   totalCapacity: integer("total_capacity").notNull(),
   confirmedCount: integer("confirmed_count").notNull().default(0),
   heldCount: integer("held_count").notNull().default(0),
   blockedCount: integer("blocked_count").notNull().default(0),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => ({
-  instanceUniqueIdx: index("idx_tour_instances_unique")
+  instanceUniqueIdx: uniqueIndex("idx_tour_instances_unique")
     .on(table.tourId, table.serviceDate, table.timeSlot)
 }));
+
+// Phase 1: Resources table for asset-allocated products (vehicles, specific transfer buses)
+export const resources = pgTable("resources", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  productId: varchar("product_id").notNull().references(() => tours.id),
+  name: text("name").notNull(), // e.g. "Toyota Hilux #1", "Airport Bus A"
+  seatCapacity: integer("seat_capacity").notNull(), // vehicle seats or bus capacity
+  status: text("status").notNull().default("active"), // 'active', 'maintenance'
+  metadata: jsonb("metadata"), // { licensePlate, color, etc. }
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
 
 export const availabilityHolds = pgTable("availability_holds", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   tourInstanceId: varchar("tour_instance_id").notNull().references(() => tourInstances.id),
+  resourceId: varchar("resource_id").references(() => resources.id), // Phase 1: tracks specific vehicle/asset
   quantity: integer("quantity").notNull(),
   status: text("status").notNull().default("ACTIVE"), // 'ACTIVE', 'EXPIRED', 'CONFIRMED', 'RELEASED'
   expiresAt: timestamp("expires_at").notNull(),
@@ -66,10 +81,13 @@ export const bookings = pgTable("bookings", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").references(() => users.id),
   bookingSessionId: text("booking_session_id").notNull().default(""),
+  idempotencyKey: varchar("idempotency_key").unique(), // Phase 6: prevents double-booking
   tourId: varchar("tour_id").notNull().references(() => tours.id), // Legacy: First item for quick ref
   tourInstanceId: varchar("tour_instance_id").references(() => tourInstances.id),
   holdId: varchar("hold_id").references(() => availabilityHolds.id),
   date: text("date").notNull(),
+  startTime: text("start_time"), // Phase 2: HH:MM format
+  endTime: text("end_time"),     // Phase 2: HH:MM format
   guests: integer("guests").notNull(),
   amount: text("amount").notNull(), // DEPRECATED: use totalAmountCents
   totalAmountCents: integer("total_amount_cents").notNull().default(0),
@@ -254,6 +272,46 @@ export const paymentOverviews = pgTable("payment_overviews", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+// Phase 4: Blackout dates per product (tours, transfers, vehicles)
+export const productBlackoutDates = pgTable("product_blackout_dates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  productId: varchar("product_id").notNull().references(() => tours.id),
+  date: text("date").notNull(),       // YYYY-MM-DD
+  reason: text("reason"),
+  createdBy: varchar("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  uniqueIdx: index("idx_blackout_unique").on(table.productId, table.date),
+}));
+
+// Phase 5: Pricing version history
+export const pricingVersions = pgTable("pricing_versions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  productId: varchar("product_id").notNull().references(() => tours.id),
+  effectiveFrom: text("effective_from").notNull(), // YYYY-MM-DD
+  adultPriceCents: integer("adult_price_cents").notNull(),
+  childPriceCents: integer("child_price_cents").notNull().default(0), // 0 for transfers/vehicles
+  ruleMetadata: jsonb("rule_metadata"), // { groupDiscountThreshold, seasonalRules, etc. }
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  createdBy: varchar("created_by").references(() => users.id),
+}, (table) => ({
+  effectiveIdx: index("idx_pricing_effective").on(table.productId, table.effectiveFrom),
+}));
+
+// Phase 7: Capacity audit log
+export const capacityAuditLog = pgTable("capacity_audit_log", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tourInstanceId: varchar("tour_instance_id").references(() => tourInstances.id),
+  productId: varchar("product_id").notNull(),
+  action: text("action").notNull(), // 'hold_created', 'hold_expired', 'booking_confirmed', 'booking_cancelled', 'manual_adjustment'
+  quantity: integer("quantity"),
+  previousState: jsonb("previous_state"), // { confirmedCount, heldCount, blockedCount }
+  newState: jsonb("new_state"),
+  performedBy: varchar("performed_by"), // userId or 'system'
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   bookings: many(bookings),
@@ -261,6 +319,17 @@ export const usersRelations = relations(users, ({ many }) => ({
 
 export const toursRelations = relations(tours, ({ many }) => ({
   bookings: many(bookings),
+  resources: many(resources),
+  blackoutDates: many(productBlackoutDates),
+  pricingVersions: many(pricingVersions),
+}));
+
+export const resourcesRelations = relations(resources, ({ one, many }) => ({
+  product: one(tours, {
+    fields: [resources.productId],
+    references: [tours.id],
+  }),
+  holds: many(availabilityHolds),
 }));
 
 export const bookingsRelations = relations(bookings, ({ one, many }) => ({
@@ -321,7 +390,33 @@ export const availabilityHoldsRelations = relations(availabilityHolds, ({ one })
     fields: [availabilityHolds.tourInstanceId],
     references: [tourInstances.id],
   }),
+  resource: one(resources, {
+    fields: [availabilityHolds.resourceId],
+    references: [resources.id],
+  }),
   booking: one(bookings), // This might need a field if it's 1:1, but many bookings could technically exist for a hold if we failed something? Usually 1:1.
+}));
+
+export const productBlackoutDatesRelations = relations(productBlackoutDates, ({ one }) => ({
+  product: one(tours, {
+    fields: [productBlackoutDates.productId],
+    references: [tours.id],
+  }),
+  creator: one(users, {
+    fields: [productBlackoutDates.createdBy],
+    references: [users.id],
+  }),
+}));
+
+export const pricingVersionsRelations = relations(pricingVersions, ({ one }) => ({
+  product: one(tours, {
+    fields: [pricingVersions.productId],
+    references: [tours.id],
+  }),
+  creator: one(users, {
+    fields: [pricingVersions.createdBy],
+    references: [users.id],
+  }),
 }));
 
 export const paymentsRelations = relations(payments, ({ one }) => ({
@@ -672,6 +767,39 @@ export type CmsContent = typeof cmsContent.$inferSelect;
 export type InsertFeatureFlag = z.infer<typeof insertFeatureFlagSchema>;
 export type FeatureFlag = typeof featureFlags.$inferSelect;
 export type BookingStatus = "pending" | "confirmed" | "completed" | "cancelled";
+
+// Phase 1: Resource types
+export const insertResourceSchema = createInsertSchema(resources).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertResource = z.infer<typeof insertResourceSchema>;
+export type Resource = typeof resources.$inferSelect;
+
+// Phase 4: Blackout date types
+export const insertBlackoutDateSchema = createInsertSchema(productBlackoutDates).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertBlackoutDate = z.infer<typeof insertBlackoutDateSchema>;
+export type BlackoutDate = typeof productBlackoutDates.$inferSelect;
+
+// Phase 5: Pricing version types
+export const insertPricingVersionSchema = createInsertSchema(pricingVersions).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertPricingVersion = z.infer<typeof insertPricingVersionSchema>;
+export type PricingVersion = typeof pricingVersions.$inferSelect;
+
+// Phase 7: Audit log types
+export const insertCapacityAuditLogSchema = createInsertSchema(capacityAuditLog).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertCapacityAuditLog = z.infer<typeof insertCapacityAuditLogSchema>;
+export type CapacityAuditLog = typeof capacityAuditLog.$inferSelect;
 
 // Notifications
 export const notifications = pgTable("notifications", {

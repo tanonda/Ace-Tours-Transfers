@@ -4,6 +4,7 @@ import { IStorage } from "../../storage.js";
 import { PriceResolver } from "../pricing/PriceResolver.js";
 import { availabilityCache } from "../../infrastructure/cache/availability-cache.service.js";
 import { capacityAlertService } from "../../application/alerts/capacity-alert.service.js";
+import { TimeInterval, intervalsOverlap, getDefaultInterval } from "../availability/time-interval.js";
 
 export interface AvailabilityResult {
   isAvailable: boolean;
@@ -58,7 +59,9 @@ export class AvailabilityDomainService {
     adultPax: number,
     childPax: number,
     slot?: string,
-    addonIds?: string[]
+    addonIds?: string[],
+    startTime?: string,
+    endTime?: string
   ): Promise<AvailabilityResult> {
     // Validation
     if (requestedGuests <= 0) {
@@ -66,6 +69,16 @@ export class AvailabilityDomainService {
         isAvailable: false,
         remainingCapacity: 0,
         message: "Requested guests must be at least 1.",
+      };
+    }
+
+    // Phase 4: Blackout check (early rejection before any capacity/pricing work)
+    const isBlacked = await this.storage.isBlackedOut(productId, date);
+    if (isBlacked) {
+      return {
+        isAvailable: false,
+        remainingCapacity: 0,
+        message: `This date (${date}) is not available for bookings (blackout period).`,
       };
     }
 
@@ -82,8 +95,11 @@ export class AvailabilityDomainService {
     // Calculate remaining capacity using tour_instances and holds
     const remainingCapacity = await this.calculateRemainingCapacity(
       productId,
+      product.category,
       date,
-      slot
+      slot,
+      startTime,
+      endTime
     );
 
     // Check if available
@@ -116,32 +132,45 @@ export class AvailabilityDomainService {
     };
   }
 
-  /**
-   * Calculates remaining capacity for a product on a specific date.
-   * Uses tour_instances as the authoritative source with caching.
-   */
   private async calculateRemainingCapacity(
     productId: string,
+    category: string,
     date: string,
-    slot?: string
+    slot?: string,
+    startTime?: string,
+    endTime?: string
   ): Promise<number> {
+    // Phase 1: Vehicles check discrete resources instead of pooled instances
+    if (category === 'vehicle') {
+      const availableResources = await this.storage.getAvailableResources(productId, date);
+      return availableResources.length;
+    }
+
     // 1. Check cache first
-    const cached = availabilityCache.get(productId, date, slot);
+    const cacheKey = slot || (startTime && endTime ? `${startTime}-${endTime}` : "default");
+    const cached = availabilityCache.get(productId, date, cacheKey);
     if (cached) {
       return cached.remainingCapacity;
     }
 
-    // 2. Check if tour instance exists
-    const instance = await this.storage.getTourInstance(productId, date, slot);
+    // Phase 2: Refactored to handle multiple sessions per day via overlap detection
+    const requestedInterval = getDefaultInterval(category, startTime, endTime);
 
-    if (!instance) {
+    // Fetch all instances for this product on this date
+    const allInstances = await this.storage.getTourInstances(productId, date);
+
+    // Find instances that overlap with the requested interval
+    const overlappingInstances = allInstances.filter(instance => {
+      if (slot && instance.timeSlot === slot) return true;
+      const instanceInterval: TimeInterval = { startTime: instance.startTime, endTime: instance.endTime };
+      return intervalsOverlap(requestedInterval, instanceInterval);
+    });
+
+    if (overlappingInstances.length === 0) {
       // No instance exists - need to check tour's default capacity
       const product = await this.storage.getTour(productId);
-      if (!product) {
-        throw new Error(`Product ${productId} not found`);
-      }
+      if (!product) throw new Error(`Product ${productId} not found`);
 
-      // CRITICAL: Validate capacity is explicitly configured
       const defaultCapacity = product.defaultCapacity;
       if (!defaultCapacity || defaultCapacity <= 0) {
         throw new Error(
@@ -150,25 +179,32 @@ export class AvailabilityDomainService {
         );
       }
 
-      // Cache the default capacity
-      availabilityCache.set(productId, date, defaultCapacity, defaultCapacity, slot);
+      availabilityCache.set(productId, date, defaultCapacity, defaultCapacity, cacheKey);
       return defaultCapacity;
     }
 
     // 3. Calculate remaining = total - (confirmed + held + blocked)
-    const remaining =
-      instance.totalCapacity -
-      (instance.confirmedCount + instance.heldCount + instance.blockedCount);
+    // Minimum remaining capacity across all overlapping pools
+    let minAvailable = Infinity;
+    let totalCap = 0;
 
-    const finalRemaining = Math.max(0, remaining);
+    for (const instance of overlappingInstances) {
+      const available = instance.totalCapacity - (instance.confirmedCount + instance.heldCount + instance.blockedCount);
+      if (available < minAvailable) {
+        minAvailable = available;
+        totalCap = instance.totalCapacity;
+      }
+    }
+
+    const finalRemaining = Math.max(0, minAvailable === Infinity ? 0 : minAvailable);
 
     // 4. Cache the result
     availabilityCache.set(
       productId,
       date,
       finalRemaining,
-      instance.totalCapacity,
-      slot
+      totalCap,
+      cacheKey
     );
 
     // 5. Check capacity alerts
@@ -178,7 +214,7 @@ export class AvailabilityDomainService {
         productId,
         product.title,
         date,
-        instance.totalCapacity,
+        totalCap,
         finalRemaining
       );
     }
@@ -198,7 +234,7 @@ export class AvailabilityDomainService {
     addonIds?: string[]
   ): Promise<AvailabilityResult['pricing']> {
     // Get rates
-    const rates = await this.priceResolver.getTourRate(productId);
+    const rates = await this.priceResolver.getTourRate(productId, date);
     if (!rates) {
       return {
         subtotalCents: 0,
