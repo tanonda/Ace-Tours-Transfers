@@ -24,8 +24,8 @@ export class AvailabilityApplicationService {
     this.availabilityService = new AvailabilityService(storage);
   }
 
-  async getAvailability(tourId: string, date: string, slot?: string): Promise<{ available: number }> {
-    const available = await this.availabilityService.checkAvailability(tourId, date, slot);
+  async getAvailability(tourId: string, date: string, slot?: string, startTime?: string, endTime?: string): Promise<{ available: number }> {
+    const available = await this.availabilityService.checkAvailability(tourId, date, slot, startTime, endTime);
     return { available };
   }
 
