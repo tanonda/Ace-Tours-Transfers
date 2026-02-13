@@ -303,6 +303,17 @@ export async function deleteBlackoutDate(id: string): Promise<void> {
   await apiRequest("DELETE", `/api/admin/blackouts/${id}`);
 }
 
+// Pricing Versions (Phase 5)
+export async function fetchPricingVersions(productId: string): Promise<any[]> {
+  const res = await apiRequest("GET", `/api/admin/pricing/${productId}`);
+  return res.json();
+}
+
+export async function createPricingVersion(data: { productId: string; effectiveFrom: string; adultPriceCents: number; childPriceCents?: number; ruleMetadata?: any }): Promise<any> {
+  const res = await apiRequest("POST", `/api/admin/pricing`, data);
+  return res.json();
+}
+
 // Capacity Audit Log (Phase 7)
 export async function fetchAuditLogs(filters?: { productId?: string; action?: string; limit?: number; offset?: number }) {
   const qs = new URLSearchParams();
