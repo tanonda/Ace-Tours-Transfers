@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { fetchBooking, fetchBookingItems, fetchBookingPayments, fetchQrCode, initiatePayment } from "@/lib/api";
@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 import { Link } from "wouter";
-import { PrintItinerary } from "@/components/print-itinerary";
 import { Payment } from "@shared/schema";
 import { QRCodeGenerator } from "@/components/QRCodeGenerator";
+
+const PrintItinerary = lazy(() => import("@/components/print-itinerary").then(m => ({ default: m.PrintItinerary })));
 
 export default function ConfirmationPage() {
   const [location] = useLocation();
@@ -208,13 +209,15 @@ export default function ConfirmationPage() {
         </CardContent>
       </Card>
       {showPrintItinerary && booking && (
-        <PrintItinerary
-          booking={booking}
-          items={bookingItems}
-          payments={payments || []}
-          qrCodeData={qrCode?.qrData}
-          onClose={() => setShowPrintItinerary(false)}
-        />
+        <Suspense fallback={<div className="flex items-center justify-center p-4"><Loader2 className="h-6 w-6 animate-spin" /></div>}>
+          <PrintItinerary
+            booking={booking}
+            items={bookingItems}
+            payments={payments || []}
+            qrCodeData={qrCode?.qrData}
+            onClose={() => setShowPrintItinerary(false)}
+          />
+        </Suspense>
       )}
     </div>
   );

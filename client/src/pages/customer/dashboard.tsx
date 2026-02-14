@@ -3,17 +3,18 @@ import { fetchUserBookings, fetchBookingPayments } from "@/lib/api";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useTranslation } from "react-i18next";
-import { PrintItinerary } from "@/components/print-itinerary";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Star, Loader2, Calendar, Wallet, Heart, HelpCircle, Ticket, Download, X, Printer, FileText } from "lucide-react";
+
+const PrintItinerary = lazy(() => import("@/components/print-itinerary").then(m => ({ default: m.PrintItinerary })));
 
 function TicketModal({ booking, onClose, t }: { booking: any; onClose: () => void; t: any }) {
   return (
@@ -241,7 +242,9 @@ export default function CustomerDashboard() {
       )}
 
       {itineraryBooking && (
-        <PrintItinerary booking={itineraryBooking} payments={bookingPayments} onClose={() => setItineraryBooking(null)} />
+        <Suspense fallback={<div className="flex items-center justify-center p-4"><Loader2 className="h-6 w-6 animate-spin" /></div>}>
+          <PrintItinerary booking={itineraryBooking} payments={bookingPayments} onClose={() => setItineraryBooking(null)} />
+        </Suspense>
       )}
 
       <div className="space-y-6">
