@@ -2,7 +2,7 @@ import "dotenv/config";
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
-import { pool as neonPool } from "./db.js";
+import { pool as neonPool, db } from "./db.js";
 import { registerRoutes } from "./routes.js";
 import { serveStatic } from "./static.js";
 import { createServer } from "http";
@@ -10,6 +10,7 @@ import path from "path";
 import { runMigrations } from 'stripe-replit-sync';
 import { getStripeSync } from './stripeClient.js';
 import { config, validateConfig } from "./config.js";
+import { migrate } from "drizzle-orm/neon-serverless/migrator";
 
 // 1. Validate environment & Log posture
 validateConfig();
@@ -200,6 +201,17 @@ app.use((req, res, next) => {
   try {
     const { BackupIntegrityGuard } = await import('./infrastructure/recovery/integrity-guard.js');
     const integrityGuard = new BackupIntegrityGuard();
+    
+    // Run database migrations first
+    try {
+      console.log('[MIGRATIONS] Running Drizzle migrations...');
+      await migrate(db, { migrationsFolder: "migrations" });
+      console.log('[MIGRATIONS] Drizzle migrations completed successfully');
+    } catch (migrationError: any) {
+      // Don't fail startup if migrations fail - they might already be applied
+      console.warn('[MIGRATIONS] Migration execution warning:', migrationError.message);
+    }
+    
     const status = await integrityGuard.checkIntegrity();
     if (!status.isSafe) {
       console.error(`[INTEGRITY] CRITICAL: ${status.message}`);
