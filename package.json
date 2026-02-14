@@ -18,6 +18,7 @@
     "verify-ddd": "tsx scripts/verify-ddd-invariants.ts",
     "verify-architecture": "tsx scripts/check-adr-compliance.ts",
     "check-architecture": "npm run verify-architecture && npm run verify-ddd",
+    "load-test": "tsx scripts/load-test.ts",
     "rebuild-projections": "tsx scripts/verify-projections.ts --rebuild",
     "go-live-verify": "tsx scripts/go-live-verify.ts",
     "upload-images": "tsx scripts/upload-product-images.ts"
