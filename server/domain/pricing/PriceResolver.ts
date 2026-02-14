@@ -2,67 +2,42 @@
 
 import { IStorage } from '../../storage.js';
 import { Tour } from '../../../shared/schema.js';
-
-export interface TourRate {
-  adultPriceCents: number;
-  childPriceCents: number;
-}
+import { PricingEngine, TourRate } from './PricingEngine.js';
 
 /**
- * PriceResolver: Single source of truth for pricing calculations.
+ * PriceResolver: PHASE 2B - NOW DELEGATES TO PRICINGENGINE
  * 
+ * (Backward compatibility wrapper maintained for existing code)
+ * ALL pricing logic has moved to PricingEngine.ts - the single source of truth
+ * 
+ * This class is now a thin wrapper that delegates to PricingEngine.
  * All prices are handled in CENTS (e.g., 12000 = VUV 120.00).
  */
 export class PriceResolver {
   private storage: IStorage;
+  private engine: PricingEngine;
 
   constructor(storage: IStorage) {
     this.storage = storage;
+    this.engine = new PricingEngine(storage);
   }
 
   /**
    * Fetch the effective rates for a tour at a given point in time.
-   * Phase 5: First checks pricing_versions for a versioned rate,
-   * then falls back to the product's current price columns.
+   * DELEGATES to PricingEngine.getTourRate()
    * @param tourId Product ID
    * @param date Optional booking date (YYYY-MM-DD) for versioned pricing lookup
    */
   async getTourRate(tourId: string, date?: string): Promise<TourRate | null> {
-    const tour = await this.storage.getTour(tourId);
-    if (!tour) return null;
-
-    // Phase 5: Try versioned pricing first
-    if (date) {
-      const version = await this.storage.getEffectivePricingVersion(tourId, date);
-      if (version) {
-        return {
-          adultPriceCents: version.adultPriceCents,
-          childPriceCents: version.childPriceCents,
-        };
-      }
-    }
-
-    // Fallback: Use product's current price (cents if available, otherwise parse text)
-    let adultPriceCents = tour.adultPriceCents;
-    let childPriceCents = tour.childPriceCents;
-
-    if (!adultPriceCents || adultPriceCents === 0) {
-      adultPriceCents = PriceResolver.parseAmountTextToCents(tour.price);
-    }
-
-    if (!childPriceCents || childPriceCents === 0) {
-      childPriceCents = PriceResolver.parseAmountTextToCents(tour.childPrice);
-    }
-
-    return {
-      adultPriceCents: adultPriceCents || 0,
-      childPriceCents: childPriceCents || 0,
-    };
+    return this.engine.getTourRate(tourId, date);
   }
 
   /**
-   * Calculate the total for a booking item: (adult_pax * adult_rate) + (child_pax * child_rate)
-   * Applies group discounts and seasonal surcharges.
+   * Calculate the total for a booking item
+   * DELEGATES to PricingEngine.calculateSimple()
+   * 
+   * NOTE: This is a simple calculation without full breakdown.
+   * For full pricing with breakdown, use PricingEngine.calculateLineItem() instead.
    */
   calculateItemTotal(
     adultPax: number,
@@ -71,29 +46,18 @@ export class PriceResolver {
     addonTotalCents: number = 0,
     date?: string
   ): number {
-    let adultSubtotal = adultPax * rates.adultPriceCents;
-    let childSubtotal = childPax * rates.childPriceCents;
-    let total = adultSubtotal + childSubtotal + addonTotalCents;
-
-    // RULE: Group Discount - 10% off for 7+ adults
-    if (adultPax >= 7) {
-      total = Math.round(total * 0.9);
-    }
-
-    // RULE: Seasonal Pricing - 20% surcharge in Peak Season (December & January)
-    if (date) {
-      const bookingDate = new Date(date);
-      const month = bookingDate.getMonth(); // 0-indexed, 11 = Dec, 0 = Jan
-      if (month === 11 || month === 0) {
-        total = Math.round(total * 1.2);
-      }
-    }
-
+    // Use engine's simple calculation
+    let total = this.engine.calculateSimple(adultPax, childPax, rates, date);
+    
+    // Add add-ons (if any)  
+    total += addonTotalCents;
+    
     return total;
   }
 
   /**
    * Calculate the grand total across multiple items.
+   * @deprecated Use PricingEngine.calculateCartTotal() instead
    */
   calculateCartTotal(items: Array<{ subtotalCents: number }>): number {
     return items.reduce((sum, item) => sum + item.subtotalCents, 0);
@@ -103,8 +67,7 @@ export class PriceResolver {
    * Format cents as currency string for display only.
    */
   static formatCentsAsVUV(cents: number): string {
-    const amount = (cents / 100).toFixed(0); // VUV usually doesn't have decimals in display
-    return `VUV ${parseInt(amount).toLocaleString()}`;
+    return PricingEngine.formatCentsAsVUV(cents);
   }
 
   /**

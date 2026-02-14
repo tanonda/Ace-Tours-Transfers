@@ -3,13 +3,13 @@ import { PricingService, PriceSnapshot } from "../../domain/pricing/PricingServi
 import { IStorage } from "../../storage.js";
 import { eventDispatcher } from "../../infrastructure/events/event-dispatcher.js";
 import { CartPriced } from "../../domain/events.js";
-import { PriceResolver } from "../../domain/pricing/PriceResolver.js";
+import { PricingEngine } from "../../domain/pricing/PricingEngine.js";
 
 export class PriceCartService {
-  private priceResolver: PriceResolver;
+  private pricingEngine: PricingEngine;
 
   constructor(private storage: IStorage) {
-    this.priceResolver = new PriceResolver(storage);
+    this.pricingEngine = new PricingEngine(storage);
   }
 
   async priceCart(
@@ -22,22 +22,25 @@ export class PriceCartService {
         throw new Error(`Product ${item.productId} not found`);
       }
 
-      const rates = await this.priceResolver.getTourRate(item.productId, item.date);
+      const rates = await this.pricingEngine.getTourRate(item.productId, item.date);
       if (!rates) {
         throw new Error(`Rates for product ${item.productId} not found`);
       }
 
-      // 1. Add-ons calculation
-      let addonTotalCents = 0;
-      if (item.addonIds && item.addonIds.length > 0) {
-        const addons = await Promise.all(item.addonIds.map(id => this.storage.getAddon(id)));
-        addonTotalCents = addons.reduce((sum, addon) => sum + (addon?.priceCents || 0), 0);
-      }
+      // Use PricingEngine for complete pricing calculation with breakdown
+      // This consolidates: base pricing + add-ons + group discounts + seasonal surcharges
+      const pricing = await this.pricingEngine.calculateLineItem(
+        item.adultPax,
+        item.childPax,
+        rates,
+        item.date,
+        item.addonIds
+      );
 
-      // 2. Calculate base item total with rules (group discounts, seasonal) and add-ons
-      let subtotalCents = this.priceResolver.calculateItemTotal(item.adultPax, item.childPax, rates, addonTotalCents, item.date);
+      // Get subtotal with all rules applied
+      let subtotalCents = pricing.breakdown.finalTotalCents;
 
-      // 3. If it's a vehicle (or any duration-based product), multiply by quantity (days)
+      // If it's a vehicle (or any duration-based product), multiply by quantity (days)
       const duration = (product.category === 'vehicle') ? (item.quantity || 1) : 1;
       subtotalCents *= duration;
 
@@ -50,7 +53,9 @@ export class PriceCartService {
         childPax: item.childPax,
         productId: product.id,
         name: product.title,
-        quantity: totalQuantityCount
+        quantity: totalQuantityCount,
+        // Store pricing breakdown for audit trail
+        pricingBreakdown: pricing.breakdown
       };
     }));
 
