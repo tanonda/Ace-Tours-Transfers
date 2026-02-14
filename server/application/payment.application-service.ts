@@ -11,10 +11,10 @@ import {
 import { IStorage } from '../storage.js';
 import { PaymentFactory } from "../infrastructure/payments/factory.js";
 import { PaymentGateway, Booking } from '../../shared/schema.js';
-import { AvailabilityApplicationService } from "./availability/availability.application-service.js";
 import { config } from "../config.js";
 import { PaymentIntent } from "../domain/payments/PaymentIntent.js";
 import { eventDispatcher } from "../infrastructure/events/event-dispatcher.js";
+import { BookingConfirmationService } from "./booking/BookingConfirmationService.js";
 
 export interface PaymentOptions {
   bookingId: string;
@@ -28,11 +28,11 @@ export interface PaymentOptions {
 export class PaymentApplicationService {
 
   private storage: IStorage;
-  private availabilityService: AvailabilityApplicationService;
+  private bookingConfirmation: BookingConfirmationService;
 
   constructor(storage: IStorage) {
     this.storage = storage;
-    this.availabilityService = new AvailabilityApplicationService(storage);
+    this.bookingConfirmation = new BookingConfirmationService(storage);
   }
 
   async initiateBookingPayment(options: PaymentOptions): Promise<PaymentInitiationResponse> {
@@ -242,8 +242,9 @@ export class PaymentApplicationService {
       failureReason: 'expired_timeout'
     });
 
-    const { BookingApplicationService } = await import("./booking/BookingApplicationService.js");
-    const bookingService = new BookingApplicationService(this.storage);
-    await bookingService.cancelBooking(payment.bookingId, "payment_expired");
+    // Cancel the booking to release holds
+    if (payment.bookingId) {
+      await this.bookingConfirmation.cancelBooking(payment.bookingId, "payment_expired");
+    }
   }
 }

@@ -19,6 +19,7 @@
     "verify-architecture": "tsx scripts/check-adr-compliance.ts",
     "check-architecture": "npm run verify-architecture && npm run verify-ddd",
     "load-test": "tsx scripts/load-test.ts",
+    "test-concurrent": "tsx scripts/test-concurrent-bookings.ts",
     "rebuild-projections": "tsx scripts/verify-projections.ts --rebuild",
     "go-live-verify": "tsx scripts/go-live-verify.ts",
     "upload-images": "tsx scripts/upload-product-images.ts"
@@ -124,6 +125,7 @@
     "@types/connect-pg-simple": "^7.0.3",
     "@types/express": "4.17.21",
     "@types/express-session": "^1.18.0",
+    "@types/jest": "^30.0.0",
     "@types/multer": "^2.0.0",
     "@types/node": "^20.19.32",
     "@types/nodemailer": "^7.0.4",
