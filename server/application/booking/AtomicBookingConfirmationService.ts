@@ -138,7 +138,8 @@ export class AtomicBookingConfirmationService {
       return {
         ...result,
         metrics: {
-          ...result.metrics,
+          lockedRows: 0,
+          verificationsPerformed: 0,
           timeMs: elapsedMs,
         },
       };
@@ -459,21 +460,23 @@ export class AtomicBookingConfirmationService {
       // ═══════════════════════════════════════════════════════════════
       console.log(`[ATOMIC_CONFIRM][${transactionId}] STEP 9: Logging audit trail...`);
 
-      await this.auditLog.log(
-        {
-          action: 'booking_confirmed_atomic',
-          bookingId,
-          paymentId,
-          holdCount: holds.length,
-          details: {
-            transactionId,
-            serializableIsolation: true,
-            lockedRows: lockedRowCount,
-            verificationsPerformed,
+      if (holds.length > 0) {
+        await this.auditLog.log(
+          {
+            tourInstanceId: holds[0].tourInstanceId,
+            productId: booking.tourId,
+            action: 'booking_confirmed',
+            quantity: holds.reduce((sum, h) => sum + h.quantity, 0),
+            metadata: {
+              bookingId,
+              holdIds: holds.map(h => h.id),
+              transactionId,
+              paymentId,
+            },
           },
-        },
-        tx
-      );
+          tx
+        );
+      }
 
       verificationsPerformed++;
 
@@ -550,7 +553,7 @@ export class AtomicBookingConfirmationService {
           .for('update');
 
         // Update each hold that's active
-        for (const hold of holdRows.filter(h => h.status === 'ACTIVE')) {
+        for (const hold of holdRows.filter((h: any) => h.status === 'ACTIVE')) {
           // Unlock capacity in tour instance
           const instanceRows = await tx
             .select()
@@ -588,11 +591,15 @@ export class AtomicBookingConfirmationService {
         // Audit log
         await this.auditLog.log(
           {
-            action: 'booking_cancelled_atomic',
-            bookingId,
-            reason,
-            holdCount: holdRows.length,
-            details: { transactionId },
+            tourInstanceId: holdRows.length > 0 ? holdRows[0].tourInstanceId : undefined,
+            productId: booking.tourId || 'unknown',
+            action: 'booking_cancelled',
+            metadata: {
+              bookingId,
+              reason,
+              transactionId,
+              holdCount: holdRows.length,
+            },
           },
           tx
         );

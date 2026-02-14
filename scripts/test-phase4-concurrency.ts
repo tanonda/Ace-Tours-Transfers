@@ -77,7 +77,8 @@ class Phase4ConcurrencyTestSuite {
       console.log(`\n🧪 Test: ${testName}`);
 
       // Setup: Create tour and booking
-      let testTour = await this.storage.getTourByTitle("PHASE4_TEST_TOUR");
+      const testTours = await this.storage.getTours();
+      let testTour = testTours.find(t => t.title === "PHASE4_TEST_TOUR");
       if (!testTour) {
         testTour = await this.storage.createTour({
           title: "PHASE4_TEST_TOUR",
@@ -115,17 +116,21 @@ class Phase4ConcurrencyTestSuite {
 
       // Create booking with hold
       const booking = await this.storage.createBooking({
+        date: testDateStr,
+        tourId: testTour.id,
+        guests: 1,
+        amount: "500",
         customerName: "Test User",
         customerEmail: "test@example.com",
+        tourName: testTour.title,
         bookingSessionId: `session_atomic_${Date.now()}`,
-        productId: testTour.id,
         status: "pending",
       });
 
       // Create hold
-      const hold = await this.storage.createAvailabilityHold({
+      const hold = await this.storage.createHold({
         tourInstanceId: testInstance.id,
-        bookingSessionId: booking.bookingSessionId || undefined,
+        bookingSessionId: booking.bookingSessionId,
         quantity: 1,
         status: "ACTIVE",
         expiresAt: new Date(Date.now() + 15 * 60 * 1000), // 15 minutes
@@ -181,7 +186,8 @@ class Phase4ConcurrencyTestSuite {
       console.log(`\n🧪 Test: ${testName}`);
 
       // Setup: Create tour and multiple bookings
-      let testTour = await this.storage.getTourByTitle("PHASE4_RETRY_TOUR");
+      const testTours = await this.storage.getTours();
+      let testTour = testTours.find(t => t.title === "PHASE4_RETRY_TOUR");
       if (!testTour) {
         testTour = await this.storage.createTour({
           title: "PHASE4_RETRY_TOUR",
@@ -221,16 +227,20 @@ class Phase4ConcurrencyTestSuite {
       const bookingsData = [];
       for (let i = 0; i < 5; i++) {
         const booking = await this.storage.createBooking({
+          date: testDateStr,
+          tourId: testTour.id,
+          guests: 1,
+          amount: "500",
           customerName: `Retry Test User ${i}`,
           customerEmail: `retry${i}@example.com`,
+          tourName: testTour.title,
           bookingSessionId: `session_retry_${i}_${Date.now()}`,
-          productId: testTour.id,
           status: "pending",
         });
 
-        const hold = await this.storage.createAvailabilityHold({
+        const hold = await this.storage.createHold({
           tourInstanceId: testInstance.id,
-          bookingSessionId: booking.bookingSessionId || undefined,
+          bookingSessionId: booking.bookingSessionId,
           quantity: 1,
           status: "ACTIVE",
           expiresAt: new Date(Date.now() + 15 * 60 * 1000),
@@ -364,7 +374,8 @@ class Phase4ConcurrencyTestSuite {
       console.log(`\n🧪 Test: ${testName}`);
 
       // Setup: Create booking and confirm it once
-      let testTour = await this.storage.getTourByTitle("PHASE4_IDEMPOTENT_TOUR");
+      const testTours = await this.storage.getTours();
+      let testTour = testTours.find(t => t.title === "PHASE4_IDEMPOTENT_TOUR");
       if (!testTour) {
         testTour = await this.storage.createTour({
           title: "PHASE4_IDEMPOTENT_TOUR",
@@ -402,17 +413,21 @@ class Phase4ConcurrencyTestSuite {
 
       // Create booking
       const booking = await this.storage.createBooking({
+        date: testDateStr,
+        tourId: testTour.id,
+        guests: 1,
+        amount: "5000",
         customerName: "Idempotent Test",
         customerEmail: "idempotent@example.com",
+        tourName: testTour.title,
         bookingSessionId: `session_idempotent_${Date.now()}`,
-        productId: testTour.id,
         status: "pending",
       });
 
       // Create hold
-      const hold = await this.storage.createAvailabilityHold({
+      const hold = await this.storage.createHold({
         tourInstanceId: testInstance.id,
-        bookingSessionId: booking.bookingSessionId || undefined,
+        bookingSessionId: booking.bookingSessionId,
         quantity: 1,
         status: "ACTIVE",
         expiresAt: new Date(Date.now() + 15 * 60 * 1000),

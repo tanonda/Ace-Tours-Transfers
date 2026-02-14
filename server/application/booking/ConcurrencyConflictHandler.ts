@@ -366,7 +366,7 @@ export class ConcurrencyConflictHandler {
           console.log(
             `[CONFLICT] Releasing stale hold ${hold.id} (expired at ${hold.expiresAt.toISOString()})`
           );
-          await this.storage.releaseHold(hold.id);
+          await this.storage.updateHold(hold.id, { status: "RELEASED" });
         }
       }
     } catch (error) {
