@@ -17,6 +17,7 @@
 import { IStorage } from "../../storage.js";
 import { AvailabilityApplicationService } from "../availability/availability.application-service.js";
 import { Booking } from "../../../shared/schema.js";
+import { metricsService } from "../../infrastructure/metrics/metrics.service.js";
 
 export interface BookingConfirmationRequest {
   bookingId: string;
@@ -62,6 +63,7 @@ export class BookingConfirmationService {
     request: BookingConfirmationRequest
   ): Promise<BookingConfirmationResult> {
     const { bookingId, paymentId } = request;
+    const startTime = Date.now();
 
     try {
       // Step 1: Load booking
@@ -69,6 +71,7 @@ export class BookingConfirmationService {
       
       const booking = await this.storage.getBooking(bookingId);
       if (!booking) {
+        metricsService.incrementConfirmationFailure("BOOKING_NOT_FOUND");
         return {
           success: false,
           message: "Booking not found",
@@ -82,6 +85,7 @@ export class BookingConfirmationService {
 
       // Step 2: Verify booking is still pending
       if (booking.status !== 'pending') {
+        metricsService.incrementConfirmationFailure("INVALID_BOOKING_STATE");
         return {
           success: false,
           message: `Booking is in state '${booking.status}', not pending`,
@@ -97,6 +101,8 @@ export class BookingConfirmationService {
       if (booking.holdId) {
         const hold = await this.storage.getHold(booking.holdId);
         if (!hold) {
+          metricsService.incrementConfirmationFailure("HOLD_NOT_FOUND");
+          metricsService.incrementConflictDetectedFailure("stale_hold");
           return {
             success: false,
             message: "Booking hold not found - capacity may have been released",
@@ -110,6 +116,8 @@ export class BookingConfirmationService {
 
         // Step 4: Verify hold is still active (not expired or released)
         if (hold.status !== 'ACTIVE') {
+          metricsService.incrementConfirmationFailure("HOLD_NOT_ACTIVE");
+          metricsService.incrementConflictDetectedFailure("inactive_hold");
           return {
             success: false,
             message: `Booking hold is in state '${hold.status}', not active. Capacity may have been released.`,
@@ -124,6 +132,8 @@ export class BookingConfirmationService {
         // Step 5: Verify hold hasn't expired
         const now = new Date();
         if (hold.expiresAt < now) {
+          metricsService.incrementConfirmationFailure("HOLD_EXPIRED");
+          metricsService.incrementConflictDetectedFailure("expired_hold");
           return {
             success: false,
             message: "Booking hold has expired. Please check availability and try booking again.",
@@ -145,6 +155,7 @@ export class BookingConfirmationService {
           // - Hold was deleted concurrently
           // - Capacity calculation failed
           console.error(`[BOOKING_CONFIRM] CRITICAL: Failed to confirm hold ${booking.holdId}:`, holdError);
+          metricsService.incrementConfirmationFailure("HOLD_CONFIRMATION_FAILED");
           return {
             success: false,
             message: "Failed to secure inventory capacity. Please contact support.",
@@ -165,6 +176,9 @@ export class BookingConfirmationService {
       });
 
       console.log(`[BOOKING_CONFIRM] ✅ Successfully confirmed booking ${bookingId}`);
+      metricsService.incrementConfirmationSuccess();
+      metricsService.recordBookingConfirmationLatency(Date.now() - startTime);
+
       return {
         success: true,
         message: "Booking confirmed successfully",
@@ -174,6 +188,8 @@ export class BookingConfirmationService {
     } catch (error) {
       // Catch-all for unexpected errors
       console.error(`[BOOKING_CONFIRM] UNEXPECTED ERROR for booking ${bookingId}:`, error);
+      metricsService.incrementConfirmationFailure("UNEXPECTED_ERROR");
+      metricsService.recordBookingConfirmationLatency(Date.now() - startTime);
       return {
         success: false,
         message: "An unexpected error occurred while confirming the booking",

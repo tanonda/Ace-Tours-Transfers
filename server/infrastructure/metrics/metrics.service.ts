@@ -14,28 +14,37 @@ export interface UtilizationMetric {
 
 export interface SystemMetrics {
     timestamp: string;
-    
+
     // Booking statistics
     totalBookings: number;
     totalHolds: number;
     expiredHolds: number;
     confirmedBookings: number;
-    
+
     // Failure tracking
     failures: Record<string, number>;
     failureRate: number; // 0-100 percentage
-    
+
     // Utilization by product
     utilization: UtilizationMetric[];
     maxUtilization: number; // highest utilization percent
     criticalUtilization: UtilizationMetric[]; // products >95% utilized
-    
+
     // Hold lifecycle
     averageHoldDurationMinutes: number;
     holdExpiryRate: number; // expired / created ratio
-    
+
     // Performance
     avgTransactionTimeMs: number;
+
+    // Concurrency (Phase 4/5)
+    concurrency?: {
+        confirmationSuccesses: number;
+        confirmationFailures: Record<string, number>;
+        conflictDetections: Record<string, number>;
+        avgConfirmationLatencyMs: number;
+        confirmationSuccessRate: number;
+    };
 }
 
 export interface SystemAlert {
@@ -156,12 +165,12 @@ class MetricsService {
 
         const avgConfirmationLatency = this.bookingConfirmationLatencies.length > 0
             ? Math.round(
-                this.bookingConfirmationLatencies.reduce((a, b) => a + b, 0) / 
+                this.bookingConfirmationLatencies.reduce((a, b) => a + b, 0) /
                 this.bookingConfirmationLatencies.length
             )
             : 0;
 
-        const totalConfirmationAttempts = this.confirmationSuccesses + 
+        const totalConfirmationAttempts = this.confirmationSuccesses +
             Object.values(this.confirmationFailures).reduce((a, b) => a + b, 0);
 
         const confirmationSuccessRate = totalConfirmationAttempts > 0
@@ -198,9 +207,9 @@ class MetricsService {
                     const totalConfirmed = instances.reduce((s, i) => s + (i.confirmedCount || 0), 0);
                     const totalHeld = instances.reduce((s, i) => s + (i.heldCount || 0), 0);
                     const totalBlocked = instances.reduce((s, i) => s + (i.blockedCount || 0), 0);
-                    
-                    const utilizationPercent = totalCap > 0 
-                        ? Math.round((totalConfirmed / totalCap) * 10000) / 100 
+
+                    const utilizationPercent = totalCap > 0
+                        ? Math.round((totalConfirmed / totalCap) * 10000) / 100
                         : 0;
                     const available = totalCap - (totalConfirmed + totalHeld + totalBlocked);
 
@@ -266,6 +275,7 @@ class MetricsService {
             averageHoldDurationMinutes,
             holdExpiryRate: Math.round(holdExpiryRate * 10000) / 10000,
             avgTransactionTimeMs,
+            concurrency: this.getConcurrencyMetrics(),
         };
     }
 
@@ -339,6 +349,23 @@ class MetricsService {
             }
         }
 
+        // Alert 5: High overbooking attempt rate (stale/expired holds)
+        const overbookingAttempts = Object.values(metrics.concurrency?.conflictDetections || {}).reduce((a, b) => a + b, 0);
+        if (overbookingAttempts > 5 && (metrics.concurrency?.confirmationSuccessRate || 100) < 95) {
+            const alertKey = "high_overbooking_attempts";
+            if (this.shouldAlert(alertKey)) {
+                alerts.push({
+                    severity: "warning",
+                    message: `High overbooking attempt rate detected: ${overbookingAttempts} conflicts found. Success rate: ${metrics.concurrency?.confirmationSuccessRate}%`,
+                    metric: "overbookingAttempts",
+                    value: overbookingAttempts,
+                    threshold: 5,
+                    timestamp: new Date().toISOString(),
+                });
+                this.updateAlertTime(alertKey);
+            }
+        }
+
         return alerts;
     }
 
@@ -359,7 +386,7 @@ class MetricsService {
         this.transactionTimes = [];
         this.holdCreationTimes.clear();
         this.lastAlertTime = {};
-        
+
         // Phase 4: Reset concurrency metrics
         this.confirmationSuccesses = 0;
         this.confirmationFailures = {};

@@ -12,6 +12,7 @@ import { storage as defaultStorage } from "../server/storage.js";
 import { CreateBookingFromCartService } from "../server/application/booking/CreateBookingFromCartService.js";
 import { BookingConfirmationService } from "../server/application/booking/BookingConfirmationService.js";
 import { PaymentReconciliationService } from "../server/application/payment-reconciliation.service.js";
+import { metricsService } from "../server/infrastructure/metrics/metrics.service.js";
 import { config } from "../server/config.js";
 
 interface TestResult {
@@ -26,7 +27,7 @@ interface TestResult {
 
 async function runConcurrentBookingTest(): Promise<TestResult> {
   const storage = defaultStorage;
-  
+
   console.log(`
 ╔═══════════════════════════════════════════════════════════════╗
 ║         CONCURRENT BOOKING TEST - Production Safety           ║
@@ -38,7 +39,7 @@ async function runConcurrentBookingTest(): Promise<TestResult> {
   const TOUR_CAPACITY = 5;
   const GUESTS_PER_BOOKING = 1;
   const TEST_DATE = new Date();
-  TEST_DATE.setDate(TEST_DATE.getDate() + 30); // 30 days from now
+  TEST_DATE.setDate(TEST_DATE.getDate() + 32); // 32 days from now
   const TEST_DATE_STR = TEST_DATE.toISOString().split('T')[0];
 
   console.log(`📊 Test Configuration:`);
@@ -53,7 +54,7 @@ async function runConcurrentBookingTest(): Promise<TestResult> {
     // Step 1: Create test tour with capacity
     console.log(`🔧 Setting up test tour...`);
     let testTour = await storage.getTourByTitle("CONCURRENT_TEST_TOUR");
-    
+
     if (!testTour) {
       testTour = await storage.createTour({
         title: "CONCURRENT_TEST_TOUR",
@@ -149,12 +150,12 @@ async function runConcurrentBookingTest(): Promise<TestResult> {
             };
           }
         } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : String(error);
-          const errorCode = errorMessage.includes("No single")
+          const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
+          const errorCode = (errorMessage.includes("No single") || errorMessage.includes("Insufficient availability"))
             ? "CAPACITY_EXHAUSTED"
             : errorMessage.includes("hold")
-            ? "HOLD_FAILED"
-            : "SYSTEM_ERROR";
+              ? "HOLD_FAILED"
+              : "SYSTEM_ERROR";
 
           console.log(`  [${requestId}] ❌ Error: ${errorCode} - ${errorMessage}`);
           return {
@@ -245,6 +246,21 @@ async function runConcurrentBookingTest(): Promise<TestResult> {
       console.log(`✅ ALL TESTS PASSED - System is safe against concurrent overbooking!`);
     } else {
       console.log(`❌ TESTS FAILED - System has race condition vulnerabilities!`);
+    }
+
+    // Step 6: Verify Metrics
+    console.log();
+    console.log(`📊 SYSTEM METRICS (Post-Test):`);
+    const metrics = await metricsService.getMetrics();
+    console.log(`  • Confirmation Successes: ${metrics.concurrency?.confirmationSuccesses}`);
+    console.log(`  • Confirmation Failures: ${JSON.stringify(metrics.concurrency?.confirmationFailures)}`);
+    console.log(`  • Conflict Detections: ${JSON.stringify(metrics.concurrency?.conflictDetections)}`);
+    console.log(`  • Avg Confirmation Latency: ${metrics.concurrency?.avgConfirmationLatencyMs}ms`);
+    console.log(`  • Confirmation Success Rate: ${metrics.concurrency?.confirmationSuccessRate}%`);
+    console.log();
+
+    if (metrics.concurrency?.confirmationSuccesses !== successful.length) {
+      console.log(`⚠️  Warning: Metrics success count (${metrics.concurrency?.confirmationSuccesses}) mismatch with test success count (${successful.length})`);
     }
 
     console.log(`═══════════════════════════════════════════════════════════════`);

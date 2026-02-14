@@ -1,4 +1,4 @@
-
+import { db } from "../../db.js";
 import { IStorage } from "../../storage.js";
 import { Cart } from "../../domain/booking/Cart.js";
 import { Booking } from "../../domain/booking/Booking.js";
@@ -110,9 +110,9 @@ export class CreateBookingFromCartService {
           rates,
           item.date
         );
-        
+
         let serverPricedTotalCents = pricing.breakdown.finalTotalCents;
-        
+
         // If it's a vehicle (or any duration-based product), multiply by quantity (days)
         const duration = (product.category === 'vehicle') ? (item.quantity || 1) : 1;
         serverPricedTotalCents *= duration;
@@ -155,62 +155,65 @@ export class CreateBookingFromCartService {
     cart.setPricedSnapshot(snapshot);
 
     // 3. Create Booking Aggregate
-    const bookingId = `book_${Date.now()}`;
+    const bookingId = `book_${crypto.randomUUID()}`;
     const booking = Booking.createFromCart(bookingId, cart, {
       name: request.customerName,
       email: request.customerEmail
     });
 
-    // 4. Persist (Mapping Domain object to DB schema)
-    // Compute aggregate start/end for the booking (earliest start, latest end among items)
-    let aggregateStart: string | null = null;
-    let aggregateEnd: string | null = null;
-    for (const it of request.items) {
-      if (it.startTime) {
-        if (!aggregateStart || it.startTime < aggregateStart) aggregateStart = it.startTime;
+    // 4. Persist (Mapping Domain object to DB schema) inside a transaction
+    return await db.transaction(async (tx) => {
+      // Compute aggregate start/end for the booking (earliest start, latest end among items)
+      let aggregateStart: string | null = null;
+      let aggregateEnd: string | null = null;
+      for (const it of request.items) {
+        if (it.startTime) {
+          if (!aggregateStart || it.startTime < aggregateStart) aggregateStart = it.startTime;
+        }
+        if (it.endTime) {
+          if (!aggregateEnd || it.endTime > aggregateEnd) aggregateEnd = it.endTime;
+        }
       }
-      if (it.endTime) {
-        if (!aggregateEnd || it.endTime > aggregateEnd) aggregateEnd = it.endTime;
-      }
-    }
 
-    await this.storage.createBooking({
-      customerName: booking.customerName,
-      customerEmail: booking.customerEmail,
-      amount: snapshot.totalCents.toString(),
-      totalAmountCents: snapshot.totalCents,
-      status: 'pending',
-      date: request.items[0].date,
-      guests: request.items.reduce((sum, i) => sum + i.adultPax + i.childPax, 0),
-      tourId: request.items[0].productId,
-      tourName: cart.getItems()[0].name,
-      adultPaxTotal: request.items.reduce((sum, i) => sum + i.adultPax, 0),
-      childPaxTotal: request.items.reduce((sum, i) => sum + i.childPax, 0),
-      holdId: createdHolds[0] || null, // Link primary hold (minimal corrective change)
-      bookingSessionId: cartId,
-      idempotencyKey: request.idempotencyKey || null,
-      startTime: aggregateStart,
-      endTime: aggregateEnd
+      const persistedBooking = await this.storage.createBooking({
+        id: booking.id,
+        customerName: booking.customerName,
+        customerEmail: booking.customerEmail,
+        amount: snapshot.totalCents.toString(),
+        totalAmountCents: snapshot.totalCents,
+        status: 'pending',
+        date: request.items[0].date,
+        guests: request.items.reduce((sum, i) => sum + i.adultPax + i.childPax, 0),
+        tourId: request.items[0].productId,
+        tourName: cart.getItems()[0].name,
+        adultPaxTotal: request.items.reduce((sum, i) => sum + i.adultPax, 0),
+        childPaxTotal: request.items.reduce((sum, i) => sum + i.childPax, 0),
+        holdId: createdHolds[0] || null, // Link primary hold (minimal corrective change)
+        bookingSessionId: cartId,
+        idempotencyKey: request.idempotencyKey || null,
+        startTime: aggregateStart,
+        endTime: aggregateEnd
+      }, tx);
+
+      // Persist all items
+      for (const item of cart.getItems()) {
+        await this.storage.createBookingItem({
+          bookingId: persistedBooking.id,
+          productId: item.productId,
+          productName: item.name,
+          productType: item.productType,
+          quantity: item.quantity,
+          unitPriceCents: item.unitPriceCents,
+          subtotalCents: item.unitPriceCents * item.quantity,
+          adultPax: item.adultPax,
+          childPax: item.childPax
+        }, tx);
+      }
+
+      // 5. Emit Event (inside tx to ensure it only happens if DB success, though ideally outside or via outbox)
+      await eventDispatcher.dispatch(new BookingCreated(booking.id, booking.amountCents));
+
+      return booking;
     });
-
-    // Persist all items
-    for (const item of cart.getItems()) {
-      await this.storage.createBookingItem({
-        bookingId: booking.id,
-        productId: item.productId,
-        productName: item.name,
-        productType: item.productType,
-        quantity: item.quantity,
-        unitPriceCents: item.unitPriceCents,
-        subtotalCents: item.unitPriceCents * item.quantity,
-        adultPax: item.adultPax,
-        childPax: item.childPax
-      });
-    }
-
-    // 5. Emit Event
-    await eventDispatcher.dispatch(new BookingCreated(booking.id, booking.amountCents));
-
-    return booking;
   }
 }

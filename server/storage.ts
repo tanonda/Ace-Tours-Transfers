@@ -86,6 +86,7 @@ export interface IStorage {
   // Tour operations
   getTours(): Promise<Tour[]>;
   getTour(id: string): Promise<Tour | undefined>;
+  getTourByTitle(title: string): Promise<Tour | undefined>;
   createTour(tour: InsertTour): Promise<Tour>;
   updateTour(id: string, tour: Partial<InsertTour>): Promise<Tour>;
   deleteTour(id: string): Promise<void>;
@@ -96,11 +97,11 @@ export interface IStorage {
   getUserBookings(userId: string): Promise<Booking[]>;
   getBookingsForServiceAndDate(serviceId: string, dateString: string): Promise<Booking[]>;
   getBookingsBySession(sessionId: string): Promise<Booking[]>;
-  createBooking(booking: InsertBooking): Promise<Booking>;
-  updateBooking(id: string, booking: Partial<InsertBooking>): Promise<Booking>;
+  createBooking(booking: InsertBooking, tx?: any): Promise<Booking>;
+  updateBooking(id: string, booking: Partial<InsertBooking>, tx?: any): Promise<Booking>;
   linkBookingsToUser(email: string, userId: string): Promise<void>;
   deleteBooking(id: string): Promise<void>;
-  createBookingItem(item: InsertBookingItem): Promise<BookingItem>;
+  createBookingItem(item: InsertBookingItem, tx?: any): Promise<BookingItem>;
   getBookingItems(bookingId: string): Promise<BookingItem[]>;
 
   // Analytics
@@ -283,6 +284,11 @@ export class DatabaseStorage implements IStorage {
     return tour || undefined;
   }
 
+  async getTourByTitle(title: string): Promise<Tour | undefined> {
+    const [tour] = await db.select().from(tours).where(eq(tours.title, title));
+    return tour || undefined;
+  }
+
   async createTour(insertTour: InsertTour): Promise<Tour> {
     const [tour] = await db
       .insert(tours)
@@ -340,14 +346,15 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(bookings.createdAt));
   }
 
-  async createBooking(insertBooking: InsertBooking): Promise<Booking> {
+  async createBooking(insertBooking: InsertBooking, tx?: any): Promise<Booking> {
+    const client = tx || db;
     // If an idempotencyKey is provided, attempt an insert with ON CONFLICT DO NOTHING
     // and return the existing record when a conflict occurs. This enforces idempotent
     // booking creation at the DB level (Phase 6).
     if ((insertBooking as any).idempotencyKey) {
       const idempotencyKey = (insertBooking as any).idempotencyKey;
 
-      const inserted = await db
+      const inserted = await client
         .insert(bookings)
         .values(insertBooking)
         .onConflictDoNothing({ target: bookings.idempotencyKey })
@@ -358,17 +365,18 @@ export class DatabaseStorage implements IStorage {
       }
 
       // If no row was returned, it means a conflict occurred — fetch and return existing
-      const [existing] = await db.select().from(bookings).where(eq(bookings.idempotencyKey, idempotencyKey));
+      const [existing] = await client.select().from(bookings).where(eq(bookings.idempotencyKey, idempotencyKey));
       if (existing) return existing;
       // Fallback to a normal insert attempt
     }
 
-    const [booking] = await db.insert(bookings).values(insertBooking).returning();
+    const [booking] = await client.insert(bookings).values(insertBooking).returning();
     return booking;
   }
 
-  async updateBooking(id: string, updateData: Partial<InsertBooking>): Promise<Booking> {
-    const [booking] = await db
+  async updateBooking(id: string, updateData: Partial<InsertBooking>, tx?: any): Promise<Booking> {
+    const client = tx || db;
+    const [booking] = await client
       .update(bookings)
       .set(updateData)
       .where(eq(bookings.id, id))
@@ -386,8 +394,9 @@ export class DatabaseStorage implements IStorage {
     await db.delete(bookings).where(eq(bookings.id, id));
   }
 
-  async createBookingItem(item: InsertBookingItem): Promise<BookingItem> {
-    const [newItem] = await db.insert(bookingItems).values(item).returning();
+  async createBookingItem(item: InsertBookingItem, tx?: any): Promise<BookingItem> {
+    const client = tx || db;
+    const [newItem] = await client.insert(bookingItems).values(item).returning();
     return newItem;
   }
 
