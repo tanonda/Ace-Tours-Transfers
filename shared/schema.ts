@@ -471,9 +471,9 @@ export const insertTourSchema = createInsertSchema(tours).omit({
 });
 
 export const insertBookingSchema = createInsertSchema(bookings, {
+  id: z.string().optional(),
   userId: z.string().optional(),
 }).omit({
-  id: true,
   createdAt: true,
 });
 
