@@ -1,4 +1,4 @@
-CREATE TABLE "availability_holds" (
+CREATE TABLE IF NOT EXISTS "availability_holds" (
 	"id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"tour_instance_id" varchar NOT NULL,
 	"quantity" integer NOT NULL,
@@ -8,7 +8,7 @@ CREATE TABLE "availability_holds" (
 	"booking_session_id" text NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "booking_summaries" (
+CREATE TABLE IF NOT EXISTS "booking_summaries" (
 	"booking_id" varchar PRIMARY KEY NOT NULL,
 	"customer_email" text NOT NULL,
 	"customer_name" text NOT NULL,
@@ -19,7 +19,7 @@ CREATE TABLE "booking_summaries" (
 	"confirmed_at" timestamp
 );
 --> statement-breakpoint
-CREATE TABLE "bookings" (
+CREATE TABLE IF NOT EXISTS "bookings" (
 	"id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" varchar,
 	"booking_session_id" text DEFAULT '' NOT NULL,
@@ -38,7 +38,7 @@ CREATE TABLE "bookings" (
 	"tour_name" text NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "cms_content" (
+CREATE TABLE IF NOT EXISTS "cms_content" (
 	"id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"block_slug" text NOT NULL,
 	"content_key" text NOT NULL,
@@ -50,7 +50,7 @@ CREATE TABLE "cms_content" (
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "content_blocks" (
+CREATE TABLE IF NOT EXISTS "content_blocks" (
 	"id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"slug" text NOT NULL,
 	"label" text NOT NULL,
@@ -61,7 +61,7 @@ CREATE TABLE "content_blocks" (
 	CONSTRAINT "content_blocks_slug_unique" UNIQUE("slug")
 );
 --> statement-breakpoint
-CREATE TABLE "newsletter_subscribers" (
+CREATE TABLE IF NOT EXISTS "newsletter_subscribers" (
 	"id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"email" text NOT NULL,
 	"name" text,
@@ -73,7 +73,7 @@ CREATE TABLE "newsletter_subscribers" (
 	CONSTRAINT "newsletter_subscribers_email_unique" UNIQUE("email")
 );
 --> statement-breakpoint
-CREATE TABLE "notifications" (
+CREATE TABLE IF NOT EXISTS "notifications" (
 	"id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" varchar,
 	"type" text DEFAULT 'info' NOT NULL,
@@ -84,7 +84,7 @@ CREATE TABLE "notifications" (
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "payment_gateways" (
+CREATE TABLE IF NOT EXISTS "payment_gateways" (
 	"id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"slug" text NOT NULL,
 	"display_name" text NOT NULL,
@@ -100,7 +100,7 @@ CREATE TABLE "payment_gateways" (
 	CONSTRAINT "payment_gateways_slug_unique" UNIQUE("slug")
 );
 --> statement-breakpoint
-CREATE TABLE "payment_overviews" (
+CREATE TABLE IF NOT EXISTS "payment_overviews" (
 	"payment_id" varchar PRIMARY KEY NOT NULL,
 	"booking_id" varchar NOT NULL,
 	"method" text NOT NULL,
@@ -110,7 +110,7 @@ CREATE TABLE "payment_overviews" (
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "payments" (
+CREATE TABLE IF NOT EXISTS "payments" (
 	"id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"booking_id" varchar NOT NULL,
 	"gateway_id" varchar NOT NULL,
@@ -130,20 +130,20 @@ CREATE TABLE "payments" (
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "revenue_daily" (
+CREATE TABLE IF NOT EXISTS "revenue_daily" (
 	"date" text PRIMARY KEY NOT NULL,
 	"total_gross" integer DEFAULT 0 NOT NULL,
 	"total_vat" integer DEFAULT 0 NOT NULL,
 	"currency" text DEFAULT 'VUV' NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "session" (
+CREATE TABLE IF NOT EXISTS "session" (
 	"sid" varchar PRIMARY KEY NOT NULL,
 	"sess" jsonb NOT NULL,
 	"expire" timestamp (6) NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "site_settings" (
+CREATE TABLE IF NOT EXISTS "site_settings" (
 	"id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"key" text NOT NULL,
 	"value" jsonb NOT NULL,
@@ -151,7 +151,7 @@ CREATE TABLE "site_settings" (
 	CONSTRAINT "site_settings_key_unique" UNIQUE("key")
 );
 --> statement-breakpoint
-CREATE TABLE "tour_instances" (
+CREATE TABLE IF NOT EXISTS "tour_instances" (
 	"id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"tour_id" varchar NOT NULL,
 	"service_date" text NOT NULL,
@@ -163,7 +163,7 @@ CREATE TABLE "tour_instances" (
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "tours" (
+CREATE TABLE IF NOT EXISTS "tours" (
 	"id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"title" text NOT NULL,
 	"price" text NOT NULL,
@@ -178,7 +178,7 @@ CREATE TABLE "tours" (
 	"vehicle_details" jsonb
 );
 --> statement-breakpoint
-CREATE TABLE "users" (
+CREATE TABLE IF NOT EXISTS "users" (
 	"id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"username" text NOT NULL,
 	"password" text NOT NULL,
@@ -194,25 +194,75 @@ CREATE TABLE "users" (
 	CONSTRAINT "users_email_unique" UNIQUE("email")
 );
 --> statement-breakpoint
-CREATE TABLE "wishlist_items" (
+CREATE TABLE IF NOT EXISTS "wishlist_items" (
 	"id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" varchar NOT NULL,
 	"tour_id" varchar NOT NULL,
 	"added_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-ALTER TABLE "availability_holds" ADD CONSTRAINT "availability_holds_tour_instance_id_tour_instances_id_fk" FOREIGN KEY ("tour_instance_id") REFERENCES "public"."tour_instances"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "bookings" ADD CONSTRAINT "bookings_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "bookings" ADD CONSTRAINT "bookings_tour_id_tours_id_fk" FOREIGN KEY ("tour_id") REFERENCES "public"."tours"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "bookings" ADD CONSTRAINT "bookings_tour_instance_id_tour_instances_id_fk" FOREIGN KEY ("tour_instance_id") REFERENCES "public"."tour_instances"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "bookings" ADD CONSTRAINT "bookings_hold_id_availability_holds_id_fk" FOREIGN KEY ("hold_id") REFERENCES "public"."availability_holds"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "notifications" ADD CONSTRAINT "notifications_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "payments" ADD CONSTRAINT "payments_booking_id_bookings_id_fk" FOREIGN KEY ("booking_id") REFERENCES "public"."bookings"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "payments" ADD CONSTRAINT "payments_gateway_id_payment_gateways_id_fk" FOREIGN KEY ("gateway_id") REFERENCES "public"."payment_gateways"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "payments" ADD CONSTRAINT "payments_reconciled_by_users_id_fk" FOREIGN KEY ("reconciled_by") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "tour_instances" ADD CONSTRAINT "tour_instances_tour_id_tours_id_fk" FOREIGN KEY ("tour_id") REFERENCES "public"."tours"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "wishlist_items" ADD CONSTRAINT "wishlist_items_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "wishlist_items" ADD CONSTRAINT "wishlist_items_tour_id_tours_id_fk" FOREIGN KEY ("tour_id") REFERENCES "public"."tours"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-CREATE INDEX "idx_payments_reconciliation_stale" ON "payments" USING btree ("status","last_reconciled_at","created_at") WHERE status = 'processing';--> statement-breakpoint
-CREATE INDEX "idx_payments_pending_expiry" ON "payments" USING btree ("status","expires_at") WHERE status IN ('pending', 'processing');--> statement-breakpoint
-CREATE INDEX "idx_tour_instances_unique" ON "tour_instances" USING btree ("tour_id","service_date","time_slot");
+DO $$ BEGIN
+  ALTER TABLE "availability_holds" ADD CONSTRAINT "availability_holds_tour_instance_id_tour_instances_id_fk" FOREIGN KEY ("tour_instance_id") REFERENCES "public"."tour_instances"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+  ALTER TABLE "bookings" ADD CONSTRAINT "bookings_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+  ALTER TABLE "bookings" ADD CONSTRAINT "bookings_tour_id_tours_id_fk" FOREIGN KEY ("tour_id") REFERENCES "public"."tours"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+  ALTER TABLE "bookings" ADD CONSTRAINT "bookings_tour_instance_id_tour_instances_id_fk" FOREIGN KEY ("tour_instance_id") REFERENCES "public"."tour_instances"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+  ALTER TABLE "bookings" ADD CONSTRAINT "bookings_hold_id_availability_holds_id_fk" FOREIGN KEY ("hold_id") REFERENCES "public"."availability_holds"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+  ALTER TABLE "notifications" ADD CONSTRAINT "notifications_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+  ALTER TABLE "payments" ADD CONSTRAINT "payments_booking_id_bookings_id_fk" FOREIGN KEY ("booking_id") REFERENCES "public"."bookings"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+  ALTER TABLE "payments" ADD CONSTRAINT "payments_gateway_id_payment_gateways_id_fk" FOREIGN KEY ("gateway_id") REFERENCES "public"."payment_gateways"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+  ALTER TABLE "payments" ADD CONSTRAINT "payments_reconciled_by_users_id_fk" FOREIGN KEY ("reconciled_by") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+  ALTER TABLE "tour_instances" ADD CONSTRAINT "tour_instances_tour_id_tours_id_fk" FOREIGN KEY ("tour_id") REFERENCES "public"."tours"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+  ALTER TABLE "wishlist_items" ADD CONSTRAINT "wishlist_items_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+  ALTER TABLE "wishlist_items" ADD CONSTRAINT "wishlist_items_tour_id_tours_id_fk" FOREIGN KEY ("tour_id") REFERENCES "public"."tours"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "idx_payments_reconciliation_stale" ON "payments" USING btree ("status","last_reconciled_at","created_at") WHERE status = 'processing';
+--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "idx_payments_pending_expiry" ON "payments" USING btree ("status","expires_at") WHERE status IN ('pending', 'processing');
+--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "idx_tour_instances_unique" ON "tour_instances" USING btree ("tour_id","service_date","time_slot");

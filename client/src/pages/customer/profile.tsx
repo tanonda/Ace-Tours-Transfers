@@ -25,7 +25,6 @@ export default function CustomerProfile() {
           <CardContent className="space-y-6">
             <div className="flex items-center gap-6">
               <Avatar className="h-24 w-24">
-                <AvatarImage src="" />
                 <AvatarFallback className="text-2xl bg-muted">JD</AvatarFallback>
               </Avatar>
               <Button variant="outline" onClick={() => toast({ title: "Change Avatar", description: "Opening image uploader..." })}>Change Avatar</Button>

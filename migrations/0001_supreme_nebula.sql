@@ -1,4 +1,4 @@
-CREATE TABLE "addons" (
+CREATE TABLE IF NOT EXISTS "addons" (
 	"id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"name" text NOT NULL,
 	"description" text,
@@ -7,7 +7,7 @@ CREATE TABLE "addons" (
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "booking_addons" (
+CREATE TABLE IF NOT EXISTS "booking_addons" (
 	"id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"booking_id" varchar NOT NULL,
 	"addon_id" varchar NOT NULL,
@@ -16,7 +16,7 @@ CREATE TABLE "booking_addons" (
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "booking_items" (
+CREATE TABLE IF NOT EXISTS "booking_items" (
 	"id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"booking_id" varchar NOT NULL,
 	"product_type" text NOT NULL,
@@ -30,7 +30,7 @@ CREATE TABLE "booking_items" (
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "capacity_audit_log" (
+CREATE TABLE IF NOT EXISTS "capacity_audit_log" (
 	"id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"tour_instance_id" varchar,
 	"product_id" varchar NOT NULL,
@@ -43,7 +43,7 @@ CREATE TABLE "capacity_audit_log" (
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "feature_flags" (
+CREATE TABLE IF NOT EXISTS "feature_flags" (
 	"id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"slug" text NOT NULL,
 	"enabled" boolean DEFAULT false NOT NULL,
@@ -53,7 +53,7 @@ CREATE TABLE "feature_flags" (
 	CONSTRAINT "feature_flags_slug_unique" UNIQUE("slug")
 );
 --> statement-breakpoint
-CREATE TABLE "pricing_versions" (
+CREATE TABLE IF NOT EXISTS "pricing_versions" (
 	"id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"product_id" varchar NOT NULL,
 	"effective_from" text NOT NULL,
@@ -64,7 +64,7 @@ CREATE TABLE "pricing_versions" (
 	"created_by" varchar
 );
 --> statement-breakpoint
-CREATE TABLE "product_blackout_dates" (
+CREATE TABLE IF NOT EXISTS "product_blackout_dates" (
 	"id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"product_id" varchar NOT NULL,
 	"date" text NOT NULL,
@@ -73,7 +73,7 @@ CREATE TABLE "product_blackout_dates" (
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "resources" (
+CREATE TABLE IF NOT EXISTS "resources" (
 	"id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"product_id" varchar NOT NULL,
 	"name" text NOT NULL,
@@ -84,7 +84,7 @@ CREATE TABLE "resources" (
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "reviews" (
+CREATE TABLE IF NOT EXISTS "reviews" (
 	"id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" varchar NOT NULL,
 	"tour_id" varchar NOT NULL,
@@ -94,31 +94,133 @@ CREATE TABLE "reviews" (
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-ALTER TABLE "availability_holds" ADD COLUMN "resource_id" varchar;--> statement-breakpoint
-ALTER TABLE "bookings" ADD COLUMN "idempotency_key" varchar;--> statement-breakpoint
-ALTER TABLE "bookings" ADD COLUMN "start_time" text;--> statement-breakpoint
-ALTER TABLE "bookings" ADD COLUMN "end_time" text;--> statement-breakpoint
-ALTER TABLE "bookings" ADD COLUMN "total_amount_cents" integer DEFAULT 0 NOT NULL;--> statement-breakpoint
-ALTER TABLE "bookings" ADD COLUMN "currency" varchar(3) DEFAULT 'VUV' NOT NULL;--> statement-breakpoint
-ALTER TABLE "bookings" ADD COLUMN "adult_pax_total" integer DEFAULT 0 NOT NULL;--> statement-breakpoint
-ALTER TABLE "bookings" ADD COLUMN "child_pax_total" integer DEFAULT 0 NOT NULL;--> statement-breakpoint
-ALTER TABLE "tour_instances" ADD COLUMN "start_time" text;--> statement-breakpoint
-ALTER TABLE "tour_instances" ADD COLUMN "end_time" text;--> statement-breakpoint
-ALTER TABLE "tours" ADD COLUMN "adult_price_cents" integer DEFAULT 0 NOT NULL;--> statement-breakpoint
-ALTER TABLE "tours" ADD COLUMN "child_price_cents" integer DEFAULT 0 NOT NULL;--> statement-breakpoint
-ALTER TABLE "booking_addons" ADD CONSTRAINT "booking_addons_booking_id_bookings_id_fk" FOREIGN KEY ("booking_id") REFERENCES "public"."bookings"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "booking_addons" ADD CONSTRAINT "booking_addons_addon_id_addons_id_fk" FOREIGN KEY ("addon_id") REFERENCES "public"."addons"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "booking_items" ADD CONSTRAINT "booking_items_booking_id_bookings_id_fk" FOREIGN KEY ("booking_id") REFERENCES "public"."bookings"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "capacity_audit_log" ADD CONSTRAINT "capacity_audit_log_tour_instance_id_tour_instances_id_fk" FOREIGN KEY ("tour_instance_id") REFERENCES "public"."tour_instances"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "pricing_versions" ADD CONSTRAINT "pricing_versions_product_id_tours_id_fk" FOREIGN KEY ("product_id") REFERENCES "public"."tours"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "pricing_versions" ADD CONSTRAINT "pricing_versions_created_by_users_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "product_blackout_dates" ADD CONSTRAINT "product_blackout_dates_product_id_tours_id_fk" FOREIGN KEY ("product_id") REFERENCES "public"."tours"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "product_blackout_dates" ADD CONSTRAINT "product_blackout_dates_created_by_users_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "resources" ADD CONSTRAINT "resources_product_id_tours_id_fk" FOREIGN KEY ("product_id") REFERENCES "public"."tours"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "reviews" ADD CONSTRAINT "reviews_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "reviews" ADD CONSTRAINT "reviews_tour_id_tours_id_fk" FOREIGN KEY ("tour_id") REFERENCES "public"."tours"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "reviews" ADD CONSTRAINT "reviews_booking_id_bookings_id_fk" FOREIGN KEY ("booking_id") REFERENCES "public"."bookings"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-CREATE INDEX "idx_pricing_effective" ON "pricing_versions" USING btree ("product_id","effective_from");--> statement-breakpoint
-CREATE INDEX "idx_blackout_unique" ON "product_blackout_dates" USING btree ("product_id","date");--> statement-breakpoint
-ALTER TABLE "availability_holds" ADD CONSTRAINT "availability_holds_resource_id_resources_id_fk" FOREIGN KEY ("resource_id") REFERENCES "public"."resources"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "bookings" ADD CONSTRAINT "bookings_idempotency_key_unique" UNIQUE("idempotency_key");
+DO $$ BEGIN
+  ALTER TABLE "availability_holds" ADD COLUMN "resource_id" varchar;
+EXCEPTION WHEN duplicate_column THEN NULL;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+  ALTER TABLE "bookings" ADD COLUMN "idempotency_key" varchar;
+EXCEPTION WHEN duplicate_column THEN NULL;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+  ALTER TABLE "bookings" ADD COLUMN "start_time" text;
+EXCEPTION WHEN duplicate_column THEN NULL;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+  ALTER TABLE "bookings" ADD COLUMN "end_time" text;
+EXCEPTION WHEN duplicate_column THEN NULL;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+  ALTER TABLE "bookings" ADD COLUMN "total_amount_cents" integer DEFAULT 0 NOT NULL;
+EXCEPTION WHEN duplicate_column THEN NULL;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+  ALTER TABLE "bookings" ADD COLUMN "currency" varchar(3) DEFAULT 'VUV' NOT NULL;
+EXCEPTION WHEN duplicate_column THEN NULL;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+  ALTER TABLE "bookings" ADD COLUMN "adult_pax_total" integer DEFAULT 0 NOT NULL;
+EXCEPTION WHEN duplicate_column THEN NULL;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+  ALTER TABLE "bookings" ADD COLUMN "child_pax_total" integer DEFAULT 0 NOT NULL;
+EXCEPTION WHEN duplicate_column THEN NULL;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+  ALTER TABLE "tour_instances" ADD COLUMN "start_time" text;
+EXCEPTION WHEN duplicate_column THEN NULL;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+  ALTER TABLE "tour_instances" ADD COLUMN "end_time" text;
+EXCEPTION WHEN duplicate_column THEN NULL;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+  ALTER TABLE "tours" ADD COLUMN "adult_price_cents" integer DEFAULT 0 NOT NULL;
+EXCEPTION WHEN duplicate_column THEN NULL;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+  ALTER TABLE "tours" ADD COLUMN "child_price_cents" integer DEFAULT 0 NOT NULL;
+EXCEPTION WHEN duplicate_column THEN NULL;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+  ALTER TABLE "booking_addons" ADD CONSTRAINT "booking_addons_booking_id_bookings_id_fk" FOREIGN KEY ("booking_id") REFERENCES "public"."bookings"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+  ALTER TABLE "booking_addons" ADD CONSTRAINT "booking_addons_addon_id_addons_id_fk" FOREIGN KEY ("addon_id") REFERENCES "public"."addons"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+  ALTER TABLE "booking_items" ADD CONSTRAINT "booking_items_booking_id_bookings_id_fk" FOREIGN KEY ("booking_id") REFERENCES "public"."bookings"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+  ALTER TABLE "capacity_audit_log" ADD CONSTRAINT "capacity_audit_log_tour_instance_id_tour_instances_id_fk" FOREIGN KEY ("tour_instance_id") REFERENCES "public"."tour_instances"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+  ALTER TABLE "pricing_versions" ADD CONSTRAINT "pricing_versions_product_id_tours_id_fk" FOREIGN KEY ("product_id") REFERENCES "public"."tours"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+  ALTER TABLE "pricing_versions" ADD CONSTRAINT "pricing_versions_created_by_users_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+  ALTER TABLE "product_blackout_dates" ADD CONSTRAINT "product_blackout_dates_product_id_tours_id_fk" FOREIGN KEY ("product_id") REFERENCES "public"."tours"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+  ALTER TABLE "product_blackout_dates" ADD CONSTRAINT "product_blackout_dates_created_by_users_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+  ALTER TABLE "resources" ADD CONSTRAINT "resources_product_id_tours_id_fk" FOREIGN KEY ("product_id") REFERENCES "public"."tours"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+  ALTER TABLE "reviews" ADD CONSTRAINT "reviews_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+  ALTER TABLE "reviews" ADD CONSTRAINT "reviews_tour_id_tours_id_fk" FOREIGN KEY ("tour_id") REFERENCES "public"."tours"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+  ALTER TABLE "reviews" ADD CONSTRAINT "reviews_booking_id_bookings_id_fk" FOREIGN KEY ("booking_id") REFERENCES "public"."bookings"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "idx_pricing_effective" ON "pricing_versions" USING btree ("product_id","effective_from");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "idx_blackout_unique" ON "product_blackout_dates" USING btree ("product_id","date");--> statement-breakpoint
+DO $$ BEGIN
+  ALTER TABLE "availability_holds" ADD CONSTRAINT "availability_holds_resource_id_resources_id_fk" FOREIGN KEY ("resource_id") REFERENCES "public"."resources"("id") ON DELETE no action ON UPDATE no action;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+  ALTER TABLE "bookings" ADD CONSTRAINT "bookings_idempotency_key_unique" UNIQUE("idempotency_key");
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;

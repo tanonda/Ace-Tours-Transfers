@@ -93,8 +93,8 @@ export class BackupIntegrityGuard {
    */
   static enforceReadOnly(req: any, res: any, next: any) {
     if (BackupIntegrityGuard.writeBlocked) {
-      // Allow GET requests and Recovery routes
-      if (req.method === 'GET' || req.path.startsWith('/api/admin/recovery')) {
+      // Allow GET requests, Recovery routes, and read-only POST endpoints
+      if (req.method === 'GET' || req.path.startsWith('/api/admin/recovery') || req.path === '/api/availability/check') {
         return next();
       }
 
