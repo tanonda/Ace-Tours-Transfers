@@ -42,6 +42,7 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
+    chunkSizeWarningLimit: 600,
     rollupOptions: {
       output: {
         manualChunks: {
@@ -58,7 +59,13 @@ export default defineConfig({
           'vendor-charts': ['recharts', 'chart.js', 'react-chartjs-2'],
           'vendor-forms': ['react-hook-form', '@hookform/resolvers', 'zod'],
           'vendor-query': ['@tanstack/react-query'],
+          'vendor-pdf': ['html2pdf.js', 'qrcode'],
         },
+        // Optimize chunk sizing
+        minChunkSize: 20000,
+        entryFileNames: 'assets/[name]-[hash].js',
+        chunkFileNames: 'assets/[name]-[hash].js',
+        assetFileNames: 'assets/[name]-[hash][extname]',
       },
     },
   },
