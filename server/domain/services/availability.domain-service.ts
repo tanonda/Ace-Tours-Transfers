@@ -1,7 +1,7 @@
 import { Tour, Booking } from "../../../shared/schema.js";
 import { isSameDay } from "date-fns";
 import { IStorage } from "../../storage.js";
-import { PriceResolver } from "../pricing/PriceResolver.js";
+import { PricingEngine } from "../pricing/PricingEngine.js";
 import { availabilityCache } from "../../infrastructure/cache/availability-cache.service.js";
 import { capacityAlertService } from "../../application/alerts/capacity-alert.service.js";
 import { TimeInterval, intervalsOverlap, getDefaultInterval } from "../availability/time-interval.js";
@@ -32,11 +32,11 @@ export interface AvailabilityResult {
  */
 export class AvailabilityDomainService {
   private storage: IStorage;
-  private priceResolver: PriceResolver;
+  private pricingEngine: PricingEngine;
 
   constructor(storage: IStorage) {
     this.storage = storage;
-    this.priceResolver = new PriceResolver(storage);
+    this.pricingEngine = new PricingEngine(storage);
   }
 
   /**
@@ -224,7 +224,7 @@ export class AvailabilityDomainService {
 
   /**
    * Calculates pricing for the requested booking.
-   * Uses PriceResolver for consistent pricing logic.
+   * Uses PricingEngine for consistent pricing logic.
    */
   private async calculatePricing(
     productId: string,
@@ -234,13 +234,22 @@ export class AvailabilityDomainService {
     addonIds?: string[]
   ): Promise<AvailabilityResult['pricing']> {
     // Get rates
-    const rates = await this.priceResolver.getTourRate(productId, date);
+    const rates = await this.pricingEngine.getTourRate(productId, date);
     if (!rates) {
       return {
         subtotalCents: 0,
         breakdown: { adultSubtotal: 0, childSubtotal: 0, addonsTotal: 0 },
       };
     }
+
+    // Calculate pricing using PricingEngine
+    const pricing = await this.pricingEngine.calculateLineItem(
+      adultPax,
+      childPax,
+      rates,
+      date,
+      addonIds
+    );
 
     // Calculate addon total
     let addonsTotal = 0;
@@ -254,27 +263,19 @@ export class AvailabilityDomainService {
       );
     }
 
-    // Calculate base subtotals
+    // Calculate base subtotals (for detailed breakdown)
     const adultSubtotal = adultPax * rates.adultPriceCents;
     const childSubtotal = childPax * rates.childPriceCents;
 
-    // Calculate total with pricing rules (discounts, seasonal)
-    const subtotalCents = this.priceResolver.calculateItemTotal(
-      adultPax,
-      childPax,
-      rates,
-      addonsTotal,
-      date
-    );
+    // Use PricingEngine's calculated total as the source of truth
+    const subtotalCents = pricing.breakdown.finalTotalCents;
 
-    // Track applied discounts
+    // Track applied discounts from pricing engine
     const appliedDiscounts: string[] = [];
-    if (adultPax >= 7) {
+    if (pricing.breakdown.discountApplied) {
       appliedDiscounts.push("10% group discount (7+ adults)");
     }
-    const bookingDate = new Date(date);
-    const month = bookingDate.getMonth();
-    if (month === 11 || month === 0) {
+    if (pricing.breakdown.surchargeApplied) {
       appliedDiscounts.push("20% peak season surcharge (Dec/Jan)");
     }
 

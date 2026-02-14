@@ -5,10 +5,11 @@ import { Booking } from "../../domain/booking/Booking.js";
 import { PriceCartService } from "../pricing/PriceCartService.js";
 import { eventDispatcher } from "../../infrastructure/events/event-dispatcher.js";
 import { BookingCreated } from "../../domain/events.js";
-import { PriceResolver } from "../../domain/pricing/PriceResolver.js";
+import { PricingEngine } from "../../domain/pricing/PricingEngine.js";
 import { config } from "../../config.js";
 import { AvailabilityApplicationService } from "../availability/availability.application-service.js";
 import { metricsService } from "../../infrastructure/metrics/metrics.service.js";
+
 export interface CreateBookingRequest {
   customerName: string;
   customerEmail: string;
@@ -28,12 +29,12 @@ export interface CreateBookingRequest {
 
 export class CreateBookingFromCartService {
   private priceCartService: PriceCartService;
-  private priceResolver: PriceResolver;
+  private pricingEngine: PricingEngine;
   private availabilityService: AvailabilityApplicationService;
 
   constructor(private storage: IStorage) {
     this.priceCartService = new PriceCartService(storage);
-    this.priceResolver = new PriceResolver(storage);
+    this.pricingEngine = new PricingEngine(storage);
     this.availabilityService = new AvailabilityApplicationService(storage);
   }
 
@@ -52,7 +53,7 @@ export class CreateBookingFromCartService {
         const product = await this.storage.getTour(item.productId);
         if (!product) throw new Error(`Product ${item.productId} not found`);
 
-        const rates = await this.priceResolver.getTourRate(item.productId, item.date);
+        const rates = await this.pricingEngine.getTourRate(item.productId, item.date);
         if (!rates) throw new Error(`Rates for product ${item.productId} not found`);
 
         // ATOMIC AVAILABILITY LOCKING
@@ -102,14 +103,19 @@ export class CreateBookingFromCartService {
           }
         }
 
-        // Phase 5: Server-side price recalculation
-        const serverPricedTotalCents = this.priceResolver.calculateItemTotal(
+        // Phase 2B: Server-side price recalculation using PricingEngine
+        const pricing = await this.pricingEngine.calculateLineItem(
           item.adultPax,
           item.childPax,
           rates,
-          0, // addons handled later in aggregate logic if needed, but per-item check here
           item.date
-        ) * (product.category === 'vehicle' ? (item.quantity || 1) : 1);
+        );
+        
+        let serverPricedTotalCents = pricing.breakdown.finalTotalCents;
+        
+        // If it's a vehicle (or any duration-based product), multiply by quantity (days)
+        const duration = (product.category === 'vehicle') ? (item.quantity || 1) : 1;
+        serverPricedTotalCents *= duration;
 
         const subtotalCents = serverPricedTotalCents;
         const unitPriceCents = totalQuantity > 0 ? Math.round(subtotalCents / totalQuantity) : 0;
@@ -196,7 +202,7 @@ export class CreateBookingFromCartService {
         productType: item.productType,
         quantity: item.quantity,
         unitPriceCents: item.unitPriceCents,
-        subtotalCents: item.unitPriceCents * item.quantity, // Simplification, in reality use PriceResolver logic per item
+        subtotalCents: item.unitPriceCents * item.quantity,
         adultPax: item.adultPax,
         childPax: item.childPax
       });
