@@ -88,13 +88,24 @@ export function formatPrice(
 }
 
 /**
- * Calculates the total price for a booking line item.
+ * @deprecated Use backend pricing API (POST /api/cart/price) instead
+ * This client-side calculation does NOT include group discounts, seasonal surcharges, or VAT.
+ * The backend PricingEngine is the single source of truth for all pricing rules.
+ * 
+ * This function is kept for backward compatibility during frontend migration (Phase 2C).
+ * It will be removed in Phase 2E once all frontend code uses backend pricing.
  * 
  * @param adultPriceCents - Adult price in cents
  * @param childPriceCents - Child price in cents  
  * @param adultCount - Number of adults
  * @param childCount - Number of children
- * @returns Total price in cents
+ * @param addonTotalCents - Add-ons total in cents (default: 0)
+ * @returns Base total price in cents (without rules applied)
+ * 
+ * Migration Path:
+ * Replace: calculateLineTotal(adultPrice, childPrice, adults, children, addons)
+ * With:    const pricing = await fetchPricing({productId, date, adultPax, childPax, addonIds})
+ *          Use: pricing.breakdown.finalTotalCents
  */
 export function calculateLineTotal(
   adultPriceCents: number,
@@ -103,6 +114,10 @@ export function calculateLineTotal(
   childCount: number,
   addonTotalCents: number = 0
 ): number {
+  console.warn(
+    '[DEPRECATED] calculateLineTotal() is deprecated. Use backend pricing API instead (POST /api/cart/price). ' +
+    'This function does not include discounts, surcharges, or VAT.'
+  );
   return (adultPriceCents * adultCount) + (childPriceCents * childCount) + addonTotalCents;
 }
 
@@ -149,4 +164,23 @@ export function formatPriceShort(cents: number, currencyCode: string = 'VUV'): s
   });
 
   return currencyCode === 'VUV' ? `${formatted} VT` : `${exchange.symbol}${formatted}`;
+}
+
+/**
+ * Backend Pricing Result - from PricingEngine (Phase 2B)
+ */
+export interface PriceBreakdown {
+  baseTotalCents: number;           // Before discounts/surcharges
+  adultSubtotalCents: number;       // Adults only (before rules)
+  childSubtotalCents: number;       // Children only (before rules)
+  addonsSubtotalCents: number;      // Add-ons total
+  discountsCents: number;           // Negative value
+  surchargesCents: number;          // Positive value
+  finalTotalCents: number;          // After all rules → USE THIS FOR PRICES
+  appliedRules: string[];           // Human-readable rules
+}
+
+export interface PricingResult {
+  breakdown: PriceBreakdown;
+  appliedDiscounts?: string[];
 }

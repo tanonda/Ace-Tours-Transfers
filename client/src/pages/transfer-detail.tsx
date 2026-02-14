@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { motion } from "framer-motion";
 import { BookingModal } from "@/components/booking-modal";
 import { formatPrice, type ProductCategory } from "@/lib/product.types";
+import { AvailabilityStatus, AvailabilityCalendar } from "@/components";
 
 export default function TransferDetail() {
   const { id } = useParams<{ id: string }>();
@@ -198,6 +199,34 @@ export default function TransferDetail() {
                     </div>
                   </div>
                 </div>
+
+                {/* Phase 3: Availability & Pricing Widgets */}
+                {transfer.id && date && (
+                  <div className="space-y-6 mb-10">
+                    {/* Real-time Availability Status */}
+                    <div className="bg-card p-6 rounded-2xl border border-border/50 shadow-sm">
+                      <h3 className="text-xl font-bold mb-4 font-serif text-primary">Real-time Availability</h3>
+                      <AvailabilityStatus
+                        tourId={transfer.id}
+                        selectedDate={date}
+                        maxParticipants={6}
+                        onAvailabilityChange={(available) => {
+                          console.log("Availability status:", available);
+                        }}
+                      />
+                    </div>
+
+                    {/* Interactive Calendar */}
+                    <div className="bg-card p-6 rounded-2xl border border-border/50 shadow-sm">
+                      <h3 className="text-xl font-bold mb-4 font-serif text-primary">Select Your Date</h3>
+                      <AvailabilityCalendar
+                        tourId={transfer.id}
+                        participants={Math.max(1, parseInt(adultPax) + parseInt(childPax))}
+                        onDateSelect={(selectedDate) => setDate(selectedDate)}
+                      />
+                    </div>
+                  </div>
+                )}
 
                 {/* Booking Card */}
                 <div className="mt-auto bg-primary/5 p-8 rounded-3xl border-2 border-primary/20 shadow-inner">

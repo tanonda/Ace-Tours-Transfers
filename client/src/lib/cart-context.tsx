@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { calculateLineTotal, type ProductCategory } from "./product.types";
+import { fetchPricing, type PricingSnapshot } from "./api";
 
 const CART_STORAGE_KEY = 'ace-tours-cart';
 const CART_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours
@@ -37,6 +38,8 @@ interface CartContextType {
   isHydrated: boolean;
   expiresAt: number | null;
   isExpiringSoon: boolean;
+  pricingSnapshot: PricingSnapshot | null;
+  isLoadingPricing: boolean;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -91,6 +94,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [isHydrated, setIsHydrated] = useState(false);
   const [expiresAt, setExpiresAt] = useState<number | null>(null);
+  const [pricingSnapshot, setPricingSnapshot] = useState<PricingSnapshot | null>(null);
+  const [isLoadingPricing, setIsLoadingPricing] = useState(false);
   const { toast } = useToast();
 
   // Hydrate cart from localStorage on mount
@@ -166,16 +171,55 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem(CART_STORAGE_KEY);
   }, []);
 
-  // Note: This total is a client-side estimation. Server-side PriceResolver is the source of truth.
-  const total = items.reduce((acc, item) => {
+  // Fetch backend pricing whenever items change (Phase 2C)
+  // PricingEngine (backend) is the single source of truth
+  useEffect(() => {
+    if (!isHydrated || items.length === 0) {
+      setPricingSnapshot(null);
+      return;
+    }
+
+    async function updatePricing() {
+      setIsLoadingPricing(true);
+      try {
+        const snapshot = await fetchPricing({
+          items: items.map(item => ({
+            productId: item.id,
+            adultPax: item.adultPax,
+            childPax: item.childPax,
+            quantity: item.quantity,
+            addonIds: item.addonIds || [],
+            date: item.date ? item.date.toISOString().split('T')[0] : undefined,
+          })),
+        });
+        setPricingSnapshot(snapshot);
+      } catch (error) {
+        console.error('[Cart] Failed to fetch backend pricing:', error);
+        // Fallback to client-side estimation (deprecated)
+        toast({
+          title: "Pricing Service Unavailable",
+          description: "Using estimated pricing. Actual price will be confirmed at checkout.",
+          variant: "default"
+        });
+      } finally {
+        setIsLoadingPricing(false);
+      }
+    }
+
+    updatePricing();
+  }, [items, isHydrated, toast]);
+
+  // Note: This is a CLIENT-SIDE ESTIMATION. The backend PricingEngine is the source of truth.
+  // Once backend pricing is loaded, use pricingSnapshot.totalCents instead.
+  const estimatedTotal = items.reduce((acc, item) => {
     let lineTotal = calculateLineTotal(item.price, item.childPrice, item.adultPax, item.childPax, item.addonTotal || 0);
 
-    // Apply Group Discount (10% off for 7+ adults)
+    // Apply Group Discount (10% off for 7+ adults) - ESTIMATED
     if (item.adultPax >= 7) {
       lineTotal = Math.round(lineTotal * 0.9);
     }
 
-    // Apply Seasonal Surcharge (20% in Dec/Jan)
+    // Apply Seasonal Surcharge (20% in Dec/Jan) - ESTIMATED
     if (item.date) {
       const month = item.date.getMonth();
       if (month === 11 || month === 0) {
@@ -185,6 +229,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
     return acc + (lineTotal * item.quantity);
   }, 0);
+
+  // Use backend pricing if available, fallback to estimation
+  const total = pricingSnapshot ? pricingSnapshot.totalCents : estimatedTotal;
   const itemCount = items.length;
 
   return (
@@ -198,7 +245,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       itemCount,
       isHydrated,
       expiresAt,
-      isExpiringSoon
+      isExpiringSoon,
+      pricingSnapshot,
+      isLoadingPricing,
     }}>
       {children}
     </CartContext.Provider>

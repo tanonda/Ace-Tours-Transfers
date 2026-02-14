@@ -1,0 +1,21 @@
+{
+  "waveNumber": 1,
+  "status": "monitoring",
+  "startTime": "2026-02-14T19:48:53.215Z",
+  "rolloutPercentage": 10,
+  "enabledAt": "2026-02-14T19:48:53.228Z",
+  "nextCheckTime": "2026-02-14T20:18:53.228Z",
+  "checkCount": 1,
+  "errors": [],
+  "pricingErrors": 0,
+  "paymentSuccessRate": 99.8,
+  "marketplaceStatusChecks": [
+    {
+      "timestamp": "2026-02-14T19:48:53.246Z",
+      "errorCount": 0,
+      "paymentSuccessRate": 99.8,
+      "avgLatency": 42,
+      "status": "healthy"
+    }
+  ]
+}

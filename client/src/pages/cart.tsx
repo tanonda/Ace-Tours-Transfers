@@ -3,7 +3,7 @@ import { useCart } from "@/lib/cart-context";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Trash2, ArrowRight, ShoppingBag, Clock, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Trash2, ArrowRight, ShoppingBag, Clock, AlertTriangle, CheckCircle2, Loader2 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { format } from "date-fns";
 import { useTranslation } from "react-i18next";
@@ -15,10 +15,11 @@ import { formatPriceDisplay, calculateLineTotal } from "@/lib/product.types";
 import type { Addon } from "@shared/schema";
 import { useQuery } from "@tanstack/react-query";
 import { fetchAddons } from "@/lib/api";
+import { PricingBreakdown } from "@/components";
 
 export default function Cart() {
   const { t } = useTranslation();
-  const { items, removeFromCart, total, clearCart, isExpiringSoon, expiresAt } = useCart();
+  const { items, removeFromCart, total, clearCart, isExpiringSoon, expiresAt, pricingSnapshot, isLoadingPricing } = useCart();
   const [, setLocation] = useLocation();
   const { user } = useAuth();
   const { toast } = useToast();
@@ -97,20 +98,33 @@ export default function Cart() {
           <div className="flex flex-col lg:flex-row gap-8">
             {/* Cart Items */}
             <div className="lg:w-2/3">
+              {isLoadingPricing && items.length > 0 && (
+                <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6 flex items-center gap-3">
+                  <Loader2 className="h-5 w-5 text-blue-600 dark:text-blue-400 shrink-0 animate-spin" />
+                  <p className="text-blue-800 dark:text-blue-200 text-sm">Calculating prices from PricingEngine...</p>
+                </div>
+              )}
               <div className="space-y-4">
                 {items.map((item, index) => {
-                  const itemSubtotal = calculateLineTotal(item.price, item.childPrice, item.adultPax, item.childPax, item.addonTotal || 0);
-                  let finalItemSubtotal = itemSubtotal;
-                  let hasGroupDiscount = false;
+                  // Phase 2C: Use backend pricing if available, fallback to deprecated client estimation
+                  let finalItemSubtotal = 0;
+                  let appliedRules: string[] = [];
 
-                  if (item.adultPax >= 7) {
-                    finalItemSubtotal = Math.round(finalItemSubtotal * 0.9);
-                    hasGroupDiscount = true;
-                  }
-
-                  const isSeasonal = item.date && (item.date.getMonth() === 11 || item.date.getMonth() === 0);
-                  if (isSeasonal) {
-                    finalItemSubtotal = Math.round(finalItemSubtotal * 1.2);
+                  if (pricingSnapshot && pricingSnapshot.items[index]) {
+                    const pricedItem = pricingSnapshot.items[index];
+                    finalItemSubtotal = pricedItem.breakdown.finalTotalCents;
+                    appliedRules = pricedItem.breakdown.appliedRules;
+                  } else {
+                    // Client-side estimation (deprecated - for fallback only)
+                    finalItemSubtotal = calculateLineTotal(item.price, item.childPrice, item.adultPax, item.childPax, item.addonTotal || 0);
+                    if (item.adultPax >= 7) {
+                      appliedRules.push('10% group discount (7+ adults)');
+                      finalItemSubtotal = Math.round(finalItemSubtotal * 0.9);
+                    }
+                    if (item.date && (item.date.getMonth() === 11 || item.date.getMonth() === 0)) {
+                      appliedRules.push('20% peak season surcharge (Dec/Jan)');
+                      finalItemSubtotal = Math.round(finalItemSubtotal * 1.2);
+                    }
                   }
 
                   return (
@@ -152,8 +166,15 @@ export default function Cart() {
                               </div>
                               <div className="text-right">
                                 <p className="font-bold text-lg">{formatPriceDisplay(finalItemSubtotal * item.quantity, currency)}</p>
-                                {hasGroupDiscount && <p className="text-xs text-green-600 font-medium">10% Group Discount Applied</p>}
-                                {isSeasonal && <p className="text-xs text-orange-600 font-medium">20% Seasonal Peak Surcharge</p>}
+                                {appliedRules.length > 0 && (
+                                  <div className="text-xs space-y-0.5 mt-1">
+                                    {appliedRules.map((rule, i) => (
+                                      <p key={i} className="text-green-600 dark:text-green-400 font-medium">
+                                        {rule}
+                                      </p>
+                                    ))}
+                                  </div>
+                                )}
                               </div>
                             </div>
 
@@ -192,12 +213,26 @@ export default function Cart() {
                   <CardTitle>{t("payment.orderSummary")}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex justify-between font-bold text-lg pt-2 border-t mt-2">
-                      <span>{t("cart.total")}</span>
-                      <span>{formatPriceDisplay(total, currency)}</span>
+                  {/* Phase 3: Show detailed pricing breakdown from PricingEngine */}
+                  {pricingSnapshot && (
+                    <div className="mb-6">
+                      <PricingBreakdown
+                        pricing={pricingSnapshot}
+                        currency={currency}
+                        expanded={false}
+                      />
                     </div>
-                  </div>
+                  )}
+
+                  {/* Fallback to simple total if no pricing snapshot */}
+                  {!pricingSnapshot && (
+                    <div className="space-y-4">
+                      <div className="flex justify-between font-bold text-lg pt-2 border-t mt-2">
+                        <span>{t("cart.total")}</span>
+                        <span>{formatPriceDisplay(total, currency)}</span>
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
                 <CardFooter>
                   <Button className="w-full py-6 text-lg" size="lg" onClick={handleCheckout} disabled={isProcessing}>

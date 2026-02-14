@@ -8,6 +8,7 @@ import { Loader2 } from "lucide-react";
 import { Link } from "wouter";
 import { Payment } from "@shared/schema";
 import { QRCodeGenerator } from "@/components/QRCodeGenerator";
+import { AvailabilityStatus } from "@/components";
 
 const PrintItinerary = lazy(() => import("@/components/print-itinerary").then(m => ({ default: m.PrintItinerary })));
 
@@ -157,6 +158,21 @@ export default function ConfirmationPage() {
               )}
             </div>
           </div>
+
+          {/* Phase 3: Real-time Availability Status for Booked Date */}
+          {booking && booking.tourId && booking.date && (
+            <div className="rounded-lg border bg-card p-4 space-y-3">
+              <h3 className="font-semibold">Availability Status</h3>
+              <AvailabilityStatus
+                tourId={booking.tourId}
+                selectedDate={booking.date}
+                maxParticipants={parseInt(booking.guests) || 6}
+                onAvailabilityChange={(available) => {
+                  console.log("Current availability for booked date:", available);
+                }}
+              />
+            </div>
+          )}
 
           {isPendingPayment && (
             <div className="text-center space-y-4">
