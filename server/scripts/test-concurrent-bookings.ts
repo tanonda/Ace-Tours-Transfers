@@ -13,10 +13,10 @@
  */
 
 import { db } from "../db.js";
-import { tours, tourInstances, availabilityHolds, InsertTour } from "../../shared/schema.js";
+import { tours, tourInstances, availabilityHolds, InsertTour, capacityAuditLog } from "../../shared/schema.js";
 import { AvailabilityService } from "../domain/availability/availability.service.js";
 import { storage } from "../storage.js";
-import { eq } from "drizzle-orm";
+import { eq, like } from "drizzle-orm";
 
 const TEST_TOUR_ID = "test-concurrent-tour";
 const TEST_DATE = "2026-03-15";
@@ -28,7 +28,8 @@ async function setupTestTour(): Promise<void> {
     console.log("🔧 Setting up test tour...");
 
     // Clean up any existing test data
-    await db.delete(availabilityHolds).where(eq(availabilityHolds.bookingSessionId, "test-session"));
+    await db.delete(availabilityHolds).where(like(availabilityHolds.bookingSessionId, "test-session-%"));
+    await db.delete(capacityAuditLog).where(eq(capacityAuditLog.productId, TEST_TOUR_ID));
     await db.delete(tourInstances).where(eq(tourInstances.tourId, TEST_TOUR_ID));
     await db.delete(tours).where(eq(tours.id, TEST_TOUR_ID));
 
@@ -147,7 +148,8 @@ async function verifyDatabaseState(): Promise<void> {
 
 async function cleanup(): Promise<void> {
     console.log("\n🧹 Cleaning up test data...");
-    await db.delete(availabilityHolds).where(eq(availabilityHolds.bookingSessionId, "test-session"));
+    await db.delete(availabilityHolds).where(like(availabilityHolds.bookingSessionId, "test-session-%"));
+    await db.delete(capacityAuditLog).where(eq(capacityAuditLog.productId, TEST_TOUR_ID));
     await db.delete(tourInstances).where(eq(tourInstances.tourId, TEST_TOUR_ID));
     await db.delete(tours).where(eq(tours.id, TEST_TOUR_ID));
     console.log("✅ Cleanup complete");

@@ -359,6 +359,47 @@ export async function createPricingVersion(data: { productId: string; effectiveF
   return res.json();
 }
 
+// Availability API (Phase 3)
+export interface AvailabilityCheckRequest {
+  productId: string;
+  date: string;
+  adultPax: number;
+  childPax: number;
+  addonIds?: string[];
+  startTime?: string;
+  endTime?: string;
+}
+
+export interface AvailabilityCheckResponse {
+  isAvailable: boolean;
+  remainingCapacity: number;
+  totalCapacity: number;
+  message: string;
+  pricing?: any;
+}
+
+export async function checkAvailability(req: AvailabilityCheckRequest): Promise<AvailabilityCheckResponse> {
+  const res = await apiRequest("POST", "/api/availability/check", {
+    serviceId: req.productId,
+    date: req.date,
+    adultPax: req.adultPax,
+    childPax: req.childPax,
+    addonIds: req.addonIds,
+    startTime: req.startTime,
+    endTime: req.endTime
+  });
+  return res.json();
+}
+
+export async function getAvailabilityRange(
+  productId: string,
+  startDate: string,
+  endDate: string
+): Promise<Record<string, { isAvailable: boolean; remainingCapacity: number; totalCapacity: number }>> {
+  const res = await apiRequest("GET", `/api/availability/range?productId=${productId}&startDate=${startDate}&endDate=${endDate}`);
+  return res.json();
+}
+
 // Capacity Audit Log (Phase 7)
 export async function fetchAuditLogs(filters?: { productId?: string; action?: string; limit?: number; offset?: number }) {
   const qs = new URLSearchParams();

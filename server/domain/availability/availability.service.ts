@@ -81,7 +81,8 @@ export class AvailabilityService {
     ttlMinutes: number = 15,
     startTime?: string,
     endTime?: string,
-    pinnedResourceId?: string // Phase 1: Support pinning a resource for multi-day consistency
+    pinnedResourceId?: string, // Phase 1: Support pinning a resource for multi-day consistency
+    tx?: any // Phase 4: Allow passing transactional context
   ): Promise<AvailabilityHold> {
     // Phase 4: Check blackout dates (applies to all product types: tours, transfers, vehicles)
     const isBlacked = await this.storage.isBlackedOut(tourId, date);
@@ -94,9 +95,9 @@ export class AvailabilityService {
     if (!product) throw new Error(`Product ${tourId} not found`);
     const isVehicle = product.category === 'vehicle';
 
-    return await db.transaction(async (tx: any) => {
+    const runInTransaction = async (transaction: any) => {
       // 1. Get or Create TourInstance with LOCK
-      let instance = await this.getOrCreateInstanceLocked(tx, tourId, date, slot, startTime, endTime);
+      let instance = await this.getOrCreateInstanceLocked(transaction, tourId, date, slot, startTime, endTime);
 
       const previousState = {
         confirmedCount: instance.confirmedCount,
@@ -115,7 +116,7 @@ export class AvailabilityService {
       if (isVehicle) {
         if (resourceId) {
           // Verify pinned resource is actually available on this date (locked within instance tx)
-          const isHeld = await tx
+          const isHeld = await transaction
             .select()
             .from(availabilityHolds)
             .where(and(
@@ -140,10 +141,13 @@ export class AvailabilityService {
         }
       }
 
-      // 3. Update held count
-      await tx
+      // 3. Update held count using atomic increment
+      await transaction
         .update(tourInstances)
-        .set({ heldCount: instance.heldCount + quantity })
+        .set({
+          heldCount: sql`${tourInstances.heldCount} + ${quantity}`,
+          updatedAt: new Date()
+        })
         .where(eq(tourInstances.id, instance.id));
 
       // 4. Create Hold record (with optional resourceId for vehicles)
@@ -161,7 +165,7 @@ export class AvailabilityService {
         holdValues.resourceId = resourceId;
       }
 
-      const [hold] = await tx
+      const [hold] = await transaction
         .insert(availabilityHolds)
         .values(holdValues)
         .returning();
@@ -186,13 +190,19 @@ export class AvailabilityService {
           productCategory: product.category,
           expiresAt: expiresAt.toISOString(),
         },
-      }, tx);
+      }, transaction);
 
       // Phase 8: Metrics
       metricsService.incrementHoldCreation();
 
       return hold;
-    });
+    };
+
+    if (tx) {
+      return await runInTransaction(tx);
+    } else {
+      return await db.transaction(runInTransaction);
+    }
   }
 
   /**
@@ -208,6 +218,7 @@ export class AvailabilityService {
     startTime?: string;
     endTime?: string;
     pinnedResourceId?: string;
+    tx?: any;
   }): Promise<AvailabilityHold> {
     const hold = await this.createHold(
       params.tourId,
@@ -218,7 +229,8 @@ export class AvailabilityService {
       params.ttlMinutes,
       params.startTime,
       params.endTime,
-      params.pinnedResourceId
+      params.pinnedResourceId,
+      params.tx
     );
 
     // Invalidate cache for this tour instance
@@ -230,10 +242,10 @@ export class AvailabilityService {
   /**
    * Confirms a hold (converts to confirmed booking count).
    */
-  async confirmBooking(holdId: string): Promise<void> {
-    await db.transaction(async (tx: any) => {
+  async confirmBooking(holdId: string, tx?: any): Promise<void> {
+    const runInTransaction = async (transaction: any) => {
       // 1. Lock Hold
-      const [hold] = await tx
+      const [hold] = await transaction
         .select()
         .from(availabilityHolds)
         .where(eq(availabilityHolds.id, holdId))
@@ -249,12 +261,13 @@ export class AvailabilityService {
         throw new Error(`Cannot confirm hold in status: ${hold.status}`);
       }
 
-      // 2. Lock Instance
-      const [instance] = await tx
+      const [instanceCode] = await transaction
         .select()
         .from(tourInstances)
         .where(eq(tourInstances.id, hold.tourInstanceId))
         .for('update');
+
+      const instance = instanceCode; // Renamed from instance to avoid confusion if needed, but keeping logic
 
       const previousState = {
         confirmedCount: instance.confirmedCount,
@@ -262,19 +275,21 @@ export class AvailabilityService {
         blockedCount: instance.blockedCount,
       };
 
-      // 3. Transition counts
       const newHeldCount = Math.max(0, instance.heldCount - hold.quantity);
       const newConfirmedCount = instance.confirmedCount + hold.quantity;
-      await tx
+
+      // 3. Transition counts atomically
+      await transaction
         .update(tourInstances)
         .set({
-          heldCount: newHeldCount,
-          confirmedCount: newConfirmedCount
+          heldCount: sql`GREATEST(0, ${tourInstances.heldCount} - ${hold.quantity})`,
+          confirmedCount: sql`${tourInstances.confirmedCount} + ${hold.quantity}`,
+          updatedAt: new Date()
         })
         .where(eq(tourInstances.id, instance.id));
 
       // 4. Update Hold status
-      await tx
+      await transaction
         .update(availabilityHolds)
         .set({ status: HoldStatus.CONFIRMED })
         .where(eq(availabilityHolds.id, holdId));
@@ -292,11 +307,17 @@ export class AvailabilityService {
           blockedCount: instance.blockedCount,
         },
         metadata: { holdId, resourceId: hold.resourceId },
-      }, tx);
+      }, transaction);
 
       // Phase 8: Metrics
       metricsService.incrementHoldConfirmation();
-    });
+    };
+
+    if (tx) {
+      await runInTransaction(tx);
+    } else {
+      await db.transaction(runInTransaction);
+    }
 
     // CRITICAL: Invalidate cache after confirming booking
     const [holdData] = await db

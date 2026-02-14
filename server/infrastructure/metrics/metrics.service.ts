@@ -44,7 +44,19 @@ export interface SystemMetrics {
         conflictDetections: Record<string, number>;
         avgConfirmationLatencyMs: number;
         confirmationSuccessRate: number;
+
+        // Session-level metrics (Phase 5 Refinement)
+        sessionSuccesses: number;
+        sessionFailures: Record<string, number>;
+        avgSessionLatencyMs: number;
     };
+
+    // Diagnostic info (Phase 5 Refinement)
+    lastErrors: {
+        timestamp: string;
+        code: string;
+        message: string;
+    }[];
 }
 
 export interface SystemAlert {
@@ -84,6 +96,15 @@ class MetricsService {
     private retryableConfirmationAttempts: number[] = [];
     private retryExhaustedCount: number = 0;
     private bookingConfirmationLatencies: number[] = [];
+
+    // Phase 5: Session metrics
+    private sessionSuccesses: number = 0;
+    private sessionFailures: Record<string, number> = {};
+    private sessionLatencies: number[] = [];
+
+    // Diagnostic tracking
+    private lastErrors: { timestamp: string; code: string; message: string; }[] = [];
+    private readonly MAX_ERROR_HISTORY = 10;
 
     incrementFailure(reason: string) {
         this.bookingFailures[reason] = (this.bookingFailures[reason] || 0) + 1;
@@ -147,6 +168,33 @@ class MetricsService {
         }
     }
 
+    // Phase 5: Session tracking methods
+    incrementSessionSuccess(): void {
+        this.sessionSuccesses++;
+    }
+
+    incrementSessionFailure(errorCode: string): void {
+        this.sessionFailures[errorCode] = (this.sessionFailures[errorCode] || 0) + 1;
+    }
+
+    recordSessionLatency(durationMs: number): void {
+        this.sessionLatencies.push(durationMs);
+        if (this.sessionLatencies.length > 1000) {
+            this.sessionLatencies = this.sessionLatencies.slice(-1000);
+        }
+    }
+
+    recordErrorSnippet(code: string, message: string): void {
+        this.lastErrors.unshift({
+            timestamp: new Date().toISOString(),
+            code,
+            message: message.substring(0, 200) // Truncate long messages
+        });
+        if (this.lastErrors.length > this.MAX_ERROR_HISTORY) {
+            this.lastErrors.pop();
+        }
+    }
+
     recordTransactionTime(durationMs: number) {
         this.transactionTimes.push(durationMs);
         // Keep only last 1000 measurements
@@ -170,6 +218,13 @@ class MetricsService {
             )
             : 0;
 
+        const avgSessionLatency = this.sessionLatencies.length > 0
+            ? Math.round(
+                this.sessionLatencies.reduce((a, b) => a + b, 0) /
+                this.sessionLatencies.length
+            )
+            : 0;
+
         const totalConfirmationAttempts = this.confirmationSuccesses +
             Object.values(this.confirmationFailures).reduce((a, b) => a + b, 0);
 
@@ -186,6 +241,11 @@ class MetricsService {
             avgRetryableAttempts: Math.round(avgRetryableAttempts * 100) / 100,
             avgConfirmationLatencyMs: avgConfirmationLatency,
             confirmationSuccessRate: Math.round(confirmationSuccessRate * 100) / 100,
+
+            // Phase 5 fields
+            sessionSuccesses: this.sessionSuccesses,
+            sessionFailures: this.sessionFailures,
+            avgSessionLatencyMs: avgSessionLatency,
         };
     }
 
@@ -276,6 +336,7 @@ class MetricsService {
             holdExpiryRate: Math.round(holdExpiryRate * 10000) / 10000,
             avgTransactionTimeMs,
             concurrency: this.getConcurrencyMetrics(),
+            lastErrors: this.lastErrors,
         };
     }
 
@@ -395,6 +456,12 @@ class MetricsService {
         this.retryableConfirmationAttempts = [];
         this.retryExhaustedCount = 0;
         this.bookingConfirmationLatencies = [];
+
+        // Phase 5: Reset
+        this.sessionSuccesses = 0;
+        this.sessionFailures = {};
+        this.sessionLatencies = [];
+        this.lastErrors = [];
     }
 }
 

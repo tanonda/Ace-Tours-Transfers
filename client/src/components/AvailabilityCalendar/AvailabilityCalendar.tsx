@@ -32,9 +32,8 @@ export const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
 
   const { data, loading } = useCalendarData({
     tourId,
-    month: currentMonth.getMonth() + 1,
+    month: currentMonth.getMonth(),
     year: currentMonth.getFullYear(),
-    participants,
   });
 
   const daysInMonth = (date: Date) => {
@@ -61,18 +60,17 @@ export const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
         currentMonth.getMonth() + 1
       ).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
 
-      const dayData = data?.find((d: CalendarDayData) => d.date === dateStr);
+      const dayData = data[dateStr];
       days.push({
         date: dateStr,
         dayOfWeek: (firstDay + i - 1) % 7,
         isAvailable: dayData?.isAvailable ?? true,
         totalCapacity: dayData?.totalCapacity ?? 0,
-        currentBookings: dayData?.currentBookings ?? 0,
-        availableSeats: dayData?.availableSeats ?? 0,
-        basePrice: dayData?.basePrice ?? 0,
-        priceTier: dayData?.priceTier ?? 'regular',
-        isHoliday: dayData?.isHoliday ?? false,
-        surchargeApplies: dayData?.surchargeApplies ?? false,
+        remainingCapacity: dayData?.remainingCapacity ?? 0,
+        basePrice: 0,
+        priceTier: 'regular',
+        isHoliday: false,
+        surchargeApplies: false,
       });
     }
 

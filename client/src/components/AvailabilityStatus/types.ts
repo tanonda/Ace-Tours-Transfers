@@ -1,15 +1,17 @@
 export interface AvailabilityStatusProps {
   tourId: string;
   selectedDate: Date;
-  maxParticipants?: number;
+  adultPax: number;
+  childPax: number;
+  addonIds?: string[];
+  startTime?: string;
+  endTime?: string;
   onAvailabilityChange?: (isAvailable: boolean) => void;
 }
 
 export interface AvailabilityData {
-  tourId: string;
-  date: string;
-  totalCapacity: number;
-  currentBookings: number;
   isAvailable: boolean;
-  availableSeats: number;
+  remainingCapacity: number;
+  totalCapacity: number;
+  message: string;
 }
