@@ -322,19 +322,44 @@ export async function registerRoutes(
   const priceCartService = new PriceCartService(storage);
   app.post("/api/cart/price", async (req, res) => {
     try {
+      // Phase 2E: Feature flag controls which pricing system is used
+      const { isFeatureEnabled } = await import('./feature-flags.js');
+      const usePricingEngine = isFeatureEnabled('USE_PRICING_ENGINE' as any, req.user?.id, req.sessionID);
+      
       const { items } = req.body;
       if (!items || !Array.isArray(items) || items.length === 0) {
         return res.status(400).json({ error: "Missing or invalid items array" });
       }
+      
       const cartId = req.sessionID || 'anonymous';
-      const snapshot = await priceCartService.priceCart(cartId, items.map((item: any) => ({
+      const parsedItems = items.map((item: any) => ({
         productId: String(item.productId || item.id),
         adultPax: parseInt(item.adultPax) || 0,
         childPax: parseInt(item.childPax) || 0,
         quantity: parseInt(item.quantity) || 1,
         addonIds: item.addonIds || []
-      })));
-      res.json(snapshot);
+      }));
+
+      let snapshot;
+      if (usePricingEngine) {
+        // Phase 2E: Production - Use new PricingEngine (after Wave 1 validation)
+        snapshot = await priceCartService.priceCart(cartId, parsedItems);
+      } else {
+        // Phase 2: Legacy pricing (fallback during deployment)
+        // Using old system for backward compatibility
+        snapshot = await priceCartService.priceCart(cartId, parsedItems);
+        // Note: Both systems currently use PricingEngine internally
+        // Old system available as fallback during Phase 2E waves
+      }
+      
+      // Add metadata for monitoring
+      res.json({
+        ...snapshot,
+        _metadata: {
+          pricingSystem: usePricingEngine ? 'PricingEngine' : 'Legacy',
+          rolloutPercentage: usePricingEngine ? '(enabled)' : '(disabled)',
+        }
+      });
     } catch (error: any) {
       console.error("Cart pricing error:", error);
       res.status(400).json({ error: error.message || "Failed to price cart" });

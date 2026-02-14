@@ -303,6 +303,51 @@ export async function deleteBlackoutDate(id: string): Promise<void> {
   await apiRequest("DELETE", `/api/admin/blackouts/${id}`);
 }
 
+// Pricing Engine - Backend Pricing Calculation (Phase 2C)
+/**
+ * Fetch calculated pricing from PricingEngine (backend SSOT)
+ * Includes all rules: discounts, surcharges, add-ons
+ * 
+ * Phase 2C: Frontend Migration - use this instead of calculateLineTotal()
+ */
+export interface PricingRequest {
+  items: Array<{
+    productId: string;
+    adultPax: number;
+    childPax: number;
+    quantity?: number;
+    addonIds?: string[];
+    date?: string;  // ISO date string for seasonal rules
+  }>;
+}
+
+export interface PricingSnapshot {
+  items: Array<{
+    productId: string;
+    adultPax: number;
+    childPax: number;
+    quantity: number;
+    addonIds: string[];
+    breakdown: {
+      baseTotalCents: number;
+      adultSubtotalCents: number;
+      childSubtotalCents: number;
+      addonsSubtotalCents: number;
+      discountsCents: number;
+      surchargesCents: number;
+      finalTotalCents: number;
+      appliedRules: string[];
+    };
+  }>;
+  totalCents: number;
+  timestamp: string;
+}
+
+export async function fetchPricing(request: PricingRequest): Promise<PricingSnapshot> {
+  const res = await apiRequest("POST", "/api/cart/price", request);
+  return res.json();
+}
+
 // Pricing Versions (Phase 5)
 export async function fetchPricingVersions(productId: string): Promise<any[]> {
   const res = await apiRequest("GET", `/api/admin/pricing/${productId}`);

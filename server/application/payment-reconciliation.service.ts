@@ -3,15 +3,16 @@ import { IStorage } from "../storage.js";
 import { PaymentFactory } from "../infrastructure/payments/factory.js";
 import { PaymentStatus, type PaymentStatusResponse } from "../domain/payments/interfaces.js";
 import { ReconciliationPolicy } from "../domain/payments/reconciliation.policy.js";
-import { BookingConfirmationService } from "./booking/BookingConfirmationService.js";
+import { BookingConfirmationWithRetries } from "./booking/BookingConfirmationWithRetries.js";
 
 export class PaymentReconciliationService {
   private storage: IStorage;
-  private bookingConfirmation: BookingConfirmationService;
+  private bookingConfirmation: BookingConfirmationWithRetries;
 
   constructor(storage: IStorage) {
     this.storage = storage;
-    this.bookingConfirmation = new BookingConfirmationService(storage);
+    // Phase 4: Use BookingConfirmationWithRetries for production-grade concurrency safety
+    this.bookingConfirmation = new BookingConfirmationWithRetries(storage);
   }
 
   /**
@@ -71,29 +72,45 @@ export class PaymentReconciliationService {
           failureReason: response.status === PaymentStatus.Failed ? (response.failureReason || 'reconciliation_failed') : undefined
         });
 
-        // Booking confirmation: use BookingConfirmationService for atomicity
+        // Booking confirmation: Phase 4 - Use resilient confirmation with retries
         if (response.status === PaymentStatus.Completed && payment.bookingId) {
           const booking = await this.storage.getBooking(payment.bookingId);
           if (booking && booking.status === 'pending') {
             console.log(`[RECON][${traceId}] Payment ${paymentId} completed - confirming booking ${booking.id}`);
             
-            // Use the BookingConfirmationService which handles all verification
-            const confirmResult = await this.bookingConfirmation.confirmBooking({
+            // Phase 4: Use confirmWithRetries for automatic conflict recovery
+            const confirmResult = await this.bookingConfirmation.confirmWithRetries({
               bookingId: booking.id,
               paymentId: paymentId,
-              gatewayReference: response.gatewayReference
+              gatewayReference: response.gatewayReference,
+              maxRetries: 3,
+              idempotencyKey: `recon_${paymentId}`
             });
 
             if (confirmResult.success) {
-              console.log(`[RECON][${traceId}] ✅ Booking ${booking.id} confirmed via payment completion`);
+              console.log(
+                `[RECON][${traceId}] ✅ Booking ${booking.id} confirmed via payment completion ` +
+                `(${confirmResult.retryAttempts || 0} retries, ${confirmResult.metrics?.timeMs || 0}ms)`
+              );
             } else {
-              console.error(`[RECON][${traceId}] CRITICAL: Booking confirmation failed - ${confirmResult.error?.reason}. Details: ${confirmResult.error?.details}`);
+              console.error(
+                `[RECON][${traceId}] CRITICAL: Booking confirmation failed - ` +
+                `${confirmResult.error?.reason}. Details: ${confirmResult.error?.details}`
+              );
               
               // Mark payment as ManualReviewRequired because booking could not be confirmed
               await this.storage.updatePayment(payment.id, {
                 status: PaymentStatus.ManualReviewRequired,
                 failureReason: confirmResult.error?.code || 'confirmation_failed'
               });
+
+              // Log conflict information if available
+              if (confirmResult.conflictHandling?.conflictDetected) {
+                console.warn(
+                  `[RECON][${traceId}] Conflict detected: ${confirmResult.conflictHandling.conflictType} ` +
+                  `- Resolution: ${confirmResult.conflictHandling.resolutionStrategy}`
+                );
+              }
 
               // Keep booking pending so user can retry
               return;
@@ -112,6 +129,7 @@ export class PaymentReconciliationService {
 
   /**
    * Manual admin-triggered reconciliation with forced audit trail.
+   * Phase 4: Uses resilient confirmation with automatic retry
    */
   async reconcileManually(paymentId: string, adminId: string, note: string, forceStatus?: PaymentStatus): Promise<void> {
     console.log(`[RECON] Manual reconciliation triggered for ${paymentId} by admin ${adminId}.`);
@@ -141,10 +159,12 @@ export class PaymentReconciliationService {
         if (booking && booking.status === 'pending') {
           console.log(`[RECON] Confirming booking ${booking.id} via manual override`);
           
-          // Use BookingConfirmationService for consistent logic
-          const confirmResult = await this.bookingConfirmation.confirmBooking({
+          // Phase 4: Use resilient confirmation with automatic retry
+          const confirmResult = await this.bookingConfirmation.confirmWithRetries({
             bookingId: booking.id,
-            paymentId: payment.id
+            paymentId: payment.id,
+            maxRetries: 3,
+            idempotencyKey: `admin_recon_${paymentId}`
           });
 
           if (!confirmResult.success) {

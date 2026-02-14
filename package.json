@@ -20,6 +20,7 @@
     "check-architecture": "npm run verify-architecture && npm run verify-ddd",
     "load-test": "tsx scripts/load-test.ts",
     "test-concurrent": "tsx scripts/test-concurrent-bookings.ts",
+    "test-phase4": "tsx scripts/test-phase4-concurrency.ts",
     "test-pricing-engine": "tsx scripts/test-pricing-engine-standalone.ts",
     "rebuild-projections": "tsx scripts/verify-projections.ts --rebuild",
     "go-live-verify": "tsx scripts/go-live-verify.ts",

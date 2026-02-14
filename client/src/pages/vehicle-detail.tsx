@@ -16,6 +16,7 @@ import { motion } from "framer-motion";
 import { BookingModal } from "@/components/booking-modal";
 import { formatPriceDisplay } from "@/lib/product.types";
 import { useCurrency } from "@/lib/currency-context";
+import { AvailabilityStatus, AvailabilityCalendar } from "@/components";
 
 interface VehicleDetails {
   make: string;
@@ -242,6 +243,34 @@ export default function VehicleDetail() {
                       </div>
                     </div>
                   </div>
+
+                  {/* Phase 3: Availability & Pricing Widgets for Vehicles */}
+                  {vehicle.id && date && (
+                    <div className="space-y-6 mb-10">
+                      {/* Real-time Availability Status */}
+                      <div className="bg-card p-6 rounded-2xl border border-border/50 shadow-sm">
+                        <h3 className="text-xl font-bold mb-4 font-serif text-primary">Vehicle Availability</h3>
+                        <AvailabilityStatus
+                          tourId={vehicle.id}
+                          selectedDate={date}
+                          maxParticipants={vehicleDetails.seats || 6}
+                          onAvailabilityChange={(available) => {
+                            console.log("Vehicle availability status:", available);
+                          }}
+                        />
+                      </div>
+
+                      {/* Interactive Calendar for Vehicle Rental */}
+                      <div className="bg-card p-6 rounded-2xl border border-border/50 shadow-sm">
+                        <h3 className="text-xl font-bold mb-4 font-serif text-primary">Check Availability</h3>
+                        <AvailabilityCalendar
+                          tourId={vehicle.id}
+                          participants={1}
+                          onDateSelect={(selectedDate) => setDate(selectedDate)}
+                        />
+                      </div>
+                    </div>
+                  )}
 
                   <div className="flex flex-col sm:flex-row gap-4">
                     <Button

@@ -1,0 +1,155 @@
+.availability-status {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  border: 1px solid #e5e7eb;
+  margin-bottom: 20px;
+
+  &.loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    min-height: 120px;
+
+    .spinner {
+      width: 20px;
+      height: 20px;
+      border: 3px solid #e5e7eb;
+      border-top-color: #3b82f6;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+
+    p {
+      color: #6b7280;
+      font-size: 14px;
+    }
+  }
+
+  &.error {
+    background-color: #fef2f2;
+    border-color: #fecaca;
+    padding: 16px;
+
+    p {
+      color: #dc2626;
+      margin: 0;
+    }
+  }
+
+  &.available {
+    border-color: #86efac;
+    background-color: #f0fdf4;
+  }
+
+  &.full {
+    border-color: #fca5a5;
+    background-color: #fef2f2;
+  }
+}
+
+.availability-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+
+  h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #1f2937;
+  }
+
+  .status-badge {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+
+    &.open {
+      background-color: #d1fae5;
+      color: #065f46;
+    }
+
+    &.full {
+      background-color: #fee2e2;
+      color: #991b1b;
+    }
+  }
+}
+
+.capacity-section {
+  margin-bottom: 16px;
+
+  .capacity-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+    margin-bottom: 8px;
+    color: #6b7280;
+
+    .numbers {
+      font-weight: 600;
+      color: #1f2937;
+    }
+  }
+
+  .progress-bar {
+    height: 8px;
+    background-color: #e5e7eb;
+    border-radius: 4px;
+    overflow: hidden;
+
+    .progress-fill {
+      height: 100%;
+      transition: width 0.3s ease;
+      border-radius: 4px;
+    }
+  }
+}
+
+.seats-remaining {
+  p {
+    margin: 8px 0 0 0;
+    font-size: 14px;
+    color: #047857;
+
+    &.warning {
+      color: #d97706;
+      font-weight: 600;
+    }
+  }
+}
+
+.fully-booked {
+  p {
+    margin: 0;
+    font-size: 14px;
+    color: #991b1b;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Mobile responsive */
+@media (max-width: 640px) {
+  .availability-status {
+    padding: 16px;
+  }
+
+  .availability-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+
+    h3 {
+      font-size: 14px;
+    }
+  }
+}

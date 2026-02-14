@@ -67,6 +67,15 @@ class MetricsService {
     private lastAlertTime: Record<string, number> = {}; // alert key -> timestamp
     private readonly ALERT_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
 
+    // Phase 4: Concurrency metrics
+    private confirmationSuccesses: number = 0;
+    private confirmationFailures: Record<string, number> = {};
+    private conflictDetections: Record<string, number> = {};
+    private nonRetryableFailures: Record<string, number> = {};
+    private retryableConfirmationAttempts: number[] = [];
+    private retryExhaustedCount: number = 0;
+    private bookingConfirmationLatencies: number[] = [];
+
     incrementFailure(reason: string) {
         this.bookingFailures[reason] = (this.bookingFailures[reason] || 0) + 1;
     }
@@ -92,12 +101,83 @@ class MetricsService {
         }
     }
 
+    // Phase 4: Concurrency tracking methods
+    incrementConfirmationSuccess(): void {
+        this.confirmationSuccesses++;
+    }
+
+    incrementConfirmationFailure(errorCode: string): void {
+        this.confirmationFailures[errorCode] = (this.confirmationFailures[errorCode] || 0) + 1;
+    }
+
+    incrementConflictDetectedFailure(conflictType: string): void {
+        this.conflictDetections[conflictType] = (this.conflictDetections[conflictType] || 0) + 1;
+    }
+
+    incrementNonRetryableConfirmationFailure(errorCode: string): void {
+        this.nonRetryableFailures[errorCode] = (this.nonRetryableFailures[errorCode] || 0) + 1;
+    }
+
+    recordRetryableConfirmationAttempts(attemptCount: number): void {
+        this.retryableConfirmationAttempts.push(attemptCount);
+        // Keep last 1000 measurements
+        if (this.retryableConfirmationAttempts.length > 1000) {
+            this.retryableConfirmationAttempts = this.retryableConfirmationAttempts.slice(-1000);
+        }
+    }
+
+    incrementRetryExhausted(): void {
+        this.retryExhaustedCount++;
+    }
+
+    recordBookingConfirmationLatency(durationMs: number): void {
+        this.bookingConfirmationLatencies.push(durationMs);
+        // Keep last 1000 measurements
+        if (this.bookingConfirmationLatencies.length > 1000) {
+            this.bookingConfirmationLatencies = this.bookingConfirmationLatencies.slice(-1000);
+        }
+    }
+
     recordTransactionTime(durationMs: number) {
         this.transactionTimes.push(durationMs);
         // Keep only last 1000 measurements
         if (this.transactionTimes.length > 1000) {
             this.transactionTimes = this.transactionTimes.slice(-1000);
         }
+    }
+
+    /**
+     * Phase 4: Get concurrency-specific metrics
+     */
+    getConcurrencyMetrics() {
+        const avgRetryableAttempts = this.retryableConfirmationAttempts.length > 0
+            ? this.retryableConfirmationAttempts.reduce((a, b) => a + b, 0) / this.retryableConfirmationAttempts.length
+            : 1;
+
+        const avgConfirmationLatency = this.bookingConfirmationLatencies.length > 0
+            ? Math.round(
+                this.bookingConfirmationLatencies.reduce((a, b) => a + b, 0) / 
+                this.bookingConfirmationLatencies.length
+            )
+            : 0;
+
+        const totalConfirmationAttempts = this.confirmationSuccesses + 
+            Object.values(this.confirmationFailures).reduce((a, b) => a + b, 0);
+
+        const confirmationSuccessRate = totalConfirmationAttempts > 0
+            ? (this.confirmationSuccesses / totalConfirmationAttempts) * 100
+            : 100;
+
+        return {
+            confirmationSuccesses: this.confirmationSuccesses,
+            confirmationFailures: this.confirmationFailures,
+            conflictDetections: this.conflictDetections,
+            nonRetryableFailures: this.nonRetryableFailures,
+            retryExhaustedCount: this.retryExhaustedCount,
+            avgRetryableAttempts: Math.round(avgRetryableAttempts * 100) / 100,
+            avgConfirmationLatencyMs: avgConfirmationLatency,
+            confirmationSuccessRate: Math.round(confirmationSuccessRate * 100) / 100,
+        };
     }
 
     async getMetrics(): Promise<SystemMetrics> {
@@ -279,6 +359,15 @@ class MetricsService {
         this.transactionTimes = [];
         this.holdCreationTimes.clear();
         this.lastAlertTime = {};
+        
+        // Phase 4: Reset concurrency metrics
+        this.confirmationSuccesses = 0;
+        this.confirmationFailures = {};
+        this.conflictDetections = {};
+        this.nonRetryableFailures = {};
+        this.retryableConfirmationAttempts = [];
+        this.retryExhaustedCount = 0;
+        this.bookingConfirmationLatencies = [];
     }
 }
 
