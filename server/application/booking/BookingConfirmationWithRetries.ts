@@ -113,7 +113,8 @@ export class BookingConfirmationWithRetries {
               conflictDetected: false,
             },
             metrics: {
-              ...result.metrics,
+              lockedRows: result.metrics?.lockedRows || 0,
+              verificationsPerformed: result.metrics?.verificationsPerformed || 0,
               timeMs: elapsedMs,
             },
           };
@@ -148,7 +149,8 @@ export class BookingConfirmationWithRetries {
               conflictDetected: false,
             },
             metrics: {
-              ...result.metrics,
+              lockedRows: result.metrics?.lockedRows || 0,
+              verificationsPerformed: result.metrics?.verificationsPerformed || 0,
               timeMs: elapsedMs,
             },
           };
@@ -192,7 +194,8 @@ export class BookingConfirmationWithRetries {
               resolutionStrategy: conflict.resolutionStrategy,
             },
             metrics: {
-              ...result.metrics,
+              lockedRows: result.metrics?.lockedRows || 0,
+              verificationsPerformed: result.metrics?.verificationsPerformed || 0,
               timeMs: elapsedMs,
             },
           };
@@ -296,7 +299,8 @@ export class BookingConfirmationWithRetries {
           conflictDetected: true,
         },
         metrics: {
-          ...lastResult.metrics,
+          lockedRows: lastResult.metrics?.lockedRows || 0,
+          verificationsPerformed: lastResult.metrics?.verificationsPerformed || 0,
           timeMs: elapsedMs,
         },
       };
