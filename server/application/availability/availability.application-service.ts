@@ -29,7 +29,7 @@ export class AvailabilityApplicationService {
     return { available };
   }
 
-  async createHold(request: HoldRequest): Promise<AvailabilityHold> {
+  async createHold(request: HoldRequest, tx?: any): Promise<AvailabilityHold> {
     return await this.availabilityService.createHoldWithInvalidation({
       tourId: request.tourId,
       date: request.date,
@@ -38,12 +38,13 @@ export class AvailabilityApplicationService {
       slot: request.slot,
       startTime: request.startTime,
       endTime: request.endTime,
-      pinnedResourceId: request.pinnedResourceId
+      pinnedResourceId: request.pinnedResourceId,
+      tx
     });
   }
 
-  async confirmBooking(holdId: string): Promise<void> {
-    await this.availabilityService.confirmBooking(holdId);
+  async confirmBooking(holdId: string, tx?: any): Promise<void> {
+    await this.availabilityService.confirmBooking(holdId, tx);
   }
 
   async confirmSessionHolds(sessionId: string): Promise<void> {

@@ -1,15 +1,28 @@
-import React from 'react';
-import { useAvailabilityData } from './useAvailabilityData';
+import React, { useEffect } from 'react';
+import { useRealtimeAvailability } from '../../hooks/useRealtimeAvailability';
 import type { AvailabilityStatusProps } from './types';
 import './AvailabilityStatus.css';
 
 export const AvailabilityStatus: React.FC<AvailabilityStatusProps> = ({
   tourId,
   selectedDate,
-  maxParticipants,
+  adultPax,
+  childPax,
+  addonIds,
+  startTime,
+  endTime,
   onAvailabilityChange,
 }) => {
-  const { data, loading, error } = useAvailabilityData(tourId, selectedDate);
+  const dateStr = selectedDate.toISOString().split('T')[0];
+  const { data, loading, error } = useRealtimeAvailability({
+    productId: tourId,
+    date: dateStr,
+    adultPax,
+    childPax,
+    addonIds,
+    startTime,
+    endTime
+  });
 
   if (loading) {
     return (
@@ -28,18 +41,24 @@ export const AvailabilityStatus: React.FC<AvailabilityStatusProps> = ({
     );
   }
 
-  if (!data) {
-    return null;
-  }
+  useEffect(() => {
+    if (data) {
+      onAvailabilityChange?.(data.isAvailable);
+    }
+  }, [data?.isAvailable, onAvailabilityChange]);
 
-  const { isAvailable, availableSeats, totalCapacity, currentBookings } = data;
-  const capacityPercent = Math.round((currentBookings / totalCapacity) * 100);
-  const seatsRemaining = availableSeats;
-  const isSoon = seatsRemaining <= 3 && seatsRemaining > 0;
+  if (!data && !loading) return null;
 
-  React.useEffect(() => {
-    onAvailabilityChange?.(isAvailable);
-  }, [isAvailable, onAvailabilityChange]);
+  const { isAvailable, remainingCapacity, totalCapacity, message } = data || {
+    isAvailable: false,
+    remainingCapacity: 0,
+    totalCapacity: 0,
+    message: ''
+  };
+
+  const currentBookings = totalCapacity - remainingCapacity;
+  const capacityPercent = totalCapacity > 0 ? Math.round((currentBookings / totalCapacity) * 100) : 0;
+  const isSoon = remainingCapacity <= 3 && remainingCapacity > 0;
 
   return (
     <div className={`availability-status ${isAvailable ? 'available' : 'full'}`}>
@@ -62,22 +81,20 @@ export const AvailabilityStatus: React.FC<AvailabilityStatusProps> = ({
             className="progress-fill"
             style={{
               width: `${capacityPercent}%`,
-              backgroundColor: isAvailable ? '#10b981' : '#ef4444',
+              backgroundColor: isAvailable ? '#10b981' : '#f59e0b', // Amber for low capacity
             }}
           />
         </div>
       </div>
 
-      {isAvailable && (
-        <div className="seats-remaining">
-          <p>{seatsRemaining} seats available</p>
-          {isSoon && <p className="warning">⚠️ Booking soon!</p>}
-        </div>
-      )}
+      <div className="status-message">
+        <p>{message}</p>
+        {isSoon && <p className="warning">🔥 Filling fast! Only {remainingCapacity} left.</p>}
+      </div>
 
-      {!isAvailable && (
+      {!isAvailable && !loading && (
         <div className="fully-booked">
-          <p>This date is fully booked. Please select another date.</p>
+          <p>Sold out for this selection. Try another date or time.</p>
         </div>
       )}
     </div>

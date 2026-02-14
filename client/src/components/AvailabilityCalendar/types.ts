@@ -2,12 +2,12 @@ export interface CalendarDayData {
   date: string; // YYYY-MM-DD format
   isAvailable: boolean;
   totalCapacity: number;
-  currentBookings: number;
-  availableSeats: number;
-  basePrice: number; // in cents
-  priceTier: 'low' | 'regular' | 'high';
-  isHoliday: boolean;
-  surchargeApplies: boolean;
+  remainingCapacity: number;
+  dayOfWeek: number;
+  basePrice?: number;
+  priceTier?: 'low' | 'regular' | 'high';
+  isHoliday?: boolean;
+  surchargeApplies?: boolean;
 }
 
 export interface AvailabilityCalendarProps {

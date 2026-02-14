@@ -22,9 +22,9 @@
 import { IStorage } from "../../storage.js";
 import { db } from "../../db.js";
 import { Booking, TourInstance, AvailabilityHold } from "../../../shared/schema.js";
-import { 
-  bookings, 
-  availabilityHolds, 
+import {
+  bookings,
+  availabilityHolds,
   tourInstances,
 } from "../../../shared/schema.js";
 import { eq, and, sql } from "drizzle-orm";
@@ -133,6 +133,7 @@ export class AtomicBookingConfirmationService {
           `[ATOMIC_CONFIRM][${transactionId}] ⚠️ Confirmation failed: ${result.error?.code} - ${result.error?.reason}`
         );
         metricsService.incrementConfirmationFailure(result.error?.code || "UNKNOWN_ERROR");
+        metricsService.recordErrorSnippet(result.error?.code || "UNKNOWN_ERROR", result.error?.reason || result.message);
       }
 
       return {
@@ -149,10 +150,10 @@ export class AtomicBookingConfirmationService {
       const errorMessage = error instanceof Error ? error.message : String(error);
 
       // Detect specific database/concurrency errors
-      const isSerializationError = errorMessage.includes("serialization") || 
-                                   errorMessage.includes("conflict");
-      const isLockingError = errorMessage.includes("lock") || 
-                             errorMessage.includes("timeout");
+      const isSerializationError = errorMessage.includes("serialization") ||
+        errorMessage.includes("conflict");
+      const isLockingError = errorMessage.includes("lock") ||
+        errorMessage.includes("timeout");
       const isDeadlock = errorMessage.includes("deadlock");
 
       let errorCode = ConfirmationErrorCode.UNKNOWN_ERROR;
@@ -184,6 +185,7 @@ export class AtomicBookingConfirmationService {
         `[ATOMIC_CONFIRM][${transactionId}] ❌ Transaction error: ${errorMessage}`
       );
       metricsService.incrementConfirmationFailure(errorCode);
+      metricsService.recordErrorSnippet(errorCode, errorMessage);
 
       return transactionError;
     }

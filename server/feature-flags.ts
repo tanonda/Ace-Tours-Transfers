@@ -5,7 +5,7 @@
  * Enables quick rollback if issues detected
  */
 
-import { db } from '../db.js';
+import { db } from './db.js';
 import { sql } from 'drizzle-orm';
 
 export interface FeatureFlag {
@@ -226,7 +226,7 @@ export function getDeploymentStatus(): {
   status: string;
 } {
   const flag = FEATURE_FLAGS[FlagName.USE_PRICING_ENGINE];
-  
+
   let wave = 'Not Started';
   if (!flag.enabled) {
     wave = 'Pre-Deployment';

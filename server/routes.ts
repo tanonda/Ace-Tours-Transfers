@@ -161,6 +161,24 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/availability/range", async (req, res) => {
+    try {
+      const productId = req.query.productId as string;
+      const startDate = req.query.startDate as string;
+      const endDate = req.query.endDate as string;
+
+      if (!productId || !startDate || !endDate) {
+        return res.status(400).json({ error: "Missing required query parameters: productId, startDate, endDate" });
+      }
+
+      const results = await bookingApplicationService.getServiceAvailabilityRange(productId, startDate, endDate);
+      res.json(results);
+    } catch (error) {
+      console.error("[AVAILABILITY RANGE ERROR]", error);
+      res.status(500).json({ error: "Failed to fetch availability range" });
+    }
+  });
+
   app.post("/api/availability/check", async (req, res) => {
     try {
       const { serviceId, date, adultPax, childPax, addonIds, startTime, endTime } = req.body;
@@ -324,13 +342,13 @@ export async function registerRoutes(
     try {
       // Phase 2E: Feature flag controls which pricing system is used
       const { isFeatureEnabled } = await import('./feature-flags.js');
-      const usePricingEngine = isFeatureEnabled('USE_PRICING_ENGINE' as any, req.user?.id, req.sessionID);
-      
+      const usePricingEngine = isFeatureEnabled('USE_PRICING_ENGINE' as any, (req as any).user?.id, req.sessionID);
+
       const { items } = req.body;
       if (!items || !Array.isArray(items) || items.length === 0) {
         return res.status(400).json({ error: "Missing or invalid items array" });
       }
-      
+
       const cartId = req.sessionID || 'anonymous';
       const parsedItems = items.map((item: any) => ({
         productId: String(item.productId || item.id),
@@ -351,7 +369,7 @@ export async function registerRoutes(
         // Note: Both systems currently use PricingEngine internally
         // Old system available as fallback during Phase 2E waves
       }
-      
+
       // Add metadata for monitoring
       res.json({
         ...snapshot,

@@ -1,138 +1,129 @@
-import React, { useState } from 'react';
-import { RuleExplanation } from './RuleExplanation';
+import React from 'react';
 import { formatCurrency } from './price-formatting';
-import type { PricingBreakdownProps, PricingBreakdownItem, AppliedRule } from './types';
+import type { PricingBreakdownProps } from './types';
 import './PricingBreakdown.css';
 
 export const PricingBreakdown: React.FC<PricingBreakdownProps> = ({
   pricing,
-  showDetailedRules = true,
   currency = '€',
 }) => {
-  const [expanded, setExpanded] = useState(false);
-
   if (!pricing) {
     return null;
   }
 
-  const {
-    itemTotal,
-    discountTotal,
-    surchargeTotal,
-    vatTotal,
-    finalTotal,
-    breakdown,
-    appliedRules,
-  } = pricing;
-
-  const totalSavings = Math.abs(discountTotal);
-  const hasRules = appliedRules && appliedRules.length > 0;
-  const hasDiscounts = discountTotal < 0;
-
-  return (
-    <div className="pricing-breakdown">
-      <div className="breakdown-header">
-        <h3>Pricing Breakdown</h3>
-        {hasRules && (
-          <button
-            className="expand-button"
-            onClick={() => setExpanded(!expanded)}
-            aria-expanded={expanded}
-          >
-            {expanded ? '▼' : '▶'} Details
-          </button>
+  // Branch 1: Single-item (from AvailabilityResult)
+  if ('subtotalCents' in pricing && pricing.breakdown) {
+    const { subtotalCents, breakdown, appliedDiscounts } = pricing;
+    return (
+      <div className="pricing-breakdown single-item">
+        <div className="breakdown-header">
+          <h3>Pricing Breakdown</h3>
+        </div>
+        <div className="pricing-items">
+          {breakdown?.adultSubtotal > 0 && (
+            <div className="pricing-item">
+              <span className="item-label">Adults</span>
+              <span className="item-price">{formatCurrency(breakdown.adultSubtotal, currency)}</span>
+            </div>
+          )}
+          {breakdown?.childSubtotal > 0 && (
+            <div className="pricing-item">
+              <span className="item-label">Children</span>
+              <span className="item-price">{formatCurrency(breakdown.childSubtotal, currency)}</span>
+            </div>
+          )}
+          {breakdown?.addonsTotal > 0 && (
+            <div className="pricing-item">
+              <span className="item-label">Add-ons</span>
+              <span className="item-price">{formatCurrency(breakdown.addonsTotal, currency)}</span>
+            </div>
+          )}
+        </div>
+        {appliedDiscounts && appliedDiscounts.length > 0 && (
+          <div className="rules-section">
+            <h4>Applied Adjustments</h4>
+            <div className="rules-list">
+              {appliedDiscounts.map((rule, idx) => (
+                <div key={idx} className="rule-explanation">
+                  <span className="rule-bullet">✅</span>
+                  <span className="rule-text">{rule}</span>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
+        <div className="pricing-divider" />
+        <div className="pricing-total">
+          <span>TOTAL</span>
+          <span>{formatCurrency(subtotalCents || 0, currency)}</span>
+        </div>
       </div>
+    );
+  }
 
-      {/* Main pricing line items */}
-      <div className="pricing-items">
-        {breakdown?.map((item: PricingBreakdownItem, idx: number) => (
-          <div key={idx} className="pricing-item">
-            <span className="item-label">{item.label}</span>
-            <span className="item-price">
-              {formatCurrency(item.amount, currency)}
-            </span>
+  // Branch 2: Cart-level (from api.PricingSnapshot)
+  if ('totalCents' in pricing && pricing.items) {
+    const { totalCents, items } = pricing as any;
+    const adultSub = items.reduce((sum: number, i: any) => sum + (i.breakdown?.adultSubtotalCents || 0), 0);
+    const childSub = items.reduce((sum: number, i: any) => sum + (i.breakdown?.childSubtotalCents || 0), 0);
+    const addonsSub = items.reduce((sum: number, i: any) => sum + (i.breakdown?.addonsSubtotalCents || 0), 0);
+    const discounts = items.reduce((sum: number, i: any) => sum + (i.breakdown?.discountsCents || 0), 0);
+    const allRules = Array.from(new Set(items.flatMap((i: any) => i.breakdown?.appliedRules || [])));
+
+    return (
+      <div className="pricing-breakdown cart-level">
+        <div className="breakdown-header">
+          <h3>Order Summary</h3>
+        </div>
+        <div className="pricing-items">
+          {adultSub > 0 && (
+            <div className="pricing-item">
+              <span className="item-label">Adults Total</span>
+              <span className="item-price">{formatCurrency(adultSub, currency)}</span>
+            </div>
+          )}
+          {childSub > 0 && (
+            <div className="pricing-item">
+              <span className="item-label">Children Total</span>
+              <span className="item-price">{formatCurrency(childSub, currency)}</span>
+            </div>
+          )}
+          {addonsSub > 0 && (
+            <div className="pricing-item">
+              <span className="item-label">Add-ons Total</span>
+              <span className="item-price">{formatCurrency(addonsSub, currency)}</span>
+            </div>
+          )}
+          {discounts !== 0 && (
+            <div className="pricing-item discount">
+              <span className="item-label">Savings</span>
+              <span className="item-price">-{formatCurrency(Math.abs(discounts), currency)}</span>
+            </div>
+          )}
+        </div>
+        {allRules.length > 0 && (
+          <div className="rules-section">
+            <h4>Combined Adjustments</h4>
+            <div className="rules-list">
+              {allRules.map((rule: any, idx) => (
+                <div key={idx} className="rule-explanation">
+                  <span className="rule-bullet">✨</span>
+                  <span className="rule-text">{rule}</span>
+                </div>
+              ))}
+            </div>
           </div>
-        ))}
-      </div>
-
-      {/* Subtotal */}
-      <div className="pricing-divider" />
-
-      <div className="pricing-subtotal">
-        <span>Subtotal</span>
-        <span>{formatCurrency(itemTotal, currency)}</span>
-      </div>
-
-      {/* Discounts (if any) */}
-      {hasDiscounts && (
-        <div className="pricing-item discount">
-          <span className="item-label">✅ Group Discount</span>
-          <span className="item-price discount">
-            -{formatCurrency(totalSavings, currency)}
-          </span>
+        )}
+        <div className="pricing-divider" />
+        <div className="pricing-total">
+          <span>GRAND TOTAL</span>
+          <span>{formatCurrency(totalCents, currency)}</span>
         </div>
-      )}
-
-      {/* Surcharges (if any) */}
-      {surchargeTotal > 0 && (
-        <div className="pricing-item surcharge">
-          <span className="item-label">📅 Seasonal Surcharge</span>
-          <span className="item-price surcharge">
-            +{formatCurrency(surchargeTotal, currency)}
-          </span>
-        </div>
-      )}
-
-      {/* Subtotal after discounts/surcharges */}
-      {(hasDiscounts || surchargeTotal > 0) && (
-        <>
-          <div className="pricing-divider" />
-          <div className="pricing-subtotal">
-            <span>Subtotal</span>
-            <span>
-              {formatCurrency(
-                itemTotal + discountTotal + surchargeTotal,
-                currency
-              )}
-            </span>
-          </div>
-        </>
-      )}
-
-      {/* VAT */}
-      <div className="pricing-item vat">
-        <span className="item-label">🌍 VAT (15%)</span>
-        <span className="item-price">{formatCurrency(vatTotal, currency)}</span>
       </div>
+    );
+  }
 
-      {/* Total */}
-      <div className="pricing-divider" />
-      <div className="pricing-total">
-        <span>TOTAL</span>
-        <span>{formatCurrency(finalTotal, currency)}</span>
-      </div>
-
-      {/* Savings highlight */}
-      {hasDiscounts && (
-        <div className="savings-highlight">
-          ✨ You save: {formatCurrency(totalSavings, currency)}
-        </div>
-      )}
-
-      {/* Detailed rules (expandable) */}
-      {expanded && hasRules && showDetailedRules && (
-        <div className="rules-section">
-          <h4>Applied Rules</h4>
-          <div className="rules-list">
-            {appliedRules?.map((rule: AppliedRule, idx: number) => (
-              <RuleExplanation key={idx} rule={rule} />
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
+  return null;
 };
 
 export default PricingBreakdown;

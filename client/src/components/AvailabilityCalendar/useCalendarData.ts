@@ -1,20 +1,19 @@
 import { useEffect, useState } from 'react';
-import type { CalendarDayData } from './types';
+import { getAvailabilityRange } from '../../lib/api';
+import { startOfMonth, endOfMonth, format } from 'date-fns';
 
 interface UseCalendarDataParams {
   tourId: string;
-  month: number;
+  month: number; // 0-indexed
   year: number;
-  participants: number;
 }
 
 export const useCalendarData = ({
   tourId,
   month,
   year,
-  participants,
 }: UseCalendarDataParams) => {
-  const [data, setData] = useState<CalendarDayData[]>([]);
+  const [data, setData] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -24,25 +23,14 @@ export const useCalendarData = ({
         setLoading(true);
         setError(null);
 
-        const params = new URLSearchParams({
-          month: String(month),
-          year: String(year),
-          participants: String(participants),
-        });
+        const baseDate = new Date(year, month, 1);
+        const startDate = format(startOfMonth(baseDate), 'yyyy-MM-dd');
+        const endDate = format(endOfMonth(baseDate), 'yyyy-MM-dd');
 
-        const response = await fetch(
-          `/api/tours/${tourId}/calendar?${params.toString()}`
-        );
-
-        if (!response.ok) {
-          throw new Error(`Failed to fetch calendar data: ${response.status}`);
-        }
-
-        const result = await response.json();
-        setData(result.data || []);
+        const result = await getAvailabilityRange(tourId, startDate, endDate);
+        setData(result);
       } catch (err) {
-        const message =
-          err instanceof Error ? err.message : 'Failed to load calendar';
+        const message = err instanceof Error ? err.message : 'Failed to load calendar';
         setError(message);
         console.error('Calendar data fetch error:', err);
       } finally {
@@ -50,8 +38,10 @@ export const useCalendarData = ({
       }
     };
 
-    fetchCalendarData();
-  }, [tourId, month, year, participants]);
+    if (tourId) {
+      fetchCalendarData();
+    }
+  }, [tourId, month, year]);
 
   return { data, loading, error };
 };

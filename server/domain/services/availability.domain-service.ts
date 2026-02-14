@@ -1,5 +1,5 @@
 import { Tour, Booking } from "../../../shared/schema.js";
-import { isSameDay } from "date-fns";
+import { isSameDay, eachDayOfInterval, parseISO, format } from "date-fns";
 import { IStorage } from "../../storage.js";
 import { PricingEngine } from "../pricing/PricingEngine.js";
 import { availabilityCache } from "../../infrastructure/cache/availability-cache.service.js";
@@ -9,6 +9,7 @@ import { TimeInterval, intervalsOverlap, getDefaultInterval } from "../availabil
 export interface AvailabilityResult {
   isAvailable: boolean;
   remainingCapacity: number;
+  totalCapacity: number;
   message: string;
   pricing?: {
     subtotalCents: number;
@@ -68,6 +69,7 @@ export class AvailabilityDomainService {
       return {
         isAvailable: false,
         remainingCapacity: 0,
+        totalCapacity: 0,
         message: "Requested guests must be at least 1.",
       };
     }
@@ -78,6 +80,7 @@ export class AvailabilityDomainService {
       return {
         isAvailable: false,
         remainingCapacity: 0,
+        totalCapacity: 0,
         message: `This date (${date}) is not available for bookings (blackout period).`,
       };
     }
@@ -88,12 +91,13 @@ export class AvailabilityDomainService {
       return {
         isAvailable: false,
         remainingCapacity: 0,
+        totalCapacity: 0,
         message: "Product not found.",
       };
     }
 
     // Calculate remaining capacity using tour_instances and holds
-    const remainingCapacity = await this.calculateRemainingCapacity(
+    const { remainingCapacity, totalCapacity } = await this.calculateRemainingCapacity(
       productId,
       product.category,
       date,
@@ -127,6 +131,7 @@ export class AvailabilityDomainService {
     return {
       isAvailable,
       remainingCapacity,
+      totalCapacity,
       message,
       pricing,
     };
@@ -139,18 +144,25 @@ export class AvailabilityDomainService {
     slot?: string,
     startTime?: string,
     endTime?: string
-  ): Promise<number> {
+  ): Promise<{ remainingCapacity: number; totalCapacity: number }> {
     // Phase 1: Vehicles check discrete resources instead of pooled instances
     if (category === 'vehicle') {
+      const allResources = await this.storage.getResourcesByProduct(productId);
       const availableResources = await this.storage.getAvailableResources(productId, date);
-      return availableResources.length;
+      return {
+        remainingCapacity: availableResources.length,
+        totalCapacity: allResources.length
+      };
     }
 
     // 1. Check cache first
     const cacheKey = slot || (startTime && endTime ? `${startTime}-${endTime}` : "default");
     const cached = availabilityCache.get(productId, date, cacheKey);
     if (cached) {
-      return cached.remainingCapacity;
+      return {
+        remainingCapacity: cached.remainingCapacity,
+        totalCapacity: cached.totalCapacity
+      };
     }
 
     // Phase 2: Refactored to handle multiple sessions per day via overlap detection
@@ -180,7 +192,7 @@ export class AvailabilityDomainService {
       }
 
       availabilityCache.set(productId, date, defaultCapacity, defaultCapacity, cacheKey);
-      return defaultCapacity;
+      return { remainingCapacity: defaultCapacity, totalCapacity: defaultCapacity };
     }
 
     // 3. Calculate remaining = total - (confirmed + held + blocked)
@@ -219,7 +231,50 @@ export class AvailabilityDomainService {
       );
     }
 
-    return finalRemaining;
+    return { remainingCapacity: finalRemaining, totalCapacity: totalCap };
+  }
+
+  /**
+   * Checks availability for a range of dates.
+   * Useful for calendar views.
+   */
+  async getAvailabilityRange(
+    productId: string,
+    startDate: string,
+    endDate: string
+  ): Promise<Record<string, {
+    isAvailable: boolean,
+    remainingCapacity: number,
+    totalCapacity: number
+  }>> {
+    const start = parseISO(startDate);
+    const end = parseISO(endDate);
+    const dates = eachDayOfInterval({ start, end });
+
+    const product = await this.storage.getTour(productId);
+    if (!product) throw new Error("Product not found");
+
+    const results: Record<string, any> = {};
+
+    // For range checks, we use a single await loop for simplicity
+    // but in high load we might want to concurrentize this
+    for (const d of dates) {
+      const dateStr = format(d, 'yyyy-MM-dd');
+
+      const { remainingCapacity, totalCapacity } = await this.calculateRemainingCapacity(
+        productId,
+        product.category,
+        dateStr
+      );
+
+      results[dateStr] = {
+        isAvailable: remainingCapacity > 0,
+        remainingCapacity,
+        totalCapacity
+      };
+    }
+
+    return results;
   }
 
   /**
@@ -271,13 +326,7 @@ export class AvailabilityDomainService {
     const subtotalCents = pricing.breakdown.finalTotalCents;
 
     // Track applied discounts from pricing engine
-    const appliedDiscounts: string[] = [];
-    if (pricing.breakdown.discountApplied) {
-      appliedDiscounts.push("10% group discount (7+ adults)");
-    }
-    if (pricing.breakdown.surchargeApplied) {
-      appliedDiscounts.push("20% peak season surcharge (Dec/Jan)");
-    }
+    const appliedDiscounts = pricing.breakdown.appliedRules;
 
     return {
       subtotalCents,

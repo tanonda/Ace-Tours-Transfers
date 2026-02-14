@@ -16,6 +16,12 @@ import { motion } from "framer-motion";
 import { BookingModal } from "@/components/booking-modal";
 import { formatPriceDisplay, type ProductCategory } from "@/lib/product.types";
 import { useCurrency } from "@/lib/currency-context";
+import { useRealtimeAvailability } from "@/hooks/useRealtimeAvailability";
+import { AvailabilityCalendar } from "@/components/AvailabilityCalendar";
+import { AvailabilityStatus } from "@/components/AvailabilityStatus";
+import { PricingBreakdown } from "@/components/PricingBreakdown";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
 
 export default function TourDetail() {
   const { id } = useParams<{ id: string }>();
@@ -41,6 +47,16 @@ export default function TourDetail() {
       });
     }
   }, [id, adultPax, childPax, date, updateDraft]);
+
+  const { data: availability, loading: availLoading } = useRealtimeAvailability(
+    id && date ? {
+      productId: id,
+      date,
+      adultPax: parseInt(adultPax) || 0,
+      childPax: parseInt(childPax) || 0,
+    } : null,
+    { enabled: !!id && !!date }
+  );
 
   const { data: tour, isLoading, error } = useQuery({
     queryKey: ["tour", id],
@@ -256,22 +272,51 @@ export default function TourDetail() {
                     <div className="space-y-2">
                       <Label htmlFor="detail-date" className="text-sm font-bold ml-1">{t("cart.date", "Date")}</Label>
                       <div className="relative">
-                        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id="detail-date"
-                          type="date"
-                          value={date}
-                          onChange={(e) => setDate(e.target.value)}
-                          className="pl-10 h-12 bg-background border-primary/20 focus:border-primary"
-                        />
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className={`w-full pl-10 h-12 bg-background border-primary/20 focus:border-primary text-left font-normal ${!date && "text-muted-foreground"}`}
+                            >
+                              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                              {date ? format(new Date(date), "PPP") : <span>Pick a date</span>}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <AvailabilityCalendar
+                              tourId={id || ""}
+                              onDateSelect={(d) => setDate(d)}
+                            />
+                          </PopoverContent>
+                        </Popover>
                       </div>
                     </div>
                   </div>
+
+                  {/* Availability & Pricing Context (Phase 3) */}
+                  {id && date && (
+                    <div className="space-y-6 mb-8">
+                      <AvailabilityStatus
+                        tourId={id}
+                        selectedDate={new Date(date)}
+                        adultPax={parseInt(adultPax) || 0}
+                        childPax={parseInt(childPax) || 0}
+                      />
+
+                      {availability?.pricing && (
+                        <PricingBreakdown
+                          pricing={availability.pricing}
+                          currency={currency === "VUV" ? "VT" : "€"}
+                        />
+                      )}
+                    </div>
+                  )}
 
                   <div className="flex flex-col sm:flex-row gap-4">
                     <Button
                       className="flex-1 h-16 text-xl font-bold shadow-lg shadow-primary/20"
                       onClick={handleAddToCart}
+                      disabled={!availability?.isAvailable || availLoading}
                     >
                       <ShoppingCart className="mr-2 h-6 w-6" />
                       {t("cart.addToCart", "Add to Cart")}
@@ -282,7 +327,11 @@ export default function TourDetail() {
                       initialChildPax={childPax}
                       initialDate={date ? new Date(date) : undefined}
                       trigger={
-                        <Button variant="secondary" className="flex-1 h-16 text-xl font-bold bg-white border-2 border-primary text-primary hover:bg-primary/5 transition-all">
+                        <Button
+                          variant="secondary"
+                          className="flex-1 h-16 text-xl font-bold bg-white border-2 border-primary text-primary hover:bg-primary/5 transition-all"
+                          disabled={!availability?.isAvailable || availLoading}
+                        >
                           {t("tour.bookNow", "Book Now")}
                         </Button>
                       }

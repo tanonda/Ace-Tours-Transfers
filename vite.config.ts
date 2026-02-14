@@ -62,7 +62,6 @@ export default defineConfig({
           'vendor-pdf': ['html2pdf.js', 'qrcode'],
         },
         // Optimize chunk sizing
-        minChunkSize: 20000,
         entryFileNames: 'assets/[name]-[hash].js',
         chunkFileNames: 'assets/[name]-[hash].js',
         assetFileNames: 'assets/[name]-[hash][extname]',

@@ -11,17 +11,21 @@ export interface AppliedRule {
 }
 
 export interface PricingSnapshot {
-  itemTotal: number;
-  discountTotal: number;
-  surchargeTotal: number;
-  vatTotal: number;
-  finalTotal: number;
-  breakdown: PricingBreakdownItem[];
-  appliedRules?: AppliedRule[];
+  // Single-item fields (AvailabilityResult)
+  subtotalCents?: number;
+  breakdown?: {
+    adultSubtotal: number;
+    childSubtotal: number;
+    addonsTotal: number;
+  };
+  appliedDiscounts?: string[];
+
+  // Cart-level fields (api.PricingSnapshot)
+  totalCents?: number;
+  items?: any[];
 }
 
 export interface PricingBreakdownProps {
   pricing: PricingSnapshot | null;
-  showDetailedRules?: boolean;
   currency?: string;
 }

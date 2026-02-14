@@ -6,6 +6,8 @@ import { AvailabilityApplicationService } from "../availability/availability.app
 import { mailingService } from "../../infrastructure/mailing/MailingService.js";
 import { PricingEngine } from "../../domain/pricing/PricingEngine.js";
 import { AuditLogService } from "../../infrastructure/audit/audit-log.service.js";
+import { AtomicSessionConfirmationService } from "../booking/AtomicSessionConfirmationService.js";
+import { metricsService } from "../../infrastructure/metrics/metrics.service.js";
 
 export class BookingEventHandler {
   private pricingEngine: PricingEngine;
@@ -26,7 +28,7 @@ export class BookingEventHandler {
   private async onPaymentConfirmed(event: PaymentConfirmed): Promise<void> {
     const correlationId = event.correlationId || 'no-correlation';
     console.log(`[EVENT][HANDLER][${correlationId}] Handling PaymentConfirmed for Booking ${event.bookingId}`);
-    
+
     const booking = await this.storage.getBooking(event.bookingId);
     if (!booking) {
       console.error(`[EVENT][ERROR] Booking ${event.bookingId} not found for payment confirmation`);
@@ -38,50 +40,56 @@ export class BookingEventHandler {
         // Phase 2B: Recalculate price server-side using PricingEngine and reject if mismatch
         const items = await this.storage.getBookingItems(booking.id);
         let expectedTotal = 0;
-        
+
         for (const item of items) {
           const rates = await this.pricingEngine.getTourRate(item.productId, booking.date);
           if (!rates) {
             console.error(`[PRICE][ERROR] Missing rates for ${item.productId}`);
             throw new Error("Pricing unavailable");
           }
-          
+
           // Use PricingEngine for complete calculation
           const pricing = await this.pricingEngine.calculateLineItem(
             item.adultPax,
             item.childPax,
             rates,
             booking.date,
-            item.addonIds
+            (item as any).addonIds
           );
-          
+
           expectedTotal += pricing.breakdown.finalTotalCents * (item.quantity || 1);
         }
-        
+
         if (expectedTotal !== booking.totalAmountCents) {
           // Price mismatch: mark booking and alert admins, do not confirm inventory
           await this.storage.updateBooking(booking.id, { status: 'price_mismatch' });
           const audit = new AuditLogService(this.storage);
           await audit.log({ productId: booking.tourId, action: 'manual_adjustment', performedBy: 'system', metadata: { bookingId: booking.id, expectedTotal, actualTotal: booking.totalAmountCents } });
-          console.error(`[PRICE][MISMATCH] Booking ${booking.id} expected ${expectedTotal} vs actual ${booking.totalAmountCents}`);
+
+          metricsService.incrementFailure("PRICE_MISMATCH");
+          metricsService.recordErrorSnippet("PRICE_MISMATCH", `Booking ${booking.id} expected ${expectedTotal} vs actual ${booking.totalAmountCents}`);
+
+          console.error(`[PRICE][MISMATCH][${correlationId}] Booking ${booking.id} expected ${expectedTotal} vs actual ${booking.totalAmountCents}`);
           return;
         }
-        
-        // Secure Inventory if session exists
-        if (booking.bookingSessionId) {
-          await this.availabilityService.confirmSessionHolds(booking.bookingSessionId);
-        } else if (booking.holdId) {
-          // Fallback for legacy data/direct hold links
-          await this.availabilityService.confirmBooking(booking.holdId);
+
+        // ALL-OR-NOTHING SESSION CONFIRMATION (PHASE 4)
+        const sessionService = new AtomicSessionConfirmationService(this.storage);
+        const result = await sessionService.confirmSessionAtomically({
+          sessionId: booking.bookingSessionId || 'default_session',
+          paymentId: event.paymentId
+        });
+
+        if (!result.success) {
+          console.error(`[SESSION_CONFIRM][FAILED] ${result.message}`, result.error);
+          return;
         }
 
-        // Update Booking Status
-        await this.storage.updateBooking(booking.id, { status: 'confirmed' });
-        console.log(`[EVENT][SUCCESS] Booking ${booking.id} confirmed via PaymentConfirmed event`);
-        
+        console.log(`[EVENT][SUCCESS] Booking session ${booking.bookingSessionId} confirmed atomically via PaymentConfirmed event`);
+
         // Trigger emails/admin notifications here
         const tour = await this.storage.getTour(booking.tourId);
-        
+
         // 1. Send Payment Receipt
         await mailingService.sendPaymentSuccess(booking.customerEmail, {
           bookingId: booking.id,
@@ -97,7 +105,9 @@ export class BookingEventHandler {
           amount: booking.amount
         });
       } catch (error) {
-        console.error(`[EVENT][ERROR] Failed to confirm booking ${booking.id}:`, error);
+        console.error(`[EVENT][ERROR][${correlationId}] Failed to confirm booking ${booking.id}:`, error);
+        metricsService.incrementFailure("EVENT_HANDLER_FAILURE");
+        metricsService.recordErrorSnippet("EVENT_HANDLER_FAILURE", error instanceof Error ? error.message : String(error));
       }
     }
   }
@@ -107,7 +117,7 @@ export class BookingEventHandler {
     if (!booking) return;
 
     console.log(`[EVENT][HANDLER] Handling PaymentFailed for Booking ${booking.id}`);
-    
+
     await mailingService.sendPaymentFailure(booking.customerEmail, {
       bookingId: booking.id,
       reason: event.reason
@@ -119,7 +129,7 @@ export class BookingEventHandler {
     if (!booking) return;
 
     console.log(`[EVENT][HANDLER] Handling PaymentExpired for Booking ${booking.id}`);
-    
+
     await mailingService.sendPaymentExpiry(booking.customerEmail, booking.id);
   }
 }

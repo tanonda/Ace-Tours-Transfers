@@ -11,6 +11,14 @@ export class BookingApplicationService {
     this.availabilityService = availabilityService;
   }
 
+  async getServiceAvailabilityRange(
+    serviceId: string,
+    startDate: string,
+    endDate: string
+  ): Promise<Record<string, any>> {
+    return await this.availabilityService.getAvailabilityRange(serviceId, startDate, endDate);
+  }
+
   /**
    * Checks the availability of a specific service for a given date and number of guests.
    * Uses the unified availability domain service for consistent validation and pricing.

@@ -9,8 +9,11 @@ Access metrics via: `GET /api/admin/metrics`
 Key metrics to watch:
 - **Failure Rate**: Percentage of failed booking attempts. Target: < 10%.
 - **Overbooking Attempts**: Number of conflicts where users tried to confirm stale/expired holds.
+- **Session Success Rate**: Percentage of multi-item sessions that confirm successfully. Target: > 98%.
 - **Utilization**: Percentage of capacity sold for upcoming products.
 - **Confirmation Latency**: Average time to confirm a booking. Target: < 500ms.
+- **Session Latency**: Time to confirm an entire multi-item session. Target: < 1500ms.
+- **Last Errors**: Snippets of the most recent 10 system errors (check Admin Dashboard).
 
 ---
 
@@ -58,6 +61,28 @@ Key metrics to watch:
     1. Check database CPU and active locks.
     2. Verify the number of concurrent transactions.
     3. Investigate `getOrCreateInstanceLocked` performance.
+
+### 5. Session Atomicity Failures
+- **Severity**: 🔴 Critical
+- **Threshold**: Any `SESSION_TRANSACTION_FAILED` error.
+- **Possible Causes**:
+    - Inconsistent state between multiple bookings in a session.
+    - Deadlocks during multi-row locking.
+- **Action Plan**:
+    1. Check "Last Errors" in Admin Dashboard for the specific failure reason.
+    2. Verify if one item in the session has an expired hold while others are valid.
+    3. If it's a deadlock, the system should automatically retry (check `retryableConfirmationAttempts` metric).
+
+### 6. Price Mismatch Detected
+- **Severity**: 🟡 Warning
+- **Threshold**: > 1 mismatch per day.
+- **Possible Causes**:
+    - Outdated pricing versions cached on the frontend.
+    - Concurrent updates to pricing rules.
+- **Action Plan**:
+    1. Check the audit log for `manual_adjustment` actions.
+    2. Compare the `expectedTotal` and `actualTotal` in the log.
+    3. Verify if a new pricing version was recently activated.
 
 ---
 
