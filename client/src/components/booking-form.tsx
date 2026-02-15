@@ -10,7 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Loader2, User, Mail, MapPin, Users, Sparkles } from "lucide-react";
+import { CalendarIcon, Loader2, User, Mail, MapPin, Users, Sparkles, Clock, CreditCard, Info, CheckCircle, ArrowRight } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
@@ -25,10 +26,24 @@ export const bookingFormSchema = z.object({
   email: z.string().email("Invalid email address"),
   service: z.string().min(1, "Please select a service"),
   date: z.date({ required_error: "Date is required" }),
+  startTime: z.string().optional(),
+  endTime: z.string().optional(),
   adultPax: z.string().min(1, "Number of adults is required"),
   childPax: z.string().min(1, "Number of children is required"),
   notes: z.string().optional(),
   addonIds: z.array(z.string()).default([]),
+}).refine((data) => {
+  if (data.startTime && data.endTime) {
+    const start = data.startTime.split(':').map(Number);
+    const end = data.endTime.split(':').map(Number);
+    const startMin = start[0] * 60 + start[1];
+    const endMin = end[0] * 60 + end[1];
+    return endMin > startMin;
+  }
+  return true;
+}, {
+  message: "End time must be after start time",
+  path: ["endTime"],
 });
 
 // Service type for the dropdown
@@ -46,7 +61,7 @@ interface BookingFormProps {
   showPrice?: boolean;
   adultPriceCents?: number;  // Price per adult in cents
   childPriceCents?: number;  // Price per child in cents
-  onAvailabilityCheck?: (serviceTitle: string, date: Date, adultPax: number, childPax: number) => void;
+  onAvailabilityCheck?: (serviceTitle: string, date: Date, adultPax: number, childPax: number, startTime?: string, endTime?: string) => void;
   isAvailable?: boolean | null; // null for not yet checked, true/false for result
   availabilityMessage?: string;
   isCheckingAvailability?: boolean;
@@ -85,11 +100,51 @@ export function BookingForm({
       childPax: initialValues?.childPax || "0",
       notes: initialValues?.notes || "",
       addonIds: initialValues?.addonIds || [],
+      startTime: initialValues?.startTime || "",
+      endTime: initialValues?.endTime || "",
     },
   });
 
   // Track if initial values have been applied to prevent resetting on re-renders
   const hasAppliedInitialValues = useRef(false);
+
+  // Watch for changes - moved up to avoid Temporal Dead Zone (ER-2026-01)
+  const watchedService = form.watch("service");
+  const watchedAdultPax = form.watch("adultPax");
+  const watchedChildPax = form.watch("childPax");
+  const watchedDate = form.watch("date"); // Watch date field
+  const watchedAddonIds = form.watch("addonIds");
+  const watchedStartTime = form.watch("startTime");
+  const watchedEndTime = form.watch("endTime");
+
+  // Persistence: Save to localStorage
+  useEffect(() => {
+    const subscription = form.watch((value) => {
+      if (value.service) {
+        localStorage.setItem(`booking_draft_${value.service}`, JSON.stringify(value));
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [form]);
+
+  // Persistence: Load from localStorage
+  useEffect(() => {
+    if (watchedService && !hasAppliedInitialValues.current) {
+      const saved = localStorage.getItem(`booking_draft_${watchedService}`);
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          Object.entries(parsed).forEach(([key, value]) => {
+            if (value && key !== 'date') { // date needs special handling
+              form.setValue(key as any, value as any);
+            }
+          });
+        } catch (e) {
+          console.error("Failed to load saved form", e);
+        }
+      }
+    }
+  }, [watchedService, form]);
 
   // Update form defaults when user loads - only apply initialValues once on mount
   useEffect(() => {
@@ -109,11 +164,13 @@ export function BookingForm({
   }, [user, initialValues, form]);
 
 
-  const watchedService = form.watch("service");
-  const watchedAdultPax = form.watch("adultPax");
-  const watchedChildPax = form.watch("childPax");
-  const watchedDate = form.watch("date"); // Watch date field
-  const watchedAddonIds = form.watch("addonIds");
+  const selectedServiceObj = useMemo(() =>
+    services.find(s => s.title === watchedService),
+    [services, watchedService]);
+
+  const isVehicle = selectedServiceObj?.category === 'vehicle';
+  const isTransfer = selectedServiceObj?.category === 'transfer';
+  const isTour = selectedServiceObj?.category === 'tour';
 
   // Calculate estimated total from props and form values
   const estimatedTotal = useMemo(() => {
@@ -147,270 +204,581 @@ export function BookingForm({
     return formatPriceDisplay(totalCents, currency);
   }, [watchedAdultPax, watchedChildPax, adultPriceCents, childPriceCents, watchedDate, watchedAddonIds, availableAddons, currency]);
 
+  // Debounced availability check
   useEffect(() => {
     const adultPax = parseInt(watchedAdultPax || "0");
     const childPax = parseInt(watchedChildPax || "0");
     const totalPax = adultPax + childPax;
 
     if (onAvailabilityCheck && watchedService && watchedDate && totalPax > 0) {
-      onAvailabilityCheck(watchedService, watchedDate, adultPax, childPax);
+      const timer = setTimeout(() => {
+        onAvailabilityCheck(
+          watchedService,
+          watchedDate,
+          adultPax,
+          childPax,
+          watchedStartTime || undefined,
+          watchedEndTime || undefined
+        );
+      }, 500);
+      return () => clearTimeout(timer);
     }
-  }, [watchedService, watchedDate, watchedAdultPax, watchedChildPax, onAvailabilityCheck]);
+  }, [watchedService, watchedDate, watchedAdultPax, watchedChildPax, watchedStartTime, watchedEndTime, onAvailabilityCheck]);
 
   // Determine if the submit button should be disabled
   const isSubmitDisabled = isLoading || isCheckingAvailability || !isAvailable;
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-sm font-medium">{t("booking.fullName", "Full Name")}</FormLabel>
-              <FormControl>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder={t("booking.namePlaceholder", "John Doe")}
-                    className="pl-10 h-11 border-border/50 bg-background/80 backdrop-blur-sm focus:border-primary focus:ring-primary/20 text-gray-900 font-semibold"
-                    {...field}
-                  />
+    <div className="flex flex-col lg:flex-row gap-10 items-start">
+      <div className="flex-1 w-full space-y-8 order-2 lg:order-1">
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+
+            {/* Section 1: Personal Information */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4 }}
+              className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 space-y-6"
+            >
+              <div className="flex items-center gap-3 mb-2">
+                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                  <User className="h-5 w-5" />
                 </div>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="email"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-sm font-medium">{t("booking.email", "Email")}</FormLabel>
-              <FormControl>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder={t("booking.emailPlaceholder", "john@example.com")}
-                    className="pl-10 h-11 border-border/50 bg-background/80 backdrop-blur-sm focus:border-primary focus:ring-primary/20 text-gray-900 font-semibold"
-                    {...field}
-                  />
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900">Personal Information</h3>
+                  <p className="text-sm text-slate-500">Contact details for your reservation</p>
                 </div>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+              </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="service"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-sm font-medium">{t("booking.service", "Service")}</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger className="h-11 border-border/50 bg-background/80 backdrop-blur-sm text-gray-900 font-semibold">
-                      <div className="flex items-center gap-2">
-                        <MapPin className="h-4 w-4 text-muted-foreground" />
-                        <SelectValue placeholder={t("booking.selectService", "Select tour/transfer")} />
-                      </div>
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="select" disabled>{t("booking.selectOption", "Select an option")}</SelectItem>
-                    {services.filter(s => s.category === 'tour').map((service) => (
-                      <SelectItem key={service.id} value={service.title}>{service.title}</SelectItem>
-                    ))}
-                    {services.filter(s => s.category === 'transfer').map((service) => (
-                      <SelectItem key={service.id} value={service.title}>{service.title}</SelectItem>
-                    ))}
-                    {services.filter(s => s.category === 'vehicle').map((service) => (
-                      <SelectItem key={service.id} value={service.title}>{service.title}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="adultPax"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-sm font-medium">{t("booking.adults", "Adults")}</FormLabel>
-                <FormControl>
-                  <CounterInput
-                    value={parseInt(field.value) || 2}
-                    onValueChange={(val) => field.onChange(val.toString())}
-                    min={1}
-                    max={50}
-                    label="Adults"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="childPax"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-sm font-medium">{t("booking.children", "Children")}</FormLabel>
-                <FormControl>
-                  <CounterInput
-                    value={parseInt(field.value) || 0}
-                    onValueChange={(val) => field.onChange(val.toString())}
-                    min={0}
-                    max={50}
-                    label="Children"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
-        <FormField
-          control={form.control}
-          name="date"
-          render={({ field }) => (
-            <FormItem className="flex flex-col">
-              <FormLabel className="text-sm font-medium">{t("booking.preferredDate", "Preferred Date")}</FormLabel>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <FormControl>
-                    <Button
-                      variant={"outline"}
-                      className={cn(
-                        "w-full h-11 pl-10 text-left border-border/50 bg-background/80 backdrop-blur-sm relative",
-                        !field.value ? "text-muted-foreground font-normal" : "text-gray-900 font-semibold"
-                      )}
-                    >
-                      <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      {field.value ? (
-                        format(field.value, "PPP")
-                      ) : (
-                        <span>{t("booking.pickDate", "Pick a date")}</span>
-                      )}
-                    </Button>
-                  </FormControl>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={field.value}
-                    onSelect={field.onChange}
-                    disabled={(date) =>
-                      date < new Date() || date < new Date("1900-01-01")
-                    }
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        {availableAddons.length > 0 && (
-          <div className="space-y-3 pt-2">
-            <FormLabel className="text-sm font-medium">{t("booking.addons", "Special Add-ons")}</FormLabel>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {availableAddons.map((addon) => (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <FormField
-                  key={addon.id}
                   control={form.control}
-                  name="addonIds"
+                  name="name"
                   render={({ field }) => (
-                    <FormItem
-                      key={addon.id}
-                      className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-3 shadow-sm bg-background/50"
-                    >
+                    <FormItem>
+                      <FormLabel className="text-sm font-semibold text-slate-700">{t("booking.fullName", "Full Name")}</FormLabel>
                       <FormControl>
-                        <Checkbox
-                          checked={field.value?.includes(addon.id)}
-                          onCheckedChange={(checked) => {
-                            return checked
-                              ? field.onChange([...field.value, addon.id])
-                              : field.onChange(
-                                field.value?.filter(
-                                  (value) => value !== addon.id
-                                )
-                              )
-                          }}
-                        />
+                        <div className="relative group">
+                          <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-primary transition-colors" />
+                          <Input
+                            placeholder={t("booking.namePlaceholder", "John Doe")}
+                            className="pl-10 h-12 border-slate-200 bg-slate-50/50 rounded-xl focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all font-medium"
+                            {...field}
+                          />
+                        </div>
                       </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel className="text-sm font-medium cursor-pointer">
-                          {addon.name}
-                        </FormLabel>
-                        <p className="text-xs text-muted-foreground">
-                          +{formatPriceDisplay(addon.priceCents, currency)}
-                        </p>
-                      </div>
+                      <FormMessage />
                     </FormItem>
                   )}
                 />
+
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm font-semibold text-slate-700">{t("booking.email", "Email Address")}</FormLabel>
+                      <FormControl>
+                        <div className="relative group">
+                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-primary transition-colors" />
+                          <Input
+                            placeholder={t("booking.emailPlaceholder", "john@example.com")}
+                            className="pl-10 h-12 border-slate-200 bg-slate-50/50 rounded-xl focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all font-medium"
+                            {...field}
+                          />
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </motion.div>
+
+            {/* Section 2: Journey Details */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.1 }}
+              className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 space-y-6"
+            >
+              <div className="flex items-center gap-3 mb-2">
+                <div className="h-10 w-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-600">
+                  <MapPin className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900">Journey Details</h3>
+                  <p className="text-sm text-slate-500">Select your preferred service and schedule</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <FormField
+                  control={form.control}
+                  name="service"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm font-semibold text-slate-700">{t("booking.service", "Service")}</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger className="h-12 border-slate-200 bg-slate-50/50 rounded-xl focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all font-medium">
+                            <div className="flex items-center gap-2">
+                              <MapPin className="h-4 w-4 text-slate-400" />
+                              <SelectValue placeholder={t("booking.selectService", "Select tour/transfer")} />
+                            </div>
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent className="rounded-xl shadow-xl border-slate-100">
+                          <SelectItem value="select" disabled>{t("booking.selectOption", "Select an option")}</SelectItem>
+                          {services.filter(s => s.category === 'tour').length > 0 && (
+                            <div className="px-2 py-2 text-[10px] uppercase tracking-wider font-black text-slate-400">Tours</div>
+                          )}
+                          {services.filter(s => s.category === 'tour').map((service) => (
+                            <SelectItem key={service.id} value={service.title} className="rounded-md focus:bg-primary/10">{service.title}</SelectItem>
+                          ))}
+                          {services.filter(s => s.category === 'transfer').length > 0 && (
+                            <div className="px-2 py-2 text-[10px] uppercase tracking-wider font-black text-slate-400 mt-2 border-t border-slate-50 pt-2">Transfers</div>
+                          )}
+                          {services.filter(s => s.category === 'transfer').map((service) => (
+                            <SelectItem key={service.id} value={service.title} className="rounded-md focus:bg-primary/10">{service.title}</SelectItem>
+                          ))}
+                          {services.filter(s => s.category === 'vehicle').length > 0 && (
+                            <div className="px-2 py-2 text-[10px] uppercase tracking-wider font-black text-slate-400 mt-2 border-t border-slate-50 pt-2">Vehicles</div>
+                          )}
+                          {services.filter(s => s.category === 'vehicle').map((service) => (
+                            <SelectItem key={service.id} value={service.title} className="rounded-md focus:bg-primary/10">{service.title}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="date"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel className="text-sm font-semibold text-slate-700">{t("booking.preferredDate", "Preferred Date")}</FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant={"outline"}
+                              className={cn(
+                                "w-full h-12 pl-10 text-left border-slate-200 bg-slate-50/50 rounded-xl focus:ring-4 focus:ring-primary/10 relative",
+                                !field.value ? "text-slate-400 font-normal" : "text-slate-900 font-medium"
+                              )}
+                            >
+                              <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                              {field.value ? (
+                                format(field.value, "PPP")
+                              ) : (
+                                <span>{t("booking.pickDate", "Pick a date")}</span>
+                              )}
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0 rounded-2xl border-slate-100 shadow-2xl" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={field.onChange}
+                            disabled={(date) =>
+                              date < new Date() || date < new Date("1900-01-01")
+                            }
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {(isVehicle || isTransfer || isTour) && (
+                  <>
+                    <FormField
+                      control={form.control}
+                      name="startTime"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-sm font-semibold text-slate-700">
+                            {isTour ? "Session / Time" : "Pickup Time"}
+                          </FormLabel>
+                          <FormControl>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <SelectTrigger className="h-12 border-slate-200 bg-slate-50/50 rounded-xl focus:ring-4 focus:ring-primary/10 text-slate-900 font-medium">
+                                <div className="flex items-center gap-2">
+                                  <Clock className="h-4 w-4 text-slate-400" />
+                                  <SelectValue placeholder="00:00" />
+                                </div>
+                              </SelectTrigger>
+                              <SelectContent className="rounded-xl shadow-xl border-slate-100 max-h-[300px]">
+                                {Array.from({ length: 24 * 2 }).map((_, i) => {
+                                  const hour = Math.floor(i / 2);
+                                  const min = (i % 2) * 30;
+                                  const time = `${hour.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
+                                  return (
+                                    <SelectItem key={time} value={time} className="rounded-md focus:bg-primary/10">
+                                      {format(new Date(2024, 0, 1, hour, min), "hh:mm a")}
+                                    </SelectItem>
+                                  );
+                                })}
+                              </SelectContent>
+                            </Select>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {(isVehicle || isTransfer) && (
+                      <FormField
+                        control={form.control}
+                        name="endTime"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-sm font-semibold text-slate-700">Drop-off Time</FormLabel>
+                            <FormControl>
+                              <Select onValueChange={field.onChange} value={field.value}>
+                                <SelectTrigger className="h-12 border-slate-200 bg-slate-50/50 rounded-xl focus:ring-4 focus:ring-primary/10 text-slate-900 font-medium">
+                                  <div className="flex items-center gap-2">
+                                    <Clock className="h-4 w-4 text-slate-400" />
+                                    <SelectValue placeholder="00:00" />
+                                  </div>
+                                </SelectTrigger>
+                                <SelectContent className="rounded-xl shadow-xl border-slate-100 max-h-[300px]">
+                                  {Array.from({ length: 24 * 2 }).map((_, i) => {
+                                    const hour = Math.floor(i / 2);
+                                    const min = (i % 2) * 30;
+                                    const time = `${hour.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
+                                    return (
+                                      <SelectItem key={time} value={time} className="rounded-md focus:bg-primary/10">
+                                        {format(new Date(2024, 0, 1, hour, min), "hh:mm a")}
+                                      </SelectItem>
+                                    );
+                                  })}
+                                </SelectContent>
+                              </Select>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+                  </>
+                )}
+              </div>
+            </motion.div>
+
+            {/* Section 3: Travelers & Extras */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.2 }}
+              className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 space-y-6"
+            >
+              <div className="flex items-center gap-3 mb-2">
+                <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                  <Users className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900">Travelers & Extras</h3>
+                  <p className="text-sm text-slate-500">Number of guests and additional options</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 px-2">
+                <FormField
+                  control={form.control}
+                  name="adultPax"
+                  render={({ field }) => (
+                    <FormItem className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
+                      <div className="flex items-center justify-between mb-2">
+                        <FormLabel className="text-sm font-bold text-slate-700">{t("booking.adults", "Adults")}</FormLabel>
+                        <span className="text-xs text-slate-400">Ages 13+</span>
+                      </div>
+                      <FormControl>
+                        <CounterInput
+                          value={parseInt(field.value) || 2}
+                          onValueChange={(val) => field.onChange(val.toString())}
+                          min={1}
+                          max={50}
+                          label="Adults"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="childPax"
+                  render={({ field }) => (
+                    <FormItem className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
+                      <div className="flex items-center justify-between mb-2">
+                        <FormLabel className="text-sm font-bold text-slate-700">{t("booking.children", "Children")}</FormLabel>
+                        <span className="text-xs text-slate-400">Ages 2-12</span>
+                      </div>
+                      <FormControl>
+                        <CounterInput
+                          value={parseInt(field.value) || 0}
+                          onValueChange={(val) => field.onChange(val.toString())}
+                          min={0}
+                          max={50}
+                          label="Children"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <AnimatePresence>
+                {availableAddons.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="space-y-4 pt-4 border-t border-slate-100 overflow-hidden"
+                  >
+                    <FormLabel className="text-sm font-bold text-slate-700 block mb-2">{t("booking.addons", "Special Add-ons")}</FormLabel>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {availableAddons.map((addon) => (
+                        <FormField
+                          key={addon.id}
+                          control={form.control}
+                          name="addonIds"
+                          render={({ field }) => (
+                            <FormItem
+                              key={addon.id}
+                              className={cn(
+                                "flex flex-row items-center space-x-3 space-y-0 rounded-xl border p-4 transition-all duration-300 cursor-pointer",
+                                field.value?.includes(addon.id)
+                                  ? "bg-primary/5 border-primary shadow-sm ring-1 ring-primary/20"
+                                  : "bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50"
+                              )}
+                              onClick={() => {
+                                const current = field.value || [];
+                                const next = current.includes(addon.id)
+                                  ? current.filter(id => id !== addon.id)
+                                  : [...current, addon.id];
+                                field.onChange(next);
+                              }}
+                            >
+                              <FormControl>
+                                <Checkbox
+                                  checked={field.value?.includes(addon.id)}
+                                  onCheckedChange={(checked) => {
+                                    return checked
+                                      ? field.onChange([...(field.value || []), addon.id])
+                                      : field.onChange(
+                                        field.value?.filter(
+                                          (value) => value !== addon.id
+                                        )
+                                      )
+                                  }}
+                                  className="h-5 w-5 rounded-md"
+                                />
+                              </FormControl>
+                              <div className="flex-1 space-y-1 leading-none">
+                                <FormLabel className="text-sm font-bold text-slate-800 cursor-pointer">
+                                  {addon.name}
+                                </FormLabel>
+                                <p className="text-xs font-medium text-primary">
+                                  +{formatPriceDisplay(addon.priceCents, currency)}
+                                </p>
+                              </div>
+                              {field.value?.includes(addon.id) && (
+                                <CheckCircle className="h-4 w-4 text-primary animate-in zoom-in duration-300" />
+                              )}
+                            </FormItem>
+                          )}
+                        />
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3 }}
+              className="flex flex-col gap-4 pt-4"
+            >
+              <Button
+                type="submit"
+                className="w-full h-16 text-xl font-bold rounded-2xl bg-gradient-to-r from-primary to-orange-500 hover:from-primary/90 hover:to-orange-500/90 shadow-xl shadow-primary/20 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 disabled:opacity-50 disabled:translate-y-0"
+                disabled={isSubmitDisabled}
+              >
+                {isLoading ? (
+                  <Loader2 className="mr-3 h-6 w-6 animate-spin" />
+                ) : (
+                  <>
+                    <Sparkles className="mr-3 h-6 w-6" />
+                    {submitButtonText}
+                    <ArrowRight className="ml-3 h-5 w-5 opacity-0 group-hover:opacity-100 transition-all -translate-x-4 group-hover:translate-x-0" />
+                  </>
+                )}
+              </Button>
+
+              <div className="flex items-center justify-center gap-2 text-slate-400">
+                <Info className="h-4 w-4" />
+                <p className="text-xs font-medium italic">
+                  {t("booking.guarantee", "Free cancellation up to 24 hours before your tour")}
+                </p>
+              </div>
+            </motion.div>
+          </form>
+        </Form>
+      </div>
+
+      <aside className="w-full lg:w-[320px] order-1 lg:order-2 sticky top-24">
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5 }}
+          className="relative bg-white rounded-3xl overflow-hidden shadow-2xl border border-slate-100"
+        >
+          {/* Receipt Header */}
+          <div className="bg-slate-900 px-6 py-6 text-white relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-primary/20 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl" />
+            <div className="relative flex items-center gap-3">
+              <Sparkles className="h-5 w-5 text-primary" />
+              <h3 className="text-xl font-black tracking-tight uppercase">Booking Summary</h3>
+            </div>
+            <p className="text-[10px] text-slate-400 mt-1 uppercase tracking-widest font-bold">Ace Tours Official Receipt</p>
+          </div>
+
+          <div className="p-6 space-y-6 relative">
+            {/* Perforated edge effect */}
+            <div className="absolute top-0 left-0 right-0 flex justify-between px-2 -translate-y-1">
+              {Array.from({ length: 15 }).map((_, i) => (
+                <div key={i} className="h-2 w-2 bg-slate-900 rounded-full" />
               ))}
             </div>
-          </div>
-        )}
 
-        {onAvailabilityCheck && (watchedService && watchedDate && (parseInt(watchedAdultPax || "0") + parseInt(watchedChildPax || "0")) > 0) && (
-          <div className="mt-4 text-sm">
-            {isCheckingAvailability ? (
-              <p className="text-muted-foreground flex items-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin" /> Checking availability...
-              </p>
-            ) : (
-              availabilityMessage && (
-                <p className={cn(
-                  "font-medium",
-                  isAvailable ? "text-green-600" : "text-red-600"
+            <div className="space-y-4">
+              <div className="space-y-1">
+                <span className="text-[10px] uppercase font-black text-slate-400 tracking-wider">Service Selected</span>
+                <p className="font-bold text-slate-900 line-clamp-2 leading-snug">
+                  {watchedService || <span className="text-slate-200 italic font-medium">None selected</span>}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <span className="text-[10px] uppercase font-black text-slate-400 tracking-wider">Date</span>
+                  <p className="text-sm font-bold text-slate-800">
+                    {watchedDate ? format(watchedDate, "MMM dd, yyyy") : <span className="text-slate-200">--</span>}
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[10px] uppercase font-black text-slate-400 tracking-wider">Time</span>
+                  <p className="text-sm font-bold text-slate-800">
+                    {watchedStartTime ? format(new Date(2024, 0, 1, ...watchedStartTime.split(':').map(Number)), "hh:mm a") : <span className="text-slate-200">--</span>}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex justify-between items-end border-b border-dashed border-slate-100 pb-4">
+                <div className="space-y-1">
+                  <span className="text-[10px] uppercase font-black text-slate-400 tracking-wider">Travelers</span>
+                  <p className="text-sm font-bold text-slate-800">
+                    {parseInt(watchedAdultPax) + parseInt(watchedChildPax)} Passengers
+                  </p>
+                </div>
+                <Users className="h-8 w-8 text-slate-100" />
+              </div>
+            </div>
+
+            {/* Availability Badge */}
+            <div className="py-1">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[10px] uppercase font-black text-slate-400 tracking-wider">Live Status</span>
+                <AnimatePresence mode="wait">
+                  {isCheckingAvailability ? (
+                    <motion.div
+                      key="checking"
+                      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                      className="flex items-center gap-1.5 text-slate-400"
+                    >
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      <span className="text-[10px] font-bold">Verifying...</span>
+                    </motion.div>
+                  ) : (
+                    availabilityMessage && (
+                      <motion.div
+                        key="status"
+                        initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
+                        className={cn(
+                          "flex items-center gap-1.5 px-2.5 py-1 rounded-full",
+                          isAvailable ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"
+                        )}
+                      >
+                        <div className={cn("h-1.5 w-1.5 rounded-full animate-pulse", isAvailable ? "bg-green-500" : "bg-red-500")} />
+                        <span className="text-[10px] font-extrabold uppercase tracking-tighter">
+                          {isAvailable ? "Available" : "Full"}
+                        </span>
+                      </motion.div>
+                    )
+                  )}
+                </AnimatePresence>
+              </div>
+              {availabilityMessage && !isCheckingAvailability && (
+                <div className={cn(
+                  "p-3 rounded-xl text-[11px] font-medium leading-relaxed",
+                  isAvailable ? "bg-green-50/50 text-green-600" : "bg-red-50/50 text-red-600"
                 )}>
                   {availabilityMessage}
-                </p>
-              )
+                </div>
+              )}
+            </div>
+
+            {/* Price Segment */}
+            {showPrice && (
+              <div className="mt-4 pt-6 border-t-2 border-slate-900 border-dashed relative">
+                <div className="bg-slate-50 p-4 rounded-2xl space-y-2">
+                  <div className="flex items-center justify-between text-slate-500 italic text-[11px]">
+                    <span>Subtotal + Add-ons</span>
+                    <span>Calculated</span>
+                  </div>
+                  <div className="flex flex-col items-end">
+                    <span className="text-[10px] uppercase font-black text-slate-400 tracking-wider mb-1">Total Amount Due</span>
+                    <span className="text-3xl font-black text-slate-900 tracking-tighter">
+                      {estimatedTotal}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="mt-4 flex flex-col items-center gap-2">
+                  <div className="h-12 w-full flex items-center justify-center border-2 border-slate-100 rounded-xl border-dashed">
+                    <CreditCard className="h-5 w-5 text-slate-200 mr-2" />
+                    <span className="text-[10px] font-black text-slate-300 uppercase">Payment Secure</span>
+                  </div>
+                  <p className="text-[9px] text-slate-400 text-center uppercase tracking-widest font-bold">
+                    * Final Price confirmed at next step
+                  </p>
+                </div>
+              </div>
             )}
           </div>
-        )}
 
-        {showPrice && (
-          <div className="flex items-center justify-between mt-6 pt-4 border-t border-border/50">
-            <span className="text-lg font-semibold">{t("booking.estimatedTotal", "Estimated Total")}</span>
-            <span className="text-2xl font-bold text-primary">{estimatedTotal}</span>
+          {/* Bottom Receipt Edge */}
+          <div className="bg-slate-50 h-4 w-full flex justify-between items-end overflow-hidden">
+            {Array.from({ length: 20 }).map((_, i) => (
+              <div key={i} className="h-3 w-3 bg-white rounded-full translate-y-2" />
+            ))}
           </div>
-        )}
-
-        <Button
-          type="submit"
-          className="w-full h-12 text-lg font-semibold bg-gradient-to-r from-primary to-orange-500 hover:from-primary/90 hover:to-orange-500/90 shadow-lg hover:shadow-xl transition-all duration-300 mt-2"
-          disabled={isSubmitDisabled}
-        >
-          {isLoading ? (
-            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-          ) : (
-            <>
-              <Sparkles className="mr-2 h-5 w-5" />
-              {submitButtonText}
-            </>
-          )}
-        </Button>
-
-        <p className="text-center text-xs text-muted-foreground mt-3">
-          {t("booking.guarantee", "Free cancellation up to 24 hours before your tour")}
-        </p>
-      </form>
-    </Form>
+        </motion.div>
+      </aside>
+    </div>
   );
 }

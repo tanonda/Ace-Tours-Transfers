@@ -130,10 +130,10 @@ export class AvailabilityService {
             throw new Error(`Vehicle ${resourceId} is already reserved for ${date}`);
           }
         } else {
-          const availableResources = await this.storage.getAvailableResources(tourId, date);
+          const availableResources = await this.storage.getAvailableResources(tourId, date, startTime, endTime);
           if (availableResources.length === 0) {
             throw new Error(
-              `No available ${product.title} units for ${date}. All vehicles are currently reserved.`
+              `No available ${product.title} units for ${date} during ${startTime || '00:00'}-${endTime || '23:59'}. All vehicles are currently reserved.`
             );
           }
           // Allocate first available resource

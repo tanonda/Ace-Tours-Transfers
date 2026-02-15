@@ -57,17 +57,17 @@ export function CounterInput({
     }
 
     return (
-        <div className={cn("flex items-center space-x-2", className)}>
+        <div className={cn("flex items-center bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm", className)}>
             <Button
-                variant="outline"
+                variant="ghost"
                 size="icon"
                 type="button"
-                className="h-10 w-10 shrink-0 rounded-l-none"
+                className="h-10 w-10 shrink-0 rounded-none hover:bg-slate-50 border-r border-slate-100"
                 onClick={handleDecrement}
                 disabled={value <= min}
                 aria-label={`Decrease ${label || "value"}`}
             >
-                <Minus className="h-4 w-4" />
+                <Minus className="h-4 w-4 text-slate-600" />
             </Button>
             <div className="relative flex-1 min-w-[3rem]">
                 <Input
@@ -76,7 +76,7 @@ export function CounterInput({
                     onChange={handleInputChange}
                     onBlur={handleBlur}
                     className={cn(
-                        "text-center h-10 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none text-gray-900 font-semibold",
+                        "text-center h-10 border-0 bg-transparent focus-visible:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none text-slate-900 font-bold text-lg",
                         inputClassName
                     )}
                     min={min}
@@ -85,15 +85,15 @@ export function CounterInput({
                 />
             </div>
             <Button
-                variant="outline"
+                variant="ghost"
                 size="icon"
                 type="button"
-                className="h-10 w-10 shrink-0 rounded-r-none"
+                className="h-10 w-10 shrink-0 rounded-none hover:bg-slate-50 border-l border-slate-100"
                 onClick={handleIncrement}
                 disabled={value >= max}
                 aria-label={`Increase ${label || "value"}`}
             >
-                <Plus className="h-4 w-4" />
+                <Plus className="h-4 w-4 text-slate-600" />
             </Button>
         </div>
     )

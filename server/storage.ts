@@ -205,8 +205,8 @@ export interface IStorage {
   // Resources (Phase 1 — vehicles & asset-allocated products)
   getResourcesByProduct(productId: string): Promise<Resource[]>;
   getResource(id: string): Promise<Resource | undefined>;
-  getAvailableResources(productId: string, date: string): Promise<Resource[]>;
-  getAvailableResourcesMultiDay(productId: string, startDate: string, duration: number): Promise<Resource[]>;
+  getAvailableResources(productId: string, date: string, startTime?: string, endTime?: string): Promise<Resource[]>;
+  getAvailableResourcesMultiDay(productId: string, startDate: string, duration: number, startTime?: string, endTime?: string): Promise<Resource[]>;
   createResource(resource: InsertResource): Promise<Resource>;
   updateResource(id: string, data: Partial<InsertResource>): Promise<Resource>;
   deleteResource(id: string): Promise<void>;
@@ -976,32 +976,59 @@ export class DatabaseStorage implements IStorage {
     return resource || undefined;
   }
 
-  async getAvailableResources(productId: string, date: string): Promise<Resource[]> {
-    // Find resources for this product that are active and NOT held on the given date
+  async getAvailableResources(productId: string, date: string, startTime?: string, endTime?: string): Promise<Resource[]> {
+    // Find resources for this product that are active
     const allResources = await db.select().from(resources)
       .where(and(eq(resources.productId, productId), eq(resources.status, 'active')));
 
     // Get all active holds for this product on this date
-    const activeHoldResources = await db
-      .select({ resourceId: availabilityHolds.resourceId })
+    // For vehicles, we check interval overlap: start1 < end2 AND start2 < end1
+    const activeHolds = await db
+      .select({
+        resourceId: availabilityHolds.resourceId,
+        startTime: tourInstances.startTime,
+        endTime: tourInstances.endTime
+      })
       .from(availabilityHolds)
       .innerJoin(tourInstances, eq(availabilityHolds.tourInstanceId, tourInstances.id))
       .where(and(
         eq(tourInstances.tourId, productId),
         eq(tourInstances.serviceDate, date),
-        eq(availabilityHolds.status, 'ACTIVE'),
+        sql`availability_holds.status IN ('ACTIVE', 'CONFIRMED')`,
         sql`${availabilityHolds.resourceId} IS NOT NULL`
       ));
 
+    if (!startTime && !endTime) {
+      // Full day or legacy check - any hold on this date blocks the resource
+      const heldResourceIds = new Set<string>();
+      activeHolds.forEach(h => {
+        if (h.resourceId) heldResourceIds.add(h.resourceId);
+      });
+      return allResources.filter(r => !heldResourceIds.has(r.id));
+    }
+
+    // Time-aware overlap check
+    const { timeToMinutes } = await import("./domain/availability/time-interval.js");
+    const reqStart = timeToMinutes(startTime || "00:00");
+    const reqEnd = timeToMinutes(endTime || "23:59");
+
     const heldResourceIds = new Set<string>();
-    activeHoldResources.forEach(h => {
-      if (h.resourceId) heldResourceIds.add(h.resourceId);
+    activeHolds.forEach(h => {
+      if (!h.resourceId) return;
+
+      const holdStart = timeToMinutes(h.startTime || "00:00");
+      const holdEnd = timeToMinutes(h.endTime || "23:59");
+
+      // Interval overlap: start1 < end2 AND start2 < end1
+      if (reqStart < holdEnd && holdStart < reqEnd) {
+        heldResourceIds.add(h.resourceId);
+      }
     });
 
     return allResources.filter(r => !heldResourceIds.has(r.id));
   }
 
-  async getAvailableResourcesMultiDay(productId: string, startDate: string, duration: number): Promise<Resource[]> {
+  async getAvailableResourcesMultiDay(productId: string, startDate: string, duration: number, startTime?: string, endTime?: string): Promise<Resource[]> {
     const start = new Date(startDate);
     const dates: string[] = [];
     for (let i = 0; i < duration; i++) {
@@ -1016,7 +1043,12 @@ export class DatabaseStorage implements IStorage {
 
     // Get all active or confirmed holds for this product across ANY of the requested dates
     const heldResources = await db
-      .select({ resourceId: availabilityHolds.resourceId, date: tourInstances.serviceDate })
+      .select({
+        resourceId: availabilityHolds.resourceId,
+        date: tourInstances.serviceDate,
+        startTime: tourInstances.startTime,
+        endTime: tourInstances.endTime
+      })
       .from(availabilityHolds)
       .innerJoin(tourInstances, eq(availabilityHolds.tourInstanceId, tourInstances.id))
       .where(and(
@@ -1026,13 +1058,23 @@ export class DatabaseStorage implements IStorage {
         sql`${availabilityHolds.resourceId} IS NOT NULL`
       ));
 
+    const { timeToMinutes } = await import("./domain/availability/time-interval.js");
+    const reqStart = timeToMinutes(startTime || "00:00");
+    const reqEnd = timeToMinutes(endTime || "23:59");
+
     const heldResourceIdsByDate = new Map<string, Set<string>>();
     heldResources.forEach(h => {
       if (!h.resourceId) return;
-      if (!heldResourceIdsByDate.has(h.date)) {
-        heldResourceIdsByDate.set(h.date, new Set());
+
+      const holdStart = timeToMinutes(h.startTime || "00:00");
+      const holdEnd = timeToMinutes(h.endTime || "23:59");
+
+      if (reqStart < holdEnd && holdStart < reqEnd) {
+        if (!heldResourceIdsByDate.has(h.date)) {
+          heldResourceIdsByDate.set(h.date, new Set());
+        }
+        heldResourceIdsByDate.get(h.date)!.add(h.resourceId);
       }
-      heldResourceIdsByDate.get(h.date)!.add(h.resourceId);
     });
 
     return allResources.filter(resource => {
