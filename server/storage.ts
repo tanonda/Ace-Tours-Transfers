@@ -70,7 +70,7 @@ import {
   type InsertCapacityAuditLog
 } from "../shared/schema.js";
 import { db } from "./db.js";
-import { eq, like, desc, and, or, isNull, sql, lte, asc } from "drizzle-orm";
+import { eq, like, desc, and, or, isNull, sql, lte, asc, lt } from "drizzle-orm";
 
 export interface IStorage {
   // User operations
@@ -188,6 +188,7 @@ export interface IStorage {
   createHold(hold: InsertAvailabilityHold): Promise<AvailabilityHold>;
   updateHold(id: string, data: Partial<InsertAvailabilityHold>): Promise<AvailabilityHold>;
   getExpiredHolds(now: Date): Promise<AvailabilityHold[]>;
+  getHoldsBySession(sessionId: string): Promise<AvailabilityHold[]>;
 
   // Projections
   upsertBookingSummary(summary: any): Promise<void>;
@@ -885,7 +886,7 @@ export class DatabaseStorage implements IStorage {
       .where(
         and(
           eq(availabilityHolds.status, 'ACTIVE'),
-          sql`${availabilityHolds.expiresAt} < ${now}`
+          lt(availabilityHolds.expiresAt, now)
         )
       )
       .orderBy(availabilityHolds.expiresAt);

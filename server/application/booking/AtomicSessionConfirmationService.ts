@@ -129,8 +129,10 @@ export class AtomicSessionConfirmationService {
                         .where(inArray(tourInstances.id, instanceIds))
                         .for('update');
 
+                    const typedInstances = instances as unknown as TourInstance[];
+
                     // Map for quick lookup
-                    const instanceMap = new Map(instances.map((i: any) => [i.id, i]));
+                    const instanceMap = new Map<string, TourInstance>(typedInstances.map(i => [i.id, i]));
 
                     // 5. Update each instance and each hold
                     for (const instanceId of instanceIds) {

@@ -113,7 +113,7 @@ export default function ConfirmationPage() {
                 <span className="text-muted-foreground">Amount</span>
                 <span className="font-semibold">{booking.totalAmountCents ? `${(booking.totalAmountCents / 100).toLocaleString()} VUV` : booking.amount}</span>
               </div>
-              
+
               {bookingItems && bookingItems.length > 0 && (
                 <div className="mt-4 pt-4 border-t border-border/50">
                   <h4 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wider">Itemized Breakdown</h4>
@@ -165,8 +165,10 @@ export default function ConfirmationPage() {
               <h3 className="font-semibold">Availability Status</h3>
               <AvailabilityStatus
                 tourId={booking.tourId}
-                selectedDate={booking.date}
-                maxParticipants={parseInt(booking.guests) || 6}
+                selectedDate={new Date(booking.date)}
+                adultPax={booking.guests || 1}
+                childPax={0}
+                maxParticipants={booking.guests || 6}
                 onAvailabilityChange={(available) => {
                   console.log("Current availability for booked date:", available);
                 }}

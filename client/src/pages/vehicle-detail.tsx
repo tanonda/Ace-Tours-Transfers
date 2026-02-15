@@ -252,8 +252,10 @@ export default function VehicleDetail() {
                         <h3 className="text-xl font-bold mb-4 font-serif text-primary">Vehicle Availability</h3>
                         <AvailabilityStatus
                           tourId={vehicle.id}
-                          selectedDate={date}
-                          maxParticipants={vehicleDetails.seats || 6}
+                          selectedDate={new Date(date)}
+                          maxParticipants={vehicleDetails?.seats || 6}
+                          adultPax={1}
+                          childPax={0}
                           onAvailabilityChange={(available) => {
                             console.log("Vehicle availability status:", available);
                           }}

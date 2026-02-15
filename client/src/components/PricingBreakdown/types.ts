@@ -26,6 +26,7 @@ export interface PricingSnapshot {
 }
 
 export interface PricingBreakdownProps {
-  pricing: PricingSnapshot | null;
+  pricing: PricingSnapshot | null | undefined;
   currency?: string;
+  expanded?: boolean;
 }

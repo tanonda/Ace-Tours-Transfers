@@ -5,20 +5,21 @@ import crypto from 'crypto';
 
 async function verifyGuestBooking() {
   console.log("Starting Guest Booking Verification...");
-  
+
   const availabilityService = new AvailabilityApplicationService(storage);
   const paymentService = new PaymentApplicationService(storage);
-  
+
   const tourId = "scenic";
   const date = new Date().toISOString().split('T')[0];
   const sessionId = "test-session-" + crypto.randomBytes(4).toString('hex');
-  
+
   try {
     // 0. Ensure Stripe is active in DB
     console.log("Ensuring Stripe gateway is active...");
     await storage.upsertPaymentGateway({
       slug: "stripe",
       displayName: "Stripe",
+      priority: 1,
       description: "Secure card payment via Stripe",
       active: true,
       isDefault: false,
@@ -40,7 +41,7 @@ async function verifyGuestBooking() {
       sessionId
     });
     console.log("Hold created:", hold.id);
-    
+
     // 2. Create Booking
     console.log("Creating guest booking...");
     const booking = await storage.createBooking({
@@ -54,34 +55,35 @@ async function verifyGuestBooking() {
       tourName: "Efate Scenic Tour",
       bookingSessionId: sessionId,
       holdId: hold.id,
-      userId: null,
+      userId: undefined,
       tourInstanceId: hold.tourInstanceId
     });
     console.log("Booking created:", booking.id);
-    
+
     // 3. Verify Booking
     console.log("Verifying booking data...");
     const savedBooking = await storage.getBooking(booking.id);
-    if (!savedBooking || savedBooking.userId !== null || savedBooking.customerEmail !== "guest@example.com") {
+    if (!savedBooking || savedBooking.userId !== undefined || savedBooking.customerEmail !== "guest@example.com") {
       throw new Error("Booking verification failed: Incorrect data saved.");
     }
     console.log("Booking data verified.");
-    
+
     // 4. Initiate Checkout
     console.log("Initiating guest checkout...");
     const checkout = await paymentService.initiateBookingPayment({
       bookingId: booking.id,
       provider: "stripe",
-      successUrl: "http://localhost:5000/success",
-      cancelUrl: "http://localhost:5000/cancel"
+      sessionId: "verify-guest-session-" + Date.now(),
+      successUrl: "http://localhost:3000/success",
+      cancelUrl: "http://localhost:3000/cancel",
     });
-    
+
     if (checkout.success && checkout.redirectUrl) {
       console.log("Checkout initiation success! URL:", checkout.redirectUrl);
     } else {
       throw new Error(`Checkout initiation failed: ${checkout.message}`);
     }
-    
+
     console.log("\nGuest Booking Verification PASSED!");
     process.exit(0);
   } catch (error: any) {
