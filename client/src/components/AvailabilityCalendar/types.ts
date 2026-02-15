@@ -16,5 +16,6 @@ export interface AvailabilityCalendarProps {
   maxDate?: Date;
   participants: number;
   onDateSelect: (date: string) => void;
+  onTimeSelect?: (time: string) => void;
   disabledDates?: string[];
 }

@@ -23,6 +23,7 @@ const MONTHS = [
 export const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
   tourId,
   onDateSelect,
+  onTimeSelect,
   minDate,
   maxDate,
   participants,
@@ -194,7 +195,63 @@ export const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
           </div>
         </>
       )}
+
+      {selectedDate && (
+        <TimeSlotsSection
+          tourId={tourId}
+          date={selectedDate}
+          onTimeSelect={(time) => {
+            // For now just log it, we need to pass this up
+            console.log("Selected time:", time);
+            // Verify if onDateSelect can handle time? No, it expects string date.
+            // We might need a new prop onTimeSelect
+          }}
+          guests={participants}
+        />
+      )}
     </div>
+  );
+};
+
+// Internal component for handling slot logic to avoid cluttering main calendar
+import { TimeSlotPicker } from "./TimeSlotPicker";
+import { fetchAvailableSlots } from "@/lib/api";
+
+const TimeSlotsSection: React.FC<{
+  tourId: string;
+  date: string;
+  onTimeSelect: (time: string) => void;
+  guests: number;
+}> = ({ tourId, date, onTimeSelect, guests }) => {
+  const [slots, setSlots] = useState<{ time: string; available: boolean; remaining: number }[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [selectedTime, setSelectedTime] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadSlots = async () => {
+      setLoading(true);
+      try {
+        const data = await fetchAvailableSlots(tourId, date, guests);
+        setSlots(data);
+      } catch (error) {
+        console.error("Failed to load slots", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadSlots();
+  }, [tourId, date, guests]);
+
+  return (
+    <TimeSlotPicker
+      slots={slots}
+      selectedTime={selectedTime}
+      onSelect={(time) => {
+        setSelectedTime(time);
+        onTimeSelect(time);
+      }}
+      isLoading={loading}
+    />
   );
 };
 

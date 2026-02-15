@@ -47,4 +47,12 @@ export class BookingApplicationService {
       guests.endTime
     );
   }
+
+  async getAvailableSlots(
+    productId: string,
+    date: string,
+    guests: number
+  ): Promise<{ time: string; available: boolean; remaining: number }[]> {
+    return await this.availabilityService.getAvailableSlots(productId, date, guests);
+  }
 }

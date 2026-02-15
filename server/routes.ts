@@ -208,6 +208,27 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/availability/slots", async (req, res) => {
+    try {
+      const { serviceId, date, guests } = req.query;
+
+      if (!serviceId || !date || !guests) {
+        return res.status(400).json({ error: "Missing required fields: serviceId, date, guests" });
+      }
+
+      const slots = await bookingApplicationService.getAvailableSlots(
+        String(serviceId),
+        String(date),
+        parseInt(String(guests))
+      );
+
+      res.json(slots);
+    } catch (error: any) {
+      console.error("[AVAILABILITY SLOTS ERROR]", error);
+      res.status(500).json({ error: "Failed to fetch slots", details: error.message });
+    }
+  });
+
   app.post("/api/holds", async (req, res) => {
     try {
       const { tourId, date, slot, quantity, startTime, endTime } = req.body;

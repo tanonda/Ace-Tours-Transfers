@@ -35,6 +35,7 @@ export default function TourDetail() {
   const [adultPax, setAdultPax] = useState(String(prefill.adultPax));
   const [childPax, setChildPax] = useState(String(prefill.childPax));
   const [date, setDate] = useState(prefill.date);
+  const [selectedTime, setSelectedTime] = useState<string | null>(null);
 
   // Sync local state changes to booking draft context
   useEffect(() => {
@@ -132,6 +133,7 @@ export default function TourDetail() {
       adultPax: parseInt(adultPax),
       childPax: parseInt(childPax),
       date: date ? new Date(date) : new Date(),
+      startTime: selectedTime || undefined,
     });
   };
 
@@ -302,14 +304,21 @@ export default function TourDetail() {
                               className={`w-full pl-10 h-12 bg-background border-primary/20 focus:border-primary text-left font-normal ${!date && "text-muted-foreground"}`}
                             >
                               <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                              {date ? format(new Date(date), "PPP") : <span>Pick a date</span>}
+                              <span className="flex flex-col items-start leading-none gap-1">
+                                <span>{date ? format(new Date(date), "PPP") : "Pick a date"}</span>
+                                {selectedTime && <span className="text-xs text-primary font-bold">@ {selectedTime}</span>}
+                              </span>
                             </Button>
                           </PopoverTrigger>
                           <PopoverContent className="w-auto p-0" align="start">
                             <AvailabilityCalendar
                               tourId={id || ""}
                               participants={Math.max(1, parseInt(adultPax) + parseInt(childPax))}
-                              onDateSelect={(d) => setDate(d)}
+                              onDateSelect={(d) => {
+                                setDate(d);
+                                setSelectedTime(null); // Reset time when date changes
+                              }}
+                              onTimeSelect={(t) => setSelectedTime(t)}
                             />
                           </PopoverContent>
                         </Popover>
