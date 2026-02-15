@@ -77,10 +77,6 @@ export default defineConfig({
       },
     },
     hmr: {
-      host: 'localhost',
-      protocol: "ws",
-      port: 5001,
-      clientPort: 5001,
       path: "/vite-hmr",
     },
     allowedHosts: true,

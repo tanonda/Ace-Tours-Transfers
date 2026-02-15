@@ -27,12 +27,10 @@ export class BackupIntegrityGuard {
 
       // 2. Check if migrations table exists (might not on fresh setup)
       const tableExistsResult = await db.execute(sql`
-        SELECT EXISTS (
-          SELECT 1 FROM information_schema.tables 
-          WHERE table_schema = 'public' AND table_name = '__drizzle_migrations'
-        )
+        SELECT count(*) as total FROM information_schema.tables 
+        WHERE table_schema = 'public' AND table_name = '__drizzle_migrations'
       `);
-      const migrationsTableExists = (tableExistsResult.rows[0] as any).exists;
+      const migrationsTableExists = parseInt((tableExistsResult.rows[0] as any).total) > 0;
 
       if (!migrationsTableExists) {
         console.warn("[INTEGRITY] Migrations table not found. Database appears to be fresh or not initialized.");
@@ -71,7 +69,7 @@ export class BackupIntegrityGuard {
         FROM information_schema.tables 
         WHERE table_schema = 'public' AND table_name IN ('bookings', 'tour_instances', 'payments')
       `);
-      
+
       if (tablesResult.rows.length < 3) {
         BackupIntegrityGuard.writeBlocked = true;
         return {
