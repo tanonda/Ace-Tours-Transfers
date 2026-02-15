@@ -9,6 +9,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { CounterInput } from "@/components/ui/counter-input";
 import { CalendarIcon, Users, Search, Map, Car } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -216,17 +217,15 @@ export function Hero() {
                   {t("hero.guests", "How many?")}
                 </label>
                 <div className="relative group">
-                  <Input
-                    type="number"
-                    min="1"
-                    max="50"
-                    value={guests}
-                    onChange={(e) => setGuests(e.target.value)}
-                    className="h-16 text-base px-5 bg-gray-50 border-gray-200 hover:border-[#f2800d]/50 focus:ring-[#f2800d]/20 shadow-inner rounded-2xl text-foreground font-medium"
-                    placeholder={t("hero.guestsPlaceholder", "2 guests")}
-                    data-testid="input-guests"
+                  <CounterInput
+                    value={parseInt(guests) || 2}
+                    onValueChange={(val) => setGuests(val.toString())}
+                    min={1}
+                    max={50}
+                    label={t("hero.guestsCount", "Number of guests")}
+                    className="h-16 bg-gray-50 border-gray-200 hover:border-[#f2800d]/50 shadow-inner rounded-2xl"
+                    inputClassName="bg-transparent border-0 h-full text-base font-medium"
                   />
-                  <Users className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 group-hover:text-[#f2800d]/60 transition-colors" />
                 </div>
               </div>
 

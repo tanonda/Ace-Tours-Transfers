@@ -5,6 +5,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { CounterInput } from "@/components/ui/counter-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -245,15 +246,13 @@ export function BookingForm({
               <FormItem>
                 <FormLabel className="text-sm font-medium">{t("booking.adults", "Adults")}</FormLabel>
                 <FormControl>
-                  <div className="relative">
-                    <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      type="number"
-                      min="1"
-                      className="pl-10 h-11 border-border/50 bg-background/80 backdrop-blur-sm focus:border-primary focus:ring-primary/20"
-                      {...field}
-                    />
-                  </div>
+                  <CounterInput
+                    value={parseInt(field.value) || 2}
+                    onValueChange={(val) => field.onChange(val.toString())}
+                    min={1}
+                    max={50}
+                    label="Adults"
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -267,15 +266,13 @@ export function BookingForm({
               <FormItem>
                 <FormLabel className="text-sm font-medium">{t("booking.children", "Children")}</FormLabel>
                 <FormControl>
-                  <div className="relative">
-                    <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      type="number"
-                      min="0"
-                      className="pl-10 h-11 border-border/50 bg-background/80 backdrop-blur-sm focus:border-primary focus:ring-primary/20"
-                      {...field}
-                    />
-                  </div>
+                  <CounterInput
+                    value={parseInt(field.value) || 0}
+                    onValueChange={(val) => field.onChange(val.toString())}
+                    min={0}
+                    max={50}
+                    label="Children"
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
