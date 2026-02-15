@@ -20,6 +20,8 @@ export interface CartItem {
   type: ProductCategory;
   addonIds?: string[];
   addonTotal?: number;
+  startTime?: string;
+  endTime?: string;
 }
 
 interface PersistedCart {
@@ -128,12 +130,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         i.id === item.id &&
         i.date?.getTime() === item.date?.getTime() &&
         i.slot === item.slot &&
+        i.startTime === item.startTime &&
+        i.endTime === item.endTime &&
         JSON.stringify(i.addonIds) === JSON.stringify(item.addonIds)
       );
 
       if (existing) {
         return prev.map((i) =>
-          (i.id === item.id && i.date?.getTime() === item.date?.getTime() && i.slot === item.slot && JSON.stringify(i.addonIds) === JSON.stringify(item.addonIds))
+          (i.id === item.id && i.date?.getTime() === item.date?.getTime() && i.slot === item.slot && i.startTime === item.startTime && i.endTime === item.endTime && JSON.stringify(i.addonIds) === JSON.stringify(item.addonIds))
             ? {
               ...i,
               quantity: i.quantity + (item.quantity || 1),
@@ -190,6 +194,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
             quantity: item.quantity,
             addonIds: item.addonIds || [],
             date: item.date ? item.date.toISOString().split('T')[0] : undefined,
+            startTime: item.startTime,
+            endTime: item.endTime,
           })),
         });
         setPricingSnapshot(snapshot);

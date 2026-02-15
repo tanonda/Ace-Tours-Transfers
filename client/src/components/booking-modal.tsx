@@ -71,7 +71,7 @@ export function BookingModal({
     notes: "",
   }), [user?.name, user?.email, preselectedService, initialAdultPax, initialChildPax, initialDate]);
 
-  const handleAvailabilityCheck = useCallback(async (serviceTitle: string, date: Date, adultPax: number, childPax: number) => {
+  const handleAvailabilityCheck = useCallback(async (serviceTitle: string, date: Date, adultPax: number, childPax: number, startTime?: string, endTime?: string) => {
     // Update selected service for pricing
     setSelectedServiceTitle(serviceTitle);
     setIsCheckingAvailability(true);
@@ -97,6 +97,8 @@ export function BookingModal({
           date: format(date, "yyyy-MM-dd"),
           adultPax,
           childPax,
+          startTime,
+          endTime,
         }),
       });
 
@@ -172,6 +174,8 @@ export function BookingModal({
         type: selectedService.category as "tour" | "transfer" | "vehicle",
         addonIds: values.addonIds,
         addonTotal: addonTotal,
+        startTime: values.startTime,
+        endTime: values.endTime,
       });
 
       toast({
@@ -200,7 +204,7 @@ export function BookingModal({
       <DialogTrigger asChild>
         {trigger}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[520px] p-0 overflow-hidden border-0 shadow-2xl">
+      <DialogContent className="sm:max-w-[850px] p-0 overflow-hidden border-0 shadow-2xl">
         <div className="relative bg-gradient-to-br from-primary via-primary to-orange-600 px-6 pt-6 pb-8 text-white overflow-hidden">
           <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
           <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />

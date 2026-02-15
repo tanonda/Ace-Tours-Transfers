@@ -148,7 +148,7 @@ export class AvailabilityDomainService {
     // Phase 1: Vehicles check discrete resources instead of pooled instances
     if (category === 'vehicle') {
       const allResources = await this.storage.getResourcesByProduct(productId);
-      const availableResources = await this.storage.getAvailableResources(productId, date);
+      const availableResources = await this.storage.getAvailableResources(productId, date, startTime, endTime);
       return {
         remainingCapacity: availableResources.length,
         totalCapacity: allResources.length
