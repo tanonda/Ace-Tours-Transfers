@@ -204,8 +204,8 @@ export function BookingModal({
       <DialogTrigger asChild>
         {trigger}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[850px] p-0 overflow-hidden border-0 shadow-2xl">
-        <div className="relative bg-gradient-to-br from-primary via-primary to-orange-600 px-6 pt-6 pb-8 text-white overflow-hidden">
+      <DialogContent className="w-[95vw] max-w-6xl p-0 overflow-hidden border-0 shadow-2xl flex flex-col h-[90vh] sm:h-auto sm:max-h-[90vh]">
+        <div className="relative bg-gradient-to-br from-primary via-primary to-orange-600 px-6 pt-6 pb-8 text-white overflow-hidden shrink-0">
           <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
           <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
           <Sparkles className="absolute top-4 right-4 h-5 w-5 text-white/40 animate-pulse" />
@@ -238,7 +238,7 @@ export function BookingModal({
           </div>
         </div>
 
-        <div className="px-6 py-6 bg-gradient-to-b from-background to-muted/30">
+        <div className="px-4 sm:px-8 xl:px-12 py-8 bg-gradient-to-b from-background to-muted/30 overflow-y-auto flex-1">
           <BookingForm
             initialValues={initialFormValues}
             onSubmit={handleBookingSubmit}

@@ -229,17 +229,17 @@ export function BookingForm({
   const isSubmitDisabled = isLoading || isCheckingAvailability || !isAvailable;
 
   return (
-    <div className="flex flex-col lg:flex-row gap-10 items-start">
-      <div className="flex-1 w-full space-y-8 order-2 lg:order-1">
+    <div className="flex flex-col lg:flex-row gap-8 xl:gap-12 items-start">
+      <div className="flex-1 w-full space-y-6 order-2 lg:order-1">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
 
             {/* Section 1: Personal Information */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4 }}
-              className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 space-y-6"
+              className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 space-y-5"
             >
               <div className="flex items-center gap-3 mb-2">
                 <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
@@ -301,7 +301,7 @@ export function BookingForm({
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.1 }}
-              className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 space-y-6"
+              className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 space-y-5"
             >
               <div className="flex items-center gap-3 mb-2">
                 <div className="h-10 w-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-600">
@@ -479,7 +479,7 @@ export function BookingForm({
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.2 }}
-              className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 space-y-6"
+              className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 space-y-5"
             >
               <div className="flex items-center gap-3 mb-2">
                 <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
@@ -611,11 +611,11 @@ export function BookingForm({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.3 }}
-              className="flex flex-col gap-4 pt-4"
+              className="flex flex-col gap-3 pt-2"
             >
               <Button
                 type="submit"
-                className="w-full h-16 text-xl font-bold rounded-2xl bg-gradient-to-r from-primary to-orange-500 hover:from-primary/90 hover:to-orange-500/90 shadow-xl shadow-primary/20 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 disabled:opacity-50 disabled:translate-y-0"
+                className="w-full h-14 text-lg font-bold rounded-2xl bg-gradient-to-r from-primary to-orange-500 hover:from-primary/90 hover:to-orange-500/90 shadow-xl shadow-primary/20 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 disabled:opacity-50 disabled:translate-y-0"
                 disabled={isSubmitDisabled}
               >
                 {isLoading ? (
@@ -640,7 +640,7 @@ export function BookingForm({
         </Form>
       </div>
 
-      <aside className="w-full lg:w-[320px] order-1 lg:order-2 sticky top-24">
+      <aside className="w-full lg:w-[380px] order-1 lg:order-2 sticky top-24">
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -648,16 +648,16 @@ export function BookingForm({
           className="relative bg-white rounded-3xl overflow-hidden shadow-2xl border border-slate-100"
         >
           {/* Receipt Header */}
-          <div className="bg-slate-900 px-6 py-6 text-white relative overflow-hidden">
+          <div className="bg-slate-900 px-6 py-5 text-white relative overflow-hidden shrink-0">
             <div className="absolute top-0 right-0 w-24 h-24 bg-primary/20 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl" />
             <div className="relative flex items-center gap-3">
               <Sparkles className="h-5 w-5 text-primary" />
-              <h3 className="text-xl font-black tracking-tight uppercase">Booking Summary</h3>
+              <h3 className="text-xl font-black tracking-tight uppercase">Summary</h3>
             </div>
-            <p className="text-[10px] text-slate-400 mt-1 uppercase tracking-widest font-bold">Ace Tours Official Receipt</p>
+            <p className="text-[10px] text-slate-400 mt-0.5 uppercase tracking-widest font-bold">Ace Tours Official Receipt</p>
           </div>
 
-          <div className="p-6 space-y-6 relative">
+          <div className="p-5 space-y-5 relative">
             {/* Perforated edge effect */}
             <div className="absolute top-0 left-0 right-0 flex justify-between px-2 -translate-y-1">
               {Array.from({ length: 15 }).map((_, i) => (
@@ -665,43 +665,43 @@ export function BookingForm({
               ))}
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-3">
               <div className="space-y-1">
                 <span className="text-[10px] uppercase font-black text-slate-400 tracking-wider">Service Selected</span>
-                <p className="font-bold text-slate-900 line-clamp-2 leading-snug">
+                <p className="font-bold text-slate-900 line-clamp-2 leading-[1.2] text-sm">
                   {watchedService || <span className="text-slate-200 italic font-medium">None selected</span>}
                 </p>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
+                <div className="space-y-0.5">
                   <span className="text-[10px] uppercase font-black text-slate-400 tracking-wider">Date</span>
-                  <p className="text-sm font-bold text-slate-800">
+                  <p className="text-xs font-bold text-slate-800">
                     {watchedDate ? format(watchedDate, "MMM dd, yyyy") : <span className="text-slate-200">--</span>}
                   </p>
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-0.5">
                   <span className="text-[10px] uppercase font-black text-slate-400 tracking-wider">Time</span>
-                  <p className="text-sm font-bold text-slate-800">
+                  <p className="text-xs font-bold text-slate-800">
                     {watchedStartTime ? format(new Date(2024, 0, 1, ...watchedStartTime.split(':').map(Number)), "hh:mm a") : <span className="text-slate-200">--</span>}
                   </p>
                 </div>
               </div>
 
-              <div className="flex justify-between items-end border-b border-dashed border-slate-100 pb-4">
-                <div className="space-y-1">
+              <div className="flex justify-between items-end border-b border-dashed border-slate-100 pb-3">
+                <div className="space-y-0.5">
                   <span className="text-[10px] uppercase font-black text-slate-400 tracking-wider">Travelers</span>
-                  <p className="text-sm font-bold text-slate-800">
+                  <p className="text-xs font-bold text-slate-800">
                     {parseInt(watchedAdultPax) + parseInt(watchedChildPax)} Passengers
                   </p>
                 </div>
-                <Users className="h-8 w-8 text-slate-100" />
+                <Users className="h-6 w-6 text-slate-100" />
               </div>
             </div>
 
             {/* Availability Badge */}
-            <div className="py-1">
-              <div className="flex items-center justify-between mb-3">
+            <div className="py-0.5">
+              <div className="flex items-center justify-between mb-2">
                 <span className="text-[10px] uppercase font-black text-slate-400 tracking-wider">Live Status</span>
                 <AnimatePresence mode="wait">
                   {isCheckingAvailability ? (
@@ -719,7 +719,7 @@ export function BookingForm({
                         key="status"
                         initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
                         className={cn(
-                          "flex items-center gap-1.5 px-2.5 py-1 rounded-full",
+                          "flex items-center gap-1.5 px-2 py-0.5 rounded-full",
                           isAvailable ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"
                         )}
                       >
@@ -734,7 +734,7 @@ export function BookingForm({
               </div>
               {availabilityMessage && !isCheckingAvailability && (
                 <div className={cn(
-                  "p-3 rounded-xl text-[11px] font-medium leading-relaxed",
+                  "p-2.5 rounded-xl text-[10px] font-medium leading-[1.3]",
                   isAvailable ? "bg-green-50/50 text-green-600" : "bg-red-50/50 text-red-600"
                 )}>
                   {availabilityMessage}
@@ -744,26 +744,26 @@ export function BookingForm({
 
             {/* Price Segment */}
             {showPrice && (
-              <div className="mt-4 pt-6 border-t-2 border-slate-900 border-dashed relative">
-                <div className="bg-slate-50 p-4 rounded-2xl space-y-2">
-                  <div className="flex items-center justify-between text-slate-500 italic text-[11px]">
+              <div className="mt-2 pt-4 border-t-2 border-slate-900 border-dashed relative">
+                <div className="bg-slate-50 p-3.5 rounded-2xl space-y-1.5">
+                  <div className="flex items-center justify-between text-slate-500 italic text-[10px]">
                     <span>Subtotal + Add-ons</span>
-                    <span>Calculated</span>
+                    <span>Est.</span>
                   </div>
                   <div className="flex flex-col items-end">
-                    <span className="text-[10px] uppercase font-black text-slate-400 tracking-wider mb-1">Total Amount Due</span>
-                    <span className="text-3xl font-black text-slate-900 tracking-tighter">
+                    <span className="text-[9px] uppercase font-black text-slate-400 tracking-wider mb-0.5">Total Amount Due</span>
+                    <span className="text-2xl font-black text-slate-900 tracking-tighter">
                       {estimatedTotal}
                     </span>
                   </div>
                 </div>
 
-                <div className="mt-4 flex flex-col items-center gap-2">
-                  <div className="h-12 w-full flex items-center justify-center border-2 border-slate-100 rounded-xl border-dashed">
-                    <CreditCard className="h-5 w-5 text-slate-200 mr-2" />
-                    <span className="text-[10px] font-black text-slate-300 uppercase">Payment Secure</span>
+                <div className="mt-3 flex flex-col items-center gap-1.5">
+                  <div className="h-10 w-full flex items-center justify-center border border-slate-100 rounded-xl border-dashed">
+                    <CreditCard className="h-4 w-4 text-slate-200 mr-2" />
+                    <span className="text-[9px] font-black text-slate-300 uppercase">Payment Secure</span>
                   </div>
-                  <p className="text-[9px] text-slate-400 text-center uppercase tracking-widest font-bold">
+                  <p className="text-[8px] text-slate-400 text-center uppercase tracking-widest font-bold">
                     * Final Price confirmed at next step
                   </p>
                 </div>
