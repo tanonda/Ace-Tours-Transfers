@@ -1,4 +1,12 @@
 import "dotenv/config";
+import dns from "node:dns";
+
+// Force IPv4 ordering to prevent timeouts in environments where IPv6 is unavailable/flaky
+// This fixes AggregateError [ETIMEDOUT] when connecting to Neon
+if (dns.setDefaultResultOrder) {
+  dns.setDefaultResultOrder("ipv4first");
+}
+
 import { Pool, neonConfig } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-serverless';
 import ws from "ws";
