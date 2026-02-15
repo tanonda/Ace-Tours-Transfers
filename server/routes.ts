@@ -200,9 +200,11 @@ export async function registerRoutes(
       );
 
       res.json(result);
-    } catch (error) {
+    } catch (error: any) {
       console.error("[AVAILABILITY CHECK ERROR]", error);
-      res.status(500).json({ error: "Failed to check availability" });
+      console.error("Stack:", error.stack);
+      console.error("Payload:", req.body);
+      res.status(500).json({ error: "Failed to check availability", details: error.message });
     }
   });
 
