@@ -24,6 +24,12 @@ export const AvailabilityStatus: React.FC<AvailabilityStatusProps> = ({
     endTime
   });
 
+  useEffect(() => {
+    if (data) {
+      onAvailabilityChange?.(data.isAvailable);
+    }
+  }, [data?.isAvailable, onAvailabilityChange]);
+
   if (loading) {
     return (
       <div className="availability-status loading">
@@ -40,12 +46,6 @@ export const AvailabilityStatus: React.FC<AvailabilityStatusProps> = ({
       </div>
     );
   }
-
-  useEffect(() => {
-    if (data) {
-      onAvailabilityChange?.(data.isAvailable);
-    }
-  }, [data?.isAvailable, onAvailabilityChange]);
 
   if (!data && !loading) return null;
 
