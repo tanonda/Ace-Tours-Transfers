@@ -16,6 +16,7 @@ import { motion } from "framer-motion";
 import { BookingModal } from "@/components/booking-modal";
 import { formatPrice, type ProductCategory } from "@/lib/product.types";
 import { AvailabilityStatus, AvailabilityCalendar } from "@/components";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 export default function TransferDetail() {
   const { id } = useParams<{ id: string }>();
@@ -28,6 +29,7 @@ export default function TransferDetail() {
   const [adultPax, setAdultPax] = useState(String(prefill.adultPax));
   const [childPax, setChildPax] = useState(String(prefill.childPax));
   const [date, setDate] = useState(prefill.date);
+  const [selectedTime, setSelectedTime] = useState<string | null>(null);
 
   // Sync local state changes to booking draft context
   useEffect(() => {
@@ -82,6 +84,7 @@ export default function TransferDetail() {
       adultPax: parseInt(adultPax),
       childPax: parseInt(childPax),
       date: date ? new Date(date) : new Date(),
+      startTime: selectedTime || undefined,
     });
   };
 
@@ -224,8 +227,18 @@ export default function TransferDetail() {
                       <AvailabilityCalendar
                         tourId={transfer.id}
                         participants={Math.max(1, parseInt(adultPax) + parseInt(childPax))}
-                        onDateSelect={(selectedDate) => setDate(selectedDate)}
+                        onDateSelect={(selectedDate) => {
+                          setDate(selectedDate);
+                          setSelectedTime(null);
+                        }}
+                        onTimeSelect={(time) => setSelectedTime(time)}
                       />
+                      {selectedTime && (
+                        <div className="mt-4 p-4 bg-primary/5 rounded-lg border border-primary/20 text-center">
+                          <p className="text-sm text-muted-foreground">Selected Time</p>
+                          <p className="text-lg font-bold text-primary">{selectedTime}</p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -265,13 +278,32 @@ export default function TransferDetail() {
                       <Label htmlFor="detail-date" className="text-sm font-bold ml-1">{t("cart.date", "Departure Date")}</Label>
                       <div className="relative">
                         <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id="detail-date"
-                          type="date"
-                          value={date}
-                          onChange={(e) => setDate(e.target.value)}
-                          className="pl-10 h-12 bg-background border-primary/20 focus:border-primary"
-                        />
+                        <div className="relative">
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                className={`w-full pl-10 h-12 bg-background border-primary/20 focus:border-primary text-left font-normal ${!date && "text-muted-foreground"}`}
+                              >
+                                <span className="flex flex-col items-start leading-none gap-1">
+                                  <span>{date ? new Date(date).toDateString() : "Pick a date"}</span>
+                                  {selectedTime && <span className="text-xs text-primary font-bold">@ {selectedTime}</span>}
+                                </span>
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <AvailabilityCalendar
+                                tourId={transfer.id}
+                                participants={Math.max(1, parseInt(adultPax) + parseInt(childPax))}
+                                onDateSelect={(d) => {
+                                  setDate(d);
+                                  setSelectedTime(null);
+                                }}
+                                onTimeSelect={(t) => setSelectedTime(t)}
+                              />
+                            </PopoverContent>
+                          </Popover>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -301,7 +333,7 @@ export default function TransferDetail() {
             </div>
           </motion.div>
         </div>
-      </div>
-    </Layout>
+      </div >
+    </Layout >
   );
 }

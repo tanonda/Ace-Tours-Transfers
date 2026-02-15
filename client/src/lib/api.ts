@@ -407,6 +407,16 @@ export async function fetchAuditLogs(filters?: { productId?: string; action?: st
   if (filters?.action) qs.set('action', filters.action);
   if (filters?.limit) qs.set('limit', String(filters.limit));
   if (filters?.offset) qs.set('offset', String(filters.offset));
+  if (filters?.offset) qs.set('offset', String(filters.offset));
   const res = await apiRequest("GET", `/api/admin/audit-log?${qs.toString()}`);
+  return res.json();
+}
+
+export async function fetchAvailableSlots(
+  productId: string,
+  date: string,
+  guests: number
+): Promise<{ time: string; available: boolean; remaining: number }[]> {
+  const res = await apiRequest("GET", `/api/availability/slots?serviceId=${productId}&date=${date}&guests=${guests}`);
   return res.json();
 }

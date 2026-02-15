@@ -354,4 +354,85 @@ export class AvailabilityDomainService {
     }, 0);
     return Math.max(0, totalCapacity - bookedGuests);
   }
+
+  /**
+   * Returns available time slots for a given product and date.
+   * - For Tours: Returns scheduled instances (e.g. 09:00, 14:00)
+   * - For Transfers/Vehicles: Generates 30-min intervals (06:00 - 20:00)
+   */
+  async getAvailableSlots(
+    productId: string,
+    date: string,
+    guests: number
+  ): Promise<{ time: string; available: boolean; remaining: number }[]> {
+    const product = await this.storage.getTour(productId);
+    if (!product) throw new Error("Product not found");
+
+    // 1. Check blackout
+    const isBlacked = await this.storage.isBlackedOut(productId, date);
+    if (isBlacked) return [];
+
+    const slots: { time: string; available: boolean; remaining: number; sortOrder: number }[] = [];
+
+    if (product.category === "tour") {
+      // Fetch instances for tours
+      const instances = await this.storage.getTourInstances(productId, date);
+
+      if (instances.length > 0) {
+        // Use defined instances
+        for (const instance of instances) {
+          if (!instance.startTime) continue; // Skip full-day instances for slot list? Or treat as "Any time"? Let's stick to explicit times.
+
+          const available = instance.totalCapacity - (instance.confirmedCount + instance.heldCount + instance.blockedCount);
+          slots.push({
+            time: instance.startTime,
+            available: available >= guests,
+            remaining: available,
+            sortOrder: parseInt(instance.startTime.replace(":", ""))
+          });
+        }
+      } else {
+        // No instances? If defaultCapacity exists, maybe implied full availability? 
+        // For now, return empty to imply "No scheduled departures".
+        // Or if we want to fallback to a default time:
+        // if (product.defaultCapacity) ...
+      }
+    } else {
+      // Transfers and Vehicles: Generate slots
+      // 06:00 to 20:00 every 30 mins
+      const startHour = 6;
+      const endHour = 20;
+
+      for (let hour = startHour; hour <= endHour; hour++) {
+        for (let min = 0; min < 60; min += 30) {
+          const time = `${hour.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
+
+          // Check availability for this specific slot
+          // Note: This calls calculateRemainingCapacity loop, might be heavy if not cached.
+          // But category='vehicle' uses resource check which is fast.
+          // category='transfer' might be logical usage.
+
+          const { remainingCapacity } = await this.calculateRemainingCapacity(
+            productId,
+            product.category,
+            date,
+            undefined,
+            time,
+            time // simple point-in-time check
+          );
+
+          slots.push({
+            time,
+            available: remainingCapacity >= guests,
+            remaining: remainingCapacity,
+            sortOrder: hour * 100 + min
+          });
+        }
+      }
+    }
+
+    return slots
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+      .map(({ time, available, remaining }) => ({ time, available, remaining }));
+  }
 }
