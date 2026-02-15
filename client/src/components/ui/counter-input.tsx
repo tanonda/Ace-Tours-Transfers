@@ -75,7 +75,10 @@ export function CounterInput({
                     value={value}
                     onChange={handleInputChange}
                     onBlur={handleBlur}
-                    className={cn("text-center h-10 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none", inputClassName)}
+                    className={cn(
+                        "text-center h-10 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none text-gray-900 font-semibold",
+                        inputClassName
+                    )}
                     min={min}
                     max={max}
                     aria-label={label}

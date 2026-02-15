@@ -38,6 +38,29 @@ export default function TourDetail() {
 
   // Sync local state changes to booking draft context
   useEffect(() => {
+    // Phase 1: Check for query params on mount to override defaults/prefill
+    const searchParams = new URLSearchParams(window.location.search);
+    const dateParam = searchParams.get('date');
+    const guestsParam = searchParams.get('guests'); // "adults" or total guests
+
+    if (dateParam || guestsParam) {
+      if (dateParam) setDate(dateParam);
+      if (guestsParam) {
+        setAdultPax(guestsParam);
+        setChildPax("0"); // reset children if explicit guests param is provided (usually just total from hero)
+      }
+
+      // Auto-scroll to booking section
+      setTimeout(() => {
+        const element = document.getElementById('availability-section');
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 500);
+    }
+  }, []); // Run once on mount
+
+  useEffect(() => {
     if (id) {
       updateDraft({
         productId: id,
@@ -239,7 +262,7 @@ export default function TourDetail() {
                 </div>
 
                 {/* Booking Card */}
-                <div className="mt-auto bg-primary/5 p-8 rounded-3xl border-2 border-primary/20 shadow-inner">
+                <div id="availability-section" className="mt-auto bg-primary/5 p-8 rounded-3xl border-2 border-primary/20 shadow-inner">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                     <div className="space-y-2">
                       <Label htmlFor="detail-adults" className="text-sm font-bold ml-1">{t("booking.adults", "Adults")}</Label>
