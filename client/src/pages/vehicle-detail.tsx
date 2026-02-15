@@ -17,6 +17,7 @@ import { BookingModal } from "@/components/booking-modal";
 import { formatPriceDisplay } from "@/lib/product.types";
 import { useCurrency } from "@/lib/currency-context";
 import { AvailabilityStatus, AvailabilityCalendar } from "@/components";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface VehicleDetails {
   make: string;
@@ -37,6 +38,7 @@ export default function VehicleDetail() {
   const prefill = usePrefillFromCart(id || "");
   const [days, setDays] = useState("1");
   const [date, setDate] = useState(prefill.date);
+  const [selectedTime, setSelectedTime] = useState<string | null>(null);
 
   // Sync local state changes to booking draft context
   useEffect(() => {
@@ -94,6 +96,7 @@ export default function VehicleDetail() {
       childPax: 0,
       quantity: parseInt(days),
       date: date ? new Date(date) : new Date(),
+      startTime: selectedTime || undefined,
     });
   };
 
@@ -233,13 +236,32 @@ export default function VehicleDetail() {
                       <Label htmlFor="detail-date" className="text-sm font-bold ml-1">{t("itinerary.bookingInfo", "Pickup Date")}</Label>
                       <div className="relative">
                         <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id="detail-date"
-                          type="date"
-                          value={date}
-                          onChange={(e) => setDate(e.target.value)}
-                          className="pl-10 h-12 bg-background border-primary/20 focus:border-primary"
-                        />
+                        <div className="relative">
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                className={`w-full pl-10 h-12 bg-background border-primary/20 focus:border-primary text-left font-normal ${!date && "text-muted-foreground"}`}
+                              >
+                                <span className="flex flex-col items-start leading-none gap-1">
+                                  <span>{date ? new Date(date).toDateString() : "Pick a date"}</span>
+                                  {selectedTime && <span className="text-xs text-primary font-bold">@ {selectedTime}</span>}
+                                </span>
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <AvailabilityCalendar
+                                tourId={vehicle.id}
+                                participants={1}
+                                onDateSelect={(d) => {
+                                  setDate(d);
+                                  setSelectedTime(null);
+                                }}
+                                onTimeSelect={(t) => setSelectedTime(t)}
+                              />
+                            </PopoverContent>
+                          </Popover>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -259,16 +281,6 @@ export default function VehicleDetail() {
                           onAvailabilityChange={(available) => {
                             console.log("Vehicle availability status:", available);
                           }}
-                        />
-                      </div>
-
-                      {/* Interactive Calendar for Vehicle Rental */}
-                      <div className="bg-card p-6 rounded-2xl border border-border/50 shadow-sm">
-                        <h3 className="text-xl font-bold mb-4 font-serif text-primary">Check Availability</h3>
-                        <AvailabilityCalendar
-                          tourId={vehicle.id}
-                          participants={1}
-                          onDateSelect={(selectedDate) => setDate(selectedDate)}
                         />
                       </div>
                     </div>
