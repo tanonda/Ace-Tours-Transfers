@@ -23,7 +23,7 @@ export function Hero() {
   const [guests, setGuests] = useState<string>("2");
 
   const { data: allTours = [] } = useQuery({
-    queryKey: ["tours"], 
+    queryKey: ["tours"],
     queryFn: fetchTours,
   });
 
@@ -31,12 +31,12 @@ export function Hero() {
   const uniqueTours = allTours.reduce<typeof allTours>((acc, current) => {
     // Skip test data
     if (current.title.toLowerCase().includes("verification")) return acc;
-    
+
     const normalize = (t: string) => t.replace(/\s+Package$/i, "").trim();
     const normalizedTitle = normalize(current.title);
-    
+
     const existingIndex = acc.findIndex(item => normalize(item.title) === normalizedTitle);
-    
+
     if (existingIndex === -1) {
       acc.push(current);
     }
@@ -50,11 +50,33 @@ export function Hero() {
   const handleSearch = () => {
     const params = new URLSearchParams();
     if (selectedDate) params.set("date", format(selectedDate, "yyyy-MM-dd"));
-    if (serviceType) params.set("service", serviceType);
     if (guests) params.set("guests", guests);
-    
-    const isTransfer = serviceType === "all-transfers" || serviceType.startsWith("transfer-");
-    const isVehicle = serviceType === "all-vehicles" || serviceType.startsWith("vehicle-");
+
+    // Check for specific product selection first
+    if (serviceType.startsWith("tour-")) {
+      const tourId = serviceType.replace("tour-", "");
+      setLocation(`/tours/${tourId}?${params.toString()}`);
+      return;
+    }
+
+    if (serviceType.startsWith("transfer-")) {
+      const transferId = serviceType.replace("transfer-", "");
+      setLocation(`/transfers/${transferId}?${params.toString()}`);
+      return;
+    }
+
+    if (serviceType.startsWith("vehicle-")) {
+      const vehicleId = serviceType.replace("vehicle-", "");
+      setLocation(`/vehicles/${vehicleId}?${params.toString()}`);
+      return;
+    }
+
+    // Fallback to category pages
+    if (serviceType) params.set("service", serviceType);
+
+    const isTransfer = serviceType === "all-transfers";
+    const isVehicle = serviceType === "all-vehicles";
+
     if (isVehicle) {
       setLocation(`/vehicles?${params.toString()}`);
     } else if (isTransfer) {
@@ -67,13 +89,13 @@ export function Hero() {
   return (
     <section className="relative min-h-screen w-full overflow-hidden">
       {/* Background Image with Overlay */}
-      <div 
+      <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-transform duration-1000 scale-105"
         style={{ backgroundImage: `url(${heroBg})` }}
       >
         <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/60 backdrop-blur-[0.5px]" />
       </div>
-      
+
       {/* Content */}
       <div className="relative container mx-auto px-4 flex flex-col justify-center items-center text-center text-white pt-28 pb-20 md:pt-36 md:pb-24 min-h-screen">
         <motion.div
@@ -242,13 +264,13 @@ export function Hero() {
       </div>
 
       {/* Scroll Indicator */}
-      <motion.div 
+      <motion.div
         className="absolute bottom-8 left-1/2 -translate-x-1/2 text-white/80"
         animate={{ y: [0, 12, 0] }}
         transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
       >
         <div className="w-7 h-12 border-2 border-white/40 rounded-full flex justify-center p-1.5 backdrop-blur-sm">
-          <motion.div 
+          <motion.div
             className="w-1.5 h-2.5 bg-[#f2800d] rounded-full"
             animate={{ opacity: [1, 0.5, 1] }}
             transition={{ duration: 1.5, repeat: Infinity }}
