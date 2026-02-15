@@ -201,7 +201,7 @@ app.use((req, res, next) => {
   try {
     const { BackupIntegrityGuard } = await import('./infrastructure/recovery/integrity-guard.js');
     const integrityGuard = new BackupIntegrityGuard();
-    
+
     // Run database migrations first
     try {
       console.log('[MIGRATIONS] Running Drizzle migrations...');
@@ -211,7 +211,7 @@ app.use((req, res, next) => {
       // Don't fail startup if migrations fail - they might already be applied
       console.warn('[MIGRATIONS] Migration execution warning:', migrationError.message);
     }
-    
+
     const status = await integrityGuard.checkIntegrity();
     if (!status.isSafe) {
       console.error(`[INTEGRITY] CRITICAL: ${status.message}`);
@@ -253,7 +253,7 @@ app.use((req, res, next) => {
     const { storage } = await import('./storage.js');
     const { AvailabilityApplicationService } = await import('./application/availability/availability.application-service.js');
     const { BookingEventHandler } = await import('./application/events/BookingEventHandler.js');
-    
+
     const availabilityService = new AvailabilityApplicationService(storage);
     const bookingEventHandler = new BookingEventHandler(storage, availabilityService);
     bookingEventHandler.register();
@@ -314,10 +314,9 @@ app.use((req, res, next) => {
     {
       port,
       host: "0.0.0.0",
-      reusePort: true,
     },
     () => {
       log(`serving on port ${port}`);
     },
   );
-})();
+})()

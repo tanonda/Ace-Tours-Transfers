@@ -20,15 +20,10 @@ export async function setupVite(server: Server, app: Express) {
       },
     },
     hmr: {
-      server, // Keep the existing server for HMR websocket
-      host: 'localhost',
-      protocol: "ws",
-      port: 5001, // Vite's internal HMR websocket port
-      clientPort: 5001,
+      server,
       path: "/vite-hmr",
     },
     allowedHosts: true as const,
-    port: 5001, // Explicitly set Vite's internal server port to match Express
     fs: {
       strict: true,
       allow: [".."],
@@ -94,20 +89,20 @@ export async function setupVite(server: Server, app: Express) {
 
       // always reload the index.html file from disk incase it changes
       let template = await fs.promises.readFile(clientTemplate, "utf-8");
-      
+
       // Inject version to force main.tsx reload
       template = template.replace(
         `src="/src/main.tsx"`,
         `src="/src/main.tsx?v=${nanoid()}"`,
       );
-      
+
       const page = await vite.transformIndexHtml(url, template);
       res.status(200)
-        .set({ 
+        .set({
           "Content-Type": "text/html",
           "Cache-Control": "no-cache, no-store, must-revalidate",
           "Pragma": "no-cache",
-          "Expires": "0" 
+          "Expires": "0"
         })
         .end(page);
     } catch (e) {

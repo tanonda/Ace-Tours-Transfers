@@ -174,7 +174,7 @@ export function BookingForm({
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder={t("booking.namePlaceholder", "John Doe")}
-                    className="pl-10 h-11 border-border/50 bg-background/80 backdrop-blur-sm focus:border-primary focus:ring-primary/20"
+                    className="pl-10 h-11 border-border/50 bg-background/80 backdrop-blur-sm focus:border-primary focus:ring-primary/20 text-gray-900 font-semibold"
                     {...field}
                   />
                 </div>
@@ -195,7 +195,7 @@ export function BookingForm({
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder={t("booking.emailPlaceholder", "john@example.com")}
-                    className="pl-10 h-11 border-border/50 bg-background/80 backdrop-blur-sm focus:border-primary focus:ring-primary/20"
+                    className="pl-10 h-11 border-border/50 bg-background/80 backdrop-blur-sm focus:border-primary focus:ring-primary/20 text-gray-900 font-semibold"
                     {...field}
                   />
                 </div>
@@ -214,7 +214,7 @@ export function BookingForm({
                 <FormLabel className="text-sm font-medium">{t("booking.service", "Service")}</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
-                    <SelectTrigger className="h-11 border-border/50 bg-background/80 backdrop-blur-sm">
+                    <SelectTrigger className="h-11 border-border/50 bg-background/80 backdrop-blur-sm text-gray-900 font-semibold">
                       <div className="flex items-center gap-2">
                         <MapPin className="h-4 w-4 text-muted-foreground" />
                         <SelectValue placeholder={t("booking.selectService", "Select tour/transfer")} />
@@ -292,8 +292,8 @@ export function BookingForm({
                     <Button
                       variant={"outline"}
                       className={cn(
-                        "w-full h-11 pl-10 text-left font-normal border-border/50 bg-background/80 backdrop-blur-sm relative",
-                        !field.value && "text-muted-foreground"
+                        "w-full h-11 pl-10 text-left border-border/50 bg-background/80 backdrop-blur-sm relative",
+                        !field.value ? "text-muted-foreground font-normal" : "text-gray-900 font-semibold"
                       )}
                     >
                       <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />

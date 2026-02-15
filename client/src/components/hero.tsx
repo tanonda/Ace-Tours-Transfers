@@ -130,7 +130,7 @@ export function Hero() {
                   {t("hero.serviceType", "What are you looking for?")}
                 </label>
                 <Select value={serviceType} onValueChange={setServiceType}>
-                  <SelectTrigger className="h-16 text-base bg-gray-50 border-gray-200 hover:border-[#f2800d]/50 focus:ring-[#f2800d]/20 shadow-inner rounded-2xl transition-all" data-testid="select-service-type">
+                  <SelectTrigger className="h-16 text-base bg-gray-50 border-gray-200 hover:border-[#f2800d]/50 focus:ring-[#f2800d]/20 shadow-inner rounded-2xl transition-all text-gray-900 font-bold" data-testid="select-service-type">
                     <SelectValue placeholder={t("hero.selectService", "Tours & Transfers")} className="text-gray-900 font-medium" />
                   </SelectTrigger>
                   <SelectContent className="rounded-2xl border-gray-200">
@@ -188,12 +188,12 @@ export function Hero() {
                     <Button
                       variant="outline"
                       className={cn(
-                        "w-full h-16 justify-start text-left text-base font-medium bg-gray-50 border-gray-200 hover:border-[#f2800d]/50 shadow-inner rounded-2xl transition-all",
-                        !selectedDate && "text-gray-400"
+                        "w-full h-16 justify-start text-left text-base font-bold bg-gray-50 border-gray-200 hover:border-[#f2800d]/50 shadow-inner rounded-2xl transition-all",
+                        !selectedDate ? "text-gray-400 font-medium" : "text-gray-900"
                       )}
                       data-testid="button-date-picker"
                     >
-                      <CalendarIcon className="mr-3 h-5 w-5 text-[#f2800d]/60" />
+                      <CalendarIcon className={cn("mr-3 h-5 w-5", selectedDate ? "text-[#f2800d]" : "text-[#f2800d]/60")} />
                       {selectedDate ? format(selectedDate, "EEE, MMM d, yyyy") : t("hero.pickDate", "Pick a date")}
                     </Button>
                   </PopoverTrigger>
@@ -260,12 +260,13 @@ export function Hero() {
             </div>
           </div>
         </motion.div>
-      </div>
+      </div >
 
       {/* Scroll Indicator */}
-      <motion.div
+      < motion.div
         className="absolute bottom-8 left-1/2 -translate-x-1/2 text-white/80"
-        animate={{ y: [0, 12, 0] }}
+        animate={{ y: [0, 12, 0] }
+        }
         transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
       >
         <div className="w-7 h-12 border-2 border-white/40 rounded-full flex justify-center p-1.5 backdrop-blur-sm">
@@ -275,7 +276,7 @@ export function Hero() {
             transition={{ duration: 1.5, repeat: Infinity }}
           />
         </div>
-      </motion.div>
-    </section>
+      </motion.div >
+    </section >
   );
 }

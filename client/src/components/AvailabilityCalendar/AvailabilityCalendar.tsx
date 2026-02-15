@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { CalendarDay } from './CalendarDay';
 import { useCalendarData } from './useCalendarData';
 import type { AvailabilityCalendarProps, CalendarDayData } from './types';
