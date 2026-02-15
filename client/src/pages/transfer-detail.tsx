@@ -208,8 +208,10 @@ export default function TransferDetail() {
                       <h3 className="text-xl font-bold mb-4 font-serif text-primary">Real-time Availability</h3>
                       <AvailabilityStatus
                         tourId={transfer.id}
-                        selectedDate={date}
+                        selectedDate={new Date(date)}
                         maxParticipants={6}
+                        adultPax={parseInt(adultPax) || 2}
+                        childPax={parseInt(childPax) || 0}
                         onAvailabilityChange={(available) => {
                           console.log("Availability status:", available);
                         }}

@@ -285,6 +285,7 @@ export default function TourDetail() {
                           <PopoverContent className="w-auto p-0" align="start">
                             <AvailabilityCalendar
                               tourId={id || ""}
+                              participants={Math.max(1, parseInt(adultPax) + parseInt(childPax))}
                               onDateSelect={(d) => setDate(d)}
                             />
                           </PopoverContent>

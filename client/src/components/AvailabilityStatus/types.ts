@@ -1,6 +1,7 @@
 export interface AvailabilityStatusProps {
   tourId: string;
   selectedDate: Date;
+  maxParticipants?: number;
   adultPax: number;
   childPax: number;
   addonIds?: string[];

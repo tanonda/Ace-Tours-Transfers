@@ -21,13 +21,16 @@ export const SimulationData = {
     cart.addItem({
       productId: "tour_efate",
       name: "Efate Scenic Tour",
-      unitPrice: 15000,
+      unitPriceCents: 15000,
       quantity: 2,
-      date: "2026-06-01"
+      date: "2026-06-01",
+      productType: "tour",
+      adultPax: 2,
+      childPax: 0
     });
-    
+
     const snapshot = PricingService.createSnapshot([
-      { productId: "tour_efate", name: "Efate Scenic Tour", price: 15000, quantity: 2 }
+      { productId: "tour_efate", name: "Efate Scenic Tour", unitPriceCents: 15000, quantity: 2, adultPax: 2, childPax: 0 }
     ]);
     cart.setPricedSnapshot(snapshot);
     return cart;

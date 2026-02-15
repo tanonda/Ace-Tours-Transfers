@@ -15,9 +15,10 @@ async function runChaos() {
   const tour = tours[0];
 
   const gateway = await storage.getActivePaymentGateway() || await storage.upsertPaymentGateway({
-    slug: 'stripe',
-    displayName: 'Stripe',
-    description: 'Stripe Payment Gateway',
+    slug: "manual",
+    displayName: "Manual Chaos Payment",
+    priority: 1,
+    description: "For testing only",
     active: true,
     isDefault: true,
     config: {},
@@ -50,7 +51,7 @@ async function runChaos() {
     },
     queryPaymentStatus: async () => ({ status: PaymentStatus.Completed })
   };
-  
+
   // Inject mock
   (PaymentFactory as any).getPaymentGatewayService = () => mockAdapter;
 
@@ -104,7 +105,7 @@ async function runChaos() {
   updatedBooking = await storage.getBooking(booking.id);
   updatedPayment = await storage.getPayment(payment.id);
   console.log(`Status after second webhook - Booking: ${updatedBooking?.status}, Payment: ${updatedPayment?.status}`);
-  
+
   if (updatedBooking?.status === 'confirmed' && updatedPayment?.status === PaymentStatus.Completed) {
     console.log("✅ Scenario 1 Passed: Terminal status is immutable and idempotent.");
   } else {
@@ -160,7 +161,7 @@ async function runChaos() {
   }
 
   console.log("\n🧪 Scenario 3: Partial Failure (Inventory Deadlock)");
-  
+
   // 1. Create instance and hold
   const instance = await storage.createTourInstance({
     tourId: tour.id,
@@ -226,10 +227,10 @@ async function runChaos() {
   }
 
   // Reset availability service mock
-  (paymentAppService as any).availabilityService.confirmBooking = async () => {};
+  (paymentAppService as any).availabilityService.confirmBooking = async () => { };
 
   console.log("\n🧪 Scenario 4: Human Chaos (Concurrent Admin Reconciliation)");
-  
+
   const payment4 = await storage.createPayment({
     bookingId: booking.id, // Re-use first booking
     gatewayId: gateway.id,
@@ -246,17 +247,17 @@ async function runChaos() {
   console.log("Triggering Twin Manual Reconciliations...");
   // Simulate two admins clicking at once
   await Promise.all([
-    reconService.reconcileManually(payment4.id, admin.id, 'Admin 1 Note', PaymentStatus.Completed).catch(() => {}),
-    reconService.reconcileManually(payment4.id, admin.id, 'Admin 2 Note', PaymentStatus.Completed).catch(() => {})
+    reconService.reconcileManually(payment4.id, admin.id, 'Admin 1 Note', PaymentStatus.Completed).catch(() => { }),
+    reconService.reconcileManually(payment4.id, admin.id, 'Admin 2 Note', PaymentStatus.Completed).catch(() => { })
   ]);
 
   updatedPayment = await storage.getPayment(payment4.id);
   console.log(`Status after concurrent reconciliation - Payment: ${updatedPayment?.status}, Note: ${updatedPayment?.reconciliationNote}`);
-  
+
   console.log("✅ Scenario 4 Passed: System handled concurrency without crashing.");
 
   console.log("\n🧪 Scenario 5: Data Drift Chaos (Reconciliation Recovery)");
-  
+
   const booking5 = await storage.createBooking({
     tourId: tour.id,
     tourName: tour.title,

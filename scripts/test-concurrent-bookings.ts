@@ -184,7 +184,9 @@ async function runConcurrentBookingTest(): Promise<TestResult> {
       errorBreakdown[errorCode] = (errorBreakdown[errorCode] || 0) + 1;
     });
 
-    const bookingIds = successful.map((r) => r.bookingId);
+    const bookingIds = results
+      .map((r) => r.bookingId)
+      .filter((id): id is string => !!id);
 
     // Verify database state
     const allBookings = await storage.getBookingsForServiceAndDate(testTour.id, TEST_DATE_STR);
