@@ -11,14 +11,7 @@ import "./lib/i18n";
   };
 
   window.addEventListener('error', function (event) {
-    // Suppress non-Error objects, string errors, and non-stack errors
-    // Specifically catch ResizeObserver loop errors which are harmless but trigger the overlay
-    const isResizeObserverError = event.message?.includes('ResizeObserver loop limit exceeded') ||
-      event.message?.includes('ResizeObserver loop completed with undelivered notifications');
-
-    if (isResizeObserverError || !event.error || typeof event.error === 'string' ||
-      (typeof event.error === 'object' && !('stack' in event.error))) {
-      event.stopPropagation();
+    if (!event.error || (typeof event.error === 'object' && !('stack' in event.error))) {
       event.stopImmediatePropagation();
       event.preventDefault();
       return true;

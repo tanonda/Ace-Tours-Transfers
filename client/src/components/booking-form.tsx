@@ -512,6 +512,8 @@ export function BookingForm({
                       </div>
                       <FormControl>
                         <CounterInput
+                          id="booking-adult-pax"
+                          name="adultPax"
                           value={parseInt(field.value) || 2}
                           onValueChange={(val) => field.onChange(val.toString())}
                           min={1}
@@ -535,6 +537,8 @@ export function BookingForm({
                       </div>
                       <FormControl>
                         <CounterInput
+                          id="booking-child-pax"
+                          name="childPax"
                           value={parseInt(field.value) || 0}
                           onValueChange={(val) => field.onChange(val.toString())}
                           min={0}

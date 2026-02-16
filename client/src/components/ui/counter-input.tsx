@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { motion, AnimatePresence, Variants } from "framer-motion"
 
-interface CounterInputProps {
+interface CounterInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
     value: number
     onValueChange: (value: number) => void
     min?: number
@@ -14,7 +14,7 @@ interface CounterInputProps {
     inputClassName?: string
 }
 
-export function CounterInput({
+export const CounterInput = React.forwardRef<HTMLInputElement, CounterInputProps>(({
     value,
     onValueChange,
     min = 0,
@@ -22,7 +22,10 @@ export function CounterInput({
     label,
     className,
     inputClassName,
-}: CounterInputProps) {
+    id,
+    name,
+    ...props
+}, ref) => {
     const [direction, setDirection] = React.useState(0);
 
     const handleIncrement = () => {
@@ -61,6 +64,16 @@ export function CounterInput({
 
     return (
         <div className={cn("flex items-center bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm", className)}>
+            {/* Hidden real input for form submission and accessibility focus */}
+            <input
+                type="hidden"
+                id={id}
+                name={name}
+                value={value}
+                ref={ref}
+                {...props}
+            />
+
             <Button
                 variant="ghost"
                 size="icon"
@@ -105,4 +118,5 @@ export function CounterInput({
             </Button>
         </div>
     )
-}
+})
+CounterInput.displayName = "CounterInput"

@@ -143,13 +143,13 @@ export function Hero() {
                 transition={{ type: "spring", stiffness: 400, damping: 25 }}
                 className="flex flex-col gap-2 p-4 rounded-3xl bg-gray-50/50 border border-gray-100/80 hover:bg-white hover:shadow-xl hover:border-gray-200/50 transition-all md:col-span-12 lg:col-span-4 group/island"
               >
-                <label className="text-xs font-black uppercase tracking-widest text-gray-400 flex items-center gap-2 px-1 mb-1">
+                <label htmlFor="hero-service-select" className="text-xs font-black uppercase tracking-widest text-gray-400 flex items-center gap-2 px-1 mb-1 cursor-pointer">
                   <div className="h-1.5 w-1.5 rounded-full bg-[#f2800d]" />
                   {t("hero.serviceType", "Category")}
                 </label>
                 <div className="relative">
                   <Select value={serviceType} onValueChange={setServiceType}>
-                    <SelectTrigger className="h-14 border-0 bg-transparent text-lg font-bold text-gray-900 focus:ring-0 shadow-none px-0" data-testid="select-service-type">
+                    <SelectTrigger id="hero-service-select" className="h-14 border-0 bg-transparent text-lg font-bold text-gray-900 focus:ring-0 shadow-none px-0" data-testid="select-service-type">
                       <div className="flex items-center gap-3">
                         <div className="h-10 w-10 rounded-2xl bg-orange-50 flex items-center justify-center text-[#f2800d] shrink-0 group-hover/island:bg-[#f2800d] group-hover/island:text-white transition-all">
                           <Map className="h-5 w-5" />
@@ -208,13 +208,14 @@ export function Hero() {
                 transition={{ type: "spring", stiffness: 400, damping: 25 }}
                 className="flex flex-col gap-2 p-4 rounded-3xl bg-gray-50/50 border border-gray-100/80 hover:bg-white hover:shadow-xl hover:border-gray-200/50 transition-all md:col-span-6 lg:col-span-3 group/island"
               >
-                <label className="text-xs font-black uppercase tracking-widest text-gray-400 flex items-center gap-2 px-1 mb-1">
+                <label htmlFor="hero-date-picker" className="text-xs font-black uppercase tracking-widest text-gray-400 flex items-center gap-2 px-1 mb-1 cursor-pointer">
                   <div className="h-1.5 w-1.5 rounded-full bg-[#f2800d]" />
                   {t("hero.travelDate", "Date")}
                 </label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
+                      id="hero-date-picker"
                       variant="outline"
                       className={cn(
                         "w-full h-14 justify-start text-left border-0 bg-transparent text-lg font-bold focus:ring-0 shadow-none px-0",
@@ -247,7 +248,7 @@ export function Hero() {
                 transition={{ type: "spring", stiffness: 400, damping: 25 }}
                 className="flex flex-col gap-2 p-4 rounded-3xl bg-gray-50/50 border border-gray-100/80 hover:bg-white hover:shadow-xl hover:border-gray-200/50 transition-all md:col-span-6 lg:col-span-3 group/island"
               >
-                <label className="text-xs font-black uppercase tracking-widest text-gray-400 flex items-center gap-2 px-1 mb-1">
+                <label htmlFor="hero-guests-count" className="text-xs font-black uppercase tracking-widest text-gray-400 flex items-center gap-2 px-1 mb-1 cursor-pointer">
                   <div className="h-1.5 w-1.5 rounded-full bg-[#f2800d]" />
                   {t("hero.guests", "Guests")}
                 </label>
@@ -256,6 +257,8 @@ export function Hero() {
                     <Users className="h-5 w-5" />
                   </div>
                   <CounterInput
+                    id="hero-guests-count"
+                    name="guests"
                     value={parseInt(guests) || 2}
                     onValueChange={(val) => setGuests(val.toString())}
                     min={1}
