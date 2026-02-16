@@ -1,3 +1,4 @@
+"use client";
 import React, { useState, useMemo, useEffect } from 'react';
 import { CalendarDay } from './CalendarDay';
 import { useCalendarData } from './useCalendarData';

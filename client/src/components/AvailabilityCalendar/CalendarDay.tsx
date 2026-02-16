@@ -8,11 +8,11 @@ interface CalendarDayProps {
   onClick: () => void;
 }
 
-export const CalendarDay: React.FC<CalendarDayProps> = ({
+export const CalendarDay = React.memo(({
   day,
   isSelected,
   onClick,
-}) => {
+}: CalendarDayProps) => {
   const dayNum = parseInt(day.date.split('-')[2]);
   const currentBookings = day.totalCapacity - day.remainingCapacity;
   const capacityPercent = day.totalCapacity > 0 ? Math.round(
@@ -71,4 +71,6 @@ export const CalendarDay: React.FC<CalendarDayProps> = ({
       {day.surchargeApplies && <div className="surcharge-badge">!</div>}
     </button>
   );
-};
+});
+
+CalendarDay.displayName = 'CalendarDay';

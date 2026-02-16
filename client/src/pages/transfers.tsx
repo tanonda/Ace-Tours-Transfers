@@ -16,13 +16,19 @@ export default function Transfers() {
   // Deduplicate by normalized title and filter out test data
   const uniqueTours = allTours.reduce<typeof allTours>((acc, current) => {
     // Skip test data
-    if (current.title.toLowerCase().includes("verification")) return acc;
-    
+    const titleLower = current.title.toLowerCase();
+    if (titleLower.includes("verification") ||
+      titleLower.includes("concurrent") ||
+      titleLower.includes("test_tour") ||
+      titleLower.includes("phase4")) {
+      return acc;
+    }
+
     const normalize = (t: string) => t.replace(/\s+Package$/i, "").trim();
     const normalizedTitle = normalize(current.title);
-    
+
     const existingIndex = acc.findIndex(item => normalize(item.title) === normalizedTitle);
-    
+
     if (existingIndex === -1) {
       acc.push(current);
     }

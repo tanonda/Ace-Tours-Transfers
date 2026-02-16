@@ -1,3 +1,4 @@
+"use client";
 
 const heroBg = "https://res.cloudinary.com/dwro1dh5q/image/upload/v1765063929/ace-tours-assets/ace_tours_hero_beach.jpg";
 import { Button } from "@/components/ui/button";
@@ -7,8 +8,7 @@ import { useTranslation } from "react-i18next";
 import { useState } from "react";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CounterInput } from "@/components/ui/counter-input";
 import { CalendarIcon, Users, Search, Map, Car } from "lucide-react";
 import { format } from "date-fns";
@@ -30,13 +30,23 @@ export function Hero() {
 
   // Deduplicate tours by normalized title
   const uniqueTours = allTours.reduce<typeof allTours>((acc, current) => {
-    // Skip test data
-    if (current.title.toLowerCase().includes("verification")) return acc;
+    // Skip test data with safety checks
+    if (!current?.title) return acc;
+    const titleLower = current.title.toLowerCase();
+    if (titleLower.includes("verification") ||
+      titleLower.includes("concurrent") ||
+      titleLower.includes("test_tour") ||
+      titleLower.includes("phase4")) {
+      return acc;
+    }
 
     const normalize = (t: string) => t.replace(/\s+Package$/i, "").trim();
     const normalizedTitle = normalize(current.title);
 
-    const existingIndex = acc.findIndex(item => normalize(item.title) === normalizedTitle);
+    const existingIndex = acc.findIndex(item => {
+      if (!item?.title) return false;
+      return normalize(item.title) === normalizedTitle;
+    });
 
     if (existingIndex === -1) {
       acc.push(current);
@@ -118,86 +128,107 @@ export function Hero() {
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}
-          className="w-full max-w-5xl"
+          transition={{ duration: 1, delay: 0.3, ease: [0.23, 1, 0.32, 1] }}
+          className="w-full max-w-6xl z-10"
         >
-          <div className="bg-white/95 backdrop-blur-xl rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.3)] p-5 md:p-8 border border-white/20 ring-1 ring-black/5">
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 md:items-end">
-              {/* Service Type */}
-              <div className="flex flex-col gap-2.5 md:col-span-4 transition-all">
-                <label className="text-[0.8125rem] font-bold text-gray-800 flex items-center gap-2 px-1">
-                  <Map className="h-4 w-4 text-[#f2800d]" />
-                  {t("hero.serviceType", "What are you looking for?")}
-                </label>
-                <Select value={serviceType} onValueChange={setServiceType}>
-                  <SelectTrigger className="h-16 text-base bg-gray-50 border-gray-200 hover:border-[#f2800d]/50 focus:ring-[#f2800d]/20 shadow-inner rounded-2xl transition-all text-gray-900 font-bold" data-testid="select-service-type">
-                    <SelectValue placeholder={t("hero.selectService", "Tours & Transfers")} className="text-gray-900 font-medium" />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-2xl border-gray-200">
-                    <SelectItem value="all-tours" className="py-3 focus:bg-orange-50 focus:text-orange-950 text-foreground">
-                      <div className="flex items-center gap-3">
-                        <Map className="h-5 w-5 text-[#f2800d]" />
-                        <span className="font-semibold">{t("hero.allTours", "All Tours")}</span>
-                      </div>
-                    </SelectItem>
-                    {tours.slice(0, 4).map((tour) => (
-                      <SelectItem key={tour.id} value={`tour-${tour.id}`} className="py-3 focus:bg-orange-50 focus:text-orange-950 text-foreground">
-                        <span className="pl-8">{tour.title}</span>
-                      </SelectItem>
-                    ))}
-                    <div className="h-px bg-gray-100 my-1" />
-                    <SelectItem value="all-transfers" className="py-3 focus:bg-orange-50 focus:text-orange-950 text-foreground">
-                      <div className="flex items-center gap-3">
-                        <Car className="h-5 w-5 text-[#f2800d]" />
-                        <span className="font-semibold">{t("hero.allTransfers", "All Transfers")}</span>
-                      </div>
-                    </SelectItem>
-                    {transfers.slice(0, 3).map((transfer) => (
-                      <SelectItem key={transfer.id} value={`transfer-${transfer.id}`} className="py-3 focus:bg-orange-50 focus:text-orange-950 text-foreground">
-                        <span className="pl-8">{transfer.title}</span>
-                      </SelectItem>
-                    ))}
-                    {vehicles.length > 0 && (
-                      <>
-                        <div className="h-px bg-gray-100 my-1" />
-                        <SelectItem value="all-vehicles" className="py-3 focus:bg-orange-50 focus:text-orange-950 text-foreground">
-                          <div className="flex items-center gap-3">
-                            <Car className="h-5 w-5 text-[#f2800d]" />
-                            <span className="font-semibold">{t("hero.allVehicles", "Vehicle Hire")}</span>
-                          </div>
-                        </SelectItem>
-                        {vehicles.slice(0, 3).map((vehicle) => (
-                          <SelectItem key={vehicle.id} value={`vehicle-${vehicle.id}`} className="py-3 focus:bg-orange-50 focus:text-orange-950 text-foreground">
-                            <span className="pl-8">{vehicle.title}</span>
-                          </SelectItem>
-                        ))}
-                      </>
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
+          <div className="relative p-1 rounded-[3rem] bg-gradient-to-b from-white/20 to-white/5 backdrop-blur-xl border border-white/20 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.4)] overflow-hidden group/container">
+            {/* Ambient Background Glows */}
+            <div className="absolute -top-24 -left-24 w-64 h-64 bg-[#f2800d]/10 rounded-full blur-[100px] pointer-events-none" />
+            <div className="absolute -bottom-24 -right-24 w-64 h-64 bg-primary/10 rounded-full blur-[100px] pointer-events-none" />
 
-              {/* Date Picker */}
-              <div className="flex flex-col gap-2.5 md:col-span-3 transition-all">
-                <label className="text-[0.8125rem] font-bold text-gray-800 flex items-center gap-2 px-1">
-                  <CalendarIcon className="h-4 w-4 text-[#f2800d]" />
-                  {t("hero.travelDate", "When?")}
+            <div className="bg-white/95 rounded-[2.8rem] p-3 md:p-6 lg:p-4 grid grid-cols-1 md:grid-cols-12 gap-3 lg:gap-4 items-stretch relative z-10 text-gray-900">
+              {/* Service Type Island */}
+              <motion.div
+                whileHover={{ y: -4, scale: 1.01 }}
+                transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                className="flex flex-col gap-2 p-4 rounded-3xl bg-gray-50/50 border border-gray-100/80 hover:bg-white hover:shadow-xl hover:border-gray-200/50 transition-all md:col-span-12 lg:col-span-4 group/island"
+              >
+                <label className="text-xs font-black uppercase tracking-widest text-gray-400 flex items-center gap-2 px-1 mb-1">
+                  <div className="h-1.5 w-1.5 rounded-full bg-[#f2800d]" />
+                  {t("hero.serviceType", "Category")}
+                </label>
+                <div className="relative">
+                  <Select value={serviceType} onValueChange={setServiceType}>
+                    <SelectTrigger className="h-14 border-0 bg-transparent text-lg font-bold text-gray-900 focus:ring-0 shadow-none px-0" data-testid="select-service-type">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-2xl bg-orange-50 flex items-center justify-center text-[#f2800d] shrink-0 group-hover/island:bg-[#f2800d] group-hover/island:text-white transition-all">
+                          <Map className="h-5 w-5" />
+                        </div>
+                        <SelectValue placeholder={t("hero.selectService", "Tours & Transfers")} />
+                      </div>
+                    </SelectTrigger>
+                    <SelectContent className="rounded-3xl border-gray-100 shadow-2xl p-2">
+                      <SelectItem value="all-tours" className="py-3 focus:bg-orange-50 focus:text-orange-950 text-foreground">
+                        <div className="flex items-center gap-3">
+                          <Map className="h-5 w-5 text-[#f2800d]" />
+                          <span className="font-semibold text-base">{t("hero.allTours", "All Tours")}</span>
+                        </div>
+                      </SelectItem>
+                      {tours.map((tour) => (
+                        <SelectItem key={tour.id} value={`tour-${tour.id}`} className="py-3 focus:bg-orange-50 focus:text-orange-950 text-foreground transition-all">
+                          <span className="pl-8 text-base font-medium">{tour.title}</span>
+                        </SelectItem>
+                      ))}
+                      <SelectSeparator className="my-2 bg-gray-100" />
+                      <SelectItem value="all-transfers" className="py-3 focus:bg-orange-50 focus:text-orange-950 text-foreground">
+                        <div className="flex items-center gap-3">
+                          <Car className="h-5 w-5 text-[#f2800d]" />
+                          <span className="font-semibold text-base">{t("hero.allTransfers", "All Transfers")}</span>
+                        </div>
+                      </SelectItem>
+                      {transfers.map((transfer) => (
+                        <SelectItem key={transfer.id} value={`transfer-${transfer.id}`} className="py-3 focus:bg-orange-50 focus:text-orange-950 text-foreground transition-all">
+                          <span className="pl-8 text-base font-medium">{transfer.title}</span>
+                        </SelectItem>
+                      ))}
+                      {vehicles.length > 0 && (
+                        <>
+                          <SelectSeparator className="my-2 bg-gray-100" />
+                          <SelectItem value="all-vehicles" className="py-3 focus:bg-orange-50 focus:text-orange-950 text-foreground">
+                            <div className="flex items-center gap-3">
+                              <Car className="h-5 w-5 text-[#f2800d]" />
+                              <span className="font-semibold text-base">{t("hero.allVehicles", "Vehicle Hire")}</span>
+                            </div>
+                          </SelectItem>
+                          {vehicles.map((vehicle) => (
+                            <SelectItem key={vehicle.id} value={`vehicle-${vehicle.id}`} className="py-3 focus:bg-orange-50 focus:text-orange-950 text-foreground transition-all">
+                              <span className="pl-8 text-base font-medium">{vehicle.title}</span>
+                            </SelectItem>
+                          ))}
+                        </>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </motion.div>
+
+              {/* Date Picker Island */}
+              <motion.div
+                whileHover={{ y: -4, scale: 1.01 }}
+                transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                className="flex flex-col gap-2 p-4 rounded-3xl bg-gray-50/50 border border-gray-100/80 hover:bg-white hover:shadow-xl hover:border-gray-200/50 transition-all md:col-span-6 lg:col-span-3 group/island"
+              >
+                <label className="text-xs font-black uppercase tracking-widest text-gray-400 flex items-center gap-2 px-1 mb-1">
+                  <div className="h-1.5 w-1.5 rounded-full bg-[#f2800d]" />
+                  {t("hero.travelDate", "Date")}
                 </label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
                       className={cn(
-                        "w-full h-16 justify-start text-left text-base font-bold bg-gray-50 border-gray-200 hover:border-[#f2800d]/50 shadow-inner rounded-2xl transition-all",
+                        "w-full h-14 justify-start text-left border-0 bg-transparent text-lg font-bold focus:ring-0 shadow-none px-0",
                         !selectedDate ? "text-gray-400 font-medium" : "text-gray-900"
                       )}
                       data-testid="button-date-picker"
                     >
-                      <CalendarIcon className={cn("mr-3 h-5 w-5", selectedDate ? "text-[#f2800d]" : "text-[#f2800d]/60")} />
-                      {selectedDate ? format(selectedDate, "EEE, MMM d, yyyy") : t("hero.pickDate", "Pick a date")}
+                      <div className="h-10 w-10 rounded-2xl bg-orange-50 flex items-center justify-center text-[#f2800d] shrink-0 mr-3 group-hover/island:bg-[#f2800d] group-hover/island:text-white transition-all">
+                        <CalendarIcon className="h-5 w-5" />
+                      </div>
+                      {selectedDate ? format(selectedDate, "EEE, MMM d") : t("hero.pickDate", "Pick a date")}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0 rounded-2xl border-gray-200" align="start">
+                  <PopoverContent className="w-auto p-0 rounded-3xl border-gray-100 shadow-2xl" align="start">
                     <Calendar
                       mode="single"
                       selected={selectedDate}
@@ -208,75 +239,83 @@ export function Hero() {
                     />
                   </PopoverContent>
                 </Popover>
-              </div>
+              </motion.div>
 
-              {/* Guests */}
-              <div className="flex flex-col gap-2.5 md:col-span-2 transition-all">
-                <label className="text-[0.8125rem] font-bold text-gray-800 flex items-center gap-2 px-1">
-                  <Users className="h-4 w-4 text-[#f2800d]" />
-                  {t("hero.guests", "How many?")}
+              {/* Guests Island */}
+              <motion.div
+                whileHover={{ y: -4, scale: 1.01 }}
+                transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                className="flex flex-col gap-2 p-4 rounded-3xl bg-gray-50/50 border border-gray-100/80 hover:bg-white hover:shadow-xl hover:border-gray-200/50 transition-all md:col-span-6 lg:col-span-3 group/island"
+              >
+                <label className="text-xs font-black uppercase tracking-widest text-gray-400 flex items-center gap-2 px-1 mb-1">
+                  <div className="h-1.5 w-1.5 rounded-full bg-[#f2800d]" />
+                  {t("hero.guests", "Guests")}
                 </label>
-                <div className="relative group">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-2xl bg-orange-50 flex items-center justify-center text-[#f2800d] shrink-0 group-hover/island:bg-[#f2800d] group-hover/island:text-white transition-all">
+                    <Users className="h-5 w-5" />
+                  </div>
                   <CounterInput
                     value={parseInt(guests) || 2}
                     onValueChange={(val) => setGuests(val.toString())}
                     min={1}
                     max={50}
                     label={t("hero.guestsCount", "Number of guests")}
-                    className="h-16 bg-gray-50 border-gray-200 hover:border-[#f2800d]/50 shadow-inner rounded-2xl"
-                    inputClassName="bg-transparent border-0 h-full text-base font-medium"
+                    className="h-14 bg-transparent border-0 hover:bg-transparent shadow-none px-0"
+                    inputClassName="bg-transparent border-0 h-full text-lg font-bold text-gray-900"
                   />
                 </div>
-              </div>
+              </motion.div>
 
-              {/* Search Button */}
-              <div className="md:col-span-3 transition-all">
-                <Button
+              {/* Search Action */}
+              <div className="md:col-span-12 lg:col-span-2 flex items-center lg:pl-2">
+                <motion.button
+                  whileHover={{ scale: 1.05, y: -2 }}
+                  whileTap={{ scale: 0.95 }}
                   onClick={handleSearch}
-                  size="lg"
-                  className="w-full h-16 text-lg font-bold bg-[#f2800d] hover:bg-[#d9730b] text-white shadow-[0_10px_20px_rgba(242,128,13,0.3)] hover:shadow-[0_15px_30px_rgba(242,128,13,0.4)] hover:scale-[1.03] active:scale-[0.98] transition-all duration-300 rounded-2xl"
-                  data-testid="button-check-availability"
+                  className="w-full h-16 lg:h-full min-h-[64px] rounded-3xl bg-[#f2800d] text-white font-black text-lg shadow-[0_12px_24px_-8px_rgba(242,128,13,0.5)] hover:shadow-[0_20px_40px_-12px_rgba(242,128,13,0.6)] hover:bg-[#ff8c1a] transition-all flex items-center justify-center gap-3 active:translate-y-1 relative overflow-hidden group/btn"
                 >
-                  <Search className="mr-2 h-6 w-6 stroke-[2.5]" />
-                  {t("hero.checkAvailability", "Check Availability")}
-                </Button>
+                  <span className="relative z-10">{t("hero.checkAvailability", "Check")}</span>
+                  <div className="h-8 w-8 rounded-xl bg-white/20 flex items-center justify-center relative z-10">
+                    <Search className="h-5 w-5" />
+                  </div>
+                </motion.button>
               </div>
-            </div>
-
-            {/* Quick Links */}
-            <div className="flex flex-wrap items-center justify-center gap-3 mt-6 pt-6 border-t border-gray-100">
-              <span className="text-sm text-gray-500 font-bold uppercase tracking-wider">{t("hero.popularSearches", "Popular:")}</span>
-              {[
-                { label: t("nav.tours"), href: "/tours" },
-                { label: t("hero.airportTransfer", "Airport Transfer"), href: "/transfers" },
-                { label: t("hero.dayTours", "Day Tours"), href: "/tours" }
-              ].map((link) => (
-                <Link key={link.label} href={link.href}>
-                  <Button variant="secondary" size="sm" className="bg-gray-100 hover:bg-[#f2800d]/10 text-gray-700 hover:text-[#f2800d] font-bold rounded-full border border-transparent hover:border-[#f2800d]/20 transition-all">
-                    {link.label}
-                  </Button>
-                </Link>
-              ))}
             </div>
           </div>
-        </motion.div>
-      </div >
 
-      {/* Scroll Indicator */}
-      < motion.div
-        className="absolute bottom-8 left-1/2 -translate-x-1/2 text-white/80"
-        animate={{ y: [0, 12, 0] }
-        }
-        transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-      >
-        <div className="w-7 h-12 border-2 border-white/40 rounded-full flex justify-center p-1.5 backdrop-blur-sm">
-          <motion.div
-            className="w-1.5 h-2.5 bg-[#f2800d] rounded-full"
-            animate={{ opacity: [1, 0.5, 1] }}
-            transition={{ duration: 1.5, repeat: Infinity }}
-          />
-        </div>
-      </motion.div >
-    </section >
+          {/* Quick Links */}
+          <div className="flex flex-wrap items-center justify-center gap-3 mt-8 pt-6 border-t border-white/10">
+            <span className="text-sm text-white/60 font-black uppercase tracking-widest">{t("hero.popularSearches", "Popular:")}</span>
+            {[
+              { label: t("nav.tours"), href: "/tours" },
+              { label: t("hero.airportTransfer", "Airport Transfer"), href: "/transfers" },
+              { label: t("hero.dayTours", "Day Tours"), href: "/tours" }
+            ].map((link) => (
+              <Link key={link.label} href={link.href}>
+                <Button variant="secondary" size="sm" className="bg-white/10 hover:bg-[#f2800d] text-white font-bold rounded-full border border-white/10 hover:border-[#f2800d] transition-all backdrop-blur-md">
+                  {link.label}
+                </Button>
+              </Link>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* Scroll Indicator */}
+        <motion.div
+          className="absolute bottom-10 left-1/2 -translate-x-1/2 text-white/50"
+          animate={{ y: [0, 10, 0] }}
+          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+        >
+          <div className="w-6 h-10 border-2 border-white/20 rounded-full flex justify-center p-1 backdrop-blur-sm">
+            <motion.div
+              className="w-1 h-2 bg-[#f2800d] rounded-full"
+              animate={{ opacity: [1, 0.4, 1] }}
+              transition={{ duration: 1.5, repeat: Infinity }}
+            />
+          </div>
+        </motion.div>
+      </div>
+    </section>
   );
 }

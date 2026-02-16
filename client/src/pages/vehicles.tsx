@@ -1,4 +1,5 @@
 
+import { useMemo } from "react";
 import { Layout } from "@/components/layout";
 import { TourCard } from "@/components/tour-card";
 import { useQuery } from "@tanstack/react-query";
@@ -6,13 +7,25 @@ import { fetchVehicles } from "@/lib/api";
 import { useTranslation } from "react-i18next";
 import { Car } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import type { Tour } from "@shared/schema";
 
 export default function Vehicles() {
   const { t } = useTranslation();
-  const { data: vehicles = [], isLoading } = useQuery({
+  const { data: rawVehicles = [], isLoading } = useQuery({
     queryKey: ["vehicles"],
     queryFn: fetchVehicles,
   });
+
+  // Filter out test data
+  const vehicles = useMemo(() => {
+    return rawVehicles.filter(current => {
+      const titleLower = current.title.toLowerCase();
+      return !(titleLower.includes("verification") ||
+        titleLower.includes("concurrent") ||
+        titleLower.includes("test_tour") ||
+        titleLower.includes("phase4"));
+    });
+  }, [rawVehicles]);
 
   return (
     <Layout>
@@ -44,7 +57,7 @@ export default function Vehicles() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {vehicles.map((vehicle, index) => (
+              {vehicles.map((vehicle: Tour, index: number) => (
                 <TourCard key={vehicle.id} tour={vehicle} index={index} />
               ))}
             </div>

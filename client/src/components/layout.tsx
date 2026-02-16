@@ -69,7 +69,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
   // Deduplicate tours by normalized title to handle DB duplicates and naming variations
   const uniqueTours = allTours.reduce<typeof allTours>((acc, current) => {
     // Skip test data
-    if (current.title.toLowerCase().includes("verification")) return acc;
+    const titleLower = current.title.toLowerCase();
+    if (titleLower.includes("verification") ||
+      titleLower.includes("concurrent") ||
+      titleLower.includes("test_tour") ||
+      titleLower.includes("phase4")) {
+      return acc;
+    }
 
     const normalize = (t: string) => t.replace(/\s+Package$/i, "").trim();
     const normalizedTitle = normalize(current.title);

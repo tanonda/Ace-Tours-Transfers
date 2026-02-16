@@ -45,12 +45,14 @@ export function TourCard({ tour, index }: { tour: TourProps; index: number }) {
         >
           <div className="relative h-64 overflow-hidden">
             <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors z-10" />
-            <img
-              src={tour.image}
-              alt={tour.title}
-              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-            />
+            {tour.image && (
+              <img
+                src={tour.image}
+                alt={tour.title}
+                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+              />
+            )}
             <div className="absolute top-4 left-4 z-20 flex gap-2">
               <WishlistButton tourId={tour.id} />
               <ShareButton title={tour.title} description={tour.description[0]} />

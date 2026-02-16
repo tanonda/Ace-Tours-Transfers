@@ -1,3 +1,4 @@
+"use client";
 import React from 'react';
 import { formatCurrency } from './price-formatting';
 import type { PricingBreakdownProps } from './types';
