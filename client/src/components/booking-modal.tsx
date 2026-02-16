@@ -43,10 +43,21 @@ export function BookingModal({
   const { user } = useAuth();
   const { addToCart } = useCart();
 
-  const { data: allTours = [] } = useQuery({
+  const { data: rawTours = [] } = useQuery({
     queryKey: ["tours"],
     queryFn: fetchTours,
   });
+
+  // Filter out test data
+  const allTours = useMemo(() => {
+    return rawTours.filter(current => {
+      const titleLower = current.title.toLowerCase();
+      return !(titleLower.includes("verification") ||
+        titleLower.includes("concurrent") ||
+        titleLower.includes("test_tour") ||
+        titleLower.includes("phase4"));
+    });
+  }, [rawTours]);
 
   const { data: availableAddons = [] } = useQuery<Addon[]>({
     queryKey: ["/api/addons"],

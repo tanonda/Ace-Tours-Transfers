@@ -1,3 +1,4 @@
+"use client";
 import React, { useEffect } from 'react';
 import { useRealtimeAvailability } from '../../hooks/useRealtimeAvailability';
 import type { AvailabilityStatusProps } from './types';

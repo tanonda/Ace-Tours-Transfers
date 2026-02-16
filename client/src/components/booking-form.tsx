@@ -1,3 +1,4 @@
+"use client";
 
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useForm } from "react-hook-form";
@@ -6,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { CounterInput } from "@/components/ui/counter-input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -318,7 +319,7 @@ export function BookingForm({
                   control={form.control}
                   name="service"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="col-span-full">
                       <FormLabel className="text-sm font-semibold text-slate-700">{t("booking.service", "Service")}</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
@@ -332,23 +333,31 @@ export function BookingForm({
                         <SelectContent className="rounded-xl shadow-xl border-slate-100">
                           <SelectItem value="select" disabled>{t("booking.selectOption", "Select an option")}</SelectItem>
                           {services.filter(s => s.category === 'tour').length > 0 && (
-                            <div className="px-2 py-2 text-[10px] uppercase tracking-wider font-black text-slate-400">Tours</div>
+                            <>
+                              <SelectLabel className="px-2 py-2 text-[10px] uppercase tracking-wider font-black text-slate-400">Tours</SelectLabel>
+                              {services.filter(s => s.category === 'tour').map((service) => (
+                                <SelectItem key={service.id} value={service.title} className="rounded-md focus:bg-primary/10">{service.title}</SelectItem>
+                              ))}
+                            </>
                           )}
-                          {services.filter(s => s.category === 'tour').map((service) => (
-                            <SelectItem key={service.id} value={service.title} className="rounded-md focus:bg-primary/10">{service.title}</SelectItem>
-                          ))}
                           {services.filter(s => s.category === 'transfer').length > 0 && (
-                            <div className="px-2 py-2 text-[10px] uppercase tracking-wider font-black text-slate-400 mt-2 border-t border-slate-50 pt-2">Transfers</div>
+                            <>
+                              <SelectSeparator className="my-2" />
+                              <SelectLabel className="px-2 py-2 text-[10px] uppercase tracking-wider font-black text-slate-400 pt-2">Transfers</SelectLabel>
+                              {services.filter(s => s.category === 'transfer').map((service) => (
+                                <SelectItem key={service.id} value={service.title} className="rounded-md focus:bg-primary/10">{service.title}</SelectItem>
+                              ))}
+                            </>
                           )}
-                          {services.filter(s => s.category === 'transfer').map((service) => (
-                            <SelectItem key={service.id} value={service.title} className="rounded-md focus:bg-primary/10">{service.title}</SelectItem>
-                          ))}
                           {services.filter(s => s.category === 'vehicle').length > 0 && (
-                            <div className="px-2 py-2 text-[10px] uppercase tracking-wider font-black text-slate-400 mt-2 border-t border-slate-50 pt-2">Vehicles</div>
+                            <>
+                              <SelectSeparator className="my-2" />
+                              <SelectLabel className="px-2 py-2 text-[10px] uppercase tracking-wider font-black text-slate-400 pt-2">Vehicles</SelectLabel>
+                              {services.filter(s => s.category === 'vehicle').map((service) => (
+                                <SelectItem key={service.id} value={service.title} className="rounded-md focus:bg-primary/10">{service.title}</SelectItem>
+                              ))}
+                            </>
                           )}
-                          {services.filter(s => s.category === 'vehicle').map((service) => (
-                            <SelectItem key={service.id} value={service.title} className="rounded-md focus:bg-primary/10">{service.title}</SelectItem>
-                          ))}
                         </SelectContent>
                       </Select>
                       <FormMessage />

@@ -63,11 +63,13 @@ export function ProductQuickView({ isOpen, onClose, product }: ProductQuickViewP
         <div className="flex flex-col md:flex-row h-full">
           {/* Image Side */}
           <div className="w-full md:w-1/2 relative h-48 md:h-auto">
-            <img
-              src={product.image}
-              alt={product.title}
-              className="w-full h-full object-cover"
-            />
+            {product.image && (
+              <img
+                src={product.image}
+                alt={product.title}
+                className="w-full h-full object-cover"
+              />
+            )}
             <div className="absolute top-4 left-4">
               <Badge className="bg-background/90 text-foreground hover:bg-background font-bold shadow-sm backdrop-blur-sm border border-border/50">
                 {formatPriceDisplay(product.adultPriceCents, currency)}

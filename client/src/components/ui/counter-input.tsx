@@ -1,8 +1,8 @@
 import * as React from "react"
 import { Minus, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
+import { motion, AnimatePresence, Variants } from "framer-motion"
 
 interface CounterInputProps {
     value: number
@@ -23,38 +23,41 @@ export function CounterInput({
     className,
     inputClassName,
 }: CounterInputProps) {
+    const [direction, setDirection] = React.useState(0);
+
     const handleIncrement = () => {
         if (value < max) {
+            setDirection(1);
             onValueChange(value + 1)
         }
     }
 
     const handleDecrement = () => {
         if (value > min) {
+            setDirection(-1);
             onValueChange(value - 1)
         }
     }
 
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const newValue = parseInt(e.target.value)
-        if (!isNaN(newValue)) {
-            if (newValue >= min && newValue <= max) {
-                onValueChange(newValue)
-            }
-        } else if (e.target.value === "") {
-            // Allow empty intermediate state, but maybe handle blur? 
-            // For now, let's just not update parent if empty to avoid NaN
-        }
-    }
-
-    const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
-        const newValue = parseInt(e.target.value)
-        if (isNaN(newValue) || newValue < min) {
-            onValueChange(min)
-        } else if (newValue > max) {
-            onValueChange(max)
-        }
-    }
+    const variants: Variants = {
+        initial: (d: number) => ({
+            y: d > 0 ? 20 : d < 0 ? -20 : 0,
+            opacity: 0,
+            scale: 0.8
+        }),
+        animate: {
+            y: 0,
+            opacity: 1,
+            scale: 1,
+            transition: { type: "spring", stiffness: 300, damping: 30 }
+        },
+        exit: (d: number) => ({
+            y: d > 0 ? -20 : d < 0 ? 20 : 0,
+            opacity: 0,
+            scale: 0.8,
+            transition: { duration: 0.2 }
+        })
+    };
 
     return (
         <div className={cn("flex items-center bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm", className)}>
@@ -62,33 +65,38 @@ export function CounterInput({
                 variant="ghost"
                 size="icon"
                 type="button"
-                className="h-10 w-10 shrink-0 rounded-none hover:bg-slate-50 border-r border-slate-100"
+                className="h-10 w-10 shrink-0 rounded-none hover:bg-slate-50 border-r border-slate-100 disabled:opacity-30"
                 onClick={handleDecrement}
                 disabled={value <= min}
                 aria-label={`Decrease ${label || "value"}`}
             >
                 <Minus className="h-4 w-4 text-slate-600" />
             </Button>
-            <div className="relative flex-1 min-w-[3rem]">
-                <Input
-                    type="number"
-                    value={value}
-                    onChange={handleInputChange}
-                    onBlur={handleBlur}
-                    className={cn(
-                        "text-center h-10 border-0 bg-transparent focus-visible:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none text-slate-900 font-bold text-lg",
-                        inputClassName
-                    )}
-                    min={min}
-                    max={max}
-                    aria-label={label}
-                />
+
+            <div className="relative flex-1 min-w-[3rem] h-10 flex items-center justify-center overflow-hidden">
+                <AnimatePresence mode="popLayout" custom={direction}>
+                    <motion.span
+                        key={value}
+                        custom={direction}
+                        variants={variants}
+                        initial="initial"
+                        animate="animate"
+                        exit="exit"
+                        className={cn(
+                            "text-center font-bold text-lg text-slate-900 select-none",
+                            inputClassName
+                        )}
+                    >
+                        {value}
+                    </motion.span>
+                </AnimatePresence>
             </div>
+
             <Button
                 variant="ghost"
                 size="icon"
                 type="button"
-                className="h-10 w-10 shrink-0 rounded-none hover:bg-slate-50 border-l border-slate-100"
+                className="h-10 w-10 shrink-0 rounded-none hover:bg-slate-50 border-l border-slate-100 disabled:opacity-30"
                 onClick={handleIncrement}
                 disabled={value >= max}
                 aria-label={`Increase ${label || "value"}`}
