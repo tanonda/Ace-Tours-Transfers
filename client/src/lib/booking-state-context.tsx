@@ -96,11 +96,13 @@ export function BookingStateProvider({ children }: { children: React.ReactNode }
 
     const updateDraft = useCallback((updates: Partial<BookingDraft>) => {
         setDraftState(prev => {
-            if (!prev) {
-                // If no draft exists, create one with defaults and updates
-                return { ...defaultDraft, ...updates };
-            }
-            return { ...prev, ...updates };
+            const current = prev || defaultDraft;
+            const hasChanges = Object.entries(updates).some(([key, value]) => {
+                return current[key as keyof BookingDraft] !== value;
+            });
+
+            if (!hasChanges) return prev;
+            return { ...current, ...updates };
         });
     }, []);
 

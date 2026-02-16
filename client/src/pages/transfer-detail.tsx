@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Clock, Users, Check, Star, ShoppingCart, ArrowLeft, Calendar, Car } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useCart } from "@/lib/cart-context";
 import { useBookingDraft, usePrefillFromCart } from "@/lib/booking-state-context";
 import { Input } from "@/components/ui/input";
@@ -227,11 +227,11 @@ export default function TransferDetail() {
                       <AvailabilityCalendar
                         tourId={transfer.id}
                         participants={Math.max(1, parseInt(adultPax) + parseInt(childPax))}
-                        onDateSelect={(selectedDate) => {
+                        onDateSelect={useCallback((selectedDate: string) => {
                           setDate(selectedDate);
                           setSelectedTime(null);
-                        }}
-                        onTimeSelect={(time) => setSelectedTime(time)}
+                        }, [])}
+                        onTimeSelect={useCallback((time: string) => setSelectedTime(time), [])}
                       />
                       {selectedTime && (
                         <div className="mt-4 p-4 bg-primary/5 rounded-lg border border-primary/20 text-center">
@@ -295,11 +295,11 @@ export default function TransferDetail() {
                               <AvailabilityCalendar
                                 tourId={transfer.id}
                                 participants={Math.max(1, parseInt(adultPax) + parseInt(childPax))}
-                                onDateSelect={(d) => {
+                                onDateSelect={useCallback((d: string) => {
                                   setDate(d);
                                   setSelectedTime(null);
-                                }}
-                                onTimeSelect={(t) => setSelectedTime(t)}
+                                }, [])}
+                                onTimeSelect={useCallback((t: string) => setSelectedTime(t), [])}
                               />
                             </PopoverContent>
                           </Popover>

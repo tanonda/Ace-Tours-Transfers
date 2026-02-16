@@ -22,6 +22,15 @@ export function useRealtimeAvailability(
 
     const { enabled = true, pollingInterval = 30000, onUpdate } = options;
 
+    const paramsKey = JSON.stringify({
+        productId: params?.productId,
+        date: params?.date,
+        adultPax: params?.adultPax,
+        childPax: params?.childPax,
+        slot: params?.startTime,
+        addonIds: params?.addonIds
+    });
+
     useEffect(() => {
         if (!params || !enabled) {
             if (!params) setData(null);
@@ -56,21 +65,9 @@ export function useRealtimeAvailability(
 
         fetchData();
 
-        // Polling setup (Phase 3C will replace/augment this with WebSockets)
         const interval = setInterval(() => fetchData(false), pollingInterval);
-
         return () => clearInterval(interval);
-    }, [
-        params?.productId,
-        params?.date,
-        params?.adultPax,
-        params?.childPax,
-        params?.startTime,
-        params?.endTime,
-        JSON.stringify(params?.addonIds),
-        enabled,
-        pollingInterval
-    ]);
+    }, [paramsKey, enabled, pollingInterval]);
 
     return { data, loading, error };
 }

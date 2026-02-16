@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Clock, Users, Check, Star, ShoppingCart, ArrowLeft, Calendar } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useCart } from "@/lib/cart-context";
 import { useBookingDraft, usePrefillFromCart } from "@/lib/booking-state-context";
 import { Input } from "@/components/ui/input";
@@ -314,11 +314,11 @@ export default function TourDetail() {
                             <AvailabilityCalendar
                               tourId={id || ""}
                               participants={Math.max(1, parseInt(adultPax) + parseInt(childPax))}
-                              onDateSelect={(d) => {
+                              onDateSelect={useCallback((d: string) => {
                                 setDate(d);
-                                setSelectedTime(null); // Reset time when date changes
-                              }}
-                              onTimeSelect={(t) => setSelectedTime(t)}
+                                setSelectedTime(null);
+                              }, [])}
+                              onTimeSelect={useCallback((t: string) => setSelectedTime(t), [])}
                             />
                           </PopoverContent>
                         </Popover>
