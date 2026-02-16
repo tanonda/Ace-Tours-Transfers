@@ -49,6 +49,31 @@ export default function TransferDetail() {
     enabled: !!id,
   });
 
+  const handleDateSelect = useCallback((d: string) => {
+    setDate(d);
+    setSelectedTime(null);
+  }, []);
+
+  const handleTimeSelect = useCallback((t: string) => {
+    setSelectedTime(t);
+  }, []);
+
+  const handleAddToCart = () => {
+    if (!transfer) return;
+    addToCart({
+      id: transfer.id,
+      title: transfer.title,
+      price: transfer.adultPriceCents,
+      childPrice: transfer.childPriceCents,
+      image: transfer.image,
+      type: (transfer.category || "transfer") as ProductCategory,
+      adultPax: parseInt(adultPax),
+      childPax: parseInt(childPax),
+      date: date ? new Date(date) : new Date(),
+      startTime: selectedTime || undefined,
+    });
+  };
+
   if (isLoading) {
     return (
       <Layout>
@@ -73,20 +98,6 @@ export default function TransferDetail() {
     );
   }
 
-  const handleAddToCart = () => {
-    addToCart({
-      id: transfer.id,
-      title: transfer.title,
-      price: transfer.adultPriceCents,
-      childPrice: transfer.childPriceCents,
-      image: transfer.image,
-      type: (transfer.category || "transfer") as ProductCategory,
-      adultPax: parseInt(adultPax),
-      childPax: parseInt(childPax),
-      date: date ? new Date(date) : new Date(),
-      startTime: selectedTime || undefined,
-    });
-  };
 
   return (
     <Layout>
@@ -227,11 +238,8 @@ export default function TransferDetail() {
                       <AvailabilityCalendar
                         tourId={transfer.id}
                         participants={Math.max(1, parseInt(adultPax) + parseInt(childPax))}
-                        onDateSelect={useCallback((selectedDate: string) => {
-                          setDate(selectedDate);
-                          setSelectedTime(null);
-                        }, [])}
-                        onTimeSelect={useCallback((time: string) => setSelectedTime(time), [])}
+                        onDateSelect={handleDateSelect}
+                        onTimeSelect={handleTimeSelect}
                       />
                       {selectedTime && (
                         <div className="mt-4 p-4 bg-primary/5 rounded-lg border border-primary/20 text-center">
@@ -295,11 +303,8 @@ export default function TransferDetail() {
                               <AvailabilityCalendar
                                 tourId={transfer.id}
                                 participants={Math.max(1, parseInt(adultPax) + parseInt(childPax))}
-                                onDateSelect={useCallback((d: string) => {
-                                  setDate(d);
-                                  setSelectedTime(null);
-                                }, [])}
-                                onTimeSelect={useCallback((t: string) => setSelectedTime(t), [])}
+                                onDateSelect={handleDateSelect}
+                                onTimeSelect={handleTimeSelect}
                               />
                             </PopoverContent>
                           </Popover>

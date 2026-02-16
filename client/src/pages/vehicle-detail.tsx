@@ -58,6 +58,32 @@ export default function VehicleDetail() {
     enabled: !!id,
   });
 
+  const handleDateSelect = useCallback((d: string) => {
+    setDate(d);
+    setSelectedTime(null);
+  }, []);
+
+  const handleTimeSelect = useCallback((t: string) => {
+    setSelectedTime(t);
+  }, []);
+
+  const handleAddToCart = () => {
+    if (!vehicle) return;
+    addToCart({
+      id: vehicle.id,
+      title: vehicle.title,
+      price: vehicle.adultPriceCents,
+      childPrice: 0, // Vehicles don't have child pricing
+      image: vehicle.image,
+      type: "vehicle",
+      adultPax: 1,
+      childPax: 0,
+      quantity: parseInt(days),
+      date: date ? new Date(date) : new Date(),
+      startTime: selectedTime || undefined,
+    });
+  };
+
   if (isLoading) {
     return (
       <Layout>
@@ -84,21 +110,6 @@ export default function VehicleDetail() {
 
   const vehicleDetails = vehicle.vehicleDetails as VehicleDetails | undefined;
 
-  const handleAddToCart = () => {
-    addToCart({
-      id: vehicle.id,
-      title: vehicle.title,
-      price: vehicle.adultPriceCents,
-      childPrice: 0, // Vehicles don't have child pricing
-      image: vehicle.image,
-      type: "vehicle",
-      adultPax: 1,
-      childPax: 0,
-      quantity: parseInt(days),
-      date: date ? new Date(date) : new Date(),
-      startTime: selectedTime || undefined,
-    });
-  };
 
   return (
     <Layout>
@@ -253,11 +264,8 @@ export default function VehicleDetail() {
                               <AvailabilityCalendar
                                 tourId={vehicle.id}
                                 participants={1}
-                                onDateSelect={useCallback((d: string) => {
-                                  setDate(d);
-                                  setSelectedTime(null);
-                                }, [])}
-                                onTimeSelect={useCallback((t: string) => setSelectedTime(t), [])}
+                                onDateSelect={handleDateSelect}
+                                onTimeSelect={handleTimeSelect}
                               />
                             </PopoverContent>
                           </Popover>

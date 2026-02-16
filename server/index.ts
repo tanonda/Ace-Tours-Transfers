@@ -15,6 +15,29 @@ import { migrate } from "drizzle-orm/neon-serverless/migrator";
 // 1. Validate environment & Log posture
 validateConfig();
 
+// Global handler for unhandled promise rejections
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[FATAL] Unhandled Rejection at:', promise, 'reason:', reason);
+  // Log and continue - some library-level errors (like Neon's ErrorEvent issue) 
+  // shouldn't crash the entire process.
+});
+
+// Global handler for uncaught exceptions
+process.on('uncaughtException', (err) => {
+  console.error('[FATAL] Uncaught Exception:', err);
+
+  // If it's the specific Neon TypeError, we can safely ignore/log it as it's a library bug
+  // related to ErrorEvent property modification in Node 24.
+  if (err instanceof TypeError && err.message.includes('Cannot set property message of #<ErrorEvent>')) {
+    console.warn('[RECOVERY] Suppressed Neon library bug. Continuing...');
+    return;
+  }
+
+  // For other critical errors, we might want to exit, but in a dev/replit env
+  // it's often better to stay alive and log.
+  console.warn('[RECOVERY] Process continuing after uncaught exception.');
+});
+
 const app = express();
 const httpServer = createServer(app);
 
