@@ -10,6 +10,7 @@ import { BookingModal } from "@/components/booking-modal";
 import { useQuery } from "@tanstack/react-query";
 import { fetchTours } from "@/lib/api";
 import { useTranslation } from "react-i18next";
+import React, { useMemo } from "react";
 
 // Using Cloudinary URL instead of local import
 const aboutImg = "https://res.cloudinary.com/dwro1dh5q/image/upload/v1764939968/ace-tours-stock/1764939966139_vanuatu_rarru_waterf_a12f619f.jpg.jpg";
@@ -22,34 +23,36 @@ export default function Home() {
   });
 
   // Deduplicate tours by normalized title
-  const uniqueTours = allTours.reduce<typeof allTours>((acc, current) => {
-    // Skip test data with safety checks
-    if (!current?.title) return acc;
-    const titleLower = current.title.toLowerCase();
-    if (titleLower.includes("verification") ||
-      titleLower.includes("concurrent") ||
-      titleLower.includes("test_tour") ||
-      titleLower.includes("phase4")) {
+  const uniqueTours = useMemo(() => {
+    return allTours.reduce<typeof allTours>((acc, current) => {
+      // Skip test data with safety checks
+      if (!current?.title) return acc;
+      const titleLower = current.title.toLowerCase();
+      if (titleLower.includes("verification") ||
+        titleLower.includes("concurrent") ||
+        titleLower.includes("test_tour") ||
+        titleLower.includes("phase4")) {
+        return acc;
+      }
+
+      const normalize = (t: string) => t.replace(/\s+Package$/i, "").trim();
+      const normalizedTitle = normalize(current.title);
+
+      const existingIndex = acc.findIndex(item => {
+        if (!item?.title) return false;
+        return normalize(item.title) === normalizedTitle;
+      });
+
+      if (existingIndex === -1) {
+        acc.push(current);
+      }
       return acc;
-    }
+    }, []);
+  }, [allTours]);
 
-    const normalize = (t: string) => t.replace(/\s+Package$/i, "").trim();
-    const normalizedTitle = normalize(current.title);
-
-    const existingIndex = acc.findIndex(item => {
-      if (!item?.title) return false;
-      return normalize(item.title) === normalizedTitle;
-    });
-
-    if (existingIndex === -1) {
-      acc.push(current);
-    }
-    return acc;
-  }, []);
-
-  const toursList = uniqueTours.filter(t => t.category === "tour");
-  const transfers = uniqueTours.filter(t => t.category === "transfer");
-  const vehicles = uniqueTours.filter(t => t.category === "vehicle");
+  const toursList = useMemo(() => uniqueTours.filter(t => t.category === "tour"), [uniqueTours]);
+  const transfers = useMemo(() => uniqueTours.filter(t => t.category === "transfer"), [uniqueTours]);
+  const vehicles = useMemo(() => uniqueTours.filter(t => t.category === "vehicle"), [uniqueTours]);
 
   return (
     <Layout>

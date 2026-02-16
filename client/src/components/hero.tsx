@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { Link, useLocation } from "wouter";
 import { useTranslation } from "react-i18next";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -29,34 +29,36 @@ export function Hero() {
   });
 
   // Deduplicate tours by normalized title
-  const uniqueTours = allTours.reduce<typeof allTours>((acc, current) => {
-    // Skip test data with safety checks
-    if (!current?.title) return acc;
-    const titleLower = current.title.toLowerCase();
-    if (titleLower.includes("verification") ||
-      titleLower.includes("concurrent") ||
-      titleLower.includes("test_tour") ||
-      titleLower.includes("phase4")) {
+  const uniqueTours = useMemo(() => {
+    return allTours.reduce<typeof allTours>((acc, current) => {
+      // Skip test data with safety checks
+      if (!current?.title) return acc;
+      const titleLower = current.title.toLowerCase();
+      if (titleLower.includes("verification") ||
+        titleLower.includes("concurrent") ||
+        titleLower.includes("test_tour") ||
+        titleLower.includes("phase4")) {
+        return acc;
+      }
+
+      const normalize = (t: string) => t.replace(/\s+Package$/i, "").trim();
+      const normalizedTitle = normalize(current.title);
+
+      const existingIndex = acc.findIndex(item => {
+        if (!item?.title) return false;
+        return normalize(item.title) === normalizedTitle;
+      });
+
+      if (existingIndex === -1) {
+        acc.push(current);
+      }
       return acc;
-    }
+    }, []);
+  }, [allTours]);
 
-    const normalize = (t: string) => t.replace(/\s+Package$/i, "").trim();
-    const normalizedTitle = normalize(current.title);
-
-    const existingIndex = acc.findIndex(item => {
-      if (!item?.title) return false;
-      return normalize(item.title) === normalizedTitle;
-    });
-
-    if (existingIndex === -1) {
-      acc.push(current);
-    }
-    return acc;
-  }, []);
-
-  const tours = uniqueTours.filter(t => t.category === "tour");
-  const transfers = uniqueTours.filter(t => t.category === "transfer");
-  const vehicles = uniqueTours.filter(t => t.category === "vehicle");
+  const tours = useMemo(() => uniqueTours.filter(t => t.category === "tour"), [uniqueTours]);
+  const transfers = useMemo(() => uniqueTours.filter(t => t.category === "transfer"), [uniqueTours]);
+  const vehicles = useMemo(() => uniqueTours.filter(t => t.category === "vehicle"), [uniqueTours]);
 
   const handleSearch = () => {
     const params = new URLSearchParams();
@@ -64,19 +66,19 @@ export function Hero() {
     if (guests) params.set("guests", guests);
 
     // Check for specific product selection first
-    if (serviceType.startsWith("tour-")) {
+    if (typeof serviceType === "string" && serviceType.startsWith("tour-")) {
       const tourId = serviceType.replace("tour-", "");
       setLocation(`/tours/${tourId}?${params.toString()}`);
       return;
     }
 
-    if (serviceType.startsWith("transfer-")) {
+    if (typeof serviceType === "string" && serviceType.startsWith("transfer-")) {
       const transferId = serviceType.replace("transfer-", "");
       setLocation(`/transfers/${transferId}?${params.toString()}`);
       return;
     }
 
-    if (serviceType.startsWith("vehicle-")) {
+    if (typeof serviceType === "string" && serviceType.startsWith("vehicle-")) {
       const vehicleId = serviceType.replace("vehicle-", "");
       setLocation(`/vehicles/${vehicleId}?${params.toString()}`);
       return;

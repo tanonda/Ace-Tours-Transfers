@@ -98,6 +98,31 @@ export default function TourDetail() {
     ? reviews.reduce((acc: number, r: any) => acc + r.rating, 0) / reviews.length
     : 5;
 
+  const handleAddToCart = () => {
+    if (!tour) return;
+    addToCart({
+      id: tour.id,
+      title: tour.title,
+      price: tour.adultPriceCents,
+      childPrice: tour.childPriceCents,
+      image: tour.image,
+      type: (tour.category || "tour") as ProductCategory,
+      adultPax: parseInt(adultPax),
+      childPax: parseInt(childPax),
+      date: date ? new Date(date) : new Date(),
+      startTime: selectedTime || undefined,
+    });
+  };
+
+  const handleDateSelect = useCallback((d: string) => {
+    setDate(d);
+    setSelectedTime(null);
+  }, []);
+
+  const handleTimeSelect = useCallback((t: string) => {
+    setSelectedTime(t);
+  }, []);
+
   if (isLoading) {
     return (
       <Layout>
@@ -121,21 +146,6 @@ export default function TourDetail() {
       </Layout>
     );
   }
-
-  const handleAddToCart = () => {
-    addToCart({
-      id: tour.id,
-      title: tour.title,
-      price: tour.adultPriceCents,
-      childPrice: tour.childPriceCents,
-      image: tour.image,
-      type: (tour.category || "tour") as ProductCategory,
-      adultPax: parseInt(adultPax),
-      childPax: parseInt(childPax),
-      date: date ? new Date(date) : new Date(),
-      startTime: selectedTime || undefined,
-    });
-  };
 
   return (
     <Layout>
@@ -314,11 +324,8 @@ export default function TourDetail() {
                             <AvailabilityCalendar
                               tourId={id || ""}
                               participants={Math.max(1, parseInt(adultPax) + parseInt(childPax))}
-                              onDateSelect={useCallback((d: string) => {
-                                setDate(d);
-                                setSelectedTime(null);
-                              }, [])}
-                              onTimeSelect={useCallback((t: string) => setSelectedTime(t), [])}
+                              onDateSelect={handleDateSelect}
+                              onTimeSelect={handleTimeSelect}
                             />
                           </PopoverContent>
                         </Popover>

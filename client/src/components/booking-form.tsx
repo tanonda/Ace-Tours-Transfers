@@ -333,30 +333,30 @@ export function BookingForm({
                         <SelectContent className="rounded-xl shadow-xl border-slate-100">
                           <SelectItem value="select" disabled>{t("booking.selectOption", "Select an option")}</SelectItem>
                           {services.filter(s => s.category === 'tour').length > 0 && (
-                            <>
+                            <SelectGroup>
                               <SelectLabel className="px-2 py-2 text-[10px] uppercase tracking-wider font-black text-slate-400">Tours</SelectLabel>
                               {services.filter(s => s.category === 'tour').map((service) => (
                                 <SelectItem key={service.id} value={service.title} className="rounded-md focus:bg-primary/10">{service.title}</SelectItem>
                               ))}
-                            </>
+                            </SelectGroup>
                           )}
                           {services.filter(s => s.category === 'transfer').length > 0 && (
-                            <>
+                            <SelectGroup>
                               <SelectSeparator className="my-2" />
                               <SelectLabel className="px-2 py-2 text-[10px] uppercase tracking-wider font-black text-slate-400 pt-2">Transfers</SelectLabel>
                               {services.filter(s => s.category === 'transfer').map((service) => (
                                 <SelectItem key={service.id} value={service.title} className="rounded-md focus:bg-primary/10">{service.title}</SelectItem>
                               ))}
-                            </>
+                            </SelectGroup>
                           )}
                           {services.filter(s => s.category === 'vehicle').length > 0 && (
-                            <>
+                            <SelectGroup>
                               <SelectSeparator className="my-2" />
                               <SelectLabel className="px-2 py-2 text-[10px] uppercase tracking-wider font-black text-slate-400 pt-2">Vehicles</SelectLabel>
                               {services.filter(s => s.category === 'vehicle').map((service) => (
                                 <SelectItem key={service.id} value={service.title} className="rounded-md focus:bg-primary/10">{service.title}</SelectItem>
                               ))}
-                            </>
+                            </SelectGroup>
                           )}
                         </SelectContent>
                       </Select>

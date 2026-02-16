@@ -113,11 +113,13 @@ export function TourCard({ tour, index }: { tour: TourProps; index: number }) {
         </Card>
       </motion.div>
 
-      <ProductQuickView
-        isOpen={showQuickView}
-        onClose={() => setShowQuickView(false)}
-        product={tour}
-      />
+      {showQuickView && (
+        <ProductQuickView
+          isOpen={showQuickView}
+          onClose={() => setShowQuickView(false)}
+          product={tour}
+        />
+      )}
     </>
   );
 }

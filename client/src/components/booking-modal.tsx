@@ -33,6 +33,34 @@ export function BookingModal({
   initialDate
 }: BookingModalProps) {
   const [open, setOpen] = useState(false);
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        {trigger}
+      </DialogTrigger>
+      <DialogContent className="w-[95vw] max-w-6xl p-0 overflow-hidden border-0 shadow-2xl flex flex-col h-[90vh] sm:h-auto sm:max-h-[90vh]">
+        {open && (
+          <BookingModalContent
+            preselectedService={preselectedService}
+            initialAdultPax={initialAdultPax}
+            initialChildPax={initialChildPax}
+            initialDate={initialDate}
+            setOpen={setOpen}
+          />
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function BookingModalContent({
+  preselectedService,
+  initialAdultPax,
+  initialChildPax,
+  initialDate,
+  setOpen
+}: BookingModalProps & { setOpen: (open: boolean) => void }) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [isAvailable, setIsAvailable] = useState<boolean | null>(null); // null: not checked, true: available, false: unavailable
@@ -211,61 +239,56 @@ export function BookingModal({
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {trigger}
-      </DialogTrigger>
-      <DialogContent className="w-[95vw] max-w-6xl p-0 overflow-hidden border-0 shadow-2xl flex flex-col h-[90vh] sm:h-auto sm:max-h-[90vh]">
-        <div className="relative bg-gradient-to-br from-primary via-primary to-orange-600 px-6 pt-6 pb-8 text-white overflow-hidden shrink-0">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
-          <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
-          <Sparkles className="absolute top-4 right-4 h-5 w-5 text-white/40 animate-pulse" />
+    <>
+      <div className="relative bg-gradient-to-br from-primary via-primary to-orange-600 px-6 pt-6 pb-8 text-white overflow-hidden shrink-0">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+        <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
+        <Sparkles className="absolute top-4 right-4 h-5 w-5 text-white/40 animate-pulse" />
 
-          <div className="relative flex items-center gap-4">
-            <img
-              src={logo}
-              alt="Ace Tours"
-              className="h-14 w-14 rounded-full border-2 border-white/30 shadow-lg"
-            />
-            <div>
-              <DialogTitle className="font-serif text-2xl font-bold text-white mb-1">
-                {t("booking.title", "Plan Your Adventure")}
-              </DialogTitle>
-              <DialogDescription className="text-white/80 text-sm">
-                {t("app.tagline", "Experience Vanuatu Like Never Before")}
-              </DialogDescription>
-            </div>
-          </div>
-
-          <div className="relative flex items-center gap-4 mt-4 text-xs text-white/70">
-            <div className="flex items-center gap-1">
-              <Shield className="h-3.5 w-3.5" />
-              <span>{t("booking.secure", "Secure Booking")}</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <Star className="h-3.5 w-3.5" />
-              <span>{t("booking.rated", "5-Star Service")}</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="px-4 sm:px-8 xl:px-12 py-8 bg-gradient-to-b from-background to-muted/30 overflow-y-auto flex-1">
-          <BookingForm
-            initialValues={initialFormValues}
-            onSubmit={handleBookingSubmit}
-            isLoading={isLoading}
-            submitButtonText={t("booking.submit", "Submit Request")}
-            showPrice={true}
-            adultPriceCents={adultPriceCents}
-            childPriceCents={childPriceCents}
-            onAvailabilityCheck={handleAvailabilityCheck}
-            isAvailable={isAvailable}
-            availabilityMessage={availabilityMessage}
-            isCheckingAvailability={isCheckingAvailability}
-            services={allTours}
+        <div className="relative flex items-center gap-4">
+          <img
+            src={logo}
+            alt="Ace Tours"
+            className="h-14 w-14 rounded-full border-2 border-white/30 shadow-lg"
           />
+          <div>
+            <DialogTitle className="font-serif text-2xl font-bold text-white mb-1">
+              {t("booking.title", "Plan Your Adventure")}
+            </DialogTitle>
+            <DialogDescription className="text-white/80 text-sm">
+              {t("app.tagline", "Experience Vanuatu Like Never Before")}
+            </DialogDescription>
+          </div>
         </div>
-      </DialogContent>
-    </Dialog>
+
+        <div className="relative flex items-center gap-4 mt-4 text-xs text-white/70">
+          <div className="flex items-center gap-1">
+            <Shield className="h-3.5 w-3.5" />
+            <span>{t("booking.secure", "Secure Booking")}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <Star className="h-3.5 w-3.5" />
+            <span>{t("booking.rated", "5-Star Service")}</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="px-4 sm:px-8 xl:px-12 py-8 bg-gradient-to-b from-background to-muted/30 overflow-y-auto flex-1">
+        <BookingForm
+          initialValues={initialFormValues}
+          onSubmit={handleBookingSubmit}
+          isLoading={isLoading}
+          submitButtonText={t("booking.submit", "Submit Request")}
+          showPrice={true}
+          adultPriceCents={adultPriceCents}
+          childPriceCents={childPriceCents}
+          onAvailabilityCheck={handleAvailabilityCheck}
+          isAvailable={isAvailable}
+          availabilityMessage={availabilityMessage}
+          isCheckingAvailability={isCheckingAvailability}
+          services={allTours}
+        />
+      </div>
+    </>
   );
 }
