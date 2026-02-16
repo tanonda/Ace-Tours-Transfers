@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { CalendarDay } from './CalendarDay';
 import { useCalendarData } from './useCalendarData';
 import type { AvailabilityCalendarProps, CalendarDayData } from './types';
@@ -21,7 +21,7 @@ const MONTHS = [
   'December',
 ];
 
-export const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
+export const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = React.memo(({
   tourId,
   onDateSelect,
   onTimeSelect,
@@ -32,24 +32,19 @@ export const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
+  const month = currentMonth.getMonth();
+  const year = currentMonth.getFullYear();
+
   const { data, loading } = useCalendarData({
     tourId,
-    month: currentMonth.getMonth(),
-    year: currentMonth.getFullYear(),
+    month,
+    year,
   });
-
-  const daysInMonth = (date: Date) => {
-    return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-  };
-
-  const firstDayOfMonth = (date: Date) => {
-    return new Date(date.getFullYear(), date.getMonth(), 1).getDay();
-  };
 
   const calendar = useMemo(() => {
     const days: (CalendarDayData | null)[] = [];
-    const firstDay = firstDayOfMonth(currentMonth);
-    const numDays = daysInMonth(currentMonth);
+    const firstDay = new Date(year, month, 1).getDay();
+    const numDays = new Date(year, month + 1, 0).getDate();
 
     // Empty cells before month starts
     for (let i = 0; i < firstDay; i++) {
@@ -58,9 +53,7 @@ export const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
 
     // Days of month
     for (let i = 1; i <= numDays; i++) {
-      const dateStr = `${currentMonth.getFullYear()}-${String(
-        currentMonth.getMonth() + 1
-      ).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
 
       const dayData = data[dateStr];
       days.push({
@@ -77,28 +70,28 @@ export const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
     }
 
     return days;
-  }, [currentMonth, data]);
+  }, [year, month, data]);
 
-  const goToPreviousMonth = () => {
-    setCurrentMonth(
-      new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1)
-    );
-  };
+  const goToPreviousMonth = useCallback(() => {
+    setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1));
+  }, []);
 
-  const goToNextMonth = () => {
-    setCurrentMonth(
-      new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1)
-    );
-  };
+  const goToNextMonth = useCallback(() => {
+    setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1));
+  }, []);
 
-  const canGoBack = !minDate || currentMonth > minDate;
-  const canGoForward = !maxDate || currentMonth < maxDate;
+  const canGoBack = useMemo(() => !minDate || currentMonth > minDate, [minDate, currentMonth]);
+  const canGoForward = useMemo(() => !maxDate || currentMonth < maxDate, [maxDate, currentMonth]);
 
-  const handleDateClick = (dateStr: string) => {
-    const [year, month, day] = dateStr.split('-').map(Number);
+  const handleDateClick = useCallback((dateStr: string) => {
     setSelectedDate(dateStr);
     onDateSelect(dateStr);
-  };
+  }, [onDateSelect]);
+
+  const handleTimeSelect = useCallback((time: string) => {
+    console.log("Selected time:", time);
+    onTimeSelect?.(time);
+  }, [onTimeSelect]);
 
   return (
     <div className="availability-calendar">
@@ -201,18 +194,13 @@ export const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
         <TimeSlotsSection
           tourId={tourId}
           date={selectedDate}
-          onTimeSelect={(time) => {
-            // For now just log it, we need to pass this up
-            console.log("Selected time:", time);
-            // Verify if onDateSelect can handle time? No, it expects string date.
-            // We might need a new prop onTimeSelect
-          }}
+          onTimeSelect={handleTimeSelect}
           guests={participants}
         />
       )}
     </div>
   );
-};
+});
 
 // Internal component for handling slot logic to avoid cluttering main calendar
 import { TimeSlotPicker } from "./TimeSlotPicker";
