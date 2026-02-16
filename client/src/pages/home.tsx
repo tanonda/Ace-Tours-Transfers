@@ -21,9 +21,10 @@ export default function Home() {
     queryFn: fetchTours,
   });
 
-  // Deduplicate tours by normalized title to handle DB duplicates and naming variations
+  // Deduplicate tours by normalized title
   const uniqueTours = allTours.reduce<typeof allTours>((acc, current) => {
-    // Skip test data
+    // Skip test data with safety checks
+    if (!current?.title) return acc;
     const titleLower = current.title.toLowerCase();
     if (titleLower.includes("verification") ||
       titleLower.includes("concurrent") ||
@@ -35,7 +36,10 @@ export default function Home() {
     const normalize = (t: string) => t.replace(/\s+Package$/i, "").trim();
     const normalizedTitle = normalize(current.title);
 
-    const existingIndex = acc.findIndex(item => normalize(item.title) === normalizedTitle);
+    const existingIndex = acc.findIndex(item => {
+      if (!item?.title) return false;
+      return normalize(item.title) === normalizedTitle;
+    });
 
     if (existingIndex === -1) {
       acc.push(current);
