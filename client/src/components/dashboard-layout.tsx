@@ -12,7 +12,6 @@ import {
   ShoppingBag,
   User,
   Heart,
-  Bell,
   BarChart3,
   FileText,
   Tag,
@@ -47,147 +46,12 @@ interface DashboardLayoutProps {
 }
 
 export function DashboardLayout({ children, type }: DashboardLayoutProps) {
-  const [location, navigate] = useLocation();
+  const [location] = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const { user, logout } = useAuth();
 
   const toggleSidebar = () => {
     setIsSidebarOpen(prev => !prev);
-  };
-
-  const handleNotificationClick = (link: string) => {
-    navigate(link);
-  };
-
-  const adminNotifications = [
-    {
-      id: 1,
-      type: "booking",
-      title: "New Booking Confirmed",
-      message: "Efate Scenic Tour booked by James Doe",
-      details: {
-        bookingId: "BK-7821",
-        customer: "James Doe",
-        tour: "Efate Scenic Tour",
-        date: "Dec 15, 2024",
-        guests: 2,
-        amount: "$240"
-      },
-      time: "2 mins ago",
-      read: false,
-      link: "/admin/bookings"
-    },
-    {
-      id: 2,
-      type: "payment",
-      title: "Payment Received",
-      message: "Payment of $240 received for booking",
-      details: {
-        bookingId: "BK-7821",
-        customer: "James Doe",
-        amount: "$240",
-        method: "Credit Card"
-      },
-      time: "5 mins ago",
-      read: false,
-      link: "/admin/bookings"
-    },
-    {
-      id: 3,
-      type: "reminder",
-      title: "Tour Starting Tomorrow",
-      message: "Roots & Routes Tour scheduled for 8:00 AM",
-      details: {
-        tour: "Roots & Routes Tour",
-        date: "Dec 10, 2024",
-        time: "8:00 AM",
-        guests: 4
-      },
-      time: "1 hour ago",
-      read: true,
-      link: "/admin/calendar"
-    },
-    {
-      id: 4,
-      type: "alert",
-      title: "Low Availability Alert",
-      message: "Only 2 seats left for Efate Scenic Tour on Dec 20",
-      details: {
-        tour: "Efate Scenic Tour",
-        date: "Dec 20, 2024",
-        seatsLeft: 2
-      },
-      time: "3 hours ago",
-      read: true,
-      link: "/admin/tours"
-    }
-  ];
-
-  const customerNotifications = [
-    {
-      id: 1,
-      type: "booking",
-      title: "Booking Confirmed",
-      message: "Your Efate Scenic Tour is confirmed!",
-      details: {
-        bookingId: "BK-7821",
-        tour: "Efate Scenic Tour",
-        date: "Dec 15, 2024",
-        guests: 2,
-        amount: "$240"
-      },
-      time: "2 mins ago",
-      read: false,
-      link: "/dashboard/bookings"
-    },
-    {
-      id: 2,
-      type: "payment",
-      title: "Payment Successful",
-      message: "Your payment of $240 was processed",
-      details: {
-        bookingId: "BK-7821",
-        amount: "$240",
-        method: "Credit Card",
-        reference: "PAY-9823"
-      },
-      time: "5 mins ago",
-      read: false,
-      link: "/dashboard/bookings"
-    },
-    {
-      id: 3,
-      type: "reminder",
-      title: "Tour Reminder",
-      message: "Your tour starts tomorrow at 8:00 AM",
-      details: {
-        tour: "Roots & Routes Tour",
-        date: "Dec 10, 2024",
-        time: "8:00 AM",
-        pickup: "Hotel Warwick"
-      },
-      time: "1 hour ago",
-      read: true,
-      link: "/dashboard/bookings"
-    }
-  ];
-
-  const notifications = type === "admin" ? adminNotifications : customerNotifications;
-  const unreadCount = notifications.filter(n => !n.read).length;
-
-  const getNotificationIcon = (notificationType: string) => {
-    switch (notificationType) {
-      case "booking":
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case "payment":
-        return <CreditCard className="h-4 w-4 text-blue-500" />;
-      case "reminder":
-        return <Clock className="h-4 w-4 text-orange-500" />;
-      case "alert":
-        return <AlertCircle className="h-4 w-4 text-red-500" />;
-      default:
-        return <Bell className="h-4 w-4 text-muted-foreground" />;
-    }
   };
 
   const adminLinks = [

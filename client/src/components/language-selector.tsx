@@ -1,4 +1,8 @@
+// Fix #24: Replaced native <select> with Shadcn Select component for visual consistency
+// with the rest of the UI, especially in dark mode and custom-themed deployments.
 import { useTranslation } from 'react-i18next';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Globe } from "lucide-react";
 
 const languages = [
   { code: 'en', name: 'English' },
@@ -12,17 +16,25 @@ export function LanguageSelector() {
   const { i18n } = useTranslation();
 
   return (
-    <select
+    <Select
       value={i18n.language}
-      onChange={(e) => i18n.changeLanguage(e.target.value)}
-      className="px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50"
-      data-testid="select-language"
+      onValueChange={(value) => i18n.changeLanguage(value)}
     >
-      {languages.map(lang => (
-        <option key={lang.code} value={lang.code}>
-          {lang.name}
-        </option>
-      ))}
-    </select>
+      <SelectTrigger
+        className="w-auto gap-1.5 h-9 px-3 text-sm border-border bg-background"
+        aria-label="Select language"
+        data-testid="select-language"
+      >
+        <Globe className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {languages.map(lang => (
+          <SelectItem key={lang.code} value={lang.code}>
+            {lang.name}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }

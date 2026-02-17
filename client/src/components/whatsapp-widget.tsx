@@ -24,6 +24,15 @@ export function WhatsAppWidget() {
     "bottom-right": "bottom-6 right-6",
     "bottom-left": "bottom-6 left-6"
   };
+
+  // Fix #26: Warn in console if an unrecognised CMS position value is set,
+  // so admins catch misconfiguration without silent fallback confusion.
+  if (position && !(position in positionClasses)) {
+    console.warn(
+      `[WhatsAppWidget] Unknown position value "${position}" from CMS settings. ` +
+      `Expected one of: ${Object.keys(positionClasses).join(", ")}. Falling back to "bottom-right".`
+    );
+  }
   
   const handleOpenChat = () => {
     const encodedMessage = encodeURIComponent(greeting);

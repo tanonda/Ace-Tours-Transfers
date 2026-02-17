@@ -23,9 +23,11 @@ export function MobileBottomNav({ menuContent }: MobileNavProps) {
         { href: "/cart", icon: ShoppingCart, label: t("cart.title", "Cart"), badge: itemCount > 0 ? itemCount : undefined },
     ];
 
+    // Fix #25: Add word-boundary check — /cart should not match /cartography.
+    // Require that startsWith match is followed by end-of-string or a slash.
     const isActive = (href: string) => {
         if (href === "/") return location === "/";
-        return location.startsWith(href);
+        return location === href || location.startsWith(href + "/");
     };
 
     return (

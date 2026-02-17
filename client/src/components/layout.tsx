@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { useState, useEffect, forwardRef } from "react";
-import { Menu, Phone, Mail, Instagram, Facebook, X, ChevronRight, ShoppingCart, User, LogIn, UserPlus, Home, Map, Car, Info, MessageSquare, Calendar, ChevronDown } from "lucide-react";
+import { Menu, Phone, Mail, Instagram, Facebook, X, ChevronRight, ShoppingCart, User, LogIn, LogOut, UserPlus, Home, Map, Car, Info, MessageSquare, Calendar, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { BookingModal } from "@/components/booking-modal";
@@ -68,15 +68,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
   // Deduplicate tours by normalized title to handle DB duplicates and naming variations
   const uniqueTours = allTours.reduce<typeof allTours>((acc, current) => {
-    // Skip test data
-    const titleLower = current.title.toLowerCase();
-    if (titleLower.includes("verification") ||
-      titleLower.includes("concurrent") ||
-      titleLower.includes("test_tour") ||
-      titleLower.includes("phase4")) {
-      return acc;
-    }
-
     const normalize = (t: string) => t.replace(/\s+Package$/i, "").trim();
     const normalizedTitle = normalize(current.title);
 
@@ -560,7 +551,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
                       className="flex items-center gap-3 w-full px-4 py-3 rounded-lg hover:bg-destructive/10 text-destructive transition-colors"
                       data-testid="button-mobile-logout"
                     >
-                      <LogIn className="h-5 w-5 rotate-180" />
+                      {/* Fix #28: Use LogOut icon (not rotated LogIn) for correct semantic meaning */}
+                      <LogOut className="h-5 w-5" />
                       <span className="font-medium">{t("nav.logout")}</span>
                     </button>
                   )}
@@ -594,7 +586,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     <a href="https://www.facebook.com/share/16xVyw7m7m/" target="_blank" rel="noopener noreferrer" className="bg-muted p-2 rounded-full hover:bg-primary hover:text-white transition-colors">
                       <Facebook className="h-4 w-4" />
                     </a>
-                    <a href="#" className="bg-muted p-2 rounded-full hover:bg-primary hover:text-white transition-colors">
+                    {/* Fix #17: Instagram link — replace href with the real account URL, or remove until one exists */}
+                    <a href="https://www.instagram.com/" target="_blank" rel="noopener noreferrer" aria-label="Follow us on Instagram" className="bg-muted p-2 rounded-full hover:bg-primary hover:text-white transition-colors">
                       <Instagram className="h-4 w-4" />
                     </a>
                   </div>
@@ -624,7 +617,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 <a href="https://www.facebook.com/share/16xVyw7m7m/" target="_blank" rel="noopener noreferrer" className="bg-white/10 p-2 rounded-full hover:bg-primary transition-colors">
                   <Facebook className="h-5 w-5" />
                 </a>
-                <a href="#" className="bg-white/10 p-2 rounded-full hover:bg-primary transition-colors">
+                {/* Fix #17: Replace with real Instagram URL when available */}
+                <a href="https://www.instagram.com/" target="_blank" rel="noopener noreferrer" aria-label="Follow us on Instagram" className="bg-white/10 p-2 rounded-full hover:bg-primary transition-colors">
                   <Instagram className="h-5 w-5" />
                 </a>
               </div>

@@ -12,12 +12,27 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useTranslation } from "react-i18next";
 import { formatPriceDisplay, type ProductCategory } from "@/lib/product.types";
+
+// Fix #14: Typed product interface replacing the previous `any` prop.
+// Covers the shared fields across Tour, Transfer, and Vehicle types.
+interface BookableProduct {
+  id: string;
+  title: string;
+  category?: ProductCategory;
+  description?: string | string[];
+  adultPriceCents: number;
+  childPriceCents?: number;
+  image?: string;
+  duration?: string;
+  minPax?: number | string;
+}
 import { useCurrency } from "@/lib/currency-context";
 
 interface ProductQuickViewProps {
   isOpen: boolean;
   onClose: () => void;
-  product: any; // Using any for flexibility with tours/transfers structure
+  // Fix #14: Use BookableProduct instead of `any` so type errors are caught at compile time
+  product: BookableProduct | null;
 }
 
 export function ProductQuickView({ isOpen, onClose, product }: ProductQuickViewProps) {
@@ -147,19 +162,8 @@ export function ProductQuickView({ isOpen, onClose, product }: ProductQuickViewP
                   )}
                 </div>
 
-                {/* Mock Reviews */}
-                <div>
-                  <h4 className="font-semibold mb-3">{t("quickView.recentReviews", "Recent Reviews")}</h4>
-                  <div className="space-y-4">
-                    <div className="border-b pb-4 last:border-0">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-medium text-sm">Sarah M.</span>
-                        <span className="text-xs text-muted-foreground">{t("quickView.daysAgo", "2 days ago")}</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground">"{t("quickView.sampleReview", "Absolutely amazing experience! The guides were so friendly and the sights were breathtaking.")}"</p>
-                    </div>
-                  </div>
-                </div>
+                {/* Fix #15: Fake "Sarah M." review removed — this section will be wired to
+                    real review data when available. Do not ship placeholder testimonials. */}
               </div>
             </ScrollArea>
 

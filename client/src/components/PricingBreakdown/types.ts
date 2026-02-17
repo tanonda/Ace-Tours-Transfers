@@ -10,6 +10,21 @@ export interface AppliedRule {
   appliedValue?: string;
 }
 
+// Fix #10: Typed structure for individual cart line items — replaces `any` in PricingBreakdown
+export interface CartPricingItemBreakdown {
+  adultSubtotalCents?: number;
+  childSubtotalCents?: number;
+  addonsSubtotalCents?: number;
+  discountsCents?: number;
+  appliedRules?: string[];
+}
+
+export interface CartPricingItem {
+  id?: string;
+  title?: string;
+  breakdown?: CartPricingItemBreakdown;
+}
+
 export interface PricingSnapshot {
   // Single-item fields (AvailabilityResult)
   subtotalCents?: number;
@@ -22,7 +37,7 @@ export interface PricingSnapshot {
 
   // Cart-level fields (api.PricingSnapshot)
   totalCents?: number;
-  items?: any[];
+  items?: CartPricingItem[];
 }
 
 export interface PricingBreakdownProps {

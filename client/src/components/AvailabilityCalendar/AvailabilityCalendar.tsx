@@ -1,7 +1,10 @@
 "use client";
+// Fix #18: All imports moved to top of file per module conventions
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { CalendarDay } from './CalendarDay';
 import { useCalendarData } from './useCalendarData';
+import { TimeSlotPicker } from './TimeSlotPicker';
+import { fetchAvailableSlots } from '@/lib/api';
 import type { AvailabilityCalendarProps, CalendarDayData } from './types';
 import './AvailabilityCalendar.css';
 
@@ -90,8 +93,9 @@ export const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = React.m
     setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1));
   }, []);
 
-  const canGoBack = useMemo(() => !minDate || currentMonth > minDate, [minDate, currentMonth]);
-  const canGoForward = useMemo(() => !maxDate || currentMonth < maxDate, [maxDate, currentMonth]);
+  // Fix #20: Use >= / <= so the boundary month itself remains navigable
+  const canGoBack = useMemo(() => !minDate || currentMonth >= minDate, [minDate, currentMonth]);
+  const canGoForward = useMemo(() => !maxDate || currentMonth <= maxDate, [maxDate, currentMonth]);
 
   const handleDateClick = useCallback((dateStr: string) => {
     setInternalSelectedDate(dateStr);
@@ -207,8 +211,6 @@ export const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = React.m
 
 AvailabilityCalendar.displayName = 'AvailabilityCalendar';
 
-import { TimeSlotPicker } from "./TimeSlotPicker";
-import { fetchAvailableSlots } from "@/lib/api";
 
 const TimeSlotsSection: React.FC<{
   tourId: string;
@@ -218,23 +220,44 @@ const TimeSlotsSection: React.FC<{
 }> = ({ tourId, date, onTimeSelect, guests }) => {
   const [slots, setSlots] = useState<{ time: string; available: boolean; remaining: number }[]>([]);
   const [loading, setLoading] = useState(false);
+  // Fix #11: Track and display slot loading errors instead of silently swallowing them
+  const [slotError, setSlotError] = useState<string | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
 
+  const loadSlots = async () => {
+    setLoading(true);
+    setSlotError(null);
+    try {
+      const data = await fetchAvailableSlots(tourId, date, guests);
+      setSlots(data);
+    } catch (error) {
+      console.error("Failed to load slots", error);
+      setSlotError("Could not load available times. Please try again.");
+      setSlots([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const loadSlots = async () => {
-      setLoading(true);
-      try {
-        const data = await fetchAvailableSlots(tourId, date, guests);
-        setSlots(data);
-      } catch (error) {
-        console.error("Failed to load slots", error);
-      } finally {
-        setLoading(false);
-      }
-    };
     loadSlots();
     setSelectedTime(null);
   }, [tourId, date, guests]);
+
+  if (slotError) {
+    return (
+      <div className="calendar-slot-error">
+        <p className="slot-error-message">{slotError}</p>
+        <button
+          className="slot-retry-btn"
+          onClick={() => loadSlots()}
+          aria-label="Retry loading time slots"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   return (
     <TimeSlotPicker
