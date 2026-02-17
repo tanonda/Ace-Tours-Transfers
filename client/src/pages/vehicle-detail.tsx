@@ -131,8 +131,8 @@ export default function VehicleDetail() {
           <div className="flex flex-col gap-7">
 
             {/* Photo */}
-            <div className="rounded-[14px] overflow-hidden h-[380px]">
-              <img src={vehicle.image} className="w-full h-full object-cover" alt={vehicle.title} />
+            <div className="rounded-[14px] overflow-hidden h-[380px] bg-[#211e18]">
+              <img src={vehicle.image} className="w-full h-full object-contain" alt={vehicle.title} />
             </div>
 
             {/* Specs */}

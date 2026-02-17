@@ -23,6 +23,8 @@ export function Hero() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [serviceType, setServiceType] = useState<string>("");
   const [guests, setGuests] = useState<string>("2");
+  const [adultGuests, setAdultGuests] = useState<number>(2);
+  const [childGuests, setChildGuests] = useState<number>(0);
 
   const { data: allTours = [] } = useQuery({
     queryKey: ["tours"],
@@ -66,12 +68,15 @@ export function Hero() {
   const handleSearch = () => {
     const params = new URLSearchParams();
     if (selectedDate) params.set("date", format(selectedDate, "yyyy-MM-dd"));
-    if (guests) params.set("guests", guests);
+    if (adultGuests) params.set("adults", adultGuests.toString());
+    if (childGuests) params.set("children", childGuests.toString());
+    params.set("guests", (adultGuests + childGuests).toString());
 
     // Persist to central booking state for prefilling detail pages
     updateDraft({
       date: selectedDate ? format(selectedDate, "yyyy-MM-dd") : "",
-      adultPax: parseInt(guests) || 2,
+      adultPax: adultGuests,
+      childPax: childGuests,
     });
 
     // Check for specific product selection first
@@ -253,31 +258,62 @@ export function Hero() {
                 </Popover>
               </motion.div>
 
-              {/* Guests Island */}
+              {/* Guests Island - Adult/Child Split */}
               <motion.div
                 whileHover={{ y: -4, scale: 1.01 }}
                 transition={{ type: "spring", stiffness: 400, damping: 25 }}
                 className="flex flex-col gap-2 p-4 rounded-3xl bg-gray-50/50 border border-gray-100/80 hover:bg-white hover:shadow-xl hover:border-gray-200/50 transition-all md:col-span-6 lg:col-span-3 group/island"
               >
-                <label htmlFor="hero-guests-count" className="text-xs font-black uppercase tracking-widest text-gray-400 flex items-center gap-2 px-1 mb-1 cursor-pointer">
+                <div className="text-xs font-black uppercase tracking-widest text-gray-400 flex items-center gap-2 px-1 mb-1">
                   <div className="h-1.5 w-1.5 rounded-full bg-[#f2800d]" />
                   {t("hero.guests", "Guests")}
-                </label>
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-2xl bg-orange-50 flex items-center justify-center text-[#f2800d] shrink-0 group-hover/island:bg-[#f2800d] group-hover/island:text-white transition-all">
-                    <Users className="h-5 w-5" />
+                  {(adultGuests + childGuests) > 0 && (
+                    <span className="ml-auto text-[#f2800d] font-black">
+                      {adultGuests + childGuests} total
+                    </span>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  {/* Adults row */}
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+                      <div className="h-7 w-7 rounded-xl bg-orange-50 flex items-center justify-center text-[#f2800d] group-hover/island:bg-[#f2800d] group-hover/island:text-white transition-all">
+                        <Users className="h-3.5 w-3.5" />
+                      </div>
+                      Adults
+                    </div>
+                    <CounterInput
+                      id="hero-adult-count"
+                      name="adults"
+                      value={adultGuests}
+                      onValueChange={(val) => { setAdultGuests(val); setGuests((val + childGuests).toString()); }}
+                      min={1}
+                      max={50}
+                      label="Adults"
+                      className="h-9 bg-transparent border-0 hover:bg-transparent shadow-none px-0 w-32"
+                      inputClassName="bg-transparent border-0 h-full text-sm font-bold text-gray-900 text-right"
+                    />
                   </div>
-                  <CounterInput
-                    id="hero-guests-count"
-                    name="guests"
-                    value={parseInt(guests) || 2}
-                    onValueChange={(val) => setGuests(val.toString())}
-                    min={1}
-                    max={50}
-                    label={t("hero.guestsCount", "Number of guests")}
-                    className="h-14 bg-transparent border-0 hover:bg-transparent shadow-none px-0"
-                    inputClassName="bg-transparent border-0 h-full text-lg font-bold text-gray-900"
-                  />
+                  {/* Children row */}
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+                      <div className="h-7 w-7 rounded-xl bg-blue-50 flex items-center justify-center text-blue-400 transition-all">
+                        <Users className="h-3.5 w-3.5" />
+                      </div>
+                      <span>Children <span className="text-gray-400 font-normal text-xs">(under 12)</span></span>
+                    </div>
+                    <CounterInput
+                      id="hero-child-count"
+                      name="children"
+                      value={childGuests}
+                      onValueChange={(val) => { setChildGuests(val); setGuests((adultGuests + val).toString()); }}
+                      min={0}
+                      max={30}
+                      label="Children"
+                      className="h-9 bg-transparent border-0 hover:bg-transparent shadow-none px-0 w-32"
+                      inputClassName="bg-transparent border-0 h-full text-sm font-bold text-gray-900 text-right"
+                    />
+                  </div>
                 </div>
               </motion.div>
 

@@ -168,6 +168,9 @@ function Router() {
         <Route path="/dashboard/bookings">
           <ProtectedRoute><CustomerBookings /></ProtectedRoute>
         </Route>
+        <Route path="/customer/bookings">
+          <ProtectedRoute><CustomerBookings /></ProtectedRoute>
+        </Route>
         <Route path="/dashboard/saved">
           <ProtectedRoute><CustomerSaved /></ProtectedRoute>
         </Route>

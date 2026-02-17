@@ -1,22 +1,43 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useSearch } from "wouter";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, ArrowRight, Home, Loader2, Clock, Building2 } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
+import {
+  CheckCircle, ArrowRight, Home, Loader2, Clock, Building2,
+  Copy, MessageCircle, Phone, Mail, Banknote, DollarSign, ExternalLink
+} from "lucide-react";
 import { Layout } from "@/components/layout";
-import { useTranslation } from "react-i18next";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { Separator } from "@/components/ui/separator";
+import { useToast } from "@/hooks/use-toast";
+import { useCMS } from "@/lib/cms-context";
+
+const WHATSAPP_NUMBER = "6787114045";
 
 export default function PaymentSuccess() {
-  const { t } = useTranslation();
+  const { toast } = useToast();
+  const { getSetting } = useCMS();
   const searchString = useSearch();
   const params = new URLSearchParams(searchString);
-  const bookingId = params.get("booking");
+  const bookingId = params.get("booking") || params.get("id");
+  const isManual = params.get("manual") === "true";
+  const paymentMethod = params.get("method") || "manual_transfer";
+  const isCash = paymentMethod === "cash";
+
+  const [copiedRef, setCopiedRef] = useState(false);
+
+  // Get bank details from individual site settings
+  const bankName = (getSetting("bank_name") as any) || "ANZ Bank (Vanuatu) Ltd";
+  const accountName = (getSetting("bank_account_name") as any) || "Ace Tours & Transfers";
+  const accountNumber = (getSetting("bank_account_number") as any) || "Contact us for account details";
+  const swiftCode = (getSetting("bank_swift_code") as any) || "";
+  const branchCode = (getSetting("bank_branch_code") as any) || "";
 
   useEffect(() => {
     localStorage.removeItem('pendingCart');
+    localStorage.removeItem('ace-tours-booking-draft');
   }, []);
 
   const { data: booking, isLoading } = useQuery({
@@ -28,11 +49,27 @@ export default function PaymentSuccess() {
       return res.json();
     },
     enabled: !!bookingId && bookingId !== "demo",
-    refetchInterval: 3000,
+    refetchInterval: (data) => {
+      // Stop polling once confirmed
+      if (data?.status === "confirmed" || data?.status === "completed") return false;
+      return 5000;
+    },
   });
 
   const isConfirmed = booking?.status === "confirmed" || booking?.status === "completed";
-  const isPending = !booking || booking?.status === "pending";
+  const shortRef = bookingId ? bookingId.slice(0, 8).toUpperCase() : "PENDING";
+
+  const copyRef = () => {
+    navigator.clipboard.writeText(shortRef);
+    setCopiedRef(true);
+    toast({ title: "Copied!", description: "Booking reference copied to clipboard." });
+    setTimeout(() => setCopiedRef(false), 2000);
+  };
+
+  const openWhatsApp = () => {
+    const msg = encodeURIComponent(`Hi! I've made a booking (Ref: #${shortRef}) and would like to confirm my payment details.`);
+    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`, "_blank");
+  };
 
   if (isLoading) {
     return (
@@ -46,133 +83,160 @@ export default function PaymentSuccess() {
 
   return (
     <Layout>
-      <div className="min-h-[60vh] flex items-center justify-center p-4 pt-40">
-        <Card className="w-full max-w-md text-center shadow-lg">
-          <CardHeader>
-            {isConfirmed ? (
-              <>
-                <div className="mx-auto bg-green-100 dark:bg-green-900/30 p-4 rounded-full w-fit mb-4">
-                  <CheckCircle className="h-12 w-12 text-green-600 dark:text-green-400" />
-                </div>
-                <CardTitle className="text-2xl text-green-600 dark:text-green-400">
-                  {t("payment.success") || "Booking Confirmed!"}
-                </CardTitle>
-                <CardDescription className="text-base">
-                  {t("payment.successDesc") || "Your booking has been confirmed. Thank you for choosing Ace Tours & Transfers!"}
-                </CardDescription>
-              </>
-            ) : (
-              <>
-                <div className="mx-auto bg-amber-100 dark:bg-amber-900/30 p-4 rounded-full w-fit mb-4">
-                  <Clock className="h-12 w-12 text-amber-600 dark:text-amber-400" />
-                </div>
-                <CardTitle className="text-2xl text-amber-600 dark:text-amber-400">
-                  {t("payment.pending") || "Payment Received"}
-                </CardTitle>
-                <CardDescription className="text-base">
-                  {t("payment.pendingDesc") || "We're confirming your payment. This usually takes a moment."}
-                </CardDescription>
-              </>
-            )}
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {bookingId && bookingId !== "demo" && (
-              <div className="bg-muted/50 p-4 rounded-lg">
-                <p className="text-sm text-muted-foreground mb-1">Booking Reference</p>
-                <p className="font-mono font-bold text-lg" data-testid="text-booking-id">{bookingId.slice(0, 8).toUpperCase()}</p>
+      <div className="min-h-[60vh] flex items-center justify-center p-4 pt-40 pb-16">
+        <div className="w-full max-w-lg space-y-4">
+
+          {/* Status Card */}
+          <Card className="shadow-lg border-none overflow-hidden">
+            <div className={`h-2 w-full ${isConfirmed ? 'bg-green-500' : 'bg-amber-400'}`} />
+            <CardHeader className="text-center pb-4">
+              <div className={`mx-auto p-4 rounded-full w-fit mb-3 ${isConfirmed ? 'bg-green-100' : 'bg-amber-100'}`}>
+                {isConfirmed
+                  ? <CheckCircle className="h-12 w-12 text-green-600" />
+                  : isCash
+                  ? <DollarSign className="h-12 w-12 text-amber-600" />
+                  : <Clock className="h-12 w-12 text-amber-600" />
+                }
               </div>
-            )}
-            {booking && (
-              <div className="bg-muted/50 p-4 rounded-lg text-left space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Tour</span>
-                  <span className="font-medium">{booking.tourName}</span>
+              <CardTitle className={`text-2xl ${isConfirmed ? 'text-green-600' : 'text-amber-600'}`}>
+                {isConfirmed ? "Booking Confirmed! 🎉" : isCash ? "You're All Set! 💚" : "Booking Received"}
+              </CardTitle>
+              <p className="text-muted-foreground text-sm mt-1">
+                {isConfirmed
+                  ? "Your adventure is secured. See you soon!"
+                  : isCash
+                  ? "Please pay at the start of your tour or vehicle pickup."
+                  : "Please complete your bank transfer to secure your booking."
+                }
+              </p>
+            </CardHeader>
+
+            <CardContent className="space-y-4 px-6 pb-6">
+
+              {/* Booking Reference */}
+              <div className="bg-muted/50 rounded-xl p-4 flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider font-bold mb-1">Booking Reference</p>
+                  <p className="font-mono font-bold text-2xl tracking-widest text-foreground">#{shortRef}</p>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Date</span>
-                  <span className="font-medium">{booking.date}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Guests</span>
-                  <span className="font-medium">{booking.guests}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Amount</span>
-                  <span className="font-bold">{booking.amount}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Status</span>
-                  <span className={`font-medium capitalize ${isConfirmed ? "text-green-600" : "text-amber-600"}`}>
-                    {booking.status}
-                  </span>
-                </div>
+                <Button variant="outline" size="sm" onClick={copyRef} className="gap-2">
+                  <Copy className="h-4 w-4" />
+                  {copiedRef ? "Copied!" : "Copy"}
+                </Button>
               </div>
-            )}
-            {isPending && (
-              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground ring-1 ring-amber-200 bg-amber-50 p-3 rounded-md">
-                <Loader2 className="h-4 w-4 animate-spin text-amber-600" />
-                <span className="text-amber-700">Checking payment status...</span>
-              </div>
-            )}
-            
-            {/* FIX #4: Manual Payment Instructions */}
-            {params.get("manual") === "true" && (
-              <div className="bg-primary/5 border-2 border-primary/20 p-6 rounded-lg text-left space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="flex items-center gap-2 text-primary font-bold">
-                  <Building2 className="h-5 w-5" />
-                  <h3>Manual Bank Transfer Instructions</h3>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  To complete your booking, please transfer the total amount to the following account and include your **Booking Reference** as the transfer memo.
-                </p>
-                <div className="grid grid-cols-1 gap-2 text-sm bg-background p-4 rounded border">
-                  <div>
-                    <span className="text-muted-foreground block text-[10px] uppercase font-bold">Bank Name</span>
-                    <span className="font-medium text-foreground">ANZ Bank (Vanuatu) Ltd</span>
-                  </div>
-                  <Separator />
-                  <div>
-                    <span className="text-muted-foreground block text-[10px] uppercase font-bold">Account Name</span>
-                    <span className="font-medium text-foreground">Ace Tours & Transfers</span>
-                  </div>
-                  <Separator />
-                  <div>
-                    <span className="text-muted-foreground block text-[10px] uppercase font-bold">Account Number</span>
-                    <span className="font-mono font-bold text-foreground">1234-567-890</span>
-                  </div>
-                  <Separator />
-                  <div>
-                    <span className="text-muted-foreground block text-[10px] uppercase font-bold">SWIFT Code</span>
-                    <span className="font-mono font-bold text-foreground">ANZBVUVU</span>
+
+              {/* Booking details */}
+              {booking && (
+                <div className="space-y-2 text-sm">
+                  {booking.customerName && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Customer</span>
+                      <span className="font-medium">{booking.customerName}</span>
+                    </div>
+                  )}
+                  {booking.totalAmountCents && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Total Amount</span>
+                      <span className="font-bold text-base">VT {(booking.totalAmountCents / 100).toLocaleString()}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Status</span>
+                    <Badge variant={isConfirmed ? "default" : "secondary"} className={isConfirmed ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}>
+                      {booking.status?.replace('_', ' ').toUpperCase()}
+                    </Badge>
                   </div>
                 </div>
-                <p className="text-[11px] text-amber-700 bg-amber-50 p-2 rounded border border-amber-200">
-                  <strong>Notice:</strong> Your booking will be automatically cancelled if payment is not received within 2 hours.
-                </p>
+              )}
+
+              {/* Manual Payment Instructions */}
+              {isManual && !isCash && !isConfirmed && (
+                <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-5 space-y-4">
+                  <div className="flex items-center gap-2 text-blue-800 font-bold">
+                    <Building2 className="h-5 w-5" />
+                    <h3>Bank Transfer Details</h3>
+                  </div>
+                  <p className="text-sm text-blue-700">
+                    Transfer the exact amount below and use your <strong>Booking Reference #{shortRef}</strong> as the payment description/reference.
+                  </p>
+                  <div className="bg-white rounded-lg border border-blue-100 divide-y divide-blue-50 text-sm overflow-hidden">
+                    {[
+                      ["Bank Name", bankName],
+                      ["Account Name", accountName],
+                      ["Account Number", accountNumber],
+                      ...(swiftCode ? [["SWIFT / BIC", swiftCode]] : []),
+                      ...(branchCode ? [["Branch Code", branchCode]] : []),
+                      ["Reference", `#${shortRef}`],
+                    ].map(([label, value]) => (
+                      <div key={label} className="flex justify-between px-4 py-3">
+                        <span className="text-muted-foreground font-medium">{label}</span>
+                        <span className="font-bold text-right">{value}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-700">
+                    ⚠️ Your booking is held for <strong>24 hours</strong>. If payment is not received within this time, it may be released.
+                  </div>
+                </div>
+              )}
+
+              {/* Cash instructions */}
+              {isCash && (
+                <div className="bg-green-50 border-2 border-green-200 rounded-xl p-5">
+                  <div className="flex items-center gap-2 text-green-800 font-bold mb-2">
+                    <Banknote className="h-5 w-5" />
+                    <h3>Cash Payment</h3>
+                  </div>
+                  <p className="text-sm text-green-700">
+                    Please have the exact amount ready at the start of your tour or vehicle pickup. Our guide/driver will collect payment.
+                  </p>
+                </div>
+              )}
+
+              <p className="text-xs text-center text-muted-foreground">
+                A confirmation has been sent to your email address.
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* WhatsApp Contact CTA */}
+          <Card className="shadow-sm border-none bg-[#25D366]/5 border-2 border-[#25D366]/30">
+            <CardContent className="p-4">
+              <p className="text-sm text-center font-medium mb-3">Have a question about your booking?</p>
+              <div className="flex gap-2">
+                <Button
+                  className="flex-1 bg-[#25D366] hover:bg-[#1da851] text-white gap-2"
+                  onClick={openWhatsApp}
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  WhatsApp Us
+                </Button>
+                <Button variant="outline" className="flex-1 gap-2" asChild>
+                  <a href="mailto:acetoursvanuatu@outlook.com">
+                    <Mail className="h-4 w-4" />
+                    Email Us
+                  </a>
+                </Button>
               </div>
-            )}
-            <p className="text-sm text-muted-foreground">
-              {isConfirmed 
-                ? (t("payment.confirmationEmail") || "A confirmation email has been sent to your registered email address.")
-                : "You'll receive a confirmation email once the payment is verified."
-              }
-            </p>
-          </CardContent>
-          <CardFooter className="flex flex-col gap-3">
+            </CardContent>
+          </Card>
+
+          {/* Action Buttons */}
+          <div className="flex flex-col gap-2">
             <Link href="/customer/bookings" className="w-full">
-              <Button className="w-full" size="lg" data-testid="button-view-bookings">
-                {t("dashboard.viewBookings") || "View My Bookings"}
+              <Button className="w-full" size="lg">
+                View My Bookings
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
             <Link href="/" className="w-full">
-              <Button variant="outline" className="w-full" data-testid="button-go-home">
+              <Button variant="outline" className="w-full">
                 <Home className="mr-2 h-4 w-4" />
-                {t("nav.home") || "Return Home"}
+                Back to Home
               </Button>
             </Link>
-          </CardFooter>
-        </Card>
+          </div>
+        </div>
       </div>
     </Layout>
   );

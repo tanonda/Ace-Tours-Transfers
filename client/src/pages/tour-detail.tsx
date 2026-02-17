@@ -50,9 +50,15 @@ export default function TourDetail() {
     const sp = new URLSearchParams(window.location.search);
     const urlDate = sp.get("date");
     const urlGuests = sp.get("guests");
+    const urlAdults = sp.get("adults");
+    const urlChildren = sp.get("children");
     if (urlDate) setDate(urlDate);
-    if (urlGuests) setAdultPax(parseInt(urlGuests) || 2);
-    if (id) updateDraft({ productId: id, adultPax: parseInt(urlGuests || "2") || 2, childPax: 0, date: urlDate || "" });
+    // Prefer explicit adult/child params from new hero widget; fall back to total guests
+    const parsedAdults = urlAdults ? parseInt(urlAdults) : (urlGuests ? parseInt(urlGuests) : 2);
+    const parsedChildren = urlChildren ? parseInt(urlChildren) : 0;
+    if (parsedAdults) setAdultPax(parsedAdults);
+    if (parsedChildren) setChildPax(parsedChildren);
+    if (id) updateDraft({ productId: id, adultPax: parsedAdults, childPax: parsedChildren, date: urlDate || "" });
 
     if (urlDate || urlGuests) {
       setTimeout(() => {
@@ -168,8 +174,8 @@ export default function TourDetail() {
           <div className="flex flex-col gap-7">
 
             {/* Photo */}
-            <div className="rounded-[14px] overflow-hidden h-[380px]">
-              <img src={tour.image} className="w-full h-full object-cover" alt={tour.title} />
+            <div className="rounded-[14px] overflow-hidden h-[380px] bg-[#211e18]">
+              <img src={tour.image} className="w-full h-full object-contain" alt={tour.title} />
             </div>
 
             {/* Overview */}

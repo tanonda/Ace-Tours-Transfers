@@ -41,6 +41,7 @@ import fs from "fs";
 import * as cloudinary from "cloudinary";
 import {
   sendEmail,
+  sendAdminEmail,
   getBookingConfirmationTemplate,
   getAdminNewBookingTemplate,
   getPaymentConfirmationTemplate,
@@ -640,6 +641,39 @@ export async function registerRoutes(
         sessionId: req.sessionID,
         idempotencyKey
       });
+
+      // ✅ Send booking notification emails
+      try {
+        const bookingItems = await storage.getBookingItems(booking.id);
+        const firstItem = bookingItems[0];
+        const tourData = firstItem ? await storage.getTour(firstItem.productId) : null;
+        const tourInfo = tourData || { title: 'Tour/Transfer Booking', category: 'tour' };
+        
+        const emailBooking = {
+          ...booking,
+          date: firstItem?.date || new Date().toISOString().split('T')[0],
+          guests: `${firstItem?.adultPax || 1} Adult(s)${firstItem?.childPax ? ', ' + firstItem.childPax + ' Child(ren)' : ''}`,
+          amount: `VT ${((booking.totalAmountCents || 0) / 100).toLocaleString()}`,
+        };
+
+        // Send customer notification
+        if (booking.customerEmail) {
+          await sendEmail({
+            to: booking.customerEmail,
+            subject: `Booking Request Received — Ref #${booking.id.slice(0, 8).toUpperCase()}`,
+            html: getBookingConfirmationTemplate(emailBooking, tourInfo),
+          });
+        }
+
+        // Send admin notification
+        await sendAdminEmail(
+          `🔔 New Booking: ${booking.customerName} — ${tourInfo.title}`,
+          getAdminNewBookingTemplate(emailBooking, tourInfo)
+        );
+      } catch (emailError) {
+        console.error('[BOOKING] Email notification failed (non-fatal):', emailError);
+      }
+
       res.status(201).json(booking);
     } catch (error: any) {
       res.status(400).json({ error: error.message });
@@ -679,6 +713,32 @@ export async function registerRoutes(
       }
 
       const booking = await storage.updateBooking(req.params.id, updates);
+      
+      // ✅ Send email when status changes
+      if (updates.status && updates.status !== existing.status && booking.customerEmail) {
+        try {
+          const bookingItems = await storage.getBookingItems(booking.id);
+          const firstItem = bookingItems[0];
+          const tourData = firstItem ? await storage.getTour(firstItem.productId) : null;
+          const tourInfo = tourData || { title: 'Tour/Transfer Booking' };
+          
+          const emailBooking = {
+            ...booking,
+            date: firstItem?.date || new Date().toISOString().split('T')[0],
+            guests: `${firstItem?.adultPax || 1} Adult(s)${firstItem?.childPax ? ', ' + firstItem.childPax + ' Child(ren)' : ''}`,
+            amount: `VT ${((booking.totalAmountCents || 0) / 100).toLocaleString()}`,
+          };
+          
+          await sendEmail({
+            to: booking.customerEmail,
+            subject: `Booking Update: ${updates.status.toUpperCase()} — Ref #${booking.id.slice(0, 8).toUpperCase()}`,
+            html: getBookingStatusUpdateTemplate(emailBooking, updates.status, tourInfo),
+          });
+        } catch (emailErr) {
+          console.error('[BOOKING][STATUS] Email failed (non-fatal):', emailErr);
+        }
+      }
+      
       res.json(booking);
     } catch (error) {
       res.status(400).json({ error: "Failed to update booking" });
