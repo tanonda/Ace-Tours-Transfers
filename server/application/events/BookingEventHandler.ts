@@ -85,6 +85,11 @@ export class BookingEventHandler {
           return;
         }
 
+        if (result.wasAlreadyConfirmed) {
+          console.log(`[EVENT][IDEMPOTENT][${correlationId}] Session ${booking.bookingSessionId} already confirmed. Skipping side-effects.`);
+          return;
+        }
+
         console.log(`[EVENT][SUCCESS] Booking session ${booking.bookingSessionId} confirmed atomically via PaymentConfirmed event`);
 
         // Trigger emails/admin notifications here
@@ -104,10 +109,30 @@ export class BookingEventHandler {
           date: booking.date,
           amount: booking.amount
         });
-      } catch (error) {
+      } catch (error: any) {
         console.error(`[EVENT][ERROR][${correlationId}] Failed to confirm booking ${booking.id}:`, error);
-        metricsService.incrementFailure("EVENT_HANDLER_FAILURE");
-        metricsService.recordErrorSnippet("EVENT_HANDLER_FAILURE", error instanceof Error ? error.message : String(error));
+
+        if (error.code === 'CAPACITY_EXCEEDED' || error.message?.includes('Capacity exceeded')) {
+          // PHASE 2 FIX: Mark booking as inventory conflict instead of generic failure
+          await this.storage.updateBooking(booking.id, { status: 'inventory_conflict' });
+
+          const audit = new AuditLogService(this.storage);
+          await audit.log({
+            productId: booking.tourId,
+            action: 'manual_adjustment',
+            performedBy: 'system',
+            metadata: {
+              bookingId: booking.id,
+              reason: 'capacity_lost_during_manual_delay',
+              error: error.message
+            }
+          });
+
+          metricsService.incrementFailure("INVENTORY_CONFLICT");
+        } else {
+          metricsService.incrementFailure("EVENT_HANDLER_FAILURE");
+          metricsService.recordErrorSnippet("EVENT_HANDLER_FAILURE", error instanceof Error ? error.message : String(error));
+        }
       }
     }
   }

@@ -552,11 +552,11 @@ export default function Reservations() {
                     ) : (
                       <div className="space-y-4">
                         {items.map((item) => (
-                          <div key={item.id} className="flex justify-between items-center border-b pb-4">
+                          <div key={item.cartItemId} className="flex justify-between items-center border-b pb-4">
                             <div><p className="font-bold">{item.title}</p><p className="text-sm text-muted-foreground">{item.adultPax + item.childPax} guests</p></div>
                             <div className="flex items-center gap-4">
                               <p className="font-bold">{item.price.toLocaleString()} VT</p>
-                              <Button variant="ghost" size="sm" onClick={() => removeFromCart(item.id)}><Trash2 className="h-4 w-4" /></Button>
+                              <Button variant="ghost" size="sm" onClick={() => removeFromCart(item.cartItemId)}><Trash2 className="h-4 w-4" /></Button>
                             </div>
                           </div>
                         ))}

@@ -7,6 +7,7 @@ const CART_STORAGE_KEY = 'ace-tours-cart';
 const CART_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 export interface CartItem {
+  cartItemId: string;    // Unique identifier for the cart item entry
   id: string;
   title: string;
   price: number;         // adultPriceCents
@@ -31,9 +32,9 @@ interface PersistedCart {
 
 interface CartContextType {
   items: CartItem[];
-  addToCart: (item: Omit<CartItem, "quantity"> & { quantity?: number }) => void;
-  removeFromCart: (id: string, date?: Date, slot?: string) => void;
-  updateCartItem: (id: string, updates: Partial<CartItem>, date?: Date, slot?: string) => void;
+  addToCart: (item: Omit<CartItem, "quantity" | "cartItemId"> & { quantity?: number }) => void;
+  removeFromCart: (cartItemId: string) => void;
+  updateCartItem: (cartItemId: string, updates: Partial<CartItem>) => void;
   clearCart: () => void;
   total: number;
   itemCount: number;
@@ -129,36 +130,43 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const areDatesEqual = (d1?: Date | string, d2?: Date | string) => {
     if (!d1 && !d2) return true;
     if (!d1 || !d2) return false;
-    const t1 = d1 instanceof Date ? d1.getTime() : new Date(d1).getTime();
-    const t2 = d2 instanceof Date ? d2.getTime() : new Date(d2).getTime();
-    return t1 === t2;
+    try {
+      const t1 = d1 instanceof Date ? d1.getTime() : new Date(d1).getTime();
+      const t2 = d2 instanceof Date ? d2.getTime() : new Date(d2).getTime();
+      return t1 === t2;
+    } catch (e) {
+      return false;
+    }
   };
 
-  const addToCart = useCallback((item: Omit<CartItem, "quantity"> & { quantity?: number }) => {
+  const addToCart = useCallback((item: Omit<CartItem, "quantity" | "cartItemId"> & { quantity?: number }) => {
     setItems((prev) => {
       // Multi-Product Booking Enabled
-      const existing = prev.find((i) =>
+      // We group items that are identical across these specific criteria
+      const existingIndex = prev.findIndex((i) =>
         i.id === item.id &&
         areDatesEqual(i.date, item.date) &&
         i.slot === item.slot &&
         i.startTime === item.startTime &&
         i.endTime === item.endTime &&
-        JSON.stringify(i.addonIds) === JSON.stringify(item.addonIds)
+        JSON.stringify(i.addonIds || []) === JSON.stringify(item.addonIds || [])
       );
 
-      if (existing) {
-        return prev.map((i) =>
-          (i.id === item.id && areDatesEqual(i.date, item.date) && i.slot === item.slot && i.startTime === item.startTime && i.endTime === item.endTime && JSON.stringify(i.addonIds) === JSON.stringify(item.addonIds))
-            ? {
-              ...i,
-              quantity: i.quantity + (item.quantity || 1),
-              adultPax: i.adultPax + item.adultPax,
-              childPax: i.childPax + item.childPax
-            }
-            : i
-        );
+      if (existingIndex !== -1) {
+        const updatedItems = [...prev];
+        const existing = updatedItems[existingIndex];
+        updatedItems[existingIndex] = {
+          ...existing,
+          quantity: existing.quantity + (item.quantity || 1),
+          adultPax: existing.adultPax + item.adultPax,
+          childPax: existing.childPax + item.childPax
+        };
+        return updatedItems;
       }
-      return [...prev, { ...item, quantity: item.quantity || 1 }];
+
+      // Generate a unique ID for this new cart entry
+      const cartItemId = `${item.id}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      return [...prev, { ...item, cartItemId, quantity: item.quantity || 1 }];
     });
 
     toast({
@@ -167,17 +175,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     });
   }, [toast]);
 
-  const removeFromCart = useCallback((id: string, date?: Date | string, slot?: string) => {
-    setItems((prev) => prev.filter((i) =>
-      !(i.id === id && areDatesEqual(i.date, date) && i.slot === slot)
-    ));
+  const removeFromCart = useCallback((cartItemId: string) => {
+    setItems((prev) => prev.filter((i) => i.cartItemId !== cartItemId));
   }, []);
 
-  const updateCartItem = useCallback((id: string, updates: Partial<CartItem>, date?: Date | string, slot?: string) => {
+  const updateCartItem = useCallback((cartItemId: string, updates: Partial<CartItem>) => {
     setItems((prev) => prev.map((i) =>
-      (i.id === id && areDatesEqual(i.date, date) && i.slot === slot)
-        ? { ...i, ...updates }
-        : i
+      (i.cartItemId === cartItemId) ? { ...i, ...updates } : i
     ));
   }, []);
 
@@ -226,31 +230,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     updatePricing();
   }, [items, isHydrated, toast]);
 
-  // Note: This is a CLIENT-SIDE ESTIMATION. The backend PricingEngine is the source of truth.
-  // Once backend pricing is loaded, use pricingSnapshot.totalCents instead.
-  const estimatedTotal = items.reduce((acc, item) => {
-    // Manual calculation to avoid [DEPRECATED] calculateLineTotal warning
-    let lineTotal = (item.price * item.adultPax) + (item.childPrice * item.childPax) + (item.addonTotal || 0);
-
-    // Apply Group Discount (10% off for 7+ adults) - ESTIMATED
-    if (item.adultPax >= 7) {
-      lineTotal = Math.round(lineTotal * 0.9);
-    }
-
-    // Apply Seasonal Surcharge (20% in Dec/Jan) - ESTIMATED
-    if (item.date) {
-      const dateObj = item.date instanceof Date ? item.date : new Date(item.date);
-      const month = dateObj.getMonth();
-      if (month === 11 || month === 0) {
-        lineTotal = Math.round(lineTotal * 1.2);
-      }
-    }
-
-    return acc + (lineTotal * item.quantity);
-  }, 0);
-
-  // Use backend pricing if available, fallback to estimation
-  const total = pricingSnapshot ? pricingSnapshot.totalCents : estimatedTotal;
+  // Use backend pricing if available. Backend PricingEngine is the absolute source of truth.
+  // We no longer perform client-side estimation to prevent invariant drift.
+  const total = pricingSnapshot?.totalCents ?? 0;
   const itemCount = items.length;
 
   return (

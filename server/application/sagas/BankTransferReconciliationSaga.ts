@@ -6,7 +6,7 @@ import { PaymentStatus } from "../../domain/payments/interfaces.js";
 export class BankTransferReconciliationSaga {
   private static PENDING_EXPIRY_HOURS = 48;
 
-  constructor(private storage: IStorage) {}
+  constructor(private storage: IStorage) { }
 
   public register(): void {
     // Saga listens to events to start tracking or resolve
@@ -31,12 +31,12 @@ export class BankTransferReconciliationSaga {
    */
   public async checkAndExpireOverduePayments(): Promise<void> {
     const now = new Date();
-    
+
     // FETCH: Get only payments that ARE pending and HAS an expiry date
-    const stalePayments = await this.storage.getPayments(); 
-    const overdue = stalePayments.filter((p: any) => 
-      p.status === PaymentStatus.Pending && 
-      p.expiresAt && 
+    const stalePayments = await this.storage.getPayments();
+    const overdue = stalePayments.filter((p: any) =>
+      (p.status === PaymentStatus.Pending || p.status === PaymentStatus.ManualReviewRequired) &&
+      p.expiresAt &&
       p.expiresAt < now
     );
 

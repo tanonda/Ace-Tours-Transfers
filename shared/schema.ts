@@ -772,7 +772,7 @@ export type InsertCmsContent = z.infer<typeof insertCmsContentSchema>;
 export type CmsContent = typeof cmsContent.$inferSelect;
 export type InsertFeatureFlag = z.infer<typeof insertFeatureFlagSchema>;
 export type FeatureFlag = typeof featureFlags.$inferSelect;
-export type BookingStatus = "pending" | "confirmed" | "completed" | "cancelled";
+export type BookingStatus = "pending" | "confirmed" | "completed" | "cancelled" | "inventory_conflict" | "price_mismatch";
 
 // Phase 1: Resource types
 export const insertResourceSchema = createInsertSchema(resources).omit({
