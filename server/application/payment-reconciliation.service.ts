@@ -2,18 +2,15 @@
 import { IStorage } from "../storage.js";
 import { PaymentFactory } from "../infrastructure/payments/factory.js";
 import { PaymentStatus, type PaymentStatusResponse } from "../domain/payments/interfaces.js";
+import { PaymentIntent, PaymentIntentStatus } from "../domain/payments/PaymentIntent.js";
 import { ReconciliationPolicy } from "../domain/payments/reconciliation.policy.js";
-import { BookingConfirmationWithRetries } from "./booking/BookingConfirmationWithRetries.js";
 import { sendEmail, sendAdminEmail, getPaymentConfirmationTemplate, getBookingConfirmationTemplate } from "../lib/mail.js";
 
 export class PaymentReconciliationService {
   private storage: IStorage;
-  private bookingConfirmation: BookingConfirmationWithRetries;
 
   constructor(storage: IStorage) {
     this.storage = storage;
-    // Phase 4: Use BookingConfirmationWithRetries for production-grade concurrency safety
-    this.bookingConfirmation = new BookingConfirmationWithRetries(storage);
   }
 
   /**
@@ -34,8 +31,9 @@ export class PaymentReconciliationService {
 
   /**
    * Syncs a single payment's status with the gateway and updates internal records.
+   * @param auditFields Optional metadata for manual reconciliation tracking
    */
-  async syncPaymentStatus(paymentId: string): Promise<void> {
+  async syncPaymentStatus(paymentId: string, auditFields?: { reconciledBy?: string, reconciliationNote?: string }): Promise<void> {
     const payment = await this.storage.getPayment(paymentId);
     if (!payment) return;
 
@@ -56,7 +54,8 @@ export class PaymentReconciliationService {
       // Update reconciliation audit fields regardless of success
       await this.storage.updatePayment(payment.id, {
         lastReconciledAt: new Date(),
-        reconciliationAttempts: (payment.reconciliationAttempts || 0) + 1
+        reconciliationAttempts: (payment.reconciliationAttempts || 0) + 1,
+        ...(auditFields || {})
       });
 
       if (!ReconciliationPolicy.isTransitionSafe(payment.status as PaymentStatus, response.status)) {
@@ -67,58 +66,34 @@ export class PaymentReconciliationService {
       // If status has changed, perform the transition
       if (payment.status !== response.status) {
         console.log(`[RECON][${traceId}] Transitioning payment ${paymentId} from ${payment.status} to ${response.status}.`);
-        
+
         await this.storage.updatePayment(paymentId, {
           status: response.status,
-          failureReason: response.status === PaymentStatus.Failed ? (response.failureReason || 'reconciliation_failed') : undefined
+          failureReason: response.status === PaymentStatus.Failed ? (response.failureReason || 'reconciliation_failed') : undefined,
+          gatewayReference: response.gatewayReference
         });
 
-        // Booking confirmation: Phase 4 - Use resilient confirmation with retries
-        if (response.status === PaymentStatus.Completed && payment.bookingId) {
-          const booking = await this.storage.getBooking(payment.bookingId);
-          if (booking && booking.status === 'pending') {
-            console.log(`[RECON][${traceId}] Payment ${paymentId} completed - confirming booking ${booking.id}`);
-            
-            // Phase 4: Use confirmWithRetries for automatic conflict recovery
-            const confirmResult = await this.bookingConfirmation.confirmWithRetries({
-              bookingId: booking.id,
-              paymentId: paymentId,
-              gatewayReference: response.gatewayReference,
-              maxRetries: 3,
-              idempotencyKey: `recon_${paymentId}`
+        if (response.status === PaymentStatus.Completed) {
+          // ✅ DELEGATE TO DOMAIN: Use PaymentIntent to emit canonical PaymentConfirmed event
+          try {
+            const intent = new PaymentIntent({
+              id: payment.id,
+              bookingId: payment.bookingId,
+              amount: payment.amount,
+              currency: payment.currency,
+              status: payment.status as any,
+              method: gateway.slug === 'stripe' ? 'Card' : 'Manual',
+              provider: gateway.slug
             });
 
-            if (confirmResult.success) {
-              console.log(
-                `[RECON][${traceId}] ✅ Booking ${booking.id} confirmed via payment completion ` +
-                `(${confirmResult.retryAttempts || 0} retries, ${confirmResult.metrics?.timeMs || 0}ms)`
-              );
-            } else {
-              console.error(
-                `[RECON][${traceId}] CRITICAL: Booking confirmation failed - ` +
-                `${confirmResult.error?.reason}. Details: ${confirmResult.error?.details}`
-              );
-              
-              // Mark payment as ManualReviewRequired because booking could not be confirmed
-              await this.storage.updatePayment(payment.id, {
-                status: PaymentStatus.ManualReviewRequired,
-                failureReason: confirmResult.error?.code || 'confirmation_failed'
-              });
-
-              // Log conflict information if available
-              if (confirmResult.conflictHandling?.conflictDetected) {
-                console.warn(
-                  `[RECON][${traceId}] Conflict detected: ${confirmResult.conflictHandling.conflictType} ` +
-                  `- Resolution: ${confirmResult.conflictHandling.resolutionStrategy}`
-                );
-              }
-
-              // Keep booking pending so user can retry
-              return;
-            }
+            intent.receive(); // Emits PaymentConfirmed
+            console.log(`[RECON][${traceId}] Automatic sync dispatched PaymentConfirmed for ${paymentId}.`);
+          } catch (eventErr) {
+            console.error(`[RECON][${traceId}] Failed to dispatch sync event:`, eventErr);
           }
         }
-      } else {
+      }
+      else {
         console.log(`[RECON][${traceId}] No status change detected for payment ${paymentId}.`);
       }
 
@@ -134,7 +109,7 @@ export class PaymentReconciliationService {
    */
   async reconcileManually(paymentId: string, adminId: string, note: string, forceStatus?: PaymentStatus): Promise<void> {
     console.log(`[RECON] Manual reconciliation triggered for ${paymentId} by admin ${adminId}.`);
-    
+
     const payment = await this.storage.getPayment(paymentId);
     if (!payment) throw new Error("Payment not found");
 
@@ -154,64 +129,37 @@ export class PaymentReconciliationService {
       // Manual overrides allow bypassing some safety checks but should still be logged.
       console.warn(`[RECON] Manual status override: ${payment.status} -> ${forceStatus}`);
       updateData.status = forceStatus;
-      
-      if (forceStatus === PaymentStatus.Completed && payment.bookingId) {
-        const booking = await this.storage.getBooking(payment.bookingId);
-        if (booking && booking.status === 'pending') {
-          console.log(`[RECON] Confirming booking ${booking.id} via manual override`);
-          
-          // Phase 4: Use resilient confirmation with automatic retry
-          const confirmResult = await this.bookingConfirmation.confirmWithRetries({
-            bookingId: booking.id,
-            paymentId: payment.id,
-            maxRetries: 3,
-            idempotencyKey: `admin_recon_${paymentId}`
+
+      await this.storage.updatePayment(paymentId, updateData);
+
+      if (forceStatus === PaymentStatus.Completed) {
+        // ✅ DELEGATE TO DOMAIN: Use PaymentIntent to emit canonical PaymentConfirmed event
+        // This triggers BookingEventHandler which handles session-level atomic confirmation and emails.
+        try {
+          const gateway = await this.storage.getPaymentGateway(payment.gatewayId);
+          const intent = new PaymentIntent({
+            id: payment.id,
+            bookingId: payment.bookingId,
+            amount: payment.amount,
+            currency: payment.currency,
+            status: payment.status as any, // Transitioning FROM its current status
+            method: gateway?.slug === 'stripe' ? 'Card' : 'Manual',
+            provider: gateway?.slug || 'unknown'
           });
 
-          if (!confirmResult.success) {
-            console.error(`[RECON] Manual override confirmation failed - ${confirmResult.error?.reason}`);
-            throw new Error(
-              `Manual reconciliation failed: ${confirmResult.error?.reason}. ` +
-              `${confirmResult.error?.details || 'Hold might be expired or booking is in invalid state.'}`
-            );
-          }
-
-          // ✅ Send confirmation email after successful manual confirmation
-          try {
-            const confirmedBooking = await this.storage.getBooking(booking.id);
-            const bookingItems = await this.storage.getBookingItems(booking.id);
-            const firstItem = bookingItems[0];
-            const tourData = firstItem ? await this.storage.getTour(firstItem.productId) : null;
-            const tourInfo = tourData || { title: 'Tour/Transfer Booking' };
-
-            const emailBooking = {
-              ...(confirmedBooking || booking),
-              date: firstItem?.date || new Date().toISOString().split('T')[0],
-              guests: `${firstItem?.adultPax || 1} Adult(s)${firstItem?.childPax ? ', ' + firstItem.childPax + ' Child(ren)' : ''}`,
-              amount: `VT ${(((confirmedBooking || booking).totalAmountCents || 0) / 100).toLocaleString()}`,
-            };
-
-            if (booking.customerEmail) {
-              await sendEmail({
-                to: booking.customerEmail,
-                subject: `✅ Booking Confirmed — Ref #${booking.id.slice(0, 8).toUpperCase()}`,
-                html: getPaymentConfirmationTemplate(emailBooking, payment, tourInfo),
-              });
-            }
-            await sendAdminEmail(
-              `✅ Payment Confirmed: ${booking.customerName} — ${tourInfo.title}`,
-              getPaymentConfirmationTemplate(emailBooking, payment, tourInfo)
-            );
-          } catch (emailErr) {
-            console.error('[RECON] Post-confirmation email failed (non-fatal):', emailErr);
-          }
+          intent.receive(); // Emits PaymentConfirmed
+          console.log(`[RECON] Manual reconciliation dispatched PaymentConfirmed for ${paymentId}.`);
+        } catch (eventErr) {
+          console.error(`[RECON] Failed to dispatch reconcile event for ${paymentId}:`, eventErr);
+          // DB is already updated above
         }
       }
     } else {
-      // If no status provided, just perform a sync
-      await this.syncPaymentStatus(paymentId);
+      // If no status provided, just perform a sync with the provided audit metadata
+      await this.syncPaymentStatus(paymentId, {
+        reconciledBy: adminId,
+        reconciliationNote: note
+      });
     }
-
-    await this.storage.updatePayment(paymentId, updateData);
   }
 }

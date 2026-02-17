@@ -20,28 +20,42 @@ export class PaymentFactory {
 
   static getPaymentGatewayService(gatewayConfig: PaymentGateway): PaymentGatewayService {
     const slug = gatewayConfig.slug.toLowerCase();
-    
-    // 1. Check Global Disconnect
-    if (config.payments.externalDisconnected && slug !== 'manual') {
-      console.warn(`[FACTORY] External payments are globally disabled. Rejecting ${slug}.`);
+
+    // 1. Check Global Disconnect - Only manual allowed if external systems are off
+    const externalDisconnected = config.payments.externalDisconnected;
+    const isManual = slug === 'manual' || slug.includes('bank') || slug.includes('cash') || slug.includes('transfer');
+
+    if (externalDisconnected && !isManual) {
+      console.warn(`[FACTORY][REJECTED] slug: ${slug} | reason: global_external_disconnect`);
       throw new Error(`External payment gateway ${slug} is currently disabled.`);
     }
 
     // 2. Resolve Adapter Class
     const AdapterClass = this.adapters[slug];
     if (!AdapterClass) {
+      console.error(`[FACTORY][ERROR] slug: ${slug} | reason: adapter_not_implemented`);
       throw new Error(`Payment gateway ${slug} is not implemented.`);
     }
 
-    // 3. Feature Flag Check
+    // 3. Feature Flag Check (Absolute Source of Truth)
     const flagKey = this.normalizeSlugToFlag(slug);
-    const isEnabled = (config.payments as any)[flagKey]?.enabled ?? true;
+    const gatewaySettings = (config.payments as any)[flagKey];
+    const isEnabled = gatewaySettings?.enabled ?? true;
 
-    if (!isEnabled) {
-      console.error(`[FACTORY] Gateway ${slug} is disabled via feature flag.`);
-      throw new Error(`Payment gateway ${slug} is not active in this environment.`);
+    // 4. Kill Switch Check (Production Circuit Breaker)
+    const isCard = slug === 'stripe' || slug.includes('card');
+    const cardPaused = config.killSwitches.cardPaymentsPaused;
+    const globalPaused = config.killSwitches.paymentsPaused;
+
+    const isPaused = (isCard && cardPaused) || globalPaused;
+
+    if (!isEnabled || isPaused) {
+      const reason = !isEnabled ? 'feature_flag_disabled' : (globalPaused ? 'global_kill_switch' : 'card_kill_switch');
+      console.warn(`[FACTORY][REJECTED] slug: ${slug} | reason: ${reason}`);
+      throw new Error(`Payment gateway ${slug} is currently unavailable.`);
     }
 
+    console.log(`[FACTORY][RESOLVED] slug: ${slug} | adapter: ${AdapterClass.name}`);
     return new AdapterClass(gatewayConfig);
   }
 

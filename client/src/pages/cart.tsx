@@ -191,7 +191,7 @@ export default function Cart() {
                                 variant="ghost"
                                 size="sm"
                                 className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                                onClick={() => removeFromCart(item.id, item.date, item.slot)}
+                                onClick={() => removeFromCart(item.cartItemId)}
                               >
                                 <Trash2 className="h-4 w-4 mr-2" />
                                 {t("cart.remove")}
@@ -219,7 +219,16 @@ export default function Cart() {
                 </CardHeader>
                 <CardContent>
                   {/* Phase 3: Show detailed pricing breakdown from PricingEngine */}
-                  {pricingSnapshot && (
+                  {isLoadingPricing && (
+                    <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                      <p className="text-sm text-muted-foreground italic">
+                        {t("cart.calculatingFinalPrice")}
+                      </p>
+                    </div>
+                  )}
+
+                  {!isLoadingPricing && pricingSnapshot && (
                     <div className="mb-6">
                       <PricingBreakdown
                         pricing={pricingSnapshot}
@@ -229,8 +238,8 @@ export default function Cart() {
                     </div>
                   )}
 
-                  {/* Fallback to simple total if no pricing snapshot */}
-                  {!pricingSnapshot && (
+                  {/* If no loading and no snapshot, wait for backend */}
+                  {!isLoadingPricing && !pricingSnapshot && (
                     <div className="space-y-4">
                       <div className="flex justify-between font-bold text-lg pt-2 border-t mt-2">
                         <span>{t("cart.total")}</span>
@@ -240,9 +249,15 @@ export default function Cart() {
                   )}
                 </CardContent>
                 <CardFooter>
-                  <Button className="w-full py-6 text-lg" size="lg" onClick={handleCheckout} disabled={isProcessing}>
-                    {isProcessing ? "Processing..." : t("cart.checkout")}
-                    <ArrowRight className="ml-2 h-4 w-4" />
+                  <Button
+                    className="w-full py-6 text-lg"
+                    size="lg"
+                    onClick={handleCheckout}
+                    disabled={isProcessing || isLoadingPricing || !pricingSnapshot}
+                  >
+                    {isProcessing ? "Processing..." : (isLoadingPricing ? "Pricing..." : t("cart.checkout"))}
+                    {!isLoadingPricing && <ArrowRight className="ml-2 h-4 w-4" />}
+                    {isLoadingPricing && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
                   </Button>
                 </CardFooter>
               </Card>

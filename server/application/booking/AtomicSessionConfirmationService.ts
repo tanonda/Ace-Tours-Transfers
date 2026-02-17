@@ -35,6 +35,7 @@ export interface SessionConfirmationResult {
     success: boolean;
     message: string;
     sessionConfirmed: boolean;
+    wasAlreadyConfirmed?: boolean; // NEW: Signal for idempotency
     bookingIds: string[];
     error?: {
         code: string;
@@ -90,6 +91,7 @@ export class AtomicSessionConfirmationService {
                     return {
                         success: true,
                         sessionConfirmed: true,
+                        wasAlreadyConfirmed: true, // Idempotent hit
                         bookingIds,
                         message: "All bookings in session already confirmed"
                     };
@@ -115,8 +117,10 @@ export class AtomicSessionConfirmationService {
                     if (hold.status !== 'ACTIVE' && hold.status !== 'CONFIRMED') {
                         throw new Error(`Inconsistent session: Hold ${hold.id} is in state ${hold.status}`);
                     }
+
+                    // If hold is expired, we will re-verify availability in step 5
                     if (hold.status === 'ACTIVE' && hold.expiresAt < now) {
-                        throw new Error(`Inconsistent session: Hold ${hold.id} has expired`);
+                        console.warn(`[SESSION_CONFIRM] Hold ${hold.id} is expired. Will attempt re-verification.`);
                     }
                 }
 
@@ -145,7 +149,9 @@ export class AtomicSessionConfirmationService {
                         if (totalConfirming > 0) {
                             // Check capacity
                             if (instance.confirmedCount + totalConfirming + instance.blockedCount > instance.totalCapacity) {
-                                throw new Error(`Capacity exceeded for instance ${instanceId}`);
+                                const err: any = new Error(`Capacity exceeded for instance ${instanceId}`);
+                                err.code = 'CAPACITY_EXCEEDED';
+                                throw err;
                             }
 
                             // Update counts

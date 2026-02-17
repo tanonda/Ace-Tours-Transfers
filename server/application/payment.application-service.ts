@@ -15,11 +15,11 @@ import { config } from "../config.js";
 import { PaymentIntent } from "../domain/payments/PaymentIntent.js";
 import { eventDispatcher } from "../infrastructure/events/event-dispatcher.js";
 import { BookingConfirmationService } from "./booking/BookingConfirmationService.js";
-import { 
-  sendEmail, 
-  sendAdminEmail, 
-  getPaymentConfirmationTemplate, 
-  getBookingConfirmationTemplate 
+import {
+  sendEmail,
+  sendAdminEmail,
+  getPaymentConfirmationTemplate,
+  getBookingConfirmationTemplate
 } from "../lib/mail.js";
 
 export interface PaymentOptions {
@@ -56,32 +56,32 @@ export class PaymentApplicationService {
       return { success: false, message: `Checkout rejected: Booking is in state '${booking.status}'` };
     }
 
-    const isOwner = (booking.userId && booking.userId === options.userId) || 
-                   (booking.bookingSessionId === options.sessionId);
-    
+    const isOwner = (booking.userId && booking.userId === options.userId) ||
+      (booking.bookingSessionId === options.sessionId);
+
     if (!isOwner) {
       return { success: false, message: "Unauthorized: Access denied." };
     }
 
     const existingPayments = await this.storage.getPaymentsByBooking(booking.id);
-    const activePayment = existingPayments.find(p => 
+    const activePayment = existingPayments.find(p =>
       [PaymentStatus.Pending, PaymentStatus.Processing].includes(p.status as PaymentStatus)
     );
 
     if (activePayment) {
-      return { 
-        success: false, 
+      return {
+        success: false,
         message: "An active payment attempt already exists for this booking.",
-        paymentId: activePayment.id 
+        paymentId: activePayment.id
       };
     }
 
     if (booking.holdId) {
       const hold = await this.storage.getHold(booking.holdId);
       if (!hold || hold.status !== 'ACTIVE') {
-        return { 
-          success: false, 
-          message: "Checkout rejected: Inventory hold expired." 
+        return {
+          success: false,
+          message: "Checkout rejected: Inventory hold expired."
         };
       }
     }
@@ -130,6 +130,19 @@ export class PaymentApplicationService {
       expiresAt: expiresAt,
     });
 
+    // Domain Event Initiation
+    try {
+      PaymentIntent.initiate(
+        payment.id,
+        booking.id,
+        amountCents,
+        gateway.slug === 'stripe' ? 'Card' : 'Manual',
+        gateway.slug
+      );
+    } catch (e) {
+      console.warn("[PAYMENT] Intent initiation event failed (non-fatal):", e);
+    }
+
     try {
       const adapter = PaymentFactory.getPaymentGatewayService(gateway);
       const request: PaymentInitiationRequest = {
@@ -146,28 +159,36 @@ export class PaymentApplicationService {
       const response = await adapter.initiatePayment(request);
 
       if (response.success && response.transactionId) {
+        // Determine status: Manual gateways stay in a state awaiting action.
+        const isManual = gateway.slug === 'cash' ||
+          gateway.slug.includes('manual') ||
+          gateway.slug.includes('bank') ||
+          gateway.slug.includes('transfer');
+
+        const nextStatus = isManual ? PaymentStatus.ManualReviewRequired : PaymentStatus.Processing;
+
         await this.storage.updatePayment(payment.id, {
           gatewayReference: response.transactionId,
-          status: PaymentStatus.Processing
+          status: nextStatus
         });
-        
+
         response.paymentId = payment.id;
         response.provider = gateway.slug;
 
         // ✅ Send payment pending / booking submitted emails for manual gateways
         // (bank transfer and cash do not have webhooks, so we notify immediately)
-        const isManual = gateway.slug === 'cash' || 
-                         gateway.slug.includes('manual') || 
-                         gateway.slug.includes('bank') ||
-                         gateway.slug.includes('transfer');
-        
+        const isManual = gateway.slug === 'cash' ||
+          gateway.slug.includes('manual') ||
+          gateway.slug.includes('bank') ||
+          gateway.slug.includes('transfer');
+
         if (isManual) {
           try {
             const bookingItems = await this.storage.getBookingItems(booking.id);
             const firstItem = bookingItems[0];
             const tourData = firstItem ? await this.storage.getTour(firstItem.productId) : null;
             const tourInfo = tourData || { title: 'Tour/Transfer Booking', id: '' };
-            
+
             const emailBooking = {
               ...booking,
               date: firstItem?.date || new Date().toISOString().split('T')[0],
@@ -176,7 +197,7 @@ export class PaymentApplicationService {
             };
 
             const paymentMethod = gateway.slug === 'cash' ? 'Cash on Delivery' : 'Bank Transfer';
-            const subject = gateway.slug === 'cash' 
+            const subject = gateway.slug === 'cash'
               ? `Booking Confirmed (Pay at Pickup) — Ref #${booking.id.slice(0, 8).toUpperCase()}`
               : `Action Required: Complete Bank Transfer — Ref #${booking.id.slice(0, 8).toUpperCase()}`;
 
@@ -227,7 +248,7 @@ export class PaymentApplicationService {
 
     if (result.success && result.paymentId && result.newPaymentStatus) {
       const existingPayment = await this.storage.getPayment(result.paymentId);
-      
+
       const terminalStates = [PaymentStatus.Completed, PaymentStatus.Failed, PaymentStatus.Cancelled, PaymentStatus.Expired];
       if (existingPayment && terminalStates.includes(existingPayment.status as PaymentStatus)) {
         return result;
@@ -244,17 +265,17 @@ export class PaymentApplicationService {
         provider: gateway.slug
       });
 
-      if (result.newPaymentStatus === PaymentStatus.Completed) {
-        intent.receive(); // Emits PaymentConfirmed event
-      } else if ([PaymentStatus.Failed, PaymentStatus.Cancelled, PaymentStatus.Expired].includes(result.newPaymentStatus)) {
-        intent.fail(result.failureReason || 'gateway_notification');
-      }
-
       await this.storage.updatePayment(result.paymentId, {
         status: result.newPaymentStatus,
         gatewayReference: result.gatewayReference,
         failureReason: result.newPaymentStatus === PaymentStatus.Failed ? 'gateway_failure' : undefined
       });
+
+      if (result.newPaymentStatus === PaymentStatus.Completed) {
+        intent.receive(); // Emits PaymentConfirmed event
+      } else if ([PaymentStatus.Failed, PaymentStatus.Cancelled, PaymentStatus.Expired].includes(result.newPaymentStatus)) {
+        intent.fail(result.failureReason || 'gateway_notification');
+      }
     }
 
     return result;
@@ -264,7 +285,9 @@ export class PaymentApplicationService {
     const payment = await this.storage.getPayment(paymentId);
     if (!payment) return undefined;
 
-    if (payment.status === PaymentStatus.Pending || payment.status === PaymentStatus.Processing) {
+    if (payment.status === PaymentStatus.Pending ||
+      payment.status === PaymentStatus.Processing ||
+      payment.status === PaymentStatus.ManualReviewRequired) {
       const isExpired = await this.storage.checkPaymentExpiration(paymentId);
       if (isExpired) {
         await this.storage.updatePayment(paymentId, { status: PaymentStatus.Expired });
@@ -276,7 +299,8 @@ export class PaymentApplicationService {
 
   async expirePayment(paymentId: string): Promise<void> {
     const payment = await this.storage.getPayment(paymentId);
-    if (!payment || payment.status !== PaymentStatus.Pending) return;
+    const nonTerminalStatuses = [PaymentStatus.Pending, PaymentStatus.Processing, PaymentStatus.ManualReviewRequired];
+    if (!payment || !nonTerminalStatuses.includes(payment.status as PaymentStatus)) return;
 
     // Reconstruct Aggregate
     const intent = new PaymentIntent({
@@ -289,12 +313,12 @@ export class PaymentApplicationService {
       provider: 'manual'
     });
 
-    intent.fail('expired_timeout'); // Emits PaymentFailed/Expired event
-
     await this.storage.updatePayment(payment.id, {
       status: PaymentStatus.Expired,
       failureReason: 'expired_timeout'
     });
+
+    intent.fail('expired_timeout'); // Emits PaymentFailed/Expired event
 
     // Cancel the booking to release holds
     if (payment.bookingId) {
