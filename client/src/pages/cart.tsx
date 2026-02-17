@@ -122,14 +122,18 @@ export default function Cart() {
                       appliedRules.push('10% group discount (7+ adults)');
                       finalItemSubtotal = Math.round(finalItemSubtotal * 0.9);
                     }
-                    if (item.date && (item.date.getMonth() === 11 || item.date.getMonth() === 0)) {
-                      appliedRules.push('20% peak season surcharge (Dec/Jan)');
-                      finalItemSubtotal = Math.round(finalItemSubtotal * 1.2);
+                    if (item.date) {
+                      const dateObj = item.date instanceof Date ? item.date : new Date(item.date);
+                      if (dateObj.getMonth() === 11 || dateObj.getMonth() === 0) {
+                        appliedRules.push('20% peak season surcharge (Dec/Jan)');
+                        finalItemSubtotal = Math.round(finalItemSubtotal * 1.2);
+                      }
                     }
                   }
 
+                  const dateKey = item.date ? (item.date instanceof Date ? item.date.getTime() : new Date(item.date).getTime()) : 'no-date';
                   return (
-                    <Card key={`${item.id}-${index}-${item.date?.getTime()}`} className="overflow-hidden border-none shadow-sm">
+                    <Card key={`${item.id}-${index}-${dateKey}`} className="overflow-hidden border-none shadow-sm">
                       <CardContent className="p-0">
                         <div className="flex flex-col sm:flex-row">
                           <div className="w-full sm:w-40 h-40 sm:h-auto relative">

@@ -190,6 +190,11 @@ export async function updateSiteSetting(key: string, value: any): Promise<SiteSe
 
 // Payment Gateways
 export async function fetchPaymentGateways(): Promise<PaymentGateway[]> {
+  const res = await apiRequest("GET", "/api/payment-gateways");
+  return res.json();
+}
+
+export async function fetchAdminPaymentGateways(): Promise<PaymentGateway[]> {
   const res = await apiRequest("GET", "/api/admin/payment-gateways");
   return res.json();
 }
