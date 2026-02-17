@@ -1,73 +1,130 @@
 "use client";
 import React from 'react';
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { Clock } from "lucide-react";
+import { Clock } from 'lucide-react';
 
 interface Slot {
-    time: string;
-    available: boolean;
-    remaining: number;
+  time: string;
+  available: boolean;
+  remaining: number;
 }
 
 interface TimeSlotPickerProps {
-    slots: Slot[];
-    selectedTime: string | null;
-    onSelect: (time: string) => void;
-    isLoading?: boolean;
+  slots: Slot[];
+  selectedTime: string | null;
+  onSelect: (time: string) => void;
+  isLoading?: boolean;
 }
 
 export const TimeSlotPicker: React.FC<TimeSlotPickerProps> = ({
-    slots,
-    selectedTime,
-    onSelect,
-    isLoading
+  slots,
+  selectedTime,
+  onSelect,
+  isLoading
 }) => {
-    if (isLoading) {
-        return (
-            <div className="mt-4 animate-pulse space-y-2">
-                <div className="h-4 w-24 bg-gray-200 rounded"></div>
-                <div className="grid grid-cols-3 gap-2">
-                    {[1, 2, 3, 4, 5, 6].map((i) => (
-                        <div key={i} className="h-10 bg-gray-100 rounded"></div>
-                    ))}
-                </div>
-            </div>
-        );
-    }
-
-    if (slots.length === 0) {
-        return null;
-    }
-
+  if (isLoading) {
     return (
-        <div className="mt-6 space-y-3">
-            <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-                <Clock className="w-4 h-4" />
-                <span>Select Time</span>
-            </div>
-
-            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                {slots.map((slot) => (
-                    <Button
-                        key={slot.time}
-                        variant={selectedTime === slot.time ? "default" : "outline"}
-                        className={cn(
-                            "h-auto py-2 px-1 text-sm flex flex-col items-center justify-center gap-0.5",
-                            !slot.available && "opacity-50 cursor-not-allowed bg-gray-50",
-                            selectedTime === slot.time && "ring-2 ring-primary ring-offset-2"
-                        )}
-                        onClick={() => slot.available && onSelect(slot.time)}
-                        disabled={!slot.available}
-                        title={slot.available ? `${slot.remaining} seats left` : "Full"}
-                    >
-                        <span>{slot.time}</span>
-                        <span className="text-[10px] font-normal opacity-80">
-                            {slot.available ? `${slot.remaining} left` : "Full"}
-                        </span>
-                    </Button>
-                ))}
-            </div>
+      <div style={{
+        marginTop: '12px',
+        paddingTop: '12px',
+        borderTop: '1px solid rgba(244,168,48,0.18)',
+      }}>
+        <div style={{
+          fontSize: '10px',
+          fontWeight: 700,
+          textTransform: 'uppercase',
+          color: '#4a4438',
+          letterSpacing: '0.07em',
+          marginBottom: '8px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '5px',
+        }}>
+          <Clock size={10} /> Select Time
         </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '4px' }}>
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} style={{
+              height: '46px',
+              background: 'rgba(244,168,48,0.06)',
+              borderRadius: '7px',
+              animation: 'pulse 1.5s ease infinite',
+            }} />
+          ))}
+        </div>
+      </div>
     );
+  }
+
+  if (slots.length === 0) return null;
+
+  return (
+    <div style={{
+      marginTop: '12px',
+      paddingTop: '12px',
+      borderTop: '1px solid rgba(244,168,48,0.18)',
+    }}>
+      <div style={{
+        fontSize: '10px',
+        fontWeight: 700,
+        textTransform: 'uppercase',
+        color: '#8a826e',
+        letterSpacing: '0.07em',
+        marginBottom: '8px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '5px',
+      }}>
+        <Clock size={10} style={{ color: '#f4a830' }} /> Select Time
+      </div>
+
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(3, 1fr)',
+        gap: '4px',
+      }}>
+        {slots.map((slot) => {
+          const isSelected = selectedTime === slot.time;
+          const isDisabled = !slot.available;
+          return (
+            <button
+              key={slot.time}
+              onClick={() => slot.available && onSelect(slot.time)}
+              disabled={isDisabled}
+              title={slot.available ? `${slot.remaining} seats left` : 'Fully booked'}
+              style={{
+                padding: '7px 4px',
+                borderRadius: '7px',
+                border: `1.5px solid ${isSelected ? '#f4a830' : 'rgba(244,168,48,0.18)'}`,
+                background: isSelected ? '#f4a830' : isDisabled ? 'rgba(244,168,48,0.03)' : 'rgba(244,168,48,0.07)',
+                cursor: isDisabled ? 'not-allowed' : 'pointer',
+                opacity: isDisabled ? 0.4 : 1,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '2px',
+                transition: 'all 0.15s ease',
+                boxShadow: isSelected ? '0 0 0 3px rgba(244,168,48,0.2)' : 'none',
+              }}
+            >
+              <span style={{
+                fontSize: '11px',
+                fontWeight: 700,
+                color: isSelected ? '#0f0d09' : '#f0ece4',
+                lineHeight: 1,
+              }}>
+                {slot.time}
+              </span>
+              <span style={{
+                fontSize: '9px',
+                color: isSelected ? 'rgba(15,13,9,0.6)' : '#8a826e',
+                fontWeight: 600,
+              }}>
+                {slot.available ? `${slot.remaining} left` : 'Full'}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
 };

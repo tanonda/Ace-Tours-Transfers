@@ -5,20 +5,9 @@ import { useCalendarData } from './useCalendarData';
 import type { AvailabilityCalendarProps, CalendarDayData } from './types';
 import './AvailabilityCalendar.css';
 
-const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTHS = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
+  'January','February','March','April','May','June',
+  'July','August','September','October','November','December',
 ];
 
 export const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = React.memo(({
@@ -34,7 +23,6 @@ export const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = React.m
   const [internalSelectedDate, setInternalSelectedDate] = useState<string | null>(null);
   const activeSelectedDate = propSelectedDate || internalSelectedDate;
 
-  // Sync currentMonth when propSelectedDate changes to show the pre-filled date
   useEffect(() => {
     if (propSelectedDate) {
       const date = new Date(propSelectedDate);
@@ -51,27 +39,17 @@ export const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = React.m
     return (participants?.adults || 0) + (participants?.children || 0);
   }, [participants]);
 
-  const { data, loading } = useCalendarData({
-    tourId,
-    month,
-    year,
-    minGuests: totalGuests || 1,
-  });
+  const { data, loading } = useCalendarData({ tourId, month, year, minGuests: totalGuests || 1 });
 
   const calendar = useMemo(() => {
     const days: (CalendarDayData | null)[] = [];
     const firstDay = new Date(year, month, 1).getDay();
     const numDays = new Date(year, month + 1, 0).getDate();
 
-    // Empty cells before month starts
-    for (let i = 0; i < firstDay; i++) {
-      days.push(null);
-    }
+    for (let i = 0; i < firstDay; i++) days.push(null);
 
-    // Days of month
     for (let i = 1; i <= numDays; i++) {
       const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
-
       const dayData = data[dateStr];
       days.push({
         date: dateStr,
@@ -85,9 +63,24 @@ export const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = React.m
         surchargeApplies: false,
       });
     }
-
     return days;
   }, [year, month, data]);
+
+  // Compute month summary stats
+  const monthStats = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const futureDays = calendar.filter(d => {
+      if (!d) return false;
+      const cellDate = new Date(d.date + 'T00:00:00');
+      return cellDate >= today;
+    }) as CalendarDayData[];
+
+    const available = futureDays.filter(d => d.isAvailable && d.remainingCapacity > 3).length;
+    const limited = futureDays.filter(d => d.isAvailable && d.remainingCapacity > 0 && d.remainingCapacity <= 3).length;
+    const full = futureDays.filter(d => !d.isAvailable).length;
+    return { available, limited, full };
+  }, [calendar]);
 
   const goToPreviousMonth = useCallback(() => {
     setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1));
@@ -106,7 +99,6 @@ export const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = React.m
   }, [onDateSelect]);
 
   const handleTimeSelect = useCallback((time: string) => {
-    console.log("Selected time:", time);
     onTimeSelect?.(time);
   }, [onTimeSelect]);
 
@@ -114,33 +106,46 @@ export const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = React.m
     <div className="availability-calendar">
       <div className="calendar-header">
         <div className="calendar-nav">
-          <button
-            onClick={goToPreviousMonth}
-            disabled={!canGoBack}
-            aria-label="Previous month"
-          >
-            ‹
-          </button>
+          <button onClick={goToPreviousMonth} disabled={!canGoBack} aria-label="Previous month">‹</button>
         </div>
-
-        <h3 className="calendar-title">
-          {MONTHS[currentMonth.getMonth()]} {currentMonth.getFullYear()}
-        </h3>
-
+        <h3 className="calendar-title">{MONTHS[month]} {year}</h3>
         <div className="calendar-nav">
-          <button
-            onClick={goToNextMonth}
-            disabled={!canGoForward}
-            aria-label="Next month"
-          >
-            ›
-          </button>
+          <button onClick={goToNextMonth} disabled={!canGoForward} aria-label="Next month">›</button>
         </div>
       </div>
+
+      {!loading && (monthStats.available > 0 || monthStats.limited > 0 || monthStats.full > 0) && (
+        <div className="calendar-month-summary">
+          {monthStats.available > 0 && (
+            <div className="month-summary-item">
+              <div className="month-summary-dot green" />
+              <span className="month-summary-count">{monthStats.available}</span>
+              <span>open</span>
+            </div>
+          )}
+          {monthStats.available > 0 && monthStats.limited > 0 && <span className="month-summary-sep">·</span>}
+          {monthStats.limited > 0 && (
+            <div className="month-summary-item">
+              <div className="month-summary-dot amber" />
+              <span className="month-summary-count">{monthStats.limited}</span>
+              <span>limited</span>
+            </div>
+          )}
+          {monthStats.limited > 0 && monthStats.full > 0 && <span className="month-summary-sep">·</span>}
+          {monthStats.full > 0 && (
+            <div className="month-summary-item">
+              <div className="month-summary-dot red" />
+              <span className="month-summary-count">{monthStats.full}</span>
+              <span>full</span>
+            </div>
+          )}
+        </div>
+      )}
 
       {loading && (
         <div className="calendar-loading">
           <div className="spinner" />
+          <span>Loading availability…</span>
         </div>
       )}
 
@@ -169,7 +174,7 @@ export const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = React.m
           </div>
 
           <div className="calendar-legend">
-            <h4 className="legend-title">Availability</h4>
+            <h4 className="legend-title">Key</h4>
             <div className="legend-items">
               <div className="legend-item">
                 <div className="legend-color available" />
@@ -200,7 +205,8 @@ export const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = React.m
   );
 });
 
-// Internal component for handling slot logic to avoid cluttering main calendar
+AvailabilityCalendar.displayName = 'AvailabilityCalendar';
+
 import { TimeSlotPicker } from "./TimeSlotPicker";
 import { fetchAvailableSlots } from "@/lib/api";
 
@@ -227,6 +233,7 @@ const TimeSlotsSection: React.FC<{
       }
     };
     loadSlots();
+    setSelectedTime(null);
   }, [tourId, date, guests]);
 
   return (

@@ -48,6 +48,11 @@ const AdminRecovery = lazy(() => import("@/pages/admin/recovery"));
 const AdminStaff = lazy(() => import("@/pages/admin/staff"));
 const AdminCMS = lazy(() => import("@/pages/admin/cms"));
 const AdminPayments = lazy(() => import("@/pages/admin/payments"));
+// Previously missing admin pages — now routed
+const AdminPricing = lazy(() => import("@/pages/admin/pricing"));
+const AdminBlackouts = lazy(() => import("@/pages/admin/blackouts"));
+const AdminCapacity = lazy(() => import("@/pages/admin/capacity-dashboard"));
+const AdminAuditLogs = lazy(() => import("@/pages/admin/audit-logs"));
 
 // Customer pages
 const CustomerDashboard = lazy(() => import("@/pages/customer/dashboard"));
@@ -101,96 +106,73 @@ function Router() {
 
         {/* Admin Routes - Protected */}
         <Route path="/admin/dashboard">
-          <ProtectedRoute requireAdmin>
-            <AdminDashboard />
-          </ProtectedRoute>
+          <ProtectedRoute requireAdmin><AdminDashboard /></ProtectedRoute>
         </Route>
         <Route path="/admin/bookings">
-          <ProtectedRoute requireAdmin>
-            <AdminBookings />
-          </ProtectedRoute>
+          <ProtectedRoute requireAdmin><AdminBookings /></ProtectedRoute>
         </Route>
         <Route path="/admin/tours">
-          <ProtectedRoute requireAdmin>
-            <AdminTours />
-          </ProtectedRoute>
+          <ProtectedRoute requireAdmin><AdminTours /></ProtectedRoute>
         </Route>
         <Route path="/admin/customers">
-          <ProtectedRoute requireAdmin>
-            <AdminUsers />
-          </ProtectedRoute>
+          <ProtectedRoute requireAdmin><AdminUsers /></ProtectedRoute>
         </Route>
         <Route path="/admin/settings">
-          <ProtectedRoute requireAdmin>
-            <AdminSettings />
-          </ProtectedRoute>
+          <ProtectedRoute requireAdmin><AdminSettings /></ProtectedRoute>
         </Route>
         <Route path="/admin/analytics">
-          <ProtectedRoute requireAdmin>
-            <AdminAnalytics />
-          </ProtectedRoute>
+          <ProtectedRoute requireAdmin><AdminAnalytics /></ProtectedRoute>
         </Route>
         <Route path="/admin/reports">
-          <ProtectedRoute requireAdmin>
-            <AdminReports />
-          </ProtectedRoute>
+          <ProtectedRoute requireAdmin><AdminReports /></ProtectedRoute>
         </Route>
         <Route path="/admin/promotions">
-          <ProtectedRoute requireAdmin>
-            <AdminPromotions />
-          </ProtectedRoute>
+          <ProtectedRoute requireAdmin><AdminPromotions /></ProtectedRoute>
         </Route>
         <Route path="/admin/calendar">
-          <ProtectedRoute requireAdmin>
-            <AdminCalendar />
-          </ProtectedRoute>
+          <ProtectedRoute requireAdmin><AdminCalendar /></ProtectedRoute>
         </Route>
         <Route path="/admin/recovery">
-          <ProtectedRoute requireAdmin>
-            <AdminRecovery />
-          </ProtectedRoute>
+          <ProtectedRoute requireAdmin><AdminRecovery /></ProtectedRoute>
         </Route>
         <Route path="/admin/staff">
-          <ProtectedRoute requireAdmin>
-            <AdminStaff />
-          </ProtectedRoute>
+          <ProtectedRoute requireAdmin><AdminStaff /></ProtectedRoute>
         </Route>
         <Route path="/admin/cms">
-          <ProtectedRoute requireAdmin>
-            <AdminCMS />
-          </ProtectedRoute>
+          <ProtectedRoute requireAdmin><AdminCMS /></ProtectedRoute>
         </Route>
         <Route path="/admin/payments">
-          <ProtectedRoute requireAdmin>
-            <AdminPayments />
-          </ProtectedRoute>
+          <ProtectedRoute requireAdmin><AdminPayments /></ProtectedRoute>
+        </Route>
+        {/* Availability management routes */}
+        <Route path="/admin/pricing">
+          <ProtectedRoute requireAdmin><AdminPricing /></ProtectedRoute>
+        </Route>
+        <Route path="/admin/blackouts">
+          <ProtectedRoute requireAdmin><AdminBlackouts /></ProtectedRoute>
+        </Route>
+        <Route path="/admin/capacity">
+          <ProtectedRoute requireAdmin><AdminCapacity /></ProtectedRoute>
+        </Route>
+        <Route path="/admin/audit-logs">
+          <ProtectedRoute requireAdmin><AdminAuditLogs /></ProtectedRoute>
         </Route>
 
         {/* Customer Routes - Protected */}
         <Route path="/dashboard">
-          <ProtectedRoute>
-            <CustomerDashboard />
-          </ProtectedRoute>
+          <ProtectedRoute><CustomerDashboard /></ProtectedRoute>
         </Route>
         <Route path="/customer/dashboard">
-          <ProtectedRoute>
-            <CustomerDashboard />
-          </ProtectedRoute>
+          <ProtectedRoute><CustomerDashboard /></ProtectedRoute>
         </Route>
         <Route path="/dashboard/bookings">
-          <ProtectedRoute>
-            <CustomerBookings />
-          </ProtectedRoute>
+          <ProtectedRoute><CustomerBookings /></ProtectedRoute>
         </Route>
         <Route path="/dashboard/saved">
-          <ProtectedRoute>
-            <CustomerSaved />
-          </ProtectedRoute>
+          <ProtectedRoute><CustomerSaved /></ProtectedRoute>
         </Route>
         <Route path="/dashboard/profile">
-          <ProtectedRoute>
-            <CustomerProfile />
-          </ProtectedRoute>
+          <ProtectedRoute><CustomerProfile /></ProtectedRoute>
         </Route>
 
         <Route component={NotFound} />

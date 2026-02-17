@@ -1,25 +1,27 @@
 :root {
   --cal-gold: #f4a830;
   --cal-gold-dim: rgba(244, 168, 48, 0.12);
+  --cal-gold-glow: rgba(244, 168, 48, 0.25);
   --cal-bg: #1a1710;
   --cal-surface: #211e18;
+  --cal-surface-hover: #2a2620;
   --cal-border: rgba(244, 168, 48, 0.18);
   --cal-text: #f0ece4;
   --cal-text-muted: #8a826e;
   --cal-text-dim: #4a4438;
   --cal-green: #4caf7d;
+  --cal-green-dim: rgba(76, 175, 125, 0.12);
   --cal-amber: #f4a830;
+  --cal-amber-dim: rgba(244, 168, 48, 0.1);
   --cal-red: #e05555;
+  --cal-red-dim: rgba(224, 85, 85, 0.08);
   --cal-radius: 12px;
+  --cal-day-radius: 9px;
 }
 
-/* ── Outer container ──
-   overflow: hidden keeps everything inside the rounded border.
-   NO overflow: visible here — that was the root cause of cells
-   bleeding outside the panel boundary. */
 .availability-calendar {
   font-family: 'DM Sans', sans-serif;
-  padding: 16px;
+  padding: 18px 16px 16px;
   background: var(--cal-bg);
   border-radius: var(--cal-radius);
   color: var(--cal-text);
@@ -27,12 +29,11 @@
   overflow: hidden;
 }
 
-/* ── Header: ‹ Month Year › ── */
 .calendar-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
   gap: 8px;
 }
 
@@ -43,14 +44,10 @@
   color: var(--cal-gold);
   text-align: center;
   flex: 1;
+  letter-spacing: 0.01em;
 }
 
-/* display: contents makes each single-button .calendar-nav
-   a transparent wrapper — its button becomes a direct flex child
-   of .calendar-header, so ‹ and › naturally flank the title */
-.calendar-nav {
-  display: contents;
-}
+.calendar-nav { display: contents; }
 
 .calendar-nav button {
   background: var(--cal-surface);
@@ -62,76 +59,108 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--cal-text);
-  font-size: 1rem;
-  transition: border-color 0.2s ease, background 0.2s ease;
+  color: var(--cal-text-muted);
+  font-size: 1.1rem;
+  transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
   flex-shrink: 0;
 }
 
 .calendar-nav button:hover:not(:disabled) {
   border-color: var(--cal-gold);
   background: var(--cal-gold-dim);
+  color: var(--cal-gold);
 }
 
-.calendar-nav button:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
+.calendar-nav button:disabled { opacity: 0.25; cursor: not-allowed; }
+
+.calendar-month-summary {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+  padding: 7px 10px;
+  background: var(--cal-surface);
+  border-radius: 8px;
+  border: 1px solid var(--cal-border);
 }
 
-/* ── Day-of-week row ── */
+.month-summary-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 9.5px;
+  color: var(--cal-text-muted);
+  font-weight: 600;
+}
+
+.month-summary-sep { color: var(--cal-text-dim); font-size: 9px; }
+
+.month-summary-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.month-summary-dot.green { background: var(--cal-green); }
+.month-summary-dot.amber { background: var(--cal-amber); }
+.month-summary-dot.red   { background: var(--cal-red); }
+
+.month-summary-count { font-weight: 800; color: var(--cal-text); }
+
 .calendar-weekdays {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 4px;
-  margin-bottom: 6px;
+  gap: 3px;
+  margin-bottom: 5px;
 }
 
 .weekday {
   text-align: center;
-  font-size: 10px;
-  font-weight: 600;
+  font-size: 9.5px;
+  font-weight: 700;
   color: var(--cal-text-dim);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding-bottom: 4px;
+  letter-spacing: 0.06em;
+  padding: 4px 0;
 }
 
-/* ── Day grid ──
-   No transform on hover — border + background change is enough
-   and keeps every cell strictly within its grid cell bounds. */
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 4px;
+  gap: 3px;
 }
 
 .calendar-day {
   position: relative;
   aspect-ratio: 1;
   border: 1.5px solid transparent;
-  border-radius: 8px;
-  padding: 4px;
+  border-radius: var(--cal-day-radius);
+  padding: 3px;
   cursor: pointer;
   background: var(--cal-surface);
-  transition: border-color 0.15s ease, background 0.15s ease;
+  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  /* NO transform: scale() — that's what caused overflow */
+  gap: 2px;
 }
 
 .calendar-day:hover:not(.disabled):not(.full):not(.past) {
   border-color: var(--cal-gold);
-  background: var(--cal-gold-dim);
-  /* z-index still useful for border overlap with neighbours */
+  background: var(--cal-surface-hover);
+  box-shadow: 0 0 0 1px var(--cal-gold-dim);
   z-index: 1;
 }
 
-/* ── Day content ── */
+.calendar-day.empty {
+  background: transparent;
+  border-color: transparent;
+  cursor: default;
+}
+
 .day-number {
-  font-weight: 600;
-  font-size: 0.85rem;
+  font-weight: 700;
+  font-size: 0.83rem;
   color: var(--cal-text);
   line-height: 1;
 }
@@ -140,106 +169,118 @@
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  margin-top: 3px;
   flex-shrink: 0;
 }
 
 .day-capacity {
-  font-size: 8px;
-  font-weight: 600;
-  opacity: 0.7;
-  margin-top: 2px;
+  font-size: 7.5px;
+  font-weight: 700;
+  opacity: 0.65;
   line-height: 1;
+  letter-spacing: -0.02em;
 }
 
-/* ── Availability colours ── */
-.calendar-day.available { background: rgba(76, 175, 125, 0.06); }
-.calendar-day.limited   { background: rgba(244, 168, 48, 0.06); }
-.calendar-day.full      { background: rgba(224, 85, 85, 0.05); cursor: not-allowed; }
+.calendar-day.available { background: var(--cal-green-dim); border-color: transparent; }
+.calendar-day.limited   { background: var(--cal-amber-dim); border-color: transparent; }
+.calendar-day.full      { background: var(--cal-red-dim); cursor: not-allowed; border-color: transparent; opacity: 0.65; }
+
+.calendar-day.available:hover:not(.disabled) {
+  border-color: var(--cal-green);
+  box-shadow: 0 0 0 1px rgba(76, 175, 125, 0.15);
+}
+.calendar-day.limited:hover:not(.disabled) {
+  border-color: var(--cal-amber);
+  box-shadow: 0 0 0 1px var(--cal-gold-dim);
+}
 
 .calendar-day.available .day-status-dot { background: var(--cal-green); }
 .calendar-day.limited .day-status-dot   { background: var(--cal-amber); }
 .calendar-day.full .day-status-dot      { background: var(--cal-red); }
+.calendar-day.available .day-capacity   { color: var(--cal-green); opacity: 0.8; }
+.calendar-day.limited .day-capacity     { color: var(--cal-amber); opacity: 0.8; }
 
-/* ── Past dates ── */
 .calendar-day.past {
-  opacity: 0.22;
+  opacity: 0.18;
   cursor: not-allowed;
   background: transparent;
   border-color: transparent;
 }
 
-/* ── Disabled (non-available, non-past) ── */
-.calendar-day.disabled {
-  opacity: 0.22;
-  cursor: not-allowed;
-}
+.calendar-day.disabled { opacity: 0.22; cursor: not-allowed; }
 
-/* ── Selected ── */
 .calendar-day.selected {
   background: var(--cal-gold) !important;
   border-color: var(--cal-gold) !important;
+  box-shadow: 0 0 0 3px var(--cal-gold-dim), 0 4px 12px rgba(244, 168, 48, 0.3) !important;
 }
 
 .calendar-day.selected .day-number,
 .calendar-day.selected .day-capacity {
   color: #0f0d09 !important;
+  font-weight: 800 !important;
+  opacity: 1 !important;
 }
 
-.calendar-day.selected .day-status-dot {
-  background: #0f0d09 !important;
-}
+.calendar-day.selected .day-status-dot { background: rgba(15, 13, 9, 0.5) !important; }
 
-/* ── Loading spinner ── */
 .calendar-loading {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 40px;
+  padding: 32px;
+  gap: 10px;
+  color: var(--cal-text-muted);
+  font-size: 12px;
 }
 
 .spinner {
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   border: 2px solid var(--cal-border);
   border-top-color: var(--cal-gold);
   border-radius: 50%;
-  animation: spin 0.8s linear infinite;
+  animation: spin 0.7s linear infinite;
 }
 
-/* ── Legend ── */
 .calendar-legend {
-  margin-top: 18px;
-  padding-top: 14px;
+  margin-top: 14px;
+  padding-top: 12px;
   border-top: 1px solid var(--cal-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 
 .legend-title {
-  font-size: 10px;
-  font-weight: 600;
+  font-size: 9.5px;
+  font-weight: 700;
   text-transform: uppercase;
   color: var(--cal-text-dim);
-  margin-bottom: 8px;
   letter-spacing: 0.07em;
+  white-space: nowrap;
 }
 
 .legend-items {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 10px;
+  justify-content: flex-end;
 }
 
 .legend-item {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 11px;
+  gap: 5px;
+  font-size: 10px;
   color: var(--cal-text-muted);
+  font-weight: 500;
 }
 
 .legend-color {
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   flex-shrink: 0;
 }
@@ -248,6 +289,4 @@
 .legend-color.limited   { background: var(--cal-amber); }
 .legend-color.full      { background: var(--cal-red); }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
+@keyframes spin { to { transform: rotate(360deg); } }
