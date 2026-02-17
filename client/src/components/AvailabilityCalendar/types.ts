@@ -10,11 +10,17 @@ export interface CalendarDayData {
   surchargeApplies?: boolean;
 }
 
+export interface Participants {
+  adults: number;
+  children: number;
+}
+
 export interface AvailabilityCalendarProps {
   tourId: string;
   minDate?: Date;
   maxDate?: Date;
-  participants: number;
+  selectedDate?: string;
+  participants: Participants;
   onDateSelect: (date: string) => void;
   onTimeSelect?: (time: string) => void;
   disabledDates?: string[];
