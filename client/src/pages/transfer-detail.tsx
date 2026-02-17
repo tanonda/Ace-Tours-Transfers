@@ -223,83 +223,109 @@ export default function TransferDetail() {
                 </div>
 
 
-                {/* Booking Card */}
-                <div className="mt-auto bg-primary/5 p-8 rounded-3xl border-2 border-primary/20 shadow-inner">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="detail-adults" className="text-sm font-bold ml-1">{t("booking.adults", "Adults")}</Label>
-                      <div className="relative">
-                        <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id="detail-adults"
-                          type="number"
-                          min="1"
-                          value={adultPax}
-                          onChange={(e) => setAdultPax(e.target.value)}
-                          className="pl-10 h-12 bg-background border-primary/20 focus:border-primary"
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="detail-children" className="text-sm font-bold ml-1">{t("booking.children", "Children")}</Label>
-                      <div className="relative">
-                        <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id="detail-children"
-                          type="number"
-                          min="0"
-                          value={childPax}
-                          onChange={(e) => setChildPax(e.target.value)}
-                          className="pl-10 h-12 bg-background border-primary/20 focus:border-primary"
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-4">
-                      <Label className="text-sm font-bold ml-1">{t("itinerary.bookingInfo", "Check Availability & Select Date")}</Label>
-                      <div className="bg-background border border-primary/20 rounded-2xl overflow-hidden shadow-sm">
-                        <AvailabilityCalendar
-                          tourId={transfer.id}
-                          participants={Math.max(1, parseInt(adultPax) + parseInt(childPax))}
-                          onDateSelect={handleDateSelect}
-                          onTimeSelect={handleTimeSelect}
-                        />
-                      </div>
-                      {date && (
-                        <div className="flex items-center gap-2 p-3 bg-primary/10 rounded-xl text-primary font-bold">
-                          <Calendar className="h-4 w-4" />
-                          <span>Selected: {new Date(date).toDateString()}</span>
-                          {selectedTime && <span> @ {selectedTime}</span>}
-                        </div>
-                      )}
-                    </div>
-                  </div>
+              </div>{/* end info section */}
+            </div>{/* end top image+info grid */}
 
-                  <div className="flex flex-col sm:flex-row gap-4">
-                    <Button
-                      className="flex-1 h-16 text-xl font-bold shadow-lg shadow-primary/20"
-                      onClick={handleAddToCart}
-                    >
-                      <ShoppingCart className="mr-2 h-6 w-6" />
-                      {t("cart.addToCart", "Add to Cart")}
-                    </Button>
-                    <BookingModal
-                      preselectedService={transfer.title}
-                      initialAdultPax={adultPax}
-                      initialChildPax={childPax}
-                      initialDate={date ? new Date(date) : undefined}
-                      trigger={
-                        <Button variant="secondary" className="flex-1 h-16 text-xl font-bold bg-white border-2 border-primary text-primary hover:bg-primary/5 transition-all">
-                          {t("tour.bookNow", "Book Now")}
-                        </Button>
-                      }
-                    />
+            {/* BOTTOM: Full-width booking + availability section */}
+            <div className="mt-10 grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-8 items-start">
+
+              {/* Left: Reviews */}
+              <div className="bg-card p-6 rounded-2xl border border-border/50 shadow-sm">
+                <h3 className="text-xl font-bold mb-4 font-serif text-primary">{t("quickView.recentReviews", "Recent Reviews")}</h3>
+                <div className="space-y-4">
+                  <div className="border-b pb-4 border-border/50">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-semibold">John T.</span>
+                      <span className="text-sm text-muted-foreground">{t("quickView.daysAgo", "3 days ago")}</span>
+                    </div>
+                    <div className="flex text-yellow-400 mb-2">
+                      {[1,2,3,4,5].map(s => <Star key={s} className="h-3 w-3 fill-current" />)}
+                    </div>
+                    <p className="text-muted-foreground italic">"{t("quickView.transferReview", "Very professional and punctual service.")}"</p>
                   </div>
                 </div>
               </div>
+
+              {/* Right: Sticky Booking Panel */}
+              <div className="sticky top-24 bg-primary/5 p-6 rounded-3xl border-2 border-primary/20 shadow-inner space-y-5">
+                <h3 className="text-lg font-bold font-serif text-primary">{t("itinerary.bookingInfo", "Check Availability & Book")}</h3>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="detail-adults" className="text-sm font-bold ml-1">{t("booking.adults", "Adults")}</Label>
+                    <div className="relative">
+                      <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="detail-adults"
+                        type="number"
+                        min="1"
+                        value={adultPax}
+                        onChange={(e) => setAdultPax(e.target.value)}
+                        className="pl-10 h-11 bg-background border-primary/20 focus:border-primary"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="detail-children" className="text-sm font-bold ml-1">{t("booking.children", "Children")}</Label>
+                    <div className="relative">
+                      <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="detail-children"
+                        type="number"
+                        min="0"
+                        value={childPax}
+                        onChange={(e) => setChildPax(e.target.value)}
+                        className="pl-10 h-11 bg-background border-primary/20 focus:border-primary"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Calendar — full width, not cramped into 1/3 column */}
+                <div className="rounded-2xl overflow-hidden border border-primary/20 shadow-sm">
+                  <AvailabilityCalendar
+                    tourId={transfer.id}
+                    participants={{
+                      adults: parseInt(adultPax) || 1,
+                      children: parseInt(childPax) || 0
+                    }}
+                    onDateSelect={handleDateSelect}
+                    onTimeSelect={handleTimeSelect}
+                  />
+                </div>
+
+                {date && (
+                  <div className="flex items-center gap-2 p-3 bg-primary/10 rounded-xl text-primary font-bold">
+                    <Calendar className="h-4 w-4 shrink-0" />
+                    <span>{new Date(date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</span>
+                    {selectedTime && <span className="ml-1">@ {selectedTime}</span>}
+                  </div>
+                )}
+
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Button
+                    className="flex-1 h-14 text-lg font-bold shadow-lg shadow-primary/20"
+                    onClick={handleAddToCart}
+                  >
+                    <ShoppingCart className="mr-2 h-5 w-5" />
+                    {t("cart.addToCart", "Add to Cart")}
+                  </Button>
+                  <BookingModal
+                    preselectedService={transfer.title}
+                    initialAdultPax={adultPax}
+                    initialChildPax={childPax}
+                    initialDate={date ? new Date(date) : undefined}
+                    trigger={
+                      <Button variant="secondary" className="flex-1 h-14 text-lg font-bold bg-white border-2 border-primary text-primary hover:bg-primary/5 transition-all">
+                        {t("tour.bookNow", "Book Now")}
+                      </Button>
+                    }
+                  />
+                </div>
+              </div>
             </div>
+
           </motion.div>
         </div>
-      </div >
-    </Layout >
-  );
-}
+      </div>
+    </Layout>

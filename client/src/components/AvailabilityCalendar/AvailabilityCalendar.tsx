@@ -117,20 +117,25 @@ export const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = React.m
           <button
             onClick={goToPreviousMonth}
             disabled={!canGoBack}
+            aria-label="Previous month"
           >
-            ← Previous
-          </button>
-          <button
-            onClick={goToNextMonth}
-            disabled={!canGoForward}
-          >
-            Next →
+            ‹
           </button>
         </div>
 
         <h3 className="calendar-title">
           {MONTHS[currentMonth.getMonth()]} {currentMonth.getFullYear()}
         </h3>
+
+        <div className="calendar-nav">
+          <button
+            onClick={goToNextMonth}
+            disabled={!canGoForward}
+            aria-label="Next month"
+          >
+            ›
+          </button>
+        </div>
       </div>
 
       {loading && (
@@ -141,19 +146,15 @@ export const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = React.m
 
       {!loading && (
         <>
-          {/* Days of week header */}
           <div className="calendar-weekdays">
-            {DAYS_OF_WEEK.map((day) => (
-              <div key={day} className="weekday">
-                {day}
-              </div>
+            {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(day => (
+              <div key={day} className="weekday">{day}</div>
             ))}
           </div>
 
-          {/* Calendar days grid */}
           <div className="calendar-grid">
             {calendar.map((day, idx) => (
-              <div key={idx}>
+              <div key={idx} style={{ display: 'contents' }}>
                 {day ? (
                   <CalendarDay
                     day={day}
@@ -161,46 +162,26 @@ export const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = React.m
                     onClick={() => handleDateClick(day.date)}
                   />
                 ) : (
-                  <div />
+                  <div className="calendar-day empty" />
                 )}
               </div>
             ))}
           </div>
 
-          {/* Legend */}
           <div className="calendar-legend">
-            <h4 className="legend-title">Availability Legend</h4>
+            <h4 className="legend-title">Availability</h4>
             <div className="legend-items">
               <div className="legend-item">
-                <div className="legend-color available">🟢</div>
-                <span>Available (4+ seats)</span>
+                <div className="legend-color available" />
+                <span>Available</span>
               </div>
               <div className="legend-item">
-                <div className="legend-color limited">🟡</div>
-                <span>Limited (1-3 seats)</span>
+                <div className="legend-color limited" />
+                <span>Limited</span>
               </div>
               <div className="legend-item">
-                <div className="legend-color full">🔴</div>
-                <span>Full (Booked out)</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Pricing tiers */}
-          <div className="pricing-tiers">
-            <h4 className="tiers-title">Price Tiers</h4>
-            <div className="tiers-grid">
-              <div className="tier-badge tier-low">
-                <div>Low Season</div>
-                <div style={{ fontSize: '10px' }}>€150-170</div>
-              </div>
-              <div className="tier-badge tier-regular">
-                <div>Regular</div>
-                <div style={{ fontSize: '10px' }}>€180-190</div>
-              </div>
-              <div className="tier-badge tier-high">
-                <div>High Season</div>
-                <div style={{ fontSize: '10px' }}>€250+</div>
+                <div className="legend-color full" />
+                <span>Full</span>
               </div>
             </div>
           </div>
