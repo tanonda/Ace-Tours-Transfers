@@ -216,7 +216,7 @@ export default function VehicleDetail() {
           </div>
 
           {/* Right Column: Sticky Booking Panel */}
-          <div className="sticky top-[82px] bg-[#1a1710] border border-[rgba(244,168,48,0.18)] rounded-[14px] overflow-hidden">
+          <div className="sticky top-[82px] bg-[#1a1710] border border-[rgba(244,168,48,0.18)] rounded-[14px] overflow-visible max-h-[calc(100vh-100px)] overflow-y-auto scrollbar-thin">
             <div className="bg-[#211e18] p-[22px_24px] border-b border-[rgba(244,168,48,0.18)]">
               <div className="flex items-baseline gap-2 mb-1">
                 <span className="text-[0.78rem] text-[#8a826e]">From</span>
@@ -240,7 +240,7 @@ export default function VehicleDetail() {
 
               {/* Calendar */}
               <label className="text-[0.75rem] font-semibold text-[#8a826e] tracking-[0.07em] uppercase mb-2 block">Select Your Date</label>
-              <div className="mb-5">
+              <div className="mb-5 overflow-visible">
                 <AvailabilityCalendar
                   tourId={vehicle.id}
                   selectedDate={date}
