@@ -701,121 +701,169 @@ export function BookingForm({
             <div className="absolute top-0 right-0 w-24 h-24 bg-primary/20 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl" />
             <div className="relative flex items-center gap-3">
               <Sparkles className="h-5 w-5 text-primary" />
-              <h3 className="text-xl font-black tracking-tight uppercase">Summary</h3>
+              <h3 className="text-xl font-black tracking-tight uppercase">Booking Summary</h3>
             </div>
-            <p className="text-[10px] text-slate-400 mt-0.5 uppercase tracking-widest font-bold">Ace Tours Official Receipt</p>
+            <p className="text-[10px] text-slate-400 mt-0.5 uppercase tracking-widest font-bold">Ace Tours & Transfers</p>
           </div>
 
-          <div className="p-5 space-y-5 relative">
-            {/* Perforated edge effect */}
-            <div className="absolute top-0 left-0 right-0 flex justify-between px-2 -translate-y-1">
-              {Array.from({ length: 15 }).map((_, i) => (
-                <div key={i} className="h-2 w-2 bg-slate-900 rounded-full" />
-              ))}
+          {/* Perforated edge */}
+          <div className="flex justify-between px-2 bg-slate-900 pb-1">
+            {Array.from({ length: 15 }).map((_, i) => (
+              <div key={i} className="h-2 w-2 bg-white rounded-full" />
+            ))}
+          </div>
+
+          <div className="p-5 space-y-4 relative">
+
+            {/* Service */}
+            <div className="space-y-1">
+              <span className="text-[10px] uppercase font-black text-slate-400 tracking-wider">Service</span>
+              <p className="font-bold text-slate-900 leading-[1.3] text-sm">
+                {watchedService || <span className="text-slate-300 italic font-normal">Select a service</span>}
+              </p>
             </div>
 
-            <div className="space-y-3">
-              <div className="space-y-1">
-                <span className="text-[10px] uppercase font-black text-slate-400 tracking-wider">Service Selected</span>
-                <p className="font-bold text-slate-900 line-clamp-2 leading-[1.2] text-sm">
-                  {watchedService || <span className="text-slate-200 italic font-medium">None selected</span>}
+            {/* Date & Time */}
+            <div className="grid grid-cols-2 gap-3 border-t border-dashed border-slate-100 pt-3">
+              <div className="space-y-0.5">
+                <span className="text-[10px] uppercase font-black text-slate-400 tracking-wider">Date</span>
+                <p className="text-xs font-bold text-slate-800">
+                  {watchedDate ? format(watchedDate, "EEE, MMM d, yyyy") : <span className="text-slate-300">—</span>}
                 </p>
               </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-0.5">
-                  <span className="text-[10px] uppercase font-black text-slate-400 tracking-wider">Date</span>
-                  <p className="text-xs font-bold text-slate-800">
-                    {watchedDate ? format(watchedDate, "MMM dd, yyyy") : <span className="text-slate-200">--</span>}
-                  </p>
-                </div>
-                <div className="space-y-0.5">
-                  <span className="text-[10px] uppercase font-black text-slate-400 tracking-wider">Time</span>
-                  <p className="text-xs font-bold text-slate-800">
-                    {watchedStartTime ? format(new Date(2024, 0, 1, ...watchedStartTime.split(':').map(Number)), "hh:mm a") : <span className="text-slate-200">--</span>}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex justify-between items-end border-b border-dashed border-slate-100 pb-3">
-                <div className="space-y-0.5">
-                  <span className="text-[10px] uppercase font-black text-slate-400 tracking-wider">Travelers</span>
-                  <p className="text-xs font-bold text-slate-800">
-                    {parseInt(watchedAdultPax) + parseInt(watchedChildPax)} Passengers
-                  </p>
-                </div>
-                <Users className="h-6 w-6 text-slate-100" />
+              <div className="space-y-0.5">
+                <span className="text-[10px] uppercase font-black text-slate-400 tracking-wider">Time</span>
+                <p className="text-xs font-bold text-slate-800">
+                  {watchedStartTime ? format(new Date(2024, 0, 1, ...watchedStartTime.split(':').map(Number)), "hh:mm a") : <span className="text-slate-300">—</span>}
+                </p>
               </div>
             </div>
 
-            {/* Availability Badge */}
-            <div className="py-0.5">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] uppercase font-black text-slate-400 tracking-wider">Live Status</span>
+            {/* Traveller count */}
+            <div className="grid grid-cols-2 gap-3 border-t border-dashed border-slate-100 pt-3">
+              <div className="space-y-0.5">
+                <span className="text-[10px] uppercase font-black text-slate-400 tracking-wider">Adults</span>
+                <p className="text-sm font-bold text-slate-800">{watchedAdultPax || 0} pax</p>
+              </div>
+              <div className="space-y-0.5">
+                <span className="text-[10px] uppercase font-black text-slate-400 tracking-wider">Children</span>
+                <p className="text-sm font-bold text-slate-800">{watchedChildPax || 0} pax</p>
+              </div>
+            </div>
+
+            {/* Live Availability */}
+            <div className="border-t border-dashed border-slate-100 pt-3">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[10px] uppercase font-black text-slate-400 tracking-wider">Availability</span>
                 <AnimatePresence mode="wait">
                   {isCheckingAvailability ? (
-                    <motion.div
-                      key="checking"
-                      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                      className="flex items-center gap-1.5 text-slate-400"
-                    >
+                    <motion.div key="checking" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                      className="flex items-center gap-1.5 text-slate-400">
                       <Loader2 className="h-3 w-3 animate-spin" />
-                      <span className="text-[10px] font-bold">Verifying...</span>
+                      <span className="text-[10px] font-bold">Checking…</span>
                     </motion.div>
-                  ) : (
-                    availabilityMessage && (
-                      <motion.div
-                        key="status"
-                        initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
-                        className={cn(
-                          "flex items-center gap-1.5 px-2 py-0.5 rounded-full",
-                          isAvailable ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"
-                        )}
-                      >
-                        <div className={cn("h-1.5 w-1.5 rounded-full animate-pulse", isAvailable ? "bg-green-500" : "bg-red-500")} />
-                        <span className="text-[10px] font-extrabold uppercase tracking-tighter">
-                          {isAvailable ? "Available" : "Full"}
-                        </span>
-                      </motion.div>
-                    )
-                  )}
+                  ) : availabilityMessage ? (
+                    <motion.div key="status" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
+                      className={cn("flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold",
+                        isAvailable ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700")}>
+                      <div className={cn("h-1.5 w-1.5 rounded-full animate-pulse", isAvailable ? "bg-green-500" : "bg-red-500")} />
+                      {isAvailable ? "Available" : "Unavailable"}
+                    </motion.div>
+                  ) : <span className="text-[10px] text-slate-300">—</span>}
                 </AnimatePresence>
               </div>
               {availabilityMessage && !isCheckingAvailability && (
-                <div className={cn(
-                  "p-2.5 rounded-xl text-[10px] font-medium leading-[1.3]",
-                  isAvailable ? "bg-green-50/50 text-green-600" : "bg-red-50/50 text-red-600"
-                )}>
+                <p className={cn("text-[10px] font-medium leading-[1.4]",
+                  isAvailable ? "text-green-600" : "text-red-500")}>
                   {availabilityMessage}
-                </div>
+                </p>
               )}
             </div>
 
-            {/* Price Segment */}
+            {/* Price Breakdown */}
             {showPrice && (
-              <div className="mt-2 pt-4 border-t-2 border-slate-900 border-dashed relative">
-                <div className="bg-slate-50 p-3.5 rounded-2xl space-y-1.5">
-                  <div className="flex items-center justify-between text-slate-500 italic text-[10px]">
-                    <span>Subtotal + Add-ons</span>
-                    <span>Est.</span>
-                  </div>
-                  <div className="flex flex-col items-end">
-                    <span className="text-[9px] uppercase font-black text-slate-400 tracking-wider mb-0.5">Total Amount Due</span>
-                    <span className="text-2xl font-black text-slate-900 tracking-tighter">
-                      {estimatedTotal}
+              <div className="border-t-2 border-dashed border-slate-200 pt-4 space-y-2">
+                <span className="text-[10px] uppercase font-black text-slate-400 tracking-wider">Price Breakdown</span>
+
+                {/* Adults line */}
+                {parseInt(watchedAdultPax) > 0 && adultPriceCents > 0 && (
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-slate-600">
+                      {watchedAdultPax} × Adult
+                      <span className="text-[10px] text-slate-400 ml-1">
+                        ({formatPriceDisplay(adultPriceCents, currency)} ea)
+                      </span>
+                    </span>
+                    <span className="font-bold text-slate-900">
+                      {formatPriceDisplay(parseInt(watchedAdultPax) * adultPriceCents, currency)}
                     </span>
                   </div>
+                )}
+
+                {/* Children line */}
+                {parseInt(watchedChildPax) > 0 && childPriceCents > 0 && (
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-slate-600">
+                      {watchedChildPax} × Child
+                      <span className="text-[10px] text-slate-400 ml-1">
+                        ({formatPriceDisplay(childPriceCents, currency)} ea)
+                      </span>
+                    </span>
+                    <span className="font-bold text-slate-900">
+                      {formatPriceDisplay(parseInt(watchedChildPax) * childPriceCents, currency)}
+                    </span>
+                  </div>
+                )}
+
+                {/* Add-ons lines */}
+                {watchedAddonIds?.length > 0 && availableAddons
+                  .filter(a => watchedAddonIds.includes(a.id))
+                  .map(addon => (
+                    <div key={addon.id} className="flex justify-between items-center text-sm">
+                      <span className="text-slate-600 truncate max-w-[180px]">+ {addon.name}</span>
+                      <span className="font-bold text-slate-900">{formatPriceDisplay(addon.priceCents, currency)}</span>
+                    </div>
+                  ))
+                }
+
+                {/* Group discount notice */}
+                {parseInt(watchedAdultPax) >= 7 && (
+                  <div className="flex justify-between items-center text-sm text-green-600">
+                    <span>Group discount (10%)</span>
+                    <span className="font-bold">−applied</span>
+                  </div>
+                )}
+
+                {/* Seasonal surcharge notice */}
+                {watchedDate && (watchedDate.getMonth() === 11 || watchedDate.getMonth() === 0) && (
+                  <div className="flex justify-between items-center text-sm text-amber-600">
+                    <span>Peak season (+20%)</span>
+                    <span className="font-bold">applied</span>
+                  </div>
+                )}
+
+                {/* Total */}
+                <div className="flex justify-between items-center pt-3 border-t-2 border-slate-900 border-dashed">
+                  <div>
+                    <span className="text-[10px] uppercase font-black text-slate-500 tracking-wider block">Estimated Total</span>
+                    <span className="text-[9px] text-slate-400">*Final price confirmed at checkout</span>
+                  </div>
+                  <span className="text-2xl font-black text-slate-900 tracking-tighter">{estimatedTotal}</span>
                 </div>
 
-                <div className="mt-3 flex flex-col items-center gap-1.5">
-                  <div className="h-10 w-full flex items-center justify-center border border-slate-100 rounded-xl border-dashed">
-                    <CreditCard className="h-4 w-4 text-slate-200 mr-2" />
-                    <span className="text-[9px] font-black text-slate-300 uppercase">Payment Secure</span>
-                  </div>
-                  <p className="text-[8px] text-slate-400 text-center uppercase tracking-widest font-bold">
-                    * Final Price confirmed at next step
-                  </p>
+                <div className="flex items-center justify-center gap-2 pt-1">
+                  <CreditCard className="h-3.5 w-3.5 text-slate-300" />
+                  <span className="text-[9px] font-black text-slate-300 uppercase tracking-wider">Secure Booking</span>
                 </div>
+              </div>
+            )}
+
+            {/* No price state — show cost per person */}
+            {!showPrice && (
+              <div className="border-t border-dashed border-slate-100 pt-3">
+                <p className="text-[10px] text-slate-300 text-center italic">
+                  Select a service & date to see pricing
+                </p>
               </div>
             )}
           </div>

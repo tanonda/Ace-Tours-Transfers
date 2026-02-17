@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useContentBlock } from "@/lib/cms-context";
 import { Mail, Send, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,13 +20,16 @@ export function NewsletterForm({
 }: NewsletterFormProps) {
   const { t } = useTranslation();
   const { toast } = useToast();
+  const { enabled } = useContentBlock("newsletter");
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!email) {
+    if (!enabled) return null;
+
+  if (!email) {
       toast({
         title: t("newsletter.emailRequired", "Email Required"),
         description: t("newsletter.enterEmail", "Please enter your email address"),

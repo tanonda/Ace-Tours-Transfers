@@ -36,8 +36,13 @@ export default function TransferDetail() {
     const sp = new URLSearchParams(window.location.search);
     const urlDate = sp.get("date");
     const urlGuests = sp.get("guests");
+    const urlAdults = sp.get("adults");
+    const urlChildren = sp.get("children");
     if (urlDate) setDate(urlDate);
-    if (urlGuests) setAdultPax(parseInt(urlGuests) || 2);
+    const parsedAdults = urlAdults ? parseInt(urlAdults) : (urlGuests ? parseInt(urlGuests) : 2);
+    const parsedChildren = urlChildren ? parseInt(urlChildren) : 0;
+    if (parsedAdults) setAdultPax(parsedAdults);
+    if (parsedChildren) setChildPax(parsedChildren);
     if (id) updateDraft({ productId: id, adultPax: parseInt(urlGuests || "2") || 2, childPax: 0, date: urlDate || "" });
   }, [id, updateDraft]);
 
@@ -139,8 +144,8 @@ export default function TransferDetail() {
           <div className="flex flex-col gap-7">
 
             {/* Photo */}
-            <div className="rounded-[14px] overflow-hidden h-[380px]">
-              <img src={transfer.image} className="w-full h-full object-cover" alt={transfer.title} />
+            <div className="rounded-[14px] overflow-hidden h-[380px] bg-[#211e18]">
+              <img src={transfer.image} className="w-full h-full object-contain" alt={transfer.title} />
             </div>
 
             {/* Transfer Details */}

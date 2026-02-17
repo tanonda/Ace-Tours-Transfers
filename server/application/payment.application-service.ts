@@ -15,6 +15,12 @@ import { config } from "../config.js";
 import { PaymentIntent } from "../domain/payments/PaymentIntent.js";
 import { eventDispatcher } from "../infrastructure/events/event-dispatcher.js";
 import { BookingConfirmationService } from "./booking/BookingConfirmationService.js";
+import { 
+  sendEmail, 
+  sendAdminEmail, 
+  getPaymentConfirmationTemplate, 
+  getBookingConfirmationTemplate 
+} from "../lib/mail.js";
 
 export interface PaymentOptions {
   bookingId: string;
@@ -147,6 +153,54 @@ export class PaymentApplicationService {
         
         response.paymentId = payment.id;
         response.provider = gateway.slug;
+
+        // ✅ Send payment pending / booking submitted emails for manual gateways
+        // (bank transfer and cash do not have webhooks, so we notify immediately)
+        const isManual = gateway.slug === 'cash' || 
+                         gateway.slug.includes('manual') || 
+                         gateway.slug.includes('bank') ||
+                         gateway.slug.includes('transfer');
+        
+        if (isManual) {
+          try {
+            const bookingItems = await this.storage.getBookingItems(booking.id);
+            const firstItem = bookingItems[0];
+            const tourData = firstItem ? await this.storage.getTour(firstItem.productId) : null;
+            const tourInfo = tourData || { title: 'Tour/Transfer Booking', id: '' };
+            
+            const emailBooking = {
+              ...booking,
+              date: firstItem?.date || new Date().toISOString().split('T')[0],
+              guests: `${firstItem?.adultPax || 1} Adult(s)${firstItem?.childPax ? ', ' + firstItem.childPax + ' Child(ren)' : ''}`,
+              amount: `VT ${((booking.totalAmountCents || 0) / 100).toLocaleString()}`,
+            };
+
+            const paymentMethod = gateway.slug === 'cash' ? 'Cash on Delivery' : 'Bank Transfer';
+            const subject = gateway.slug === 'cash' 
+              ? `Booking Confirmed (Pay at Pickup) — Ref #${booking.id.slice(0, 8).toUpperCase()}`
+              : `Action Required: Complete Bank Transfer — Ref #${booking.id.slice(0, 8).toUpperCase()}`;
+
+            if (customerEmail) {
+              await sendEmail({
+                to: customerEmail,
+                subject,
+                html: getBookingConfirmationTemplate(emailBooking, tourInfo, {
+                  status: 'pending',
+                  gatewayReference: response.transactionId,
+                  gatewayId: paymentMethod,
+                }),
+              });
+            }
+
+            await sendAdminEmail(
+              `💳 Payment Submitted (${paymentMethod}): ${booking.customerName}`,
+              getBookingConfirmationTemplate(emailBooking, tourInfo)
+            );
+          } catch (emailErr) {
+            console.error('[PAYMENT] Email notification failed (non-fatal):', emailErr);
+          }
+        }
+
       } else if (!response.success) {
         await this.storage.updatePayment(payment.id, {
           status: PaymentStatus.Failed,

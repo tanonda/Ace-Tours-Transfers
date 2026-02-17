@@ -131,7 +131,9 @@ export default function Payment() {
       if (data.checkoutUrl) {
         window.location.href = data.checkoutUrl;
       } else {
-        setLocation(`/payment/success?id=${data.id}&manual=true`);
+        // Manual payment (bank transfer / cash) - redirect to success page
+        const bId = data.bookingId || bookingId;
+        setLocation(`/payment/success?booking=${bId}&manual=true&method=${data.provider || paymentMethod}`);
       }
     },
   });

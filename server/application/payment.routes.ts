@@ -53,7 +53,7 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
   });
 
   // Create checkout session
-  app.post("/api/payments/checkout", requireAuth, async (req, res) => {
+  app.post("/api/payments/checkout", async (req, res) => {  // Guest-friendly: ownership verified inside
     try {
       const { bookingId, provider } = req.body;
       const baseUrl = `${req.protocol}://${req.get('host')}`;

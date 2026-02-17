@@ -81,7 +81,20 @@ export default function AdminSettings() {
       { key: "social_facebook", label: "Facebook URL", icon: "Facebook" },
       { key: "social_instagram", label: "Instagram URL", icon: "Instagram" },
       { key: "whatsapp_number", label: "WhatsApp Number", icon: "MessageCircle" },
-    ]
+    ],
+    banking: [
+      { key: "bank_name", label: "Bank Name", placeholder: "e.g. ANZ Bank (Vanuatu) Ltd" },
+      { key: "bank_account_name", label: "Account Name", placeholder: "e.g. Ace Tours & Transfers" },
+      { key: "bank_account_number", label: "Account Number", placeholder: "e.g. 123-456-789" },
+      { key: "bank_swift_code", label: "SWIFT / BIC Code", placeholder: "e.g. ANZBVUVU" },
+      { key: "bank_branch_code", label: "Branch Code (optional)", placeholder: "e.g. 01" },
+      { key: "bank_payment_deadline_hours", label: "Payment Deadline (hours)", placeholder: "e.g. 24" },
+    ],
+    email: [
+      { key: "admin_email", label: "Admin Notification Email", placeholder: "email to receive booking notifications" },
+      { key: "email_from_name", label: "From Name", placeholder: "e.g. Ace Tours & Transfers" },
+      { key: "app_url", label: "Website URL", placeholder: "e.g. https://acetours.vu" },
+    ],
   };
 
   if (isLoading || isFlagsLoading) {
@@ -103,9 +116,11 @@ export default function AdminSettings() {
         </div>
 
         <Tabs defaultValue="contact">
-          <TabsList>
+          <TabsList className="flex-wrap h-auto gap-1">
             <TabsTrigger value="contact">{t("footer.contactInfo")}</TabsTrigger>
             <TabsTrigger value="social">Social Media</TabsTrigger>
+            <TabsTrigger value="banking">Bank Transfer</TabsTrigger>
+            <TabsTrigger value="email">Email Config</TabsTrigger>
             <TabsTrigger value="flags">Feature Flags</TabsTrigger>
           </TabsList>
 
@@ -165,6 +180,64 @@ export default function AdminSettings() {
                       onClick={() => handleSave(item.key)}
                       disabled={updateMutation.isPending}
                     >
+                      {updateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="banking" className="mt-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Bank Transfer Details</CardTitle>
+                <CardDescription>
+                  These details are displayed on the payment confirmation page and emailed to customers who choose bank transfer. Keep them accurate.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {SETTING_GROUPS.banking.map((item) => (
+                  <div key={item.key} className="flex gap-4 items-end">
+                    <div className="flex-1 space-y-2">
+                      <Label htmlFor={item.key}>{item.label}</Label>
+                      <Input
+                        id={item.key}
+                        value={formData[item.key] || ""}
+                        onChange={(e) => handleChange(item.key, e.target.value)}
+                        placeholder={item.placeholder}
+                      />
+                    </div>
+                    <Button onClick={() => handleSave(item.key)} disabled={updateMutation.isPending}>
+                      {updateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="email" className="mt-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Email Configuration</CardTitle>
+                <CardDescription>
+                  Configure where admin booking notifications are sent. SMTP is configured via environment variables (GMAIL_USER, GMAIL_APP_PASSWORD).
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {SETTING_GROUPS.email.map((item) => (
+                  <div key={item.key} className="flex gap-4 items-end">
+                    <div className="flex-1 space-y-2">
+                      <Label htmlFor={item.key}>{item.label}</Label>
+                      <Input
+                        id={item.key}
+                        value={formData[item.key] || ""}
+                        onChange={(e) => handleChange(item.key, e.target.value)}
+                        placeholder={item.placeholder}
+                      />
+                    </div>
+                    <Button onClick={() => handleSave(item.key)} disabled={updateMutation.isPending}>
                       {updateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                     </Button>
                   </div>

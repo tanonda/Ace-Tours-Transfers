@@ -4,6 +4,7 @@ import { PaymentFactory } from "../infrastructure/payments/factory.js";
 import { PaymentStatus, type PaymentStatusResponse } from "../domain/payments/interfaces.js";
 import { ReconciliationPolicy } from "../domain/payments/reconciliation.policy.js";
 import { BookingConfirmationWithRetries } from "./booking/BookingConfirmationWithRetries.js";
+import { sendEmail, sendAdminEmail, getPaymentConfirmationTemplate, getBookingConfirmationTemplate } from "../lib/mail.js";
 
 export class PaymentReconciliationService {
   private storage: IStorage;
@@ -173,6 +174,36 @@ export class PaymentReconciliationService {
               `Manual reconciliation failed: ${confirmResult.error?.reason}. ` +
               `${confirmResult.error?.details || 'Hold might be expired or booking is in invalid state.'}`
             );
+          }
+
+          // ✅ Send confirmation email after successful manual confirmation
+          try {
+            const confirmedBooking = await this.storage.getBooking(booking.id);
+            const bookingItems = await this.storage.getBookingItems(booking.id);
+            const firstItem = bookingItems[0];
+            const tourData = firstItem ? await this.storage.getTour(firstItem.productId) : null;
+            const tourInfo = tourData || { title: 'Tour/Transfer Booking' };
+
+            const emailBooking = {
+              ...(confirmedBooking || booking),
+              date: firstItem?.date || new Date().toISOString().split('T')[0],
+              guests: `${firstItem?.adultPax || 1} Adult(s)${firstItem?.childPax ? ', ' + firstItem.childPax + ' Child(ren)' : ''}`,
+              amount: `VT ${(((confirmedBooking || booking).totalAmountCents || 0) / 100).toLocaleString()}`,
+            };
+
+            if (booking.customerEmail) {
+              await sendEmail({
+                to: booking.customerEmail,
+                subject: `✅ Booking Confirmed — Ref #${booking.id.slice(0, 8).toUpperCase()}`,
+                html: getPaymentConfirmationTemplate(emailBooking, payment, tourInfo),
+              });
+            }
+            await sendAdminEmail(
+              `✅ Payment Confirmed: ${booking.customerName} — ${tourInfo.title}`,
+              getPaymentConfirmationTemplate(emailBooking, payment, tourInfo)
+            );
+          } catch (emailErr) {
+            console.error('[RECON] Post-confirmation email failed (non-fatal):', emailErr);
           }
         }
       }
