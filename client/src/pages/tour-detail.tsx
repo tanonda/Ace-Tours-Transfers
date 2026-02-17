@@ -164,7 +164,8 @@ export default function TourDetail() {
               <ArrowLeft className="mr-2 h-4 w-4" /> {t("common.back", "Back")}
             </Button>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+            {/* ── TOP: Image + Info side by side ── */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-12">
               {/* Image Section */}
               <div className="relative rounded-2xl overflow-hidden shadow-2xl h-[400px] md:h-[600px]">
                 <img
@@ -206,20 +207,20 @@ export default function TourDetail() {
                   )}
                 </div>
 
-                <div className="space-y-8 mb-10">
-                  <div className="bg-card p-6 rounded-2xl border border-border/50 shadow-sm transition-all hover:shadow-md">
+                <div className="space-y-6">
+                  <div className="bg-card p-6 rounded-2xl border border-border/50 shadow-sm">
                     <h3 className="text-xl font-bold mb-4 font-serif text-primary">{t("quickView.overview", "Overview")}</h3>
                     <p className="text-muted-foreground leading-relaxed text-lg italic">
                       {typeof tour.description === 'string'
                         ? tour.description
-                        : t("quickView.defaultDesc", "Experience the best of Vanuatu with this curated package. Perfect for those looking to explore the culture and beauty of the islands.")}
+                        : t("quickView.defaultDesc", "Experience the best of Vanuatu with this curated package.")}
                     </p>
                   </div>
 
                   {Array.isArray(tour.description) && (
-                    <div className="bg-card p-6 rounded-2xl border border-border/50 shadow-sm transition-all hover:shadow-md">
+                    <div className="bg-card p-6 rounded-2xl border border-border/50 shadow-sm">
                       <h3 className="text-xl font-bold mb-4 font-serif text-primary">{t("quickView.whatsIncluded", "What's Included")}</h3>
-                      <ul className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         {tour.description.map((item, i) => (
                           <li key={i} className="flex items-start gap-3 text-muted-foreground">
                             <div className="mt-1 h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
@@ -232,7 +233,7 @@ export default function TourDetail() {
                     </div>
                   )}
 
-                  {/* Rates Section */}
+                  {/* Rates */}
                   <div className="bg-muted/30 p-6 rounded-2xl border border-border/50">
                     <h3 className="text-xl font-bold mb-4 font-serif text-primary">{t("quickView.ratesOptions", "Rates & Options")}</h3>
                     <div className="flex justify-between items-center text-lg mb-2">
@@ -246,131 +247,143 @@ export default function TourDetail() {
                       </div>
                     )}
                   </div>
-
-                  {/* Reviews Section */}
-                  <div className="bg-card p-6 rounded-2xl border border-border/50 shadow-sm">
-                    <h3 className="text-xl font-bold mb-4 font-serif text-primary">{t("quickView.recentReviews", "Recent Reviews")}</h3>
-                    <div className="space-y-4">
-                      {reviews.length > 0 ? (
-                        reviews.map((r: any) => (
-                          <div key={r.id} className="border-b pb-4 border-border/50 last:border-0 last:pb-0">
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="font-semibold">{r.userName || t("common.guest", "Guest")}</span>
-                              <span className="text-sm text-muted-foreground">{new Date(r.createdAt).toLocaleDateString()}</span>
-                            </div>
-                            <div className="flex text-yellow-400 mb-2">
-                              {[1, 2, 3, 4, 5].map((star) => (
-                                <Star key={star} className={`h-3 w-3 ${star <= r.rating ? 'fill-current' : 'text-muted'}`} />
-                              ))}
-                            </div>
-                            <p className="text-muted-foreground italic">"{r.comment}"</p>
-                          </div>
-                        ))
-                      ) : (
-                        <p className="text-muted-foreground italic">{t("quickView.noReviews", "No reviews yet. Be the first to leave one!")}</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Booking Card */}
-                <div id="availability-section" className="mt-auto bg-primary/5 p-8 rounded-3xl border-2 border-primary/20 shadow-inner">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="detail-adults" className="text-sm font-bold ml-1">{t("booking.adults", "Adults")}</Label>
-                      <div className="relative">
-                        <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id="detail-adults"
-                          type="number"
-                          min="1"
-                          value={adultPax}
-                          onChange={(e) => setAdultPax(e.target.value)}
-                          className="pl-10 h-12 bg-background border-primary/20 focus:border-primary"
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="detail-children" className="text-sm font-bold ml-1">{t("booking.children", "Children")}</Label>
-                      <div className="relative">
-                        <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id="detail-children"
-                          type="number"
-                          min="0"
-                          value={childPax}
-                          onChange={(e) => setChildPax(e.target.value)}
-                          className="pl-10 h-12 bg-background border-primary/20 focus:border-primary"
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-4">
-                      <Label className="text-sm font-bold ml-1">{t("itinerary.bookingInfo", "Check Availability & Select Date")}</Label>
-                      <div className="bg-background border border-primary/20 rounded-2xl overflow-hidden shadow-sm">
-                        <AvailabilityCalendar
-                          tourId={id || ""}
-                          participants={Math.max(1, parseInt(adultPax) + parseInt(childPax))}
-                          onDateSelect={handleDateSelect}
-                          onTimeSelect={handleTimeSelect}
-                        />
-                      </div>
-                      {date && (
-                        <div className="flex items-center gap-2 p-3 bg-primary/10 rounded-xl text-primary font-bold">
-                          <Calendar className="h-4 w-4" />
-                          <span>Selected: {format(new Date(date), "PPP")}</span>
-                          {selectedTime && <span> @ {selectedTime}</span>}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Availability & Pricing Context (Phase 3) */}
-                  {id && date && (
-                    <div className="space-y-6 mb-8">
-                      <AvailabilityStatus
-                        tourId={id}
-                        selectedDate={new Date(date)}
-                        adultPax={parseInt(adultPax) || 0}
-                        childPax={parseInt(childPax) || 0}
-                      />
-
-                      {availability?.pricing && (
-                        <PricingBreakdown
-                          pricing={availability.pricing}
-                          currency={currency === "VUV" ? "VT" : "€"}
-                        />
-                      )}
-                    </div>
-                  )}
-
-                  <div className="flex flex-col sm:flex-row gap-4">
-                    <Button
-                      className="flex-1 h-16 text-xl font-bold shadow-lg shadow-primary/20"
-                      onClick={handleAddToCart}
-                      disabled={!availability?.isAvailable || availLoading}
-                    >
-                      <ShoppingCart className="mr-2 h-6 w-6" />
-                      {t("cart.addToCart", "Add to Cart")}
-                    </Button>
-                    <BookingModal
-                      preselectedService={tour.title}
-                      initialAdultPax={adultPax}
-                      initialChildPax={childPax}
-                      initialDate={date ? new Date(date) : undefined}
-                      trigger={
-                        <Button
-                          variant="secondary"
-                          className="flex-1 h-16 text-xl font-bold bg-white border-2 border-primary text-primary hover:bg-primary/5 transition-all"
-                          disabled={!availability?.isAvailable || availLoading}
-                        >
-                          {t("tour.bookNow", "Book Now")}
-                        </Button>
-                      }
-                    />
-                  </div>
                 </div>
               </div>
             </div>
+
+            {/* ── BOTTOM: Full-width Booking + Availability section ── */}
+            <div id="availability-section" className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-8 items-start">
+
+              {/* Left: Reviews */}
+              <div className="bg-card p-6 rounded-2xl border border-border/50 shadow-sm">
+                <h3 className="text-xl font-bold mb-4 font-serif text-primary">{t("quickView.recentReviews", "Recent Reviews")}</h3>
+                <div className="space-y-4">
+                  {reviews.length > 0 ? (
+                    reviews.map((r: any) => (
+                      <div key={r.id} className="border-b pb-4 border-border/50 last:border-0 last:pb-0">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-semibold">{r.userName || t("common.guest", "Guest")}</span>
+                          <span className="text-sm text-muted-foreground">{new Date(r.createdAt).toLocaleDateString()}</span>
+                        </div>
+                        <div className="flex text-yellow-400 mb-2">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Star key={star} className={`h-3 w-3 ${star <= r.rating ? 'fill-current' : 'text-muted'}`} />
+                          ))}
+                        </div>
+                        <p className="text-muted-foreground italic">"{r.comment}"</p>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-muted-foreground italic">{t("quickView.noReviews", "No reviews yet. Be the first to leave one!")}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Right: Sticky Booking Panel */}
+              <div className="sticky top-24 bg-primary/5 p-6 rounded-3xl border-2 border-primary/20 shadow-inner space-y-5">
+                <h3 className="text-lg font-bold font-serif text-primary">{t("itinerary.bookingInfo", "Check Availability & Book")}</h3>
+
+                {/* Guest inputs */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="detail-adults" className="text-sm font-bold ml-1">{t("booking.adults", "Adults")}</Label>
+                    <div className="relative">
+                      <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="detail-adults"
+                        type="number"
+                        min="1"
+                        value={adultPax}
+                        onChange={(e) => setAdultPax(e.target.value)}
+                        className="pl-10 h-11 bg-background border-primary/20 focus:border-primary"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="detail-children" className="text-sm font-bold ml-1">{t("booking.children", "Children")}</Label>
+                    <div className="relative">
+                      <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="detail-children"
+                        type="number"
+                        min="0"
+                        value={childPax}
+                        onChange={(e) => setChildPax(e.target.value)}
+                        className="pl-10 h-11 bg-background border-primary/20 focus:border-primary"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Calendar — full width, not crammed into 1/3 column */}
+                <div className="rounded-2xl overflow-hidden border border-primary/20 shadow-sm">
+                  <AvailabilityCalendar
+                    tourId={id || ""}
+                    participants={{
+                      adults: parseInt(adultPax) || 1,
+                      children: parseInt(childPax) || 0
+                    }}
+                    onDateSelect={handleDateSelect}
+                    onTimeSelect={handleTimeSelect}
+                  />
+                </div>
+
+                {/* Selected date confirmation */}
+                {date && (
+                  <div className="flex items-center gap-2 p-3 bg-primary/10 rounded-xl text-primary font-bold">
+                    <Calendar className="h-4 w-4 shrink-0" />
+                    <span>{format(new Date(date), "PPP")}</span>
+                    {selectedTime && <span className="ml-1">@ {selectedTime}</span>}
+                  </div>
+                )}
+
+                {/* Availability status + pricing — themed to match dark UI */}
+                {id && date && (
+                  <div className="space-y-4">
+                    <AvailabilityStatus
+                      tourId={id}
+                      selectedDate={new Date(date)}
+                      adultPax={parseInt(adultPax) || 0}
+                      childPax={parseInt(childPax) || 0}
+                    />
+                    {availability?.pricing && (
+                      <PricingBreakdown
+                        pricing={availability.pricing}
+                        currency={currency === "VUV" ? "VT" : "€"}
+                      />
+                    )}
+                  </div>
+                )}
+
+                {/* CTAs */}
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Button
+                    className="flex-1 h-14 text-lg font-bold shadow-lg shadow-primary/20"
+                    onClick={handleAddToCart}
+                    disabled={!availability?.isAvailable || availLoading}
+                  >
+                    <ShoppingCart className="mr-2 h-5 w-5" />
+                    {t("cart.addToCart", "Add to Cart")}
+                  </Button>
+                  <BookingModal
+                    preselectedService={tour.title}
+                    initialAdultPax={adultPax}
+                    initialChildPax={childPax}
+                    initialDate={date ? new Date(date) : undefined}
+                    trigger={
+                      <Button
+                        variant="secondary"
+                        className="flex-1 h-14 text-lg font-bold bg-white border-2 border-primary text-primary hover:bg-primary/5 transition-all"
+                        disabled={!availability?.isAvailable || availLoading}
+                      >
+                        {t("tour.bookNow", "Book Now")}
+                      </Button>
+                    }
+                  />
+                </div>
+              </div>
+            </div>
+
           </motion.div>
         </div>
       </div>

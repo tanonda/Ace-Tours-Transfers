@@ -1,51 +1,52 @@
+/* Themed to match the dark gold UI of Ace Tours */
 .availability-status {
-  background: white;
-  border-radius: 8px;
-  padding: 20px;
-  border: 1px solid #e5e7eb;
-  margin-bottom: 20px;
+  background: rgba(244, 168, 48, 0.05);
+  border-radius: 12px;
+  padding: 16px 18px;
+  border: 1px solid rgba(244, 168, 48, 0.2);
 
   &.loading {
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 12px;
-    min-height: 120px;
+    min-height: 80px;
 
     .spinner {
-      width: 20px;
-      height: 20px;
-      border: 3px solid #e5e7eb;
-      border-top-color: #3b82f6;
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(244, 168, 48, 0.2);
+      border-top-color: #f4a830;
       border-radius: 50%;
       animation: spin 0.6s linear infinite;
     }
 
     p {
-      color: #6b7280;
-      font-size: 14px;
+      color: #8a826e;
+      font-size: 13px;
     }
   }
 
   &.error {
-    background-color: #fef2f2;
-    border-color: #fecaca;
-    padding: 16px;
+    background: rgba(224, 85, 85, 0.08);
+    border-color: rgba(224, 85, 85, 0.3);
+    padding: 12px 16px;
 
     p {
-      color: #dc2626;
+      color: #e05555;
       margin: 0;
+      font-size: 13px;
     }
   }
 
   &.available {
-    border-color: #86efac;
-    background-color: #f0fdf4;
+    border-color: rgba(76, 175, 125, 0.3);
+    background: rgba(76, 175, 125, 0.06);
   }
 
   &.full {
-    border-color: #fca5a5;
-    background-color: #fef2f2;
+    border-color: rgba(224, 85, 85, 0.3);
+    background: rgba(224, 85, 85, 0.06);
   }
 }
 
@@ -53,71 +54,76 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 
   h3 {
     margin: 0;
-    font-size: 16px;
+    font-size: 13px;
     font-weight: 600;
-    color: #1f2937;
+    color: #8a826e;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
   }
 
   .status-badge {
-    padding: 4px 12px;
+    padding: 3px 10px;
     border-radius: 20px;
-    font-size: 12px;
-    font-weight: 600;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
 
     &.open {
-      background-color: #d1fae5;
-      color: #065f46;
+      background: rgba(76, 175, 125, 0.15);
+      color: #4caf7d;
+      border: 1px solid rgba(76, 175, 125, 0.3);
     }
 
     &.full {
-      background-color: #fee2e2;
-      color: #991b1b;
+      background: rgba(224, 85, 85, 0.12);
+      color: #e05555;
+      border: 1px solid rgba(224, 85, 85, 0.3);
     }
   }
 }
 
 .capacity-section {
-  margin-bottom: 16px;
+  margin-bottom: 10px;
 
   .capacity-label {
     display: flex;
     justify-content: space-between;
-    font-size: 14px;
-    margin-bottom: 8px;
-    color: #6b7280;
+    font-size: 12px;
+    margin-bottom: 6px;
+    color: #8a826e;
 
     .numbers {
-      font-weight: 600;
-      color: #1f2937;
+      font-weight: 700;
+      color: #f0ece4;
     }
   }
 
   .progress-bar {
-    height: 8px;
-    background-color: #e5e7eb;
-    border-radius: 4px;
+    height: 6px;
+    background: rgba(244, 168, 48, 0.1);
+    border-radius: 3px;
     overflow: hidden;
 
     .progress-fill {
       height: 100%;
       transition: width 0.3s ease;
-      border-radius: 4px;
+      border-radius: 3px;
     }
   }
 }
 
-.seats-remaining {
+.status-message {
   p {
-    margin: 8px 0 0 0;
-    font-size: 14px;
-    color: #047857;
+    margin: 6px 0 0 0;
+    font-size: 12px;
+    color: #8a826e;
 
     &.warning {
-      color: #d97706;
+      color: #f4a830;
       font-weight: 600;
     }
   }
@@ -125,31 +131,17 @@
 
 .fully-booked {
   p {
-    margin: 0;
-    font-size: 14px;
-    color: #991b1b;
+    margin: 6px 0 0 0;
+    font-size: 12px;
+    color: #e05555;
   }
 }
 
 @keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
+  to { transform: rotate(360deg); }
 }
 
-/* Mobile responsive */
 @media (max-width: 640px) {
-  .availability-status {
-    padding: 16px;
-  }
-
-  .availability-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-
-    h3 {
-      font-size: 14px;
-    }
-  }
+  .availability-status { padding: 12px; }
+  .availability-header { flex-direction: column; align-items: flex-start; gap: 6px; }
 }

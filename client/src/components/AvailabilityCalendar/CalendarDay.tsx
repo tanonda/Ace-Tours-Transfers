@@ -14,61 +14,36 @@ export const CalendarDay = React.memo(({
   onClick,
 }: CalendarDayProps) => {
   const dayNum = parseInt(day.date.split('-')[2]);
-  const currentBookings = day.totalCapacity - day.remainingCapacity;
-  const capacityPercent = day.totalCapacity > 0 ? Math.round(
-    (currentBookings / day.totalCapacity) * 100
-  ) : 0;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const cellDate = new Date(day.date + 'T00:00:00');
+  const isPast = cellDate < today;
 
   const getAvailabilityStatus = () => {
+    if (isPast) return 'past';
     if (!day.isAvailable) return 'full';
     if (day.remainingCapacity <= 3 && day.remainingCapacity > 0) return 'limited';
     return 'available';
   };
 
-  const getAvailabilityIcon = () => {
-    const status = getAvailabilityStatus();
-    switch (status) {
-      case 'available':
-        return '🟢';
-      case 'limited':
-        return '🟡';
-      case 'full':
-        return '🔴';
-      default:
-        return '⚪';
-    }
-  };
-
-  const getTierColor = () => {
-    const price = day.basePrice ?? 18000;
-    if (price < 17000) return 'low-season';
-    if (price < 20000) return 'regular-season';
-    return 'high-season';
-  };
-
-  const getTierLabel = () => {
-    const price = (day.basePrice ?? 18000) / 100;
-    if (price < 170) return 'Low';
-    if (price < 200) return 'Reg';
-    return 'High';
-  };
+  const status = getAvailabilityStatus();
+  const isDisabled = isPast || !day.isAvailable;
 
   return (
     <button
-      className={`calendar-day ${getAvailabilityStatus()} ${isSelected ? 'selected' : ''
-        } ${day.isHoliday ? 'holiday' : ''}`}
-      onClick={onClick}
-      title={`${day.date} - ${day.remainingCapacity} seats available`}
+      className={`calendar-day ${status} ${isSelected ? 'selected' : ''}`}
+      onClick={!isDisabled ? onClick : undefined}
+      disabled={isDisabled}
+      title={isPast ? 'Past date' : `${day.date} - ${day.remainingCapacity} seats available`}
     >
-      <div className="day-number">{dayNum}</div>
-      <div className="day-status">{getAvailabilityIcon()}</div>
-      <div className={`day-price tier-${getTierColor()}`}>
-        {day.basePrice ? `€${Math.round(day.basePrice / 100)}` : '-'}
-      </div>
-      <div className="day-capacity">
-        {day.remainingCapacity}/{day.totalCapacity}
-      </div>
-      {day.surchargeApplies && <div className="surcharge-badge">!</div>}
+      <span className="day-number">{dayNum}</span>
+      {!isPast && <div className="day-status-dot" />}
+      {!isPast && (
+        <span className="day-capacity">
+          {day.remainingCapacity}/{day.totalCapacity}
+        </span>
+      )}
     </button>
   );
 });
