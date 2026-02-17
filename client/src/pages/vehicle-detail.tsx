@@ -131,8 +131,8 @@ export default function VehicleDetail() {
           <div className="flex flex-col gap-7">
 
             {/* Photo */}
-            <div className="rounded-[14px] overflow-hidden h-[380px] bg-[#211e18]">
-              <img src={vehicle.image} className="w-full h-full object-contain" alt={vehicle.title} />
+            <div className="rounded-[14px] overflow-hidden bg-[#211e18] flex items-center justify-center">
+              <img src={vehicle.image} className="w-full h-auto max-h-[540px] object-contain block" alt={vehicle.title} />
             </div>
 
             {/* Specs */}
@@ -278,7 +278,14 @@ export default function VehicleDetail() {
                 {date ? `Hire for ${new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : 'Select a Date to Continue'}
               </Button>
 
-              <button className="w-full p-3 text-[#8a826e] border border-[rgba(244,168,48,0.18)] rounded-[10px] text-[0.875rem] hover:border-[#f4a830] hover:text-[#f4a830] transition-all">💬 Ask a Question</button>
+              <a
+              href={`https://wa.me/6787114045?text=${encodeURIComponent(`Hi! I have a question about "${vehicle.title}". `)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full p-3 text-[#25D366] border border-[#25D366]/40 rounded-[10px] text-[0.875rem] hover:border-[#25D366] hover:bg-[#25D366]/10 transition-all flex items-center justify-center gap-2 font-medium"
+            >
+              💬 Ask a Question via WhatsApp
+            </a>
 
               <div className="flex gap-4 mt-4 pt-4 border-t border-[rgba(244,168,48,0.18)] text-[0.73rem] text-[#8a826e]">
                 <div className="flex flex-1 items-center gap-2">🛡️ Free cancellation</div>

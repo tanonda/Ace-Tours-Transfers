@@ -14,7 +14,6 @@ import { formatPriceDisplay, type ProductCategory } from "@/lib/product.types";
 import { useCurrency } from "@/lib/currency-context";
 import { AvailabilityCalendar } from "@/components/AvailabilityCalendar";
 import { AvailabilityStatus } from "@/components/AvailabilityStatus";
-import { PricingBreakdown } from "@/components/PricingBreakdown";
 import { BookingModal } from "@/components/booking-modal";
 
 export default function TourDetail() {
@@ -173,9 +172,13 @@ export default function TourDetail() {
           {/* ── LEFT COLUMN ── */}
           <div className="flex flex-col gap-7">
 
-            {/* Photo */}
-            <div className="rounded-[14px] overflow-hidden h-[380px] bg-[#211e18]">
-              <img src={tour.image} className="w-full h-full object-contain" alt={tour.title} />
+            {/* Photo — adaptive height, no cropping */}
+            <div className="rounded-[14px] overflow-hidden bg-[#211e18] flex items-center justify-center">
+              <img
+                src={tour.image}
+                className="w-full h-auto max-h-[540px] object-contain block"
+                alt={tour.title}
+              />
             </div>
 
             {/* Overview */}
@@ -272,7 +275,11 @@ export default function TourDetail() {
                 </span>
                 <span className="text-[0.8rem] text-[#8a826e]">/ {t("quickView.adult", "adult")}</span>
               </div>
-              <div className="text-[0.78rem] text-[#8a826e]">{t("tour.childrenPriceNote", "Children pricing available")}</div>
+              {tour.childPriceCents > 0 && (
+                <div className="text-[0.78rem] text-[#8a826e]">
+                  {t("quickView.child", "Child")}: {formatPriceDisplay(tour.childPriceCents, currency)} · {t("tour.childrenPriceNote", "Children pricing available")}
+                </div>
+              )}
             </div>
 
             <div className="px-6 py-5 flex flex-col gap-5">
@@ -285,34 +292,112 @@ export default function TourDetail() {
                 <div className="flex flex-col gap-2">
                   {/* Adults */}
                   <div className="flex items-center justify-between bg-[#211e18] border border-[rgba(244,168,48,0.18)] rounded-[10px] px-4 py-2">
-                    <span className="text-[0.85rem] text-[#8a826e]">{t("booking.adults", "Adults")}</span>
+                    <div>
+                      <span className="text-[0.85rem] text-[#f0ece4] font-medium">{t("booking.adults", "Adults")}</span>
+                      <span className="text-[0.72rem] text-[#8a826e] ml-2">{formatPriceDisplay(tour.adultPriceCents, currency)} ea</span>
+                    </div>
                     <div className="flex items-center gap-3">
                       <button
                         onClick={() => setAdultPax(prev => Math.max(1, prev - 1))}
-                        className="w-[28px] h-[28px] rounded-full bg-[#1a1710] border border-[rgba(244,168,48,0.18)] text-[#f0ece4] hover:border-[#f4a830] hover:bg-[#f4a830]/15 transition-all text-lg leading-none"
+                        className="w-[28px] h-[28px] rounded-full bg-[#1a1710] border border-[rgba(244,168,48,0.18)] text-[#f0ece4] hover:border-[#f4a830] hover:bg-[#f4a830]/15 transition-all text-lg leading-none flex items-center justify-center"
                       >−</button>
-                      <span className="w-6 text-center font-semibold">{adultPax}</span>
+                      <span className="w-6 text-center font-bold text-[#f4a830]">{adultPax}</span>
                       <button
                         onClick={() => setAdultPax(prev => Math.min(20, prev + 1))}
-                        className="w-[28px] h-[28px] rounded-full bg-[#1a1710] border border-[rgba(244,168,48,0.18)] text-[#f0ece4] hover:border-[#f4a830] hover:bg-[#f4a830]/15 transition-all text-lg leading-none"
+                        className="w-[28px] h-[28px] rounded-full bg-[#1a1710] border border-[rgba(244,168,48,0.18)] text-[#f0ece4] hover:border-[#f4a830] hover:bg-[#f4a830]/15 transition-all text-lg leading-none flex items-center justify-center"
                       >+</button>
                     </div>
                   </div>
                   {/* Children */}
                   <div className="flex items-center justify-between bg-[#211e18] border border-[rgba(244,168,48,0.18)] rounded-[10px] px-4 py-2">
-                    <span className="text-[0.85rem] text-[#8a826e]">{t("booking.children", "Children")}</span>
+                    <div>
+                      <span className="text-[0.85rem] text-[#f0ece4] font-medium">{t("booking.children", "Children")}</span>
+                      {tour.childPriceCents > 0
+                        ? <span className="text-[0.72rem] text-[#8a826e] ml-2">{formatPriceDisplay(tour.childPriceCents, currency)} ea</span>
+                        : <span className="text-[0.72rem] text-[#4caf7d] ml-2">Free</span>
+                      }
+                    </div>
                     <div className="flex items-center gap-3">
                       <button
                         onClick={() => setChildPax(prev => Math.max(0, prev - 1))}
-                        className="w-[28px] h-[28px] rounded-full bg-[#1a1710] border border-[rgba(244,168,48,0.18)] text-[#f0ece4] hover:border-[#f4a830] hover:bg-[#f4a830]/15 transition-all text-lg leading-none"
+                        className="w-[28px] h-[28px] rounded-full bg-[#1a1710] border border-[rgba(244,168,48,0.18)] text-[#f0ece4] hover:border-[#f4a830] hover:bg-[#f4a830]/15 transition-all text-lg leading-none flex items-center justify-center"
                       >−</button>
-                      <span className="w-6 text-center font-semibold">{childPax}</span>
+                      <span className="w-6 text-center font-bold text-[#f4a830]">{childPax}</span>
                       <button
                         onClick={() => setChildPax(prev => Math.min(20, prev + 1))}
-                        className="w-[28px] h-[28px] rounded-full bg-[#1a1710] border border-[rgba(244,168,48,0.18)] text-[#f0ece4] hover:border-[#f4a830] hover:bg-[#f4a830]/15 transition-all text-lg leading-none"
+                        className="w-[28px] h-[28px] rounded-full bg-[#1a1710] border border-[rgba(244,168,48,0.18)] text-[#f0ece4] hover:border-[#f4a830] hover:bg-[#f4a830]/15 transition-all text-lg leading-none flex items-center justify-center"
                       >+</button>
                     </div>
                   </div>
+                </div>
+              </div>
+
+              {/* ── INSTANT PRICING BREAKDOWN — always visible, recalculates live ── */}
+              <div className="bg-[#211e18] border border-[rgba(244,168,48,0.18)] rounded-[12px] overflow-hidden">
+                <div className="px-4 py-3 border-b border-[rgba(244,168,48,0.1)]">
+                  <span className="text-[0.7rem] font-black uppercase tracking-[0.1em] text-[#8a826e]">Price Breakdown</span>
+                </div>
+                <div className="px-4 py-3 space-y-2">
+                  {/* Adults line */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[0.82rem] text-[#ccc6b8]">{adultPax} × Adult</span>
+                      <span className="text-[0.72rem] text-[#8a826e]">@ {formatPriceDisplay(tour.adultPriceCents, currency)}</span>
+                    </div>
+                    <span className="text-[0.9rem] font-semibold text-[#f0ece4]">
+                      {formatPriceDisplay(tour.adultPriceCents * adultPax, currency)}
+                    </span>
+                  </div>
+
+                  {/* Children line — always rendered, shows 0 clearly or hides if 0 pax */}
+                  {childPax > 0 && (
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[0.82rem] text-[#ccc6b8]">{childPax} × Child</span>
+                        {tour.childPriceCents > 0
+                          ? <span className="text-[0.72rem] text-[#8a826e]">@ {formatPriceDisplay(tour.childPriceCents, currency)}</span>
+                          : <span className="text-[0.72rem] text-[#4caf7d]">Free</span>
+                        }
+                      </div>
+                      <span className="text-[0.9rem] font-semibold text-[#f0ece4]">
+                        {tour.childPriceCents > 0
+                          ? formatPriceDisplay(tour.childPriceCents * childPax, currency)
+                          : <span className="text-[#4caf7d]">VT 0</span>
+                        }
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Group discount notice */}
+                  {adultPax >= 7 && (
+                    <div className="flex items-center justify-between text-[#4caf7d]">
+                      <span className="text-[0.78rem]">🎉 Group discount (10%)</span>
+                      <span className="text-[0.82rem] font-semibold">−applied</span>
+                    </div>
+                  )}
+
+                  {/* Divider + Total */}
+                  <div className="border-t border-[rgba(244,168,48,0.18)] pt-2 mt-1 flex items-center justify-between">
+                    <span className="text-[0.8rem] font-bold text-[#8a826e] uppercase tracking-wider">
+                      {date ? "Total" : "Est. Total"}
+                    </span>
+                    <span className="text-[1.15rem] font-black text-[#f4a830]">
+                      {formatPriceDisplay(
+                        (() => {
+                          let total = (tour.adultPriceCents * adultPax) + (tour.childPriceCents * childPax);
+                          if (adultPax >= 7) total = Math.round(total * 0.9);
+                          return total;
+                        })(),
+                        currency
+                      )}
+                    </span>
+                  </div>
+
+                  {!date && (
+                    <p className="text-[0.68rem] text-[#8a826e] italic text-center pt-1">
+                      Select a date to confirm pricing
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -330,7 +415,7 @@ export default function TourDetail() {
                 />
               </div>
 
-              {/* Selected date confirmation */}
+              {/* Selected date + time confirmation */}
               {date && (
                 <div className="bg-[#f4a830]/15 border border-[rgba(244,168,48,0.3)] rounded-[10px] px-4 py-3 animate-in fade-in slide-in-from-top-2">
                   <div className="text-[0.72rem] text-[#f4a830] font-semibold uppercase tracking-[0.06em] mb-1">
@@ -345,44 +430,14 @@ export default function TourDetail() {
                 </div>
               )}
 
-              {/* Availability status */}
+              {/* Availability status badge (only shown after date selected) */}
               {id && date && (
-                <div className="flex flex-col gap-3">
-                  <AvailabilityStatus
-                    tourId={id}
-                    selectedDate={new Date(date)}
-                    adultPax={adultPax}
-                    childPax={childPax}
-                  />
-                  {availability?.pricing && (
-                    <PricingBreakdown
-                      pricing={availability.pricing}
-                      currency={currency === "VUV" ? "VT" : "€"}
-                    />
-                  )}
-                </div>
-              )}
-
-              {/* Pricing breakdown (before date selected) */}
-              {!date && (
-                <div className="border-t border-[rgba(244,168,48,0.18)] pt-4">
-                  <div className="flex justify-between text-[0.85rem] text-[#8a826e] mb-2">
-                    <span>{adultPax} × {t("quickView.adult", "adult")}</span>
-                    <span>{formatPriceDisplay(tour.adultPriceCents * adultPax, currency)}</span>
-                  </div>
-                  {childPax > 0 && (
-                    <div className="flex justify-between text-[0.85rem] text-[#8a826e] mb-2">
-                      <span>{childPax} × {t("quickView.child", "child")}</span>
-                      <span>{formatPriceDisplay(tour.childPriceCents * childPax, currency)}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between font-bold text-[0.95rem] border-t border-[rgba(244,168,48,0.18)] pt-2 mt-1">
-                    <span>{t("booking.estimatedTotal", "Estimated Total")}</span>
-                    <span className="text-[#f4a830]">
-                      {formatPriceDisplay((tour.adultPriceCents * adultPax) + (tour.childPriceCents * childPax), currency)}
-                    </span>
-                  </div>
-                </div>
+                <AvailabilityStatus
+                  tourId={id}
+                  selectedDate={new Date(date)}
+                  adultPax={adultPax}
+                  childPax={childPax}
+                />
               )}
 
               {/* CTAs */}
@@ -422,9 +477,18 @@ export default function TourDetail() {
                 />
               </div>
 
-              <button className="w-full p-3 text-[#8a826e] border border-[rgba(244,168,48,0.18)] rounded-[10px] text-[0.875rem] hover:border-[#f4a830] hover:text-[#f4a830] transition-all">
-                💬 {t("common.askQuestion", "Ask a Question")}
-              </button>
+              {/* WhatsApp Ask a Question button */}
+              <a
+                href={`https://wa.me/6787114045?text=${encodeURIComponent(`Hi! I have a question about "${tour.title}". `)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full p-3 text-[#25D366] border border-[#25D366]/40 rounded-[10px] text-[0.875rem] hover:border-[#25D366] hover:bg-[#25D366]/10 transition-all flex items-center justify-center gap-2 font-medium"
+              >
+                <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current shrink-0" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                </svg>
+                💬 {t("common.askQuestion", "Ask a Question via WhatsApp")}
+              </a>
 
               <div className="flex gap-4 pt-4 border-t border-[rgba(244,168,48,0.18)] text-[0.73rem] text-[#8a826e]">
                 <div className="flex flex-1 items-center gap-2">🛡️ {t("booking.freeCancellation", "Free cancellation 24h before")}</div>
