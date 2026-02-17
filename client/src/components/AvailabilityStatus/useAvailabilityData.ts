@@ -14,7 +14,7 @@ export function useAvailabilityData(tourId: string, selectedDate: Date) {
 
         const dateStr = selectedDate.toISOString().split('T')[0];
         const response = await fetch(
-          `/api/availability/${tourId}?date=${dateStr}`
+          `/api/availability?tourId=${tourId}&date=${dateStr}`
         );
 
         if (!response.ok) {
