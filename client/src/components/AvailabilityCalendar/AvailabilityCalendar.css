@@ -13,6 +13,10 @@
   --cal-radius: 12px;
 }
 
+/* ── Outer container ──
+   overflow: hidden keeps everything inside the rounded border.
+   NO overflow: visible here — that was the root cause of cells
+   bleeding outside the panel boundary. */
 .availability-calendar {
   font-family: 'DM Sans', sans-serif;
   padding: 16px;
@@ -20,10 +24,10 @@
   border-radius: var(--cal-radius);
   color: var(--cal-text);
   border: 1px solid var(--cal-border);
-  /* overflow must be visible so hover scale(1.05) on cells isn't clipped */
-  overflow: visible;
+  overflow: hidden;
 }
 
+/* ── Header: ‹ Month Year › ── */
 .calendar-header {
   display: flex;
   align-items: center;
@@ -41,9 +45,11 @@
   flex: 1;
 }
 
-/* Nav is split — each button placed individually flanking the title */
+/* display: contents makes each single-button .calendar-nav
+   a transparent wrapper — its button becomes a direct flex child
+   of .calendar-header, so ‹ and › naturally flank the title */
 .calendar-nav {
-  display: contents; /* children become direct flex items of .calendar-header */
+  display: contents;
 }
 
 .calendar-nav button {
@@ -58,7 +64,7 @@
   justify-content: center;
   color: var(--cal-text);
   font-size: 1rem;
-  transition: all 0.2s ease;
+  transition: border-color 0.2s ease, background 0.2s ease;
   flex-shrink: 0;
 }
 
@@ -72,11 +78,12 @@
   cursor: not-allowed;
 }
 
+/* ── Day-of-week row ── */
 .calendar-weekdays {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: 4px;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .weekday {
@@ -86,13 +93,16 @@
   color: var(--cal-text-dim);
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  padding-bottom: 4px;
 }
 
+/* ── Day grid ──
+   No transform on hover — border + background change is enough
+   and keeps every cell strictly within its grid cell bounds. */
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: 4px;
-  isolation: isolate;
 }
 
 .calendar-day {
@@ -103,68 +113,69 @@
   padding: 4px;
   cursor: pointer;
   background: var(--cal-surface);
-  transition: all 0.15s ease;
+  transition: border-color 0.15s ease, background 0.15s ease;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: auto;
+  /* NO transform: scale() — that's what caused overflow */
 }
 
 .calendar-day:hover:not(.disabled):not(.full):not(.past) {
   border-color: var(--cal-gold);
   background: var(--cal-gold-dim);
-  transform: scale(1.08);
-  z-index: 10;
+  /* z-index still useful for border overlap with neighbours */
+  z-index: 1;
 }
 
+/* ── Day content ── */
 .day-number {
   font-weight: 600;
   font-size: 0.85rem;
   color: var(--cal-text);
+  line-height: 1;
 }
 
 .day-status-dot {
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  margin-top: 2px;
+  margin-top: 3px;
+  flex-shrink: 0;
 }
 
 .day-capacity {
   font-size: 8px;
   font-weight: 600;
   opacity: 0.7;
-  margin-top: 1px;
+  margin-top: 2px;
+  line-height: 1;
 }
+
+/* ── Availability colours ── */
+.calendar-day.available { background: rgba(76, 175, 125, 0.06); }
+.calendar-day.limited   { background: rgba(244, 168, 48, 0.06); }
+.calendar-day.full      { background: rgba(224, 85, 85, 0.05); cursor: not-allowed; }
 
 .calendar-day.available .day-status-dot { background: var(--cal-green); }
-.calendar-day.limited .day-status-dot { background: var(--cal-amber); }
-.calendar-day.full .day-status-dot { background: var(--cal-red); }
+.calendar-day.limited .day-status-dot   { background: var(--cal-amber); }
+.calendar-day.full .day-status-dot      { background: var(--cal-red); }
 
+/* ── Past dates ── */
 .calendar-day.past {
-  opacity: 0.2;
+  opacity: 0.22;
   cursor: not-allowed;
   background: transparent;
   border-color: transparent;
 }
 
-.calendar-day.past:hover {
-  transform: none;
-  background: transparent;
-  border-color: transparent;
-}
-
+/* ── Disabled (non-available, non-past) ── */
 .calendar-day.disabled {
-  opacity: 0.2;
+  opacity: 0.22;
   cursor: not-allowed;
 }
 
-.calendar-day.full {
-  background: rgba(224, 85, 85, 0.05);
-  cursor: not-allowed;
-}
-
+/* ── Selected ── */
 .calendar-day.selected {
   background: var(--cal-gold) !important;
   border-color: var(--cal-gold) !important;
@@ -179,6 +190,7 @@
   background: #0f0d09 !important;
 }
 
+/* ── Loading spinner ── */
 .calendar-loading {
   display: flex;
   align-items: center;
@@ -195,10 +207,10 @@
   animation: spin 0.8s linear infinite;
 }
 
-/* Legend */
+/* ── Legend ── */
 .calendar-legend {
-  margin-top: 20px;
-  padding-top: 16px;
+  margin-top: 18px;
+  padding-top: 14px;
   border-top: 1px solid var(--cal-border);
 }
 
@@ -207,7 +219,7 @@
   font-weight: 600;
   text-transform: uppercase;
   color: var(--cal-text-dim);
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   letter-spacing: 0.07em;
 }
 
@@ -229,11 +241,12 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
+  flex-shrink: 0;
 }
 
 .legend-color.available { background: var(--cal-green); }
-.legend-color.limited { background: var(--cal-amber); }
-.legend-color.full { background: var(--cal-red); }
+.legend-color.limited   { background: var(--cal-amber); }
+.legend-color.full      { background: var(--cal-red); }
 
 @keyframes spin {
   to { transform: rotate(360deg); }
