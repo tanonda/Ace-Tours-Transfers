@@ -11,7 +11,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { useCurrency } from "@/lib/currency-context";
-import { formatPriceDisplay, calculateLineTotal } from "@/lib/product.types";
+import { formatPriceDisplay } from "@/lib/product.types";
 import type { Addon } from "@shared/schema";
 import { useQuery } from "@tanstack/react-query";
 import { fetchAddons } from "@/lib/api";
@@ -116,7 +116,8 @@ export default function Cart() {
                     appliedRules = pricedItem.breakdown.appliedRules;
                   } else {
                     // Client-side estimation (deprecated - for fallback only)
-                    finalItemSubtotal = calculateLineTotal(item.price, item.childPrice, item.adultPax, item.childPax, item.addonTotal || 0);
+                    // Manual calculation to avoid [DEPRECATED] calculateLineTotal warning
+                    finalItemSubtotal = (item.price * item.adultPax) + (item.childPrice * item.childPax) + (item.addonTotal || 0);
                     if (item.adultPax >= 7) {
                       appliedRules.push('10% group discount (7+ adults)');
                       finalItemSubtotal = Math.round(finalItemSubtotal * 0.9);
