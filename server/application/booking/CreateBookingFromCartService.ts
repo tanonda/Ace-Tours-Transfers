@@ -22,6 +22,7 @@ export interface CreateBookingRequest {
     date: string;
     slot?: string;
     quantity?: number;
+    addonIds?: string[];
     startTime?: string;
     endTime?: string;
   }[];
@@ -112,7 +113,8 @@ export class CreateBookingFromCartService {
             item.adultPax,
             item.childPax,
             rates,
-            item.date
+            item.date,
+            item.addonIds
           );
 
           let serverPricedTotalCents = pricing.breakdown.finalTotalCents;
@@ -140,7 +142,8 @@ export class CreateBookingFromCartService {
           productId: i.productId,
           adultPax: i.adultPax,
           childPax: i.childPax,
-          quantity: i.quantity
+          quantity: i.quantity,
+          addonIds: i.addonIds
         })));
         cart.setPricedSnapshot(snapshot);
 
@@ -208,6 +211,10 @@ export class CreateBookingFromCartService {
         const errorMessage = error instanceof Error ? error.message : "unknown_error";
 
         // Phase 8: Metrics
+        console.error(`[BOOKING_CREATION_FAILED] ${errorMessage}`, {
+          request: { ...request, items: request.items.length },
+          stack: error instanceof Error ? error.stack : undefined
+        });
         metricsService.incrementFailure(errorMessage);
         metricsService.recordErrorSnippet("BOOKING_CREATION_FAILED", errorMessage);
         metricsService.recordTransactionTime(elapsedMs);

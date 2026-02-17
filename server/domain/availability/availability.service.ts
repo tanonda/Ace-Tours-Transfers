@@ -545,10 +545,22 @@ export class AvailabilityService {
       }
 
       if (tour.defaultCapacity === null || tour.defaultCapacity === undefined || tour.defaultCapacity <= 0) {
-        throw new Error(
+        console.warn(
           `Tour "${tour.title}" (${tourId}) has no default capacity configured. ` +
-          `Please set a valid capacity value in the admin panel before bookings can be made.`
+          `Falling back to 0 capacity to prevent booking creation crash.`
         );
+        return await tx
+          .insert(tourInstances)
+          .values({
+            tourId,
+            serviceDate: date,
+            timeSlot: slot || null,
+            totalCapacity: 0,
+            startTime: startTime ?? null,
+            endTime: endTime ?? null,
+          })
+          .returning()
+          .then(([created]: any[]) => created);
       }
 
       const capacity = tour.defaultCapacity;

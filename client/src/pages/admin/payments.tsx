@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchPaymentGateways, updatePaymentGateway, setDefaultPaymentGateway } from "@/lib/api";
+import { fetchAdminPaymentGateways, updatePaymentGateway, setDefaultPaymentGateway } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { useTranslation } from "react-i18next";
@@ -72,7 +72,7 @@ export default function AdminPayments() {
 
     const { data: gateways = [], isLoading, error } = useQuery({
         queryKey: ["payment-gateways"],
-        queryFn: fetchPaymentGateways,
+        queryFn: fetchAdminPaymentGateways,
     });
 
     const updateMutation = useMutation({

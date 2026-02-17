@@ -112,10 +112,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   // Persist cart to localStorage whenever items change (after hydration)
   useEffect(() => {
-    if (isHydrated && items.length > 0) {
+    if (isHydrated) {
       saveCartToStorage(items);
-      // Update expiry to 24 hours from now when cart changes
-      setExpiresAt(Date.now() + CART_EXPIRY_MS);
+      if (items.length > 0) {
+        // Update expiry to 24 hours from now when cart changes
+        setExpiresAt(Date.now() + CART_EXPIRY_MS);
+      }
     }
   }, [items, isHydrated]);
 
@@ -123,12 +125,21 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const EXPIRY_WARNING_THRESHOLD = 60 * 60 * 1000; // 1 hour
   const isExpiringSoon = expiresAt !== null && (expiresAt - Date.now() < EXPIRY_WARNING_THRESHOLD) && items.length > 0;
 
+  // Helper to safely compare dates which might be Date objects or ISO strings
+  const areDatesEqual = (d1?: Date | string, d2?: Date | string) => {
+    if (!d1 && !d2) return true;
+    if (!d1 || !d2) return false;
+    const t1 = d1 instanceof Date ? d1.getTime() : new Date(d1).getTime();
+    const t2 = d2 instanceof Date ? d2.getTime() : new Date(d2).getTime();
+    return t1 === t2;
+  };
+
   const addToCart = useCallback((item: Omit<CartItem, "quantity"> & { quantity?: number }) => {
     setItems((prev) => {
       // Multi-Product Booking Enabled
       const existing = prev.find((i) =>
         i.id === item.id &&
-        i.date?.getTime() === item.date?.getTime() &&
+        areDatesEqual(i.date, item.date) &&
         i.slot === item.slot &&
         i.startTime === item.startTime &&
         i.endTime === item.endTime &&
@@ -137,7 +148,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
       if (existing) {
         return prev.map((i) =>
-          (i.id === item.id && i.date?.getTime() === item.date?.getTime() && i.slot === item.slot && i.startTime === item.startTime && i.endTime === item.endTime && JSON.stringify(i.addonIds) === JSON.stringify(item.addonIds))
+          (i.id === item.id && areDatesEqual(i.date, item.date) && i.slot === item.slot && i.startTime === item.startTime && i.endTime === item.endTime && JSON.stringify(i.addonIds) === JSON.stringify(item.addonIds))
             ? {
               ...i,
               quantity: i.quantity + (item.quantity || 1),
@@ -156,15 +167,15 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     });
   }, [toast]);
 
-  const removeFromCart = useCallback((id: string, date?: Date, slot?: string) => {
+  const removeFromCart = useCallback((id: string, date?: Date | string, slot?: string) => {
     setItems((prev) => prev.filter((i) =>
-      !(i.id === id && i.date?.getTime() === date?.getTime() && i.slot === slot)
+      !(i.id === id && areDatesEqual(i.date, date) && i.slot === slot)
     ));
   }, []);
 
-  const updateCartItem = useCallback((id: string, updates: Partial<CartItem>, date?: Date, slot?: string) => {
+  const updateCartItem = useCallback((id: string, updates: Partial<CartItem>, date?: Date | string, slot?: string) => {
     setItems((prev) => prev.map((i) =>
-      (i.id === id && i.date?.getTime() === date?.getTime() && i.slot === slot)
+      (i.id === id && areDatesEqual(i.date, date) && i.slot === slot)
         ? { ...i, ...updates }
         : i
     ));
@@ -228,7 +239,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
     // Apply Seasonal Surcharge (20% in Dec/Jan) - ESTIMATED
     if (item.date) {
-      const month = item.date.getMonth();
+      const dateObj = item.date instanceof Date ? item.date : new Date(item.date);
+      const month = dateObj.getMonth();
       if (month === 11 || month === 0) {
         lineTotal = Math.round(lineTotal * 1.2);
       }
