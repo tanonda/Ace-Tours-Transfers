@@ -9,10 +9,12 @@ import { useTranslation } from "react-i18next";
 import { useState, useEffect, useCallback } from "react";
 import { useCart } from "@/lib/cart-context";
 import { useBookingDraft } from "@/lib/booking-state-context";
-import { formatPrice, type ProductCategory } from "@/lib/product.types";
+import { formatPriceDisplay, type ProductCategory } from "@/lib/product.types";
 import { useCurrency } from "@/lib/currency-context";
 import { AvailabilityCalendar } from "@/components/AvailabilityCalendar";
 import { BookingModal } from "@/components/booking-modal";
+
+const WHATSAPP_NUMBER = "6787114045";
 
 export default function TransferDetail() {
   const { id } = useParams<{ id: string }>();
@@ -35,15 +37,15 @@ export default function TransferDetail() {
   useEffect(() => {
     const sp = new URLSearchParams(window.location.search);
     const urlDate = sp.get("date");
-    const urlGuests = sp.get("guests");
     const urlAdults = sp.get("adults");
     const urlChildren = sp.get("children");
+    const urlGuests = sp.get("guests");
     if (urlDate) setDate(urlDate);
     const parsedAdults = urlAdults ? parseInt(urlAdults) : (urlGuests ? parseInt(urlGuests) : 2);
     const parsedChildren = urlChildren ? parseInt(urlChildren) : 0;
     if (parsedAdults) setAdultPax(parsedAdults);
     if (parsedChildren) setChildPax(parsedChildren);
-    if (id) updateDraft({ productId: id, adultPax: parseInt(urlGuests || "2") || 2, childPax: 0, date: urlDate || "" });
+    if (id) updateDraft({ productId: id, adultPax: parsedAdults, childPax: parsedChildren, date: urlDate || "" });
   }, [id, updateDraft]);
 
   useEffect(() => {
@@ -93,17 +95,23 @@ export default function TransferDetail() {
     );
   }
 
+  // Instant total — zero network latency, recalculates on every render
+  const adultSubtotal = transfer.adultPriceCents * adultPax;
+  const childSubtotal = transfer.childPriceCents * childPax;
+  const rawTotal = adultSubtotal + childSubtotal;
+  const instantTotal = adultPax >= 7 ? Math.round(rawTotal * 0.9) : rawTotal;
+
+  const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
+    `Hi! I have a question about "${transfer.title}". `
+  )}`;
+
   return (
     <Layout>
       <div className="min-h-screen bg-[#0f0d09] text-[#f0ece4] font-sans pt-16">
 
-        {/* ── HERO ── */}
+        {/* HERO */}
         <div className="relative h-[340px] overflow-hidden">
-          <img
-            src={transfer.image}
-            className="w-full h-full object-cover filter brightness-[0.5] object-center"
-            alt={transfer.title}
-          />
+          <img src={transfer.image} className="w-full h-full object-cover filter brightness-[0.5] object-center" alt={transfer.title} />
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0f0d09]" />
           <div className="absolute bottom-8 left-0 right-0 max-w-[1280px] mx-auto px-8">
             <div className="flex items-center gap-2 text-[0.8rem] text-[#8a826e] mb-3">
@@ -113,61 +121,41 @@ export default function TransferDetail() {
               <span>›</span>
               <span className="text-[#f0ece4] opacity-50">{transfer.title}</span>
             </div>
-            <h1 className="font-serif text-4xl md:text-5xl font-bold leading-tight mb-3">
-              {transfer.title}
-            </h1>
+            <h1 className="font-serif text-4xl md:text-5xl font-bold leading-tight mb-3">{transfer.title}</h1>
             <div className="flex flex-wrap gap-2">
-              <span className="px-3 py-1 rounded-full border border-[#4caf7d] bg-[#4caf7d]/15 text-[#4caf7d] text-[0.78rem] font-medium">
-                ✓ {t("tour.availableNow", "Available Now")}
-              </span>
-              <span className="px-3 py-1 rounded-full border border-[#f4a830] bg-[#f4a830]/15 text-[#f4a830] text-[0.78rem] font-medium">
-                🚐 {t("nav.transfers", "Transfer Service")}
-              </span>
-              {transfer.duration && (
-                <span className="px-3 py-1 rounded-full border border-[rgba(244,168,48,0.18)] bg-[#1a1710] text-[#8a826e] text-[0.78rem] font-medium">
-                  ⏱ {transfer.duration}
-                </span>
-              )}
-              {transfer.minPax && (
-                <span className="px-3 py-1 rounded-full border border-[rgba(244,168,48,0.18)] bg-[#1a1710] text-[#8a826e] text-[0.78rem] font-medium">
-                  👥 {t("tour.from", "From")} {transfer.minPax}
-                </span>
-              )}
+              <span className="px-3 py-1 rounded-full border border-[#4caf7d] bg-[#4caf7d]/15 text-[#4caf7d] text-[0.78rem] font-medium">✓ {t("tour.availableNow", "Available Now")}</span>
+              <span className="px-3 py-1 rounded-full border border-[#f4a830] bg-[#f4a830]/15 text-[#f4a830] text-[0.78rem] font-medium">🚐 {t("nav.transfers", "Transfer Service")}</span>
+              {transfer.duration && <span className="px-3 py-1 rounded-full border border-[rgba(244,168,48,0.18)] bg-[#1a1710] text-[#8a826e] text-[0.78rem] font-medium">⏱ {transfer.duration}</span>}
             </div>
           </div>
         </div>
 
-        {/* ── MAIN GRID ── */}
+        {/* MAIN GRID */}
         <div className="max-w-[1280px] mx-auto px-8 py-10 grid grid-cols-1 lg:grid-cols-[1fr_420px] gap-8 items-start">
 
-          {/* ── LEFT COLUMN ── */}
+          {/* LEFT */}
           <div className="flex flex-col gap-7">
 
-            {/* Photo */}
-            <div className="rounded-[14px] overflow-hidden h-[380px] bg-[#211e18]">
-              <img src={transfer.image} className="w-full h-full object-contain" alt={transfer.title} />
+            {/* Photo — adaptive: no forced height, respects portrait/landscape */}
+            <div className="rounded-[14px] overflow-hidden bg-[#211e18] flex items-center justify-center">
+              <img src={transfer.image} className="w-full h-auto max-h-[540px] object-contain block" alt={transfer.title} />
             </div>
 
-            {/* Transfer Details */}
+            {/* Description */}
             <div className="bg-[#1a1710] border border-[rgba(244,168,48,0.18)] rounded-[14px] p-7">
-              <div className="font-serif text-[1.2rem] font-bold mb-5 flex items-center gap-3 after:content-[''] after:flex-1 after:h-[1px] after:bg-[rgba(244,168,48,0.18)]">
-                {t("quickView.overview", "Transfer Details")}
-              </div>
+              <div className="font-serif text-[1.2rem] font-bold mb-5 flex items-center gap-3 after:content-[''] after:flex-1 after:h-[1px] after:bg-[rgba(244,168,48,0.18)]">Transfer Details</div>
               <p className="text-[0.92rem] leading-[1.75] text-[#ccc6b8]">
-                {typeof transfer.description === "string"
-                  ? transfer.description
+                {typeof transfer.description === "string" ? transfer.description
                   : Array.isArray(transfer.description) && transfer.description[0]
                     ? transfer.description[0]
-                    : t("quickView.defaultDesc", "Reliable, professional transfer service across Vanuatu.")}
+                    : "Reliable, professional transfer service across Vanuatu."}
               </p>
             </div>
 
-            {/* What's Included */}
+            {/* Included */}
             {Array.isArray(transfer.description) && transfer.description.length > 1 && (
               <div className="bg-[#1a1710] border border-[rgba(244,168,48,0.18)] rounded-[14px] p-7">
-                <div className="font-serif text-[1.2rem] font-bold mb-5 flex items-center gap-3 after:content-[''] after:flex-1 after:h-[1px] after:bg-[rgba(244,168,48,0.18)]">
-                  {t("quickView.whatsIncluded", "What's Included")}
-                </div>
+                <div className="font-serif text-[1.2rem] font-bold mb-5 flex items-center gap-3 after:content-[''] after:flex-1 after:h-[1px] after:bg-[rgba(244,168,48,0.18)]">What's Included</div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {transfer.description.slice(1).map((item, i) => (
                     <div key={i} className="flex items-center gap-3 text-[0.88rem] text-[#8a826e]">
@@ -181,31 +169,27 @@ export default function TransferDetail() {
 
             {/* Rates */}
             <div className="bg-[#1a1710] border border-[rgba(244,168,48,0.18)] rounded-[14px] p-7">
-              <div className="font-serif text-[1.2rem] font-bold mb-5 flex items-center gap-3 after:content-[''] after:flex-1 after:h-[1px] after:bg-[rgba(244,168,48,0.18)]">
-                {t("quickView.ratesOptions", "Rates & Options")}
-              </div>
+              <div className="font-serif text-[1.2rem] font-bold mb-5 flex items-center gap-3 after:content-[''] after:flex-1 after:h-[1px] after:bg-[rgba(244,168,48,0.18)]">Rates & Options</div>
               <div className="flex justify-between items-center text-[1rem] mb-3 pb-3 border-b border-[rgba(244,168,48,0.1)]">
-                <span className="text-[#8a826e]">{t("quickView.adult", "Per Person")}</span>
-                <span className="font-bold text-[#f0ece4]">{formatPrice(transfer.adultPriceCents)}</span>
+                <span className="text-[#8a826e]">Per Adult</span>
+                <span className="font-bold text-[#f0ece4]">{formatPriceDisplay(transfer.adultPriceCents, currency)}</span>
               </div>
               {transfer.childPriceCents > 0 && (
                 <div className="flex justify-between items-center text-[1rem]">
-                  <span className="text-[#8a826e]">{t("quickView.child", "Child")}</span>
-                  <span className="font-bold text-[#f0ece4]">{formatPrice(transfer.childPriceCents)}</span>
+                  <span className="text-[#8a826e]">Per Child</span>
+                  <span className="font-bold text-[#f0ece4]">{formatPriceDisplay(transfer.childPriceCents, currency)}</span>
                 </div>
               )}
             </div>
 
             {/* Reviews */}
             <div className="bg-[#1a1710] border border-[rgba(244,168,48,0.18)] rounded-[14px] p-7">
-              <div className="font-serif text-[1.2rem] font-bold mb-5 flex items-center gap-3 after:content-[''] after:flex-1 after:h-[1px] after:bg-[rgba(244,168,48,0.18)]">
-                {t("quickView.recentReviews", "Guest Reviews")}
-              </div>
+              <div className="font-serif text-[1.2rem] font-bold mb-5 flex items-center gap-3 after:content-[''] after:flex-1 after:h-[1px] after:bg-[rgba(244,168,48,0.18)]">Guest Reviews</div>
               <div className="flex items-center gap-6 pb-5 mb-5 border-b border-[rgba(244,168,48,0.18)]">
                 <div className="font-serif text-6xl font-bold text-[#f4a830]">5.0</div>
                 <div className="flex-1">
                   <div className="text-[#f4a830] text-[1.1rem] tracking-[2px]">★★★★★</div>
-                  <div className="text-[0.82rem] text-[#8a826e] mt-1">{t("reviews.basedOn", "Based on")} 8 {t("reviews.verified", "verified bookings")}</div>
+                  <div className="text-[0.82rem] text-[#8a826e] mt-1">Based on 8 verified bookings</div>
                 </div>
               </div>
               <div className="bg-[#211e18] rounded-[10px] p-4">
@@ -214,73 +198,113 @@ export default function TransferDetail() {
                     <div className="font-semibold text-[0.9rem]">John T.</div>
                     <div className="text-[#f4a830] text-[0.78rem]">★★★★★</div>
                   </div>
-                  <div className="text-[0.75rem] text-[#8a826e]">{t("quickView.daysAgo", "3 days ago")}</div>
+                  <div className="text-[0.75rem] text-[#8a826e]">3 days ago</div>
                 </div>
-                <p className="text-[0.855rem] text-[#b8b0a0] leading-[1.6] italic">"{t("quickView.transferReview", "Very professional and punctual service. The driver was helpful with our luggage.")}"</p>
+                <p className="text-[0.855rem] text-[#b8b0a0] leading-[1.6] italic">"Very professional and punctual service. The driver was helpful with our luggage."</p>
               </div>
             </div>
 
-          </div>{/* end left column */}
+          </div>
 
-          {/* ── RIGHT: STICKY BOOKING PANEL ── */}
+          {/* RIGHT: STICKY BOOKING PANEL */}
           <div className="sticky top-[82px] bg-[#1a1710] border border-[rgba(244,168,48,0.18)] rounded-[14px] overflow-hidden">
 
             {/* Price header */}
             <div className="bg-[#211e18] px-6 py-5 border-b border-[rgba(244,168,48,0.18)]">
               <div className="flex items-baseline gap-2 mb-1">
-                <span className="text-[0.78rem] text-[#8a826e]">{t("tour.from", "From")}</span>
-                <span className="font-serif text-[2rem] font-bold text-[#f4a830]">
-                  {formatPrice(transfer.adultPriceCents)}
-                </span>
-                <span className="text-[0.8rem] text-[#8a826e]">/ {t("quickView.adult", "person")}</span>
+                <span className="text-[0.78rem] text-[#8a826e]">From</span>
+                <span className="font-serif text-[2rem] font-bold text-[#f4a830]">{formatPriceDisplay(transfer.adultPriceCents, currency)}</span>
+                <span className="text-[0.8rem] text-[#8a826e]">/ person</span>
               </div>
-              <div className="text-[0.78rem] text-[#8a826e]">{t("tour.privateTransferNote", "Private transfer — your group only")}</div>
+              {transfer.childPriceCents > 0 && (
+                <div className="text-[0.78rem] text-[#8a826e]">
+                  Child: {formatPriceDisplay(transfer.childPriceCents, currency)} · Children pricing available
+                </div>
+              )}
             </div>
 
             <div className="px-6 py-5 flex flex-col gap-5">
 
               {/* Guest counters */}
               <div>
-                <label className="text-[0.75rem] font-semibold text-[#8a826e] tracking-[0.07em] uppercase mb-2 block">
-                  {t("booking.guests", "Passengers")}
-                </label>
+                <label className="text-[0.75rem] font-semibold text-[#8a826e] tracking-[0.07em] uppercase mb-2 block">Passengers</label>
                 <div className="flex flex-col gap-2">
                   <div className="flex items-center justify-between bg-[#211e18] border border-[rgba(244,168,48,0.18)] rounded-[10px] px-4 py-2">
-                    <span className="text-[0.85rem] text-[#8a826e]">{t("booking.adults", "Adults")}</span>
+                    <div>
+                      <span className="text-[0.85rem] text-[#f0ece4] font-medium">Adults</span>
+                      <span className="text-[0.72rem] text-[#8a826e] ml-2">{formatPriceDisplay(transfer.adultPriceCents, currency)} ea</span>
+                    </div>
                     <div className="flex items-center gap-3">
-                      <button
-                        onClick={() => setAdultPax(prev => Math.max(1, prev - 1))}
-                        className="w-[28px] h-[28px] rounded-full bg-[#1a1710] border border-[rgba(244,168,48,0.18)] text-[#f0ece4] hover:border-[#f4a830] hover:bg-[#f4a830]/15 transition-all text-lg leading-none"
-                      >−</button>
-                      <span className="w-6 text-center font-semibold">{adultPax}</span>
-                      <button
-                        onClick={() => setAdultPax(prev => Math.min(20, prev + 1))}
-                        className="w-[28px] h-[28px] rounded-full bg-[#1a1710] border border-[rgba(244,168,48,0.18)] text-[#f0ece4] hover:border-[#f4a830] hover:bg-[#f4a830]/15 transition-all text-lg leading-none"
-                      >+</button>
+                      <button onClick={() => setAdultPax(p => Math.max(1, p - 1))} className="w-[28px] h-[28px] rounded-full bg-[#1a1710] border border-[rgba(244,168,48,0.18)] text-[#f0ece4] hover:border-[#f4a830] hover:bg-[#f4a830]/15 transition-all text-lg flex items-center justify-center">−</button>
+                      <span className="w-6 text-center font-bold text-[#f4a830]">{adultPax}</span>
+                      <button onClick={() => setAdultPax(p => Math.min(20, p + 1))} className="w-[28px] h-[28px] rounded-full bg-[#1a1710] border border-[rgba(244,168,48,0.18)] text-[#f0ece4] hover:border-[#f4a830] hover:bg-[#f4a830]/15 transition-all text-lg flex items-center justify-center">+</button>
                     </div>
                   </div>
                   <div className="flex items-center justify-between bg-[#211e18] border border-[rgba(244,168,48,0.18)] rounded-[10px] px-4 py-2">
-                    <span className="text-[0.85rem] text-[#8a826e]">{t("booking.children", "Children")}</span>
+                    <div>
+                      <span className="text-[0.85rem] text-[#f0ece4] font-medium">Children</span>
+                      {transfer.childPriceCents > 0
+                        ? <span className="text-[0.72rem] text-[#8a826e] ml-2">{formatPriceDisplay(transfer.childPriceCents, currency)} ea</span>
+                        : <span className="text-[0.72rem] text-[#4caf7d] ml-2">Free</span>
+                      }
+                    </div>
                     <div className="flex items-center gap-3">
-                      <button
-                        onClick={() => setChildPax(prev => Math.max(0, prev - 1))}
-                        className="w-[28px] h-[28px] rounded-full bg-[#1a1710] border border-[rgba(244,168,48,0.18)] text-[#f0ece4] hover:border-[#f4a830] hover:bg-[#f4a830]/15 transition-all text-lg leading-none"
-                      >−</button>
-                      <span className="w-6 text-center font-semibold">{childPax}</span>
-                      <button
-                        onClick={() => setChildPax(prev => Math.min(20, prev + 1))}
-                        className="w-[28px] h-[28px] rounded-full bg-[#1a1710] border border-[rgba(244,168,48,0.18)] text-[#f0ece4] hover:border-[#f4a830] hover:bg-[#f4a830]/15 transition-all text-lg leading-none"
-                      >+</button>
+                      <button onClick={() => setChildPax(p => Math.max(0, p - 1))} className="w-[28px] h-[28px] rounded-full bg-[#1a1710] border border-[rgba(244,168,48,0.18)] text-[#f0ece4] hover:border-[#f4a830] hover:bg-[#f4a830]/15 transition-all text-lg flex items-center justify-center">−</button>
+                      <span className="w-6 text-center font-bold text-[#f4a830]">{childPax}</span>
+                      <button onClick={() => setChildPax(p => Math.min(20, p + 1))} className="w-[28px] h-[28px] rounded-full bg-[#1a1710] border border-[rgba(244,168,48,0.18)] text-[#f0ece4] hover:border-[#f4a830] hover:bg-[#f4a830]/15 transition-all text-lg flex items-center justify-center">+</button>
                     </div>
                   </div>
                 </div>
               </div>
 
+              {/* INSTANT PRICING BREAKDOWN — always visible, recalculates on every +/- tap */}
+              <div className="bg-[#211e18] border border-[rgba(244,168,48,0.18)] rounded-[12px] overflow-hidden">
+                <div className="px-4 py-3 border-b border-[rgba(244,168,48,0.1)]">
+                  <span className="text-[0.7rem] font-black uppercase tracking-[0.1em] text-[#8a826e]">Price Breakdown</span>
+                </div>
+                <div className="px-4 py-3 space-y-2">
+                  {/* Adults */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[0.82rem] text-[#ccc6b8]">{adultPax} × Adult</span>
+                      <span className="text-[0.72rem] text-[#8a826e]">@ {formatPriceDisplay(transfer.adultPriceCents, currency)}</span>
+                    </div>
+                    <span className="text-[0.9rem] font-semibold text-[#f0ece4]">{formatPriceDisplay(adultSubtotal, currency)}</span>
+                  </div>
+                  {/* Children — only shown when > 0 */}
+                  {childPax > 0 && (
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[0.82rem] text-[#ccc6b8]">{childPax} × Child</span>
+                        {transfer.childPriceCents > 0
+                          ? <span className="text-[0.72rem] text-[#8a826e]">@ {formatPriceDisplay(transfer.childPriceCents, currency)}</span>
+                          : <span className="text-[0.72rem] text-[#4caf7d]">Free</span>
+                        }
+                      </div>
+                      <span className="text-[0.9rem] font-semibold text-[#f0ece4]">
+                        {transfer.childPriceCents > 0 ? formatPriceDisplay(childSubtotal, currency) : <span className="text-[#4caf7d]">VT 0</span>}
+                      </span>
+                    </div>
+                  )}
+                  {/* Group discount */}
+                  {adultPax >= 7 && (
+                    <div className="flex items-center justify-between text-[#4caf7d]">
+                      <span className="text-[0.78rem]">🎉 Group discount (10%)</span>
+                      <span className="text-[0.82rem] font-semibold">−applied</span>
+                    </div>
+                  )}
+                  {/* Total */}
+                  <div className="border-t border-[rgba(244,168,48,0.18)] pt-2 mt-1 flex items-center justify-between">
+                    <span className="text-[0.8rem] font-bold text-[#8a826e] uppercase tracking-wider">{date ? "Total" : "Est. Total"}</span>
+                    <span className="text-[1.15rem] font-black text-[#f4a830]">{formatPriceDisplay(instantTotal, currency)}</span>
+                  </div>
+                  {!date && <p className="text-[0.68rem] text-[#8a826e] italic text-center pt-1">Select a date to confirm availability</p>}
+                </div>
+              </div>
+
               {/* Calendar */}
               <div>
-                <label className="text-[0.75rem] font-semibold text-[#8a826e] tracking-[0.07em] uppercase mb-2 block">
-                  {t("itinerary.bookingInfo", "Select Date")}
-                </label>
+                <label className="text-[0.75rem] font-semibold text-[#8a826e] tracking-[0.07em] uppercase mb-2 block">Select Date</label>
                 <AvailabilityCalendar
                   tourId={transfer.id}
                   selectedDate={date}
@@ -290,40 +314,12 @@ export default function TransferDetail() {
                 />
               </div>
 
-              {/* Selected date confirmation */}
+              {/* Selected date */}
               {date && (
                 <div className="bg-[#f4a830]/15 border border-[rgba(244,168,48,0.3)] rounded-[10px] px-4 py-3 animate-in fade-in slide-in-from-top-2">
-                  <div className="text-[0.72rem] text-[#f4a830] font-semibold uppercase tracking-[0.06em] mb-1">
-                    {t("booking.selectedDate", "Selected Date")}
-                  </div>
-                  <div className="text-[0.95rem] font-semibold">
-                    {new Date(date).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
-                  </div>
-                  {selectedTime && (
-                    <div className="text-[0.8rem] text-[#f4a830] mt-1 font-medium">⏱ {selectedTime}</div>
-                  )}
-                </div>
-              )}
-
-              {/* Pricing breakdown */}
-              {date && (
-                <div className="border-t border-[rgba(244,168,48,0.18)] pt-4">
-                  <div className="flex justify-between text-[0.85rem] text-[#8a826e] mb-2">
-                    <span>{adultPax} × {t("quickView.adult", "adult")}</span>
-                    <span>{formatPrice(transfer.adultPriceCents * adultPax)}</span>
-                  </div>
-                  {childPax > 0 && (
-                    <div className="flex justify-between text-[0.85rem] text-[#8a826e] mb-2">
-                      <span>{childPax} × {t("quickView.child", "child")}</span>
-                      <span>{formatPrice(transfer.childPriceCents * childPax)}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between font-bold text-[0.95rem] border-t border-[rgba(244,168,48,0.18)] pt-2 mt-1">
-                    <span>Total</span>
-                    <span className="text-[#f4a830]">
-                      {formatPrice((transfer.adultPriceCents * adultPax) + (transfer.childPriceCents * childPax))}
-                    </span>
-                  </div>
+                  <div className="text-[0.72rem] text-[#f4a830] font-semibold uppercase tracking-[0.06em] mb-1">Selected Date</div>
+                  <div className="text-[0.95rem] font-semibold">{new Date(date).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}</div>
+                  {selectedTime && <div className="text-[0.8rem] text-[#f4a830] mt-1 font-medium">⏱ {selectedTime}</div>}
                 </div>
               )}
 
@@ -331,49 +327,44 @@ export default function TransferDetail() {
               <div className="flex flex-col gap-3">
                 <Button
                   disabled={!date}
-                  className={`w-full h-14 rounded-[10px] text-[0.95rem] font-bold tracking-[0.02em] ${
-                    date
-                      ? "bg-[#f4a830] text-[#0f0d09] hover:bg-[#fdc96a] shadow-[0_6px_24px_rgba(244,168,48,0.4)]"
-                      : "bg-[#211e18] text-[#4a4438] cursor-not-allowed border border-[rgba(244,168,48,0.18)] hover:bg-[#211e18]"
-                  }`}
+                  className={`w-full h-14 rounded-[10px] text-[0.95rem] font-bold tracking-[0.02em] ${date ? "bg-[#f4a830] text-[#0f0d09] hover:bg-[#fdc96a] shadow-[0_6px_24px_rgba(244,168,48,0.4)]" : "bg-[#211e18] text-[#4a4438] cursor-not-allowed border border-[rgba(244,168,48,0.18)] hover:bg-[#211e18]"}`}
                   onClick={handleAddToCart}
                 >
                   <ShoppingCart className="mr-2 h-5 w-5" />
-                  {date
-                    ? t("cart.addToCart", "Add to Cart")
-                    : t("booking.selectDateFirst", "Select a Date to Continue")}
+                  {date ? "Add to Cart" : "Select a Date to Continue"}
                 </Button>
-
                 <BookingModal
                   preselectedService={transfer.title}
                   initialAdultPax={String(adultPax)}
                   initialChildPax={String(childPax)}
                   initialDate={date ? new Date(date) : undefined}
                   trigger={
-                    <button
-                      disabled={!date}
-                      className={`w-full h-12 rounded-[10px] text-[0.875rem] font-bold border-2 transition-all ${
-                        date
-                          ? "bg-transparent border-[#f4a830] text-[#f4a830] hover:bg-[#f4a830]/10"
-                          : "border-[rgba(244,168,48,0.18)] text-[#4a4438] cursor-not-allowed"
-                      }`}
-                    >
-                      {t("tour.bookNow", "Book Now")}
+                    <button disabled={!date} className={`w-full h-12 rounded-[10px] text-[0.875rem] font-bold border-2 transition-all ${date ? "bg-transparent border-[#f4a830] text-[#f4a830] hover:bg-[#f4a830]/10" : "border-[rgba(244,168,48,0.18)] text-[#4a4438] cursor-not-allowed"}`}>
+                      Book Now
                     </button>
                   }
                 />
               </div>
 
-              <button className="w-full p-3 text-[#8a826e] border border-[rgba(244,168,48,0.18)] rounded-[10px] text-[0.875rem] hover:border-[#f4a830] hover:text-[#f4a830] transition-all">
-                💬 {t("common.askQuestion", "Ask a Question")}
-              </button>
+              {/* WhatsApp Ask a Question */}
+              <a
+                href={whatsappUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full p-3 text-[#25D366] border border-[#25D366]/40 rounded-[10px] text-[0.875rem] hover:border-[#25D366] hover:bg-[#25D366]/10 transition-all flex items-center justify-center gap-2 font-medium"
+              >
+                <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current shrink-0" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                </svg>
+                💬 Ask a Question via WhatsApp
+              </a>
 
               <div className="flex gap-4 pt-4 border-t border-[rgba(244,168,48,0.18)] text-[0.73rem] text-[#8a826e]">
-                <div className="flex flex-1 items-center gap-2">🛡️ {t("booking.freeCancellation", "Free cancellation 24h before")}</div>
-                <div className="flex flex-1 items-center gap-2">🔒 {t("booking.instantConfirmation", "Instant confirmation")}</div>
+                <div className="flex flex-1 items-center gap-2">🛡️ Free cancellation 24h before</div>
+                <div className="flex flex-1 items-center gap-2">🔒 Instant confirmation</div>
               </div>
             </div>
-          </div>{/* end booking panel */}
+          </div>
 
         </div>
       </div>
