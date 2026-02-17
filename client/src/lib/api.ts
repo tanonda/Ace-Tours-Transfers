@@ -394,9 +394,12 @@ export async function checkAvailability(req: AvailabilityCheckRequest): Promise<
 export async function getAvailabilityRange(
   productId: string,
   startDate: string,
-  endDate: string
+  endDate: string,
+  minGuests?: number
 ): Promise<Record<string, { isAvailable: boolean; remainingCapacity: number; totalCapacity: number }>> {
-  const res = await apiRequest("GET", `/api/availability/range?productId=${productId}&startDate=${startDate}&endDate=${endDate}`);
+  const qs = new URLSearchParams({ productId, startDate, endDate });
+  if (minGuests !== undefined) qs.set('minGuests', String(minGuests));
+  const res = await apiRequest("GET", `/api/availability/range?${qs.toString()}`);
   return res.json();
 }
 
@@ -418,5 +421,28 @@ export async function fetchAvailableSlots(
   guests: number
 ): Promise<{ time: string; available: boolean; remaining: number }[]> {
   const res = await apiRequest("GET", `/api/availability/slots?serviceId=${productId}&date=${date}&guests=${guests}`);
+  return res.json();
+}
+
+// Admin Availability
+export async function upsertAvailability(data: {
+  tourId: string;
+  date: string;
+  timeSlot?: string;
+  startTime?: string;
+  endTime?: string;
+  totalCapacity: number;
+  blockedCount?: number;
+}): Promise<any> {
+  const res = await apiRequest("POST", "/api/admin/availability", data);
+  return res.json();
+}
+
+export async function deleteAvailability(id: string): Promise<void> {
+  await apiRequest("DELETE", `/api/admin/availability/${id}`);
+}
+
+export async function fetchTourInstances(tourId: string, date: string): Promise<any[]> {
+  const res = await apiRequest("GET", `/api/availability?tourId=${tourId}&date=${date}`);
   return res.json();
 }

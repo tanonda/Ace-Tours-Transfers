@@ -166,12 +166,13 @@ export async function registerRoutes(
       const productId = req.query.productId as string;
       const startDate = req.query.startDate as string;
       const endDate = req.query.endDate as string;
+      const minGuests = req.query.minGuests ? parseInt(req.query.minGuests as string) : undefined;
 
       if (!productId || !startDate || !endDate) {
         return res.status(400).json({ error: "Missing required query parameters: productId, startDate, endDate" });
       }
 
-      const results = await bookingApplicationService.getServiceAvailabilityRange(productId, startDate, endDate);
+      const results = await bookingApplicationService.getServiceAvailabilityRange(productId, startDate, endDate, minGuests);
       res.json(results);
     } catch (error) {
       console.error("[AVAILABILITY RANGE ERROR]", error);
@@ -347,13 +348,31 @@ export async function registerRoutes(
   });
 
 
-  // Admin Capacity Override
+  // Admin Capacity & Availability Management
   app.post("/api/admin/capacity/override", requireAdmin, async (req, res) => {
     try {
       const { instanceId, totalCapacity, blockedCount } = req.body;
       if (!instanceId) return res.status(400).json({ error: "Missing instanceId" });
       const result = await availabilityAppService.updateCapacity(instanceId, totalCapacity, blockedCount);
       res.json(result);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/admin/availability", requireAdmin, async (req, res) => {
+    try {
+      const result = await availabilityAppService.upsertInstance(req.body);
+      res.json(result);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/admin/availability/:id", requireAdmin, async (req, res) => {
+    try {
+      await availabilityAppService.deleteInstance(req.params.id);
+      res.json({ success: true });
     } catch (error: any) {
       res.status(400).json({ error: error.message });
     }

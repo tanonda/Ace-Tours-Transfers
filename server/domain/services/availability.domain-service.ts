@@ -148,11 +148,14 @@ export class AvailabilityDomainService {
     // Phase 1: Vehicles check discrete resources instead of pooled instances
     if (category === 'vehicle') {
       const allResources = await this.storage.getResourcesByProduct(productId);
-      const availableResources = await this.storage.getAvailableResources(productId, date, startTime, endTime);
-      return {
-        remainingCapacity: availableResources.length,
-        totalCapacity: allResources.length
-      };
+      if (allResources.length > 0) {
+        const availableResources = await this.storage.getAvailableResources(productId, date, startTime, endTime);
+        return {
+          remainingCapacity: availableResources.length,
+          totalCapacity: allResources.length
+        };
+      }
+      // If no discrete resources are defined, fall back to pooled capacity (tourInstances or defaultCapacity)
     }
 
     // 1. Check cache first
@@ -241,7 +244,8 @@ export class AvailabilityDomainService {
   async getAvailabilityRange(
     productId: string,
     startDate: string,
-    endDate: string
+    endDate: string,
+    minGuests: number = 1
   ): Promise<Record<string, {
     isAvailable: boolean,
     remainingCapacity: number,
@@ -268,7 +272,7 @@ export class AvailabilityDomainService {
       );
 
       results[dateStr] = {
-        isAvailable: remainingCapacity > 0,
+        isAvailable: remainingCapacity >= minGuests,
         remainingCapacity,
         totalCapacity
       };

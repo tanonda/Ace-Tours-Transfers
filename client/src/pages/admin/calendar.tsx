@@ -8,15 +8,21 @@ import { useQuery } from "@tanstack/react-query";
 import { fetchBookings, fetchTours } from "@/lib/api";
 import { useState, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  ChevronLeft, 
-  ChevronRight, 
-  Plus,
-  Clock,
+import {
   Users,
   MapPin,
-  Calendar as CalendarIcon
+  Calendar as CalendarIcon,
+  Trash2,
+  RefreshCw
 } from "lucide-react";
+import {
+  upsertAvailability,
+  deleteAvailability,
+  fetchTourInstances
+} from "@/lib/api";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { format } from "date-fns";
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -34,6 +40,54 @@ export default function AdminCalendar() {
   const [selectedDay, setSelectedDay] = useState<CalendarDay | null>(null);
   const [viewMode, setViewMode] = useState<'month' | 'week'>('month');
   const [tourFilter, setTourFilter] = useState('all');
+  const [managingTourId, setManagingTourId] = useState<string>("");
+  const [dailyInstances, setDailyInstances] = useState<any[]>([]);
+  const [isUpserting, setIsUpserting] = useState(false);
+  const [upsertForm, setUpsertForm] = useState({
+    timeSlot: "",
+    totalCapacity: 20,
+    blockedCount: 0
+  });
+
+  const loadInstances = async (tourId: string, date: Date) => {
+    if (!tourId) return;
+    try {
+      const instances = await fetchTourInstances(tourId, format(date, "yyyy-MM-dd"));
+      setDailyInstances(instances);
+    } catch (error) {
+      console.error("Failed to fetch instances", error);
+    }
+  };
+
+  const handleUpsert = async () => {
+    if (!selectedDay || !managingTourId) return;
+    setIsUpserting(true);
+    try {
+      await upsertAvailability({
+        tourId: managingTourId,
+        date: format(selectedDay.date, "yyyy-MM-dd"),
+        ...upsertForm
+      });
+      toast({ title: "Success", description: "Availability updated" });
+      loadInstances(managingTourId, selectedDay.date);
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setIsUpserting(false);
+    }
+  };
+
+  const handleDelete = async (instanceId: string) => {
+    if (!managingTourId || !selectedDay) return;
+    if (!confirm("Are you sure you want to revert to default availability?")) return;
+    try {
+      await deleteAvailability(instanceId);
+      toast({ title: "Success", description: "Availability reverted" });
+      loadInstances(managingTourId, selectedDay.date);
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    }
+  };
 
   const { data: bookings = [] } = useQuery({
     queryKey: ["bookings"],
@@ -53,15 +107,15 @@ export default function AdminCalendar() {
   const calendarDays = useMemo(() => {
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
-    
+
     const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0);
     const startingDayOfWeek = firstDay.getDay();
-    
+
     const days: CalendarDay[] = [];
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     const prevMonthLastDay = new Date(year, month, 0).getDate();
     for (let i = startingDayOfWeek - 1; i >= 0; i--) {
       const date = new Date(year, month - 1, prevMonthLastDay - i);
@@ -75,7 +129,7 @@ export default function AdminCalendar() {
         })
       });
     }
-    
+
     for (let day = 1; day <= lastDay.getDate(); day++) {
       const date = new Date(year, month, day);
       days.push({
@@ -88,7 +142,7 @@ export default function AdminCalendar() {
         })
       });
     }
-    
+
     const remainingDays = 42 - days.length;
     for (let day = 1; day <= remainingDays; day++) {
       const date = new Date(year, month + 1, day);
@@ -102,7 +156,7 @@ export default function AdminCalendar() {
         })
       });
     }
-    
+
     return days;
   }, [currentDate, filteredBookings]);
 
@@ -249,11 +303,11 @@ export default function AdminCalendar() {
                       <DialogContent>
                         <DialogHeader>
                           <DialogTitle>
-                            {day.date.toLocaleDateString('en-US', { 
-                              weekday: 'long', 
-                              year: 'numeric', 
-                              month: 'long', 
-                              day: 'numeric' 
+                            {day.date.toLocaleDateString('en-US', {
+                              weekday: 'long',
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric'
                             })}
                           </DialogTitle>
                           <DialogDescription>
@@ -263,17 +317,17 @@ export default function AdminCalendar() {
                         <div className="space-y-3 max-h-[400px] overflow-y-auto">
                           {day.bookings.length > 0 ? (
                             day.bookings.map(booking => (
-                              <div 
-                                key={booking.id} 
+                              <div
+                                key={booking.id}
                                 className="p-4 border rounded-lg space-y-2"
                               >
                                 <div className="flex items-center justify-between">
                                   <h4 className="font-medium">{booking.tourName}</h4>
                                   <Badge className={
                                     booking.status === 'confirmed' ? 'bg-green-100 text-green-800' :
-                                    booking.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                                    booking.status === 'completed' ? 'bg-blue-100 text-blue-800' :
-                                    'bg-red-100 text-red-800'
+                                      booking.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                        booking.status === 'completed' ? 'bg-blue-100 text-blue-800' :
+                                          'bg-red-100 text-red-800'
                                   }>
                                     {booking.status}
                                   </Badge>
@@ -299,6 +353,101 @@ export default function AdminCalendar() {
                             </div>
                           )}
                         </div>
+
+                        <div className="mt-6 pt-6 border-t space-y-4">
+                          <h3 className="font-bold text-lg flex items-center gap-2">
+                            <RefreshCw className="h-5 w-5 text-primary" />
+                            Manage Availability
+                          </h3>
+
+                          <div className="space-y-3">
+                            <Label>Select Product to Manage</Label>
+                            <Select
+                              value={managingTourId || ''}
+                              onValueChange={(val) => {
+                                setManagingTourId(val);
+                                loadInstances(val, day.date);
+                              }}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Choose a product" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {tours.map(t => (
+                                  <SelectItem key={t.id} value={t.id}>{t.title}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          {managingTourId && (
+                            <div className="space-y-4">
+                              <div className="bg-muted/30 p-4 rounded-lg space-y-3">
+                                <h4 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Current Config</h4>
+                                {dailyInstances.length > 0 ? (
+                                  dailyInstances.map(inst => (
+                                    <div key={inst.id} className="flex items-center justify-between bg-background p-2 rounded border border-border shadow-sm">
+                                      <div className="text-sm">
+                                        <span className="font-bold">{inst.timeSlot || "Default Slot"}</span>: {inst.totalCapacity - inst.blockedCount} available
+                                        <span className="text-muted-foreground ml-2">(Cap: {inst.totalCapacity}, Blocked: {inst.blockedCount})</span>
+                                      </div>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                        onClick={() => handleDelete(inst.id)}
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                  ))
+                                ) : (
+                                  <p className="text-xs text-muted-foreground italic">Using default product capacity for this day.</p>
+                                )}
+                              </div>
+
+                              <div className="border rounded-lg p-4 space-y-3 bg-primary/5">
+                                <h4 className="text-sm font-bold">Add / Update Override</h4>
+                                <div className="grid grid-cols-2 gap-3">
+                                  <div className="space-y-1">
+                                    <Label className="text-xs">Time Slot (optional)</Label>
+                                    <Input
+                                      placeholder="e.g. 09:00"
+                                      value={upsertForm.timeSlot}
+                                      onChange={(e) => setUpsertForm(prev => ({ ...prev, timeSlot: e.target.value }))}
+                                    />
+                                  </div>
+                                  <div className="space-y-1">
+                                    <Label className="text-xs">Total Capacity</Label>
+                                    <Input
+                                      type="number"
+                                      value={upsertForm.totalCapacity}
+                                      onChange={(e) => setUpsertForm(prev => ({ ...prev, totalCapacity: parseInt(e.target.value) || 0 }))}
+                                    />
+                                  </div>
+                                  <div className="space-y-1">
+                                    <Label className="text-xs">Blocked Seats</Label>
+                                    <Input
+                                      type="number"
+                                      value={upsertForm.blockedCount}
+                                      onChange={(e) => setUpsertForm(prev => ({ ...prev, blockedCount: parseInt(e.target.value) || 0 }))}
+                                    />
+                                  </div>
+                                  <div className="flex items-end">
+                                    <Button
+                                      className="w-full"
+                                      onClick={handleUpsert}
+                                      disabled={isUpserting}
+                                    >
+                                      {isUpserting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4 mr-1" />}
+                                      Save
+                                    </Button>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </DialogContent>
                     </Dialog>
                   ))}
@@ -315,10 +464,10 @@ export default function AdminCalendar() {
                   Today's Schedule
                 </CardTitle>
                 <CardDescription>
-                  {new Date().toLocaleDateString('en-US', { 
-                    weekday: 'long', 
-                    month: 'long', 
-                    day: 'numeric' 
+                  {new Date().toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    month: 'long',
+                    day: 'numeric'
                   })}
                 </CardDescription>
               </CardHeader>
@@ -392,8 +541,8 @@ export default function AdminCalendar() {
                     <span className="font-bold">
                       {bookings.filter(b => {
                         const d = new Date(b.date);
-                        return d.getMonth() === currentDate.getMonth() && 
-                               d.getFullYear() === currentDate.getFullYear();
+                        return d.getMonth() === currentDate.getMonth() &&
+                          d.getFullYear() === currentDate.getFullYear();
                       }).length} bookings
                     </span>
                   </div>
@@ -402,9 +551,9 @@ export default function AdminCalendar() {
                     <span className="font-bold">
                       {bookings.filter(b => {
                         const d = new Date(b.date);
-                        return d.getMonth() === currentDate.getMonth() && 
-                               d.getFullYear() === currentDate.getFullYear() &&
-                               b.status === 'confirmed';
+                        return d.getMonth() === currentDate.getMonth() &&
+                          d.getFullYear() === currentDate.getFullYear() &&
+                          b.status === 'confirmed';
                       }).length}
                     </span>
                   </div>
@@ -413,9 +562,9 @@ export default function AdminCalendar() {
                     <span className="font-bold">
                       {bookings.filter(b => {
                         const d = new Date(b.date);
-                        return d.getMonth() === currentDate.getMonth() && 
-                               d.getFullYear() === currentDate.getFullYear() &&
-                               b.status === 'pending';
+                        return d.getMonth() === currentDate.getMonth() &&
+                          d.getFullYear() === currentDate.getFullYear() &&
+                          b.status === 'pending';
                       }).length}
                     </span>
                   </div>

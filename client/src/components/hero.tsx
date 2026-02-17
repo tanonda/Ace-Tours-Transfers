@@ -15,6 +15,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { fetchTours } from "@/lib/api";
+import { useBookingDraft } from "@/lib/booking-state-context";
 
 export function Hero() {
   const { t } = useTranslation();
@@ -60,10 +61,18 @@ export function Hero() {
   const transfers = useMemo(() => uniqueTours.filter(t => t.category === "transfer"), [uniqueTours]);
   const vehicles = useMemo(() => uniqueTours.filter(t => t.category === "vehicle"), [uniqueTours]);
 
+  const { updateDraft } = useBookingDraft();
+
   const handleSearch = () => {
     const params = new URLSearchParams();
     if (selectedDate) params.set("date", format(selectedDate, "yyyy-MM-dd"));
     if (guests) params.set("guests", guests);
+
+    // Persist to central booking state for prefilling detail pages
+    updateDraft({
+      date: selectedDate ? format(selectedDate, "yyyy-MM-dd") : "",
+      adultPax: parseInt(guests) || 2,
+    });
 
     // Check for specific product selection first
     if (typeof serviceType === "string" && serviceType.startsWith("tour-")) {

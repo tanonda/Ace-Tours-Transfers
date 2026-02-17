@@ -33,15 +33,23 @@ export default function TransferDetail() {
 
   // Sync local state changes to booking draft context
   useEffect(() => {
+    // Read from URL params on mount
+    const searchParams = new URLSearchParams(window.location.search);
+    const urlDate = searchParams.get("date");
+    const urlGuests = searchParams.get("guests");
+
+    if (urlDate) setDate(urlDate);
+    if (urlGuests) setAdultPax(urlGuests);
+
     if (id) {
       updateDraft({
         productId: id,
-        adultPax: parseInt(adultPax) || 2,
+        adultPax: parseInt(urlGuests || adultPax) || 2,
         childPax: parseInt(childPax) || 0,
-        date,
+        date: urlDate || date,
       });
     }
-  }, [id, adultPax, childPax, date, updateDraft]);
+  }, [id, updateDraft]); // Remove local deps to avoid loops, mount only
 
   const { data: transfer, isLoading, error } = useQuery({
     queryKey: ["tour", id], // Reusing query key since they share the same backend table
@@ -214,42 +222,6 @@ export default function TransferDetail() {
                   </div>
                 </div>
 
-                {/* Phase 3: Availability & Pricing Widgets */}
-                {transfer.id && date && (
-                  <div className="space-y-6 mb-10">
-                    {/* Real-time Availability Status */}
-                    <div className="bg-card p-6 rounded-2xl border border-border/50 shadow-sm">
-                      <h3 className="text-xl font-bold mb-4 font-serif text-primary">Real-time Availability</h3>
-                      <AvailabilityStatus
-                        tourId={transfer.id}
-                        selectedDate={new Date(date)}
-                        maxParticipants={6}
-                        adultPax={parseInt(adultPax) || 2}
-                        childPax={parseInt(childPax) || 0}
-                        onAvailabilityChange={(available) => {
-                          console.log("Availability status:", available);
-                        }}
-                      />
-                    </div>
-
-                    {/* Interactive Calendar */}
-                    <div className="bg-card p-6 rounded-2xl border border-border/50 shadow-sm">
-                      <h3 className="text-xl font-bold mb-4 font-serif text-primary">Select Your Date</h3>
-                      <AvailabilityCalendar
-                        tourId={transfer.id}
-                        participants={Math.max(1, parseInt(adultPax) + parseInt(childPax))}
-                        onDateSelect={handleDateSelect}
-                        onTimeSelect={handleTimeSelect}
-                      />
-                      {selectedTime && (
-                        <div className="mt-4 p-4 bg-primary/5 rounded-lg border border-primary/20 text-center">
-                          <p className="text-sm text-muted-foreground">Selected Time</p>
-                          <p className="text-lg font-bold text-primary">{selectedTime}</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
 
                 {/* Booking Card */}
                 <div className="mt-auto bg-primary/5 p-8 rounded-3xl border-2 border-primary/20 shadow-inner">
@@ -282,34 +254,23 @@ export default function TransferDetail() {
                         />
                       </div>
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="detail-date" className="text-sm font-bold ml-1">{t("cart.date", "Departure Date")}</Label>
-                      <div className="relative">
-                        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <div className="relative">
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <Button
-                                variant="outline"
-                                className={`w-full pl-10 h-12 bg-background border-primary/20 focus:border-primary text-left font-normal ${!date && "text-muted-foreground"}`}
-                              >
-                                <span className="flex flex-col items-start leading-none gap-1">
-                                  <span>{date ? new Date(date).toDateString() : "Pick a date"}</span>
-                                  {selectedTime && <span className="text-xs text-primary font-bold">@ {selectedTime}</span>}
-                                </span>
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                              <AvailabilityCalendar
-                                tourId={transfer.id}
-                                participants={Math.max(1, parseInt(adultPax) + parseInt(childPax))}
-                                onDateSelect={handleDateSelect}
-                                onTimeSelect={handleTimeSelect}
-                              />
-                            </PopoverContent>
-                          </Popover>
-                        </div>
+                    <div className="space-y-4">
+                      <Label className="text-sm font-bold ml-1">{t("itinerary.bookingInfo", "Check Availability & Select Date")}</Label>
+                      <div className="bg-background border border-primary/20 rounded-2xl overflow-hidden shadow-sm">
+                        <AvailabilityCalendar
+                          tourId={transfer.id}
+                          participants={Math.max(1, parseInt(adultPax) + parseInt(childPax))}
+                          onDateSelect={handleDateSelect}
+                          onTimeSelect={handleTimeSelect}
+                        />
                       </div>
+                      {date && (
+                        <div className="flex items-center gap-2 p-3 bg-primary/10 rounded-xl text-primary font-bold">
+                          <Calendar className="h-4 w-4" />
+                          <span>Selected: {new Date(date).toDateString()}</span>
+                          {selectedTime && <span> @ {selectedTime}</span>}
+                        </div>
+                      )}
                     </div>
                   </div>
 

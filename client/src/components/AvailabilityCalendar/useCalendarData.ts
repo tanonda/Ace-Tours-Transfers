@@ -6,12 +6,14 @@ interface UseCalendarDataParams {
   tourId: string;
   month: number; // 0-indexed
   year: number;
+  minGuests?: number;
 }
 
 export const useCalendarData = ({
   tourId,
   month,
   year,
+  minGuests,
 }: UseCalendarDataParams) => {
   const [data, setData] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
@@ -27,7 +29,7 @@ export const useCalendarData = ({
         const startDate = format(startOfMonth(baseDate), 'yyyy-MM-dd');
         const endDate = format(endOfMonth(baseDate), 'yyyy-MM-dd');
 
-        const result = await getAvailabilityRange(tourId, startDate, endDate);
+        const result = await getAvailabilityRange(tourId, startDate, endDate, minGuests);
         setData(result);
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to load calendar';
@@ -41,7 +43,7 @@ export const useCalendarData = ({
     if (tourId) {
       fetchCalendarData();
     }
-  }, [tourId, month, year]);
+  }, [tourId, month, year, minGuests]);
 
   return { data, loading, error };
 };
