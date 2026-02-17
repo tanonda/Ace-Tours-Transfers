@@ -1,12 +1,12 @@
 "use client";
 import React from 'react';
 import { formatCurrency } from './price-formatting';
-import type { PricingBreakdownProps } from './types';
+import type { PricingBreakdownProps, CartPricingItem } from './types';
 import './PricingBreakdown.css';
 
 export const PricingBreakdown: React.FC<PricingBreakdownProps> = ({
   pricing,
-  currency = '€',
+  currency = 'VUV', // Fix #22: Changed default from '€' to 'VUV' (Vanuatu Vatu)
 }) => {
   if (!pricing) {
     return null;
@@ -62,14 +62,18 @@ export const PricingBreakdown: React.FC<PricingBreakdownProps> = ({
     );
   }
 
-  // Branch 2: Cart-level (from api.PricingSnapshot)
+  // Fix #10: Branch 2: Cart-level (from api.PricingSnapshot)
+  // Replaced all `any` casts with proper CartPricingItem types.
   if ('totalCents' in pricing && pricing.items) {
-    const { totalCents, items } = pricing as any;
-    const adultSub = items.reduce((sum: number, i: any) => sum + (i.breakdown?.adultSubtotalCents || 0), 0);
-    const childSub = items.reduce((sum: number, i: any) => sum + (i.breakdown?.childSubtotalCents || 0), 0);
-    const addonsSub = items.reduce((sum: number, i: any) => sum + (i.breakdown?.addonsSubtotalCents || 0), 0);
-    const discounts = items.reduce((sum: number, i: any) => sum + (i.breakdown?.discountsCents || 0), 0);
-    const allRules = Array.from(new Set(items.flatMap((i: any) => i.breakdown?.appliedRules || [])));
+    const { totalCents, items } = pricing as { totalCents: number; items: CartPricingItem[] };
+
+    const adultSub = items.reduce((sum, item) => sum + (item.breakdown?.adultSubtotalCents ?? 0), 0);
+    const childSub = items.reduce((sum, item) => sum + (item.breakdown?.childSubtotalCents ?? 0), 0);
+    const addonsSub = items.reduce((sum, item) => sum + (item.breakdown?.addonsSubtotalCents ?? 0), 0);
+    const discounts = items.reduce((sum, item) => sum + (item.breakdown?.discountsCents ?? 0), 0);
+    const allRules = Array.from(
+      new Set(items.flatMap((item) => item.breakdown?.appliedRules ?? []))
+    );
 
     return (
       <div className="pricing-breakdown cart-level">
@@ -106,7 +110,7 @@ export const PricingBreakdown: React.FC<PricingBreakdownProps> = ({
           <div className="rules-section">
             <h4>Combined Adjustments</h4>
             <div className="rules-list">
-              {allRules.map((rule: any, idx) => (
+              {allRules.map((rule, idx) => (
                 <div key={idx} className="rule-explanation">
                   <span className="rule-bullet">✨</span>
                   <span className="rule-text">{rule}</span>

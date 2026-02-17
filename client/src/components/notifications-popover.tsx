@@ -16,7 +16,7 @@ export function NotificationsPopover() {
     const [open, setOpen] = useState(false);
     const [, setLocation] = useLocation();
 
-    const { data: notifications = [] } = useQuery({
+    const { data: notifications = [], isLoading: isLoadingNotifications } = useQuery({
         queryKey: ["notifications"],
         queryFn: fetchNotifications,
         refetchInterval: 30000, // Poll every 30s
@@ -59,7 +59,21 @@ export function NotificationsPopover() {
                     </p>
                 </div>
                 <ScrollArea className="h-[300px]">
-                    {notifications.length > 0 ? (
+                    {/* Fix #27: Show skeleton loader while notifications are loading */}
+                    {isLoadingNotifications ? (
+                        <div className="p-4 space-y-3">
+                            {[1, 2, 3].map((i) => (
+                                <div key={i} className="flex gap-3 animate-pulse">
+                                    <div className="mt-1 h-2 w-2 rounded-full bg-muted shrink-0" />
+                                    <div className="flex-1 space-y-2">
+                                        <div className="h-3 bg-muted rounded w-3/4" />
+                                        <div className="h-3 bg-muted rounded w-full" />
+                                        <div className="h-2 bg-muted rounded w-1/3" />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : notifications.length > 0 ? (
                         <div className="divide-y divide-border">
                             {notifications.map((notification) => (
                                 <button

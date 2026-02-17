@@ -61,8 +61,12 @@ interface BookingFormProps {
   isLoading: boolean;
   submitButtonText?: string;
   showPrice?: boolean;
-  adultPriceCents?: number;  // Price per adult in cents
-  childPriceCents?: number;  // Price per child in cents
+  adultPriceCents?: number;  // Price per adult in cents (base rate for initial display)
+  childPriceCents?: number;  // Price per child in cents (base rate for initial display)
+  // Fix #8: Server-confirmed pricing total in cents. When provided (after a successful
+  // availability check), this overrides the client-side estimate so the displayed total
+  // always matches what the server will actually charge.
+  serverPricingCents?: number | null;
   onAvailabilityCheck?: (serviceTitle: string, date: Date, adultPax: number, childPax: number, startTime?: string, endTime?: string) => void;
   isAvailable?: boolean | null; // null for not yet checked, true/false for result
   availabilityMessage?: string;
@@ -78,6 +82,7 @@ export function BookingForm({
   showPrice = false,
   adultPriceCents = 0,
   childPriceCents = 0,
+  serverPricingCents = null,
   onAvailabilityCheck,
   isAvailable = null,
   availabilityMessage,
@@ -119,34 +124,59 @@ export function BookingForm({
   const watchedStartTime = form.watch("startTime");
   const watchedEndTime = form.watch("endTime");
 
-  // Persistence: Save to localStorage
+  // Fix #9: Improved localStorage persistence with:
+  //   - Service ID (not title) as key so renames don't leave orphaned drafts
+  //   - 7-day expiry so stale drafts don't silently pre-fill the form
+  //   - Zod validation on load so schema changes don't cause unexpected form state
+
+  const DRAFT_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+  const selectedServiceId = useMemo(
+    () => services.find(s => s.title === watchedService)?.id || null,
+    [services, watchedService]
+  );
+
+  // Save to localStorage
   useEffect(() => {
     const subscription = form.watch((value) => {
-      if (value.service) {
-        localStorage.setItem(`booking_draft_${value.service}`, JSON.stringify(value));
+      if (selectedServiceId) {
+        const draft = { ...value, savedAt: Date.now() };
+        localStorage.setItem(`booking_draft_${selectedServiceId}`, JSON.stringify(draft));
       }
     });
     return () => subscription.unsubscribe();
-  }, [form]);
+  }, [form, selectedServiceId]);
 
-  // Persistence: Load from localStorage
+  // Load from localStorage
   useEffect(() => {
-    if (watchedService && !hasAppliedInitialValues.current) {
-      const saved = localStorage.getItem(`booking_draft_${watchedService}`);
+    if (selectedServiceId && !hasAppliedInitialValues.current) {
+      const saved = localStorage.getItem(`booking_draft_${selectedServiceId}`);
       if (saved) {
         try {
           const parsed = JSON.parse(saved);
-          Object.entries(parsed).forEach(([key, value]) => {
-            if (value && key !== 'date') { // date needs special handling
-              form.setValue(key as any, value as any);
-            }
-          });
+
+          // Reject stale drafts
+          if (parsed.savedAt && Date.now() - parsed.savedAt > DRAFT_TTL_MS) {
+            localStorage.removeItem(`booking_draft_${selectedServiceId}`);
+            return;
+          }
+
+          // Validate the draft against the schema before applying (partial is fine)
+          const { savedAt, date: _date, ...rest } = parsed;
+          const result = bookingFormSchema.partial().safeParse(rest);
+          if (result.success) {
+            Object.entries(result.data).forEach(([key, value]) => {
+              if (value !== undefined && value !== "") {
+                form.setValue(key as keyof z.infer<typeof bookingFormSchema>, value as any);
+              }
+            });
+          }
         } catch (e) {
-          console.error("Failed to load saved form", e);
+          console.error("Failed to load saved form draft", e);
         }
       }
     }
-  }, [watchedService, form]);
+  }, [selectedServiceId, form]);
 
   // Update form defaults when user loads - only apply initialValues once on mount
   useEffect(() => {
@@ -174,28 +204,24 @@ export function BookingForm({
   const isTransfer = selectedServiceObj?.category === 'transfer';
   const isTour = selectedServiceObj?.category === 'tour';
 
-  // Calculate estimated total from props and form values
+  // Fix #8: Use server-returned pricing when available (after availability check) so the
+  // receipt always matches what the server will charge. Fall back to a client-side estimate
+  // only when the server hasn't yet confirmed pricing (i.e. before the first check).
   const estimatedTotal = useMemo(() => {
+    // Prefer the authoritative server price
+    if (serverPricingCents !== null && serverPricingCents !== undefined) {
+      return formatPriceDisplay(serverPricingCents, currency);
+    }
+
+    // Client-side estimate — used only before the first availability check.
+    // NOTE: This is a rough estimate for display only. The server is the source of truth
+    // for actual pricing rules. Do not sync these manually when rules change server-side.
     const adults = parseInt(watchedAdultPax || "0");
     const children = parseInt(watchedChildPax || "0");
 
-    // 1. Base price
     let totalCents = (adults * adultPriceCents) + (children * childPriceCents);
 
-    // 2. Applying Rules: Group Discount (10% off for 7+ adults)
-    if (adults >= 7) {
-      totalCents = Math.round(totalCents * 0.9);
-    }
-
-    // 3. Applying Rules: Seasonal Pricing (20% surcharge in Dec/Jan)
-    if (watchedDate) {
-      const month = watchedDate.getMonth();
-      if (month === 11 || month === 0) {
-        totalCents = Math.round(totalCents * 1.2);
-      }
-    }
-
-    // 4. Add-ons
+    // Add-ons only (group/seasonal rules deliberately omitted — server handles these)
     const selectedAddonsPrice = watchedAddonIds.reduce((sum, id) => {
       const addon = availableAddons.find(a => a.id === id);
       return sum + (addon?.priceCents || 0);
@@ -204,7 +230,7 @@ export function BookingForm({
     totalCents += selectedAddonsPrice;
 
     return formatPriceDisplay(totalCents, currency);
-  }, [watchedAdultPax, watchedChildPax, adultPriceCents, childPriceCents, watchedDate, watchedAddonIds, availableAddons, currency]);
+  }, [serverPricingCents, watchedAdultPax, watchedChildPax, adultPriceCents, childPriceCents, watchedAddonIds, availableAddons, currency]);
 
   // Debounced availability check
   useEffect(() => {

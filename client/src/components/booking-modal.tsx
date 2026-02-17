@@ -66,26 +66,17 @@ function BookingModalContent({
   const [isAvailable, setIsAvailable] = useState<boolean | null>(null); // null: not checked, true: available, false: unavailable
   const [availabilityMessage, setAvailabilityMessage] = useState<string>("");
   const [isCheckingAvailability, setIsCheckingAvailability] = useState<boolean>(false);
+  // Fix #8: Store server-returned pricing so BookingForm can display the authoritative total
+  const [serverPricingCents, setServerPricingCents] = useState<number | null>(null);
   const [, setLocation] = useLocation();
   const { t } = useTranslation();
   const { user } = useAuth();
   const { addToCart } = useCart();
 
-  const { data: rawTours = [] } = useQuery({
+  const { data: allTours = [] } = useQuery({
     queryKey: ["tours"],
     queryFn: fetchTours,
   });
-
-  // Filter out test data
-  const allTours = useMemo(() => {
-    return rawTours.filter(current => {
-      const titleLower = current.title.toLowerCase();
-      return !(titleLower.includes("verification") ||
-        titleLower.includes("concurrent") ||
-        titleLower.includes("test_tour") ||
-        titleLower.includes("phase4"));
-    });
-  }, [rawTours]);
 
   const { data: availableAddons = [] } = useQuery<Addon[]>({
     queryKey: ["/api/addons"],
@@ -116,6 +107,7 @@ function BookingModalContent({
     setIsCheckingAvailability(true);
     setIsAvailable(null); // Reset availability status
     setAvailabilityMessage("");
+    setServerPricingCents(null); // Reset server pricing while re-checking
 
     const serviceId = allTours.find(s => s.title === serviceTitle)?.id;
     if (!serviceId) {
@@ -149,15 +141,15 @@ function BookingModalContent({
       const result = await response.json();
       setIsAvailable(result.isAvailable);
 
-      // Enhanced message with pricing and discounts
-      let message = result.message;
-      if (result.pricing) {
-        const formattedPrice = `VUV ${(result.pricing.subtotalCents / 100).toLocaleString()}`;
-        message += ` Subtotal: ${formattedPrice}`;
+      // Fix #8: Store server pricing so the BookingForm receipt shows the authoritative total
+      if (result.pricing?.subtotalCents !== undefined) {
+        setServerPricingCents(result.pricing.subtotalCents);
+      }
 
-        if (result.pricing.appliedDiscounts && result.pricing.appliedDiscounts.length > 0) {
-          message += ` (${result.pricing.appliedDiscounts.join(', ')})`;
-        }
+      // Build availability message (pricing summary for the status line)
+      let message = result.message;
+      if (result.pricing?.appliedDiscounts?.length > 0) {
+        message += ` (${result.pricing.appliedDiscounts.join(', ')})`;
       }
       setAvailabilityMessage(message);
 
@@ -282,6 +274,7 @@ function BookingModalContent({
           showPrice={true}
           adultPriceCents={adultPriceCents}
           childPriceCents={childPriceCents}
+          serverPricingCents={serverPricingCents}
           onAvailabilityCheck={handleAvailabilityCheck}
           isAvailable={isAvailable}
           availabilityMessage={availabilityMessage}
