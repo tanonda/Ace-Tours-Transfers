@@ -15,6 +15,7 @@ export interface CreateBookingRequest {
   customerEmail: string;
   sessionId?: string;
   idempotencyKey?: string;
+  pickupLocation?: string;
   items: {
     productId: string;
     adultPax: number;
@@ -151,7 +152,8 @@ export class CreateBookingFromCartService {
         const bookingId = `book_${crypto.randomUUID()}`;
         const booking = Booking.createFromCart(bookingId, cart, {
           name: request.customerName,
-          email: request.customerEmail
+          email: request.customerEmail,
+          pickupLocation: request.pickupLocation
         });
 
         // 4. Persist
@@ -183,7 +185,8 @@ export class CreateBookingFromCartService {
           bookingSessionId: cartId,
           idempotencyKey: request.idempotencyKey || null,
           startTime: aggregateStart,
-          endTime: aggregateEnd
+          endTime: aggregateEnd,
+          pickupLocation: request.pickupLocation || null
         }, tx);
 
         // Persist all items

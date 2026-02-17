@@ -105,6 +105,8 @@ export const bookings = pgTable("bookings", {
   customerEmail: text("customer_email").notNull().default(""),
   customerPhone: text("customer_phone"),
   tourName: text("tour_name").notNull(),
+  pickupLocation: text("pickup_location"), // Phase 4 readiness: stores customer pickup details
+  confirmedAt: timestamp("confirmed_at"),  // Phase 4 readiness: tracked for production reporting
 }, (table) => ({
   holdUniqueIdx: uniqueIndex("idx_bookings_hold_unique").on(table.holdId),
 }));
@@ -748,7 +750,7 @@ export type TourInstance = typeof tourInstances.$inferSelect;
 export type InsertAvailabilityHold = z.infer<typeof insertAvailabilityHoldSchema>;
 export type AvailabilityHold = typeof availabilityHolds.$inferSelect;
 export type InsertBooking = z.infer<typeof insertBookingSchema>;
-export type Booking = typeof bookings.$inferSelect & { customerEmail?: string, customerName?: string };
+export type Booking = typeof bookings.$inferSelect & { customerEmail?: string, customerName?: string, confirmedAt?: Date | null, pickupLocation?: string | null };
 export type InsertContentBlock = z.infer<typeof insertContentBlockSchema>;
 export type ContentBlock = typeof contentBlocks.$inferSelect;
 export type InsertSiteSetting = z.infer<typeof insertSiteSettingSchema>;

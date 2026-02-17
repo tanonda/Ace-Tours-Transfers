@@ -177,11 +177,6 @@ export class PaymentApplicationService {
 
         // ✅ Send payment pending / booking submitted emails for manual gateways
         // (bank transfer and cash do not have webhooks, so we notify immediately)
-        const isManual = gateway.slug === 'cash' ||
-          gateway.slug.includes('manual') ||
-          gateway.slug.includes('bank') ||
-          gateway.slug.includes('transfer');
-
         if (isManual) {
           try {
             const bookingItems = await this.storage.getBookingItems(booking.id);
@@ -191,7 +186,7 @@ export class PaymentApplicationService {
 
             const emailBooking = {
               ...booking,
-              date: firstItem?.date || new Date().toISOString().split('T')[0],
+              date: booking.date || new Date().toISOString().split('T')[0],
               guests: `${firstItem?.adultPax || 1} Adult(s)${firstItem?.childPax ? ', ' + firstItem.childPax + ' Child(ren)' : ''}`,
               amount: `VT ${((booking.totalAmountCents || 0) / 100).toLocaleString()}`,
             };
