@@ -138,32 +138,9 @@ export default function TransferDetail() {
           {/* ── LEFT COLUMN ── */}
           <div className="flex flex-col gap-7">
 
-            {/* Photo gallery */}
-            <div className="grid grid-cols-2 grid-rows-[200px_140px] gap-2 rounded-[14px] overflow-hidden">
-              <div className="col-start-1 row-start-1 row-end-3 overflow-hidden">
-                <img
-                  src={transfer.image}
-                  className="w-full h-full object-cover hover:scale-[1.03] transition-transform duration-500 cursor-pointer"
-                  alt={transfer.title}
-                />
-              </div>
-              <div className="overflow-hidden">
-                <img
-                  src="https://images.unsplash.com/photo-1570125909232-eb263c188f7e?w=800&q=80"
-                  className="w-full h-full object-cover hover:scale-[1.03] transition-transform duration-500 cursor-pointer"
-                  alt="Transfer vehicle"
-                />
-              </div>
-              <div className="relative overflow-hidden group cursor-pointer">
-                <img
-                  src="https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=600&q=80"
-                  className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500"
-                  alt="Transfer vehicle"
-                />
-                <div className="absolute inset-0 bg-black/55 flex items-center justify-center font-semibold text-white">
-                  + {t("gallery.more", "4 more")}
-                </div>
-              </div>
+            {/* Photo */}
+            <div className="rounded-[14px] overflow-hidden h-[380px]">
+              <img src={transfer.image} className="w-full h-full object-cover" alt={transfer.title} />
             </div>
 
             {/* Transfer Details */}

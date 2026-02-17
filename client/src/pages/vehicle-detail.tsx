@@ -130,18 +130,9 @@ export default function VehicleDetail() {
           {/* Left Column */}
           <div className="flex flex-col gap-7">
 
-            {/* Gallery Mockup */}
-            <div className="grid grid-cols-2 grid-rows-[200px_140px] gap-2 rounded-[14px] overflow-hidden">
-              <div className="col-start-1 row-start-1 row-end-3">
-                <img src={vehicle.image} className="w-full h-full object-cover hover:scale-[1.03] transition-transform cursor-pointer" />
-              </div>
-              <div className="overflow-hidden">
-                <img src="https://images.unsplash.com/photo-1570125909232-eb263c188f7e?w=800&q=80" className="w-full h-full object-cover hover:scale-[1.03] transition-transform cursor-pointer" />
-              </div>
-              <div className="relative overflow-hidden group cursor-pointer">
-                <img src="https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=600&q=80" className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform" />
-                <div className="absolute inset-0 bg-black/55 flex items-center justify-center font-semibold">+ 4 more</div>
-              </div>
+            {/* Photo */}
+            <div className="rounded-[14px] overflow-hidden h-[380px]">
+              <img src={vehicle.image} className="w-full h-full object-cover" alt={vehicle.title} />
             </div>
 
             {/* Specs */}

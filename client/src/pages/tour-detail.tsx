@@ -167,32 +167,9 @@ export default function TourDetail() {
           {/* ── LEFT COLUMN ── */}
           <div className="flex flex-col gap-7">
 
-            {/* Photo gallery */}
-            <div className="grid grid-cols-2 grid-rows-[200px_140px] gap-2 rounded-[14px] overflow-hidden">
-              <div className="col-start-1 row-start-1 row-end-3 overflow-hidden">
-                <img
-                  src={tour.image}
-                  className="w-full h-full object-cover hover:scale-[1.03] transition-transform duration-500 cursor-pointer"
-                  alt={tour.title}
-                />
-              </div>
-              <div className="overflow-hidden">
-                <img
-                  src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&q=80"
-                  className="w-full h-full object-cover hover:scale-[1.03] transition-transform duration-500 cursor-pointer"
-                  alt="Tour scenery"
-                />
-              </div>
-              <div className="relative overflow-hidden group cursor-pointer">
-                <img
-                  src="https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=600&q=80"
-                  className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500"
-                  alt="Tour scenery"
-                />
-                <div className="absolute inset-0 bg-black/55 flex items-center justify-center font-semibold text-white">
-                  + {t("gallery.more", "4 more")}
-                </div>
-              </div>
+            {/* Photo */}
+            <div className="rounded-[14px] overflow-hidden h-[380px]">
+              <img src={tour.image} className="w-full h-full object-cover" alt={tour.title} />
             </div>
 
             {/* Overview */}
