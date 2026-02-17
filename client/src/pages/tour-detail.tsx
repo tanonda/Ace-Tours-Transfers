@@ -304,32 +304,23 @@ export default function TourDetail() {
                         />
                       </div>
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="detail-date" className="text-sm font-bold ml-1">{t("cart.date", "Date")}</Label>
-                      <div className="relative">
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant="outline"
-                              className={`w-full pl-10 h-12 bg-background border-primary/20 focus:border-primary text-left font-normal ${!date && "text-muted-foreground"}`}
-                            >
-                              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                              <span className="flex flex-col items-start leading-none gap-1">
-                                <span>{date ? format(new Date(date), "PPP") : "Pick a date"}</span>
-                                {selectedTime && <span className="text-xs text-primary font-bold">@ {selectedTime}</span>}
-                              </span>
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <AvailabilityCalendar
-                              tourId={id || ""}
-                              participants={Math.max(1, parseInt(adultPax) + parseInt(childPax))}
-                              onDateSelect={handleDateSelect}
-                              onTimeSelect={handleTimeSelect}
-                            />
-                          </PopoverContent>
-                        </Popover>
+                    <div className="space-y-4">
+                      <Label className="text-sm font-bold ml-1">{t("itinerary.bookingInfo", "Check Availability & Select Date")}</Label>
+                      <div className="bg-background border border-primary/20 rounded-2xl overflow-hidden shadow-sm">
+                        <AvailabilityCalendar
+                          tourId={id || ""}
+                          participants={Math.max(1, parseInt(adultPax) + parseInt(childPax))}
+                          onDateSelect={handleDateSelect}
+                          onTimeSelect={handleTimeSelect}
+                        />
                       </div>
+                      {date && (
+                        <div className="flex items-center gap-2 p-3 bg-primary/10 rounded-xl text-primary font-bold">
+                          <Calendar className="h-4 w-4" />
+                          <span>Selected: {format(new Date(date), "PPP")}</span>
+                          {selectedTime && <span> @ {selectedTime}</span>}
+                        </div>
+                      )}
                     </div>
                   </div>
 

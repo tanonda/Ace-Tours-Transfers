@@ -14,9 +14,10 @@ export class BookingApplicationService {
   async getServiceAvailabilityRange(
     serviceId: string,
     startDate: string,
-    endDate: string
+    endDate: string,
+    minGuests?: number
   ): Promise<Record<string, any>> {
-    return await this.availabilityService.getAvailabilityRange(serviceId, startDate, endDate);
+    return await this.availabilityService.getAvailabilityRange(serviceId, startDate, endDate, minGuests);
   }
 
   /**

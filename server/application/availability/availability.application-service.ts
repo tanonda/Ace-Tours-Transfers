@@ -67,4 +67,37 @@ export class AvailabilityApplicationService {
   async updateCapacity(instanceId: string, totalCapacity?: number, blockedCount?: number): Promise<TourInstance> {
     return await this.availabilityService.adminOverride(instanceId, { totalCapacity, blockedCount });
   }
+
+  async upsertInstance(data: {
+    tourId: string;
+    date: string;
+    timeSlot?: string;
+    startTime?: string;
+    endTime?: string;
+    totalCapacity: number;
+    blockedCount?: number;
+  }): Promise<TourInstance> {
+    // Check if instance exists
+    const existing = await this.storage.getTourInstance(data.tourId, data.date, data.timeSlot);
+    if (existing) {
+      return await this.updateCapacity(existing.id, data.totalCapacity, data.blockedCount);
+    }
+
+    // Create new instance
+    return await this.storage.createTourInstance({
+      tourId: data.tourId,
+      serviceDate: data.date,
+      timeSlot: data.timeSlot || null,
+      startTime: data.startTime || null,
+      endTime: data.endTime || null,
+      totalCapacity: data.totalCapacity,
+      blockedCount: data.blockedCount || 0,
+      confirmedCount: 0,
+      heldCount: 0
+    });
+  }
+
+  async deleteInstance(instanceId: string): Promise<void> {
+    await this.storage.deleteTourInstance(instanceId);
+  }
 }

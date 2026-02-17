@@ -27,18 +27,35 @@ export const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = React.m
   onTimeSelect,
   minDate,
   maxDate,
+  selectedDate: propSelectedDate,
   participants,
 }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [internalSelectedDate, setInternalSelectedDate] = useState<string | null>(null);
+  const activeSelectedDate = propSelectedDate || internalSelectedDate;
+
+  // Sync currentMonth when propSelectedDate changes to show the pre-filled date
+  useEffect(() => {
+    if (propSelectedDate) {
+      const date = new Date(propSelectedDate);
+      if (!isNaN(date.getTime())) {
+        setCurrentMonth(new Date(date.getFullYear(), date.getMonth(), 1));
+      }
+    }
+  }, [propSelectedDate]);
 
   const month = currentMonth.getMonth();
   const year = currentMonth.getFullYear();
+
+  const totalGuests = useMemo(() => {
+    return (participants?.adults || 0) + (participants?.children || 0);
+  }, [participants]);
 
   const { data, loading } = useCalendarData({
     tourId,
     month,
     year,
+    minGuests: totalGuests || 1,
   });
 
   const calendar = useMemo(() => {
@@ -84,7 +101,7 @@ export const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = React.m
   const canGoForward = useMemo(() => !maxDate || currentMonth < maxDate, [maxDate, currentMonth]);
 
   const handleDateClick = useCallback((dateStr: string) => {
-    setSelectedDate(dateStr);
+    setInternalSelectedDate(dateStr);
     onDateSelect(dateStr);
   }, [onDateSelect]);
 
@@ -140,7 +157,7 @@ export const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = React.m
                 {day ? (
                   <CalendarDay
                     day={day}
-                    isSelected={selectedDate === day.date}
+                    isSelected={activeSelectedDate === day.date}
                     onClick={() => handleDateClick(day.date)}
                   />
                 ) : (
@@ -190,12 +207,12 @@ export const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = React.m
         </>
       )}
 
-      {selectedDate && (
+      {activeSelectedDate && (
         <TimeSlotsSection
           tourId={tourId}
-          date={selectedDate}
+          date={activeSelectedDate}
           onTimeSelect={handleTimeSelect}
-          guests={participants}
+          guests={totalGuests}
         />
       )}
     </div>
