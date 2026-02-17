@@ -17,6 +17,7 @@ export interface BookingProps {
   amountCents: number;
   status: BookingStatus;
   createdAt: Date;
+  pickupLocation?: string;
 }
 
 export class Booking {
@@ -36,7 +37,7 @@ export class Booking {
     }
   }
 
-  public static createFromCart(id: string, cart: Cart, customer: { name: string; email: string }): Booking {
+  public static createFromCart(id: string, cart: Cart, customer: { name: string; email: string; pickupLocation?: string }): Booking {
     cart.validate();
     const snapshot = cart.getPricedSnapshot();
     if (!snapshot) {
@@ -50,7 +51,8 @@ export class Booking {
       customerEmail: customer.email,
       amountCents: snapshot.totalCents,
       status: BookingStatus.CREATED,
-      createdAt: new Date()
+      createdAt: new Date(),
+      pickupLocation: customer.pickupLocation
     });
 
     return booking;

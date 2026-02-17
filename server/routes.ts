@@ -51,6 +51,7 @@ import {
   getTestEmailTemplate
 } from "./lib/mail.js";
 import { ZodError, z } from "zod";
+import { rateLimit } from "./lib/rate-limiter.js";
 
 // Ensure uploads directory exists (legacy support if needed)
 const uploadDir = path.join(process.cwd(), 'attached_assets', 'uploads');
@@ -181,7 +182,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/availability/check", async (req, res) => {
+  app.post("/api/availability/check", rateLimit(60000, 10), async (req, res) => {
     try {
       const { serviceId, date, adultPax, childPax, addonIds, startTime, endTime } = req.body;
 
@@ -631,7 +632,7 @@ export async function registerRoutes(
     try {
       const { CreateBookingFromCartService } = await import("./application/booking/CreateBookingFromCartService.js");
       const bookingService = new CreateBookingFromCartService(storage);
-      const { items, customerName, customerEmail } = req.body;
+      const { items, customerName, customerEmail, pickupLocation } = req.body;
       const idempotencyKey = (req.headers['idempotency-key'] || req.body.idempotencyKey) as string | undefined;
       if (!items || !items.length) return res.status(400).json({ error: "Cart is empty" });
       const booking = await bookingService.execute({
@@ -639,7 +640,8 @@ export async function registerRoutes(
         customerEmail,
         items,
         sessionId: req.sessionID,
-        idempotencyKey
+        idempotencyKey,
+        pickupLocation
       });
 
       // ✅ Send booking notification emails
@@ -648,7 +650,7 @@ export async function registerRoutes(
         const firstItem = bookingItems[0];
         const tourData = firstItem ? await storage.getTour(firstItem.productId) : null;
         const tourInfo = tourData || { title: 'Tour/Transfer Booking', category: 'tour' };
-        
+
         const emailBooking = {
           ...booking,
           date: firstItem?.date || new Date().toISOString().split('T')[0],
@@ -713,7 +715,7 @@ export async function registerRoutes(
       }
 
       const booking = await storage.updateBooking(req.params.id, updates);
-      
+
       // ✅ Send email when status changes
       if (updates.status && updates.status !== existing.status && booking.customerEmail) {
         try {
@@ -721,14 +723,14 @@ export async function registerRoutes(
           const firstItem = bookingItems[0];
           const tourData = firstItem ? await storage.getTour(firstItem.productId) : null;
           const tourInfo = tourData || { title: 'Tour/Transfer Booking' };
-          
+
           const emailBooking = {
             ...booking,
             date: firstItem?.date || new Date().toISOString().split('T')[0],
             guests: `${firstItem?.adultPax || 1} Adult(s)${firstItem?.childPax ? ', ' + firstItem.childPax + ' Child(ren)' : ''}`,
             amount: `VT ${((booking.totalAmountCents || 0) / 100).toLocaleString()}`,
           };
-          
+
           await sendEmail({
             to: booking.customerEmail,
             subject: `Booking Update: ${updates.status.toUpperCase()} — Ref #${booking.id.slice(0, 8).toUpperCase()}`,
@@ -738,7 +740,7 @@ export async function registerRoutes(
           console.error('[BOOKING][STATUS] Email failed (non-fatal):', emailErr);
         }
       }
-      
+
       res.json(booking);
     } catch (error) {
       res.status(400).json({ error: "Failed to update booking" });
