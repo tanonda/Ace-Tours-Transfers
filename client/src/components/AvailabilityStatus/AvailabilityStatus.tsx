@@ -35,7 +35,7 @@ export const AvailabilityStatus: React.FC<AvailabilityStatusProps> = ({
     return (
       <div className="availability-status loading">
         <div className="spinner" />
-        <p>Checking availability...</p>
+        <p>Checking availability…</p>
       </div>
     );
   }
@@ -61,41 +61,46 @@ export const AvailabilityStatus: React.FC<AvailabilityStatusProps> = ({
   const capacityPercent = totalCapacity > 0 ? Math.round((currentBookings / totalCapacity) * 100) : 0;
   const isSoon = remainingCapacity <= 3 && remainingCapacity > 0;
 
+  // Dynamic color for progress bar
+  const progressColor = isAvailable
+    ? (isSoon ? '#f4a830' : '#4caf7d')
+    : '#e05555';
+
   return (
     <div className={`availability-status ${isAvailable ? 'available' : 'full'}`}>
       <div className="availability-header">
-        <h3>Availability Status</h3>
+        <h3>Availability</h3>
         <div className={`status-badge ${isAvailable ? 'open' : 'full'}`}>
-          {isAvailable ? '🟢 AVAILABLE' : '🔴 FULLY BOOKED'}
+          <div className="badge-dot" />
+          {isAvailable ? 'Available' : 'Fully Booked'}
         </div>
       </div>
 
-      <div className="capacity-section">
-        <div className="capacity-label">
-          <span>Capacity</span>
-          <span className="numbers">
-            {currentBookings}/{totalCapacity}
-          </span>
+      {totalCapacity > 0 && (
+        <div className="capacity-section">
+          <div className="capacity-label">
+            <span>{isAvailable ? `${remainingCapacity} of ${totalCapacity} spots left` : 'Sold out'}</span>
+            <span className="numbers">{currentBookings}/{totalCapacity}</span>
+          </div>
+          <div className="progress-bar">
+            <div
+              className="progress-fill"
+              style={{ width: `${capacityPercent}%`, backgroundColor: progressColor }}
+            />
+          </div>
         </div>
-        <div className="progress-bar">
-          <div
-            className="progress-fill"
-            style={{
-              width: `${capacityPercent}%`,
-              backgroundColor: isAvailable ? '#10b981' : '#f59e0b', // Amber for low capacity
-            }}
-          />
-        </div>
-      </div>
+      )}
 
       <div className="status-message">
-        <p>{message}</p>
-        {isSoon && <p className="warning">🔥 Filling fast! Only {remainingCapacity} left.</p>}
+        {message && <p>{message}</p>}
+        {isSoon && isAvailable && (
+          <p className="warning">🔥 Filling fast — only {remainingCapacity} spot{remainingCapacity !== 1 ? 's' : ''} left!</p>
+        )}
       </div>
 
       {!isAvailable && !loading && (
         <div className="fully-booked">
-          <p>Sold out for this selection. Try another date or time.</p>
+          <p>Sold out for this selection. Try a different date or time.</p>
         </div>
       )}
     </div>

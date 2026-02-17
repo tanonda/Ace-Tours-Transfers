@@ -6,6 +6,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { CounterInput } from "@/components/ui/counter-input";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
@@ -618,6 +619,41 @@ export function BookingForm({
                   </motion.div>
                 )}
               </AnimatePresence>
+            </motion.div>
+
+            {/* Section 4: Notes */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.25 }}
+              className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 space-y-4"
+            >
+              <div className="flex items-center gap-3 mb-1">
+                <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600">
+                  <Info className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900">Special Requests</h3>
+                  <p className="text-sm text-slate-500">Dietary needs, accessibility, pickup details</p>
+                </div>
+              </div>
+              <FormField
+                control={form.control}
+                name="notes"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <Textarea
+                        placeholder="E.g. vegetarian meal, wheelchair accessibility, hotel pickup from Grand Hotel..."
+                        className="min-h-[90px] border-slate-200 bg-slate-50/50 rounded-xl focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all resize-none font-medium text-sm"
+                        {...field}
+                      />
+                    </FormControl>
+                    <p className="text-xs text-slate-400 mt-1">Optional — we'll do our best to accommodate</p>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </motion.div>
 
             <motion.div

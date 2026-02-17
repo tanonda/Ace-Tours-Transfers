@@ -1,147 +1,150 @@
-/* Themed to match the dark gold UI of Ace Tours */
 .availability-status {
-  background: rgba(244, 168, 48, 0.05);
   border-radius: 12px;
-  padding: 16px 18px;
+  padding: 14px 16px;
   border: 1px solid rgba(244, 168, 48, 0.2);
-
-  &.loading {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    min-height: 80px;
-
-    .spinner {
-      width: 18px;
-      height: 18px;
-      border: 2px solid rgba(244, 168, 48, 0.2);
-      border-top-color: #f4a830;
-      border-radius: 50%;
-      animation: spin 0.6s linear infinite;
-    }
-
-    p {
-      color: #8a826e;
-      font-size: 13px;
-    }
-  }
-
-  &.error {
-    background: rgba(224, 85, 85, 0.08);
-    border-color: rgba(224, 85, 85, 0.3);
-    padding: 12px 16px;
-
-    p {
-      color: #e05555;
-      margin: 0;
-      font-size: 13px;
-    }
-  }
-
-  &.available {
-    border-color: rgba(76, 175, 125, 0.3);
-    background: rgba(76, 175, 125, 0.06);
-  }
-
-  &.full {
-    border-color: rgba(224, 85, 85, 0.3);
-    background: rgba(224, 85, 85, 0.06);
-  }
+  background: rgba(244, 168, 48, 0.04);
+  transition: border-color 0.3s ease, background 0.3s ease;
 }
 
+.availability-status.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 72px;
+  border-color: rgba(244, 168, 48, 0.12);
+  background: rgba(244, 168, 48, 0.03);
+}
+
+.availability-status.loading .spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(244, 168, 48, 0.2);
+  border-top-color: #f4a830;
+  border-radius: 50%;
+  animation: as-spin 0.6s linear infinite;
+}
+
+.availability-status.loading p {
+  color: #8a826e;
+  font-size: 12px;
+  margin: 0;
+}
+
+.availability-status.error {
+  background: rgba(224, 85, 85, 0.06);
+  border-color: rgba(224, 85, 85, 0.25);
+  padding: 10px 14px;
+}
+.availability-status.error p { color: #e05555; margin: 0; font-size: 12px; }
+
+.availability-status.available {
+  border-color: rgba(76, 175, 125, 0.3);
+  background: rgba(76, 175, 125, 0.05);
+}
+
+.availability-status.full {
+  border-color: rgba(224, 85, 85, 0.3);
+  background: rgba(224, 85, 85, 0.05);
+}
+
+/* Header row */
 .availability-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
-
-  h3 {
-    margin: 0;
-    font-size: 13px;
-    font-weight: 600;
-    color: #8a826e;
-    text-transform: uppercase;
-    letter-spacing: 0.07em;
-  }
-
-  .status-badge {
-    padding: 3px 10px;
-    border-radius: 20px;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-
-    &.open {
-      background: rgba(76, 175, 125, 0.15);
-      color: #4caf7d;
-      border: 1px solid rgba(76, 175, 125, 0.3);
-    }
-
-    &.full {
-      background: rgba(224, 85, 85, 0.12);
-      color: #e05555;
-      border: 1px solid rgba(224, 85, 85, 0.3);
-    }
-  }
-}
-
-.capacity-section {
   margin-bottom: 10px;
-
-  .capacity-label {
-    display: flex;
-    justify-content: space-between;
-    font-size: 12px;
-    margin-bottom: 6px;
-    color: #8a826e;
-
-    .numbers {
-      font-weight: 700;
-      color: #f0ece4;
-    }
-  }
-
-  .progress-bar {
-    height: 6px;
-    background: rgba(244, 168, 48, 0.1);
-    border-radius: 3px;
-    overflow: hidden;
-
-    .progress-fill {
-      height: 100%;
-      transition: width 0.3s ease;
-      border-radius: 3px;
-    }
-  }
 }
 
-.status-message {
-  p {
-    margin: 6px 0 0 0;
-    font-size: 12px;
-    color: #8a826e;
-
-    &.warning {
-      color: #f4a830;
-      font-weight: 600;
-    }
-  }
+.availability-header h3 {
+  margin: 0;
+  font-size: 10px;
+  font-weight: 700;
+  color: #8a826e;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
+
+.status-badge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.status-badge .badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  animation: as-pulse 2s ease infinite;
+}
+
+.status-badge.open {
+  background: rgba(76, 175, 125, 0.14);
+  color: #4caf7d;
+  border: 1px solid rgba(76, 175, 125, 0.28);
+}
+.status-badge.open .badge-dot { background: #4caf7d; }
+
+.status-badge.full {
+  background: rgba(224, 85, 85, 0.12);
+  color: #e05555;
+  border: 1px solid rgba(224, 85, 85, 0.28);
+}
+.status-badge.full .badge-dot { background: #e05555; animation: none; }
+
+/* Capacity bar */
+.capacity-section { margin-bottom: 8px; }
+
+.capacity-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  margin-bottom: 5px;
+  color: #8a826e;
+}
+
+.capacity-label .numbers {
+  font-weight: 700;
+  color: #f0ece4;
+  font-size: 11px;
+}
+
+.progress-bar {
+  height: 5px;
+  background: rgba(244, 168, 48, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  transition: width 0.4s ease;
+  border-radius: 3px;
+}
+
+/* Messages */
+.status-message { margin-top: 6px; }
+.status-message p { margin: 0; font-size: 11px; color: #8a826e; line-height: 1.4; }
+.status-message .warning { color: #f4a830; font-weight: 600; margin-top: 4px; }
 
 .fully-booked {
-  p {
-    margin: 6px 0 0 0;
-    font-size: 12px;
-    color: #e05555;
-  }
+  margin-top: 6px;
+  padding: 8px 10px;
+  background: rgba(224, 85, 85, 0.08);
+  border-radius: 7px;
+  border: 1px solid rgba(224, 85, 85, 0.18);
 }
+.fully-booked p { margin: 0; font-size: 11px; color: #e05555; }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-@media (max-width: 640px) {
-  .availability-status { padding: 12px; }
-  .availability-header { flex-direction: column; align-items: flex-start; gap: 6px; }
+@keyframes as-spin { to { transform: rotate(360deg); } }
+@keyframes as-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
 }

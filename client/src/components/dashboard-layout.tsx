@@ -22,7 +22,11 @@ import {
   Clock,
   AlertCircle,
   ChevronRight,
-  UserCog
+  UserCog,
+  DollarSign,
+  Ban,
+  Gauge,
+  ScrollText
 } from "lucide-react";
 import {
   Popover,
@@ -191,14 +195,18 @@ export function DashboardLayout({ children, type }: DashboardLayoutProps) {
     { icon: CalendarDays, label: "Bookings", href: "/admin/bookings", show: true },
     { icon: Map, label: "Products", href: "/admin/tours", show: true },
     { icon: CalendarDays, label: "Calendar", href: "/admin/calendar", show: true },
-    { icon: UserCog, label: "Staff", href: "/admin/staff", show: user?.role === "admin" }, // Admin only
-    { icon: Users, label: "Customers", href: "/admin/customers", show: user?.role === "admin" }, // Admin only
-    { icon: Tag, label: "Promotions", href: "/admin/promotions", show: user?.role === "admin" }, // Admin only
-    { icon: FileText, label: "CMS Content", href: "/admin/cms", show: user?.role === "admin" }, // Admin only
-    { icon: BarChart3, label: "Analytics", href: "/admin/analytics", show: user?.role === "admin" }, // Admin only
-    { icon: FileText, label: "Reports", href: "/admin/reports", show: user?.role === "admin" }, // Admin only
-    { icon: CreditCard, label: "Payments", href: "/admin/payments", show: user?.role === "admin" }, // Admin only
-    { icon: Settings, label: "Settings", href: "/admin/settings", show: user?.role === "admin" }, // Admin only
+    { icon: Gauge, label: "Capacity", href: "/admin/capacity", show: true },
+    { icon: UserCog, label: "Staff", href: "/admin/staff", show: user?.role === "admin" },
+    { icon: Users, label: "Customers", href: "/admin/customers", show: user?.role === "admin" },
+    { icon: DollarSign, label: "Pricing", href: "/admin/pricing", show: user?.role === "admin" },
+    { icon: Ban, label: "Blackout Dates", href: "/admin/blackouts", show: user?.role === "admin" },
+    { icon: Tag, label: "Promotions", href: "/admin/promotions", show: user?.role === "admin" },
+    { icon: FileText, label: "CMS Content", href: "/admin/cms", show: user?.role === "admin" },
+    { icon: BarChart3, label: "Analytics", href: "/admin/analytics", show: user?.role === "admin" },
+    { icon: FileText, label: "Reports", href: "/admin/reports", show: user?.role === "admin" },
+    { icon: CreditCard, label: "Payments", href: "/admin/payments", show: user?.role === "admin" },
+    { icon: ScrollText, label: "Audit Logs", href: "/admin/audit-logs", show: user?.role === "admin" },
+    { icon: Settings, label: "Settings", href: "/admin/settings", show: user?.role === "admin" },
   ];
 
   const customerLinks = [
