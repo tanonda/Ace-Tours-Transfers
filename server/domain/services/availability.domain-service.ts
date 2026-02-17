@@ -188,10 +188,11 @@ export class AvailabilityDomainService {
 
       const defaultCapacity = product.defaultCapacity;
       if (!defaultCapacity || defaultCapacity <= 0) {
-        throw new Error(
-          `Product "${product.title}" has invalid or missing capacity (${defaultCapacity}). ` +
+        console.warn(
+          `Product "${product.title}" (${productId}) has invalid or missing capacity (${defaultCapacity}). ` +
           `Please configure capacity in the admin panel.`
         );
+        return { remainingCapacity: 0, totalCapacity: 0 };
       }
 
       availabilityCache.set(productId, date, defaultCapacity, defaultCapacity, cacheKey);

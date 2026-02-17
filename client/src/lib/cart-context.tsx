@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { calculateLineTotal, type ProductCategory } from "./product.types";
+import { type ProductCategory } from "./product.types";
 import { fetchPricing, type PricingSnapshot } from "./api";
 
 const CART_STORAGE_KEY = 'ace-tours-cart';
@@ -218,7 +218,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   // Note: This is a CLIENT-SIDE ESTIMATION. The backend PricingEngine is the source of truth.
   // Once backend pricing is loaded, use pricingSnapshot.totalCents instead.
   const estimatedTotal = items.reduce((acc, item) => {
-    let lineTotal = calculateLineTotal(item.price, item.childPrice, item.adultPax, item.childPax, item.addonTotal || 0);
+    // Manual calculation to avoid [DEPRECATED] calculateLineTotal warning
+    let lineTotal = (item.price * item.adultPax) + (item.childPrice * item.childPax) + (item.addonTotal || 0);
 
     // Apply Group Discount (10% off for 7+ adults) - ESTIMATED
     if (item.adultPax >= 7) {
