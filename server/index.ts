@@ -11,6 +11,19 @@ import { runMigrations } from 'stripe-replit-sync';
 import { getStripeSync } from './stripeClient.js';
 import { config, validateConfig } from "./config.js";
 import { migrate } from "drizzle-orm/neon-serverless/migrator";
+import * as Sentry from "@sentry/node";
+
+// Initialize Sentry error monitoring (Phase 4 readiness)
+if (process.env.SENTRY_DSN) {
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    environment: process.env.NODE_ENV || "development",
+    tracesSampleRate: 1.0,
+  });
+  console.log('[SENTRY] Error monitoring initialized');
+} else {
+  console.warn('[SENTRY] SENTRY_DSN not found. Error monitoring disabled.');
+}
 
 // 1. Validate environment & Log posture
 validateConfig();
@@ -313,6 +326,11 @@ app.use((req, res, next) => {
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
+
+    // Report to Sentry if initialized
+    if (process.env.SENTRY_DSN && status >= 500) {
+      Sentry.captureException(err);
+    }
 
     res.status(status).json({ message });
   });

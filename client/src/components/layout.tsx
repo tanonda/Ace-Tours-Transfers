@@ -587,7 +587,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                       <Facebook className="h-4 w-4" />
                     </a>
                     {/* Fix #17: Instagram link — replace href with the real account URL, or remove until one exists */}
-                    <a href="https://www.instagram.com/" target="_blank" rel="noopener noreferrer" aria-label="Follow us on Instagram" className="bg-muted p-2 rounded-full hover:bg-primary hover:text-white transition-colors">
+                    <a href="https://www.instagram.com/acetoursvanuatu/" target="_blank" rel="noopener noreferrer" aria-label="Follow us on Instagram" className="bg-muted p-2 rounded-full hover:bg-primary hover:text-white transition-colors">
                       <Instagram className="h-4 w-4" />
                     </a>
                   </div>
@@ -618,7 +618,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   <Facebook className="h-5 w-5" />
                 </a>
                 {/* Fix #17: Replace with real Instagram URL when available */}
-                <a href="https://www.instagram.com/" target="_blank" rel="noopener noreferrer" aria-label="Follow us on Instagram" className="bg-white/10 p-2 rounded-full hover:bg-primary transition-colors">
+                <a href="https://www.instagram.com/acetoursvanuatu/" target="_blank" rel="noopener noreferrer" aria-label="Follow us on Instagram" className="bg-white/10 p-2 rounded-full hover:bg-primary transition-colors">
                   <Instagram className="h-5 w-5" />
                 </a>
               </div>
