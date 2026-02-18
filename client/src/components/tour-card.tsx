@@ -9,8 +9,8 @@ import { ShareButton } from "@/components/share-button";
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { formatPriceDisplay } from "@/lib/product.types";
 import { useCurrency } from "@/lib/currency-context";
+import { type ProductCategory, formatPriceDisplay } from "@/lib/product.types";
 
 interface TourProps {
   id: string;
@@ -19,11 +19,11 @@ interface TourProps {
   adultPriceCents: number;
   childPriceCents: number;
   duration: string;
-  minPax?: string | null;
+  minPax?: string | number | null;
   childPrice?: string | null;
   description: string[];
   image: string;
-  category?: string;
+  category?: ProductCategory;
 }
 
 export function TourCard({ tour, index }: { tour: TourProps; index: number }) {
@@ -59,7 +59,7 @@ export function TourCard({ tour, index }: { tour: TourProps; index: number }) {
             </div>
             <div className="absolute top-4 right-4 z-20">
               <Badge className="bg-background/90 text-foreground hover:bg-background text-sm font-bold px-3 py-1 shadow-sm backdrop-blur-sm border border-border/50">
-                {formatPriceDisplay(tour.adultPriceCents, currency)}
+                {formatPriceDisplay(tour.adultPriceCents, currency as any)}
               </Badge>
             </div>
             <div className="absolute inset-0 flex items-center justify-center z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -102,7 +102,7 @@ export function TourCard({ tour, index }: { tour: TourProps; index: number }) {
             <div className="w-full space-y-2">
               <div className="flex justify-between items-center text-sm text-muted-foreground mb-2">
                 <span>{t("tour.startingFrom", "Starting from")}</span>
-                <span className="font-bold text-foreground">{formatPriceDisplay(tour.adultPriceCents, currency)}</span>
+                <span className="font-bold text-foreground">{formatPriceDisplay(tour.adultPriceCents, currency as any)}</span>
               </div>
               <BookingModal
                 preselectedService={tour.title}
@@ -117,7 +117,7 @@ export function TourCard({ tour, index }: { tour: TourProps; index: number }) {
         <ProductQuickView
           isOpen={showQuickView}
           onClose={() => setShowQuickView(false)}
-          product={tour}
+          product={tour as any}
         />
       )}
     </>

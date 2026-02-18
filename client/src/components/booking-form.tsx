@@ -23,7 +23,7 @@ import { useCurrency } from "@/lib/currency-context";
 import { useQuery } from "@tanstack/react-query";
 import { Checkbox } from "@/components/ui/checkbox";
 
-export const bookingFormSchema = z.object({
+export const bookingFormBaseSchema = z.object({
   name: z.string().min(2, "Name is required"),
   email: z.string().email("Invalid email address"),
   service: z.string().min(1, "Please select a service"),
@@ -34,7 +34,9 @@ export const bookingFormSchema = z.object({
   childPax: z.string().min(1, "Number of children is required"),
   notes: z.string().optional(),
   addonIds: z.array(z.string()).default([]),
-}).refine((data) => {
+});
+
+export const bookingFormSchema = bookingFormBaseSchema.refine((data) => {
   if (data.startTime && data.endTime) {
     const start = data.startTime.split(':').map(Number);
     const end = data.endTime.split(':').map(Number);
@@ -163,7 +165,7 @@ export function BookingForm({
 
           // Validate the draft against the schema before applying (partial is fine)
           const { savedAt, date: _date, ...rest } = parsed;
-          const result = bookingFormSchema.partial().safeParse(rest);
+          const result = bookingFormBaseSchema.partial().safeParse(rest as any);
           if (result.success) {
             Object.entries(result.data).forEach(([key, value]) => {
               if (value !== undefined && value !== "") {

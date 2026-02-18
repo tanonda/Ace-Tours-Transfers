@@ -13,7 +13,11 @@ import {
   MapPin,
   Calendar as CalendarIcon,
   Trash2,
-  RefreshCw
+  RefreshCw,
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  Clock
 } from "lucide-react";
 import {
   upsertAvailability,

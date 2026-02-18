@@ -173,7 +173,7 @@ export default function Home() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {toursList.map((tour, index) => (
-              <TourCard key={tour.id} tour={tour} index={index} />
+              <TourCard key={tour.id} tour={{ ...tour, category: tour.category as any }} index={index} />
             ))}
           </div>
         </div>
@@ -190,7 +190,7 @@ export default function Home() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {transfers.map((transfer, index) => (
-              <TourCard key={transfer.id} tour={transfer} index={index} />
+              <TourCard key={transfer.id} tour={{ ...transfer, category: transfer.category as any }} index={index} />
             ))}
           </div>
         </div>
@@ -208,7 +208,7 @@ export default function Home() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {vehicles.slice(0, 3).map((vehicle, index) => (
-                <TourCard key={vehicle.id} tour={vehicle} index={index} />
+                <TourCard key={vehicle.id} tour={{ ...vehicle, category: vehicle.category as any }} index={index} />
               ))}
             </div>
           </div>

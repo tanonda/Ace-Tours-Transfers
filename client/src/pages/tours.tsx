@@ -54,7 +54,7 @@ export default function Tours() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {toursList.map((tour, index) => (
-                <TourCard key={tour.id} tour={tour} index={index} />
+                <TourCard key={tour.id} tour={{ ...tour, category: tour.category as any }} index={index} />
               ))}
             </div>
           )}
