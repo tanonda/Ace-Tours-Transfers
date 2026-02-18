@@ -60,7 +60,7 @@ function BookingModalContent({
   initialChildPax,
   initialDate,
   setOpen
-}: BookingModalProps & { setOpen: (open: boolean) => void }) {
+}: Omit<BookingModalProps, 'trigger'> & { setOpen: (open: boolean) => void }) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [isAvailable, setIsAvailable] = useState<boolean | null>(null); // null: not checked, true: available, false: unavailable

@@ -66,7 +66,7 @@ export default function Contact() {
                 <div className="flex-1">
                   <h3 className="font-bold text-lg mb-1">{t("contact.email", "Email")}</h3>
                   <a href={`mailto:${contactEmail}`} className="text-primary hover:underline text-lg font-semibold">
-                    {contactEmail}
+                    {typeof contactEmail === 'string' ? contactEmail : "acetoursvanuatu@outlook.com"}
                   </a>
                   <p className="text-sm text-muted-foreground mt-1">{t("contact.emailReply", "We reply within a few hours")}</p>
                 </div>

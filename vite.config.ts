@@ -59,7 +59,7 @@ export default defineConfig({
           'vendor-charts': ['recharts', 'chart.js', 'react-chartjs-2'],
           'vendor-forms': ['react-hook-form', '@hookform/resolvers', 'zod'],
           'vendor-query': ['@tanstack/react-query'],
-          'vendor-pdf': ['html2pdf.js', 'qrcode'],
+          'vendor-pdf': ['qrcode'],
         },
         // Optimize chunk sizing
         entryFileNames: 'assets/[name]-[hash].js',

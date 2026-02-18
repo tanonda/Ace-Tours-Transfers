@@ -1,7 +1,8 @@
 import { db } from "../../db.js";
 import { IStorage } from "../../storage.js";
 import { Cart } from "../../domain/booking/Cart.js";
-import { Booking } from "../../domain/booking/Booking.js";
+import { Booking as DomainBooking } from "../../domain/booking/Booking.js";
+import { Booking as SchemaBooking } from "../../../shared/schema.js";
 import { PriceCartService } from "../pricing/PriceCartService.js";
 import { eventDispatcher } from "../../infrastructure/events/event-dispatcher.js";
 import { BookingCreated } from "../../domain/events.js";
@@ -9,6 +10,7 @@ import { PricingEngine } from "../../domain/pricing/PricingEngine.js";
 import { config } from "../../config.js";
 import { AvailabilityApplicationService } from "../availability/availability.application-service.js";
 import { metricsService } from "../../infrastructure/metrics/metrics.service.js";
+import crypto from "crypto";
 
 export interface CreateBookingRequest {
   customerName: string;
@@ -40,7 +42,7 @@ export class CreateBookingFromCartService {
     this.availabilityService = new AvailabilityApplicationService(storage);
   }
 
-  async execute(request: CreateBookingRequest): Promise<Booking> {
+  async execute(request: CreateBookingRequest): Promise<SchemaBooking> {
     if (config.killSwitches.bookingsPaused) {
       throw new Error("CRITICAL: Booking systems are currently paused for maintenance.");
     }
@@ -150,7 +152,7 @@ export class CreateBookingFromCartService {
 
         // 3. Create Booking Aggregate
         const bookingId = `book_${crypto.randomUUID()}`;
-        const booking = Booking.createFromCart(bookingId, cart, {
+        const domainBooking = DomainBooking.createFromCart(bookingId, cart, {
           name: request.customerName,
           email: request.customerEmail,
           pickupLocation: request.pickupLocation
@@ -169,9 +171,9 @@ export class CreateBookingFromCartService {
         }
 
         const persistedBooking = await this.storage.createBooking({
-          id: booking.id,
-          customerName: booking.customerName,
-          customerEmail: booking.customerEmail,
+          id: domainBooking.id,
+          customerName: domainBooking.customerName,
+          customerEmail: domainBooking.customerEmail,
           amount: snapshot.totalCents.toString(),
           totalAmountCents: snapshot.totalCents,
           status: 'pending',
@@ -205,9 +207,9 @@ export class CreateBookingFromCartService {
         }
 
         // 5. Emit Event
-        await eventDispatcher.dispatch(new BookingCreated(booking.id, booking.amountCents));
+        await eventDispatcher.dispatch(new BookingCreated(domainBooking.id, domainBooking.amountCents));
 
-        return booking;
+        return persistedBooking;
 
       } catch (error) {
         const elapsedMs = Date.now() - startTime;

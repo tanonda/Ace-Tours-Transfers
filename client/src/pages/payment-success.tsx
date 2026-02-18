@@ -40,7 +40,7 @@ export default function PaymentSuccess() {
     localStorage.removeItem('ace-tours-booking-draft');
   }, []);
 
-  const { data: booking, isLoading } = useQuery({
+  const { data: booking, isLoading } = useQuery<{ status: string; customerName?: string; totalAmountCents?: number }>({
     queryKey: ["booking", bookingId],
     queryFn: async () => {
       if (!bookingId) return null;
@@ -49,8 +49,9 @@ export default function PaymentSuccess() {
       return res.json();
     },
     enabled: !!bookingId && bookingId !== "demo",
-    refetchInterval: (data) => {
+    refetchInterval: (query) => {
       // Stop polling once confirmed
+      const data = query.state.data;
       if (data?.status === "confirmed" || data?.status === "completed") return false;
       return 5000;
     },
@@ -94,8 +95,8 @@ export default function PaymentSuccess() {
                 {isConfirmed
                   ? <CheckCircle className="h-12 w-12 text-green-600" />
                   : isCash
-                  ? <DollarSign className="h-12 w-12 text-amber-600" />
-                  : <Clock className="h-12 w-12 text-amber-600" />
+                    ? <DollarSign className="h-12 w-12 text-amber-600" />
+                    : <Clock className="h-12 w-12 text-amber-600" />
                 }
               </div>
               <CardTitle className={`text-2xl ${isConfirmed ? 'text-green-600' : 'text-amber-600'}`}>
@@ -105,8 +106,8 @@ export default function PaymentSuccess() {
                 {isConfirmed
                   ? "Your adventure is secured. See you soon!"
                   : isCash
-                  ? "Please pay at the start of your tour or vehicle pickup."
-                  : "Please complete your bank transfer to secure your booking."
+                    ? "Please pay at the start of your tour or vehicle pickup."
+                    : "Please complete your bank transfer to secure your booking."
                 }
               </p>
             </CardHeader>

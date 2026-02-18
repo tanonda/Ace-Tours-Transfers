@@ -63,7 +63,7 @@ export function ProductQuickView({ isOpen, onClose, product }: ProductQuickViewP
       title: product.title,
       price: product.adultPriceCents,
       childPrice: product.childPriceCents || 0,
-      image: product.image,
+      image: product.image || "",
       type: (product.category || "tour") as ProductCategory,
       adultPax: parseInt(adultPax),
       childPax: parseInt(childPax),
@@ -154,10 +154,10 @@ export function ProductQuickView({ isOpen, onClose, product }: ProductQuickViewP
                     <span>{t("quickView.adult", "Adult")}</span>
                     <span className="font-medium">{formatPriceDisplay(product.adultPriceCents, currency)}</span>
                   </div>
-                  {product.childPriceCents > 0 && (
+                  {(product.childPriceCents || 0) > 0 && (
                     <div className="flex justify-between items-center text-sm">
                       <span>{t("quickView.child", "Child")}</span>
-                      <span className="font-medium">{formatPriceDisplay(product.childPriceCents, currency)}</span>
+                      <span className="font-medium">{formatPriceDisplay(product.childPriceCents || 0, currency as any)}</span>
                     </div>
                   )}
                 </div>

@@ -3,9 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Printer, X, MapPin, Calendar, Users, Phone, Mail, Clock, DollarSign, Download } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Payment } from "@shared/schema";
-import html2pdf from "html2pdf.js";
 import QRCode from "qrcode";
-import React, { useState, useEffect } from "react"; 
+import React, { useState, useEffect } from "react";
 
 interface Booking {
   id: string;
@@ -363,24 +362,11 @@ export function PrintItinerary({ booking, items, payments, qrCodeData, onClose }
     printWindow.document.write(getItineraryHtml());
     printWindow.document.close();
     printWindow.focus();
-    
+
     setTimeout(() => {
       printWindow.print();
       printWindow.close();
     }, 500);
-  };
-
-  const handleDownloadPdf = () => {
-    const element = getItineraryHtml();
-    const opt = {
-      margin:       0.5,
-      filename:     `itinerary-${booking.id}.pdf`,
-      image:        { type: 'jpeg' as any, quality: 0.98 },
-      html2canvas:  { scale: 2 },
-      jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' as any }
-    };
-
-    html2pdf().from(element).set(opt).save();
   };
 
   return (
@@ -487,7 +473,7 @@ export function PrintItinerary({ booking, items, payments, qrCodeData, onClose }
                 </div>
               </div>
             )}
-              
+
             {items && items.length > 0 && (
               <div className="section">
                 <h3 className="section-title text-lg font-bold text-[#004165] border-b-2 border-primary pb-2 mb-4">
@@ -515,7 +501,7 @@ export function PrintItinerary({ booking, items, payments, qrCodeData, onClose }
                 </div>
               </div>
             )}
-              
+
             <div className="total-section bg-muted/30 p-5 rounded-lg flex justify-between items-center">
               <span className="total-label text-muted-foreground">{t("itinerary.totalAmount", "Total Amount")}</span>
               <span className="total-amount text-2xl font-bold text-[#004165]">
@@ -536,12 +522,12 @@ export function PrintItinerary({ booking, items, payments, qrCodeData, onClose }
             {qrCodeData && (
               <div className="qr-code-section text-center mt-6">
                 <h3 className="section-title text-lg font-bold text-[#004165] border-b-2 border-primary pb-2 mb-4 flex items-center justify-center gap-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-qr-code h-5 w-5 text-primary"><rect width="4" height="4" x="2" y="2"/><rect width="4" height="4" x="16" y="2"/><rect width="4" height="4" x="2" y="16"/><path d="M21 16h-3a2 2 0 0 0-2 2v3"/><path d="M21 21v.01"/><path d="M12 7v3a2 2 0 0 1-2 2H7"/><path d="M7 12v.01"/><path d="M12 17v.01"/><path d="M17 12v.01"/><path d="M17 7h.01"/><path d="M7 7h.01"/><path d="M12 12h.01"/><path d="M16 6V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h7"/><path d="M6 18H4c-.5 0-1-.5-1-1V4c0-.5.5-1 1-1h10c.5 0 1 .5 1 1v2"/></svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-qr-code h-5 w-5 text-primary"><rect width="4" height="4" x="2" y="2" /><rect width="4" height="4" x="16" y="2" /><rect width="4" height="4" x="2" y="16" /><path d="M21 16h-3a2 2 0 0 0-2 2v3" /><path d="M21 21v.01" /><path d="M12 7v3a2 2 0 0 1-2 2H7" /><path d="M7 12v.01" /><path d="M12 17v.01" /><path d="M17 12v.01" /><path d="M17 7h.01" /><path d="M7 7h.01" /><path d="M12 12h.01" /><path d="M16 6V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h7" /><path d="M6 18H4c-.5 0-1-.5-1-1V4c0-.5.5-1 1-1h10c.5 0 1 .5 1 1v2" /></svg>
                   {t("itinerary.qrCodeTitle", "Scan for Check-in")}
                 </h3>
-                <img 
-                  src={qrCodeDataURL} 
-                  alt="QR Code" 
+                <img
+                  src={qrCodeDataURL}
+                  alt="QR Code"
                   className="mx-auto mt-4 p-2 border border-gray-200 rounded-lg"
                   style={{ maxWidth: '180px', height: 'auto' }}
                 />
@@ -570,27 +556,19 @@ export function PrintItinerary({ booking, items, payments, qrCodeData, onClose }
         </div>
 
         <div className="flex flex-col sm:flex-row gap-2 mt-4">
-          <Button 
-            data-testid="button-print-itinerary" 
-            onClick={handlePrint} 
+          <Button
+            data-testid="button-print-itinerary"
+            onClick={handlePrint}
             className="flex-1 bg-[#004165] hover:bg-[#003050]"
           >
             <Printer className="h-4 w-4 mr-2" />
             {t("itinerary.print", "Print Itinerary")}
           </Button>
-          <Button 
-            data-testid="button-download-pdf" 
-            onClick={handleDownloadPdf} 
+
+          <Button
+            data-testid="button-close-itinerary"
             variant="outline"
-            className="flex-1"
-          >
-            <Download className="h-4 w-4 mr-2" />
-            {t("itinerary.downloadPdf", "Download PDF")}
-          </Button>
-          <Button 
-            data-testid="button-close-itinerary" 
-            variant="outline" 
-            onClick={onClose} 
+            onClick={onClose}
             className="flex-1"
           >
             <X className="h-4 w-4 mr-2" />

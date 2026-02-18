@@ -58,7 +58,7 @@ export default function Vehicles() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {vehicles.map((vehicle: Tour, index: number) => (
-                <TourCard key={vehicle.id} tour={vehicle} index={index} />
+                <TourCard key={vehicle.id} tour={vehicle as any} index={index} />
               ))}
             </div>
           )}

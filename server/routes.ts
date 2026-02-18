@@ -674,7 +674,7 @@ export async function registerRoutes(
 
         const emailBooking = {
           ...booking,
-          date: firstItem?.date || new Date().toISOString().split('T')[0],
+          date: booking.date || new Date().toISOString().split('T')[0],
           guests: `${firstItem?.adultPax || 1} Adult(s)${firstItem?.childPax ? ', ' + firstItem.childPax + ' Child(ren)' : ''}`,
           amount: `VT ${((booking.totalAmountCents || 0) / 100).toLocaleString()}`,
         };
@@ -747,7 +747,7 @@ export async function registerRoutes(
 
           const emailBooking = {
             ...booking,
-            date: firstItem?.date || new Date().toISOString().split('T')[0],
+            date: booking.date || new Date().toISOString().split('T')[0],
             guests: `${firstItem?.adultPax || 1} Adult(s)${firstItem?.childPax ? ', ' + firstItem.childPax + ' Child(ren)' : ''}`,
             amount: `VT ${((booking.totalAmountCents || 0) / 100).toLocaleString()}`,
           };
