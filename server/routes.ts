@@ -930,10 +930,10 @@ export async function registerRoutes(
       // FIX: Enforce booking status state machine.
       // Only admin users are allowed to drive status transitions.
       const ALLOWED_TRANSITIONS: Record<string, string[]> = {
-        'pending':        ['confirmed', 'cancelled'],
-        'confirmed':      ['completed', 'cancelled'],
-        'completed':      [],
-        'cancelled':      [],
+        'pending': ['confirmed', 'cancelled'],
+        'confirmed': ['completed', 'cancelled'],
+        'completed': [],
+        'cancelled': [],
         'price_mismatch': ['confirmed', 'cancelled'],  // admin manual resolution
         'inventory_conflict': ['cancelled'],             // admin manual resolution
       };
@@ -1212,7 +1212,7 @@ export async function registerRoutes(
   registerBookingEngineRoutes(app, storage, requireAdmin);
 
   // Safety 404 for /api routes to prevent hitting Vite middleware
-  app.all("/api/*", (req, res) => {
+  app.all("/api/*any", (req, res) => {
     res.status(404).json({ error: `Route ${req.method} ${req.originalUrl} not found` });
   });
 
