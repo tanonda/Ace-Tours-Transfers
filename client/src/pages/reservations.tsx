@@ -6,27 +6,25 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useCart } from "@/lib/cart-context";
 import {
-  Car, PlusCircle, Search, Calendar as CalendarIcon, Loader2,
-  ShoppingBag, Trash2, ArrowRight, ClipboardList, History,
-  MapPin, Clock, Users, CheckCircle, XCircle, AlertCircle,
-  Filter, Download, Eye, Printer, LogIn, UserPlus, Globe, ShoppingCart, Eraser, ArrowLeft, CheckCircle2, CreditCard, AlertTriangle
+  Calendar as CalendarIcon, Loader2, ClipboardList,
+  Trash2, Search, PlusCircle, History, ShoppingBag,
+  CheckCircle, XCircle, AlertCircle
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { Link, useLocation } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { tours, transfers } from "@/lib/data";
+import { verifyBooking, cancelBooking, fetchTours } from "@/lib/api";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { verifyBooking, cancelBooking } from "@/lib/api";
 import { BookingForm, bookingFormSchema } from "@/components/booking-form";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -52,30 +50,53 @@ type Booking = {
   createdAt: string;
 };
 
-const getServiceIdFromTitle = (title: string) => {
-  const allServices = [...(tours || []), ...(transfers || [])];
-  const service = allServices.find(s => s.title === title);
-  return service?.id;
-};
 
 export default function Reservations() {
   const { t } = useTranslation();
   const { itemCount, items, removeFromCart, total, clearCart } = useCart();
   const { user, isAuthenticated, isAdmin } = useAuth();
-  const [, setLocation] = useLocation();
+  const [location] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-
-  const [activeTab, setActiveTab] = useState<string>(isAuthenticated ? "my-reservations" : "lookup");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
 
   const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
   const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
   const [availabilityMessage, setAvailabilityMessage] = useState("");
   const [isBookingLoading, setIsBookingLoading] = useState(false);
+
+  // Memoized initial values from URL parameters
+  const initialValues = useMemo(() => {
+    const searchParams = new URL(window.location.href).searchParams;
+    const preselectedService = searchParams.get("service") || "";
+    const preselectedAdults = searchParams.get("adults") || "2";
+    const preselectedChildren = searchParams.get("children") || "0";
+    const preselectedDate = searchParams.get("date");
+
+    return {
+      name: user?.name || "",
+      email: user?.email || "",
+      service: preselectedService,
+      adultPax: preselectedAdults,
+      childPax: preselectedChildren,
+      date: preselectedDate ? new Date(preselectedDate) : undefined,
+    };
+  }, [user?.name, user?.email]); // Re-compute if user changes or on first mount. URL params are usually static for this page's lifecycle.
+
+  const initialTab = useMemo(() => {
+    const searchParams = new URL(window.location.href).searchParams;
+    return searchParams.get("tab") || (isAuthenticated ? "my-reservations" : "lookup");
+  }, [isAuthenticated]);
+
+  const [activeTab, setActiveTab] = useState<string>(initialTab);
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [lookupResult, setLookupResult] = useState<any>(null);
+
+  const { data: allServices = [], isLoading: servicesLoading } = useQuery({
+    queryKey: ["tours"],
+    queryFn: fetchTours,
+  });
 
   const { data: bookings = [], isLoading: bookingsLoading } = useQuery<Booking[]>({
     queryKey: ["bookings", user?.id, isAdmin],
@@ -87,6 +108,19 @@ export default function Reservations() {
     },
     enabled: isAuthenticated && !!user?.id,
   });
+
+  const bookingServices = useMemo(() => {
+    return allServices.map(s => ({
+      id: s.id,
+      title: s.title,
+      category: s.category
+    }));
+  }, [allServices]);
+
+  const getServiceIdFromTitle = useCallback((title: string) => {
+    const service = allServices.find(s => s.title === title);
+    return service?.id;
+  }, [allServices]);
 
   const updateBookingMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
@@ -135,7 +169,14 @@ export default function Reservations() {
     }
   });
 
-  const handleAvailabilityCheck = async (serviceTitle: string, date: Date, guests: number) => {
+  const handleAvailabilityCheck = useCallback(async (
+    serviceTitle: string,
+    date: Date,
+    adultPax: number,
+    childPax: number,
+    startTime?: string,
+    endTime?: string
+  ) => {
     setIsCheckingAvailability(true);
     setIsAvailable(null);
     setAvailabilityMessage("");
@@ -155,7 +196,10 @@ export default function Reservations() {
         body: JSON.stringify({
           serviceId,
           date: format(date, "yyyy-MM-dd"),
-          guests,
+          adultPax,
+          childPax,
+          startTime,
+          endTime,
         }),
       });
 
@@ -173,19 +217,8 @@ export default function Reservations() {
     } finally {
       setIsCheckingAvailability(false);
     }
-  };
+  }, [getServiceIdFromTitle]);
 
-  const bookingForm = useForm<z.infer<typeof bookingFormSchema>>({
-    resolver: zodResolver(bookingFormSchema),
-    defaultValues: {
-      name: user?.name || "",
-      email: user?.email || "",
-      service: "",
-      adultPax: "2",
-      childPax: "0",
-      notes: "",
-    },
-  });
 
   async function onBookingSubmit(values: z.infer<typeof bookingFormSchema>) {
     if (isAvailable === null || isAvailable === false) {
@@ -199,7 +232,7 @@ export default function Reservations() {
 
     setIsBookingLoading(true);
     try {
-      const selectedTour = [...tours, ...transfers].find(t => t.title === values.service);
+      const selectedTour = allServices.find(t => t.title === values.service);
 
       let holdId = null;
       if (selectedTour) {
@@ -246,8 +279,7 @@ export default function Reservations() {
         const booking = await res.json();
         queryClient.invalidateQueries({ queryKey: ["bookings"] });
         toast({ title: t("common.success"), description: t("reservations.bookingCreated", "Booking created successfully!") });
-        bookingForm.reset();
-        setLocation(`/payment?bookingId=${booking.id}`);
+        window.location.href = `/payment?bookingId=${booking.id}`;
       } else {
         const error = await res.json();
         throw new Error(error.error || "Failed to create booking");
@@ -320,7 +352,7 @@ export default function Reservations() {
     );
   };
 
-  const handleCheckout = () => setLocation("/payment");
+  const handleCheckout = () => { window.location.href = "/payment"; };
 
   return (
     <Layout>
@@ -534,10 +566,8 @@ export default function Reservations() {
                       isAvailable={isAvailable}
                       availabilityMessage={availabilityMessage}
                       isCheckingAvailability={isCheckingAvailability}
-                      initialValues={{
-                        name: user?.name || "",
-                        email: user?.email || ""
-                      }}
+                      services={bookingServices}
+                      initialValues={initialValues}
                     />
                   </CardContent>
                 </Card>

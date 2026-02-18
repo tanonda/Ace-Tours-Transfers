@@ -43,24 +43,24 @@ function BookingModal({ booking, onClose, onUpdate, t }: { booking: any; onClose
           <div><strong className="text-foreground">{t("booking.status")}:</strong> {booking.status}</div>
         </div>
         <div className="mt-5 flex gap-2">
-          <button 
-            data-testid="button-confirm-booking" 
-            onClick={() => onUpdate('confirmed')} 
+          <button
+            data-testid="button-confirm-booking"
+            onClick={() => onUpdate('confirmed')}
             className="flex-1 py-2.5 rounded-lg border-none bg-green-500 text-white font-semibold cursor-pointer hover:bg-green-600 transition-colors"
           >
             {t("booking.confirm")}
           </button>
-          <button 
-            data-testid="button-cancel-booking" 
-            onClick={() => onUpdate('cancelled')} 
+          <button
+            data-testid="button-cancel-booking"
+            onClick={() => onUpdate('cancelled')}
             className="flex-1 py-2.5 rounded-lg border-none bg-red-500 text-white font-semibold cursor-pointer hover:bg-red-600 transition-colors"
           >
             {t("booking.cancel")}
           </button>
         </div>
-        <button 
-          data-testid="button-close-modal" 
-          onClick={onClose} 
+        <button
+          data-testid="button-close-modal"
+          onClick={onClose}
           className="mt-3 w-full py-2.5 rounded-lg border border-border bg-transparent text-foreground cursor-pointer hover:bg-muted transition-colors"
         >
           {t("dashboard.close")}
@@ -79,7 +79,7 @@ function Table({ rows, onOpenBooking, t }: { rows: any[]; onOpenBooking: (bookin
     if (statusLower === 'cancelled') return t("booking.cancelled");
     return status;
   };
-  
+
   return (
     <table className="w-full border-collapse">
       <thead className="text-left text-muted-foreground">
@@ -102,18 +102,17 @@ function Table({ rows, onOpenBooking, t }: { rows: any[]; onOpenBooking: (bookin
             <td className="py-3 px-2 text-foreground text-sm">{r.date}</td>
             <td className="py-3 px-2 text-foreground text-sm">{r.amount}</td>
             <td className="py-3 px-2">
-              <span className={`px-2.5 py-1 rounded-md text-xs font-semibold ${
-                r.status === 'confirmed' || r.status === 'Paid' 
-                  ? 'bg-green-500/15 text-green-500' 
-                  : r.status === 'pending' || r.status === 'Pending' 
-                    ? 'bg-yellow-500/15 text-yellow-500' 
+              <span className={`px-2.5 py-1 rounded-md text-xs font-semibold ${r.status === 'confirmed' || r.status === 'Paid'
+                  ? 'bg-green-500/15 text-green-500'
+                  : r.status === 'pending' || r.status === 'Pending'
+                    ? 'bg-yellow-500/15 text-yellow-500'
                     : 'bg-red-500/15 text-red-500'
-              }`}>
+                }`}>
                 {getTranslatedStatus(r.status)}
               </span>
             </td>
             <td className="py-3 px-2">
-              <button 
+              <button
                 data-testid={`button-open-${r.id}`}
                 onClick={() => onOpenBooking(r)}
                 className="bg-primary text-primary-foreground px-3 py-1.5 rounded-md border-none font-semibold cursor-pointer text-xs hover:opacity-90 transition-opacity"
@@ -137,7 +136,7 @@ export default function AdminDashboard() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const { t, i18n } = useTranslation();
-  
+
   const fmtVT = (n?: number) => {
     if (n == null) return '-';
     const locale = i18n.language === 'zh' ? 'zh-CN' : i18n.language === 'fr' ? 'fr-FR' : i18n.language === 'es' ? 'es-ES' : 'en-US';
@@ -184,12 +183,12 @@ export default function AdminDashboard() {
   const filteredBookings = bookings.filter(b => {
     // Filter by status
     const statusMatch = statusFilter === 'all' || b.status.toLowerCase() === statusFilter.toLowerCase();
-    
+
     // Filter by search query (searches across multiple fields)
     if (!searchQuery.trim()) return statusMatch;
-    
+
     const query = searchQuery.toLowerCase();
-    const matches = 
+    const matches =
       b.customerName?.toLowerCase().includes(query) ||
       b.tourName?.toLowerCase().includes(query) ||
       b.id?.toLowerCase().includes(query) ||
@@ -197,7 +196,7 @@ export default function AdminDashboard() {
       b.status?.toLowerCase().includes(query) ||
       b.date?.toLowerCase().includes(query) ||
       b.guests?.toString().includes(query);
-    
+
     return statusMatch && matches;
   });
 
@@ -210,8 +209,8 @@ export default function AdminDashboard() {
   return (
     <DashboardLayout type="admin">
       {selectedBooking && (
-        <BookingModal 
-          booking={selectedBooking} 
+        <BookingModal
+          booking={selectedBooking}
           onClose={() => setSelectedBooking(null)}
           onUpdate={(status) => updateMutation.mutate({ id: selectedBooking.id, status })}
           t={t}
@@ -229,23 +228,23 @@ export default function AdminDashboard() {
             </p>
           </div>
           <div className="flex gap-2">
-            <input 
-              data-testid="input-search" 
-              placeholder={t("common.searchPlaceholder")} 
+            <input
+              data-testid="input-search"
+              placeholder={t("common.searchPlaceholder")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="py-2.5 px-3.5 rounded-lg border border-border min-w-[200px] bg-background text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
-            <button 
-              data-testid="button-export-csv" 
-              onClick={handleExportCSV} 
+            <button
+              data-testid="button-export-csv"
+              onClick={handleExportCSV}
               className="bg-primary py-2.5 px-4 rounded-lg cursor-pointer border-none text-primary-foreground text-sm font-semibold hover:opacity-90 transition-opacity"
             >
               {t("common.export")}
             </button>
           </div>
         </div>
-        
+
         <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <KPI label={t("dashboard.revenue")} value={fmtVT(totalRevenue * 100)} delta="+8%" colorClass="bg-yellow-500 text-yellow-950" />
           <KPI label={t("dashboard.bookings")} value={stats?.total || bookings.length} delta="+3%" colorClass="bg-blue-500 text-blue-950" />
@@ -257,7 +256,7 @@ export default function AdminDashboard() {
           <div className="p-5 rounded-xl bg-card border border-border">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-foreground text-base font-semibold">{t("dashboard.recentBookings")}</h3>
-              <select 
+              <select
                 data-testid="select-status-filter"
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
@@ -309,23 +308,23 @@ export default function AdminDashboard() {
             <div className="p-5 rounded-xl bg-card border border-border">
               <h4 className="text-foreground text-sm font-semibold mb-3">{t("dashboard.quickActions")}</h4>
               <div className="flex flex-wrap gap-2">
-                <button 
-                  data-testid="button-new-booking" 
-                  onClick={() => setLocation('/tours')} 
+                <button
+                  data-testid="button-new-booking"
+                  onClick={() => setLocation('/reservations?tab=book-new')}
                   className="bg-muted px-3 py-2 rounded-lg cursor-pointer border border-border text-foreground text-xs hover:bg-accent transition-colors"
                 >
                   {t("dashboard.newBooking")}
                 </button>
-                <button 
-                  data-testid="button-create-promo" 
-                  onClick={() => setLocation('/admin/promotions')} 
+                <button
+                  data-testid="button-create-promo"
+                  onClick={() => setLocation('/admin/promotions')}
                   className="bg-muted px-3 py-2 rounded-lg cursor-pointer border border-border text-foreground text-xs hover:bg-accent transition-colors"
                 >
                   {t("dashboard.createPromo")}
                 </button>
-                <button 
-                  data-testid="button-view-reports" 
-                  onClick={() => setLocation('/admin/reports')} 
+                <button
+                  data-testid="button-view-reports"
+                  onClick={() => setLocation('/admin/reports')}
                   className="bg-muted px-3 py-2 rounded-lg cursor-pointer border border-border text-foreground text-xs hover:bg-accent transition-colors"
                 >
                   {t("dashboard.viewReports")}
@@ -338,13 +337,12 @@ export default function AdminDashboard() {
               <ul className="mt-3 space-y-2">
                 {bookings.slice(0, 3).map((b) => (
                   <li key={b.id} className="flex items-center gap-2 text-sm">
-                    <span className={`w-1.5 h-1.5 rounded-full ${
-                      b.status === 'confirmed' ? 'bg-green-500' : 
-                      b.status === 'pending' ? 'bg-yellow-500' : 'bg-red-400'
-                    }`}></span>
+                    <span className={`w-1.5 h-1.5 rounded-full ${b.status === 'confirmed' ? 'bg-green-500' :
+                        b.status === 'pending' ? 'bg-yellow-500' : 'bg-red-400'
+                      }`}></span>
                     <span className={
-                      b.status === 'confirmed' ? 'text-green-500' : 
-                      b.status === 'pending' ? 'text-yellow-500' : 'text-red-400'
+                      b.status === 'confirmed' ? 'text-green-500' :
+                        b.status === 'pending' ? 'text-yellow-500' : 'text-red-400'
                     }>
                       {b.status === 'confirmed' ? t("booking.confirmed") : b.status === 'pending' ? t("dashboard.newBookingNotif") : t("booking.cancelled")}
                     </span>

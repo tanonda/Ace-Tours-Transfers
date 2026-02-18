@@ -57,7 +57,7 @@ import { rateLimit } from "express-rate-limit";
 // Rate limiter for availability check
 const availabilityLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
-  max: 10, // limit each IP to 10 requests per windowMs
+  max: 60, // limit each IP to 60 requests per windowMs
   message: { error: "Too many availability checks, please try again later." },
   standardHeaders: true,
   legacyHeaders: false,

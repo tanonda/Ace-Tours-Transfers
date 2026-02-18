@@ -1,4 +1,5 @@
 
+import { Link } from "wouter";
 import { Layout } from "@/components/layout";
 import { SEO } from "@/components/seo";
 import { Hero } from "@/components/hero";
@@ -6,7 +7,6 @@ import { TourCard } from "@/components/tour-card";
 import { motion } from "framer-motion";
 import { CheckCircle, MapPin, Shield, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { BookingModal } from "@/components/booking-modal";
 import { useQuery } from "@tanstack/react-query";
 import { fetchTours } from "@/lib/api";
 import { useTranslation } from "react-i18next";
@@ -221,7 +221,9 @@ export default function Home() {
         <div className="container mx-auto px-4 relative text-center text-white">
           <h2 className="text-4xl md:text-6xl font-bold mb-8 font-serif">{t("home.ctaTitle")}</h2>
           <p className="text-xl md:text-2xl mb-10 max-w-2xl mx-auto opacity-90">{t("home.ctaDesc")}</p>
-          <BookingModal trigger={<Button size="lg" variant="secondary" className="text-primary font-bold px-10 py-8 text-xl shadow-2xl">{t("home.ctaButton")}</Button>} />
+          <Link href="/reservations?tab=book-new">
+            <Button size="lg" variant="secondary" className="text-primary font-bold px-10 py-8 text-xl shadow-2xl">{t("home.ctaButton")}</Button>
+          </Link>
         </div>
       </section>
     </Layout>

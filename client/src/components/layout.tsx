@@ -3,7 +3,6 @@ import { useState, useEffect, forwardRef } from "react";
 import { Menu, Phone, Mail, Instagram, Facebook, X, ChevronRight, ShoppingCart, User, LogIn, LogOut, UserPlus, Home, Map, Car, Info, MessageSquare, Calendar, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { BookingModal } from "@/components/booking-modal";
 import { NewsletterForm } from "@/components/newsletter-form";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 const logo = "https://res.cloudinary.com/dwro1dh5q/image/upload/v1765063924/ace-tours-assets/ace_tours_logo_official.jpg";
@@ -298,7 +297,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <CurrencySelector />
               <LanguageSelector />
               <ThemeToggle size="sm" />
-              <BookingModal trigger={<Button size="lg" className="font-semibold shadow-lg">{t("tour.bookNow")}</Button>} />
+              <Link href="/reservations?tab=book-new">
+                <Button size="lg" className="font-semibold shadow-lg">{t("tour.bookNow")}</Button>
+              </Link>
             </div>
           </nav>
 
@@ -559,13 +560,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 </nav>
 
                 <div className="p-4 border-t border-border">
-                  <BookingModal
-                    trigger={
-                      <Button size="lg" className="w-full font-semibold shadow-lg" data-testid="button-mobile-book-now">
-                        {t("tour.bookNow")}
-                      </Button>
-                    }
-                  />
+                  <Link href="/reservations?tab=book-new" onClick={closeMobileMenu}>
+                    <Button size="lg" className="w-full font-semibold shadow-lg" data-testid="button-mobile-book-now">
+                      {t("tour.bookNow")}
+                    </Button>
+                  </Link>
                 </div>
 
                 <div className="p-4 bg-muted/30 border-t border-border">
@@ -729,7 +728,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <ThemeToggle size="md" />
             </div>
 
-            <BookingModal trigger={<Button size="lg" className="w-full">{t("tour.bookNow")}</Button>} />
+            <Link href="/reservations?tab=book-new">
+              <Button size="lg" className="w-full">{t("tour.bookNow")}</Button>
+            </Link>
           </div>
         }
       />
