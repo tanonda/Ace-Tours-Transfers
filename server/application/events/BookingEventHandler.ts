@@ -61,6 +61,16 @@ export class BookingEventHandler {
         }
 
         if (expectedTotal !== booking.totalAmountCents) {
+          // M5 Fix: Alert admins for price mismatch
+          await mailingService.sendAdminEmail(
+            `🚨 Price Mismatch: Booking ${booking.id}`,
+            `<p>A price mismatch was detected during payment confirmation for booking <strong>${booking.id}</strong>.</p>
+             <p><strong>Customer:</strong> ${booking.customerName} (${booking.customerEmail})</p>
+             <p><strong>Expected Total:</strong> ${expectedTotal} cents</p>
+             <p><strong>Actual Paid Total:</strong> ${booking.totalAmountCents} cents</p>
+             <p>The booking has been marked as <code>price_mismatch</code> and requires manual review.</p>`
+          );
+
           // Price mismatch: mark booking and alert admins, do not confirm inventory
           await this.storage.updateBooking(booking.id, { status: 'price_mismatch' });
           const audit = new AuditLogService(this.storage);

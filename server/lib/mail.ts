@@ -58,25 +58,37 @@ export async function sendEmail({ to, subject, html, replyTo }: EmailOptions): P
     return true;
   }
 
-  try {
-    const info = await getTransporter().sendMail({
-      from: `"${fromName}" <${fromAddress}>`,
-      to,
-      subject,
-      html,
-      replyTo: replyTo || fromAddress,
-    });
+  const MAX_RETRIES = 3;
+  let lastError;
 
-    console.log("📧 Email sent successfully:", {
-      messageId: info.messageId,
-      to,
-      subject,
-    });
-    return true;
-  } catch (error) {
-    console.error("❌ Error sending email:", error);
-    return false;
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const info = await getTransporter().sendMail({
+        from: `"${fromName}" <${fromAddress}>`,
+        to,
+        subject,
+        html,
+        replyTo: replyTo || fromAddress,
+      });
+
+      console.log(`📧 Email sent successfully (Attempt ${attempt}):`, {
+        messageId: info.messageId,
+        to,
+        subject,
+      });
+      return true;
+    } catch (error) {
+      lastError = error;
+      console.warn(`⚠️ Email delivery failed (Attempt ${attempt}/${MAX_RETRIES}):`, error);
+      if (attempt < MAX_RETRIES) {
+        // Wait before retry (1s, 2s, 4s exponential backoff-ish)
+        await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt - 1) * 1000));
+      }
+    }
   }
+
+  console.error("❌ All email delivery attempts failed:", lastError);
+  return false;
 }
 
 // Send email to admin

@@ -100,6 +100,7 @@ export interface IStorage {
   createBooking(booking: InsertBooking, tx?: any): Promise<Booking>;
   updateBooking(id: string, booking: Partial<InsertBooking>, tx?: any): Promise<Booking>;
   linkBookingsToUser(email: string, userId: string): Promise<void>;
+  getBookingByHoldId(holdId: string): Promise<Booking | undefined>;
   deleteBooking(id: string): Promise<void>;
   createBookingItem(item: InsertBookingItem, tx?: any): Promise<BookingItem>;
   getBookingItems(bookingId: string): Promise<BookingItem[]>;
@@ -141,6 +142,8 @@ export interface IStorage {
   getOverduePayments(): Promise<Payment[]>;
 
   markNotificationAsRead(id: string): Promise<void>;
+  createNotification(notification: InsertNotification): Promise<Notification>;
+  getUnreadNotifications(userId?: string): Promise<Notification[]>;
 
   // Reviews
   createReview(review: InsertReview): Promise<Review>;
@@ -390,6 +393,11 @@ export class DatabaseStorage implements IStorage {
     await db.update(bookings)
       .set({ userId })
       .where(and(eq(bookings.customerEmail, email), sql`${bookings.userId} IS NULL`));
+  }
+
+  async getBookingByHoldId(holdId: string): Promise<Booking | undefined> {
+    const [booking] = await db.select().from(bookings).where(eq(bookings.holdId, holdId));
+    return booking || undefined;
   }
 
   async deleteBooking(id: string): Promise<void> {
@@ -917,7 +925,7 @@ export class DatabaseStorage implements IStorage {
     return created;
   }
 
-  async updateAvailabilityHold(id: string, data: Partial<InsertAvailabilityHold>): Promise<AvailabilityHold> {
+  async updateHold(id: string, data: Partial<InsertAvailabilityHold>): Promise<AvailabilityHold> {
     const [updated] = await db.update(availabilityHolds).set(data).where(eq(availabilityHolds.id, id)).returning();
     await db.insert(capacityAuditLog).values({
       tourInstanceId: updated.tourInstanceId,

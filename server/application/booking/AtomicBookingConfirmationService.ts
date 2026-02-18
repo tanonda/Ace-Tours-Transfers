@@ -414,12 +414,12 @@ export class AtomicBookingConfirmationService {
           // ═══════════════════════════════════════════════════════════════
           console.log(`[ATOMIC_CONFIRM][${transactionId}] STEP 7: Confirming ${holds.length} holds...`);
 
-          // Update tour instance counts
+          // H5 Fix: Use SQL arithmetic for atomic updates
           await tx
             .update(tourInstances)
             .set({
-              confirmedCount: instance.confirmedCount + totalHeldQuantity,
-              heldCount: Math.max(0, instance.heldCount - totalHeldQuantity),
+              confirmedCount: sql`${tourInstances.confirmedCount} + ${totalHeldQuantity}`,
+              heldCount: sql`GREATEST(0, ${tourInstances.heldCount} - ${totalHeldQuantity})`,
               updatedAt: new Date(),
             })
             .where(eq(tourInstances.id, instance.id));

@@ -107,6 +107,8 @@ export const bookings = pgTable("bookings", {
   tourName: text("tour_name").notNull(),
   pickupLocation: text("pickup_location"), // Phase 4 readiness: stores customer pickup details
   confirmedAt: timestamp("confirmed_at"),  // Phase 4 readiness: tracked for production reporting
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  notes: text("notes"),
 }, (table) => ({
   holdUniqueIdx: uniqueIndex("idx_bookings_hold_unique").on(table.holdId),
 }));

@@ -14,6 +14,7 @@ import { migrate } from "drizzle-orm/neon-serverless/migrator";
 import * as Sentry from "@sentry/node";
 import helmet from "helmet";
 import cors from "cors";
+import compression from "compression";
 
 
 // Initialize Sentry error monitoring (Phase 4 readiness)
@@ -61,8 +62,9 @@ app.disable('x-powered-by'); // H4 Fix: Explicitly disable X-Powered-By
 app.use(helmet({
   contentSecurityPolicy: false,
 }));
+app.use(compression()); // L5 Fix: Add gzip compression
 app.use(cors({
-  origin: process.env.APP_URL || true,
+  origin: config.appUrl || (config.env === 'production' ? false : true), // M9 Fix: Lockdown CORS in prod
   credentials: true,
 }));
 
@@ -237,7 +239,15 @@ app.use((req, res, next) => {
     if (path.startsWith("/api")) {
       let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
       if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+        // L7 Fix: Scrub sensitive fields before logging
+        const sensitiveKeys = ['password', 'token', 'secret', 'credentials', 'credit_card', 'cvv'];
+        const scrubbedResponse = JSON.parse(JSON.stringify(capturedJsonResponse, (key, value) => {
+          if (sensitiveKeys.some(sk => key.toLowerCase().includes(sk))) {
+            return '[SCRUBBED]';
+          }
+          return value;
+        }));
+        logLine += ` :: ${JSON.stringify(scrubbedResponse)}`;
       }
 
       log(logLine);

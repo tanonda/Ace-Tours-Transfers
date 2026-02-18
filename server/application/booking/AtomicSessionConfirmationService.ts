@@ -20,7 +20,7 @@ import {
     availabilityHolds,
     tourInstances,
 } from "../../../shared/schema.js";
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, inArray, sql } from "drizzle-orm";
 import { AuditLogService } from "../../infrastructure/audit/audit-log.service.js";
 import { metricsService } from "../../infrastructure/metrics/metrics.service.js";
 import { ConfirmationErrorCode } from "./AtomicBookingConfirmationService.js";
@@ -157,12 +157,12 @@ export class AtomicSessionConfirmationService {
                                 throw err;
                             }
 
-                            // Update counts
+                            // H5 Fix: Use SQL arithmetic for atomic updates
                             await tx
                                 .update(tourInstances)
                                 .set({
-                                    confirmedCount: instance.confirmedCount + totalConfirming,
-                                    heldCount: Math.max(0, instance.heldCount - totalConfirming),
+                                    confirmedCount: sql`${tourInstances.confirmedCount} + ${totalConfirming}`,
+                                    heldCount: sql`GREATEST(0, ${tourInstances.heldCount} - ${totalConfirming})`,
                                     updatedAt: new Date()
                                 })
                                 .where(eq(tourInstances.id, instanceId));
