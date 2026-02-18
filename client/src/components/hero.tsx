@@ -165,7 +165,7 @@ export function Hero() {
                 </label>
                 <div className="relative">
                   <Select value={serviceType} onValueChange={setServiceType}>
-                    <SelectTrigger id="hero-service-select" className="h-14 border-0 bg-transparent text-lg font-bold text-gray-900 focus:ring-0 shadow-none px-0" data-testid="select-service-type">
+                    <SelectTrigger id="hero-service-select" className="h-14 border-0 bg-transparent text-lg font-black text-gray-900 focus:ring-0 shadow-none px-0" data-testid="select-service-type">
                       <div className="flex items-center gap-3">
                         <div className="h-10 w-10 rounded-2xl bg-orange-50 flex items-center justify-center text-[#f2800d] shrink-0 group-hover/island:bg-[#f2800d] group-hover/island:text-white transition-all">
                           <Map className="h-5 w-5" />
@@ -234,7 +234,7 @@ export function Hero() {
                       id="hero-date-picker"
                       variant="outline"
                       className={cn(
-                        "w-full h-14 justify-start text-left border-0 bg-transparent text-lg font-bold focus:ring-0 shadow-none px-0",
+                        "w-full h-14 justify-start text-left border-0 bg-transparent text-lg font-black focus:ring-0 shadow-none px-0",
                         !selectedDate ? "text-gray-400 font-medium" : "text-gray-900"
                       )}
                       data-testid="button-date-picker"

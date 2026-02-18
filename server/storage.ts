@@ -232,6 +232,34 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
+  /**
+   * Helper to wrap database operations in a retry logic for transient errors (e.g., Neon timeouts)
+   */
+  private async withRetry<T>(operation: () => Promise<T>, retries = 5, delay = 1000): Promise<T> {
+    let lastError: any;
+    for (let i = 0; i < retries; i++) {
+      try {
+        return await operation();
+      } catch (err: any) {
+        lastError = err;
+
+        // Neon driver wraps errors in ErrorEvent or similar objects
+        // We stringify to look for typical transient signal strings
+        const errorString = (err?.message || "") + (err?.stack || "") + JSON.stringify(err);
+        const isTransient = errorString.includes('ETIMEDOUT') ||
+          errorString.includes('Connection terminated') ||
+          errorString.includes('WebSocket') ||
+          errorString.includes('ECONNRESET');
+
+        if (!isTransient || i === retries - 1) break;
+
+        console.warn(`[STORAGE] Transient error detected, retrying (${i + 1}/${retries})...`);
+        await new Promise(resolve => setTimeout(resolve, delay * Math.pow(2, i))); // Exponential backoff
+      }
+    }
+    throw lastError;
+  }
+
   // User operations
   async getUser(id: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
@@ -281,12 +309,14 @@ export class DatabaseStorage implements IStorage {
 
   // Tour operations
   async getTours(): Promise<Tour[]> {
-    return await db.select().from(tours);
+    return this.withRetry(() => db.select().from(tours));
   }
 
   async getTour(id: string): Promise<Tour | undefined> {
-    const [tour] = await db.select().from(tours).where(eq(tours.id, id));
-    return tour || undefined;
+    return this.withRetry(async () => {
+      const [tour] = await db.select().from(tours).where(eq(tours.id, id));
+      return tour || undefined;
+    });
   }
 
   async getTourByTitle(title: string): Promise<Tour | undefined> {
@@ -505,7 +535,7 @@ export class DatabaseStorage implements IStorage {
 
   // Content Blocks (CMS)
   async getContentBlocks(): Promise<ContentBlock[]> {
-    return await db.select().from(contentBlocks);
+    return this.withRetry(() => db.select().from(contentBlocks));
   }
 
   async getContentBlock(slug: string): Promise<ContentBlock | undefined> {
@@ -533,7 +563,7 @@ export class DatabaseStorage implements IStorage {
 
   // Site Settings
   async getSiteSettings(): Promise<SiteSetting[]> {
-    return await db.select().from(siteSettings);
+    return this.withRetry(() => db.select().from(siteSettings));
   }
 
   async getSiteSetting(key: string): Promise<SiteSetting | undefined> {
@@ -706,7 +736,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getTourReviews(tourId: string): Promise<any[]> {
-    return await db
+    return this.withRetry(() => db
       .select({
         id: reviews.id,
         rating: reviews.rating,
@@ -717,7 +747,7 @@ export class DatabaseStorage implements IStorage {
       .from(reviews)
       .leftJoin(users, eq(reviews.userId, users.id))
       .where(eq(reviews.tourId, tourId))
-      .orderBy(desc(reviews.createdAt));
+      .orderBy(desc(reviews.createdAt)));
   }
 
   async getUserReviews(userId: string): Promise<Review[]> {
@@ -790,7 +820,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getActiveAddons(): Promise<Addon[]> {
-    return await db.select().from(addons).where(eq(addons.active, true)).orderBy(desc(addons.createdAt));
+    return this.withRetry(() => db.select().from(addons).where(eq(addons.active, true)).orderBy(desc(addons.createdAt)));
   }
 
   async getAddon(id: string): Promise<Addon | undefined> {

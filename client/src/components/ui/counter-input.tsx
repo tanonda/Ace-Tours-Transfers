@@ -96,7 +96,7 @@ export const CounterInput = React.forwardRef<HTMLInputElement, CounterInputProps
                         animate="animate"
                         exit="exit"
                         className={cn(
-                            "text-center font-bold text-lg text-slate-900 select-none",
+                            "text-center font-black text-lg text-slate-900 select-none",
                             inputClassName
                         )}
                     >

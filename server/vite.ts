@@ -48,7 +48,13 @@ export async function setupVite(server: Server, app: Express) {
   // Add no-cache middleware for all dev requests to fix Outdated Optimize Dep
   // This must be BEFORE vite.middlewares
   app.use((req, res, next) => {
-    if (req.path.startsWith('/@') || req.path.includes('node_modules')) {
+    const isViteAsset = req.path.startsWith('/@') ||
+      req.path.includes('node_modules') ||
+      req.path.endsWith('.tsx') ||
+      req.path.endsWith('.ts') ||
+      req.path.endsWith('.css');
+
+    if (isViteAsset) {
       res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
       res.setHeader("Pragma", "no-cache");
       res.setHeader("Expires", "0");
