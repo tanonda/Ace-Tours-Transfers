@@ -180,22 +180,24 @@ export function BookingForm({
     }
   }, [selectedServiceId, form]);
 
-  // Update form defaults when user loads - only apply initialValues once on mount
+  // Update form defaults when initialValues prop changes
   useEffect(() => {
     if (user && !form.getValues("name")) {
       form.setValue("name", user.name);
       form.setValue("email", user.email);
     }
-    // Only apply initialValues once to prevent resetting user-entered values
-    if (initialValues && !hasAppliedInitialValues.current) {
-      hasAppliedInitialValues.current = true;
+  }, [user, form]);
+
+  useEffect(() => {
+    if (initialValues) {
       Object.entries(initialValues).forEach(([key, value]) => {
         if (value !== undefined && value !== "") {
           form.setValue(key as keyof z.infer<typeof bookingFormSchema>, value as any);
         }
       });
+      // We don't use hasAppliedInitialValues.current here to allow external updates
     }
-  }, [user, initialValues, form]);
+  }, [initialValues, form]);
 
 
   const selectedServiceObj = useMemo(() =>
@@ -708,7 +710,7 @@ export function BookingForm({
 
               <div className="flex items-center justify-center gap-2 text-slate-400">
                 <Info className="h-4 w-4" />
-                <p className="text-xs font-medium italic">
+                <p className="text-[10px] font-medium italic">
                   {t("booking.guarantee", "Free cancellation up to 24 hours before your tour")}
                 </p>
               </div>
@@ -717,192 +719,212 @@ export function BookingForm({
         </Form>
       </div>
 
-      <aside className="w-full lg:w-[380px] order-1 lg:order-2 sticky top-24">
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5 }}
-          className="relative bg-white rounded-3xl overflow-hidden shadow-2xl border border-slate-100"
+      {/* Mobile Summary Fixed Bottom - only visible on small screens */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 p-4 bg-white/90 backdrop-blur-xl border-t border-slate-100 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] flex items-center justify-between gap-4 animate-in slide-in-from-bottom duration-500">
+        <div className="flex flex-col">
+          <span className="text-[10px] uppercase font-black text-slate-400 tracking-wider mb-1 leading-none">Total Amount</span>
+          <div className="flex items-baseline gap-1">
+            <span className="text-2xl font-black text-slate-900 tracking-tight">{estimatedTotal}</span>
+            <span className="text-xs font-bold text-slate-400 uppercase">{currency}</span>
+          </div>
+        </div>
+        <Button
+          onClick={async () => {
+            const isValid = await form.trigger();
+            if (isValid) form.handleSubmit(onSubmit)();
+          }}
+          className="flex-1 h-12 rounded-xl bg-gradient-to-r from-primary to-orange-500 font-bold text-base shadow-lg shadow-primary/20 hover:shadow-xl transition-all active:scale-95"
+          disabled={isSubmitDisabled || isLoading}
         >
-          {/* Receipt Header */}
-          <div className="bg-slate-900 px-6 py-5 text-white relative overflow-hidden shrink-0">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-primary/20 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl" />
-            <div className="relative flex items-center gap-3">
-              <Sparkles className="h-5 w-5 text-primary" />
-              <h3 className="text-xl font-black tracking-tight uppercase">Booking Summary</h3>
-            </div>
-            <p className="text-[10px] text-slate-400 mt-0.5 uppercase tracking-widest font-bold">Ace Tours & Transfers</p>
-          </div>
+          {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : (submitButtonText || t("reservations.continue", "Book Now"))}
+        </Button>
+      </div>
 
-          {/* Perforated edge */}
-          <div className="flex justify-between px-2 bg-slate-900 pb-1">
-            {Array.from({ length: 15 }).map((_, i) => (
-              <div key={i} className="h-2 w-2 bg-white rounded-full" />
-            ))}
-          </div>
-
-          <div className="p-5 space-y-4 relative">
-
-            {/* Service */}
-            <div className="space-y-1">
-              <span className="text-[10px] uppercase font-black text-slate-400 tracking-wider">Service</span>
-              <p className="font-bold text-slate-900 leading-[1.3] text-sm">
-                {watchedService || <span className="text-slate-300 italic font-normal">Select a service</span>}
-              </p>
+      {/* Desktop Summary Panel */}
+      <aside className="hidden lg:block w-[380px] shrink-0">
+        <div className="sticky top-24">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5 }}
+            className="relative bg-white rounded-3xl overflow-hidden shadow-2xl border border-slate-100"
+          >
+            {/* Receipt Header */}
+            <div className="bg-slate-950 px-6 py-6 text-white relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl" />
+              <div className="relative flex items-center gap-3">
+                <div className="h-8 w-8 rounded-lg bg-primary/20 flex items-center justify-center text-primary border border-primary/20">
+                  <Sparkles className="h-5 w-5" />
+                </div>
+                <h3 className="text-xl font-black tracking-tight uppercase">Booking Summary</h3>
+              </div>
+              <p className="text-[10px] text-slate-500 mt-2 uppercase tracking-[0.2em] font-black">Official Reservation Receipt</p>
             </div>
 
-            {/* Date & Time */}
-            <div className="grid grid-cols-2 gap-3 border-t border-dashed border-slate-100 pt-3">
-              <div className="space-y-0.5">
-                <span className="text-[10px] uppercase font-black text-slate-400 tracking-wider">Date</span>
-                <p className="text-xs font-bold text-slate-800">
-                  {watchedDate ? format(watchedDate, "EEE, MMM d, yyyy") : <span className="text-slate-300">—</span>}
+            {/* Perforated edge */}
+            <div className="flex justify-between px-2 bg-slate-950 pb-2">
+              {Array.from({ length: 18 }).map((_, i) => (
+                <div key={i} className="h-2.5 w-2.5 bg-white rounded-full" />
+              ))}
+            </div>
+
+            <div className="p-6 space-y-5 relative">
+              {/* Service */}
+              <div className="space-y-1">
+                <span className="text-[10px] uppercase font-black text-slate-400 tracking-wider">Service Selected</span>
+                <p className="font-bold text-slate-900 leading-tight text-base">
+                  {watchedService || <span className="text-slate-200 italic font-normal">No service selected</span>}
                 </p>
               </div>
-              <div className="space-y-0.5">
-                <span className="text-[10px] uppercase font-black text-slate-400 tracking-wider">Time</span>
-                <p className="text-xs font-bold text-slate-800">
-                  {watchedStartTime ? format(new Date(2024, 0, 1, ...watchedStartTime.split(':').map(Number)), "hh:mm a") : <span className="text-slate-300">—</span>}
-                </p>
-              </div>
-            </div>
 
-            {/* Traveller count */}
-            <div className="grid grid-cols-2 gap-3 border-t border-dashed border-slate-100 pt-3">
-              <div className="space-y-0.5">
-                <span className="text-[10px] uppercase font-black text-slate-400 tracking-wider">Adults</span>
-                <p className="text-sm font-bold text-slate-800">{watchedAdultPax || 0} pax</p>
+              {/* Date & Time */}
+              <div className="grid grid-cols-2 gap-4 border-t border-dashed border-slate-100 pt-4">
+                <div className="space-y-1">
+                  <span className="text-[10px] uppercase font-black text-slate-400 tracking-wider">Date</span>
+                  <p className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <CalendarIcon className="h-3.5 w-3.5 text-primary/60" />
+                    {watchedDate ? format(watchedDate, "EEE, MMM d") : "—"}
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[10px] uppercase font-black text-slate-400 tracking-wider">Time</span>
+                  <p className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <Clock className="h-3.5 w-3.5 text-primary/60" />
+                    {watchedStartTime ? format(new Date(2024, 0, 1, ...watchedStartTime.split(':').map(Number)), "hh:mm a") : "—"}
+                  </p>
+                </div>
               </div>
-              <div className="space-y-0.5">
-                <span className="text-[10px] uppercase font-black text-slate-400 tracking-wider">Children</span>
-                <p className="text-sm font-bold text-slate-800">{watchedChildPax || 0} pax</p>
-              </div>
-            </div>
 
-            {/* Live Availability */}
-            <div className="border-t border-dashed border-slate-100 pt-3">
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[10px] uppercase font-black text-slate-400 tracking-wider">Availability</span>
-                <AnimatePresence mode="wait">
-                  {isCheckingAvailability ? (
-                    <motion.div key="checking" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                      className="flex items-center gap-1.5 text-slate-400">
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                      <span className="text-[10px] font-bold">Checking…</span>
-                    </motion.div>
-                  ) : availabilityMessage ? (
-                    <motion.div key="status" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
-                      className={cn("flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold",
-                        isAvailable ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700")}>
-                      <div className={cn("h-1.5 w-1.5 rounded-full animate-pulse", isAvailable ? "bg-green-500" : "bg-red-500")} />
-                      {isAvailable ? "Available" : "Unavailable"}
-                    </motion.div>
-                  ) : <span className="text-[10px] text-slate-300">—</span>}
-                </AnimatePresence>
+              {/* Traveller count */}
+              <div className="grid grid-cols-2 gap-4 border-t border-dashed border-slate-100 pt-4">
+                <div className="space-y-1">
+                  <span className="text-[10px] uppercase font-black text-slate-400 tracking-wider">Adults</span>
+                  <p className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <User className="h-3.5 w-3.5 text-primary/60" />
+                    {watchedAdultPax || 0} pax
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[10px] uppercase font-black text-slate-400 tracking-wider">Children</span>
+                  <p className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <Users className="h-3.5 w-3.5 text-primary/60" />
+                    {watchedChildPax || 0} pax
+                  </p>
+                </div>
               </div>
-              {availabilityMessage && !isCheckingAvailability && (
-                <p className={cn("text-[10px] font-medium leading-[1.4]",
-                  isAvailable ? "text-green-600" : "text-red-500")}>
-                  {availabilityMessage}
-                </p>
+
+              {/* Live Availability Status */}
+              <div className="border-t border-dashed border-slate-100 pt-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[10px] uppercase font-black text-slate-400 tracking-wider">Live Availability</span>
+                  <AnimatePresence mode="wait">
+                    {isCheckingAvailability ? (
+                      <motion.div key="checking" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        className="flex items-center gap-1.5 text-slate-400">
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        <span className="text-[10px] font-bold">Verifying…</span>
+                      </motion.div>
+                    ) : availabilityMessage ? (
+                      <motion.div key="status" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
+                        className={cn("flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-black",
+                          isAvailable ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700")}>
+                        <div className={cn("h-1.5 w-1.5 rounded-full", isAvailable ? "bg-green-500 animate-pulse" : "bg-red-500")} />
+                        {isAvailable ? "BOOKABLE" : "UNAVAILABLE"}
+                      </motion.div>
+                    ) : <span className="text-[10px] text-slate-200 uppercase font-black tracking-widest">—</span>}
+                  </AnimatePresence>
+                </div>
+                {availabilityMessage && !isCheckingAvailability && (
+                  <p className={cn("text-[10px] font-medium leading-[1.3] px-2 py-1 rounded-md",
+                    isAvailable ? "text-green-600 bg-green-50/50" : "text-red-500 bg-red-50/50")}>
+                    {availabilityMessage}
+                  </p>
+                )}
+              </div>
+
+              {/* Price Breakdown */}
+              {(showPrice || serverPricingCents) && (
+                <div className="border-t-2 border-dashed border-slate-100 pt-5 space-y-3">
+                  <span className="text-[10px] uppercase font-black text-slate-400 tracking-wider block">Price Breakdown</span>
+
+                  {/* Adults line */}
+                  {parseInt(watchedAdultPax) > 0 && adultPriceCents > 0 && (
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-slate-500 font-medium">
+                        {watchedAdultPax} × Adult
+                        <span className="text-[10px] text-slate-300 ml-1.5">
+                          ({formatPriceDisplay(adultPriceCents, currency)})
+                        </span>
+                      </span>
+                      <span className="font-bold text-slate-900 font-mono">
+                        {formatPriceDisplay(parseInt(watchedAdultPax) * adultPriceCents, currency)}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Children line */}
+                  {parseInt(watchedChildPax) > 0 && childPriceCents > 0 && (
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-slate-500 font-medium">
+                        {watchedChildPax} × Child
+                        <span className="text-[10px] text-slate-300 ml-1.5">
+                          ({formatPriceDisplay(childPriceCents, currency)})
+                        </span>
+                      </span>
+                      <span className="font-bold text-slate-900 font-mono">
+                        {formatPriceDisplay(parseInt(watchedChildPax) * childPriceCents, currency)}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Add-ons lines */}
+                  {watchedAddonIds?.length > 0 && availableAddons
+                    .filter(a => watchedAddonIds.includes(a.id))
+                    .map(addon => (
+                      <div key={addon.id} className="flex justify-between items-center text-sm">
+                        <span className="text-slate-500 font-medium truncate max-w-[180px]">+ {addon.name}</span>
+                        <span className="font-bold text-slate-900 font-mono">{formatPriceDisplay(addon.priceCents, currency)}</span>
+                      </div>
+                    ))
+                  }
+
+                  {/* Total */}
+                  <div className="flex justify-between items-center pt-4 border-t-2 border-slate-900 border-dashed mt-2">
+                    <div>
+                      <span className="text-[10px] uppercase font-black text-slate-500 tracking-widest block">Grand Total</span>
+                      <span className="text-[9px] text-slate-400 font-medium uppercase tracking-tighter">All taxes included</span>
+                    </div>
+                    <div className="flex flex-col items-end leading-none">
+                      <span className="text-3xl font-black text-slate-900 tracking-tighter">{estimatedTotal}</span>
+                      <span className="text-[10px] font-black text-slate-400 mt-1 uppercase leading-none">{currency}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-center gap-2 pt-2 grayscale opacity-30">
+                    <CreditCard className="h-4 w-4" />
+                    <span className="text-[9px] font-black uppercase tracking-[0.2em]">Secure Checkout</span>
+                  </div>
+                </div>
+              )}
+
+              {/* No price state — show cost per person */}
+              {!(showPrice || serverPricingCents) && (
+                <div className="border-t border-dashed border-slate-100 pt-4">
+                  <p className="text-[10px] text-slate-300 text-center font-bold uppercase tracking-widest">
+                    Select a service to see pricing
+                  </p>
+                </div>
               )}
             </div>
 
-            {/* Price Breakdown */}
-            {showPrice && (
-              <div className="border-t-2 border-dashed border-slate-200 pt-4 space-y-2">
-                <span className="text-[10px] uppercase font-black text-slate-400 tracking-wider">Price Breakdown</span>
-
-                {/* Adults line */}
-                {parseInt(watchedAdultPax) > 0 && adultPriceCents > 0 && (
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-slate-600">
-                      {watchedAdultPax} × Adult
-                      <span className="text-[10px] text-slate-400 ml-1">
-                        ({formatPriceDisplay(adultPriceCents, currency)} ea)
-                      </span>
-                    </span>
-                    <span className="font-bold text-slate-900">
-                      {formatPriceDisplay(parseInt(watchedAdultPax) * adultPriceCents, currency)}
-                    </span>
-                  </div>
-                )}
-
-                {/* Children line */}
-                {parseInt(watchedChildPax) > 0 && childPriceCents > 0 && (
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-slate-600">
-                      {watchedChildPax} × Child
-                      <span className="text-[10px] text-slate-400 ml-1">
-                        ({formatPriceDisplay(childPriceCents, currency)} ea)
-                      </span>
-                    </span>
-                    <span className="font-bold text-slate-900">
-                      {formatPriceDisplay(parseInt(watchedChildPax) * childPriceCents, currency)}
-                    </span>
-                  </div>
-                )}
-
-                {/* Add-ons lines */}
-                {watchedAddonIds?.length > 0 && availableAddons
-                  .filter(a => watchedAddonIds.includes(a.id))
-                  .map(addon => (
-                    <div key={addon.id} className="flex justify-between items-center text-sm">
-                      <span className="text-slate-600 truncate max-w-[180px]">+ {addon.name}</span>
-                      <span className="font-bold text-slate-900">{formatPriceDisplay(addon.priceCents, currency)}</span>
-                    </div>
-                  ))
-                }
-
-                {/* Group discount notice */}
-                {parseInt(watchedAdultPax) >= 7 && (
-                  <div className="flex justify-between items-center text-sm text-green-600">
-                    <span>Group discount (10%)</span>
-                    <span className="font-bold">−applied</span>
-                  </div>
-                )}
-
-                {/* Seasonal surcharge notice */}
-                {watchedDate && (watchedDate.getMonth() === 11 || watchedDate.getMonth() === 0) && (
-                  <div className="flex justify-between items-center text-sm text-amber-600">
-                    <span>Peak season (+20%)</span>
-                    <span className="font-bold">applied</span>
-                  </div>
-                )}
-
-                {/* Total */}
-                <div className="flex justify-between items-center pt-3 border-t-2 border-slate-900 border-dashed">
-                  <div>
-                    <span className="text-[10px] uppercase font-black text-slate-500 tracking-wider block">Estimated Total</span>
-                    <span className="text-[9px] text-slate-400">*Final price confirmed at checkout</span>
-                  </div>
-                  <span className="text-2xl font-black text-slate-900 tracking-tighter">{estimatedTotal}</span>
-                </div>
-
-                <div className="flex items-center justify-center gap-2 pt-1">
-                  <CreditCard className="h-3.5 w-3.5 text-slate-300" />
-                  <span className="text-[9px] font-black text-slate-300 uppercase tracking-wider">Secure Booking</span>
-                </div>
-              </div>
-            )}
-
-            {/* No price state — show cost per person */}
-            {!showPrice && (
-              <div className="border-t border-dashed border-slate-100 pt-3">
-                <p className="text-[10px] text-slate-300 text-center italic">
-                  Select a service & date to see pricing
-                </p>
-              </div>
-            )}
-          </div>
-
-          {/* Bottom Receipt Edge */}
-          <div className="bg-slate-50 h-4 w-full flex justify-between items-end overflow-hidden">
-            {Array.from({ length: 20 }).map((_, i) => (
-              <div key={i} className="h-3 w-3 bg-white rounded-full translate-y-2" />
-            ))}
-          </div>
-        </motion.div>
+            {/* Bottom Receipt Edge */}
+            <div className="bg-slate-50 h-5 w-full flex justify-between items-end overflow-hidden">
+              {Array.from({ length: 22 }).map((_, i) => (
+                <div key={i} className="h-3.5 w-3.5 bg-white rounded-full translate-y-2.5 shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)]" />
+              ))}
+            </div>
+          </motion.div>
+        </div>
       </aside>
     </div>
   );

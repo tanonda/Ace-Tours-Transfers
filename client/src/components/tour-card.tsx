@@ -1,8 +1,8 @@
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Link } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { Clock, Users, Check, Eye } from "lucide-react";
-import { BookingModal } from "@/components/booking-modal";
 import { ProductQuickView } from "@/components/product-quick-view";
 import { WishlistButton } from "@/components/wishlist-button";
 import { ShareButton } from "@/components/share-button";
@@ -104,10 +104,9 @@ export function TourCard({ tour, index }: { tour: TourProps; index: number }) {
                 <span>{t("tour.startingFrom", "Starting from")}</span>
                 <span className="font-bold text-foreground">{formatPriceDisplay(tour.adultPriceCents, currency as any)}</span>
               </div>
-              <BookingModal
-                preselectedService={tour.title}
-                trigger={<Button className="w-full font-semibold touch-target touch-feedback" size="lg">{t("tour.bookNow", "Book Now")}</Button>}
-              />
+              <Link href={`/reservations?tab=book-new&service=${encodeURIComponent(tour.title)}`}>
+                <Button className="w-full font-semibold touch-target touch-feedback" size="lg">{t("tour.bookNow", "Book Now")}</Button>
+              </Link>
             </div>
           </CardFooter>
         </Card>
