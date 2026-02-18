@@ -256,16 +256,17 @@ export default function Reservations() {
       }
 
       const bookingData = {
-        userId: user?.id || null,
-        tourId: selectedTour?.id || "",
         customerName: values.name,
         customerEmail: values.email,
-        tourName: values.service,
-        date: format(values.date, "yyyy-MM-dd"),
-        guests: parseInt(values.adultPax) + parseInt(values.childPax),
-        amount: selectedTour ? selectedTour.price : "0",
-        status: "pending",
-        holdId: holdId,
+        items: [{
+          productId: selectedTour?.id || "",
+          adultPax: parseInt(values.adultPax),
+          childPax: parseInt(values.childPax),
+          date: format(values.date, "yyyy-MM-dd"),
+          startTime: undefined, // Add if needed
+          endTime: undefined,   // Add if needed
+        }],
+        pickupLocation: values.pickupLocation || null,
       };
 
       const res = await fetch("/api/bookings", {
