@@ -118,9 +118,12 @@ export class AtomicSessionConfirmationService {
                         throw new Error(`Inconsistent session: Hold ${hold.id} is in state ${hold.status}`);
                     }
 
-                    // If hold is expired, we will re-verify availability in step 5
+                    // M4 Fix: Reject if hold is expired. We should NOT attempt re-verification during atomic confirm
+                    // because it violates the "atomic lock" promise of a hold.
                     if (hold.status === 'ACTIVE' && hold.expiresAt < now) {
-                        console.warn(`[SESSION_CONFIRM] Hold ${hold.id} is expired. Will attempt re-verification.`);
+                        const err: any = new Error(`Hold ${hold.id} has expired`);
+                        err.code = 'HOLD_EXPIRED';
+                        throw err;
                     }
                 }
 

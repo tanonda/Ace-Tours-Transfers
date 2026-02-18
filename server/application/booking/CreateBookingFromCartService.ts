@@ -78,10 +78,11 @@ export class CreateBookingFromCartService {
               }
               const pinnedResourceId = availableResources[0].id;
 
-              const startDate = new Date(item.date);
+              const startDateParts = item.date.split('-').map(Number);
+              const startDate = new Date(Date.UTC(startDateParts[0], startDateParts[1] - 1, startDateParts[2]));
               for (let d = 0; d < duration; d++) {
                 const currentDate = new Date(startDate);
-                currentDate.setDate(startDate.getDate() + d);
+                currentDate.setUTCDate(startDate.getUTCDate() + d);
                 const dateStr = currentDate.toISOString().split('T')[0];
 
                 const hold = await this.availabilityService.createHold({

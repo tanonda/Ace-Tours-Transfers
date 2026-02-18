@@ -3,6 +3,9 @@
  * 
  * Reduces database load for frequently queried tours by caching
  * remaining capacity calculations with TTL-based expiration.
+ * 
+ * H2 NOTE: This cache is ADVISORY only. The database remains the 
+ * single source of truth for all capacity locks and holds.
  */
 
 interface CacheEntry<T> {

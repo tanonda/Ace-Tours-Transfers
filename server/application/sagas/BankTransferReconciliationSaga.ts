@@ -32,13 +32,8 @@ export class BankTransferReconciliationSaga {
   public async checkAndExpireOverduePayments(): Promise<void> {
     const now = new Date();
 
-    // FETCH: Get only payments that ARE pending and HAS an expiry date
-    const stalePayments = await this.storage.getPayments();
-    const overdue = stalePayments.filter((p: any) =>
-      (p.status === PaymentStatus.Pending || p.status === PaymentStatus.ManualReviewRequired) &&
-      p.expiresAt &&
-      p.expiresAt < now
-    );
+    // FETCH: Use targeted storage method instead of full table scan (M6 Fix)
+    const overdue = await this.storage.getOverduePayments();
 
     if (overdue.length === 0) return;
 

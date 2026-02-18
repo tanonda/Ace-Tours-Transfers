@@ -4,12 +4,20 @@ import { authDomainService } from "../domain/users/auth.domain-service.js";
 import { AuthApplicationService } from "./auth.application-service.js";
 import { ExpressSessionAdapter } from "../infrastructure/session.adapter.js";
 import { requireAuth } from "../routes.js";
+import { rateLimit } from "express-rate-limit";
+
+const authLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 5,
+  message: { error: "Too many login/registration attempts, please try again later." },
+});
+
 
 export function registerAuthRoutes(app: Express) {
-  app.post("/api/auth/login", async (req: Request, res: Response) => {
+  app.post("/api/auth/login", authLimiter, async (req: Request, res: Response) => {
     try {
       const { email, password } = req.body;
-      
+
       if (!email || !password) {
         return res.status(400).json({ error: "Email and password are required" });
       }
@@ -18,7 +26,7 @@ export function registerAuthRoutes(app: Express) {
         authDomainService,
         new ExpressSessionAdapter(req)
       );
-      
+
       const authResult = await authAppService.login(email, password);
 
       if (!authResult) {
@@ -32,7 +40,7 @@ export function registerAuthRoutes(app: Express) {
     }
   });
 
-  app.post("/api/auth/register", async (req: Request, res: Response) => {
+  app.post("/api/auth/register", authLimiter, async (req: Request, res: Response) => {
     try {
       const authAppService = new AuthApplicationService(
         authDomainService,

@@ -12,13 +12,16 @@ import { getStripeSync } from './stripeClient.js';
 import { config, validateConfig } from "./config.js";
 import { migrate } from "drizzle-orm/neon-serverless/migrator";
 import * as Sentry from "@sentry/node";
+import helmet from "helmet";
+import cors from "cors";
+
 
 // Initialize Sentry error monitoring (Phase 4 readiness)
 if (process.env.SENTRY_DSN) {
   Sentry.init({
     dsn: process.env.SENTRY_DSN,
     environment: process.env.NODE_ENV || "development",
-    tracesSampleRate: 1.0,
+    tracesSampleRate: process.env.NODE_ENV === "production" ? 0.1 : 1.0, // L1 Fix
   });
   console.log('[SENTRY] Error monitoring initialized');
 } else {
@@ -46,12 +49,24 @@ process.on('uncaughtException', (err) => {
     return;
   }
 
-  // For other critical errors, we might want to exit, but in a dev/replit env
-  // it's often better to stay alive and log.
-  console.warn('[RECOVERY] Process continuing after uncaught exception.');
+  // H6 Fix: Crash on all other critical errors to allow process manager restart
+  console.error('[FATAL] Process must exit to recover from clean state.');
+  process.exit(1);
 });
 
 const app = express();
+app.disable('x-powered-by'); // H4 Fix: Explicitly disable X-Powered-By
+
+// H4 & M9 Fix: Security headers and CORS - MUST BE FIRST
+app.use(helmet({
+  contentSecurityPolicy: false,
+}));
+app.use(cors({
+  origin: process.env.APP_URL || true,
+  credentials: true,
+}));
+
+
 const httpServer = createServer(app);
 
 // Trust proxy for production (Render, etc.)
@@ -183,7 +198,7 @@ sessionStore.on('error', (err: Error) => {
 app.use(
   session({
     store: sessionStore,
-    secret: config.session.secret || process.env.SESSION_SECRET || "ace-tours-secret-key-2024",
+    secret: config.session.secret!, // C2 Fix: Use the validated secret, non-null assertion as validateConfig() ensures it exists or exits
     resave: false,
     saveUninitialized: false,
     cookie: {

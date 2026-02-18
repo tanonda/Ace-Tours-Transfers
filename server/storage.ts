@@ -138,6 +138,7 @@ export interface IStorage {
   updatePayment(id: string, data: Partial<InsertPayment>): Promise<Payment>;
   checkPaymentExpiration(paymentId: string): Promise<boolean>;
   getStaleProcessingPayments(batchSize: number): Promise<Payment[]>;
+  getOverduePayments(): Promise<Payment[]>;
 
   markNotificationAsRead(id: string): Promise<void>;
 
@@ -392,7 +393,27 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteBooking(id: string): Promise<void> {
-    await db.delete(bookings).where(eq(bookings.id, id));
+    await db.transaction(async (tx) => {
+      // M8 Fix: Properly release holds and handle confirmedCount before deletion
+      const [booking] = await tx.select().from(bookings).where(eq(bookings.id, id));
+      if (!booking) return;
+
+      if (booking.holdId) {
+        await tx.update(availabilityHolds)
+          .set({ status: 'RELEASED' })
+          .where(eq(availabilityHolds.id, booking.holdId));
+      }
+
+      if (booking.status === 'confirmed' && booking.tourInstanceId) {
+        await tx.update(tourInstances)
+          .set({
+            confirmedCount: sql`${tourInstances.confirmedCount} - ${booking.guests}`
+          })
+          .where(eq(tourInstances.id, booking.tourInstanceId));
+      }
+
+      await tx.delete(bookings).where(eq(bookings.id, id));
+    });
   }
 
   async createBookingItem(item: InsertBookingItem, tx?: any): Promise<BookingItem> {
@@ -407,27 +428,38 @@ export class DatabaseStorage implements IStorage {
 
   // Analytics
   async getBookingStats(): Promise<{ total: number; confirmed: number; pending: number; completed: number; }> {
-    const allBookings = await db.select().from(bookings);
-    return {
-      total: allBookings.length,
-      confirmed: allBookings.filter((b: Booking) => b.status === 'confirmed').length,
-      pending: allBookings.filter((b: Booking) => b.status === 'pending').length,
-      completed: allBookings.filter((b: Booking) => b.status === 'completed').length,
-    };
+    // H8 Fix: Use aggregate queries instead of selecting all rows
+    const stats = await db
+      .select({
+        status: bookings.status,
+        count: sql<number>`count(*)`.mapWith(Number)
+      })
+      .from(bookings)
+      .groupBy(bookings.status);
+
+    const result = { total: 0, confirmed: 0, pending: 0, completed: 0 };
+    stats.forEach(s => {
+      if (s.status === 'confirmed') result.confirmed = s.count;
+      if (s.status === 'pending') result.pending = s.count;
+      if (s.status === 'completed') result.completed = s.count;
+      result.total += s.count;
+    });
+
+    return result;
   }
 
   async getRevenueByMonth(): Promise<{ month: string; total: number; }[]> {
-    const allBookings = await db.select().from(bookings);
-    const monthlyData: Record<string, number> = {};
+    // H8 Fix: Use SQL aggregate grouping instead of full table scan
+    const results = await db
+      .select({
+        month: sql<string>`to_char(to_date(${bookings.date}, 'YYYY-MM-DD'), 'Mon')`,
+        total: sql<number>`sum(${bookings.totalAmountCents})`.mapWith(Number)
+      })
+      .from(bookings)
+      .where(eq(bookings.status, 'confirmed'))
+      .groupBy(sql`to_char(to_date(${bookings.date}, 'YYYY-MM-DD'), 'Mon')`);
 
-    allBookings.forEach((booking: Booking) => {
-      const date = new Date(booking.date);
-      const monthKey = date.toLocaleDateString('en-US', { month: 'short' });
-      const amount = parseFloat(booking.amount.replace(/[^0-9.-]+/g, '') || '0');
-      monthlyData[monthKey] = (monthlyData[monthKey] || 0) + amount;
-    });
-
-    return Object.entries(monthlyData).map(([month, total]) => ({ month, total }));
+    return results;
   }
 
   async getRevenueDaily(days: number): Promise<{ date: string; amount: number; }[]> {
@@ -610,6 +642,22 @@ export class DatabaseStorage implements IStorage {
         )
       )
       .limit(batchSize);
+  }
+
+  async getOverduePayments(): Promise<Payment[]> {
+    // M6 Fix: Targeted query instead of full table scan
+    return await db
+      .select()
+      .from(payments)
+      .where(
+        and(
+          or(
+            eq(payments.status, 'pending'),
+            eq(payments.status, 'manual_review_required')
+          ),
+          sql`${payments.expiresAt} < NOW()`
+        )
+      );
   }
 
   // Notifications
@@ -865,17 +913,20 @@ export class DatabaseStorage implements IStorage {
       normalized.expiresAt = expires;
     }
     if (!normalized.status) normalized.status = 'ACTIVE';
-
     const [created] = await db.insert(availabilityHolds).values(normalized).returning();
     return created;
   }
 
-  async updateHold(id: string, data: Partial<InsertAvailabilityHold>): Promise<AvailabilityHold> {
-    const [updated] = await db
-      .update(availabilityHolds)
-      .set(data)
-      .where(eq(availabilityHolds.id, id))
-      .returning();
+  async updateAvailabilityHold(id: string, data: Partial<InsertAvailabilityHold>): Promise<AvailabilityHold> {
+    const [updated] = await db.update(availabilityHolds).set(data).where(eq(availabilityHolds.id, id)).returning();
+    await db.insert(capacityAuditLog).values({
+      tourInstanceId: updated.tourInstanceId,
+      productId: 'N/A',
+      action: 'hold_updated',
+      quantity: updated.quantity,
+      newState: updated,
+      metadata: { bookingSessionId: updated.bookingSessionId }
+    }).returning();
     return updated;
   }
 
