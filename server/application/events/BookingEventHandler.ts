@@ -4,20 +4,15 @@ import { PaymentConfirmed, PaymentFailed, PaymentExpired } from "../../domain/ev
 import { IStorage } from "../../storage.js";
 import { AvailabilityApplicationService } from "../availability/availability.application-service.js";
 import { mailingService } from "../../infrastructure/mailing/MailingService.js";
-import { PricingEngine } from "../../domain/pricing/PricingEngine.js";
 import { AuditLogService } from "../../infrastructure/audit/audit-log.service.js";
 import { AtomicSessionConfirmationService } from "../booking/AtomicSessionConfirmationService.js";
 import { metricsService } from "../../infrastructure/metrics/metrics.service.js";
 
 export class BookingEventHandler {
-  private pricingEngine: PricingEngine;
-
   constructor(
     private storage: IStorage,
     private availabilityService: AvailabilityApplicationService
-  ) {
-    this.pricingEngine = new PricingEngine(storage);
-  }
+  ) {}
 
   public register(): void {
     eventDispatcher.subscribe(PaymentConfirmed, this.onPaymentConfirmed.bind(this));
@@ -37,49 +32,36 @@ export class BookingEventHandler {
 
     if (booking.status !== 'confirmed') {
       try {
-        // Phase 2B: Recalculate price server-side using PricingEngine and reject if mismatch
-        const items = await this.storage.getBookingItems(booking.id);
-        let expectedTotal = 0;
-
-        for (const item of items) {
-          const rates = await this.pricingEngine.getTourRate(item.productId, booking.date);
-          if (!rates) {
-            console.error(`[PRICE][ERROR] Missing rates for ${item.productId}`);
-            throw new Error("Pricing unavailable");
-          }
-
-          // Use PricingEngine for complete calculation
-          const pricing = await this.pricingEngine.calculateLineItem(
-            item.adultPax,
-            item.childPax,
-            rates,
-            booking.date,
-            (item as any).addonIds
-          );
-
-          expectedTotal += pricing.breakdown.finalTotalCents * (item.quantity || 1);
-        }
-
-        if (expectedTotal !== booking.totalAmountCents) {
-          // M5 Fix: Alert admins for price mismatch
+        // FIX (CRIT-2): Validate against the price SNAPSHOT stored at booking creation time
+        // (booking.totalAmountCents), not a live recalculation.
+        //
+        // Live recalculation is wrong because:
+        // 1. Multi-day vehicle bookings apply a duration multiplier in CreateBookingFromCartService
+        //    but the event handler previously missed it, causing false mismatches.
+        // 2. Group discounts / seasonal surcharges can change between booking and webhook,
+        //    so recalculating against live rules will always produce a spurious mismatch.
+        //
+        // The payment gateway charged exactly booking.totalAmountCents.  That is our ground
+        // truth.  The only thing to verify here is that the payment amount matches it.
+        const paidAmountCents = event.amountCents;
+        if (typeof paidAmountCents === 'number' && paidAmountCents !== booking.totalAmountCents) {
+          // Genuine mismatch: gateway charged a different amount than we expected.
           await mailingService.sendAdminEmail(
-            `🚨 Price Mismatch: Booking ${booking.id}`,
-            `<p>A price mismatch was detected during payment confirmation for booking <strong>${booking.id}</strong>.</p>
+            `🚨 Payment Amount Mismatch: Booking ${booking.id}`,
+            `<p>A payment amount mismatch was detected during payment confirmation for booking <strong>${booking.id}</strong>.</p>
              <p><strong>Customer:</strong> ${booking.customerName} (${booking.customerEmail})</p>
-             <p><strong>Expected Total:</strong> ${expectedTotal} cents</p>
-             <p><strong>Actual Paid Total:</strong> ${booking.totalAmountCents} cents</p>
+             <p><strong>Booking Snapshot Total:</strong> ${booking.totalAmountCents} VUV cents</p>
+             <p><strong>Amount Charged by Gateway:</strong> ${paidAmountCents} VUV cents</p>
              <p>The booking has been marked as <code>price_mismatch</code> and requires manual review.</p>`
           );
 
-          // Price mismatch: mark booking and alert admins, do not confirm inventory
           await this.storage.updateBooking(booking.id, { status: 'price_mismatch' });
           const audit = new AuditLogService(this.storage);
-          await audit.log({ productId: booking.tourId, action: 'manual_adjustment', performedBy: 'system', metadata: { bookingId: booking.id, expectedTotal, actualTotal: booking.totalAmountCents } });
+          await audit.log({ productId: booking.tourId, action: 'manual_adjustment', performedBy: 'system', metadata: { bookingId: booking.id, snapshotTotal: booking.totalAmountCents, paidAmount: paidAmountCents } });
 
           metricsService.incrementFailure("PRICE_MISMATCH");
-          metricsService.recordErrorSnippet("PRICE_MISMATCH", `Booking ${booking.id} expected ${expectedTotal} vs actual ${booking.totalAmountCents}`);
-
-          console.error(`[PRICE][MISMATCH][${correlationId}] Booking ${booking.id} expected ${expectedTotal} vs actual ${booking.totalAmountCents}`);
+          metricsService.recordErrorSnippet("PRICE_MISMATCH", `Booking ${booking.id} snapshot ${booking.totalAmountCents} vs paid ${paidAmountCents}`);
+          console.error(`[PRICE][MISMATCH][${correlationId}] Booking ${booking.id} snapshot ${booking.totalAmountCents} vs paid ${paidAmountCents}`);
           return;
         }
 

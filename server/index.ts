@@ -108,18 +108,27 @@ async function initStripe() {
     const stripeSync = await getStripeSync();
 
     console.log('Setting up managed webhook...');
-    const webhookBaseUrl = `https://${process.env.REPLIT_DOMAINS?.split(',')[0]}`;
-    try {
-      const result = await stripeSync.findOrCreateManagedWebhook(
-        `${webhookBaseUrl}/api/stripe/webhook`
-      );
-      if (result?.webhook?.url) {
-        console.log(`Webhook configured: ${result.webhook.url}`);
-      } else {
-        console.log('Webhook setup returned empty result - webhooks may not work in development');
+    // FIX (MED-9): Use APP_URL env var so this works on any deployment platform,
+    // not just Replit.  REPLIT_DOMAINS is undefined on Render, Railway, Fly.io, etc.
+    const appUrl = process.env.APP_URL ||
+      (process.env.REPLIT_DOMAINS
+        ? `https://${process.env.REPLIT_DOMAINS.split(',')[0]}`
+        : null);
+    if (!appUrl) {
+      console.warn('[STRIPE] APP_URL is not set — skipping webhook registration. Set APP_URL=https://yourdomain.vu');
+    } else {
+      try {
+        const result = await stripeSync.findOrCreateManagedWebhook(
+          `${appUrl}/api/stripe/webhook`
+        );
+        if (result?.webhook?.url) {
+          console.log(`Webhook configured: ${result.webhook.url}`);
+        } else {
+          console.log('Webhook setup returned empty result - webhooks may not work in development');
+        }
+      } catch (webhookError) {
+        console.log('Webhook setup skipped - may not work in development mode');
       }
-    } catch (webhookError) {
-      console.log('Webhook setup skipped - may not work in development mode');
     }
 
     stripeSync.syncBackfill()

@@ -84,7 +84,7 @@ export default function Reservations() {
 
   const initialTab = useMemo(() => {
     const searchParams = new URL(window.location.href).searchParams;
-    return searchParams.get("tab") || (isAuthenticated ? "my-reservations" : "lookup");
+    return searchParams.get("tab") || (isAdmin ? "my-reservations" : "lookup");
   }, [isAuthenticated]);
 
   const [activeTab, setActiveTab] = useState<string>(initialTab);
@@ -373,7 +373,10 @@ export default function Reservations() {
           <div className="max-w-6xl mx-auto">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 mb-8 h-auto p-1">
-                {isAuthenticated && (
+                {/* FIX (audit): "My Reservations" tab calls /api/bookings which returns ALL
+                    booking records with full PII. Gate it to admins only.
+                    Non-admin guests use the "Lookup" tab with verification instead. */}
+                {isAdmin && (
                   <TabsTrigger value="my-reservations" className="gap-2 py-3">
                     <History className="h-4 w-4" />
                     <span className="hidden sm:inline">{t("reservations.myReservations")}</span>
@@ -398,7 +401,7 @@ export default function Reservations() {
                 </TabsTrigger>
               </TabsList>
 
-              {isAuthenticated && (
+              {isAdmin && (
                 <TabsContent value="my-reservations">
                   <Card>
                     <CardHeader>

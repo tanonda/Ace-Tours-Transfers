@@ -12,14 +12,38 @@ async function main() {
   console.log("Seeding payment gateways...");
 
   const gatewayData = [
+    // ── ACTIVE BY DEFAULT (no merchant account required) ───────────────────
+    {
+      slug: "manual_transfer",
+      displayName: "Bank Transfer",
+      description: "Customer transfers directly to Ace Tours bank account. Admin confirms on receipt.",
+      active: true,
+      isDefault: true,   // Primary payment method until an online gateway is live
+      priority: 1,
+      supportedCurrencies: ["VUV", "AUD", "USD", "NZD"],
+      credentials: {},
+      config: {}
+    },
+    {
+      slug: "cash",
+      displayName: "Cash on Delivery",
+      description: "Customer pays in cash at the start of their tour or vehicle pickup.",
+      active: true,
+      isDefault: false,
+      priority: 2,
+      supportedCurrencies: ["VUV", "AUD", "USD", "NZD"],
+      credentials: {},
+      config: {}
+    },
+    // ── INACTIVE — activate when merchant credentials are obtained ──────────
     {
       slug: "stripe",
       displayName: "Stripe",
-      description: "International card payments via Stripe. Supports Visa, Mastercard, AMEX.",
-      active: true,
-      isDefault: true,
-      priority: 1,
-      supportedCurrencies: ["USD", "AUD", "NZD", "VUV"],
+      description: "International card payments via Stripe. NOTE: Stripe is NOT available to Vanuatu merchants — keep inactive.",
+      active: false,
+      isDefault: false,
+      priority: 99,
+      supportedCurrencies: ["USD", "AUD", "NZD"],
       credentials: {},
       config: { environment: "test" }
     },

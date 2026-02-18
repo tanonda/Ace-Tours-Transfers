@@ -543,16 +543,39 @@ export class AtomicBookingConfirmationService {
 
         const booking = bookingRows[0];
 
-        // Get all holds for this booking
-        const holdRows = await tx
-          .select()
-          .from(availabilityHolds)
-          .where(
-            booking.holdId
-              ? eq(availabilityHolds.id, booking.holdId)
-              : eq(availabilityHolds.bookingSessionId, booking.bookingSessionId)
-          )
-          .for('update');
+        // FIX (CRIT-3 / HIGH-3): Fetch ALL holds associated with this booking.
+        // Previously, when booking.holdId was set, ONLY that one hold was fetched
+        // (OR condition meant the session query was skipped), leaving holds 2..N
+        // for multi-item bookings permanently ACTIVE and leaking capacity.
+        // Now we always fetch by bookingSessionId to catch every hold, and
+        // also load the primary holdId hold if the session lookup somehow misses it.
+        const holdIdSet = new Set<string>();
+        const holdRows: any[] = [];
+
+        if (booking.bookingSessionId) {
+          const sessionHoldRows = await tx
+            .select()
+            .from(availabilityHolds)
+            .where(eq(availabilityHolds.bookingSessionId, booking.bookingSessionId))
+            .for('update');
+          for (const h of sessionHoldRows) {
+            holdIdSet.add(h.id);
+            holdRows.push(h);
+          }
+        }
+
+        // Also ensure the primary holdId is included (e.g. if session ID drifted)
+        if (booking.holdId && !holdIdSet.has(booking.holdId)) {
+          const primaryHoldRows = await tx
+            .select()
+            .from(availabilityHolds)
+            .where(eq(availabilityHolds.id, booking.holdId))
+            .for('update');
+          for (const h of primaryHoldRows) {
+            holdIdSet.add(h.id);
+            holdRows.push(h);
+          }
+        }
 
         // Update each hold that's active
         for (const hold of holdRows.filter((h: any) => h.status === 'ACTIVE')) {

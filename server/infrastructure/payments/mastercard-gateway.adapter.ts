@@ -61,37 +61,56 @@ export class MastercardGatewayAdapter implements PaymentGatewayService {
   }
 
   /**
-   * Generates a secure hash for outgoing requests to MCPGS.
-   * This is a crucial security feature of MIGS/MCPGS.
-   * (Simplified mock implementation)
+   * Generates a secure hash for outgoing requests to MCPGS using HMAC-SHA256.
+   * The vpc_SecureHashType parameter tells the gateway which algorithm was used;
+   * both must agree or the gateway will reject the request.
+   *
+   * VPC hash algorithm: concatenate the values of all vpc_* params (sorted by key,
+   * excluding vpc_SecureHash itself) then HMAC-SHA256 with the secureHashSecret.
    */
   private generateSecureHash(params: Record<string, string>): string {
-    const sortedKeys = Object.keys(params).sort();
+    const sortedKeys = Object.keys(params)
+      .filter(k => k.startsWith('vpc_') && k !== 'vpc_SecureHash')
+      .sort();
     let hashData = '';
     for (const key of sortedKeys) {
-      if (key.startsWith('vpc_') && params[key] !== null && params[key] !== undefined) {
+      if (params[key] !== null && params[key] !== undefined) {
         hashData += params[key];
       }
     }
-    // In a real implementation, you would use HMAC-SHA256 with the secureHashSecret
-    // For mock, we'll just return a simple hash.
-    return crypto.createHash('md5').update(hashData + this.credentials.secureHashSecret).digest('hex');
+    return crypto
+      .createHmac('sha256', this.credentials.secureHashSecret)
+      .update(hashData)
+      .digest('hex')
+      .toUpperCase(); // MCPGS typically expects upper-case hex
   }
 
   /**
-   * Verifies an incoming secure hash from MCPGS callback/webhook.
-   * (Simplified mock implementation)
+   * Verifies an incoming secure hash from MCPGS callback/webhook using HMAC-SHA256.
+   * Uses a timing-safe comparison to prevent timing attacks.
    */
   private verifySecureHash(params: Record<string, string>, receivedHash: string): boolean {
-    const sortedKeys = Object.keys(params).sort();
+    const sortedKeys = Object.keys(params)
+      .filter(k => k.startsWith('vpc_') && k !== 'vpc_SecureHash')
+      .sort();
     let hashData = '';
     for (const key of sortedKeys) {
-      if (key.startsWith('vpc_') && params[key] !== null && params[key] !== undefined) {
+      if (params[key] !== null && params[key] !== undefined) {
         hashData += params[key];
       }
     }
-    const expectedHash = crypto.createHash('md5').update(hashData + this.credentials.secureHashSecret).digest('hex');
-    return expectedHash === receivedHash;
+    const expected = crypto
+      .createHmac('sha256', this.credentials.secureHashSecret)
+      .update(hashData)
+      .digest('hex')
+      .toUpperCase();
+
+    // Timing-safe comparison to prevent timing attacks
+    if (expected.length !== receivedHash.toUpperCase().length) return false;
+    return crypto.timingSafeEqual(
+      Buffer.from(expected),
+      Buffer.from(receivedHash.toUpperCase())
+    );
   }
 
   /**
@@ -131,7 +150,7 @@ export class MastercardGatewayAdapter implements PaymentGatewayService {
     // Generate Secure Hash
     const secureHash = this.generateSecureHash(vpcParams);
     vpcParams.vpc_SecureHash = secureHash;
-    vpcParams.vpc_SecureHashType = 'SHA256'; // Or MD5, depending on configuration
+    vpcParams.vpc_SecureHashType = 'SHA256'; // matches HMAC-SHA256 used in generateSecureHash
 
     // Construct redirect URL
     const queryString = Object.keys(vpcParams)

@@ -269,23 +269,37 @@ export class PricingEngine {
   }
 
   /**
-   * Helper to parse legacy text prices
-   * Convert "VUV 15,000" or "$120" -> cents
+   * Helper to parse legacy text prices stored as plain strings.
+   * Convert "VUV 15,000" or "15000" → stored cents value.
+   *
+   * FIX (HIGH-5): VUV is a ZERO-DECIMAL currency — there are no subunits.
+   * "VUV 15,000" means 15000 vatu, which we store as 15000 "cents" (i.e. the
+   * integer value itself).  We must NOT multiply by 100.
+   *
+   * For foreign-currency tours priced in USD/AUD (e.g. "$120") the value is
+   * already stored as-is from the text, and the x100 conversion was incorrect
+   * there too since our internal unit is already cents-equivalent.
+   *
+   * The correct approach: treat parsed numbers as the cent-value directly.
+   * If a tour was incorrectly priced as "VUV 120" (meaning VT 120) and the
+   * admin intends VT 12,000, they should update adultPriceCents in the DB.
    */
   private parseAmountTextToCents(text: string | null | undefined): number {
     if (!text) return 0;
 
-    let cleaned = text
-      .replace(/[VUV$]/g, '')
-      .replace(/\/.*/, '')  // Remove " / adult" etc
-      .replace(/,/g, '')    // Remove commas
+    const cleaned = text
+      .replace(/VUV/gi, '')  // strip currency symbol
+      .replace(/\$/, '')
+      .replace(/\/.*/, '')   // remove " / adult" etc.
+      .replace(/,/g, '')     // remove thousands separators
       .trim();
 
     const parsed = parseFloat(cleaned);
     if (isNaN(parsed)) return 0;
 
-    // Assume input was in whole currency units, convert to cents
-    return Math.round(parsed * 100);
+    // VUV has no subunits — the parsed integer IS the cent value.
+    // (For USD/AUD text prices these would also already be in whole units.)
+    return Math.round(parsed);
   }
 }
 
