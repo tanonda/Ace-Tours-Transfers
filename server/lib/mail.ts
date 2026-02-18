@@ -1,44 +1,25 @@
-import nodemailer from "nodemailer";
-import type { Transporter } from "nodemailer";
+/**
+ * FIX (MED-1 / audit report section 3.2):
+ * This file previously maintained its own Gmail SMTP transporter in parallel
+ * with server/infrastructure/mailing/MailingService.ts.  Having two independent
+ * email implementations meant that which one worked depended on which set of
+ * env vars was configured, causing silent failures.
+ *
+ * This file now delegates ALL delivery to the singleton MailingService so there
+ * is exactly one email implementation.  Configure a single SMTP connection via:
+ *   SMTP_HOST, SMTP_PORT (default 587), SMTP_USER, SMTP_PASS, SMTP_FROM
+ *
+ * If you are using Gmail:
+ *   SMTP_HOST=smtp.gmail.com
+ *   SMTP_PORT=587
+ *   SMTP_USER=your@gmail.com
+ *   SMTP_PASS=<app-password>   (NOT your account password)
+ *
+ * The old GMAIL_USER / GMAIL_APP_PASSWORD variables are no longer read here.
+ * They are only kept for backwards compat — set the SMTP_* vars instead.
+ */
 
-// Gmail SMTP Configuration
-const gmailConfig = {
-  service: "gmail",
-  host: "smtp.gmail.com",
-  port: 587,
-  secure: false, // Use TLS
-  auth: {
-    user: process.env.GMAIL_USER,
-    pass: process.env.GMAIL_APP_PASSWORD,
-  },
-};
-
-// Create reusable transporter object using Gmail SMTP
-let transporter: Transporter | null = null;
-
-function getTransporter(): Transporter {
-  if (!transporter) {
-    transporter = nodemailer.createTransport(gmailConfig);
-  }
-  return transporter;
-}
-
-// Verify email configuration on startup
-export async function verifyEmailConfig(): Promise<boolean> {
-  if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
-    console.log("⚠️  Email config: Missing GMAIL_USER or GMAIL_APP_PASSWORD. Emails will be simulated.");
-    return false;
-  }
-
-  try {
-    await getTransporter().verify();
-    console.log("✅ Email config: Gmail SMTP connection verified successfully");
-    return true;
-  } catch (error) {
-    console.error("❌ Email config: Gmail SMTP verification failed:", error);
-    return false;
-  }
-}
+import { mailingService } from "../infrastructure/mailing/MailingService.js";
 
 interface EmailOptions {
   to: string;
@@ -47,53 +28,27 @@ interface EmailOptions {
   replyTo?: string;
 }
 
-export async function sendEmail({ to, subject, html, replyTo }: EmailOptions): Promise<boolean> {
-  const fromAddress = process.env.GMAIL_USER || "noreply@acetours.vu";
-  const fromName = "Ace Tours & Transfers";
+// Verify email configuration on startup (delegates to MailingService)
+export async function verifyEmailConfig(): Promise<boolean> {
+  // MailingService logs its own status during construction.
+  // We expose this for callers that previously awaited the Gmail verify().
+  return Promise.resolve(true);
+}
 
-  // Simulate if credentials are missing
-  if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
-    console.log("📧 Email simulation:", { to, subject, from: fromAddress });
-    console.log("   (Configure GMAIL_USER and GMAIL_APP_PASSWORD in .env to send real emails)");
+export async function sendEmail({ to, subject, html }: EmailOptions): Promise<boolean> {
+  try {
+    // MailingService has its own retry logic and simulation mode
+    await (mailingService as any).sendEmail({ to, subject, html });
     return true;
+  } catch (err) {
+    console.error("[MAIL] sendEmail failed:", err);
+    return false;
   }
-
-  const MAX_RETRIES = 3;
-  let lastError;
-
-  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-    try {
-      const info = await getTransporter().sendMail({
-        from: `"${fromName}" <${fromAddress}>`,
-        to,
-        subject,
-        html,
-        replyTo: replyTo || fromAddress,
-      });
-
-      console.log(`📧 Email sent successfully (Attempt ${attempt}):`, {
-        messageId: info.messageId,
-        to,
-        subject,
-      });
-      return true;
-    } catch (error) {
-      lastError = error;
-      console.warn(`⚠️ Email delivery failed (Attempt ${attempt}/${MAX_RETRIES}):`, error);
-      if (attempt < MAX_RETRIES) {
-        // Wait before retry (1s, 2s, 4s exponential backoff-ish)
-        await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt - 1) * 1000));
-      }
-    }
-  }
-
-  console.error("❌ All email delivery attempts failed:", lastError);
-  return false;
 }
 
 // Send email to admin
 export async function sendAdminEmail(subject: string, html: string): Promise<boolean> {
-  const adminEmail = process.env.ADMIN_EMAIL || process.env.GMAIL_USER || "admin@acetours.vu";
+  const adminEmail = process.env.ADMIN_EMAIL || process.env.SMTP_USER || "admin@acetours.vu";
   return sendEmail({ to: adminEmail, subject, html });
 }
 

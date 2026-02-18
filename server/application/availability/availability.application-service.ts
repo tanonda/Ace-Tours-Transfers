@@ -4,12 +4,33 @@ import { AvailabilityHold, TourInstance } from "../../../shared/schema.js";
 import { eventDispatcher } from "../../infrastructure/events/event-dispatcher.js";
 import { HoldReleased } from "../../domain/events.js";
 
+// Manual payment methods (bank transfer, cash) need a much longer hold TTL
+// because the customer may take 24–72 hours to complete their payment.
+// Automatic card payments use the default 15-minute window.
+export const MANUAL_PAYMENT_TTL_MINUTES = 4320; // 72 hours
+export const CARD_PAYMENT_TTL_MINUTES   = 15;   // 15 minutes
+
+export const MANUAL_PAYMENT_SLUGS = [
+  'manual', 'manual_transfer', 'bank-transfer', 'bank_transfer',
+  'cash', 'anz-egate', 'bsp-bank', 'bred-bank', 'wantok-money',
+  'generic-local-bank',
+];
+
+export function getHoldTtlMinutes(paymentProvider?: string): number {
+  if (!paymentProvider) return CARD_PAYMENT_TTL_MINUTES;
+  const slug = paymentProvider.toLowerCase();
+  const isManual = MANUAL_PAYMENT_SLUGS.some(s => slug.includes(s));
+  return isManual ? MANUAL_PAYMENT_TTL_MINUTES : CARD_PAYMENT_TTL_MINUTES;
+}
+
 export interface HoldRequest {
   tourId: string;
   date: string;
   slot?: string;
   quantity: number;
   sessionId: string;
+  ttlMinutes?: number;
+  paymentProvider?: string; // when set, TTL is derived automatically if ttlMinutes is absent
   startTime?: string;
   endTime?: string;
   pinnedResourceId?: string;
@@ -30,12 +51,15 @@ export class AvailabilityApplicationService {
   }
 
   async createHold(request: HoldRequest, tx?: any): Promise<AvailabilityHold> {
+    // Derive TTL: explicit ttlMinutes wins; otherwise use paymentProvider to decide.
+    const ttlMinutes = request.ttlMinutes ?? getHoldTtlMinutes(request.paymentProvider);
     return await this.availabilityService.createHoldWithInvalidation({
       tourId: request.tourId,
       date: request.date,
       quantity: request.quantity,
       sessionId: request.sessionId,
       slot: request.slot,
+      ttlMinutes,
       startTime: request.startTime,
       endTime: request.endTime,
       pinnedResourceId: request.pinnedResourceId,

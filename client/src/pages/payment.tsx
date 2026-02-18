@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -68,6 +68,9 @@ export default function Payment() {
   const [bookingId, setBookingId] = useState<string | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<string>("");
   const [dddConfig, setDddConfig] = useState<any>(null);
+  // FIX (audit section 3.5): Generate a stable idempotency key once per page load.
+  // This prevents duplicate bookings when a user double-clicks the Pay button.
+  const idempotencyKey = useRef(crypto.randomUUID());
 
   useEffect(() => {
     fetch("/api/config")
@@ -102,6 +105,9 @@ export default function Payment() {
         body: JSON.stringify({
           customerName: user?.name || guestName,
           customerEmail: user?.email || guestEmail,
+          // FIX (audit section 3.5): Send the stable idempotency key so the server
+          // can deduplicate if the user double-clicks or the request is retried.
+          idempotencyKey: idempotencyKey.current,
           items: items.map(i => ({
             productId: i.id,
             adultPax: i.adultPax,
@@ -181,15 +187,20 @@ export default function Payment() {
           const serverTotal = priceSnapshot.totalCents;
           const clientTotal = total;
 
-          // Allow small rounding differences (< 1 unit)
+          // FIX (audit section 3.4): Block checkout on price mismatch instead of
+          // just showing a toast. The server price is authoritative; if they differ
+          // by more than a trivial rounding amount we stop here and force the user
+          // to review before proceeding.  Note: the server will always use its own
+          // price when the booking is created — this check is belt-and-suspenders
+          // UX so the customer doesn't see a surprise total on the success page.
           if (Math.abs(serverTotal - clientTotal) > 100) {
             toast({
-              title: "Price Updated",
-              description: `The total has been updated to ${formatPriceDisplay(serverTotal, currency)}. Please review before continuing.`,
+              title: "Price has changed",
+              description: `Your cart total has been updated to ${formatPriceDisplay(serverTotal, currency)}. Please review the new total and click Pay again to continue.`,
               variant: "default"
             });
-            // Could trigger a cart refresh here if needed
             console.warn(`[PRICE MISMATCH] Client: ${clientTotal}, Server: ${serverTotal}`);
+            return; // Stop — do not proceed to booking creation
           }
         }
 

@@ -84,6 +84,30 @@ export class PaymentApplicationService {
           message: "Checkout rejected: Inventory hold expired."
         };
       }
+
+      // FIX: Extend hold TTL for manual payment methods (bank transfer / cash).
+      // The initial hold is created at booking time with a short TTL (15 min) because
+      // the payment method is not yet known.  Once the customer selects a manual method
+      // we extend to 72 hours so the hold survives the payment window.
+      const { MANUAL_PAYMENT_SLUGS, MANUAL_PAYMENT_TTL_MINUTES } = await import("./availability/availability.application-service.js");
+      const chosenSlug = (options.provider || '').toLowerCase();
+      const isManual = MANUAL_PAYMENT_SLUGS.some((s: string) => chosenSlug.includes(s));
+      if (isManual) {
+        const extendedExpiry = new Date();
+        extendedExpiry.setMinutes(extendedExpiry.getMinutes() + MANUAL_PAYMENT_TTL_MINUTES);
+        await this.storage.updateHold(hold.id, { expiresAt: extendedExpiry });
+
+        // Also extend all session holds (multi-item bookings)
+        if (booking.bookingSessionId) {
+          const sessionHolds = await this.storage.getHoldsBySession(booking.bookingSessionId);
+          for (const sh of sessionHolds) {
+            if (sh.id !== hold.id) {
+              await this.storage.updateHold(sh.id, { expiresAt: extendedExpiry });
+            }
+          }
+        }
+        console.log(`[PAYMENT] Extended hold TTL to 72h for manual payment method '${chosenSlug}', booking ${booking.id}`);
+      }
     }
 
     const user = options.userId ? await this.storage.getUser(options.userId) : null;

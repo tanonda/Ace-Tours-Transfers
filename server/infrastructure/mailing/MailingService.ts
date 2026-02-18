@@ -16,10 +16,12 @@ export class MailingService {
   }
 
   private init() {
-    const smtpHost = process.env.SMTP_HOST;
-    const smtpPort = parseInt(process.env.SMTP_PORT || '587');
-    const smtpUser = process.env.SMTP_USER;
-    const smtpPass = process.env.SMTP_PASS;
+    // FIX (MED-1): Support both SMTP_* (preferred) and legacy GMAIL_* env vars
+    // so operators only need to configure one set.
+    const smtpHost   = process.env.SMTP_HOST   || (process.env.GMAIL_USER ? 'smtp.gmail.com' : undefined);
+    const smtpPort   = parseInt(process.env.SMTP_PORT || '587');
+    const smtpUser   = process.env.SMTP_USER   || process.env.GMAIL_USER;
+    const smtpPass   = process.env.SMTP_PASS   || process.env.GMAIL_APP_PASSWORD;
 
     if (smtpHost && smtpUser && smtpPass) {
       this.transporter = nodemailer.createTransport({
@@ -47,9 +49,10 @@ export class MailingService {
   }
 
   /**
-   * Internal wrapper for sending emails with retry logic (M7 Fix)
+   * Send an email. Public so that mail.ts can delegate to this single
+   * implementation (unified email fix — removes dual-implementation bug).
    */
-  private async sendEmail(options: nodemailer.SendMailOptions): Promise<void> {
+  async sendEmail(options: nodemailer.SendMailOptions): Promise<void> {
     if (!this.isEnabled || !this.transporter) {
       console.warn(`[MAILING] Skipping email (Service disabled): ${options.subject}`);
       return;

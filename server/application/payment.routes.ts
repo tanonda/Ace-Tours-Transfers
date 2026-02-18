@@ -28,13 +28,18 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
         return flag ? flag.enabled : false;
       };
 
+      // FIX: Stripe is not available to Vanuatu merchants.
+      // It is excluded from the active gateway list unless explicitly enabled via
+      // the STRIPE_ENABLED=true environment variable AND the 'payment-stripe' feature flag.
+      const stripeExplicitlyEnabled = process.env.STRIPE_ENABLED === 'true';
+
       // Filter gateways based on FEATURE FLAGS
       const visibleGateways = gateways.filter((g: any) => {
         if (!g.active) return false;
         const slug = g.slug.toLowerCase();
 
-        if (slug === 'stripe') return isFlagEnabled('payment-stripe');
-        if (slug === 'bank-transfer' || slug === 'manual' || slug === 'bank') {
+        if (slug === 'stripe') return stripeExplicitlyEnabled && isFlagEnabled('payment-stripe');
+        if (slug === 'bank-transfer' || slug === 'manual' || slug === 'manual_transfer' || slug === 'bank') {
           return isFlagEnabled('payment-bank-transfer');
         }
         if (slug === 'cash') {
@@ -162,6 +167,81 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
       res.json(payments);
     } catch (error) {
       res.status(500).json({ error: "Failed to get booking payments" });
+    }
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // BANK GATEWAY RETURN-URL CALLBACKS
+  //
+  // ANZ eGate, BSP, and BRED Bank redirect the customer back to our site
+  // after the hosted checkout completes.  The bank appends vpc_ parameters
+  // (result code, merchant transaction ref, secure hash) to the ReturnURL.
+  //
+  // This route verifies the hash, records the payment outcome, and then
+  // redirects the customer to the success or cancel page.
+  // ─────────────────────────────────────────────────────────────────────────
+  const BANK_GATEWAY_SLUGS = ['anz-egate', 'bsp-bank', 'bred-bank', 'wantok-money', 'generic-local-bank'];
+
+  app.get("/api/payments/callback/:gateway", async (req, res) => {
+    const { gateway } = req.params;
+
+    if (!BANK_GATEWAY_SLUGS.includes(gateway)) {
+      return res.status(404).json({ error: "Unknown gateway callback" });
+    }
+
+    try {
+      // The bank sends all vpc_ parameters in the query string.
+      // We pass them as-is to the adapter's handleWebhook().
+      const vpcParams = req.query as Record<string, string>;
+      const bookingId: string = vpcParams.vpc_OrderInfo || "";
+
+      const result = await paymentAppService.handlePaymentWebhook({
+        gatewaySlug: gateway,
+        rawEvent: vpcParams,
+        signature: vpcParams.vpc_SecureHash || "",
+      });
+
+      // Always redirect the browser — never show a raw JSON error to the customer.
+      if (result.success) {
+        console.log(`[BANK CALLBACK][${gateway}] Payment confirmed for booking ${bookingId}`);
+        return res.redirect(`/payment/success?booking=${encodeURIComponent(bookingId)}`);
+      } else {
+        console.warn(`[BANK CALLBACK][${gateway}] Payment failed/rejected for booking ${bookingId}: ${result.message}`);
+        return res.redirect(`/payment/cancel?booking=${encodeURIComponent(bookingId)}&reason=gateway_rejected`);
+      }
+    } catch (error: any) {
+      console.error(`[BANK CALLBACK][${gateway}] Error:`, error);
+      // Redirect to a generic error page rather than showing a 500
+      return res.redirect(`/payment/cancel?reason=system_error`);
+    }
+  });
+
+  // POST variant — some banks POST the callback parameters instead of GET
+  app.post("/api/payments/callback/:gateway", async (req, res) => {
+    const { gateway } = req.params;
+
+    if (!BANK_GATEWAY_SLUGS.includes(gateway)) {
+      return res.status(404).json({ error: "Unknown gateway callback" });
+    }
+
+    try {
+      const vpcParams = { ...req.body, ...req.query } as Record<string, string>;
+      const bookingId: string = vpcParams.vpc_OrderInfo || "";
+
+      const result = await paymentAppService.handlePaymentWebhook({
+        gatewaySlug: gateway,
+        rawEvent: vpcParams,
+        signature: vpcParams.vpc_SecureHash || "",
+      });
+
+      if (result.success) {
+        return res.redirect(`/payment/success?booking=${encodeURIComponent(bookingId)}`);
+      } else {
+        return res.redirect(`/payment/cancel?booking=${encodeURIComponent(bookingId)}&reason=gateway_rejected`);
+      }
+    } catch (error: any) {
+      console.error(`[BANK CALLBACK POST][${gateway}] Error:`, error);
+      return res.redirect(`/payment/cancel?reason=system_error`);
     }
   });
 

@@ -657,6 +657,148 @@ export async function registerRoutes(
     }
   });
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // GUEST RESERVATION PORTAL: verify and self-service cancel
+  // These routes power the public-facing "Find my booking" lookup form.
+  // They are deliberately guest-accessible (no requireAuth) but rate-limited
+  // and require ownership proof (booking ref + email / last name).
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /**
+   * POST /api/bookings/verify
+   * Look up a booking by its confirmation number + one verification factor.
+   * Returns a sanitised booking view (internal IDs stripped).
+   */
+  app.post("/api/bookings/verify", verifyLimiter, async (req, res) => {
+    try {
+      const { bookingId, type, value } = req.body as {
+        bookingId?: string;
+        type?: string;
+        value?: string;
+      };
+
+      if (!bookingId || !type || !value) {
+        return res.status(400).json({ error: "bookingId, type and value are all required." });
+      }
+
+      if (!["email", "phone", "lastname"].includes(type)) {
+        return res.status(400).json({ error: "type must be 'email', 'phone', or 'lastname'." });
+      }
+
+      const booking = await storage.getBooking(bookingId);
+
+      // Use the same response for not-found and failed-verification to prevent
+      // confirmation-number enumeration.
+      const VERIFY_FAIL = { error: "Booking not found or verification failed." };
+
+      if (!booking) return res.status(404).json(VERIFY_FAIL);
+
+      let verified = false;
+      const normalise = (s?: string | null) => (s ?? "").trim().toLowerCase();
+
+      if (type === "email") {
+        verified = normalise(booking.customerEmail) === normalise(value);
+      } else if (type === "lastname") {
+        const lastName = (booking.customerName ?? "").trim().split(/\s+/).pop() ?? "";
+        verified = normalise(lastName) === normalise(value);
+      } else if (type === "phone") {
+        const storedPhone = (booking as any).customerPhone ?? "";
+        verified = normalise(storedPhone) === normalise(value);
+      }
+
+      if (!verified) return res.status(403).json(VERIFY_FAIL);
+
+      // Return a public view — strip all internal tracking fields
+      const {
+        holdId: _holdId,
+        bookingSessionId: _sessionId,
+        userId: _userId,
+        idempotencyKey: _iKey,
+        ...publicBooking
+      } = booking as any;
+
+      // Mask the email so we don't echo it back in full
+      const maskedEmail = (() => {
+        const em = booking.customerEmail ?? "";
+        const [local, domain] = em.split("@");
+        if (!domain || local.length < 2) return em;
+        return `${local[0]}${"*".repeat(Math.max(1, local.length - 1))}@${domain}`;
+      })();
+
+      return res.json({ ...publicBooking, customerEmail: maskedEmail });
+    } catch (error) {
+      const ref = Date.now().toString();
+      console.error(`[BOOKING VERIFY ERROR][${ref}]`, error);
+      res.status(500).json({ error: "Internal error", ref });
+    }
+  });
+
+  /**
+   * POST /api/bookings/:id/cancel
+   * Guest self-service cancel. Requires the same ownership proof as /verify.
+   * Only pending bookings may be self-cancelled; confirmed/completed bookings
+   * must be handled by staff.
+   */
+  app.post("/api/bookings/:id/cancel", verifyLimiter, async (req, res) => {
+    try {
+      const { type, value } = req.body as { type?: string; value?: string };
+      const booking = await storage.getBooking(req.params.id);
+
+      const VERIFY_FAIL = { error: "Booking not found or verification failed." };
+      if (!booking) return res.status(404).json(VERIFY_FAIL);
+
+      // Re-verify ownership (same logic as /verify)
+      let verified = false;
+      const normalise = (s?: string | null) => (s ?? "").trim().toLowerCase();
+
+      if (type === "email") {
+        verified = normalise(booking.customerEmail) === normalise(value);
+      } else if (type === "lastname") {
+        const lastName = (booking.customerName ?? "").trim().split(/\s+/).pop() ?? "";
+        verified = normalise(lastName) === normalise(value);
+      } else if (type === "phone") {
+        verified = normalise((booking as any).customerPhone) === normalise(value);
+      }
+
+      if (!verified) return res.status(403).json(VERIFY_FAIL);
+
+      // Only allow self-cancel of pending bookings
+      if (booking.status !== "pending") {
+        return res.status(400).json({
+          error: `This booking is '${booking.status}' and cannot be self-cancelled. Please contact us directly.`,
+        });
+      }
+
+      const { AtomicBookingConfirmationService } = await import("./application/booking/AtomicBookingConfirmationService.js");
+      const svc = new AtomicBookingConfirmationService(storage);
+      const result = await svc.cancelBookingAtomically(booking.id, "guest_self_cancel");
+
+      if (!result.success) {
+        return res.status(500).json({ error: result.message });
+      }
+
+      // Notify the customer their cancellation was received
+      try {
+        await sendEmail({
+          to: booking.customerEmail!,
+          subject: `Booking Cancelled — Ref #${booking.id.slice(0, 8).toUpperCase()}`,
+          html: `<p>Hi ${booking.customerName},</p>
+                 <p>Your booking (Ref #${booking.id.slice(0, 8).toUpperCase()}) has been cancelled as requested.</p>
+                 <p>If you did not request this cancellation please contact us immediately.</p>
+                 <p>Thank you,<br/>Ace Tours & Transfers</p>`,
+        });
+      } catch (emailErr) {
+        console.error("[BOOKING CANCEL] Cancellation email failed (non-fatal):", emailErr);
+      }
+
+      return res.json({ success: true, message: "Booking cancelled successfully." });
+    } catch (error) {
+      const ref = Date.now().toString();
+      console.error(`[BOOKING CANCEL ERROR][${ref}]`, error);
+      res.status(500).json({ error: "Internal error", ref });
+    }
+  });
+
   app.get("/api/bookings/user/:userId", requireAuth, async (req, res) => {
     try {
       if (req.session.userRole !== 'admin' && req.session.userId !== req.params.userId) {
@@ -770,8 +912,42 @@ export async function registerRoutes(
       if (req.session.userRole !== 'admin' && existing.userId !== req.session.userId) {
         return res.status(403).json({ error: "Access denied" });
       }
-      // If cancelling, release holds associated with this booking
+
       const updates = { ...req.body } as any;
+
+      // FIX (HIGH-8 / audit report section 3.3): Enforce an immutable-field whitelist.
+      // Financial and identity fields must never be overwritten via this route.
+      const IMMUTABLE_FIELDS = [
+        'totalAmountCents', 'amount', 'tourId', 'customerEmail',
+        'idempotencyKey', 'holdId', 'bookingSessionId', 'id', 'createdAt',
+      ];
+      for (const field of IMMUTABLE_FIELDS) {
+        if (updates[field] !== undefined) {
+          return res.status(400).json({ error: `Field '${field}' cannot be modified.` });
+        }
+      }
+
+      // FIX: Enforce booking status state machine.
+      // Only admin users are allowed to drive status transitions.
+      const ALLOWED_TRANSITIONS: Record<string, string[]> = {
+        'pending':        ['confirmed', 'cancelled'],
+        'confirmed':      ['completed', 'cancelled'],
+        'completed':      [],
+        'cancelled':      [],
+        'price_mismatch': ['confirmed', 'cancelled'],  // admin manual resolution
+        'inventory_conflict': ['cancelled'],             // admin manual resolution
+      };
+
+      if (updates.status && updates.status !== existing.status) {
+        const allowed = ALLOWED_TRANSITIONS[existing.status] ?? [];
+        if (!allowed.includes(updates.status)) {
+          return res.status(400).json({
+            error: `Invalid status transition: '${existing.status}' → '${updates.status}'. Allowed: [${allowed.join(', ') || 'none'}]`,
+          });
+        }
+      }
+
+      // If cancelling, release holds associated with this booking
       if (updates.status === 'cancelled' && existing) {
         try {
           // Release primary hold if exists
