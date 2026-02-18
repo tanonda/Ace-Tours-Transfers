@@ -34,6 +34,7 @@ export const bookingFormBaseSchema = z.object({
   childPax: z.string().min(1, "Number of children is required"),
   notes: z.string().optional(),
   addonIds: z.array(z.string()).default([]),
+  pickupLocation: z.string().optional(),
 });
 
 export const bookingFormSchema = bookingFormBaseSchema.refine((data) => {
@@ -111,6 +112,7 @@ export function BookingForm({
       addonIds: initialValues?.addonIds || [],
       startTime: initialValues?.startTime || "",
       endTime: initialValues?.endTime || "",
+      pickupLocation: initialValues?.pickupLocation || "",
     },
   });
 
@@ -125,6 +127,21 @@ export function BookingForm({
   const watchedAddonIds = form.watch("addonIds");
   const watchedStartTime = form.watch("startTime");
   const watchedEndTime = form.watch("endTime");
+
+  const isTransfer = useMemo(
+    () => services.find(s => s.title === watchedService)?.category === 'transfer',
+    [services, watchedService]
+  );
+
+  const isVehicle = useMemo(
+    () => services.find(s => s.title === watchedService)?.category === 'vehicle',
+    [services, watchedService]
+  );
+
+  const isTour = useMemo(
+    () => services.find(s => s.title === watchedService)?.category === 'tour' || (!isTransfer && !isVehicle),
+    [isTransfer, isVehicle, services, watchedService]
+  );
 
   // Fix #9: Improved localStorage persistence with:
   //   - Service ID (not title) as key so renames don't leave orphaned drafts
@@ -188,25 +205,23 @@ export function BookingForm({
     }
   }, [user, form]);
 
+  const prevInitialValuesRef = useRef<string>("");
+
   useEffect(() => {
     if (initialValues) {
-      Object.entries(initialValues).forEach(([key, value]) => {
-        if (value !== undefined && value !== "") {
-          form.setValue(key as keyof z.infer<typeof bookingFormSchema>, value as any);
-        }
-      });
-      // We don't use hasAppliedInitialValues.current here to allow external updates
+      const currentValuesStr = JSON.stringify(initialValues);
+      if (currentValuesStr !== prevInitialValuesRef.current) {
+        Object.entries(initialValues).forEach(([key, value]) => {
+          if (value !== undefined && value !== "") {
+            form.setValue(key as keyof z.infer<typeof bookingFormSchema>, value as any);
+          }
+        });
+        prevInitialValuesRef.current = currentValuesStr;
+      }
     }
   }, [initialValues, form]);
 
 
-  const selectedServiceObj = useMemo(() =>
-    services.find(s => s.title === watchedService),
-    [services, watchedService]);
-
-  const isVehicle = selectedServiceObj?.category === 'vehicle';
-  const isTransfer = selectedServiceObj?.category === 'transfer';
-  const isTour = selectedServiceObj?.category === 'tour';
 
   // Fix #8: Use server-returned pricing when available (after availability check) so the
   // receipt always matches what the server will charge. Fall back to a client-side estimate
@@ -503,6 +518,29 @@ export function BookingForm({
                                   })}
                                 </SelectContent>
                               </Select>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+
+                    {isTransfer && (
+                      <FormField
+                        control={form.control}
+                        name="pickupLocation"
+                        render={({ field }) => (
+                          <FormItem className="col-span-1 md:col-span-2">
+                            <FormLabel className="text-sm font-semibold text-slate-700">{t("booking.pickupLocation", "Pickup Location")}</FormLabel>
+                            <FormControl>
+                              <div className="relative">
+                                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                                <Input
+                                  {...field}
+                                  className="h-12 pl-10 border-slate-200 bg-slate-50/50 rounded-xl focus:ring-4 focus:ring-primary/10"
+                                  placeholder={t("booking.pickupPlaceholder", "Hotel name, airport, or specific address")}
+                                />
+                              </div>
                             </FormControl>
                             <FormMessage />
                           </FormItem>
