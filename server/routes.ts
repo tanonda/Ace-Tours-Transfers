@@ -900,6 +900,15 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/wishlist/check/:tourId", requireAuth, async (req, res) => {
+    try {
+      const inWishlist = await storage.isInWishlist(req.session.userId!, req.params.tourId);
+      res.json({ inWishlist });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to check wishlist" });
+    }
+  });
+
   // Newsletter API
   app.get("/api/newsletter/subscribers", requireAdmin, async (_req, res) => {
     try {
@@ -997,6 +1006,26 @@ export async function registerRoutes(
     res.json({ success: true });
   });
 
+  // Analytics API
+  app.get("/api/analytics/stats", requireAdmin, async (_req, res) => {
+    try {
+      const stats = await storage.getBookingStats();
+      res.json(stats);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch stats" });
+    }
+  });
+
+  app.get("/api/analytics/revenue/daily", requireAdmin, async (req, res) => {
+    try {
+      const days = parseInt(req.query.days as string) || 30;
+      const revenue = await storage.getRevenueDaily(days);
+      res.json(revenue);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch revenue data" });
+    }
+  });
+
   // Stripe & Payments
   app.get("/api/stripe/config", (_req, res) => {
     res.json({ publishableKey: getStripePublishableKey() });
@@ -1005,6 +1034,11 @@ export async function registerRoutes(
   registerPaymentRoutes(app, storage);
   await registerRecoveryRoutes(app, storage);
   registerBookingEngineRoutes(app, storage, requireAdmin);
+
+  // Safety 404 for /api routes to prevent hitting Vite middleware
+  app.all("/api/*", (req, res) => {
+    res.status(404).json({ error: `Route ${req.method} ${req.originalUrl} not found` });
+  });
 
   return httpServer;
 }

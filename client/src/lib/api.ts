@@ -19,7 +19,7 @@ export async function uploadImage(file: File): Promise<{ url: string }> {
   const formData = new FormData();
   formData.append('image', file);
 
-  const res = await fetch('/api/upload/image', {
+  const res = await fetch('/api/admin/upload', {
     method: 'POST',
     body: formData
   });
@@ -120,7 +120,7 @@ export async function fetchBookingItems(bookingId: string): Promise<any[]> {
 }
 
 export async function fetchBookingPayments(bookingId: string): Promise<Payment[]> {
-  const res = await apiRequest("GET", `/api/payments/booking/${bookingId}`);
+  const res = await apiRequest("GET", `/api/bookings/${bookingId}/payments`);
   return res.json();
 }
 
@@ -148,8 +148,8 @@ export async function deleteBooking(id: string): Promise<void> {
   await apiRequest("DELETE", `/api/bookings/${id}`);
 }
 
-export async function initiatePayment(bookingId: string, gatewaySlug?: string): Promise<{ paymentId: string; redirectUrl: string }> {
-  const res = await apiRequest("POST", "/api/payments/initiate", { bookingId, gatewaySlug });
+export async function initiatePayment(bookingId: string, provider?: string): Promise<{ paymentId: string; checkoutUrl: string }> {
+  const res = await apiRequest("POST", "/api/payments/checkout", { bookingId, provider });
   return res.json();
 }
 
@@ -173,7 +173,7 @@ export async function fetchBookingStats() {
 }
 
 export async function fetchRevenue(): Promise<{ month: string; total: number }[]> {
-  const res = await apiRequest("GET", "/api/analytics/revenue");
+  const res = await apiRequest("GET", "/api/analytics/revenue/daily");
   return res.json();
 }
 
@@ -210,7 +210,7 @@ export async function setDefaultPaymentGateway(id: string): Promise<void> {
 
 // CMS Content
 export async function fetchAllCmsContent(): Promise<Record<string, CmsContent[]>> {
-  const res = await apiRequest("GET", "/api/cms-content");
+  const res = await apiRequest("GET", "/api/content-blocks");
   return res.json();
 }
 
