@@ -310,7 +310,7 @@ export function BookingForm({
                           <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-primary transition-colors" />
                           <Input
                             placeholder={t("booking.namePlaceholder", "John Doe")}
-                            className="pl-10 h-12 border-slate-200 bg-slate-50/50 rounded-xl focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all font-medium"
+                            className="pl-10 h-12 border-slate-200 bg-slate-50/50 rounded-xl focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all font-black"
                             {...field}
                           />
                         </div>
@@ -331,7 +331,7 @@ export function BookingForm({
                           <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-primary transition-colors" />
                           <Input
                             placeholder={t("booking.emailPlaceholder", "john@example.com")}
-                            className="pl-10 h-12 border-slate-200 bg-slate-50/50 rounded-xl focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all font-medium"
+                            className="pl-10 h-12 border-slate-200 bg-slate-50/50 rounded-xl focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all font-black"
                             {...field}
                           />
                         </div>
@@ -369,14 +369,14 @@ export function BookingForm({
                       <FormLabel className="text-sm font-semibold text-slate-700">{t("booking.service", "Service")}</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
-                          <SelectTrigger className="h-12 border-slate-200 bg-slate-50/50 rounded-xl focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all font-medium">
+                          <SelectTrigger className="h-12 border-slate-200 bg-slate-50/50 rounded-xl focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all font-black">
                             <div className="flex items-center gap-2">
                               <MapPin className="h-4 w-4 text-slate-400" />
                               <SelectValue placeholder={t("booking.selectService", "Select tour/transfer")} />
                             </div>
                           </SelectTrigger>
                         </FormControl>
-                        <SelectContent className="rounded-xl shadow-xl border-slate-100">
+                        Bondi                        <SelectContent className="rounded-xl shadow-xl border-slate-100">
                           <SelectItem value="select" disabled>{t("booking.selectOption", "Select an option")}</SelectItem>
                           {services.filter(s => s.category === 'tour').length > 0 && (
                             <SelectGroup>
@@ -424,7 +424,7 @@ export function BookingForm({
                               variant={"outline"}
                               className={cn(
                                 "w-full h-12 pl-10 text-left border-slate-200 bg-slate-50/50 rounded-xl focus:ring-4 focus:ring-primary/10 relative",
-                                !field.value ? "text-slate-400 font-normal" : "text-slate-900 font-medium"
+                                !field.value ? "text-slate-400 font-normal" : "text-slate-900 font-black"
                               )}
                             >
                               <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -713,7 +713,7 @@ export function BookingForm({
                     <FormControl>
                       <Textarea
                         placeholder="E.g. vegetarian meal, wheelchair accessibility, hotel pickup from Grand Hotel..."
-                        className="min-h-[90px] border-slate-200 bg-slate-50/50 rounded-xl focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all resize-none font-medium text-sm"
+                        className="min-h-[90px] border-slate-200 bg-slate-50/50 rounded-xl focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all resize-none font-black text-sm"
                         {...field}
                       />
                     </FormControl>

@@ -68,7 +68,7 @@ export default function Register() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background font-sans text-foreground">
-       <header className="bg-primary text-white shadow-md py-4 relative z-20">
+      <header className="bg-primary text-white shadow-md py-4 relative z-20">
         <div className="container mx-auto px-4 flex items-center justify-between">
           <Link href="/" className="font-serif font-bold text-xl tracking-tight">
             {t("app.title")}
@@ -87,8 +87,8 @@ export default function Register() {
 
       <main className="flex-grow relative">
         <div className="absolute inset-0">
-          <img 
-            src={featuredTour.image} 
+          <img
+            src={featuredTour.image}
             alt={t("auth.vanuatuCulture")}
             className="w-full h-full object-cover"
           />
@@ -115,7 +115,7 @@ export default function Register() {
                         required
                         value={formData.name}
                         onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                        className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-white/40"
+                        className="bg-white/20 border-white/30 text-white placeholder:text-white/50 focus:border-white/50 font-black shadow-lg"
                       />
                     </div>
                     <div className="space-y-2">
@@ -127,7 +127,7 @@ export default function Register() {
                         required
                         value={formData.email}
                         onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                        className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-white/40"
+                        className="bg-white/20 border-white/30 text-white placeholder:text-white/50 focus:border-white/50 font-black shadow-lg"
                       />
                     </div>
                     <div className="space-y-2">
@@ -138,7 +138,7 @@ export default function Register() {
                         required
                         value={formData.password}
                         onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-                        className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-white/40"
+                        className="bg-white/20 border-white/30 text-white placeholder:text-white/50 focus:border-white/50 font-black shadow-lg"
                       />
                     </div>
                     <div className="space-y-2">
@@ -149,10 +149,10 @@ export default function Register() {
                         required
                         value={formData.confirmPassword}
                         onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                        className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-white/40"
+                        className="bg-white/20 border-white/30 text-white placeholder:text-white/50 focus:border-white/50 font-black shadow-lg"
                       />
                     </div>
-                    
+
                     <Button type="submit" className="w-full bg-white text-primary hover:bg-white/90 font-semibold" disabled={isLoading}>
                       {isLoading ? (
                         <>
@@ -180,7 +180,7 @@ export default function Register() {
                   </span>
                 </div>
                 <h2 className="text-4xl font-serif font-bold">{t("auth.whyJoin")}</h2>
-                
+
                 <div className="space-y-5">
                   <div className="flex items-start gap-4">
                     <CheckCircle className="w-6 h-6 text-green-400 shrink-0 mt-0.5" />
@@ -231,7 +231,7 @@ export default function Register() {
       </main>
 
       <footer className="bg-[#291B12] text-white py-6 text-center text-sm opacity-90 relative z-20">
-         <p>&copy; {new Date().getFullYear()} {t("app.title")}. {t("footer.copyright")}</p>
+        <p>&copy; {new Date().getFullYear()} {t("app.title")}. {t("footer.copyright")}</p>
       </footer>
     </div>
   );

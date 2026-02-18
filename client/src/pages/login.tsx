@@ -125,11 +125,11 @@ export default function Login() {
                   {/* Demo Accounts Alert */}
                   <div className="mb-6 bg-white/10 border border-white/20 rounded-md p-4 text-sm text-white">
                     <p className="font-semibold mb-2 flex items-center gap-2">
-                      <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" /> 
+                      <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
                       {t("auth.demoAccounts")}
                     </p>
                     <div className="grid grid-cols-2 gap-2">
-                      <button 
+                      <button
                         onClick={() => fillCredentials('admin')}
                         className="text-left p-2 rounded hover:bg-white/10 transition-colors border border-transparent hover:border-white/30"
                       >
@@ -137,7 +137,7 @@ export default function Login() {
                         <div className="text-xs text-white/80">admin@acetours.vu</div>
                         <div className="text-xs text-white/60">admin123</div>
                       </button>
-                      <button 
+                      <button
                         onClick={() => fillCredentials('customer')}
                         className="text-left p-2 rounded hover:bg-white/10 transition-colors border border-transparent hover:border-white/30"
                       >
@@ -159,7 +159,7 @@ export default function Login() {
                         required
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-white/40"
+                        className="bg-white/20 border-white/30 text-white placeholder:text-white/50 focus:border-white/50 font-black shadow-lg"
                       />
                     </div>
                     <div className="space-y-2">
@@ -175,7 +175,7 @@ export default function Login() {
                         required
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-white/40"
+                        className="bg-white/20 border-white/30 text-white placeholder:text-white/50 focus:border-white/50 font-black shadow-lg"
                       />
                     </div>
                     <Button type="submit" className="w-full bg-white text-primary hover:bg-white/90 font-semibold" disabled={isLoading}>

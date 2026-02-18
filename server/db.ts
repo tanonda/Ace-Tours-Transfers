@@ -19,8 +19,10 @@ if (!process.env.DATABASE_URL) {
 
 export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  connectionTimeoutMillis: 30000, // Increased to 30s to handle slow network/startup
-  max: 10, // Limit pool size for serverless compatibility
+  connectionTimeoutMillis: 60000, // Increased to 60s for high-latency environments
+  idleTimeoutMillis: 30000,      // Close idle connections after 30s
+  max: 20,                       // Increased max connections for concurrent peaks
+  allowExitOnIdle: false,
 });
 
 // Add pool error listener to prevent uncaught exceptions from broken connections
