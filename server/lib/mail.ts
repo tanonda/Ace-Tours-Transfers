@@ -322,7 +322,7 @@ export function getPaymentConfirmationTemplate(booking: any, payment: any, tour:
             </tr>
             <tr>
               <td style="padding: 8px 0; color: #6b7280;">Amount Paid:</td>
-              <td style="padding: 8px 0; color: #059669; font-weight: 700;">${payment.amount / 100} ${payment.currency}</td>
+              <td style="padding: 8px 0; color: #059669; font-weight: 700;">${payment.amount} ${payment.currency}</td>
             </tr>
           </table>
         </div>

@@ -63,6 +63,44 @@ const availabilityLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+const bookingLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  message: { error: "Too many booking attempts, please try again later." },
+});
+
+const verifyLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  message: { error: "Too many verification attempts, please try again later." },
+});
+
+// C6 Fix: Zod schema for booking creation
+const createBookingItemSchema = z.object({
+  productId: z.string(),
+  adultPax: z.number().int().min(0),
+  childPax: z.number().int().min(0),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format (YYYY-MM-DD)"),
+  addonIds: z.array(z.string()).optional(),
+  startTime: z.string().optional(),
+  endTime: z.string().optional(),
+});
+
+const createBookingBodySchema = z.object({
+  customerName: z.string().min(1, "Name is required").max(100),
+  customerEmail: z.string().email("Invalid email address"),
+  items: z.array(createBookingItemSchema).min(1, "At least one item is required"),
+  pickupLocation: z.string().max(500).optional(),
+  idempotencyKey: z.string().optional(),
+}).refine(data => {
+  const totalPax = data.items.reduce((sum, item) => sum + (item.adultPax || 0) + (item.childPax || 0), 0);
+  return totalPax >= 1;
+}, {
+  message: "At least one guest (adult or child) is required across all items",
+  path: ["items"],
+});
+
+
 // Ensure uploads directory exists (legacy support if needed)
 const uploadDir = path.join(process.cwd(), 'attached_assets', 'uploads');
 if (!fs.existsSync(uploadDir)) {
@@ -169,7 +207,8 @@ export async function registerRoutes(
       const result = await availabilityAppService.getAvailability(tourId, date, slot, startTime, endTime);
       res.json(result);
     } catch (error) {
-      res.status(500).json({ error: "Failed to fetch availability" });
+      console.error("[AVAILABILITY ERROR]", error); // H3 Fix
+      res.status(500).json({ error: "Internal error", ref: Date.now().toString() });
     }
   });
 
@@ -214,10 +253,9 @@ export async function registerRoutes(
 
       res.json(result);
     } catch (error: any) {
-      console.error("[AVAILABILITY CHECK ERROR]", error);
-      console.error("Stack:", error.stack);
-      console.error("Payload:", req.body);
-      res.status(500).json({ error: "Failed to check availability", details: error.message });
+      const correlationId = Date.now().toString();
+      console.error(`[AVAILABILITY CHECK ERROR][${correlationId}]`, error); // H3 Fix
+      res.status(500).json({ error: "Internal error", ref: correlationId });
     }
   });
 
@@ -237,8 +275,9 @@ export async function registerRoutes(
 
       res.json(slots);
     } catch (error: any) {
-      console.error("[AVAILABILITY SLOTS ERROR]", error);
-      res.status(500).json({ error: "Failed to fetch slots", details: error.message });
+      const correlationId = Date.now().toString();
+      console.error(`[AVAILABILITY SLOTS ERROR][${correlationId}]`, error);
+      res.status(500).json({ error: "Internal error", ref: correlationId });
     }
   });
 
@@ -634,9 +673,20 @@ export async function registerRoutes(
     try {
       const booking = await storage.getBooking(req.params.id);
       if (!booking) return res.status(404).json({ error: "Booking not found" });
+
+      // C3 Fix: Require authentication or email verification for guest access
+      const isAdmin = req.session.userRole === 'admin';
+      const isOwner = booking.userId === req.session.userId || booking.bookingSessionId === req.sessionID;
+
+      if (!isAdmin && !isOwner) {
+        return res.status(401).json({ error: "Unauthorized access to booking details" });
+      }
+
       res.json(booking);
     } catch (error) {
-      res.status(500).json({ error: "Failed to fetch booking" });
+      const correlationId = Date.now().toString();
+      console.error(`[BOOKING LOOKUP ERROR][${correlationId}]`, error);
+      res.status(500).json({ error: "Internal error", ref: correlationId });
     }
   });
 
@@ -649,13 +699,23 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/bookings", async (req, res) => {
+  app.post("/api/bookings", bookingLimiter, async (req, res) => {
     try {
+      // C6 Fix: Validate input body
+      const validatedBody = createBookingBodySchema.parse(req.body);
+      const { items, customerName, customerEmail, pickupLocation, idempotencyKey } = validatedBody;
+
+      // M1 Fix: Past-date validation
+      const today = new Date().toISOString().split('T')[0];
+      for (const item of items) {
+        if (item.date < today) {
+          return res.status(400).json({ error: `Cannot book for a past date: ${item.date}` });
+        }
+      }
+
       const { CreateBookingFromCartService } = await import("./application/booking/CreateBookingFromCartService.js");
       const bookingService = new CreateBookingFromCartService(storage);
-      const { items, customerName, customerEmail, pickupLocation } = req.body;
-      const idempotencyKey = (req.headers['idempotency-key'] || req.body.idempotencyKey) as string | undefined;
-      if (!items || !items.length) return res.status(400).json({ error: "Cart is empty" });
+
       const booking = await bookingService.execute({
         customerName,
         customerEmail,
@@ -676,7 +736,7 @@ export async function registerRoutes(
           ...booking,
           date: booking.date || new Date().toISOString().split('T')[0],
           guests: `${firstItem?.adultPax || 1} Adult(s)${firstItem?.childPax ? ', ' + firstItem.childPax + ' Child(ren)' : ''}`,
-          amount: `VT ${((booking.totalAmountCents || 0) / 100).toLocaleString()}`,
+          amount: `VT ${(booking.totalAmountCents || 0).toLocaleString()}`,
         };
 
         // Send customer notification
@@ -749,7 +809,7 @@ export async function registerRoutes(
             ...booking,
             date: booking.date || new Date().toISOString().split('T')[0],
             guests: `${firstItem?.adultPax || 1} Adult(s)${firstItem?.childPax ? ', ' + firstItem.childPax + ' Child(ren)' : ''}`,
-            amount: `VT ${((booking.totalAmountCents || 0) / 100).toLocaleString()}`,
+            amount: `VT ${(booking.totalAmountCents || 0).toLocaleString()}`,
           };
 
           await sendEmail({
@@ -782,9 +842,10 @@ export async function registerRoutes(
     try {
       const settings = await storage.getSiteSettings();
       res.json(settings);
-    } catch (error: any) {
-      console.error("[SETTINGS ERROR]", error);
-      res.status(500).json({ error: "Failed to fetch settings", details: error.message });
+    } catch (error) {
+      const ref = Date.now().toString();
+      console.error(`[SETTINGS ERROR][${ref}]`, error);
+      res.status(500).json({ error: "Internal error", ref });
     }
   });
 

@@ -188,7 +188,7 @@ export class PaymentApplicationService {
               ...booking,
               date: booking.date || new Date().toISOString().split('T')[0],
               guests: `${firstItem?.adultPax || 1} Adult(s)${firstItem?.childPax ? ', ' + firstItem.childPax + ' Child(ren)' : ''}`,
-              amount: `VT ${((booking.totalAmountCents || 0) / 100).toLocaleString()}`,
+              amount: `VT ${(booking.totalAmountCents || 0).toLocaleString()}`,
             };
 
             const paymentMethod = gateway.slug === 'cash' ? 'Cash on Delivery' : 'Bank Transfer';

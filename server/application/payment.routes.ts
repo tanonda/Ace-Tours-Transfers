@@ -4,6 +4,14 @@ import { IStorage } from "../storage.js";
 import { getStripePublishableKey } from "../stripeClient.js";
 import { requireAuth, requireAdmin } from "../routes.js";
 import { config } from "../config.js";
+import { rateLimit } from "express-rate-limit";
+
+const paymentLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  message: { error: "Too many payment attempts, please try again later." },
+});
+
 
 export function registerPaymentRoutes(app: Express, storage: IStorage) {
   const paymentAppService = new PaymentApplicationService(storage);
@@ -14,7 +22,7 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
       const publishableKey = await getStripePublishableKey();
       const gateways = await storage.getPaymentGateways();
       const flags = await storage.getFeatureFlags();
-      
+
       const isFlagEnabled = (slug: string) => {
         const flag = flags.find(f => f.slug === slug);
         return flag ? flag.enabled : false;
@@ -24,7 +32,7 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
       const visibleGateways = gateways.filter((g: any) => {
         if (!g.active) return false;
         const slug = g.slug.toLowerCase();
-        
+
         if (slug === 'stripe') return isFlagEnabled('payment-stripe');
         if (slug === 'bank-transfer' || slug === 'manual' || slug === 'bank') {
           return isFlagEnabled('payment-bank-transfer');
@@ -32,12 +40,12 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
         if (slug === 'cash') {
           return isFlagEnabled('payment-cash-on-delivery');
         }
-        
+
         // Default to active if no specific flag
         return true;
       });
 
-      res.json({ 
+      res.json({
         stripePublishableKey: publishableKey,
         availableGateways: visibleGateways.map((g: any) => ({
           id: g.id,
@@ -53,7 +61,7 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
   });
 
   // Create checkout session
-  app.post("/api/payments/checkout", async (req, res) => {  // Guest-friendly: ownership verified inside
+  app.post("/api/payments/checkout", paymentLimiter, async (req, res) => {  // Guest-friendly: ownership verified inside
     try {
       const { bookingId, provider } = req.body;
       const baseUrl = `${req.protocol}://${req.get('host')}`;
@@ -135,7 +143,7 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
     try {
       const bookingId = req.params.id;
       const booking = await storage.getBooking(bookingId);
-      
+
       const isAdmin = req.session.userRole === 'admin';
       const isOwner = booking && (booking.userId === req.session.userId || booking.bookingSessionId === req.sessionID);
 
@@ -144,7 +152,7 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
       }
 
       const payments = await storage.getPaymentsByBooking(bookingId);
-      
+
       // Mask PII for non-admins
       if (!isAdmin) {
         const { selectPublicPaymentSchema } = await import("../../shared/schema.js");
@@ -160,7 +168,12 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
   // Standardized Webhook Handler
   app.post("/api/payments/webhook/:gateway", async (req, res) => {
     const gatewaySlug = req.params.gateway;
-    const signature = req.headers['stripe-signature'] as string; // or dynamic based on gateway
+    const signature = req.headers['stripe-signature'] as string;
+
+    // H7 Fix: Signature verification and Method Not Allowed for manual
+    if (gatewaySlug !== 'stripe') {
+      return res.status(405).json({ error: "Method Not Allowed: Webhooks not supported for this gateway." });
+    }
 
     try {
       const result = await paymentAppService.handlePaymentWebhook({
@@ -251,7 +264,7 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
     try {
       const { PaymentReconciliationService } = await import("./payment-reconciliation.service.js");
       const reconService = new PaymentReconciliationService(storage);
-      
+
       const { note, forceStatus } = req.body;
       if (!note) {
         return res.status(400).json({ error: "Reconciliation note is required" });
@@ -276,7 +289,7 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
     try {
       const { PaymentReconciliationService } = await import("./payment-reconciliation.service.js");
       const reconService = new PaymentReconciliationService(storage);
-      
+
       await reconService.syncPaymentStatus(req.params.id);
       res.json({ success: true, message: "Payment status synced with gateway" });
     } catch (error: any) {
