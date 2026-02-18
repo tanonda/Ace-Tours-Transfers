@@ -61,16 +61,14 @@ export class HoldExpiryJob {
         const results = await Promise.allSettled(
           batch.map(async (hold) => {
             // M3 Fix: Cancel associated pending booking before releasing hold
-            if (hold.bookingId) {
-              const booking = await this.storage.getBooking(hold.bookingId);
-              if (booking && booking.status === 'pending') {
-                console.log(`[HOLD-EXPIRY] Cancelling orphaned pending booking ${booking.id} for expired hold ${hold.id}`);
-                await this.storage.updateBooking(booking.id, {
-                  status: 'expired',
-                  updatedAt: new Date(),
-                  notes: (booking.notes || "") + "\nCancelled by hold expiry job."
-                });
-              }
+            const booking = await this.storage.getBookingByHoldId(hold.id);
+            if (booking && booking.status === 'pending') {
+              console.log(`[HOLD-EXPIRY] Cancelling orphaned pending booking ${booking.id} for expired hold ${hold.id}`);
+              await this.storage.updateBooking(booking.id, {
+                status: 'expired',
+                updatedAt: new Date(),
+                notes: (booking.notes || "") + "\nCancelled by hold expiry job."
+              });
             }
             return this.availabilityService.releaseHold(hold.id, HoldStatus.EXPIRED);
           })

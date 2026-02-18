@@ -264,8 +264,8 @@ export class PricingEngine {
    * Format cents as currency string for display
    */
   static formatCentsAsVUV(cents: number): string {
-    const amount = (cents / 100).toFixed(0);
-    return `VUV ${parseInt(amount).toLocaleString()}`;
+    // C1 Fix: VUV is a zero-decimal currency. Division by 100 was a bug from Phase 1.
+    return `VUV ${Math.round(cents).toLocaleString()}`;
   }
 
   /**

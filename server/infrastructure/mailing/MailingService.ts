@@ -39,21 +39,57 @@ export class MailingService {
   }
 
   /**
+   * Send an email to the administrator
+   */
+  async sendAdminEmail(subject: string, html: string): Promise<void> {
+    const adminEmail = process.env.ADMIN_EMAIL || process.env.SMTP_USER || 'admin@acetoursvanuatu.com';
+    await this.sendEmail({ to: adminEmail, subject, html });
+  }
+
+  /**
+   * Internal wrapper for sending emails with retry logic (M7 Fix)
+   */
+  private async sendEmail(options: nodemailer.SendMailOptions): Promise<void> {
+    if (!this.isEnabled || !this.transporter) {
+      console.warn(`[MAILING] Skipping email (Service disabled): ${options.subject}`);
+      return;
+    }
+
+    const MAX_RETRIES = 3;
+    let lastError;
+
+    const mailOptions = {
+      from: `"Ace Tours Vanuatu" <${process.env.SMTP_FROM || 'no-reply@acetoursvanuatu.com'}>`,
+      ...options
+    };
+
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        await this.transporter.sendMail(mailOptions);
+        console.log(`[MAILING] Email sent successfully (Attempt ${attempt}): ${options.subject}`);
+        return;
+      } catch (error) {
+        lastError = error;
+        console.warn(`[MAILING][WARN] Delivery failed (Attempt ${attempt}/${MAX_RETRIES}):`, error);
+        if (attempt < MAX_RETRIES) {
+          // Exponential backoff
+          await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt - 1) * 1000));
+        }
+      }
+    }
+
+    console.error(`[MAILING][ERROR] All attempts failed for ${options.subject}:`, lastError);
+  }
+
+  /**
    * Send a booking confirmation email
    * @param to Recipient email
    * @param bookingDetails Details of the booking
    */
   async sendBookingConfirmation(to: string, bookingDetails: any): Promise<void> {
-    if (!this.isEnabled || !this.transporter) {
-      console.warn(`[MAILING] Skipping email to ${to} (Service disabled)`);
-      return;
-    }
-
-    const mailOptions = {
-      from: `"Ace Tours Vanuatu" <${process.env.SMTP_FROM || 'no-reply@acetoursvanuatu.com'}>`,
+    await this.sendEmail({
       to,
       subject: `Booking Confirmation - ${bookingDetails.id}`,
-      text: `Your booking for ${bookingDetails.tourName} on ${bookingDetails.date} is confirmed!`,
       html: `
         <h1>Booking Confirmation</h1>
         <p>Dear ${bookingDetails.customerName},</p>
@@ -64,26 +100,14 @@ export class MailingService {
         <p><strong>Total Amount:</strong> ${bookingDetails.amount}</p>
         <p>We look forward to seeing you!</p>
       `,
-    };
-
-    // Send asynchronously - don't await the promise in the main flow if not necessary
-    // However, we return the promise so the caller can handle it if they want.
-    try {
-      await this.transporter.sendMail(mailOptions);
-      console.log(`[MAILING] Confirmation email sent to ${to} for booking ${bookingDetails.id}`);
-    } catch (error) {
-      console.error(`[MAILING][ERROR] Failed to send email to ${to}:`, error);
-    }
+    });
   }
 
   /**
    * Send a payment receipt/success email
    */
   async sendPaymentSuccess(to: string, paymentDetails: any): Promise<void> {
-    if (!this.isEnabled || !this.transporter) return;
-
-    const mailOptions = {
-      from: `"Ace Tours Vanuatu" <${process.env.SMTP_FROM || 'no-reply@acetoursvanuatu.com'}>`,
+    await this.sendEmail({
       to,
       subject: `Payment Successful - Receipt for ${paymentDetails.bookingId}`,
       html: `
@@ -93,19 +117,14 @@ export class MailingService {
         <p><strong>Transaction ID:</strong> ${paymentDetails.transactionId || 'N/A'}</p>
         <p>You will receive a separate email with your booking details shortly.</p>
       `,
-    };
-
-    await this.transporter.sendMail(mailOptions).catch(err => console.error("[MAILING][ERROR]", err));
+    });
   }
 
   /**
    * Send a payment failure notification
    */
   async sendPaymentFailure(to: string, paymentDetails: any): Promise<void> {
-    if (!this.isEnabled || !this.transporter) return;
-
-    const mailOptions = {
-      from: `"Ace Tours Vanuatu" <${process.env.SMTP_FROM || 'no-reply@acetoursvanuatu.com'}>`,
+    await this.sendEmail({
       to,
       subject: `Payment Failed - action required`,
       html: `
@@ -114,19 +133,14 @@ export class MailingService {
         <p><strong>Reason:</strong> ${paymentDetails.reason || 'Payment was declined by the gateway.'}</p>
         <p>Please try again using a different payment method or contact us for assistance.</p>
       `,
-    };
-
-    await this.transporter.sendMail(mailOptions).catch(err => console.error("[MAILING][ERROR]", err));
+    });
   }
 
   /**
    * Send a payment expiry notification
    */
   async sendPaymentExpiry(to: string, bookingId: string): Promise<void> {
-    if (!this.isEnabled || !this.transporter) return;
-
-    const mailOptions = {
-      from: `"Ace Tours Vanuatu" <${process.env.SMTP_FROM || 'no-reply@acetoursvanuatu.com'}>`,
+    await this.sendEmail({
       to,
       subject: `Booking Expired - Payment Timeout`,
       html: `
@@ -134,9 +148,7 @@ export class MailingService {
         <p>Your pending booking <strong>${bookingId}</strong> has expired because payment was not received within the required timeframe.</p>
         <p>The inventory has been released. If you still wish to book, please start a new checkout.</p>
       `,
-    };
-
-    await this.transporter.sendMail(mailOptions).catch(err => console.error("[MAILING][ERROR]", err));
+    });
   }
 }
 

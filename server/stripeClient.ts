@@ -1,4 +1,5 @@
 import Stripe from 'stripe';
+import { config } from "./config.js";
 
 let connectionSettings: any;
 
@@ -39,7 +40,7 @@ async function getCredentials() {
   });
 
   const data = await response.json() as any;
-  
+
   connectionSettings = data.items?.[0];
 
   if (!connectionSettings || (!connectionSettings.settings.publishable || !connectionSettings.settings.secret)) {
@@ -83,6 +84,7 @@ export async function getStripeSync() {
         max: 2,
       },
       stripeSecretKey: secretKey,
+      stripeWebhookSecret: config.payments.stripe.webhookSecret,
     });
   }
   return stripeSync;

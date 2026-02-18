@@ -48,10 +48,10 @@ export class PriceResolver {
   ): number {
     // Use engine's simple calculation
     let total = this.engine.calculateSimple(adultPax, childPax, rates, date);
-    
+
     // Add add-ons (if any)  
     total += addonTotalCents;
-    
+
     return total;
   }
 
@@ -67,6 +67,7 @@ export class PriceResolver {
    * Format cents as currency string for display only.
    */
   static formatCentsAsVUV(cents: number): string {
+    // C1 Fix: Delegate to engine which now correctly handles VUV as zero-decimal
     return PricingEngine.formatCentsAsVUV(cents);
   }
 

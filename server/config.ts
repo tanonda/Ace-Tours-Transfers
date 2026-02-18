@@ -14,6 +14,7 @@ export interface GatewayConfig {
 
 export const config = {
   env: process.env.NODE_ENV || 'development',
+  appUrl: process.env.APP_URL,
 
   // Session Security
   session: {
@@ -37,7 +38,8 @@ export const config = {
       enabled: process.env.PAYMENTS_STRIPE_ENABLED === 'true',
       visible: process.env.PAYMENTS_STRIPE_VISIBLE === 'true',
       mode: (process.env.PAYMENTS_STRIPE_MODE as 'sandbox' | 'live') || 'sandbox',
-    } as GatewayConfig,
+      webhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
+    } as GatewayConfig & { webhookSecret?: string },
 
     anz: {
       enabled: process.env.PAYMENTS_ANZ_ENABLED === 'true',
@@ -57,7 +59,7 @@ export const config = {
       mode: (process.env.PAYMENTS_BRED_MODE as 'sandbox' | 'live') || 'sandbox',
     } as GatewayConfig,
   },
-  
+
   // DDD Sharpening Flags
   ddd: {
     sharpeningActive: process.env.DDD_SHARPENING_ACTIVE !== 'false',
@@ -80,6 +82,13 @@ export const config = {
 
 export function validateConfig() {
   const isProd = config.env === 'production';
+
+  // CORS Guard
+  if (isProd && (!config.appUrl || !config.appUrl.startsWith('https://'))) {
+    console.error("[CONFIG][ERROR] APP_URL must be a valid https URL in production!");
+    process.exit(1);
+  }
+
   // 1. Session Secret
   const secret = config.session.secret;
   if (!secret || secret.length < 32) {
@@ -101,6 +110,11 @@ export function validateConfig() {
     process.exit(1);
   }
 
+  if (config.payments.stripe.enabled && isProd && !process.env.STRIPE_WEBHOOK_SECRET) {
+    console.error(`[CONFIG][ERROR] STRIPE_WEBHOOK_SECRET is required in production!`);
+    process.exit(1);
+  }
+
   if (config.payments.stripe.visible && !process.env.STRIPE_PUBLISHABLE_KEY?.startsWith('pk_')) {
     console.error(`[CONFIG][ERROR] Invalid STRIPE_PUBLISHABLE_KEY prefix. Must start with 'pk_'.`);
     process.exit(1);
@@ -112,11 +126,11 @@ export function validateConfig() {
   console.log(`[POSTURE] Payments Enabled: ${config.payments.enabled}`);
   console.log(`[POSTURE] External Gateways: ${config.payments.externalDisconnected ? 'DISCONNECTED (Manual Only)' : 'ENABLED'}`);
   console.log(`[POSTURE] Default Provider: ${config.payments.defaultProvider}`);
-  
+
   const activeGateways = Object.entries(config.payments)
     .filter(([key, val]: [string, any]) => val.enabled && key !== 'enabled' && key !== 'externalDisconnected' && key !== 'defaultProvider')
     .map(([key]) => key);
-  
+
   const visibleGateways = Object.entries(config.payments)
     .filter(([key, val]: [string, any]) => val.visible && key !== 'enabled' && key !== 'externalDisconnected' && key !== 'defaultProvider')
     .map(([key]) => key);
