@@ -51,7 +51,17 @@ import {
   getTestEmailTemplate
 } from "./lib/mail.js";
 import { ZodError, z } from "zod";
-import { rateLimit } from "./lib/rate-limiter.js";
+import { rateLimit as customRateLimit } from "./lib/rate-limiter.js";
+import { rateLimit } from "express-rate-limit";
+
+// Rate limiter for availability check
+const availabilityLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 10, // limit each IP to 10 requests per windowMs
+  message: { error: "Too many availability checks, please try again later." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 // Ensure uploads directory exists (legacy support if needed)
 const uploadDir = path.join(process.cwd(), 'attached_assets', 'uploads');
@@ -182,7 +192,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/availability/check", rateLimit(60000, 10), async (req, res) => {
+  app.post("/api/availability/check", availabilityLimiter, async (req, res) => {
     try {
       const { serviceId, date, adultPax, childPax, addonIds, startTime, endTime } = req.body;
 
@@ -549,7 +559,18 @@ export async function registerRoutes(
   app.get("/api/bookings", requireAdmin, async (_req, res) => {
     try {
       const bookings = await storage.getBookings();
-      res.json(bookings);
+      // Ensure specific fields are included for the admin dashboard
+      const enrichedBookings = bookings.map(b => ({
+        ...b,
+        totalAmountCents: b.totalAmountCents || 0,
+        currency: b.currency || "VUV",
+        customerEmail: b.customerEmail || "",
+        customerPhone: b.customerPhone || "",
+        tourName: b.tourName || "",
+        pickupLocation: b.pickupLocation || "",
+        confirmedAt: b.confirmedAt ? b.confirmedAt.toISOString() : null,
+      }));
+      res.json(enrichedBookings);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch bookings" });
     }
