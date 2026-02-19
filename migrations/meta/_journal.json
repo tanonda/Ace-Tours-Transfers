@@ -15,6 +15,13 @@
       "when": 1770968498395,
       "tag": "0001_supreme_nebula",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1771464835566,
+      "tag": "0002_redundant_tag",
+      "breakpoints": true
     }
   ]
 }
