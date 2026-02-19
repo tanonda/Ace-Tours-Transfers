@@ -1,10 +1,11 @@
 import { Express, Request, Response } from "express";
 import { PaymentApplicationService } from "./payment.application-service.js";
 import { IStorage } from "../storage.js";
-import { getStripePublishableKey } from "../stripeClient.js";
+// LOW-4: stripeClient import removed — Stripe not available to Vanuatu merchants
 import { requireAuth, requireAdmin } from "../routes.js";
 import { config } from "../config.js";
 import { rateLimit } from "express-rate-limit";
+import { z } from "zod";
 
 const paymentLimiter = rateLimit({
   windowMs: 60 * 1000,
@@ -19,7 +20,7 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
   // Get configuration
   app.get("/api/payments/config", async (req, res) => {
     try {
-      const publishableKey = await getStripePublishableKey();
+      const publishableKey = null; // LOW-4: Stripe removed — no publishable key
       const gateways = await storage.getPaymentGateways();
       const flags = await storage.getFeatureFlags();
 
@@ -51,7 +52,7 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
       });
 
       res.json({
-        stripePublishableKey: publishableKey,
+        stripePublishableKey: null, // LOW-4: Stripe removed
         availableGateways: visibleGateways.map((g: any) => ({
           id: g.id,
           slug: g.slug,
@@ -312,9 +313,27 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
     }
   });
 
+  // CRIT-5 FIX: Validate update body — only allow known, safe fields.
+  // Credentials and slug are excluded to prevent injection.
+  const gatewayUpdateSchema = z.object({
+    displayName: z.string().min(1).max(100).optional(),
+    description: z.string().max(500).nullable().optional(),
+    active: z.boolean().optional(),
+    isDefault: z.boolean().optional(),
+    priority: z.number().int().min(0).max(100).optional(),
+    config: z.record(z.any()).optional(),
+  }).strict(); // .strict() rejects any extra keys
+
   app.put("/api/admin/payment-gateways/:id", requireAdmin, async (req, res) => {
     try {
-      const gateway = await storage.updatePaymentGateway(req.params.id, req.body);
+      const parsed = gatewayUpdateSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({
+          error: "Invalid gateway update data",
+          details: parsed.error.flatten().fieldErrors,
+        });
+      }
+      const gateway = await storage.updatePaymentGateway(req.params.id, parsed.data);
       res.json(gateway);
     } catch (error) {
       res.status(400).json({ error: "Failed to update payment gateway" });

@@ -122,8 +122,8 @@ export class CreateBookingFromCartService {
           );
 
           let serverPricedTotalCents = pricing.breakdown.finalTotalCents;
-          const duration = (product.category === 'vehicle') ? (item.quantity || 1) : 1;
-          serverPricedTotalCents *= duration;
+          const priceDuration = (product.category === 'vehicle') ? (item.quantity || 1) : 1; // LOW-3: renamed from `duration` to avoid shadowing L71
+          serverPricedTotalCents *= priceDuration;
 
           const subtotalCents = serverPricedTotalCents;
           const unitPriceCents = totalQuantity > 0 ? Math.round(subtotalCents / totalQuantity) : 0;
@@ -171,6 +171,10 @@ export class CreateBookingFromCartService {
           }
         }
 
+        // 4. Persist top-level booking record.
+        // CRIT-3: tourId, date, tourName, holdId are FIRST-ITEM-ONLY convenience fields
+        // for display/admin. The authoritative item-level data lives in bookingItems table.
+        // All holds are linked via bookingSessionId (cartId), not holdId.
         const persistedBooking = await this.storage.createBooking({
           id: domainBooking.id,
           customerName: domainBooking.customerName,
@@ -178,14 +182,14 @@ export class CreateBookingFromCartService {
           amount: snapshot.totalCents.toString(),
           totalAmountCents: snapshot.totalCents,
           status: 'pending',
-          date: request.items[0].date,
+          date: request.items[0].date,                 // CRIT-3: first item only
           guests: request.items.reduce((sum, i) => sum + i.adultPax + i.childPax, 0),
-          tourId: request.items[0].productId,
-          tourName: cart.getItems()[0].name,
+          tourId: request.items[0].productId,           // CRIT-3: first item only
+          tourName: cart.getItems()[0].name,             // CRIT-3: first item only
           adultPaxTotal: request.items.reduce((sum, i) => sum + i.adultPax, 0),
           childPaxTotal: request.items.reduce((sum, i) => sum + i.childPax, 0),
-          holdId: createdHolds[0] || null,
-          bookingSessionId: cartId,
+          holdId: createdHolds[0] || null,               // CRIT-3: first hold only; all via bookingSessionId
+          bookingSessionId: cartId,                      // AUTHORITATIVE: links all holds for this order
           idempotencyKey: request.idempotencyKey || null,
           startTime: aggregateStart,
           endTime: aggregateEnd,

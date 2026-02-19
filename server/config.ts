@@ -64,7 +64,7 @@ export const config = {
   ddd: {
     sharpeningActive: process.env.DDD_SHARPENING_ACTIVE !== 'false',
     cardPaymentsDisabled: process.env.DDD_DISABLE_CARD !== 'false',
-    vatRateOverride: process.env.DDD_VAT_RATE ? parseFloat(process.env.DDD_VAT_RATE) : 0.15,
+    vatRateOverride: process.env.VAT_RATE ? parseFloat(process.env.VAT_RATE) : (process.env.DDD_VAT_RATE ? parseFloat(process.env.DDD_VAT_RATE) : 0.15), // LOW-5: Prefer VAT_RATE, fall back to DDD_VAT_RATE for compat
   },
 
   // Production Kill Switches (Circuit Breakers)

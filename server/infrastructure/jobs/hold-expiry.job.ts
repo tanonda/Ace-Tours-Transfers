@@ -1,5 +1,8 @@
 import { IStorage } from "../../storage.js";
 import { AvailabilityService, HoldStatus } from "../../domain/availability/availability.service.js";
+import { createLogger } from "../../lib/logger.js";
+
+const log = createLogger('hold-expiry');
 
 export interface HoldExpiryMetrics {
   totalRuns: number;
@@ -47,7 +50,7 @@ export class HoldExpiryJob {
         return { expired: 0, failed: 0 };
       }
 
-      console.log(`[HOLD-EXPIRY] Found ${expiredHolds.length} expired holds. Processing in batches of ${this.BATCH_SIZE}...`);
+      log.info('Found expired holds', { count: expiredHolds.length, batchSize: this.BATCH_SIZE });
 
       // Process in batches to avoid overwhelming the DB
       for (let i = 0; i < expiredHolds.length; i += this.BATCH_SIZE) {
@@ -55,22 +58,34 @@ export class HoldExpiryJob {
         const batchNum = Math.floor(i / this.BATCH_SIZE) + 1;
         const totalBatches = Math.ceil(expiredHolds.length / this.BATCH_SIZE);
 
-        console.log(`[HOLD-EXPIRY] Processing batch ${batchNum}/${totalBatches} (${batch.length} holds)`);
+        log.info('Processing batch', { batch: batchNum, total: totalBatches, holds: batch.length });
 
         // Process batch concurrently with Promise.allSettled for resilience
         const results = await Promise.allSettled(
           batch.map(async (hold) => {
-            // M3 Fix: Cancel associated pending booking before releasing hold
+            // HIGH-3 FIX: Release hold first (transactional), then cancel booking.
+            // releaseHold is already transactional internally (lock + decrement + status update).
+            // The booking status update wraps together so if releaseHold succeeds,
+            // the booking MUST be cancelled too — we retry the booking update if it fails.
+            await this.availabilityService.releaseHold(hold.id, HoldStatus.EXPIRED);
+
+            // Cancel associated pending booking AFTER hold is released
             const booking = await this.storage.getBookingByHoldId(hold.id);
             if (booking && booking.status === 'pending') {
-              console.log(`[HOLD-EXPIRY] Cancelling orphaned pending booking ${booking.id} for expired hold ${hold.id}`);
-              await this.storage.updateBooking(booking.id, {
-                status: 'expired',
-                updatedAt: new Date(),
-                notes: (booking.notes || "") + "\nCancelled by hold expiry job."
-              });
+              log.info('Cancelling orphaned pending booking', { bookingId: booking.id, holdId: hold.id });
+              try {
+                await this.storage.updateBooking(booking.id, {
+                  status: 'expired',
+                  updatedAt: new Date(),
+                  notes: (booking.notes || "") + "\nCancelled by hold expiry job."
+                });
+              } catch (bookingErr) {
+                // Hold has been released — booking update failing is critical.
+                // Log prominently so reconciliation can pick it up.
+                log.error('Hold released but booking update FAILED', { holdId: hold.id, bookingId: booking.id, error: (bookingErr as Error).message });
+                throw bookingErr; // Surface the failure to Promise.allSettled
+              }
             }
-            return this.availabilityService.releaseHold(hold.id, HoldStatus.EXPIRED);
           })
         );
 
@@ -79,17 +94,15 @@ export class HoldExpiryJob {
             totalExpired++;
           } else {
             totalFailed++;
-            console.error(`[HOLD-EXPIRY] Failed to release hold:`, result.reason);
+            log.error('Failed to release hold', { error: result.reason?.message || result.reason });
           }
         }
       }
 
       const durationMs = Date.now() - startTime;
-      console.log(
-        `[HOLD-EXPIRY] Completed: ${totalExpired} expired, ${totalFailed} failed in ${durationMs}ms`
-      );
+      log.info('Completed', { expired: totalExpired, failed: totalFailed, durationMs });
     } catch (error) {
-      console.error("[HOLD-EXPIRY] Critical error during hold expiry sweep:", error);
+      log.error('Critical error during hold expiry sweep', { error: (error as Error).message });
     }
 
     this.updateMetrics(startTime, totalExpired, totalFailed);
@@ -111,10 +124,10 @@ export class HoldExpiryJob {
 
   start(intervalMs: number = 60000): void {
     if (this.intervalId) {
-      console.warn("[HOLD-EXPIRY] Job already running, skipping duplicate start");
+      log.warn('Job already running, skipping duplicate start');
       return;
     }
-    console.log(`[HOLD-EXPIRY] Starting with interval ${intervalMs}ms (batch size: ${this.BATCH_SIZE})`);
+    log.info('Starting', { intervalMs, batchSize: this.BATCH_SIZE });
     // Run immediately on start, then at interval
     this.run();
     this.intervalId = setInterval(() => this.run(), intervalMs);
@@ -124,7 +137,7 @@ export class HoldExpiryJob {
     if (this.intervalId) {
       clearInterval(this.intervalId);
       this.intervalId = null;
-      console.log("[HOLD-EXPIRY] Job stopped");
+      log.info('Job stopped');
     }
   }
 }

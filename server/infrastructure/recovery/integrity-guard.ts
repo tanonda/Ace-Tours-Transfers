@@ -112,7 +112,8 @@ export class BackupIntegrityGuard {
    */
   static enforceReadOnly(req: any, res: any, next: any) {
     if (BackupIntegrityGuard.writeBlocked) {
-      // Allow GET requests, Recovery routes, and read-only POST endpoints
+      // LOW-6 DOC: POST /api/availability/check is allowed because it's a pure read query
+      // despite using POST method (POST is used to accept structured body params).
       if (req.method === 'GET' || req.path.startsWith('/api/admin/recovery') || req.path === '/api/availability/check') {
         return next();
       }

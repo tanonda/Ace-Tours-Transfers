@@ -19,7 +19,7 @@ import {
   PaymentGateway,
 } from "../shared/schema.js";
 import bcrypt from "bcryptjs";
-import { getStripePublishableKey } from "./stripeClient.js";
+// LOW-4: stripeClient import removed — Stripe route deprecated
 import { registerAuthRoutes } from "./application/auth.routes.js";
 import { registerUserRoutes } from "./application/user.routes.js";
 import { registerPaymentRoutes } from "./application/payment.routes.js";
@@ -108,14 +108,26 @@ if (!fs.existsSync(uploadDir)) {
 }
 
 // Multer configuration
+// MED-4 FIX: Restrict uploads to image MIME types only
+const imageFileFilter = (_req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+  const allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
+  if (allowedMimes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error(`Invalid file type: ${file.mimetype}. Only images (JPEG, PNG, GIF, WebP, SVG) are allowed.`));
+  }
+};
+
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  fileFilter: imageFileFilter,
 });
 
 const uploadMultiple = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024, files: 10 }
+  limits: { fileSize: 5 * 1024 * 1024, files: 10 },
+  fileFilter: imageFileFilter,
 });
 
 // Configure Cloudinary (Legacy style for direct usage in routes)
@@ -251,7 +263,10 @@ export async function registerRoutes(
         }
       );
 
-      res.json(result);
+      // MED-7 FIX: Mark availability as advisory so API consumers know this is
+      // a point-in-time snapshot, NOT a guaranteed reservation. A hold must be
+      // created to actually reserve seats.
+      res.json({ ...result, advisory: true });
     } catch (error: any) {
       const correlationId = Date.now().toString();
       console.error(`[AVAILABILITY CHECK ERROR][${correlationId}]`, error); // H3 Fix
@@ -1006,6 +1021,11 @@ export async function registerRoutes(
 
   app.delete("/api/bookings/:id", requireAdmin, async (req, res) => {
     try {
+      // HIGH-8 FIX: Verify existence before delete to prevent silent double-delete
+      const booking = await storage.getBooking(req.params.id);
+      if (!booking) {
+        return res.status(404).json({ error: "Booking not found" });
+      }
       await storage.deleteBooking(req.params.id);
       res.status(204).send();
     } catch (error) {
@@ -1202,10 +1222,7 @@ export async function registerRoutes(
     }
   });
 
-  // Stripe & Payments
-  app.get("/api/stripe/config", (_req, res) => {
-    res.json({ publishableKey: getStripePublishableKey() });
-  });
+  // LOW-4: Stripe routes removed — not available to Vanuatu merchants.
 
   registerPaymentRoutes(app, storage);
   await registerRecoveryRoutes(app, storage);

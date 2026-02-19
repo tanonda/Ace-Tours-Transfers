@@ -232,7 +232,7 @@ app.use((req, res, next) => {
       secure: config.env === "production",
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      sameSite: config.env === "production" ? "none" : "lax",
+      sameSite: config.env === "production" ? "strict" : "lax", // CRIT-4 + MED-1 FIX: strict prevents CSRF and eliminates need for origin pinning (same-origin deployment)
     },
   })(req, res, next);
 });

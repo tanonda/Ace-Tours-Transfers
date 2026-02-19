@@ -81,20 +81,25 @@ export const availabilityHolds = pgTable("availability_holds", {
   expiryIdx: index("idx_availability_holds_expiry").on(table.status, table.expiresAt),
 }));
 
+// CRIT-3 DOCUMENTATION:
+// For multi-item bookings, `tourId`, `date`, `tourName`, and `holdId` reflect the FIRST ITEM only.
+// The authoritative source of item-level data is the `bookingItems` table.
+// All hold IDs for the order are tracked via `bookingSessionId`, not `holdId`.
+// These top-level fields exist for quick display/admin reference, NOT for business logic.
 export const bookings = pgTable("bookings", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").references(() => users.id),
-  bookingSessionId: text("booking_session_id").notNull().default(""),
+  bookingSessionId: text("booking_session_id").notNull().default(""), // Authoritative: links ALL holds for this booking
   idempotencyKey: varchar("idempotency_key").unique(), // Phase 6: prevents double-booking
-  tourId: varchar("tour_id").notNull().references(() => tours.id), // Legacy: First item for quick ref
+  tourId: varchar("tour_id").notNull().references(() => tours.id), // CRIT-3: Display-only, first item's product
   tourInstanceId: varchar("tour_instance_id").references(() => tourInstances.id),
-  holdId: varchar("hold_id").references(() => availabilityHolds.id),
-  date: text("date").notNull(),
+  holdId: varchar("hold_id").references(() => availabilityHolds.id), // CRIT-3: Display-only, first item's hold
+  date: text("date").notNull(), // CRIT-3: Display-only, first item's date
   startTime: text("start_time"), // Phase 2: HH:MM format
   endTime: text("end_time"),     // Phase 2: HH:MM format
   guests: integer("guests").notNull(),
-  amount: text("amount").notNull(), // DEPRECATED: use totalAmountCents
-  totalAmountCents: integer("total_amount_cents").notNull().default(0),
+  amount: text("amount").notNull(), // @deprecated MED-2: Use totalAmountCents instead. Kept for backward compat.
+  totalAmountCents: integer("total_amount_cents").notNull().default(0), // AUTHORITATIVE price field
   currency: varchar("currency", { length: 3 }).notNull().default("VUV"),
   adultPaxTotal: integer("adult_pax_total").notNull().default(0),
   childPaxTotal: integer("child_pax_total").notNull().default(0),
