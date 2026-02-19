@@ -1,6 +1,7 @@
 import { IStorage } from "../../storage.js";
 import { AvailabilityService, HoldStatus } from "../../domain/availability/availability.service.js";
 import { createLogger } from "../../lib/logger.js";
+import { extractErrorDetails } from "../../lib/error-util.js";
 
 const log = createLogger('hold-expiry');
 
@@ -104,13 +105,7 @@ export class HoldExpiryJob {
       const durationMs = Date.now() - startTime;
       log.info('Completed', { expired: totalExpired, failed: totalFailed, durationMs });
     } catch (error: any) {
-      const errorDetails = {
-        message: error?.message || String(error),
-        code: error?.code,
-        stack: error?.stack,
-        errors: error?.errors,
-        ...(typeof error === 'object' ? error : {})
-      };
+      const errorDetails = extractErrorDetails(error);
       log.error('Critical error during hold expiry sweep', {
         error: errorDetails.message,
         details: errorDetails
