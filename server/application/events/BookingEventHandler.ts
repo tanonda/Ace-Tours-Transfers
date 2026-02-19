@@ -43,7 +43,8 @@ export class BookingEventHandler {
         //
         // The payment gateway charged exactly booking.totalAmountCents.  That is our ground
         // truth.  The only thing to verify here is that the payment amount matches it.
-        const paidAmountCents = event.amountCents;
+        const paymentRecord = await this.storage.getPayment(event.paymentId);
+        const paidAmountCents = paymentRecord?.amount;
         if (typeof paidAmountCents === 'number' && paidAmountCents !== booking.totalAmountCents) {
           // Genuine mismatch: gateway charged a different amount than we expected.
           await mailingService.sendAdminEmail(
