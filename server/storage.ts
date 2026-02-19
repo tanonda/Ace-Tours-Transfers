@@ -249,7 +249,9 @@ export class DatabaseStorage implements IStorage {
         const isTransient = errorString.includes('ETIMEDOUT') ||
           errorString.includes('Connection terminated') ||
           errorString.includes('WebSocket') ||
-          errorString.includes('ECONNRESET');
+          errorString.includes('ECONNRESET') ||
+          errorString.includes('EAI_AGAIN') ||
+          errorString.includes('getaddrinfo');
 
         if (!isTransient || i === retries - 1) break;
 
@@ -426,8 +428,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getBookingByHoldId(holdId: string): Promise<Booking | undefined> {
-    const [booking] = await db.select().from(bookings).where(eq(bookings.holdId, holdId));
-    return booking || undefined;
+    return this.withRetry(async () => {
+      const [booking] = await db.select().from(bookings).where(eq(bookings.holdId, holdId));
+      return booking || undefined;
+    });
   }
 
   async deleteBooking(id: string): Promise<void> {
@@ -969,16 +973,18 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getExpiredHolds(now: Date): Promise<AvailabilityHold[]> {
-    return await db
-      .select()
-      .from(availabilityHolds)
-      .where(
-        and(
-          eq(availabilityHolds.status, 'ACTIVE'),
-          lt(availabilityHolds.expiresAt, now)
+    return this.withRetry(async () => {
+      return await db
+        .select()
+        .from(availabilityHolds)
+        .where(
+          and(
+            eq(availabilityHolds.status, 'ACTIVE'),
+            lt(availabilityHolds.expiresAt, now)
+          )
         )
-      )
-      .orderBy(availabilityHolds.expiresAt);
+        .orderBy(availabilityHolds.expiresAt);
+    });
   }
 
   async getHoldsBySession(sessionId: string): Promise<AvailabilityHold[]> {

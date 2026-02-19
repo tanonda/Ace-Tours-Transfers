@@ -17,6 +17,8 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
+console.log(`[DATABASE] Connecting to: ${process.env.DATABASE_URL.split('@')[1]?.split('/')[0] || "unknown"}`);
+
 export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   connectionTimeoutMillis: 60000, // Increased to 60s for high-latency environments
@@ -24,6 +26,8 @@ export const pool = new Pool({
   max: 20,                       // Increased max connections for concurrent peaks
   allowExitOnIdle: false,
 });
+
+console.log(`[DATABASE] Pool initialized (Timeout: 60s, Max: 20)`);
 
 // Add pool error listener to prevent uncaught exceptions from broken connections
 pool.on('error', (err) => {
