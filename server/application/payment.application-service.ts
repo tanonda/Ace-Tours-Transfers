@@ -142,8 +142,15 @@ export class PaymentApplicationService {
 
     const amountCents = booking.totalAmountCents;
 
+    // HIGH-7 FIX: Align payment expiry with hold TTL to prevent orphaned payments
+    // outliving their seat reservation. Previously hardcoded to 2 hours.
+    const { MANUAL_PAYMENT_SLUGS, MANUAL_PAYMENT_TTL_MINUTES, CARD_PAYMENT_TTL_MINUTES } =
+      await import("./availability/availability.application-service.js");
+    const gwSlug = gateway.slug.toLowerCase();
+    const gwIsManual = MANUAL_PAYMENT_SLUGS.some((s: string) => gwSlug.includes(s));
+    const paymentTtlMinutes = gwIsManual ? MANUAL_PAYMENT_TTL_MINUTES : CARD_PAYMENT_TTL_MINUTES;
     const expiresAt = new Date();
-    expiresAt.setHours(expiresAt.getHours() + 2);
+    expiresAt.setMinutes(expiresAt.getMinutes() + paymentTtlMinutes);
 
     const payment = await this.storage.createPayment({
       bookingId: booking.id,
@@ -301,7 +308,7 @@ export class PaymentApplicationService {
   }
 
   async getPaymentStatus(paymentId: string) {
-    const payment = await this.storage.getPayment(paymentId);
+    let payment = await this.storage.getPayment(paymentId);
     if (!payment) return undefined;
 
     if (payment.status === PaymentStatus.Pending ||
@@ -310,6 +317,8 @@ export class PaymentApplicationService {
       const isExpired = await this.storage.checkPaymentExpiration(paymentId);
       if (isExpired) {
         await this.storage.updatePayment(paymentId, { status: PaymentStatus.Expired });
+        // HIGH-1 FIX: Re-fetch to return current state, not stale pre-update data
+        payment = (await this.storage.getPayment(paymentId))!;
       }
     }
 

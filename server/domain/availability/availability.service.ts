@@ -371,12 +371,12 @@ export class AvailabilityService {
           .for('update');
 
         if (instance) {
-          // 3. Transition counts
+          // HIGH-4 FIX: Use SQL arithmetic for atomicity (matches confirmBooking pattern)
           await tx
             .update(tourInstances)
             .set({
-              heldCount: Math.max(0, instance.heldCount - hold.quantity),
-              confirmedCount: instance.confirmedCount + hold.quantity
+              heldCount: sql`GREATEST(0, ${tourInstances.heldCount} - ${hold.quantity})`,
+              confirmedCount: sql`${tourInstances.confirmedCount} + ${hold.quantity}`
             })
             .where(eq(tourInstances.id, instance.id));
         }
@@ -544,23 +544,14 @@ export class AvailabilityService {
         throw new Error(`Tour ${tourId} not found - cannot create tour instance`);
       }
 
+      // MED-8 FIX: Throw a descriptive error instead of silently creating capacity=0.
+      // The old behavior created an instance then immediately failed the capacity check
+      // with a confusing "Insufficient availability" message.
       if (tour.defaultCapacity === null || tour.defaultCapacity === undefined || tour.defaultCapacity <= 0) {
-        console.warn(
+        throw new Error(
           `Tour "${tour.title}" (${tourId}) has no default capacity configured. ` +
-          `Falling back to 0 capacity to prevent booking creation crash.`
+          `Please set a defaultCapacity > 0 in the admin panel before accepting bookings for this product on ${date}.`
         );
-        return await tx
-          .insert(tourInstances)
-          .values({
-            tourId,
-            serviceDate: date,
-            timeSlot: slot || null,
-            totalCapacity: 0,
-            startTime: startTime ?? null,
-            endTime: endTime ?? null,
-          })
-          .returning()
-          .then(([created]: any[]) => created);
       }
 
       const capacity = tour.defaultCapacity;

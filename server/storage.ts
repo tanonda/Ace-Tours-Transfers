@@ -800,9 +800,11 @@ export class DatabaseStorage implements IStorage {
   async subscribeNewsletter(subscriber: InsertNewsletterSubscriber): Promise<NewsletterSubscriber> {
     const existing = await this.getNewsletterSubscriber(subscriber.email);
     if (existing) {
+      // MED-3 FIX: Preserve existing `confirmed` status on resubscription.
+      // Previously this reset confirmed to false, making confirmed users re-verify.
       const [updated] = await db
         .update(newsletterSubscribers)
-        .set({ unsubscribedAt: null, confirmed: false })
+        .set({ unsubscribedAt: null })
         .where(eq(newsletterSubscribers.email, subscriber.email))
         .returning();
       return updated;

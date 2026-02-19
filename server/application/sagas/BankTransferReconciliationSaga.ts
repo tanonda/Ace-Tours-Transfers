@@ -2,8 +2,14 @@ import { IStorage } from "../../storage.js";
 import { eventDispatcher } from "../../infrastructure/events/event-dispatcher.js";
 import { PaymentInitiated, PaymentConfirmed } from "../../domain/events.js";
 import { PaymentStatus } from "../../domain/payments/interfaces.js";
+import { createLogger } from "../../lib/logger.js";
+
+const log = createLogger('reconciliation-saga');
 
 export class BankTransferReconciliationSaga {
+  // LOW-7 DOC: Intentionally shorter than MANUAL_PAYMENT_TTL_MINUTES (72h).
+  // The saga proactively flags overdue payments at 48h so admins can follow up.
+  // The hold-expiry job at 72h is the hard deadline that releases inventory.
   private static PENDING_EXPIRY_HOURS = 48;
 
   constructor(private storage: IStorage) { }
@@ -15,13 +21,13 @@ export class BankTransferReconciliationSaga {
   }
 
   private async onPaymentInitiated(event: PaymentInitiated): Promise<void> {
-    console.log(`[SAGA] Starting tracking for Payment ${event.paymentId}`);
+    log.info('Starting tracking for payment', { paymentId: event.paymentId });
     // In a real saga, you might persists saga state. 
     // Here we use the Payment status as our state.
   }
 
   private async onPaymentConfirmed(event: PaymentConfirmed): Promise<void> {
-    console.log(`[SAGA] Resolving tracking for Payment ${event.paymentId} (Confirmed)`);
+    log.info('Resolving tracking for payment (Confirmed)', { paymentId: event.paymentId });
   }
 
   /**
@@ -37,7 +43,7 @@ export class BankTransferReconciliationSaga {
 
     if (overdue.length === 0) return;
 
-    console.log(`[SAGA] Found ${overdue.length} overdue payments. Orchestrating expiration.`);
+    log.info('Found overdue payments', { count: overdue.length });
 
     const { PaymentApplicationService } = await import("../payment.application-service.js");
     const paymentService = new PaymentApplicationService(this.storage);
@@ -48,7 +54,7 @@ export class BankTransferReconciliationSaga {
         // The service will then load the Aggregate to check invariants
         await paymentService.expirePayment(payment.id);
       } catch (err) {
-        console.error(`[SAGA][ERROR] Failed to expire payment ${payment.id}:`, err);
+        log.error('Failed to expire payment', { paymentId: payment.id, error: (err as Error).message });
       }
     }
   }

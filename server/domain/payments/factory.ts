@@ -5,7 +5,7 @@ import { PaymentGatewayService } from './interfaces.js';
 
 // Import all concrete gateway adapters
 import { MastercardGatewayAdapter } from '../../infrastructure/payments/mastercard-gateway.adapter.js';
-import { StripeAdapter } from '../../infrastructure/payments/stripe.adapter.js';
+// LOW-4: StripeAdapter import removed — Stripe not available to Vanuatu merchants
 import { GooglePayAdapter } from '../../infrastructure/payments/google-pay.adapter.js';
 import { ApplePayAdapter } from '../../infrastructure/payments/apple-pay.adapter.js';
 import { PayPalAdapter } from '../../infrastructure/payments/paypal.adapter.js';
@@ -29,25 +29,25 @@ export function getPaymentGatewayService(gatewayConfig: PaymentGateway): Payment
   switch (gatewayConfig.slug) {
     // Specific Local Bank implementations (potentially delegating internally)
     case 'anz-egate':
-        return new AnzEGateAdapter(gatewayConfig); // Use dedicated ANZ adapter
+      return new AnzEGateAdapter(gatewayConfig); // Use dedicated ANZ adapter
     case 'bred-bank':
-        return new BredBankAdapter(gatewayConfig);
+      return new BredBankAdapter(gatewayConfig);
     case 'bsp-bank':
-        return new BspBankAdapter(gatewayConfig);
+      return new BspBankAdapter(gatewayConfig);
     case 'generic-local-bank': // For other local banks using the generic Mastercard Gateway
       return new MastercardGatewayAdapter(gatewayConfig);
 
     // Local E-wallet implementations
     case 'wantok-money':
-        return new WanTokMoneyAdapter(gatewayConfig);
+      return new WanTokMoneyAdapter(gatewayConfig);
     case 'digicel-mobile-money':
-        return new DigicelMobileMoneyAdapter(gatewayConfig);
+      return new DigicelMobileMoneyAdapter(gatewayConfig);
     case 'kwikpay':
-        return new KwikPayAdapter(gatewayConfig);
+      return new KwikPayAdapter(gatewayConfig);
 
     // Other specific gateway implementations
     case 'stripe':
-      return new StripeAdapter(gatewayConfig);
+      throw new Error('LOW-4: Stripe is not available to Vanuatu merchants. This gateway has been deprecated.');
     case 'google-pay':
       return new GooglePayAdapter(gatewayConfig);
     case 'apple-pay':

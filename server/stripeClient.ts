@@ -1,3 +1,9 @@
+/**
+ * @deprecated LOW-4: Stripe is not available to Vanuatu merchants.
+ * This file is retained for backward compatibility with seed scripts.
+ * All active Stripe imports have been removed from production code paths.
+ * Do NOT import this file in new code.
+ */
 import Stripe from 'stripe';
 import { config } from "./config.js";
 

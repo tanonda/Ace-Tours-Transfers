@@ -1,16 +1,19 @@
 import { PaymentGateway } from "../../../shared/schema.js";
 import { PaymentGatewayService, PaymentStatus } from "../../domain/payments/interfaces.js";
-import { StripeAdapter } from "./stripe.adapter.js";
+// LOW-4: StripeAdapter import removed — Stripe not available to Vanuatu merchants
 import { ManualAdapter } from "./manual.adapter.js";
 import { AnzAdapter } from "./anz.adapter.js";
 import { BspAdapter } from "./bsp.adapter.js";
 import { BredAdapter } from "./bred.adapter.js";
 import { config } from "../../config.js";
+import { createLogger } from "../../lib/logger.js";
+
+const log = createLogger('payment-factory');
 
 export class PaymentFactory {
   private static adapters: Record<string, new (config: PaymentGateway) => PaymentGatewayService> = {
     'manual': ManualAdapter as any,
-    'stripe': StripeAdapter,
+    // LOW-4: 'stripe' removed — not available to Vanuatu merchants
     'anz': AnzAdapter as any,
     'bsp': BspAdapter as any,
     'bred': BredAdapter as any,
@@ -26,14 +29,14 @@ export class PaymentFactory {
     const isManual = slug === 'manual' || slug.includes('bank') || slug.includes('cash') || slug.includes('transfer');
 
     if (externalDisconnected && !isManual) {
-      console.warn(`[FACTORY][REJECTED] slug: ${slug} | reason: global_external_disconnect`);
+      log.warn('Gateway rejected', { slug, reason: 'global_external_disconnect' });
       throw new Error(`External payment gateway ${slug} is currently disabled.`);
     }
 
     // 2. Resolve Adapter Class
     const AdapterClass = this.adapters[slug];
     if (!AdapterClass) {
-      console.error(`[FACTORY][ERROR] slug: ${slug} | reason: adapter_not_implemented`);
+      log.error('Adapter not implemented', { slug });
       throw new Error(`Payment gateway ${slug} is not implemented.`);
     }
 
@@ -51,11 +54,11 @@ export class PaymentFactory {
 
     if (!isEnabled || isPaused) {
       const reason = !isEnabled ? 'feature_flag_disabled' : (globalPaused ? 'global_kill_switch' : 'card_kill_switch');
-      console.warn(`[FACTORY][REJECTED] slug: ${slug} | reason: ${reason}`);
+      log.warn('Gateway rejected', { slug, reason });
       throw new Error(`Payment gateway ${slug} is currently unavailable.`);
     }
 
-    console.log(`[FACTORY][RESOLVED] slug: ${slug} | adapter: ${AdapterClass.name}`);
+    log.info('Gateway resolved', { slug, adapter: AdapterClass.name });
     return new AdapterClass(gatewayConfig);
   }
 
