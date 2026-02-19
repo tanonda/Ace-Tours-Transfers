@@ -47,8 +47,8 @@ export default function ConfirmationPage() {
     setIsProcessingPayment(true);
     try {
       // In a real scenario, you might prompt user for gateway selection or card details
-      const { redirectUrl } = await initiatePayment(bookingId);
-      window.location.href = redirectUrl; // Redirect to payment gateway or internal payment page
+      const { checkoutUrl } = await initiatePayment(bookingId);
+      window.location.href = checkoutUrl; // Redirect to payment gateway or internal payment page
     } catch (err) {
       console.error("Failed to initiate payment", err);
       // TODO: Show a toast notification for error
