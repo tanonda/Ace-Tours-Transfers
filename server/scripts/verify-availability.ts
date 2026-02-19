@@ -11,8 +11,9 @@ async function runVerification() {
 
   // 1. Setup a test tour
   const [testTour] = await db.insert(tours).values({
-    title: "Verification Tour",
+    title: "TEST_Verification Tour",
     price: "100",
+
     duration: "2h",
     image: "test.jpg",
     description: ["Test"],
@@ -60,7 +61,7 @@ async function runVerification() {
   // 6. Test Confirmation Logic
   console.log(`Confirming hold ${hold.id}...`);
   await service.confirmBooking(hold.id);
-  
+
   const [instanceFixed] = await db.select().from(tourInstances).where(eq(tourInstances.id, hold.tourInstanceId));
   console.log(`Instance counts after confirm: held=${instanceFixed.heldCount}, confirmed=${instanceFixed.confirmedCount}`);
   // Expected: 5 confirmed, (3*4) = 12 held. Total 17 occupied.
@@ -81,7 +82,7 @@ async function runVerification() {
 
   console.log("Running releaseHold for expired hold...");
   await service.releaseHold(shortHold.id, HoldStatus.EXPIRED);
-  
+
   const [instanceFinal] = await db.select().from(tourInstances).where(eq(tourInstances.id, hold.tourInstanceId));
   console.log(`Final instance counts: held=${instanceFinal.heldCount}, confirmed=${instanceFinal.confirmedCount}`);
   if (instanceFinal.heldCount !== 12) throw new Error("Held count did not return after expiry");

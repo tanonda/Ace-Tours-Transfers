@@ -110,12 +110,25 @@ export default function Reservations() {
   });
 
   const bookingServices = useMemo(() => {
-    return allServices.map(s => ({
-      id: s.id,
-      title: s.title,
-      category: s.category
-    }));
+    return allServices
+      .filter(s => {
+        const titleLower = (s.title || "").toLowerCase();
+        const isTest = titleLower.includes("verification") ||
+          titleLower.includes("concurrent") ||
+          titleLower.includes("test_tour") ||
+          titleLower.includes("test") ||
+          titleLower.includes("phase4") ||
+          s.image === "test.jpg" ||
+          s.image === "/test.jpg";
+        return !isTest;
+      })
+      .map(s => ({
+        id: s.id,
+        title: s.title,
+        category: s.category
+      }));
   }, [allServices]);
+
 
   const getServiceIdFromTitle = useCallback((title: string) => {
     const service = allServices.find(s => s.title === title);

@@ -21,7 +21,7 @@ async function setupTestData() {
     // 1. Tour (Pooled Capacity)
     await db.insert(tours).values({
         id: TEST_PREFIX + "tour",
-        title: "Load Test Tour",
+        title: "TEST_Load Test Tour",
         category: "tour",
         defaultCapacity: 50,
         price: "$100 / adult",
@@ -34,7 +34,7 @@ async function setupTestData() {
     // 2. Transfer (Time-Slot)
     await db.insert(tours).values({
         id: TEST_PREFIX + "transfer",
-        title: "Load Test Transfer",
+        title: "TEST_Load Test Transfer",
         category: "transfer",
         defaultCapacity: 10,
         price: "$50",
@@ -47,7 +47,7 @@ async function setupTestData() {
     // 3. Vehicle (Multi-day, Resource Pinning)
     await db.insert(tours).values({
         id: TEST_PREFIX + "vehicle",
-        title: "Load Test Vehicle",
+        title: "TEST_Load Test Vehicle",
         category: "vehicle",
         defaultCapacity: 2, // Only 2 vehicles available
         price: "$200 / day",

@@ -31,9 +31,16 @@ export default function Home() {
       if (titleLower.includes("verification") ||
         titleLower.includes("concurrent") ||
         titleLower.includes("test_tour") ||
+        titleLower.includes("test") ||
         titleLower.includes("phase4")) {
         return acc;
       }
+
+      // Skip services with test placeholder images
+      if (current.image === "test.jpg" || current.image === "/test.jpg") {
+        return acc;
+      }
+
 
       const normalize = (t: string) => t.replace(/\s+Package$/i, "").trim();
       const normalizedTitle = normalize(current.title);
