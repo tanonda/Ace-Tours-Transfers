@@ -144,7 +144,7 @@ export function getBookingConfirmationTemplate(booking: any, tour: any, payment?
         ${paymentDetails}
         ${payNowButton}
 
-        <p style="color: #6b7280; line-height: 1.6;">You can view and manage your booking anytime by visiting your dashboard on our website: <a href="${appUrl}/reservations" style="color: #006699; text-decoration: none;">${appUrl}/reservations</a></p>
+        <p style="color: #6b7280; line-height: 1.6;">You can view and manage your booking anytime by visiting: <a href="${appUrl}/manage-booking" style="color: #006699; text-decoration: none;">${appUrl}/manage-booking</a></p>
         
         <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
           <a href="${appUrl}/confirmation?bookingId=${booking.id}"
@@ -327,7 +327,7 @@ export function getPaymentConfirmationTemplate(booking: any, payment: any, tour:
           </table>
         </div>
 
-        <p style="color: #6b7280; line-height: 1.6;">You can view and manage your booking anytime by visiting your dashboard on our website: <a href="${appUrl}/reservations" style="color: #006699; text-decoration: none;">${appUrl}/reservations</a></p>
+        <p style="color: #6b7280; line-height: 1.6;">You can view and manage your booking anytime by visiting: <a href="${appUrl}/manage-booking" style="color: #006699; text-decoration: none;">${appUrl}/manage-booking</a></p>
         
         <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
           <a href="${appUrl}/confirmation?bookingId=${booking.id}"
@@ -418,7 +418,7 @@ export function getBookingStatusUpdateTemplate(booking: any, newStatus: string, 
           </table>
         </div>
 
-        <p style="color: #6b7280; line-height: 1.6;">You can view and manage your booking anytime by visiting your dashboard on our website: <a href="${appUrl}/reservations" style="color: #006699; text-decoration: none;">${appUrl}/reservations</a></p>
+        <p style="color: #6b7280; line-height: 1.6;">You can view and manage your booking anytime by visiting: <a href="${appUrl}/manage-booking" style="color: #006699; text-decoration: none;">${appUrl}/manage-booking</a></p>
         
         <!-- Footer -->
         <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center;">

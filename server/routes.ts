@@ -1,6 +1,7 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage.js";
+import { config } from "./config.js";
 import {
   insertBookingSchema,
   insertTourSchema,
@@ -82,6 +83,8 @@ const createBookingItemSchema = z.object({
   childPax: z.number().int().min(0),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format (YYYY-MM-DD)"),
   addonIds: z.array(z.string()).optional(),
+  slot: z.string().optional(),
+  quantity: z.number().int().min(1).optional(),
   startTime: z.string().optional(),
   endTime: z.string().optional(),
 });
@@ -90,7 +93,7 @@ const createBookingBodySchema = z.object({
   customerName: z.string().min(1, "Name is required").max(100),
   customerEmail: z.string().email("Invalid email address"),
   items: z.array(createBookingItemSchema).min(1, "At least one item is required"),
-  pickupLocation: z.string().max(500).optional(),
+  pickupLocation: z.string().max(500).nullable().optional(),
   idempotencyKey: z.string().optional(),
 }).refine(data => {
   const totalPax = data.items.reduce((sum, item) => sum + (item.adultPax || 0) + (item.childPax || 0), 0);
@@ -188,6 +191,24 @@ export function requireStaff(req: Request, res: Response, next: NextFunction) {
   const userRole = req.session.userRole;
   if (userRole !== "admin" && userRole !== "field_service") {
     return res.status(403).json({ error: "Staff access required" });
+  }
+  next();
+}
+
+/**
+ * Middleware: requires a valid, non-expired booking session.
+ * Guests create a booking session via POST /api/bookings/session.
+ */
+export function requireBookingSession(req: Request, res: Response, next: NextFunction) {
+  const { bookingSessionId, bookingSessionExpiresAt } = req.session;
+  if (!bookingSessionId) {
+    return res.status(401).json({ error: "No booking session. Please verify your booking first." });
+  }
+  if (bookingSessionExpiresAt && Date.now() > bookingSessionExpiresAt) {
+    // Clear expired session fields
+    delete req.session.bookingSessionId;
+    delete req.session.bookingSessionExpiresAt;
+    return res.status(401).json({ error: "Booking session expired. Please verify again." });
   }
   next();
 }
@@ -814,6 +835,264 @@ export async function registerRoutes(
     }
   });
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // BOOKING SESSION MANAGEMENT: scoped, short-lived guest access
+  // These routes let guests manage a single booking without an account.
+  // A session is created via POST /api/bookings/session after email verification.
+  // ─────────────────────────────────────────────────────────────────────────
+
+  const BOOKING_SESSION_TTL_MS = 30 * 60 * 1000; // 30 minutes
+
+  /**
+   * POST /api/bookings/session
+   * Verify booking ownership (bookingId + email) and create a scoped session.
+   * Returns sanitised booking data on success.
+   */
+  app.post("/api/bookings/session", verifyLimiter, async (req, res) => {
+    try {
+      const { bookingId, email } = req.body as { bookingId?: string; email?: string };
+
+      if (!bookingId || !email) {
+        return res.status(400).json({ error: "bookingId and email are required." });
+      }
+
+      const booking = await storage.getBooking(bookingId);
+      const VERIFY_FAIL = { error: "Booking not found or verification failed." };
+
+      if (!booking) return res.status(404).json(VERIFY_FAIL);
+
+      const normalise = (s?: string | null) => (s ?? "").trim().toLowerCase();
+      if (normalise(booking.customerEmail) !== normalise(email)) {
+        return res.status(403).json(VERIFY_FAIL);
+      }
+
+      // Create scoped session
+      req.session.bookingSessionId = booking.id;
+      req.session.bookingSessionExpiresAt = Date.now() + BOOKING_SESSION_TTL_MS;
+
+      // Return sanitised booking
+      const items = await storage.getBookingItems(booking.id);
+      const payments = await storage.getPaymentsByBooking(booking.id);
+      const {
+        holdId: _h, bookingSessionId: _bs, userId: _u, idempotencyKey: _ik,
+        ...publicBooking
+      } = booking as any;
+
+      const maskedEmail = (() => {
+        const em = booking.customerEmail ?? "";
+        const [local, domain] = em.split("@");
+        if (!domain || local.length < 2) return em;
+        return `${local[0]}${"*".repeat(Math.max(1, local.length - 1))}@${domain}`;
+      })();
+
+      return res.json({
+        booking: { ...publicBooking, customerEmail: maskedEmail },
+        items,
+        payments: payments.map(p => ({
+          id: p.id, status: p.status, amount: p.amount, currency: p.currency, createdAt: p.createdAt,
+        })),
+        sessionExpiresAt: req.session.bookingSessionExpiresAt,
+      });
+    } catch (error) {
+      const ref = Date.now().toString();
+      console.error(`[BOOKING SESSION ERROR][${ref}]`, error);
+      res.status(500).json({ error: "Internal error", ref });
+    }
+  });
+
+  /**
+   * GET /api/bookings/session/current
+   * Fetch the current booking associated with an active booking session.
+   */
+  app.get("/api/bookings/session/current", requireBookingSession, async (req, res) => {
+    try {
+      const booking = await storage.getBooking(req.session.bookingSessionId!);
+      if (!booking) return res.status(404).json({ error: "Booking no longer exists." });
+
+      const items = await storage.getBookingItems(booking.id);
+      const paymentRecords = await storage.getPaymentsByBooking(booking.id);
+
+      const {
+        holdId: _h, bookingSessionId: _bs, userId: _u, idempotencyKey: _ik,
+        ...publicBooking
+      } = booking as any;
+
+      const maskedEmail = (() => {
+        const em = booking.customerEmail ?? "";
+        const [local, domain] = em.split("@");
+        if (!domain || local.length < 2) return em;
+        return `${local[0]}${"*".repeat(Math.max(1, local.length - 1))}@${domain}`;
+      })();
+
+      return res.json({
+        booking: { ...publicBooking, customerEmail: maskedEmail },
+        items,
+        payments: paymentRecords.map(p => ({
+          id: p.id, status: p.status, amount: p.amount, currency: p.currency, createdAt: p.createdAt,
+        })),
+        sessionExpiresAt: req.session.bookingSessionExpiresAt,
+      });
+    } catch (error) {
+      const ref = Date.now().toString();
+      console.error(`[BOOKING SESSION CURRENT ERROR][${ref}]`, error);
+      res.status(500).json({ error: "Internal error", ref });
+    }
+  });
+
+  /**
+   * PATCH /api/bookings/session/update
+   * Safe updates: pickup location, notes, phone. No price or availability impact.
+   */
+  app.patch("/api/bookings/session/update", requireBookingSession, async (req, res) => {
+    try {
+      const bookingId = req.session.bookingSessionId!;
+      const booking = await storage.getBooking(bookingId);
+      if (!booking) return res.status(404).json({ error: "Booking not found." });
+
+      // Only allow safe fields
+      const { pickupLocation, notes, customerPhone } = req.body as {
+        pickupLocation?: string;
+        notes?: string;
+        customerPhone?: string;
+      };
+
+      const updateData: Record<string, any> = {};
+      if (pickupLocation !== undefined) updateData.pickupLocation = pickupLocation;
+      if (notes !== undefined) updateData.notes = notes;
+      if (customerPhone !== undefined) updateData.customerPhone = customerPhone;
+
+      if (Object.keys(updateData).length === 0) {
+        return res.status(400).json({ error: "No valid fields to update." });
+      }
+
+      updateData.updatedAt = new Date();
+      const updated = await storage.updateBooking(bookingId, updateData);
+
+      return res.json({ success: true, booking: updated });
+    } catch (error) {
+      const ref = Date.now().toString();
+      console.error(`[BOOKING SESSION UPDATE ERROR][${ref}]`, error);
+      res.status(500).json({ error: "Internal error", ref });
+    }
+  });
+
+  /**
+   * POST /api/bookings/session/modify
+   * Inventory-impacting modifications: date or pax changes.
+   * Re-checks availability, calculates price diff, creates additional payment if needed.
+   */
+  app.post("/api/bookings/session/modify", requireBookingSession, async (req, res) => {
+    try {
+      const bookingId = req.session.bookingSessionId!;
+      const booking = await storage.getBooking(bookingId);
+      if (!booking) return res.status(404).json({ error: "Booking not found." });
+
+      if (booking.status !== "pending" && booking.status !== "confirmed") {
+        return res.status(400).json({ error: `Cannot modify a booking with status '${booking.status}'.` });
+      }
+
+      const { date, adultPax, childPax } = req.body as {
+        date?: string;
+        adultPax?: number;
+        childPax?: number;
+      };
+
+      const newDate = date || booking.date;
+      const newAdultPax = adultPax ?? booking.adultPaxTotal;
+      const newChildPax = childPax ?? booking.childPaxTotal;
+
+      // Check if anything actually changed
+      if (newDate === booking.date && newAdultPax === booking.adultPaxTotal && newChildPax === booking.childPaxTotal) {
+        return res.json({ changed: false, message: "No changes detected." });
+      }
+
+      // Check availability for the new parameters
+      const availResult = await bookingApplicationService.checkServiceAvailability(
+        booking.tourId,
+        newDate,
+        { adultPax: newAdultPax, childPax: newChildPax }
+      );
+
+      if (!availResult.isAvailable) {
+        return res.status(400).json({
+          error: "Requested changes are not available.",
+          availabilityMessage: availResult.message,
+        });
+      }
+
+      // Calculate new total from the availability result pricing
+      const newTotalCents = (availResult as any).totalPriceCents ||
+        ((availResult as any).adultPrice * newAdultPax + (availResult as any).childPrice * newChildPax) ||
+        booking.totalAmountCents; // fallback if pricing not returned
+
+      const priceDifference = newTotalCents - booking.totalAmountCents;
+
+      // Build audit trail in notes
+      const auditEntry = `[${new Date().toISOString()}] Modification: date ${booking.date}->${newDate}, pax ${booking.adultPaxTotal}A+${booking.childPaxTotal}C->${newAdultPax}A+${newChildPax}C, price ${booking.totalAmountCents}->${newTotalCents}`;
+      const updatedNotes = booking.notes ? `${booking.notes}\n${auditEntry}` : auditEntry;
+
+      // Update the booking
+      const updateData: Record<string, any> = {
+        date: newDate,
+        adultPaxTotal: newAdultPax,
+        childPaxTotal: newChildPax,
+        guests: newAdultPax + newChildPax,
+        totalAmountCents: newTotalCents,
+        amount: String(newTotalCents),
+        notes: updatedNotes,
+        updatedAt: new Date(),
+      };
+
+      let additionalPayment = null;
+
+      if (priceDifference > 0) {
+        // Price increase — create additional payment record
+        try {
+          // Find the manual gateway for additional payment
+          const manualGateway = await storage.getPaymentGatewayBySlug('manual');
+          if (manualGateway) {
+            additionalPayment = await storage.createPayment({
+              bookingId: booking.id,
+              gatewayId: manualGateway.id,
+              amount: priceDifference,
+              currency: booking.currency || "VUV",
+              status: "pending",
+              metadata: {
+                type: "modification_supplement",
+                originalAmountCents: booking.totalAmountCents,
+                newAmountCents: newTotalCents,
+                modifiedAt: new Date().toISOString(),
+              },
+            });
+          }
+        } catch (payErr) {
+          console.error("[BOOKING MODIFY] Failed to create additional payment (non-fatal):", payErr);
+        }
+      }
+
+      await storage.updateBooking(bookingId, updateData);
+
+      return res.json({
+        changed: true,
+        priceDifference,
+        requiresAdditionalPayment: priceDifference > 0,
+        creditPending: priceDifference < 0,
+        additionalAmountCents: priceDifference > 0 ? priceDifference : 0,
+        additionalPaymentId: additionalPayment?.id || null,
+        newTotalCents,
+        message: priceDifference > 0
+          ? `Modification requires additional payment of ${priceDifference} ${booking.currency || "VUV"}.`
+          : priceDifference < 0
+            ? `Price decreased by ${Math.abs(priceDifference)} ${booking.currency || "VUV"}. Credit is pending admin review.`
+            : "Booking updated successfully.",
+      });
+    } catch (error) {
+      const ref = Date.now().toString();
+      console.error(`[BOOKING SESSION MODIFY ERROR][${ref}]`, error);
+      res.status(500).json({ error: "Internal error", ref });
+    }
+  });
+
   app.get("/api/bookings/user/:userId", requireAuth, async (req, res) => {
     try {
       if (req.session.userRole !== 'admin' && req.session.userId !== req.params.userId) {
@@ -1031,6 +1310,18 @@ export async function registerRoutes(
     } catch (error) {
       res.status(500).json({ error: "Failed to delete booking" });
     }
+  });
+
+  // Site Configuration API
+  app.get("/api/config", (_req, res) => {
+    res.json({
+      ddd: config.ddd,
+      payments: {
+        enabled: config.payments.enabled,
+        manual: config.payments.manual,
+      },
+      killSwitches: config.killSwitches
+    });
   });
 
   // Settings API
