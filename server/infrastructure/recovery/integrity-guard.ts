@@ -90,11 +90,12 @@ export class BackupIntegrityGuard {
 
     } catch (error: any) {
       console.error("[INTEGRITY] Guard check failed:", error);
+      const errorMsg = error?.message || (typeof error === 'string' ? error : 'Unknown connection error');
       // Don't block writes on check failure - this allows graceful degradation
       // Only block if we explicitly detect schema drift
       return {
         isSafe: true,
-        message: `INTEGRITY CHECK INCONCLUSIVE: ${error.message}`,
+        message: `INTEGRITY CHECK INCONCLUSIVE: ${errorMsg}`,
         details: { driftDetected: false }
       };
     }
