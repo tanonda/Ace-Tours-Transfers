@@ -114,7 +114,19 @@ async function main() {
       console.log(`✓ Created: ${gateway.displayName}`);
       created++;
     } else {
-      console.log(`- Skipped (exists): ${gateway.displayName}`);
+      // Update existing gateways to ensure correct active/default status
+      await db.update(paymentGateways)
+        .set({
+          active: gateway.active,
+          isDefault: gateway.isDefault,
+          priority: gateway.priority,
+          displayName: gateway.displayName,
+          description: gateway.description,
+          supportedCurrencies: gateway.supportedCurrencies,
+          updatedAt: new Date()
+        })
+        .where(eq(paymentGateways.slug, gateway.slug));
+      console.log(`✓ Updated: ${gateway.displayName} (Active: ${gateway.active}, Default: ${gateway.isDefault})`);
       skipped++;
     }
   }

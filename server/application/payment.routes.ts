@@ -29,12 +29,9 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
         return flag ? flag.enabled : false;
       };
 
-      // FIX: Stripe is not available to Vanuatu merchants.
-      // It is excluded from the active gateway list unless explicitly enabled via
-      // the STRIPE_ENABLED=true environment variable AND the 'payment-stripe' feature flag.
+      // Filter gateways base logic
       const stripeExplicitlyEnabled = process.env.STRIPE_ENABLED === 'true';
 
-      // Filter gateways based on FEATURE FLAGS
       const visibleGateways = gateways.filter((g: any) => {
         if (!g.active) return false;
         const slug = g.slug.toLowerCase();
@@ -47,7 +44,6 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
           return isFlagEnabled('payment-cash-on-delivery');
         }
 
-        // Default to active if no specific flag
         return true;
       });
 
@@ -90,7 +86,7 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
         bookingId,
         userId: req.session.userId,
         sessionId: req.sessionID, // CRITICAL: Pass session ID for guest ownership
-        provider: provider || 'stripe',
+        provider: provider,
         successUrl: `${baseUrl}/payment/success?booking=${bookingId}`,
         cancelUrl: `${baseUrl}/payment/cancel?booking=${bookingId}`,
       });
@@ -290,7 +286,26 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
   app.get("/api/payment-gateways", async (req, res) => {
     try {
       const gateways = await storage.getPaymentGateways();
-      res.json(gateways.map((g: any) => ({
+      const flags = await storage.getFeatureFlags();
+      const isFlagEnabled = (slug: string) => flags.find(f => f.slug === slug)?.enabled ?? false;
+      const stripeExplicitlyEnabled = process.env.STRIPE_ENABLED === 'true';
+
+      const visibleGateways = gateways.filter((g: any) => {
+        if (!g.active) return false;
+        const slug = g.slug.toLowerCase();
+
+        if (slug === 'stripe') return stripeExplicitlyEnabled && isFlagEnabled('payment-stripe');
+        if (slug === 'bank-transfer' || slug === 'manual' || slug === 'manual_transfer' || slug === 'bank') {
+          return isFlagEnabled('payment-bank-transfer');
+        }
+        if (slug === 'cash') {
+          return isFlagEnabled('payment-cash-on-delivery');
+        }
+
+        return true;
+      });
+
+      res.json(visibleGateways.map((g: any) => ({
         id: g.id,
         slug: g.slug,
         displayName: g.displayName,
