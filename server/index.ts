@@ -86,6 +86,8 @@ declare module "express-session" {
   interface SessionData {
     userId: string;
     userRole: string;
+    bookingSessionId: string;       // scoped booking ID for guest access
+    bookingSessionExpiresAt: number; // Unix timestamp, 30-min TTL
   }
 }
 

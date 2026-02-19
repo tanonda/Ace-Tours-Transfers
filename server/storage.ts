@@ -764,22 +764,28 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getWishlistItem(userId: string, tourId: string): Promise<WishlistItem | undefined> {
-    const [item] = await db
-      .select()
-      .from(wishlistItems)
-      .where(and(eq(wishlistItems.userId, userId), eq(wishlistItems.tourId, tourId)));
-    return item || undefined;
+    return this.withRetry(async () => {
+      const [item] = await db
+        .select()
+        .from(wishlistItems)
+        .where(and(eq(wishlistItems.userId, userId), eq(wishlistItems.tourId, tourId)));
+      return item || undefined;
+    });
   }
 
   async addToWishlist(item: InsertWishlistItem): Promise<WishlistItem> {
-    const [created] = await db.insert(wishlistItems).values(item).returning();
-    return created;
+    return this.withRetry(async () => {
+      const [created] = await db.insert(wishlistItems).values(item).returning();
+      return created;
+    });
   }
 
   async removeFromWishlist(userId: string, tourId: string): Promise<void> {
-    await db
-      .delete(wishlistItems)
-      .where(and(eq(wishlistItems.userId, userId), eq(wishlistItems.tourId, tourId)));
+    return this.withRetry(async () => {
+      await db
+        .delete(wishlistItems)
+        .where(and(eq(wishlistItems.userId, userId), eq(wishlistItems.tourId, tourId)));
+    });
   }
 
   async isInWishlist(userId: string, tourId: string): Promise<boolean> {
