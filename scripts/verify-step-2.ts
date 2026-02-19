@@ -46,8 +46,9 @@ async function verifyStep2() {
   console.log(`[LOG][${corrId}] Testing BankTransferReconciliationSaga idempotency...`);
   // In a real verification, we'd mock the storage/service and verify no duplicate commands.
   // For this automated step, we ensure the method executes without error twice.
-  const saga = new BankTransferReconciliationSaga({ 
-    getPayments: async () => [] // Mock storage
+  const saga = new BankTransferReconciliationSaga({
+    getOverduePayments: async () => [], // Mock storage method used by saga
+    getPayments: async () => [], // Backward-compatible no-op for older callers
   } as any);
 
   try {
