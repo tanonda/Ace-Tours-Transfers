@@ -16,8 +16,9 @@ async function runTelemetryTest() {
     // Setup: Create Tour
     await db.insert(tours).values({
         id: TEST_TOUR_ID,
-        title: "Telemetry Test Tour",
+        title: "TEST_Telemetry Test Tour",
         description: ["Test tour for telemetry"],
+
         price: "$100",
         capacity: 10,
         defaultCapacity: 10,

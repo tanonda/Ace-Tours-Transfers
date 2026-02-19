@@ -42,8 +42,9 @@ async function setup(): Promise<void> {
     // 1. Create Tour
     await db.insert(tours).values({
         id: TEST_TOUR_ID,
-        title: "Atomic Test Tour",
+        title: "TEST_Atomic Test Tour",
         description: ["Test tour for atomicity"],
+
         price: "$100",
         capacity: 10,
         defaultCapacity: 10,

@@ -206,7 +206,23 @@ sessionStore.on('error', (err: Error) => {
   log(`[SESSION ERROR] ${err.message}`, 'session');
 });
 
-app.use(
+// Session setup with conditional bypass for Vite dev assets
+app.use((req, res, next) => {
+  // Skip session for Vite internal paths and static assets in dev
+  const isViteDevAsset = req.path.startsWith('/@') ||
+    req.path.startsWith('/vite-hmr') ||
+    req.path.includes('node_modules') ||
+    (process.env.NODE_ENV !== 'production' && (
+      req.path.endsWith('.tsx') ||
+      req.path.endsWith('.ts') ||
+      req.path.endsWith('.css') ||
+      req.path.endsWith('.scss')
+    ));
+
+  if (isViteDevAsset) {
+    return next();
+  }
+
   session({
     store: sessionStore,
     secret: config.session.secret!, // C2 Fix: Use the validated secret, non-null assertion as validateConfig() ensures it exists or exits
@@ -218,8 +234,8 @@ app.use(
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
       sameSite: config.env === "production" ? "none" : "lax",
     },
-  })
-);
+  })(req, res, next);
+});
 
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {

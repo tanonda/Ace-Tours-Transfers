@@ -18,11 +18,12 @@ async function setupTestData() {
 
     await db.insert(tours).values({
         id: TEST_TOUR_ID,
-        title: "Multi-day Vehicle Test",
+        title: "TEST_Multi-day Vehicle Test",
         category: "vehicle",
         defaultCapacity: 2,
         price: "$200 / day",
         duration: "N/A",
+
         minPax: "1 pax",
         image: "/test.jpg",
         description: ["Test"]
