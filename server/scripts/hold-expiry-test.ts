@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { storage } from "../storage.js";
 import { HoldExpiryJob } from "../infrastructure/jobs/hold-expiry.job.js";
 import { AvailabilityApplicationService } from "../application/availability/availability.application-service.js";
@@ -60,8 +61,8 @@ async function run() {
 
   // Cleanup (best-effort)
   try {
-    await storage.deleteBooking(hold.bookingSessionId as any).catch(() => {});
-  } catch (e) {}
+    await storage.deleteBooking(hold.bookingSessionId as any).catch(() => { });
+  } catch (e) { }
 
   console.log('[TEST] Completed');
 }

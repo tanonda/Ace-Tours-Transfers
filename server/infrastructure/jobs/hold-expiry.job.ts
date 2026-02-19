@@ -46,6 +46,7 @@ export class HoldExpiryJob {
       const expiredHolds = await this.storage.getExpiredHolds(now);
 
       if (expiredHolds.length === 0) {
+        log.info('No expired holds to sweep');
         this.updateMetrics(startTime, 0, 0);
         return { expired: 0, failed: 0 };
       }
@@ -94,15 +95,26 @@ export class HoldExpiryJob {
             totalExpired++;
           } else {
             totalFailed++;
-            log.error('Failed to release hold', { error: result.reason?.message || result.reason });
+            const holdErr = result.reason instanceof Error ? result.reason.message : String(result.reason ?? 'unknown');
+            log.error('Failed to release hold', { error: holdErr });
           }
         }
       }
 
       const durationMs = Date.now() - startTime;
       log.info('Completed', { expired: totalExpired, failed: totalFailed, durationMs });
-    } catch (error) {
-      log.error('Critical error during hold expiry sweep', { error: (error as Error).message });
+    } catch (error: any) {
+      const errorDetails = {
+        message: error?.message || String(error),
+        code: error?.code,
+        stack: error?.stack,
+        errors: error?.errors,
+        ...(typeof error === 'object' ? error : {})
+      };
+      log.error('Critical error during hold expiry sweep', {
+        error: errorDetails.message,
+        details: errorDetails
+      });
     }
 
     this.updateMetrics(startTime, totalExpired, totalFailed);
