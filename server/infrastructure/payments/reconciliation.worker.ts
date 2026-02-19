@@ -1,4 +1,5 @@
 import { PaymentReconciliationService } from "../../application/payment-reconciliation.service.js";
+import { extractErrorDetails } from "../../lib/error-util.js";
 
 export class ReconciliationWorker {
   private reconciliationService: PaymentReconciliationService;
@@ -17,12 +18,12 @@ export class ReconciliationWorker {
    */
   start() {
     if (this.timer) return;
-    
+
     console.log(`[WORKER] Starting ReconciliationWorker (Interval: ${this.intervalMinutes}m)`);
-    
+
     // Run immediately on start, then periodically
     this.performReconciliation();
-    
+
     this.timer = setInterval(() => {
       this.performReconciliation();
     }, this.intervalMinutes * 60 * 1000);
@@ -56,7 +57,8 @@ export class ReconciliationWorker {
       const duration = Date.now() - startTime;
       console.log(`[WORKER] Reconciliation pass completed in ${duration}ms.`);
     } catch (error) {
-      console.error(`[WORKER] Critical error during reconciliation pass:`, error);
+      const errorDetails = extractErrorDetails(error);
+      console.error(`[WORKER] Critical error during reconciliation pass:`, errorDetails);
     } finally {
       this.isRunning = false;
     }

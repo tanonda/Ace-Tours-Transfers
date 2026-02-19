@@ -1,6 +1,7 @@
 
 import { db, pool } from "../../db.js";
 import { sql } from "drizzle-orm";
+import { extractErrorDetails } from "../../lib/error-util.js";
 import fs from 'fs';
 import path from 'path';
 
@@ -11,6 +12,7 @@ export interface IntegrityStatus {
     schemaVersion?: string;
     migrationCount?: number;
     driftDetected: boolean;
+    error?: any;
   };
 }
 
@@ -90,13 +92,13 @@ export class BackupIntegrityGuard {
 
     } catch (error: any) {
       console.error("[INTEGRITY] Guard check failed:", error);
-      const errorMsg = error?.message || (typeof error === 'string' ? error : 'Unknown connection error');
+      const errorDetails = extractErrorDetails(error);
       // Don't block writes on check failure - this allows graceful degradation
       // Only block if we explicitly detect schema drift
       return {
         isSafe: true,
-        message: `INTEGRITY CHECK INCONCLUSIVE: ${errorMsg}`,
-        details: { driftDetected: false }
+        message: `INTEGRITY CHECK INCONCLUSIVE: ${errorDetails.message}`,
+        details: { driftDetected: false, error: errorDetails }
       };
     }
   }
