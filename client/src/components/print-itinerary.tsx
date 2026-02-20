@@ -227,7 +227,7 @@ export function PrintItinerary({ booking, items, payments, qrCodeData, onClose }
         <body>
           <div class="itinerary-container">
             <div class="header">
-              <img src="/public/assets/logo.png" alt="Ace Tours & Transfers Logo" class="logo"/>
+              <img src="https://res.cloudinary.com/dwro1dh5q/image/upload/v1765063924/ace-tours-assets/ace_tours_logo_official.jpg" alt="Ace Tours & Transfers Logo" class="logo"/>
               <h1>Ace Tours & Transfers</h1>
               <p>Port Vila, Vanuatu</p>
               <div class="booking-badge">
@@ -287,7 +287,7 @@ export function PrintItinerary({ booking, items, payments, qrCodeData, onClose }
                       </div>
                       <div class="info-item">
                         <div class="info-label">${t("payment.amount")}</div>
-                        <div class="info-value">${latestPayment.amount / 100} ${latestPayment.currency}</div>
+                        <div class="info-value">${latestPayment.amount?.toLocaleString()} ${latestPayment.currency}</div>
                       </div>
                     </div>
                   </div>
@@ -310,8 +310,8 @@ export function PrintItinerary({ booking, items, payments, qrCodeData, onClose }
                           </div>
                         </div>
                         <div style="text-align: right;">
-                          <div style="font-weight: bold;">${(item.subtotalCents / 100).toLocaleString()} VUV</div>
-                          <div style="font-size: 11px; color: #888;">${(item.unitPriceCents / 100).toLocaleString()} / unit</div>
+                          <div style="font-weight: bold;">${item.subtotalCents?.toLocaleString()} VUV</div>
+                          <div style="font-size: 11px; color: #888;">${item.unitPriceCents?.toLocaleString()} / unit</div>
                         </div>
                       </div>
                     `).join('')}
@@ -321,7 +321,7 @@ export function PrintItinerary({ booking, items, payments, qrCodeData, onClose }
               
               <div class="total-section">
                 <span class="total-label">${t("itinerary.totalAmount", "Total Amount")}</span>
-                <span class="total-amount">${booking.totalAmountCents ? `${(booking.totalAmountCents / 100).toLocaleString()} VUV` : booking.amount}</span>
+                <span class="total-amount">${booking.totalAmountCents ? `${booking.totalAmountCents.toLocaleString()} VUV` : booking.amount}</span>
               </div>
               
               <div class="notes">
@@ -385,7 +385,7 @@ export function PrintItinerary({ booking, items, payments, qrCodeData, onClose }
         <div className="itinerary-container print:border-0">
           <div className="header bg-gradient-to-r from-[#004165] to-[#006699] text-white p-6 text-center rounded-t-lg relative">
             {/* Using a placeholder for logo, replace with actual path if available publicly */}
-            <img src="/public/assets/logo.png" alt="Ace Tours & Transfers Logo" className="h-12 absolute top-5 left-5" />
+            <img src="https://res.cloudinary.com/dwro1dh5q/image/upload/v1765063924/ace-tours-assets/ace_tours_logo_official.jpg" alt="Ace Tours & Transfers Logo" className="h-12 absolute top-5 left-5" />
             <h1 className="text-2xl font-bold mb-1">Ace Tours & Transfers</h1>
             <p className="text-white/80 text-sm">Port Vila, Vanuatu</p>
             <div className="booking-badge inline-block bg-primary text-white px-4 py-2 rounded-full font-bold mt-3">
@@ -467,7 +467,7 @@ export function PrintItinerary({ booking, items, payments, qrCodeData, onClose }
                     </div>
                     <div className="info-item">
                       <div className="info-label text-xs text-muted-foreground uppercase">{t("payment.amount")}</div>
-                      <div className="info-value font-semibold">{latestPayment.amount / 100} ${latestPayment.currency}</div>
+                      <div className="info-value font-semibold">{latestPayment.amount?.toLocaleString()} {latestPayment.currency}</div>
                     </div>
                   </div>
                 </div>
@@ -490,11 +490,11 @@ export function PrintItinerary({ booking, items, payments, qrCodeData, onClose }
                           {item.childPax > 0 && `${item.childPax} Children`}
                           {item.productType === 'vehicle' && ` (${item.quantity} Days)`}
                           <span className="mx-2">•</span>
-                          {(item.unitPriceCents / 100).toLocaleString()} / unit
+                          {item.unitPriceCents?.toLocaleString()} / unit
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="font-bold text-primary">{(item.subtotalCents / 100).toLocaleString()} VUV</div>
+                        <div className="font-bold text-primary">{item.subtotalCents?.toLocaleString()} VUV</div>
                       </div>
                     </div>
                   ))}
@@ -505,7 +505,7 @@ export function PrintItinerary({ booking, items, payments, qrCodeData, onClose }
             <div className="total-section bg-muted/30 p-5 rounded-lg flex justify-between items-center">
               <span className="total-label text-muted-foreground">{t("itinerary.totalAmount", "Total Amount")}</span>
               <span className="total-amount text-2xl font-bold text-[#004165]">
-                {booking.totalAmountCents ? `${(booking.totalAmountCents / 100).toLocaleString()} VUV` : booking.amount}
+                {booking.totalAmountCents ? `${booking.totalAmountCents.toLocaleString()} VUV` : booking.amount}
               </span>
             </div>
 

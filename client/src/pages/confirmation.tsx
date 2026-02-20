@@ -111,7 +111,7 @@ export default function ConfirmationPage() {
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Amount</span>
-                <span className="font-semibold">{booking.totalAmountCents ? `${(booking.totalAmountCents / 100).toLocaleString()} VUV` : booking.amount}</span>
+                <span className="font-semibold">{booking.totalAmountCents ? `${booking.totalAmountCents.toLocaleString()} VUV` : booking.amount}</span>
               </div>
 
               {bookingItems && bookingItems.length > 0 && (
@@ -122,7 +122,7 @@ export default function ConfirmationPage() {
                       <div key={idx} className="space-y-1">
                         <div className="flex justify-between items-start">
                           <span className="font-medium">{item.productName}</span>
-                          <span className="font-medium">{(item.subtotalCents / 100).toLocaleString()} VUV</span>
+                          <span className="font-medium">{item.subtotalCents?.toLocaleString()} VUV</span>
                         </div>
                         <div className="flex justify-between text-xs text-muted-foreground">
                           <span>
@@ -131,7 +131,7 @@ export default function ConfirmationPage() {
                             {item.childPax > 0 && `${item.childPax} Children`}
                             {item.productType === 'vehicle' && `${item.quantity} Days`}
                           </span>
-                          <span>{(item.unitPriceCents / 100).toLocaleString()} / unit</span>
+                          <span>{item.unitPriceCents?.toLocaleString()} / unit</span>
                         </div>
                       </div>
                     ))}
