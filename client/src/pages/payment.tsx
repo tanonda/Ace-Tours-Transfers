@@ -198,20 +198,37 @@ export default function Payment() {
     },
   });
 
+  const MANUAL_PAYMENT_SLUGS = ['manual_transfer', 'cash', 'manual', 'bank-transfer', 'bank'];
+  const isManualPaymentMethod = (slug: string) =>
+    MANUAL_PAYMENT_SLUGS.some(s => slug.toLowerCase().includes(s));
+
   const initiatePaymentMutation = useMutation({
     mutationFn: async (data: { bookingId: string; provider: string; successUrl: string; cancelUrl: string; }) => {
       const res = await apiRequest("POST", "/api/payments/checkout", data);
-      return res.json();
+      const json = await res.json();
+      // Surface server-side errors (e.g. ownership check failures) as thrown errors
+      if (!res.ok || json.error) {
+        throw new Error(json.error || "Payment initiation failed");
+      }
+      return json;
     },
     onSuccess: (data) => {
       clearCart();
       if (data.checkoutUrl) {
         window.location.href = data.checkoutUrl;
       } else {
-        // Manual payment (bank transfer / cash) - redirect to success page
+        // Manual payment (bank transfer / cash) - redirect to success page with manual params
         const bId = data.bookingId || bookingId;
-        setLocation(`/payment/success?booking=${bId}&manual=true&method=${data.provider || paymentMethod}`);
+        const provider = data.provider || paymentMethod;
+        setLocation(`/payment/success?booking=${bId}&manual=true&method=${provider}`);
       }
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Payment Error",
+        description: error.message || "Failed to process your payment. Please try again.",
+        variant: "destructive",
+      });
     },
   });
 
@@ -567,7 +584,12 @@ export default function Payment() {
                     {(initiatePaymentMutation.isPending || createBookingMutation.isPending) ? (
                       <>
                         <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                        Processing…
+                        {isManualPaymentMethod(paymentMethod) ? "Confirming…" : "Processing…"}
+                      </>
+                    ) : isManualPaymentMethod(paymentMethod) ? (
+                      <>
+                        <ShieldCheck className="mr-2 h-4 w-4" />
+                        Confirm Booking
                       </>
                     ) : (
                       <>
