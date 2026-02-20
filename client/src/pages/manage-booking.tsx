@@ -290,7 +290,7 @@ export default function ManageBooking() {
                         <div>
                             <h1 className="text-2xl md:text-3xl font-serif font-bold">Your Booking</h1>
                             <p className="text-muted-foreground text-sm mt-1">
-                                Ref: <span className="font-mono">{booking.id.slice(0, 8).toUpperCase()}</span>
+                                Ref: <span className="font-mono">ACT-{booking.id.replace(/^book_/i,'').replace(/-/g,'').slice(0,8).toUpperCase()}</span>
                             </p>
                         </div>
                         {getStatusBadge(booking.status)}
@@ -582,7 +582,7 @@ export default function ManageBooking() {
                     <DialogHeader>
                         <DialogTitle>Cancel Your Booking?</DialogTitle>
                         <DialogDescription>
-                            Are you sure you want to cancel booking #{booking.id.slice(0, 8).toUpperCase()}?
+                            Are you sure you want to cancel booking ACT-{booking.id.replace(/^book_/i,'').replace(/-/g,'').slice(0,8).toUpperCase()}?
                             This action cannot be undone.
                         </DialogDescription>
                     </DialogHeader>

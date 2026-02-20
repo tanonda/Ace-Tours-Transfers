@@ -4,7 +4,7 @@ import { PaymentFactory } from "../infrastructure/payments/factory.js";
 import { PaymentStatus, type PaymentStatusResponse } from "../domain/payments/interfaces.js";
 import { PaymentIntent, PaymentIntentStatus } from "../domain/payments/PaymentIntent.js";
 import { ReconciliationPolicy } from "../domain/payments/reconciliation.policy.js";
-import { sendEmail, sendAdminEmail, getPaymentConfirmationTemplate, getBookingConfirmationTemplate } from "../lib/mail.js";
+import { sendEmail, sendAdminEmail, getPaymentConfirmationTemplate, getBookingConfirmedTemplate } from "../lib/mail.js";
 
 export class PaymentReconciliationService {
   private storage: IStorage;

@@ -93,7 +93,11 @@ export default function PaymentSuccess() {
   });
 
   const isConfirmed = booking?.status === "confirmed" || booking?.status === "completed";
-  const shortRef = bookingId ? bookingId.slice(0, 8).toUpperCase() : "PENDING";
+  // Strip the "book_" prefix and dashes to get 8 clean hex chars: book_04c85720-... → 04C85720
+  const shortRef = bookingId
+    ? bookingId.replace(/^book_/i, '').replace(/-/g, '').slice(0, 8).toUpperCase()
+    : 'PENDING';
+  const displayRef = `ACT-${shortRef}`;
 
   const firstItem = bookingItems[0];
   const serviceName = firstItem?.productName || booking?.tourName;
@@ -102,14 +106,14 @@ export default function PaymentSuccess() {
   const childCount = firstItem?.childPax || booking?.childPaxTotal || 0;
 
   const copyRef = () => {
-    navigator.clipboard.writeText(shortRef);
+    navigator.clipboard.writeText(displayRef);
     setCopiedRef(true);
     toast({ title: "Copied!", description: "Booking reference copied to clipboard." });
     setTimeout(() => setCopiedRef(false), 2000);
   };
 
   const openWhatsApp = () => {
-    const msg = encodeURIComponent(`Hi! I've made a booking (Ref: #${shortRef}) and would like to confirm my payment details.`);
+    const msg = encodeURIComponent(`Hi! I've made a booking (Ref: ${displayRef}) and would like to confirm my payment details.`);
     window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`, "_blank");
   };
 
@@ -159,7 +163,7 @@ export default function PaymentSuccess() {
               <div className="bg-muted/50 rounded-xl p-4 flex items-center justify-between">
                 <div>
                   <p className="text-xs text-muted-foreground uppercase tracking-wider font-bold mb-1">Booking Reference</p>
-                  <p className="font-mono font-bold text-2xl tracking-widest text-foreground">#{shortRef}</p>
+                  <p className="font-mono font-bold text-2xl tracking-widest text-foreground">{displayRef}</p>
                 </div>
                 <Button variant="outline" size="sm" onClick={copyRef} className="gap-2">
                   <Copy className="h-4 w-4" />
@@ -253,7 +257,7 @@ export default function PaymentSuccess() {
                     <h3>Bank Transfer Details</h3>
                   </div>
                   <p className="text-sm text-blue-700">
-                    Transfer the exact amount below and use your <strong>Booking Reference #{shortRef}</strong> as the payment description/reference.
+                    Transfer the exact amount below and use your <strong>Booking Reference {displayRef}</strong> as the payment description/reference.
                   </p>
                   <div className="bg-white rounded-lg border border-blue-100 divide-y divide-blue-50 text-sm overflow-hidden">
                     {[
@@ -262,7 +266,7 @@ export default function PaymentSuccess() {
                       ["Account Number", accountNumber],
                       ...(swiftCode ? [["SWIFT / BIC", swiftCode]] : []),
                       ...(branchCode ? [["Branch Code", branchCode]] : []),
-                      ["Reference", `#${shortRef}`],
+                      ["Reference", displayRef],
                     ].map(([label, value]) => (
                       <div key={label} className="flex justify-between px-4 py-3">
                         <span className="text-muted-foreground font-medium">{label}</span>

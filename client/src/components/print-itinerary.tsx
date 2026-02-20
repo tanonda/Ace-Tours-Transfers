@@ -231,7 +231,7 @@ export function PrintItinerary({ booking, items, payments, qrCodeData, onClose }
               <h1>Ace Tours & Transfers</h1>
               <p>Port Vila, Vanuatu</p>
               <div class="booking-badge">
-                ${t("itinerary.confirmationNumber", "Confirmation")}: #${booking.id?.slice(0, 8).toUpperCase()}
+                ${t("itinerary.confirmationNumber", "Confirmation")}: ACT-${(booking.id||'').replace(/^book_/i,'').replace(/-/g,'').slice(0,8).toUpperCase()}
               </div>
             </div>
             
@@ -389,7 +389,7 @@ export function PrintItinerary({ booking, items, payments, qrCodeData, onClose }
             <h1 className="text-2xl font-bold mb-1">Ace Tours & Transfers</h1>
             <p className="text-white/80 text-sm">Port Vila, Vanuatu</p>
             <div className="booking-badge inline-block bg-primary text-white px-4 py-2 rounded-full font-bold mt-3">
-              {t("itinerary.confirmationNumber", "Confirmation")}: #{booking.id?.slice(0, 8).toUpperCase()}
+              {t("itinerary.confirmationNumber", "Confirmation")}: ACT-{(booking.id||'').replace(/^book_/i,'').replace(/-/g,'').slice(0,8).toUpperCase()}
             </div>
           </div>
 

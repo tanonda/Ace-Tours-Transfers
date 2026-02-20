@@ -420,7 +420,7 @@ export default function Reservations() {
                           <TableBody>
                             {filteredBookings.map((booking) => (
                               <TableRow key={booking.id}>
-                                <TableCell className="font-mono text-sm">#{booking.id.slice(0, 8)}</TableCell>
+                                <TableCell className="font-mono text-sm">{}</TableCell>
                                 <TableCell>{booking.customerName}</TableCell>
                                 <TableCell>{booking.tourName}</TableCell>
                                 <TableCell>{format(new Date(booking.date), "MMM d, yyyy")}</TableCell>

@@ -43,13 +43,14 @@ import * as cloudinary from "cloudinary";
 import {
   sendEmail,
   sendAdminEmail,
-  getBookingConfirmationTemplate,
+  getBookingRequestTemplate,
   getAdminNewBookingTemplate,
   getPaymentConfirmationTemplate,
   getBookingStatusUpdateTemplate,
   getNewsletterConfirmationTemplate,
   getContactFormTemplate,
-  getTestEmailTemplate
+  getTestEmailTemplate,
+  shortBookingRef
 } from "./lib/mail.js";
 import { ZodError, z } from "zod";
 import { rateLimit as customRateLimit } from "./lib/rate-limiter.js";
@@ -817,11 +818,11 @@ export async function registerRoutes(
       try {
         await sendEmail({
           to: booking.customerEmail!,
-          subject: `Booking Cancelled — Ref #${booking.id.slice(0, 8).toUpperCase()}`,
+          subject: `Booking Cancelled — ACT-${shortBookingRef(booking.id)}`,
           html: `<p>Hi ${booking.customerName},</p>
-                 <p>Your booking (Ref #${booking.id.slice(0, 8).toUpperCase()}) has been cancelled as requested.</p>
+                 <p>Your booking (Ref ACT-${shortBookingRef(booking.id)}) has been cancelled as requested.</p>
                  <p>If you did not request this cancellation please contact us immediately.</p>
-                 <p>Thank you,<br/>Ace Tours & Transfers</p>`,
+                 <p>Thank you,<br/>Ace Tours &amp; Transfers</p>`,
         });
       } catch (emailErr) {
         console.error("[BOOKING CANCEL] Cancellation email failed (non-fatal):", emailErr);
@@ -1189,12 +1190,15 @@ export async function registerRoutes(
           amount: `VT ${(booking.totalAmountCents || 0).toLocaleString()}`,
         };
 
-        // Send customer notification
+        // Send customer notification — determine payment method for correct template
         if (booking.customerEmail) {
+          // We don't know the payment method at booking-creation time yet,
+          // so send a neutral booking-request email (no payment button/instructions).
+          // The payment flow will send a follow-up email with the right instructions.
           await sendEmail({
             to: booking.customerEmail,
-            subject: `Booking Request Received — Ref #${booking.id.slice(0, 8).toUpperCase()}`,
-            html: getBookingConfirmationTemplate(emailBooking, tourInfo),
+            subject: `Booking Request Received — ACT-${shortBookingRef(booking.id)}`,
+            html: getBookingRequestTemplate(emailBooking, tourInfo),
           });
         }
 
@@ -1308,7 +1312,7 @@ export async function registerRoutes(
 
           await sendEmail({
             to: booking.customerEmail,
-            subject: `Booking Update: ${updates.status.toUpperCase()} — Ref #${booking.id.slice(0, 8).toUpperCase()}`,
+            subject: `Booking ${updates.status.charAt(0).toUpperCase() + updates.status.slice(1)} — ACT-${shortBookingRef(booking.id)}`,
             html: getBookingStatusUpdateTemplate(emailBooking, updates.status, tourInfo),
           });
         } catch (emailErr) {

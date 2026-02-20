@@ -95,7 +95,7 @@ export default function ConfirmationPage() {
             <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-4 space-y-2">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Booking ID</span>
-                <span>{booking.id.slice(0, 8).toUpperCase()}</span>
+                <span>ACT-{(booking.id||'').replace(/^book_/i,'').replace(/-/g,'').slice(0,8).toUpperCase()}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Tour</span>
