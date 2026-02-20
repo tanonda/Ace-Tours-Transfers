@@ -1,10 +1,10 @@
 import { PaymentGateway } from "../../../shared/schema.js";
 import { PaymentGatewayService, PaymentStatus } from "../../domain/payments/interfaces.js";
 // LOW-4: StripeAdapter import removed — Stripe not available to Vanuatu merchants
-import { ManualAdapter } from "./manual.adapter.js";
-import { AnzAdapter } from "./anz.adapter.js";
-import { BspAdapter } from "./bsp.adapter.js";
-import { BredAdapter } from "./bred.adapter.js";
+import { ManualAdapter } from "../../infrastructure/payments/manual.adapter.js";
+import { AnzAdapter } from "../../infrastructure/payments/anz.adapter.js";
+import { BspAdapter } from "../../infrastructure/payments/bsp.adapter.js";
+import { BredAdapter } from "../../infrastructure/payments/bred.adapter.js";
 import { config } from "../../config.js";
 import { createLogger } from "../../lib/logger.js";
 

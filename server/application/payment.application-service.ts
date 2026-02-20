@@ -1,6 +1,5 @@
 // server/application/payment.application-service.ts
 
-import { getPaymentGatewayService as getLegacyGatewayService } from '../domain/payments/factory.js';
 import {
   PaymentInitiationRequest,
   PaymentInitiationResponse,
@@ -242,7 +241,7 @@ export class PaymentApplicationService {
 
             await sendAdminEmail(
               `💳 Manual Payment Submitted (${PaymentMethodClassifier.displayLabel(gateway.slug)}): ${booking.customerName}`,
-              getAdminNewBookingTemplate(emailBooking, tourInfo)
+              await getAdminNewBookingTemplate(emailBooking, tourInfo)
             );
           } catch (emailErr) {
             console.error('[PAYMENT] Email notification failed (non-fatal):', emailErr);

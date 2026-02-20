@@ -6,6 +6,7 @@
 
 import { mailingService } from "../infrastructure/mailing/MailingService.js";
 import { escapeHtml } from "./escape-html.js";
+import QRCode from "qrcode";
 
 interface EmailOptions {
   to: string;
@@ -365,7 +366,7 @@ export async function getBookingConfirmationTemplate(booking: any, tour: any, pa
 // =============================================================================
 // 3. ADMIN — NEW BOOKING REQUEST NOTIFICATION
 // =============================================================================
-export function getAdminNewBookingTemplate(booking: any, tour: any): string {
+export async function getAdminNewBookingTemplate(booking: any, tour: any): Promise<string> {
   const appUrl = await getAppUrl();
   const logoUrl = `${appUrl}/assets/logo.png`;
 
@@ -521,7 +522,7 @@ export async function getPaymentConfirmationTemplate(booking: any, payment: any,
 // =============================================================================
 // WELCOME EMAIL
 // =============================================================================
-export function getWelcomeEmailTemplate(user: { name: string; email: string }): string {
+export async function getWelcomeEmailTemplate(user: { name: string; email: string }): Promise<string> {
   const appUrl = await getAppUrl();
   const logoUrl = `${appUrl}/assets/logo.png`;
 
@@ -554,7 +555,7 @@ export function getWelcomeEmailTemplate(user: { name: string; email: string }): 
 // =============================================================================
 // NEWSLETTER CONFIRMATION
 // =============================================================================
-export function getNewsletterConfirmationTemplate(email: string, name?: string): string {
+export async function getNewsletterConfirmationTemplate(email: string, name?: string): Promise<string> {
   const appUrl = await getAppUrl();
   const logoUrl = `${appUrl}/assets/logo.png`;
 
@@ -585,9 +586,9 @@ export function getNewsletterConfirmationTemplate(email: string, name?: string):
 // =============================================================================
 // CONTACT FORM NOTIFICATION (Admin)
 // =============================================================================
-export function getContactFormTemplate(contact: {
+export async function getContactFormTemplate(contact: {
   name: string; email: string; phone?: string; subject?: string; message: string;
-}): string {
+}): Promise<string> {
   const appUrl = await getAppUrl();
   const logoUrl = `${appUrl}/assets/logo.png`;
 
@@ -626,7 +627,7 @@ export function getContactFormTemplate(contact: {
 // =============================================================================
 // TEST EMAIL
 // =============================================================================
-export function getTestEmailTemplate(): string {
+export async function getTestEmailTemplate(): Promise<string> {
   const appUrl = await getAppUrl();
   const logoUrl = `${appUrl}/assets/logo.png`;
   const timestamp = new Date().toLocaleString("en-US", { dateStyle: "full", timeStyle: "long" });
