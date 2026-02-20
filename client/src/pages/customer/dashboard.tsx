@@ -30,7 +30,7 @@ function TicketModal({ booking, onClose, t }: { booking: any; onClose: () => voi
           </div>
           <hr className="border-dashed border-gray-300 my-4" />
           <div className="space-y-2 text-sm">
-            <div><strong>{t("booking.id")}:</strong> {booking.id?.slice(0, 8)}</div>
+            <div><strong>{t("booking.id")}:</strong> {}</div>
             <div><strong>{t("booking.tour")}:</strong> {booking.tourName}</div>
             <div><strong>{t("booking.customer")}:</strong> {booking.customerName}</div>
             <div><strong>{t("booking.date")}:</strong> {booking.date}</div>

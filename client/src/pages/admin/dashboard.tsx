@@ -34,7 +34,7 @@ function BookingModal({ booking, onClose, onUpdate, t }: { booking: any; onClose
       <div className="bg-card p-6 rounded-2xl w-[400px] max-w-[90%] border border-border">
         <h3 className="text-foreground text-lg font-semibold mb-4">{t("dashboard.bookingDetails")}</h3>
         <div className="flex flex-col gap-3 text-muted-foreground">
-          <div><strong className="text-foreground">{t("booking.id")}:</strong> #{booking.id?.slice(0, 8)}</div>
+          <div><strong className="text-foreground">{t("booking.id")}:</strong> #{`ACT-${(booking.id||'').replace(/^book_/i,'').replace(/-/g,'').slice(0,8).toUpperCase()}`}</div>
           <div><strong className="text-foreground">{t("booking.customer")}:</strong> {booking.customerName}</div>
           <div><strong className="text-foreground">{t("booking.tour")}:</strong> {booking.tourName}</div>
           <div><strong className="text-foreground">{t("booking.date")}:</strong> {booking.date}</div>
