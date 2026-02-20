@@ -864,11 +864,18 @@ export async function registerRoutes(
       let booking = await storage.getBooking(bookingId.trim());
 
       if (!booking) {
-        // Short ref lookup: match the first 8 chars of the UUID (after any prefix)
-        const shortRef = bookingId.trim().replace(/^book_/i, '').slice(0, 8).toLowerCase();
+        // Normalise: strip ACT- prefix (shown in emails), book_ db prefix, and dashes
+        const shortRef = bookingId.trim()
+          .replace(/^ACT-/i, '')
+          .replace(/^book_/i, '')
+          .replace(/-/g, '')
+          .slice(0, 8)
+          .toLowerCase();
         if (shortRef.length >= 6) {
           const allRecent = await storage.getBookingsByEmail(email.trim());
-          booking = allRecent.find(b => b.id.replace(/^book_/i, '').toLowerCase().startsWith(shortRef));
+          booking = allRecent.find(b =>
+            b.id.replace(/^book_/i, '').replace(/-/g, '').toLowerCase().startsWith(shortRef)
+          );
         }
       }
 
