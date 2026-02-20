@@ -1165,7 +1165,9 @@ export async function registerRoutes(
       const booking = await storage.getBooking(req.params.id);
       if (!booking) return res.status(404).json({ error: "Booking not found" });
 
-      const appUrl = process.env.APP_URL || "https://acetours.vu";
+      const appUrlSetting = await storage.getSiteSetting("app_url");
+      const appUrl = ((typeof appUrlSetting?.value === "string" ? appUrlSetting.value : "") ||
+                      process.env.APP_URL || "https://acetours.vu").replace(/\/$/, "");
       const shortRef = booking.id.replace(/^book_/i, "").replace(/-/g, "").slice(0, 8).toUpperCase();
       // QR payload: the manage-booking deep-link — scannable by the tour guide or guest
       const qrData = `${appUrl}/manage-booking?ref=${booking.id}`;

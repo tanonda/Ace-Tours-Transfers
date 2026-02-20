@@ -176,10 +176,10 @@ export default function TourDetail() {
           <div className="flex flex-col gap-7">
 
             {/* Photo — adaptive height, no cropping */}
-            <div className="rounded-[14px] overflow-hidden bg-[#211e18] flex items-center justify-center">
+            <div className="rounded-[14px] overflow-hidden bg-[#211e18] aspect-[16/9]">
               <img
                 src={tour.image}
-                className="w-full h-auto max-h-[540px] object-contain block"
+                className="w-full h-full object-cover object-center block"
                 alt={tour.title}
               />
             </div>

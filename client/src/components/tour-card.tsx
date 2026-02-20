@@ -4,7 +4,6 @@ import { Link } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { Clock, Users, Check, Eye } from "lucide-react";
 import { ProductQuickView } from "@/components/product-quick-view";
-import { WishlistButton } from "@/components/wishlist-button";
 import { ShareButton } from "@/components/share-button";
 import { motion } from "framer-motion";
 import { useState } from "react";
@@ -53,8 +52,7 @@ export function TourCard({ tour, index }: { tour: TourProps; index: number }) {
                 onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
               />
             )}
-            <div className="absolute top-4 left-4 z-20 flex gap-2">
-              <WishlistButton tourId={tour.id} />
+            <div className="absolute top-4 left-4 z-20">
               <ShareButton title={tour.title} description={tour.description[0]} />
             </div>
             <div className="absolute top-4 right-4 z-20">
