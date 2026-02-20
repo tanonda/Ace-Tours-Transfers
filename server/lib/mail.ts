@@ -50,6 +50,36 @@ export function shortBookingRef(bookingId: string): string {
     .toUpperCase();
 }
 
+async function generateQrDataUrl(bookingId: string): Promise<string> {
+  try {
+    const appUrl = process.env.APP_URL || "https://acetours.vu";
+    const url = `${appUrl}/manage-booking?ref=${bookingId}`;
+    const dataUrl = await QRCode.toDataURL(url, {
+      width: 160,
+      margin: 2,
+      errorCorrectionLevel: "H",
+      color: { dark: "#004165", light: "#ffffff" },
+    });
+    return dataUrl;
+  } catch {
+    return "";
+  }
+}
+
+function qrBlock(dataUrl: string, shortRef: string): string {
+  if (!dataUrl) return "";
+  return `
+    <div style="text-align: center; margin: 28px 0; padding: 20px; background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 8px;">
+      <p style="color: #004165; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 12px 0;">📱 Quick Check-In QR Code</p>
+      <img src="${dataUrl}" alt="Booking QR Code" width="140" height="140"
+           style="display: block; margin: 0 auto; border: 3px solid #004165; border-radius: 8px; padding: 6px; background: white;" />
+      <p style="color: #6b7280; font-size: 12px; margin: 10px 0 0 0; line-height: 1.5;">
+        Scan to access your booking <strong>ACT-${shortRef}</strong><br/>
+        or show this to our team at check-in
+      </p>
+    </div>`;
+}
+
 function emailHeader(logoUrl: string, title: string, subtitle: string): string {
   return `
     <div style="background: linear-gradient(135deg, #004165 0%, #006699 100%); padding: 32px 24px; text-align: center;">
@@ -116,11 +146,11 @@ function refBadge(eId: string, gradient: string, subtextColor: string, subtext: 
 // 1. BOOKING REQUEST RECEIVED (guest email — sent immediately on booking creation)
 //    Separate templates for offline (bank transfer / cash) vs online (card)
 // =============================================================================
-export function getBookingRequestTemplate(
+export async function getBookingRequestTemplate(
   booking: any,
   tour: any,
   paymentMethod?: "offline" | "online" | "bank_transfer" | "cash"
-): string {
+): Promise<string> {
   const appUrl = process.env.APP_URL || "https://acetours.vu";
   const logoUrl = `${appUrl}/assets/logo.png`;
 
@@ -130,6 +160,9 @@ export function getBookingRequestTemplate(
   const eDate   = escapeHtml(booking.date);
   const eGuests = escapeHtml(booking.guests);
   const eAmount = escapeHtml(booking.amount);
+
+  // Pre-generate QR code for embedding in email
+  const qrDataUrl = await generateQrDataUrl(booking.id);
 
   const isCash    = paymentMethod === "cash";
   const isOffline = paymentMethod === "offline" || paymentMethod === "bank_transfer" || isCash;
@@ -229,6 +262,8 @@ export function getBookingRequestTemplate(
 
       ${paymentBlock}
 
+      ${qrBlock(qrDataUrl, eId)}
+
       ${manageBookingBlock(appUrl, booking.id, `ACT-${eId}`)}
 
       <p style="color: #9ca3af; font-size: 12px; text-align: center; margin-top: 20px;">
@@ -242,7 +277,7 @@ export function getBookingRequestTemplate(
 // =============================================================================
 // 2. BOOKING CONFIRMED (sent ONLY when admin changes status to "confirmed")
 // =============================================================================
-export function getBookingConfirmedTemplate(booking: any, tour: any): string {
+export async function getBookingConfirmedTemplate(booking: any, tour: any): Promise<string> {
   const appUrl = process.env.APP_URL || "https://acetours.vu";
   const logoUrl = `${appUrl}/assets/logo.png`;
 
@@ -254,6 +289,8 @@ export function getBookingConfirmedTemplate(booking: any, tour: any): string {
   const eAmount      = escapeHtml(booking.amount);
   const pickupLocation = booking.pickupLocation ? escapeHtml(booking.pickupLocation) : null;
   const notes        = booking.notes ? escapeHtml(booking.notes) : null;
+
+  const qrDataUrl = await generateQrDataUrl(booking.id);
 
   return emailWrapper(`
     ${emailHeader(logoUrl, "Booking Confirmed! 🎉", "Your adventure is secured")}
@@ -284,6 +321,8 @@ export function getBookingConfirmedTemplate(booking: any, tour: any): string {
         </ul>
       </div>
 
+      ${qrBlock(qrDataUrl, eId)}
+
       ${manageBookingBlock(appUrl, booking.id, `ACT-${eId}`)}
     </div>
     ${emailFooter("<p style=\"color: #374151; font-size: 15px; font-weight: 600; margin: 0 0 16px 0;\">We look forward to seeing you! 🌴</p>")}
@@ -294,7 +333,7 @@ export function getBookingConfirmedTemplate(booking: any, tour: any): string {
 // Legacy alias — existing callers in payment.application-service pass a payment
 // object. Route these correctly based on payment method.
 // =============================================================================
-export function getBookingConfirmationTemplate(booking: any, tour: any, payment?: any): string {
+export async function getBookingConfirmationTemplate(booking: any, tour: any, payment?: any): Promise<string> {
   if (payment) {
     const slug = (payment.gatewayId || payment.provider || "").toLowerCase();
     const isCash = slug === "cash";
@@ -352,7 +391,7 @@ export function getAdminNewBookingTemplate(booking: any, tour: any): string {
 //    - confirmed → delegates to getBookingConfirmedTemplate (richer)
 //    - cancelled, completed → this generic template
 // =============================================================================
-export function getBookingStatusUpdateTemplate(booking: any, newStatus: string, tour: any): string {
+export async function getBookingStatusUpdateTemplate(booking: any, newStatus: string, tour: any): Promise<string> {
   if (newStatus === "confirmed") {
     return getBookingConfirmedTemplate(booking, tour);
   }
@@ -407,7 +446,7 @@ export function getBookingStatusUpdateTemplate(booking: any, newStatus: string, 
 //    For offline: booking request email already has payment instructions.
 //    Confirmed email is sent by admin via status update.
 // =============================================================================
-export function getPaymentConfirmationTemplate(booking: any, payment: any, tour: any): string {
+export async function getPaymentConfirmationTemplate(booking: any, payment: any, tour: any): Promise<string> {
   const appUrl = process.env.APP_URL || "https://acetours.vu";
   const logoUrl = `${appUrl}/assets/logo.png`;
 
@@ -421,6 +460,8 @@ export function getPaymentConfirmationTemplate(booking: any, payment: any, tour:
   const ePayGw   = escapeHtml(payment.gatewayId || payment.provider || "");
   const ePayAmt  = escapeHtml(String(payment.amount || ""));
   const ePayCurr = escapeHtml(payment.currency || "VUV");
+
+  const qrDataUrl = await generateQrDataUrl(booking.id);
 
   return emailWrapper(`
     ${emailHeader(logoUrl, "Payment Received ✓", "Your booking is confirmed")}
@@ -450,6 +491,8 @@ export function getPaymentConfirmationTemplate(booking: any, payment: any, tour:
           This email serves as your payment receipt. Keep reference <strong>ACT-${eId}</strong> for your records.
         </p>
       </div>
+
+      ${qrBlock(qrDataUrl, eId)}
 
       ${manageBookingBlock(appUrl, booking.id, `ACT-${eId}`)}
     </div>
