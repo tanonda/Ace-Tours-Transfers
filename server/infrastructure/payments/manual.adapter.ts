@@ -13,10 +13,12 @@ import { PaymentGateway } from "../../../shared/schema.js";
 
 /**
  * Manual Payment Adapter
- * 
- * Handles non-electronic payment flows like Bank Transfer and Cash on Delivery.
- * Does not redirect; simply transitions payment to 'pending' and assumes 
- * manual reconciliation.
+ *
+ * Handles offline payment flows: Bank Transfer (manual_transfer) and Cash on Delivery (cash).
+ * No redirect URL is produced — the guest is sent straight to the success/confirmation page
+ * by the application service. Admin manually reconciles once funds are received.
+ *
+ * Supported slugs: manual, manual_transfer, bank-transfer, bank, cash
  */
 export class ManualAdapter implements PaymentGatewayService {
   private gatewayConfig: PaymentGateway;
@@ -25,32 +27,44 @@ export class ManualAdapter implements PaymentGatewayService {
     this.gatewayConfig = gatewayConfig;
   }
 
+  private get isCash(): boolean {
+    return this.gatewayConfig.slug.toLowerCase().includes('cash');
+  }
+
   async initiatePayment(request: PaymentInitiationRequest): Promise<PaymentInitiationResponse> {
-    console.log(`[MANUAL] Initiating manual payment (${request.provider}) for booking ${request.bookingId}.`);
-    
-    const message = request.provider === 'cash' 
-      ? "Cash on delivery - customer will pay at pickup/start of service." 
-      : "Bank transfer initiated - awaiting customer transfer.";
+    const slug = this.gatewayConfig.slug;
+    const ref = `${slug}_${Date.now()}_${request.bookingId.slice(0, 8).toUpperCase()}`;
+
+    if (this.isCash) {
+      console.log(`[MANUAL:CASH] Payment reference ${ref} created for booking ${request.bookingId}. Guest pays at pickup.`);
+    } else {
+      console.log(`[MANUAL:BANK_TRANSFER] Payment reference ${ref} created for booking ${request.bookingId}. Awaiting bank transfer.`);
+    }
+
+    const message = this.isCash
+      ? "Cash on delivery confirmed — guest will pay at the start of the tour or vehicle pickup."
+      : "Bank transfer initiated — awaiting guest transfer. Admin will confirm on receipt.";
 
     return {
       success: true,
       message,
-      // No redirect URL for manual payments
-      transactionId: `manual_${Date.now()}_${request.bookingId.slice(0, 8)}`,
-      provider: request.provider
+      // No redirectUrl — the application service will redirect to /payment/success directly
+      transactionId: ref,
+      provider: slug,
     };
   }
 
   async handleWebhook(event: WebhookEvent): Promise<WebhookResponse> {
-    console.warn("[MANUAL] Manual adapter does not support webhooks.");
-    return { success: false, message: "Manual payments do not support webhooks." };
+    // Manual payments have no webhooks — reconciliation is done by admin
+    console.warn("[MANUAL] Webhook called on manual adapter — not supported.");
+    return { success: false, message: "Manual payments do not support webhooks. Use admin reconciliation." };
   }
 
   async queryPaymentStatus(request: PaymentStatusRequest): Promise<PaymentStatusResponse> {
-    // Manual payments remain pending until admin intervention.
+    // Manual payments stay pending until an admin marks them confirmed
     return {
-      status: PaymentStatus.Pending,
-      message: "Awaiting manual verification."
+      status: PaymentStatus.ManualReviewRequired,
+      message: "Awaiting manual verification by admin.",
     };
   }
 }
