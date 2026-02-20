@@ -9,11 +9,13 @@ import { Separator } from "@/components/ui/separator";
 import {
   ShieldCheck, Lock, CreditCard, Loader2, ArrowLeft,
   Building, Banknote, Wallet, Globe, Smartphone,
-  Store, Landmark, DollarSign, ExternalLink
+  Store, Landmark, DollarSign, ExternalLink,
+  CalendarIcon, Users, MapPin, MessageSquare, Package, Clock, Info
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useCart } from "@/lib/cart-context";
 import { useAuth } from "@/lib/auth-context";
+import { Layout } from "@/components/layout";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LanguageSelector } from "@/components/language-selector";
 import { useTranslation } from "react-i18next";
@@ -25,6 +27,7 @@ import { PaymentGateway } from "@shared/schema";
 import { format } from "date-fns";
 import { formatPriceDisplay } from "@/lib/product.types";
 import { useCurrency } from "@/lib/currency-context";
+import { Badge } from "@/components/ui/badge";
 
 const gatewayIcons: Record<string, React.ElementType> = {
   'anz-egate': Landmark,
@@ -54,6 +57,36 @@ const gatewayThemeColors: Record<string, string> = {
   'manual_transfer': 'peer-data-[state=checked]:border-primary peer-data-[state=checked]:text-primary',
 };
 
+type BookingItem = {
+  id: string;
+  productId: string;
+  productName?: string;
+  adultPax?: number;
+  childPax?: number;
+  date?: string;
+  startTime?: string;
+  endTime?: string;
+  adultPriceCents?: number;
+  childPriceCents?: number;
+  totalCents?: number;
+};
+
+type BookingDetails = {
+  id: string;
+  customerName?: string;
+  customerEmail?: string;
+  tourName?: string;
+  date?: string;
+  status?: string;
+  totalAmountCents?: number;
+  notes?: string;
+  pickupLocation?: string;
+  adultPaxTotal?: number;
+  childPaxTotal?: number;
+  guests?: number;
+  currency?: string;
+};
+
 export default function Payment() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -68,8 +101,8 @@ export default function Payment() {
   const [bookingId, setBookingId] = useState<string | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<string>("");
   const [dddConfig, setDddConfig] = useState<any>(null);
+  const [cachedBooking, setCachedBooking] = useState<BookingDetails | null>(null);
   // FIX (audit section 3.5): Generate a stable idempotency key once per page load.
-  // This prevents duplicate bookings when a user double-clicks the Pay button.
   const idempotencyKey = useRef(crypto.randomUUID());
 
   useEffect(() => {
@@ -86,8 +119,48 @@ export default function Payment() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const id = params.get("bookingId");
-    if (id) setBookingId(id);
+    if (id) {
+      setBookingId(id);
+      // Try sessionStorage first (set during booking creation in reservations.tsx)
+      try {
+        const cached = sessionStorage.getItem('checkout_booking');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed.id === id) {
+            setCachedBooking(parsed);
+          }
+        }
+      } catch (e) { /* ignore */ }
+    }
   }, []);
+
+  // Fetch booking details as fallback when sessionStorage data is unavailable
+  const { data: fetchedBooking, isLoading: isLoadingBooking } = useQuery<BookingDetails>({
+    queryKey: ["booking-details", bookingId],
+    queryFn: async () => {
+      if (!bookingId) return null;
+      const res = await fetch(`/api/bookings/${bookingId}`, { credentials: "include" });
+      if (!res.ok) return null;
+      return res.json();
+    },
+    // Only fetch if we don't already have cached data
+    enabled: !!bookingId && !cachedBooking,
+  });
+
+  // Use cached data (sessionStorage) preferentially, fall back to API
+  const bookingDetails = cachedBooking || fetchedBooking || null;
+
+  // Fetch booking items for detailed line items
+  const { data: bookingItems = [] } = useQuery<BookingItem[]>({
+    queryKey: ["booking-items", bookingId],
+    queryFn: async () => {
+      if (!bookingId) return [];
+      const res = await fetch(`/api/bookings/${bookingId}/items`, { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!bookingId,
+  });
 
   useEffect(() => {
     if (!isLoadingGateways && gateways.length > 0 && !paymentMethod) {
@@ -105,8 +178,6 @@ export default function Payment() {
         body: JSON.stringify({
           customerName: user?.name || guestName,
           customerEmail: user?.email || guestEmail,
-          // FIX (audit section 3.5): Send the stable idempotency key so the server
-          // can deduplicate if the user double-clicks or the request is retried.
           idempotencyKey: idempotencyKey.current,
           items: items.map(i => ({
             productId: i.id,
@@ -147,7 +218,8 @@ export default function Payment() {
   const handlePayment = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!isAuthenticated && (!guestName || !guestEmail)) {
+    // Only require guest details if no booking exists AND user isn't authenticated
+    if (!bookingId && !isAuthenticated && (!guestName || !guestEmail)) {
       toast({ title: "Details Required", description: "Please provide your name and email.", variant: "destructive" });
       return;
     }
@@ -167,7 +239,7 @@ export default function Payment() {
           return;
         }
 
-        // SERVER-SIDE PRICE VALIDATION: Verify cart total matches server calculation
+        // SERVER-SIDE PRICE VALIDATION
         const priceCheckRes = await fetch("/api/cart/price", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -187,12 +259,6 @@ export default function Payment() {
           const serverTotal = priceSnapshot.totalCents;
           const clientTotal = total;
 
-          // FIX (audit section 3.4): Block checkout on price mismatch instead of
-          // just showing a toast. The server price is authoritative; if they differ
-          // by more than a trivial rounding amount we stop here and force the user
-          // to review before proceeding.  Note: the server will always use its own
-          // price when the booking is created — this check is belt-and-suspenders
-          // UX so the customer doesn't see a surprise total on the success page.
           if (Math.abs(serverTotal - clientTotal) > 100) {
             toast({
               title: "Price has changed",
@@ -200,7 +266,7 @@ export default function Payment() {
               variant: "default"
             });
             console.warn(`[PRICE MISMATCH] Client: ${clientTotal}, Server: ${serverTotal}`);
-            return; // Stop — do not proceed to booking creation
+            return;
           }
         }
 
@@ -226,111 +292,310 @@ export default function Payment() {
   const CurrentIcon = selectedGateway ? (gatewayIcons[selectedGateway.slug] || CreditCard) : CreditCard;
   const currentThemeColor = selectedGateway ? (gatewayThemeColors[selectedGateway.slug] || 'bg-[#004165]') : 'bg-[#004165]';
 
-  if (isLoadingGateways) {
+  // Determine the display total: use booking total if available, otherwise cart total
+  const displayTotal = bookingDetails?.totalAmountCents ?? total;
+  const displayCurrency = bookingDetails?.currency || currency;
+
+  // Has a pre-created booking (from booking form flow)
+  const hasBooking = !!bookingId && !!bookingDetails;
+
+  if (isLoadingGateways || (bookingId && isLoadingBooking)) {
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
+      <Layout>
+        <div className="min-h-screen flex flex-col items-center justify-center p-4 pt-40">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <p className="text-sm text-muted-foreground mt-3">Loading checkout…</p>
+        </div>
+      </Layout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 safe-bottom">
-      <div className="w-full max-w-md mb-4 flex items-center justify-between">
-        <Button variant="ghost" onClick={() => setLocation("/cart")}>
-          <ArrowLeft className="mr-2 h-4 w-4" /> {t("cart.title")}
-        </Button>
-        <div className="flex items-center gap-2">
-          <LanguageSelector />
-          <ThemeToggle size="sm" />
-        </div>
-      </div>
+    <Layout>
+      <div className="min-h-screen pt-36 md:pt-40 pb-16 relative overflow-hidden">
+        {/* Subtle background */}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/3 via-background to-primary/5 pointer-events-none" />
 
-      <div className="w-full max-w-md">
-        <div className={`text-white p-4 rounded-t-lg flex items-center justify-between shadow-md transition-colors duration-300 ${currentThemeColor.replace('peer-data-[state=checked]:border', 'bg').replace('peer-data-[state=checked]:text', '')}`}>
-          <div className="flex items-center gap-2">
-            <CurrentIcon className="h-5 w-5" />
-            <h1 className="font-semibold text-lg">{selectedGateway?.displayName || t("payment.securePayment")}</h1>
-          </div>
-          <div className="flex items-center gap-1 text-xs opacity-90"><Lock className="h-3 w-3" /><span>Encrypted</span></div>
-        </div>
+        <div className="container mx-auto px-4 relative z-10">
+          {/* Header */}
+          <div className="max-w-2xl mx-auto mb-6">
+            <Button variant="ghost" onClick={() => setLocation(bookingId ? "/reservations" : "/reservations?tab=cart")} className="mb-4 -ml-2">
+              <ArrowLeft className="mr-2 h-4 w-4" /> Back
+            </Button>
 
-        <Card className="rounded-t-none border-t-0 shadow-lg">
-          <CardHeader>
-            <CardTitle className="text-xl">{t("payment.title")}</CardTitle>
-            <CardDescription>Select your preferred payment method</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="bg-muted/50 p-4 rounded-md mb-6 border border-border">
-              <div className="flex justify-between items-center">
-                <span className="font-semibold">Total Amount</span>
-                <span className="font-bold text-lg">{formatPriceDisplay(total, currency)}</span>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 rounded-xl bg-primary/10">
+                <ShieldCheck className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold">Secure Checkout</h1>
+                <p className="text-sm text-muted-foreground">Review your order and select a payment method</p>
               </div>
             </div>
+          </div>
 
-            {!isAuthenticated && !bookingId && (
-              <div className="space-y-4 mb-6 p-4 border rounded-lg bg-primary/5">
-                <h3 className="font-semibold text-sm flex items-center gap-2"><ExternalLink className="h-4 w-4" />Continue as Guest</h3>
-                <div className="space-y-2">
-                  <Label htmlFor="guestName">Full Name</Label>
-                  <Input id="guestName" value={guestName} onChange={(e) => setGuestName(e.target.value)} required />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="guestEmail">Email Address</Label>
-                  <Input id="guestEmail" type="email" value={guestEmail} onChange={(e) => setGuestEmail(e.target.value)} required />
-                </div>
-              </div>
+          <div className="max-w-2xl mx-auto space-y-5">
+
+            {/* ──── Order Summary ──── */}
+            {hasBooking && (
+              <Card className="border-border/50 shadow-lg bg-card/80 backdrop-blur-sm overflow-hidden">
+                <div className="h-1 bg-gradient-to-r from-primary via-primary/80 to-primary/50" />
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Package className="h-5 w-5 text-primary" />
+                    Order Summary
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Customer Info */}
+                  <div className="flex items-start gap-3 p-3 rounded-xl bg-muted/30 border border-border/30">
+                    <Users className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                    <div className="min-w-0">
+                      <p className="font-semibold text-sm">{bookingDetails.customerName}</p>
+                      <p className="text-xs text-muted-foreground truncate">{bookingDetails.customerEmail}</p>
+                    </div>
+                    <Badge variant="secondary" className="ml-auto text-[10px] shrink-0">
+                      Ref #{bookingDetails.id?.slice(0, 8).toUpperCase()}
+                    </Badge>
+                  </div>
+
+                  {/* Booking Items */}
+                  {bookingItems.length > 0 ? (
+                    <div className="space-y-3">
+                      {bookingItems.map((item, index) => (
+                        <div key={item.id || index} className="p-3 rounded-xl border border-border/30 bg-background/50">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0 flex-1">
+                              <p className="font-semibold text-sm">{item.productName || bookingDetails.tourName || "Tour/Transfer"}</p>
+                              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs text-muted-foreground">
+                                {(item.date || bookingDetails.date) && (
+                                  <span className="flex items-center gap-1">
+                                    <CalendarIcon className="h-3 w-3" />
+                                    {format(new Date(item.date || bookingDetails.date!), "EEE, MMM d, yyyy")}
+                                  </span>
+                                )}
+                                {item.startTime && (
+                                  <span className="flex items-center gap-1">
+                                    <Clock className="h-3 w-3" />
+                                    {item.startTime}
+                                  </span>
+                                )}
+                                <span className="flex items-center gap-1">
+                                  <Users className="h-3 w-3" />
+                                  {item.adultPax || bookingDetails.adultPaxTotal || 1} adult{(item.adultPax || bookingDetails.adultPaxTotal || 1) > 1 ? 's' : ''}
+                                  {(item.childPax || bookingDetails.childPaxTotal || 0) > 0 && (
+                                    <>, {item.childPax || bookingDetails.childPaxTotal} child{(item.childPax || bookingDetails.childPaxTotal || 0) > 1 ? 'ren' : ''}</>
+                                  )}
+                                </span>
+                              </div>
+                            </div>
+                            {item.totalCents && (
+                              <span className="font-bold text-sm whitespace-nowrap">
+                                {formatPriceDisplay(item.totalCents, displayCurrency)}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : bookingDetails.tourName ? (
+                    /* Fallback: show booking-level details if no items returned */
+                    <div className="p-3 rounded-xl border border-border/30 bg-background/50">
+                      <p className="font-semibold text-sm">{bookingDetails.tourName}</p>
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs text-muted-foreground">
+                        {bookingDetails.date && (
+                          <span className="flex items-center gap-1">
+                            <CalendarIcon className="h-3 w-3" />
+                            {format(new Date(bookingDetails.date), "EEE, MMM d, yyyy")}
+                          </span>
+                        )}
+                        {bookingDetails.guests && (
+                          <span className="flex items-center gap-1">
+                            <Users className="h-3 w-3" />
+                            {bookingDetails.guests} guest{bookingDetails.guests > 1 ? 's' : ''}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {/* Pickup Location */}
+                  {bookingDetails.pickupLocation && (
+                    <div className="flex items-start gap-2 text-sm px-1">
+                      <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                      <div>
+                        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Pickup Location</span>
+                        <p className="text-sm">{bookingDetails.pickupLocation}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Special Requests */}
+                  {bookingDetails.notes && (
+                    <div className="flex items-start gap-2 text-sm px-1">
+                      <MessageSquare className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                      <div>
+                        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Special Requests</span>
+                        <p className="text-sm">{bookingDetails.notes}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Total */}
+                  <Separator />
+                  <div className="flex justify-between items-center">
+                    <span className="font-semibold">Total Amount</span>
+                    <span className="text-xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+                      {formatPriceDisplay(displayTotal, displayCurrency)}
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
             )}
 
-            <form onSubmit={handlePayment} className="space-y-4">
-              <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="grid grid-cols-2 gap-4 mb-6">
-                {gateways.filter(g => g.active).map(gateway => {
-                  const Icon = gatewayIcons[gateway.slug] || CreditCard;
-                  const theme = gatewayThemeColors[gateway.slug] || 'peer-data-[state=checked]:border-primary peer-data-[state=checked]:text-primary';
-                  const isDisabled = dddConfig?.cardPaymentsDisabled && (gateway.slug === 'stripe' || gateway.slug.includes('pay'));
-
-                  return (
-                    <div key={gateway.slug} className={isDisabled ? "opacity-50 grayscale cursor-not-allowed" : ""}>
-                      <RadioGroupItem value={gateway.slug} id={gateway.slug} className="peer sr-only" disabled={isDisabled} />
-                      <Label htmlFor={gateway.slug} className={`flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent ${theme} cursor-pointer`}>
-                        <Icon className="mb-1 h-6 w-6" />
-                        <span className="font-bold text-sm mb-1">{gateway.displayName}</span>
-                        {isDisabled && <span className="text-[10px] text-red-500 font-bold uppercase">Disabled</span>}
-                      </Label>
+            {/* ──── Cart Summary (no pre-created booking) ──── */}
+            {!hasBooking && items.length > 0 && (
+              <Card className="border-border/50 shadow-lg bg-card/80 backdrop-blur-sm overflow-hidden">
+                <div className="h-1 bg-gradient-to-r from-primary via-primary/80 to-primary/50" />
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Package className="h-5 w-5 text-primary" />
+                    Order Summary
+                    <Badge variant="secondary" className="text-xs">{items.length} item{items.length > 1 ? 's' : ''}</Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {items.map((item) => (
+                    <div key={item.cartItemId} className="flex items-center justify-between py-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-sm truncate">{item.title}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {item.adultPax} adult{item.adultPax > 1 ? 's' : ''}
+                          {item.childPax > 0 && `, ${item.childPax} child${item.childPax > 1 ? 'ren' : ''}`}
+                        </p>
+                      </div>
+                      <span className="font-bold text-sm">{item.price.toLocaleString()} VT</span>
                     </div>
-                  );
-                })}
-              </RadioGroup>
+                  ))}
+                  <Separator />
+                  <div className="flex justify-between items-center">
+                    <span className="font-semibold">Total</span>
+                    <span className="text-xl font-bold">{formatPriceDisplay(total, currency)}</span>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
-              {selectedGateway?.slug === 'manual_transfer' && (
-                <div className="rounded-md bg-blue-50 p-4 border border-blue-100 mb-4 flex flex-col items-center">
-                  <Landmark className="h-8 w-8 text-blue-600 mb-2" />
-                  <h3 className="font-semibold text-blue-900 mb-2">Bank Transfer Details</h3>
-                  <p className="text-sm text-blue-800 text-center">Refer to confirmation email for bank account details.</p>
-                </div>
-              )}
+            {/* ──── Guest Details (only when no pre-created booking) ──── */}
+            {!hasBooking && !isAuthenticated && (
+              <Card className="border-border/50 shadow-lg bg-card/80 backdrop-blur-sm">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <ExternalLink className="h-5 w-5 text-primary" />
+                    Your Details
+                  </CardTitle>
+                  <CardDescription>We'll send your booking confirmation to this email</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="guestName">Full Name</Label>
+                    <Input id="guestName" value={guestName} onChange={(e) => setGuestName(e.target.value)} placeholder="John Doe" required />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="guestEmail">Email Address</Label>
+                    <Input id="guestEmail" type="email" value={guestEmail} onChange={(e) => setGuestEmail(e.target.value)} placeholder="john@example.com" required />
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
-              {selectedGateway?.slug === 'cash' && (
-                <div className="rounded-md bg-green-50 p-4 border border-green-100 mb-4 flex flex-col items-center">
-                  <Banknote className="h-8 w-8 text-green-600 mb-2" />
-                  <h3 className="font-semibold text-green-900 mb-2">Cash on Delivery</h3>
-                  <p className="text-sm text-green-800 text-center">Please pay at the start of your tour or vehicle pickup.</p>
-                </div>
-              )}
+            {/* ──── Payment Method ──── */}
+            <Card className="border-border/50 shadow-lg bg-card/80 backdrop-blur-sm overflow-hidden">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <CreditCard className="h-5 w-5 text-primary" />
+                  Payment Method
+                </CardTitle>
+                <CardDescription>Select how you'd like to pay</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handlePayment} className="space-y-5">
+                  <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="grid grid-cols-2 gap-4">
+                    {gateways.filter(g => g.active).map(gateway => {
+                      const Icon = gatewayIcons[gateway.slug] || CreditCard;
+                      const theme = gatewayThemeColors[gateway.slug] || 'peer-data-[state=checked]:border-primary peer-data-[state=checked]:text-primary';
+                      const isDisabled = dddConfig?.cardPaymentsDisabled && (gateway.slug === 'stripe' || gateway.slug.includes('pay'));
 
-              <Button type="submit" className={`w-full py-6 text-lg text-white ${currentThemeColor.replace('peer-data-[state=checked]:border', 'bg').replace('peer-data-[state=checked]:text', 'hover:bg')}`} disabled={initiatePaymentMutation.isPending || createBookingMutation.isPending}>
-                {(initiatePaymentMutation.isPending || createBookingMutation.isPending) ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <><CreditCard className="mr-2 h-5 w-5" /> {t("payment.pay")}</>}
-              </Button>
-            </form>
-          </CardContent>
-          <CardFooter className="flex flex-col gap-4 bg-slate-50 border-t">
-            <div className="flex items-center justify-center gap-2 text-xs text-slate-500">
-              <ShieldCheck className="h-3 w-3" />
-              <span>Payments processed securely</span>
+                      return (
+                        <div key={gateway.slug} className={isDisabled ? "opacity-50 grayscale cursor-not-allowed" : ""}>
+                          <RadioGroupItem value={gateway.slug} id={gateway.slug} className="peer sr-only" disabled={isDisabled} />
+                          <Label htmlFor={gateway.slug} className={`flex flex-col items-center justify-between rounded-xl border-2 border-muted bg-popover p-4 hover:bg-accent ${theme} cursor-pointer transition-all duration-200`}>
+                            <Icon className="mb-1 h-6 w-6" />
+                            <span className="font-bold text-sm mb-1">{gateway.displayName}</span>
+                            {isDisabled && <span className="text-[10px] text-red-500 font-bold uppercase">Disabled</span>}
+                          </Label>
+                        </div>
+                      );
+                    })}
+                  </RadioGroup>
+
+                  {selectedGateway?.slug === 'manual_transfer' && (
+                    <div className="rounded-xl bg-blue-50 dark:bg-blue-950/30 p-4 border border-blue-200 dark:border-blue-800 flex flex-col items-center">
+                      <Landmark className="h-8 w-8 text-blue-600 mb-2" />
+                      <h3 className="font-semibold text-blue-900 dark:text-blue-200 mb-2">Bank Transfer</h3>
+                      <p className="text-sm text-blue-800 dark:text-blue-300 text-center">
+                        Complete your bank transfer after placing the order. Details will be shown on the confirmation page.
+                      </p>
+                    </div>
+                  )}
+
+                  {selectedGateway?.slug === 'cash' && (
+                    <div className="rounded-xl bg-green-50 dark:bg-green-950/30 p-4 border border-green-200 dark:border-green-800 flex flex-col items-center">
+                      <Banknote className="h-8 w-8 text-green-600 mb-2" />
+                      <h3 className="font-semibold text-green-900 dark:text-green-200 mb-2">Cash on Delivery</h3>
+                      <p className="text-sm text-green-800 dark:text-green-300 text-center">
+                        Please pay at the start of your tour or vehicle pickup.
+                      </p>
+                    </div>
+                  )}
+
+                  <Button
+                    type="submit"
+                    className="w-full h-14 text-base font-semibold shadow-lg hover:shadow-xl transition-all duration-200 group"
+                    disabled={initiatePaymentMutation.isPending || createBookingMutation.isPending}
+                  >
+                    {(initiatePaymentMutation.isPending || createBookingMutation.isPending) ? (
+                      <>
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                        Processing…
+                      </>
+                    ) : (
+                      <>
+                        <Lock className="mr-2 h-4 w-4" />
+                        {hasBooking
+                          ? `Pay ${formatPriceDisplay(displayTotal, displayCurrency)}`
+                          : `Pay ${formatPriceDisplay(total, currency)}`
+                        }
+                      </>
+                    )}
+                  </Button>
+
+                  <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                    <ShieldCheck className="h-3.5 w-3.5" />
+                    <span>Payments processed securely • 256-bit encryption</span>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+
+            {/* Info note */}
+            <div className="flex items-start gap-2.5 px-2 text-xs text-muted-foreground">
+              <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+              <p>Free cancellation up to 24 hours before your tour. By proceeding, you agree to our terms of service.</p>
             </div>
-          </CardFooter>
-        </Card>
+          </div>
+        </div>
       </div>
-    </div>
+    </Layout>
   );
 }

@@ -127,6 +127,7 @@ export function BookingForm({
   const watchedAddonIds = form.watch("addonIds");
   const watchedStartTime = form.watch("startTime");
   const watchedEndTime = form.watch("endTime");
+  const watchedNotes = form.watch("notes");
 
   const isTransfer = useMemo(
     () => services.find(s => s.title === watchedService)?.category === 'transfer',
@@ -376,7 +377,7 @@ export function BookingForm({
                             </div>
                           </SelectTrigger>
                         </FormControl>
-                        Bondi                        <SelectContent className="rounded-xl shadow-xl border-slate-100">
+                        <SelectContent className="rounded-xl shadow-xl border-slate-100">
                           <SelectItem value="select" disabled>{t("booking.selectOption", "Select an option")}</SelectItem>
                           {services.filter(s => s.category === 'tour').length > 0 && (
                             <SelectGroup>
@@ -850,6 +851,18 @@ export function BookingForm({
                   </p>
                 </div>
               </div>
+
+              {/* Special Requests */}
+              {watchedNotes && watchedNotes.trim() && (
+                <div className="border-t border-dashed border-slate-100 pt-4">
+                  <div className="space-y-1">
+                    <span className="text-[10px] uppercase font-black text-slate-400 tracking-wider">Special Requests</span>
+                    <p className="text-xs font-medium text-slate-700 leading-relaxed bg-slate-50/80 rounded-lg p-2.5 border border-slate-100">
+                      {watchedNotes.trim()}
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {/* Live Availability Status */}
               <div className="border-t border-dashed border-slate-100 pt-4">

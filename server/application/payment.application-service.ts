@@ -26,6 +26,7 @@ export interface PaymentOptions {
   bookingId: string;
   userId?: string;
   sessionId: string;
+  recentBookingIds?: string[]; // Recently created booking IDs from this session (checkout flow)
   provider?: string;
   successUrl: string;
   cancelUrl: string;
@@ -57,7 +58,8 @@ export class PaymentApplicationService {
     }
 
     const isOwner = (booking.userId && booking.userId === options.userId) ||
-      (booking.bookingSessionId === options.sessionId);
+      (booking.bookingSessionId === options.sessionId) ||
+      (options.recentBookingIds?.includes(options.bookingId));
 
     if (!isOwner) {
       return { success: false, message: "Unauthorized: Access denied." };
