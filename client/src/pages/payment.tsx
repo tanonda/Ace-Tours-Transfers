@@ -372,7 +372,7 @@ export default function Payment() {
                       <p className="text-xs text-muted-foreground truncate">{bookingDetails.customerEmail}</p>
                     </div>
                     <Badge variant="secondary" className="ml-auto text-[10px] shrink-0">
-                      Ref #{bookingDetails.id?.slice(0, 8).toUpperCase()}
+                      Ref ACT-{(bookingDetails.id||'').replace(/^book_/i,'').replace(/-/g,'').slice(0,8).toUpperCase()}
                     </Badge>
                   </div>
 

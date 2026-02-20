@@ -20,7 +20,9 @@ import {
   sendEmail,
   sendAdminEmail,
   getPaymentConfirmationTemplate,
-  getBookingConfirmationTemplate
+  getBookingRequestTemplate,
+  getAdminNewBookingTemplate,
+  shortBookingRef
 } from "../lib/mail.js";
 
 export interface PaymentOptions {
@@ -205,8 +207,10 @@ export class PaymentApplicationService {
         response.paymentId = payment.id;
         response.provider = gateway.slug;
 
-        // ✅ Send payment pending / booking submitted emails for manual gateways
-        // (bank transfer and cash do not have webhooks, so we notify immediately)
+        // ✅ Send payment instructions email for manual/offline gateways.
+        // IMPORTANT: We do NOT say "booking confirmed" here — that only happens
+        // when the admin verifies receipt and changes the status to confirmed.
+        // Instead we send the booking request email with payment instructions.
         if (isManual) {
           try {
             const bookingItems = await this.storage.getBookingItems(booking.id);
@@ -221,26 +225,24 @@ export class PaymentApplicationService {
               amount: `VT ${(booking.totalAmountCents || 0).toLocaleString()}`,
             };
 
-            const paymentMethod = PaymentMethodClassifier.displayLabel(gateway.slug);
-            const subject = gateway.slug === 'cash'
-              ? `Booking Confirmed (Pay at Pickup) — Ref #${booking.id.slice(0, 8).toUpperCase()}`
-              : `Action Required: Complete Bank Transfer — Ref #${booking.id.slice(0, 8).toUpperCase()}`;
+            const isCashPayment = gateway.slug === 'cash';
+            const paymentMethodType: 'cash' | 'bank_transfer' = isCashPayment ? 'cash' : 'bank_transfer';
+
+            const subject = isCashPayment
+              ? `Booking Request Received — ACT-${shortBookingRef(booking.id)}`
+              : `Payment Instructions — ACT-${shortBookingRef(booking.id)}`;
 
             if (customerEmail) {
               await sendEmail({
                 to: customerEmail,
                 subject,
-                html: getBookingConfirmationTemplate(emailBooking, tourInfo, {
-                  status: 'pending',
-                  gatewayReference: response.transactionId,
-                  gatewayId: paymentMethod,
-                }),
+                html: getBookingRequestTemplate(emailBooking, tourInfo, paymentMethodType),
               });
             }
 
             await sendAdminEmail(
-              `💳 Payment Submitted (${paymentMethod}): ${booking.customerName}`,
-              getBookingConfirmationTemplate(emailBooking, tourInfo)
+              `💳 Manual Payment Submitted (${PaymentMethodClassifier.displayLabel(gateway.slug)}): ${booking.customerName}`,
+              getAdminNewBookingTemplate(emailBooking, tourInfo)
             );
           } catch (emailErr) {
             console.error('[PAYMENT] Email notification failed (non-fatal):', emailErr);
