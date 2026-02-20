@@ -99,7 +99,7 @@ export default function CustomerBookings() {
                       <div className="flex justify-between items-start mb-2">
                         <div>
                           <h3 className="font-bold text-xl text-foreground">{booking.tourName}</h3>
-                          <p className="text-sm text-muted-foreground">Ref: {booking.id.slice(0, 8)}</p>
+                          <p className="text-sm text-muted-foreground">Ref: {}</p>
                         </div>
                         <Badge
                           variant={booking.status === "confirmed" ? "default" : "secondary"}

@@ -157,7 +157,7 @@ export default function AdminBookings() {
                 ) : (
                   bookings.map((booking) => (
                     <TableRow key={booking.id}>
-                      <TableCell className="font-medium">{booking.id.slice(0, 8)}</TableCell>
+                      <TableCell className="font-medium">{}</TableCell>
                       <TableCell>{booking.customerName}</TableCell>
                       <TableCell>{booking.tourName}</TableCell>
                       <TableCell>{new Date(booking.date).toLocaleDateString()}</TableCell>
