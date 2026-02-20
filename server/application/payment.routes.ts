@@ -75,7 +75,8 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
       if (provider === 'stripe' && !isFlagEnabled('payment-stripe')) {
         return res.status(403).json({ error: "Stripe payments are currently disabled" });
       }
-      if ((provider === 'manual' || provider === 'bank-transfer') && !isFlagEnabled('payment-bank-transfer')) {
+      // Also check slug variants for bank transfer feature flag
+      if ((provider === 'manual' || provider === 'bank-transfer' || provider === 'manual_transfer') && !isFlagEnabled('payment-bank-transfer')) {
         return res.status(403).json({ error: "Bank transfer payments are currently disabled" });
       }
       if (provider === 'cash' && !isFlagEnabled('payment-cash-on-delivery')) {
@@ -86,9 +87,10 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
         bookingId,
         userId: req.session.userId,
         sessionId: req.sessionID, // CRITICAL: Pass session ID for guest ownership
+        recentBookingIds: (req.session as any).recentBookingIds || [], // Checkout flow: recently created bookings
         provider: provider,
-        successUrl: `${baseUrl}/payment/success?booking=${bookingId}`,
-        cancelUrl: `${baseUrl}/payment/cancel?booking=${bookingId}`,
+        successUrl: `${req.protocol}://${req.get('host')}/payment/success?booking=${bookingId}`,
+        cancelUrl: `${req.protocol}://${req.get('host')}/payment/cancel?booking=${bookingId}`,
       });
 
       if (!result.success) {

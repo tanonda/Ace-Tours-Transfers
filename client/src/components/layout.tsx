@@ -278,11 +278,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   </NavigationMenuTrigger>
                   <NavigationMenuContent>
                     <ul className="grid w-[200px] gap-2 p-4">
-                      <ListItem href="/reservations" title={t("nav.editTrip")}>
-                        {t("nav.manageBookings", "Manage existing bookings")}
-                      </ListItem>
-                      <ListItem href="/reservations" title={t("nav.cancelTrip")}>
-                        {t("nav.cancelReservation", "Cancel a reservation")}
+                      <ListItem href="/manage-booking" title={t("nav.editTrip")}>
+                        {t("nav.manageBookings", "Manage or cancel existing bookings")}
                       </ListItem>
                       <ListItem href="/reservations" title={t("nav.bookRide")}>
                         {t("nav.startNewBooking", "Start a new booking")}
@@ -477,20 +474,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     </CollapsibleTrigger>
                     <CollapsibleContent className="pl-12 pr-4 pb-2 space-y-1">
                       <Link
-                        href="/reservations"
+                        href="/manage-booking"
                         onClick={closeMobileMenu}
                         className="flex items-center gap-2 py-2 px-3 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
                       >
                         <ChevronRight className="h-3 w-3" />
                         {t("nav.editTrip")}
-                      </Link>
-                      <Link
-                        href="/reservations"
-                        onClick={closeMobileMenu}
-                        className="flex items-center gap-2 py-2 px-3 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
-                      >
-                        <ChevronRight className="h-3 w-3" />
-                        {t("nav.cancelTrip")}
                       </Link>
                       <Link
                         href="/reservations"
@@ -711,7 +700,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
             <Link href="/about" className="text-lg font-medium hover:text-primary">{t("nav.about")}</Link>
             <Link href="/contact" className="text-lg font-medium hover:text-primary">{t("nav.contact")}</Link>
-            <Link href="/reservations" className="text-lg font-medium hover:text-primary">{t("nav.myBookings")}</Link>
+            <Link href="/manage-booking" className="text-lg font-medium hover:text-primary">{t("nav.editTrip")}</Link>
+            <Link href="/reservations" className="text-lg font-medium hover:text-primary">{t("nav.bookRide")}</Link>
 
             <div className="flex items-center justify-between py-2">
               <span className="text-lg font-medium text-foreground">Currency</span>

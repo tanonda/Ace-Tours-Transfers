@@ -1113,8 +1113,10 @@ export async function registerRoutes(
       // C3 Fix: Require authentication or email verification for guest access
       const isAdmin = req.session.userRole === 'admin';
       const isOwner = booking.userId === req.session.userId || booking.bookingSessionId === req.sessionID;
+      // Allow access if this booking was recently created in this session (checkout flow)
+      const isRecentBooking = (req.session as any).recentBookingIds?.includes(req.params.id);
 
-      if (!isAdmin && !isOwner) {
+      if (!isAdmin && !isOwner && !isRecentBooking) {
         return res.status(401).json({ error: "Unauthorized access to booking details" });
       }
 
@@ -1191,6 +1193,16 @@ export async function registerRoutes(
         );
       } catch (emailError) {
         console.error('[BOOKING] Email notification failed (non-fatal):', emailError);
+      }
+
+      // Store booking ID in session for checkout access
+      if (!((req.session as any).recentBookingIds)) {
+        (req.session as any).recentBookingIds = [];
+      }
+      (req.session as any).recentBookingIds.push(booking.id);
+      // Keep only last 5 to avoid session bloat
+      if ((req.session as any).recentBookingIds.length > 5) {
+        (req.session as any).recentBookingIds = (req.session as any).recentBookingIds.slice(-5);
       }
 
       res.status(201).json(booking);

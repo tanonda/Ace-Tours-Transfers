@@ -6,15 +6,27 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import {
   CheckCircle, ArrowRight, Home, Loader2, Clock, Building2,
-  Copy, MessageCircle, Phone, Mail, Banknote, DollarSign, ExternalLink
+  Copy, MessageCircle, Phone, Mail, Banknote, DollarSign, ExternalLink,
+  CalendarIcon, Users, MapPin, MessageSquare, Package
 } from "lucide-react";
 import { Layout } from "@/components/layout";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useCMS } from "@/lib/cms-context";
+import { format } from "date-fns";
 
 const WHATSAPP_NUMBER = "6787114045";
+
+type BookingItem = {
+  id: string;
+  productId: string;
+  productName?: string;
+  adultPax?: number;
+  childPax?: number;
+  date?: string;
+  startTime?: string;
+};
 
 export default function PaymentSuccess() {
   const { toast } = useToast();
@@ -40,7 +52,19 @@ export default function PaymentSuccess() {
     localStorage.removeItem('ace-tours-booking-draft');
   }, []);
 
-  const { data: booking, isLoading } = useQuery<{ status: string; customerName?: string; totalAmountCents?: number }>({
+  const { data: booking, isLoading } = useQuery<{
+    status: string;
+    customerName?: string;
+    customerEmail?: string;
+    totalAmountCents?: number;
+    tourName?: string;
+    date?: string;
+    notes?: string;
+    pickupLocation?: string;
+    adultPaxTotal?: number;
+    childPaxTotal?: number;
+    guests?: number;
+  }>({
     queryKey: ["booking", bookingId],
     queryFn: async () => {
       if (!bookingId) return null;
@@ -50,15 +74,32 @@ export default function PaymentSuccess() {
     },
     enabled: !!bookingId && bookingId !== "demo",
     refetchInterval: (query) => {
-      // Stop polling once confirmed
       const data = query.state.data;
       if (data?.status === "confirmed" || data?.status === "completed") return false;
       return 5000;
     },
   });
 
+  // Fetch booking items for service details
+  const { data: bookingItems = [] } = useQuery<BookingItem[]>({
+    queryKey: ["booking-items", bookingId],
+    queryFn: async () => {
+      if (!bookingId) return [];
+      const res = await fetch(`/api/bookings/${bookingId}/items`, { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!bookingId && bookingId !== "demo",
+  });
+
   const isConfirmed = booking?.status === "confirmed" || booking?.status === "completed";
   const shortRef = bookingId ? bookingId.slice(0, 8).toUpperCase() : "PENDING";
+
+  const firstItem = bookingItems[0];
+  const serviceName = firstItem?.productName || booking?.tourName;
+  const bookingDate = firstItem?.date || booking?.date;
+  const adultCount = firstItem?.adultPax || booking?.adultPaxTotal || 0;
+  const childCount = firstItem?.childPax || booking?.childPaxTotal || 0;
 
   const copyRef = () => {
     navigator.clipboard.writeText(shortRef);
@@ -126,26 +167,80 @@ export default function PaymentSuccess() {
                 </Button>
               </div>
 
-              {/* Booking details */}
+              {/* Booking Details — Enhanced */}
               {booking && (
-                <div className="space-y-2 text-sm">
-                  {booking.customerName && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Customer</span>
-                      <span className="font-medium">{booking.customerName}</span>
+                <div className="space-y-3">
+                  {/* Service & Date */}
+                  {serviceName && (
+                    <div className="p-3 rounded-xl bg-primary/5 border border-primary/10">
+                      <div className="flex items-start gap-2">
+                        <Package className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                        <div className="min-w-0">
+                          <p className="font-semibold text-sm">{serviceName}</p>
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs text-muted-foreground">
+                            {bookingDate && (
+                              <span className="flex items-center gap-1">
+                                <CalendarIcon className="h-3 w-3" />
+                                {format(new Date(bookingDate), "EEE, MMM d, yyyy")}
+                              </span>
+                            )}
+                            {adultCount > 0 && (
+                              <span className="flex items-center gap-1">
+                                <Users className="h-3 w-3" />
+                                {adultCount} adult{adultCount > 1 ? 's' : ''}
+                                {childCount > 0 && `, ${childCount} child${childCount > 1 ? 'ren' : ''}`}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   )}
-                  {booking.totalAmountCents && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Total Amount</span>
-                      <span className="font-bold text-base">VT {(booking.totalAmountCents / 100).toLocaleString()}</span>
+
+                  {/* Pickup & Notes */}
+                  {(booking.pickupLocation || booking.notes) && (
+                    <div className="space-y-2 text-sm px-1">
+                      {booking.pickupLocation && (
+                        <div className="flex items-start gap-2">
+                          <MapPin className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
+                          <div>
+                            <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Pickup</span>
+                            <p className="text-sm">{booking.pickupLocation}</p>
+                          </div>
+                        </div>
+                      )}
+                      {booking.notes && (
+                        <div className="flex items-start gap-2">
+                          <MessageSquare className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
+                          <div>
+                            <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Special Requests</span>
+                            <p className="text-sm">{booking.notes}</p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Status</span>
-                    <Badge variant={isConfirmed ? "default" : "secondary"} className={isConfirmed ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}>
-                      {booking.status?.replace('_', ' ').toUpperCase()}
-                    </Badge>
+
+                  {/* Customer & Amount */}
+                  <div className="space-y-2 text-sm">
+                    {booking.customerName && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Customer</span>
+                        <span className="font-medium">{booking.customerName}</span>
+                      </div>
+                    )}
+                    {booking.totalAmountCents && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Total Amount</span>
+                        <span className="font-bold text-base">VT {(booking.totalAmountCents / 100).toLocaleString()}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Status</span>
+                      <Badge variant={isConfirmed ? "default" : "secondary"} className={isConfirmed ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}>
+                        {booking.status?.replace('_', ' ').toUpperCase()}
+                      </Badge>
+                    </div>
                   </div>
                 </div>
               )}
@@ -224,9 +319,9 @@ export default function PaymentSuccess() {
 
           {/* Action Buttons */}
           <div className="flex flex-col gap-2">
-            <Link href="/customer/bookings" className="w-full">
+            <Link href="/manage-booking" className="w-full">
               <Button className="w-full" size="lg">
-                View My Bookings
+                Manage My Booking
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
