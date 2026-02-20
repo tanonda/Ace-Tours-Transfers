@@ -94,6 +94,7 @@ export interface IStorage {
   // Booking operations
   getBookings(): Promise<Booking[]>;
   getBooking(id: string): Promise<Booking | undefined>;
+  getBookingsByEmail(email: string): Promise<Booking[]>;
   getUserBookings(userId: string): Promise<Booking[]>;
   getBookingsForServiceAndDate(serviceId: string, dateString: string): Promise<Booking[]>;
   getBookingsBySession(sessionId: string): Promise<Booking[]>;
@@ -355,6 +356,15 @@ export class DatabaseStorage implements IStorage {
   async getBooking(id: string): Promise<Booking | undefined> {
     const [booking] = await db.select().from(bookings).where(eq(bookings.id, id));
     return booking || undefined;
+  }
+
+  async getBookingsByEmail(email: string): Promise<Booking[]> {
+    return await db
+      .select()
+      .from(bookings)
+      .where(eq(bookings.customerEmail, email.trim().toLowerCase()))
+      .orderBy(desc(bookings.createdAt))
+      .limit(20);
   }
 
   async getUserBookings(userId: string): Promise<Booking[]> {

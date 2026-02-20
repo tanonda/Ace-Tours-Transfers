@@ -28,8 +28,16 @@ interface BookingSession {
 export default function ManageBooking() {
     const { toast } = useToast();
 
+    // Pre-fill booking ref from URL query param (?ref=...) — set by email deep-links
+    const initialRef = (() => {
+        try {
+            const params = new URLSearchParams(window.location.search);
+            return params.get("ref") || "";
+        } catch { return ""; }
+    })();
+
     // Lookup state
-    const [bookingRef, setBookingRef] = useState("");
+    const [bookingRef, setBookingRef] = useState(initialRef);
     const [email, setEmail] = useState("");
     const [isVerifying, setIsVerifying] = useState(false);
 
@@ -233,7 +241,7 @@ export default function ManageBooking() {
                                         <Label htmlFor="bookingRef">Booking Reference</Label>
                                         <Input
                                             id="bookingRef"
-                                            placeholder="e.g. a1b2c3d4-..."
+                                            placeholder="e.g. 04C85720 (from your email)"
                                             required
                                             value={bookingRef}
                                             onChange={(e) => setBookingRef(e.target.value)}
@@ -538,6 +546,23 @@ export default function ManageBooking() {
                                 <Button variant="destructive" size="sm" onClick={() => setCancelDialogOpen(true)}>
                                     Cancel Booking
                                 </Button>
+                            </CardContent>
+                        </Card>
+                    )}
+
+                    {booking.status === "confirmed" && (
+                        <Card className="border-orange-200 dark:border-orange-800">
+                            <CardContent className="pt-6 flex items-start gap-3">
+                                <AlertCircle className="h-5 w-5 text-orange-500 shrink-0 mt-0.5" />
+                                <div>
+                                    <p className="font-medium">Need to cancel or make changes?</p>
+                                    <p className="text-sm text-muted-foreground mt-1">
+                                        Your booking is confirmed. To cancel or make major changes, please contact us directly at{" "}
+                                        <a href="mailto:info@acetours.vu" className="text-primary hover:underline">info@acetours.vu</a>
+                                        {" "}or call{" "}
+                                        <a href="tel:+6785551234" className="text-primary hover:underline">+678 5551234</a>.
+                                    </p>
+                                </div>
                             </CardContent>
                         </Card>
                     )}

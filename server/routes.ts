@@ -856,8 +856,20 @@ export async function registerRoutes(
         return res.status(400).json({ error: "bookingId and email are required." });
       }
 
-      const booking = await storage.getBooking(bookingId);
       const VERIFY_FAIL = { error: "Booking not found or verification failed." };
+
+      // Support both full UUID (book_xxxx-...) and short 8-char ref (e.g. 04C85720)
+      // shown in confirmation emails. Try full UUID first, then scan by prefix.
+      let booking = await storage.getBooking(bookingId.trim());
+
+      if (!booking) {
+        // Short ref lookup: match the first 8 chars of the UUID (after any prefix)
+        const shortRef = bookingId.trim().replace(/^book_/i, '').slice(0, 8).toLowerCase();
+        if (shortRef.length >= 6) {
+          const allRecent = await storage.getBookingsByEmail(email.trim());
+          booking = allRecent.find(b => b.id.replace(/^book_/i, '').toLowerCase().startsWith(shortRef));
+        }
+      }
 
       if (!booking) return res.status(404).json(VERIFY_FAIL);
 
