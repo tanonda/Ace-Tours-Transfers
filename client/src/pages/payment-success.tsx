@@ -236,7 +236,7 @@ export default function PaymentSuccess() {
                     {booking.totalAmountCents && (
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Total Amount</span>
-                        <span className="font-bold text-base">VT {(booking.totalAmountCents / 100).toLocaleString()}</span>
+                        <span className="font-bold text-base">VT {booking.totalAmountCents.toLocaleString()}</span>
                       </div>
                     )}
                     <div className="flex justify-between">
