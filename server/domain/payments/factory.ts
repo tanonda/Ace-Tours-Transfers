@@ -1,63 +1,80 @@
-// server/domain/payments/factory.ts
-
-import { PaymentGateway } from '../../../shared/schema.js';
-import { PaymentGatewayService } from './interfaces.js';
-
-// Import all concrete gateway adapters
-import { MastercardGatewayAdapter } from '../../infrastructure/payments/mastercard-gateway.adapter.js';
+import { PaymentGateway } from "../../../shared/schema.js";
+import { PaymentGatewayService, PaymentStatus } from "../../domain/payments/interfaces.js";
 // LOW-4: StripeAdapter import removed — Stripe not available to Vanuatu merchants
-import { GooglePayAdapter } from '../../infrastructure/payments/google-pay.adapter.js';
-import { ApplePayAdapter } from '../../infrastructure/payments/apple-pay.adapter.js';
-import { PayPalAdapter } from '../../infrastructure/payments/paypal.adapter.js';
-import { EWalletAdapter } from '../../infrastructure/payments/ewallet.adapter.js'; // Generic e-wallet
-import { WanTokMoneyAdapter } from '../../infrastructure/payments/wantok-money.adapter.js'; // NEW
-import { DigicelMobileMoneyAdapter } from '../../infrastructure/payments/digicel-mobile-money.adapter.js'; // NEW
-import { KwikPayAdapter } from '../../infrastructure/payments/kwikpay.adapter.js'; // NEW
-import { BredBankAdapter } from '../../infrastructure/payments/bred-bank.adapter.js'; // NEW
-import { BspBankAdapter } from '../../infrastructure/payments/bsp-bank.adapter.js'; // NEW
-import { AnzEGateAdapter } from '../../infrastructure/payments/anz-egate.adapter.js'; // Use specific ANZ eGate adapter, which internally delegates to Mastercard if needed
+import { ManualAdapter } from "./manual.adapter.js";
+import { AnzAdapter } from "./anz.adapter.js";
+import { BspAdapter } from "./bsp.adapter.js";
+import { BredAdapter } from "./bred.adapter.js";
+import { config } from "../../config.js";
+import { createLogger } from "../../lib/logger.js";
 
-/**
- * Creates and returns a concrete implementation of PaymentGatewayService
- * based on the provided PaymentGateway configuration.
- *
- * @param gatewayConfig The configuration of the payment gateway from the database.
- * @returns An instance of PaymentGatewayService.
- * @throws Error if the gateway slug is unknown or not yet implemented.
- */
-export function getPaymentGatewayService(gatewayConfig: PaymentGateway): PaymentGatewayService {
-  switch (gatewayConfig.slug) {
-    // Specific Local Bank implementations (potentially delegating internally)
-    case 'anz-egate':
-      return new AnzEGateAdapter(gatewayConfig); // Use dedicated ANZ adapter
-    case 'bred-bank':
-      return new BredBankAdapter(gatewayConfig);
-    case 'bsp-bank':
-      return new BspBankAdapter(gatewayConfig);
-    case 'generic-local-bank': // For other local banks using the generic Mastercard Gateway
-      return new MastercardGatewayAdapter(gatewayConfig);
+const log = createLogger('payment-factory');
 
-    // Local E-wallet implementations
-    case 'wantok-money':
-      return new WanTokMoneyAdapter(gatewayConfig);
-    case 'digicel-mobile-money':
-      return new DigicelMobileMoneyAdapter(gatewayConfig);
-    case 'kwikpay':
-      return new KwikPayAdapter(gatewayConfig);
+export class PaymentFactory {
+  private static adapters: Record<string, new (config: PaymentGateway) => PaymentGatewayService> = {
+    // Manual / offline payment methods — all routed through ManualAdapter
+    'manual': ManualAdapter as any,
+    'manual_transfer': ManualAdapter as any,   // Bank transfer (primary slug in DB)
+    'cash': ManualAdapter as any,              // Cash on delivery
+    'bank-transfer': ManualAdapter as any,     // Alias variant
+    'bank': ManualAdapter as any,              // Alias variant
+    // LOW-4: 'stripe' removed — not available to Vanuatu merchants
+    // Local bank gateways
+    'anz': AnzAdapter as any,
+    'anz-egate': AnzAdapter as any,
+    'bsp': BspAdapter as any,
+    'bsp-bank': BspAdapter as any,
+    'bred': BredAdapter as any,
+    'bred-bank': BredAdapter as any,
+  };
 
-    // Other specific gateway implementations
-    case 'stripe':
-      throw new Error('LOW-4: Stripe is not available to Vanuatu merchants. This gateway has been deprecated.');
-    case 'google-pay':
-      return new GooglePayAdapter(gatewayConfig);
-    case 'apple-pay':
-      return new ApplePayAdapter(gatewayConfig);
-    case 'paypal':
-      return new PayPalAdapter(gatewayConfig);
-    case 'e-wallet': // This might become redundant if all e-wallets have specific adapters
-      return new EWalletAdapter(gatewayConfig);
+  static getPaymentGatewayService(gatewayConfig: PaymentGateway): PaymentGatewayService {
+    const slug = gatewayConfig.slug.toLowerCase();
 
-    default:
-      throw new Error(`Unknown or unimplemented payment gateway: ${gatewayConfig.slug}`);
+    // 1. Check Global Disconnect - Only manual allowed if external systems are off
+    const externalDisconnected = config.payments.externalDisconnected;
+    const isManual = slug === 'manual' || slug.includes('bank') || slug.includes('cash') || slug.includes('transfer');
+
+    if (externalDisconnected && !isManual) {
+      log.warn('Gateway rejected', { slug, reason: 'global_external_disconnect' });
+      throw new Error(`External payment gateway ${slug} is currently disabled.`);
+    }
+
+    // 2. Resolve Adapter Class
+    const AdapterClass = this.adapters[slug];
+    if (!AdapterClass) {
+      log.error('Adapter not implemented', { slug });
+      throw new Error(`Payment gateway ${slug} is not implemented.`);
+    }
+
+    // 3. Feature Flag Check (Absolute Source of Truth)
+    const flagKey = this.normalizeSlugToFlag(slug);
+    const gatewaySettings = (config.payments as any)[flagKey];
+    const isEnabled = gatewaySettings?.enabled ?? true;
+
+    // 4. Kill Switch Check (Production Circuit Breaker)
+    const isCard = slug === 'stripe' || slug.includes('card');
+    const cardPaused = config.killSwitches.cardPaymentsPaused;
+    const globalPaused = config.killSwitches.paymentsPaused;
+
+    const isPaused = (isCard && cardPaused) || globalPaused;
+
+    if (!isEnabled || isPaused) {
+      const reason = !isEnabled ? 'feature_flag_disabled' : (globalPaused ? 'global_kill_switch' : 'card_kill_switch');
+      log.warn('Gateway rejected', { slug, reason });
+      throw new Error(`Payment gateway ${slug} is currently unavailable.`);
+    }
+
+    log.info('Gateway resolved', { slug, adapter: AdapterClass.name });
+    return new AdapterClass(gatewayConfig);
+  }
+
+  private static normalizeSlugToFlag(slug: string): string {
+    if (slug === 'anz-egate') return 'anz';
+    if (slug === 'bred-bank') return 'bred';
+    if (slug === 'bsp-bank') return 'bsp';
+    // All manual/offline variants map to the 'manual' config block
+    if (slug === 'manual_transfer' || slug === 'bank-transfer' || slug === 'bank' || slug === 'cash') return 'manual';
+    return slug;
   }
 }
