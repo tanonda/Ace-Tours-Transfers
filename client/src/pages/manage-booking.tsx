@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,10 +13,14 @@ import { Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import {
     Loader2, ArrowLeft, Search, CheckCircle, XCircle, AlertCircle,
-    CalendarDays, Users, MapPin, Phone, FileText, CreditCard, Edit3, Ban
+    CalendarDays, Users, MapPin, Phone, FileText, CreditCard, Edit3, Ban, Printer
 } from "lucide-react";
 import { Layout } from "@/components/layout";
 import { format } from "date-fns";
+
+const PrintItinerary = lazy(() =>
+    import("@/components/print-itinerary").then(m => ({ default: m.PrintItinerary }))
+);
 
 interface BookingSession {
     booking: any;
@@ -57,6 +61,29 @@ export default function ManageBooking() {
     // Cancel state
     const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
     const [isCancelling, setIsCancelling] = useState(false);
+
+    // Print Itinerary state
+    const [showItinerary, setShowItinerary] = useState(false);
+    const [qrCodeData, setQrCodeData] = useState<string | undefined>();
+    const [qrDataUrl, setQrDataUrl] = useState<string | undefined>();
+
+    const handleOpenItinerary = async () => {
+        if (!session) return;
+        // Fetch QR code if not already loaded
+        if (!qrCodeData) {
+            try {
+                const res = await fetch(`/api/bookings/${session.booking.id}/qr`, { credentials: "include" });
+                if (res.ok) {
+                    const data = await res.json();
+                    setQrCodeData(data.qrData);
+                    setQrDataUrl(data.dataUrl);
+                }
+            } catch {
+                // non-fatal — itinerary works without QR
+            }
+        }
+        setShowItinerary(true);
+    };
 
     const handleVerify = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -567,6 +594,23 @@ export default function ManageBooking() {
                         </Card>
                     )}
 
+                    {/* Print / View Itinerary */}
+                    <Card className="mb-6 border-primary/20 bg-primary/5">
+                        <CardContent className="pt-6 flex items-center justify-between">
+                            <div>
+                                <p className="font-medium flex items-center gap-2">
+                                    <Printer className="h-4 w-4 text-primary" /> Booking Itinerary
+                                </p>
+                                <p className="text-sm text-muted-foreground mt-0.5">
+                                    View, print, or save your full booking itinerary with QR code
+                                </p>
+                            </div>
+                            <Button onClick={handleOpenItinerary} className="gap-2">
+                                <Printer className="h-4 w-4" /> Print / Save
+                            </Button>
+                        </CardContent>
+                    </Card>
+
                     {/* Back to lookup */}
                     <div className="mt-8 text-center">
                         <Button variant="ghost" onClick={() => { setSession(null); setBookingRef(""); setEmail(""); }}>
@@ -575,6 +619,19 @@ export default function ManageBooking() {
                     </div>
                 </div>
             </div>
+
+            {/* Print Itinerary Dialog */}
+            {showItinerary && session && (
+                <Suspense fallback={<div className="flex items-center justify-center p-8"><Loader2 className="h-6 w-6 animate-spin" /></div>}>
+                    <PrintItinerary
+                        booking={session.booking}
+                        items={session.items}
+                        payments={session.payments}
+                        qrCodeData={qrCodeData}
+                        onClose={() => setShowItinerary(false)}
+                    />
+                </Suspense>
+            )}
 
             {/* Cancel Confirmation Dialog */}
             <Dialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>

@@ -236,7 +236,7 @@ export class PaymentApplicationService {
               await sendEmail({
                 to: customerEmail,
                 subject,
-                html: getBookingRequestTemplate(emailBooking, tourInfo, paymentMethodType),
+                html: await getBookingRequestTemplate(emailBooking, tourInfo, paymentMethodType),
               });
             }
 

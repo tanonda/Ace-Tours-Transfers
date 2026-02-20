@@ -1157,6 +1157,35 @@ export async function registerRoutes(
     }
   });
 
+  // ─── QR Code endpoint ─────────────────────────────────────────────────────
+  // Generates a QR code PNG (base64) whose payload is the manage-booking deep-link.
+  // Used by confirmation page, print itinerary, and embedded in email templates.
+  app.get("/api/bookings/:id/qr", async (req, res) => {
+    try {
+      const booking = await storage.getBooking(req.params.id);
+      if (!booking) return res.status(404).json({ error: "Booking not found" });
+
+      const appUrl = process.env.APP_URL || "https://acetours.vu";
+      const shortRef = booking.id.replace(/^book_/i, "").replace(/-/g, "").slice(0, 8).toUpperCase();
+      // QR payload: the manage-booking deep-link — scannable by the tour guide or guest
+      const qrData = `${appUrl}/manage-booking?ref=${booking.id}`;
+
+      const QRCode = await import("qrcode");
+      // Return both the data URL (for img src) and the raw string
+      const dataUrl = await QRCode.default.toDataURL(qrData, {
+        width: 200,
+        margin: 2,
+        errorCorrectionLevel: "H",
+        color: { dark: "#004165", light: "#ffffff" },
+      });
+
+      res.json({ qrData, dataUrl, shortRef });
+    } catch (error) {
+      console.error("[QR] Failed to generate QR code:", error);
+      res.status(500).json({ error: "Failed to generate QR code" });
+    }
+  });
+
   app.post("/api/bookings", bookingLimiter, async (req, res) => {
     try {
       // C6 Fix: Validate input body
@@ -1205,7 +1234,7 @@ export async function registerRoutes(
           await sendEmail({
             to: booking.customerEmail,
             subject: `Booking Request Received — ACT-${shortBookingRef(booking.id)}`,
-            html: getBookingRequestTemplate(emailBooking, tourInfo),
+            html: await getBookingRequestTemplate(emailBooking, tourInfo),
           });
         }
 
@@ -1320,7 +1349,7 @@ export async function registerRoutes(
           await sendEmail({
             to: booking.customerEmail,
             subject: `Booking ${updates.status.charAt(0).toUpperCase() + updates.status.slice(1)} — ACT-${shortBookingRef(booking.id)}`,
-            html: getBookingStatusUpdateTemplate(emailBooking, updates.status, tourInfo),
+            html: await getBookingStatusUpdateTemplate(emailBooking, updates.status, tourInfo),
           });
         } catch (emailErr) {
           console.error('[BOOKING][STATUS] Email failed (non-fatal):', emailErr);
