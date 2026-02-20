@@ -7,28 +7,34 @@ import { BspAdapter } from "./bsp.adapter.js";
 import { BredAdapter } from "./bred.adapter.js";
 import { config } from "../../config.js";
 import { createLogger } from "../../lib/logger.js";
+import { PaymentMethodClassifier } from "../../domain/payments/payment-method-classifier.js";
 
 const log = createLogger('payment-factory');
 
 export class PaymentFactory {
   private static adapters: Record<string, new (config: PaymentGateway) => PaymentGatewayService> = {
+    // Manual / offline payment methods — all routed through ManualAdapter
     'manual': ManualAdapter as any,
+    'manual_transfer': ManualAdapter as any,   // Bank transfer (primary slug in DB)
+    'cash': ManualAdapter as any,              // Cash on delivery
+    'bank-transfer': ManualAdapter as any,     // Alias variant
+    'bank': ManualAdapter as any,              // Alias variant
     // LOW-4: 'stripe' removed — not available to Vanuatu merchants
+    // Local bank gateways
     'anz': AnzAdapter as any,
-    'bsp': BspAdapter as any,
-    'bred': BredAdapter as any,
     'anz-egate': AnzAdapter as any,
+    'bsp': BspAdapter as any,
+    'bsp-bank': BspAdapter as any,
+    'bred': BredAdapter as any,
     'bred-bank': BredAdapter as any,
   };
 
   static getPaymentGatewayService(gatewayConfig: PaymentGateway): PaymentGatewayService {
     const slug = gatewayConfig.slug.toLowerCase();
 
-    // 1. Check Global Disconnect - Only manual allowed if external systems are off
+    // 1. Check Global Disconnect — only offline methods allowed if external systems are off
     const externalDisconnected = config.payments.externalDisconnected;
-    const isManual = slug === 'manual' || slug.includes('bank') || slug.includes('cash') || slug.includes('transfer');
-
-    if (externalDisconnected && !isManual) {
+    if (externalDisconnected && !PaymentMethodClassifier.isOffline(slug)) {
       log.warn('Gateway rejected', { slug, reason: 'global_external_disconnect' });
       throw new Error(`External payment gateway ${slug} is currently disabled.`);
     }
@@ -65,6 +71,9 @@ export class PaymentFactory {
   private static normalizeSlugToFlag(slug: string): string {
     if (slug === 'anz-egate') return 'anz';
     if (slug === 'bred-bank') return 'bred';
+    if (slug === 'bsp-bank') return 'bsp';
+    // All manual/offline variants map to the 'manual' config block
+    if (slug === 'manual_transfer' || slug === 'bank-transfer' || slug === 'bank' || slug === 'cash') return 'manual';
     return slug;
   }
 }

@@ -3,24 +3,25 @@ import { AvailabilityService, HoldStatus } from "../../domain/availability/avail
 import { AvailabilityHold, TourInstance } from "../../../shared/schema.js";
 import { eventDispatcher } from "../../infrastructure/events/event-dispatcher.js";
 import { HoldReleased } from "../../domain/events.js";
+import { PaymentMethodClassifier } from "../../domain/payments/payment-method-classifier.js";
 
-// Manual payment methods (bank transfer, cash) need a much longer hold TTL
+// Offline payment methods (bank transfer, cash) need a much longer hold TTL
 // because the customer may take 24–72 hours to complete their payment.
-// Automatic card payments use the default 15-minute window.
+// Online card-processing gateways (ANZ, BSP, BRED, Stripe) use the short window —
+// the redirect checkout is near-instant so the hold only needs to survive the redirect.
 export const MANUAL_PAYMENT_TTL_MINUTES = 4320; // 72 hours
 export const CARD_PAYMENT_TTL_MINUTES   = 15;   // 15 minutes
 
+// Kept for backwards compat with any imports — use PaymentMethodClassifier for new code.
 export const MANUAL_PAYMENT_SLUGS = [
-  'manual', 'manual_transfer', 'bank-transfer', 'bank_transfer',
-  'cash', 'anz-egate', 'bsp-bank', 'bred-bank', 'wantok-money',
-  'generic-local-bank',
+  'manual', 'manual_transfer', 'bank-transfer', 'bank_transfer', 'cash',
 ];
 
 export function getHoldTtlMinutes(paymentProvider?: string): number {
   if (!paymentProvider) return CARD_PAYMENT_TTL_MINUTES;
-  const slug = paymentProvider.toLowerCase();
-  const isManual = MANUAL_PAYMENT_SLUGS.some(s => slug.includes(s));
-  return isManual ? MANUAL_PAYMENT_TTL_MINUTES : CARD_PAYMENT_TTL_MINUTES;
+  return PaymentMethodClassifier.isOffline(paymentProvider)
+    ? MANUAL_PAYMENT_TTL_MINUTES
+    : CARD_PAYMENT_TTL_MINUTES;
 }
 
 export interface HoldRequest {

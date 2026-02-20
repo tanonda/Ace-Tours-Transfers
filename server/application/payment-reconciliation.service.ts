@@ -40,6 +40,22 @@ export class PaymentReconciliationService {
     const gateway = await this.storage.getPaymentGateway(payment.gatewayId);
     if (!gateway) return;
 
+    // Offline gateways (bank transfer, cash) have no remote status to query —
+    // they are reconciled exclusively by admin action. Skip automated sync for these.
+    const { PaymentMethodClassifier } = await import("../domain/payments/payment-method-classifier.js");
+    if (PaymentMethodClassifier.isOffline(gateway.slug)) {
+      console.log(`[RECON] Skipping automated sync for manual gateway '${gateway.slug}' (payment ${paymentId}). Use admin reconciliation.`);
+      if (auditFields) {
+        // Still record the audit trail if called from manual admin reconcile
+        await this.storage.updatePayment(paymentId, {
+          lastReconciledAt: new Date(),
+          reconciliationAttempts: (payment.reconciliationAttempts || 0) + 1,
+          ...auditFields,
+        });
+      }
+      return;
+    }
+
     const adapter = PaymentFactory.getPaymentGatewayService(gateway);
     const traceId = `trace_${Date.now()}_${paymentId.slice(0, 8)}`;
 

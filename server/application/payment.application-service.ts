@@ -8,6 +8,7 @@ import {
   WebhookEvent,
   WebhookResponse,
 } from '../domain/payments/interfaces.js';
+import { PaymentMethodClassifier } from '../domain/payments/payment-method-classifier.js';
 import { IStorage } from '../storage.js';
 import { PaymentFactory } from "../infrastructure/payments/factory.js";
 import { PaymentGateway, Booking } from '../../shared/schema.js';
@@ -87,13 +88,13 @@ export class PaymentApplicationService {
         };
       }
 
-      // FIX: Extend hold TTL for manual payment methods (bank transfer / cash).
+      // FIX: Extend hold TTL for offline payment methods (bank transfer / cash).
       // The initial hold is created at booking time with a short TTL (15 min) because
-      // the payment method is not yet known.  Once the customer selects a manual method
+      // the payment method is not yet known.  Once the customer selects an offline method
       // we extend to 72 hours so the hold survives the payment window.
-      const { MANUAL_PAYMENT_SLUGS, MANUAL_PAYMENT_TTL_MINUTES } = await import("./availability/availability.application-service.js");
+      const { MANUAL_PAYMENT_TTL_MINUTES } = await import("./availability/availability.application-service.js");
       const chosenSlug = (options.provider || '').toLowerCase();
-      const isManual = MANUAL_PAYMENT_SLUGS.some((s: string) => chosenSlug.includes(s));
+      const isManual = PaymentMethodClassifier.isOffline(chosenSlug);
       if (isManual) {
         const extendedExpiry = new Date();
         extendedExpiry.setMinutes(extendedExpiry.getMinutes() + MANUAL_PAYMENT_TTL_MINUTES);
@@ -134,11 +135,11 @@ export class PaymentApplicationService {
     }
 
     // PRODUCTION GUARD: Card providers might be disabled
-    if ((gateway.slug === 'stripe' || gateway.slug.includes('card')) && config.killSwitches.cardPaymentsPaused) {
+    if (PaymentMethodClassifier.isOnlineCard(gateway.slug) && config.killSwitches.cardPaymentsPaused) {
       return { success: false, message: "Card payments are currently disabled for maintenance. Please use Bank Transfer." };
     }
 
-    if (gateway.slug.includes('manual') && config.killSwitches.bankTransferPaused) {
+    if (PaymentMethodClassifier.isOffline(gateway.slug) && config.killSwitches.bankTransferPaused) {
       return { success: false, message: "Bank transfers are currently paused. Please try again later." };
     }
 
@@ -146,11 +147,10 @@ export class PaymentApplicationService {
 
     // HIGH-7 FIX: Align payment expiry with hold TTL to prevent orphaned payments
     // outliving their seat reservation. Previously hardcoded to 2 hours.
-    const { MANUAL_PAYMENT_SLUGS, MANUAL_PAYMENT_TTL_MINUTES, CARD_PAYMENT_TTL_MINUTES } =
+    const { MANUAL_PAYMENT_TTL_MINUTES: MANUAL_TTL, CARD_PAYMENT_TTL_MINUTES } =
       await import("./availability/availability.application-service.js");
-    const gwSlug = gateway.slug.toLowerCase();
-    const gwIsManual = MANUAL_PAYMENT_SLUGS.some((s: string) => gwSlug.includes(s));
-    const paymentTtlMinutes = gwIsManual ? MANUAL_PAYMENT_TTL_MINUTES : CARD_PAYMENT_TTL_MINUTES;
+    const gwIsManual = PaymentMethodClassifier.isOffline(gateway.slug);
+    const paymentTtlMinutes = gwIsManual ? MANUAL_TTL : CARD_PAYMENT_TTL_MINUTES;
     const expiresAt = new Date();
     expiresAt.setMinutes(expiresAt.getMinutes() + paymentTtlMinutes);
 
@@ -192,11 +192,8 @@ export class PaymentApplicationService {
       const response = await adapter.initiatePayment(request);
 
       if (response.success && response.transactionId) {
-        // Determine status: Manual gateways stay in a state awaiting action.
-        const isManual = gateway.slug === 'cash' ||
-          gateway.slug.includes('manual') ||
-          gateway.slug.includes('bank') ||
-          gateway.slug.includes('transfer');
+        // Determine status: offline gateways wait for admin reconciliation; online gateways go to Processing.
+        const isManual = PaymentMethodClassifier.isOffline(gateway.slug);
 
         const nextStatus = isManual ? PaymentStatus.ManualReviewRequired : PaymentStatus.Processing;
 
@@ -224,7 +221,7 @@ export class PaymentApplicationService {
               amount: `VT ${(booking.totalAmountCents || 0).toLocaleString()}`,
             };
 
-            const paymentMethod = gateway.slug === 'cash' ? 'Cash on Delivery' : 'Bank Transfer';
+            const paymentMethod = PaymentMethodClassifier.displayLabel(gateway.slug);
             const subject = gateway.slug === 'cash'
               ? `Booking Confirmed (Pay at Pickup) — Ref #${booking.id.slice(0, 8).toUpperCase()}`
               : `Action Required: Complete Bank Transfer — Ref #${booking.id.slice(0, 8).toUpperCase()}`;
@@ -289,7 +286,7 @@ export class PaymentApplicationService {
         amount: existingPayment!.amount,
         currency: existingPayment!.currency,
         status: existingPayment!.status as any,
-        method: gateway.slug.includes('manual') ? 'Bank Transfer' : (gateway.slug === 'stripe' ? 'Card' : 'Other'),
+        method: PaymentMethodClassifier.isOffline(gateway.slug) ? 'Bank Transfer' : (gateway.slug === 'stripe' ? 'Card' : 'Other'),
         provider: gateway.slug
       });
 
