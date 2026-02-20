@@ -253,7 +253,9 @@ export default function Reservations() {
       if (res.ok) {
         const booking = await res.json();
         queryClient.invalidateQueries({ queryKey: ["bookings"] });
-        toast({ title: t("common.success"), description: t("reservations.bookingCreated", "Booking created successfully!") });
+        // NOTE: No toast here — the booking is only "pending" at this point.
+        // Confirmation only happens after payment is received and processed.
+        // The success page (payment/success) is the right place for a confirmation message.
         // Store booking data for payment page handoff (avoids re-fetch auth issues)
         try {
           sessionStorage.setItem('checkout_booking', JSON.stringify({
