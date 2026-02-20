@@ -1211,7 +1211,7 @@ export async function registerRoutes(
         items,
         sessionId: req.sessionID,
         idempotencyKey,
-        pickupLocation
+        pickupLocation: pickupLocation ?? undefined
       });
 
       // ✅ Send booking notification emails
@@ -1243,7 +1243,7 @@ export async function registerRoutes(
         // Send admin notification
         await sendAdminEmail(
           `🔔 New Booking: ${booking.customerName} — ${tourInfo.title}`,
-          getAdminNewBookingTemplate(emailBooking, tourInfo)
+          await getAdminNewBookingTemplate(emailBooking, tourInfo)
         );
       } catch (emailError) {
         console.error('[BOOKING] Email notification failed (non-fatal):', emailError);
