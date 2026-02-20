@@ -50,9 +50,27 @@ export function shortBookingRef(bookingId: string): string {
     .toUpperCase();
 }
 
+let _cachedAppUrl: string | null = null;
+let _cacheExpiry = 0;
+
+async function getAppUrl(): Promise<string> {
+  if (_cachedAppUrl && Date.now() < _cacheExpiry) return _cachedAppUrl;
+  try {
+    const { storage } = await import("../storage.js");
+    const setting = await storage.getSiteSetting("app_url");
+    const raw = (typeof setting?.value === "string" ? setting.value : "") ||
+                process.env.APP_URL || "https://acetours.vu";
+    _cachedAppUrl = raw.replace(/\/$/, "");
+    _cacheExpiry = Date.now() + 60_000;
+    return _cachedAppUrl;
+  } catch {
+    return process.env.APP_URL || "https://acetours.vu";
+  }
+}
+
 async function generateQrDataUrl(bookingId: string): Promise<string> {
   try {
-    const appUrl = process.env.APP_URL || "https://acetours.vu";
+    const appUrl = await getAppUrl();
     const url = `${appUrl}/manage-booking?ref=${bookingId}`;
     const dataUrl = await QRCode.toDataURL(url, {
       width: 160,
@@ -151,7 +169,7 @@ export async function getBookingRequestTemplate(
   tour: any,
   paymentMethod?: "offline" | "online" | "bank_transfer" | "cash"
 ): Promise<string> {
-  const appUrl = process.env.APP_URL || "https://acetours.vu";
+  const appUrl = await getAppUrl();
   const logoUrl = `${appUrl}/assets/logo.png`;
 
   const eId     = escapeHtml(shortBookingRef(booking.id));
@@ -278,7 +296,7 @@ export async function getBookingRequestTemplate(
 // 2. BOOKING CONFIRMED (sent ONLY when admin changes status to "confirmed")
 // =============================================================================
 export async function getBookingConfirmedTemplate(booking: any, tour: any): Promise<string> {
-  const appUrl = process.env.APP_URL || "https://acetours.vu";
+  const appUrl = await getAppUrl();
   const logoUrl = `${appUrl}/assets/logo.png`;
 
   const eId          = escapeHtml(shortBookingRef(booking.id));
@@ -348,7 +366,7 @@ export async function getBookingConfirmationTemplate(booking: any, tour: any, pa
 // 3. ADMIN — NEW BOOKING REQUEST NOTIFICATION
 // =============================================================================
 export function getAdminNewBookingTemplate(booking: any, tour: any): string {
-  const appUrl = process.env.APP_URL || "https://acetours.vu";
+  const appUrl = await getAppUrl();
   const logoUrl = `${appUrl}/assets/logo.png`;
 
   const eId     = escapeHtml(shortBookingRef(booking.id));
@@ -396,7 +414,7 @@ export async function getBookingStatusUpdateTemplate(booking: any, newStatus: st
     return getBookingConfirmedTemplate(booking, tour);
   }
 
-  const appUrl = process.env.APP_URL || "https://acetours.vu";
+  const appUrl = await getAppUrl();
   const logoUrl = `${appUrl}/assets/logo.png`;
 
   const eId     = escapeHtml(shortBookingRef(booking.id));
@@ -447,7 +465,7 @@ export async function getBookingStatusUpdateTemplate(booking: any, newStatus: st
 //    Confirmed email is sent by admin via status update.
 // =============================================================================
 export async function getPaymentConfirmationTemplate(booking: any, payment: any, tour: any): Promise<string> {
-  const appUrl = process.env.APP_URL || "https://acetours.vu";
+  const appUrl = await getAppUrl();
   const logoUrl = `${appUrl}/assets/logo.png`;
 
   const eId      = escapeHtml(shortBookingRef(booking.id));
@@ -504,7 +522,7 @@ export async function getPaymentConfirmationTemplate(booking: any, payment: any,
 // WELCOME EMAIL
 // =============================================================================
 export function getWelcomeEmailTemplate(user: { name: string; email: string }): string {
-  const appUrl = process.env.APP_URL || "https://acetours.vu";
+  const appUrl = await getAppUrl();
   const logoUrl = `${appUrl}/assets/logo.png`;
 
   return emailWrapper(`
@@ -537,7 +555,7 @@ export function getWelcomeEmailTemplate(user: { name: string; email: string }): 
 // NEWSLETTER CONFIRMATION
 // =============================================================================
 export function getNewsletterConfirmationTemplate(email: string, name?: string): string {
-  const appUrl = process.env.APP_URL || "https://acetours.vu";
+  const appUrl = await getAppUrl();
   const logoUrl = `${appUrl}/assets/logo.png`;
 
   return emailWrapper(`
@@ -570,7 +588,7 @@ export function getNewsletterConfirmationTemplate(email: string, name?: string):
 export function getContactFormTemplate(contact: {
   name: string; email: string; phone?: string; subject?: string; message: string;
 }): string {
-  const appUrl = process.env.APP_URL || "https://acetours.vu";
+  const appUrl = await getAppUrl();
   const logoUrl = `${appUrl}/assets/logo.png`;
 
   const eName    = escapeHtml(contact.name);
@@ -609,7 +627,7 @@ export function getContactFormTemplate(contact: {
 // TEST EMAIL
 // =============================================================================
 export function getTestEmailTemplate(): string {
-  const appUrl = process.env.APP_URL || "https://acetours.vu";
+  const appUrl = await getAppUrl();
   const logoUrl = `${appUrl}/assets/logo.png`;
   const timestamp = new Date().toLocaleString("en-US", { dateStyle: "full", timeStyle: "long" });
 
