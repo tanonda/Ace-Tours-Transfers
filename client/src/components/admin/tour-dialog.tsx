@@ -11,6 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -20,8 +22,15 @@ import { useTranslation } from "react-i18next";
 import { Loader2, Plus, Trash, Upload } from "lucide-react";
 import { uploadImage } from "@/lib/api";
 
+const VEHICLE_FEATURES = [
+    "Air Conditioning", "Bluetooth", "USB Charging", "Leather Seats",
+    "4WD/AWD", "Child Seat Available", "Rear View Camera", "GPS Navigation",
+    "Free Wi-Fi", "Wheelchair Accessible"
+];
+
 const tourSchema = z.object({
     title: z.string().min(3, "Title is required"),
+    isActive: z.boolean().default(true),
     price: z.string().min(1, "Price is required"),
     childPrice: z.string().optional(),
     duration: z.string().min(1, "Duration is required"),
@@ -56,6 +65,7 @@ export function TourDialog({ tour, open, onOpenChange, onSave }: TourDialogProps
         resolver: zodResolver(tourSchema),
         defaultValues: {
             title: "",
+            isActive: true,
             price: "",
             childPrice: "",
             duration: "",
@@ -72,6 +82,7 @@ export function TourDialog({ tour, open, onOpenChange, onSave }: TourDialogProps
         if (tour) {
             form.reset({
                 title: tour.title,
+                isActive: tour.isActive ?? true,
                 price: tour.price,
                 childPrice: tour.childPrice || "",
                 duration: tour.duration,
@@ -85,6 +96,7 @@ export function TourDialog({ tour, open, onOpenChange, onSave }: TourDialogProps
         } else {
             form.reset({
                 title: "",
+                isActive: true,
                 price: "",
                 childPrice: "",
                 duration: "",
@@ -149,6 +161,28 @@ export function TourDialog({ tour, open, onOpenChange, onSave }: TourDialogProps
                             />
                             <FormField
                                 control={form.control}
+                                name="isActive"
+                                render={({ field }) => (
+                                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                                        <div className="space-y-0.5">
+                                            <FormLabel className="text-base">Visibility</FormLabel>
+                                            <div className="text-sm text-muted-foreground">
+                                                Display on the Storefront
+                                            </div>
+                                        </div>
+                                        <FormControl>
+                                            <Switch
+                                                checked={field.value}
+                                                onCheckedChange={field.onChange}
+                                            />
+                                        </FormControl>
+                                    </FormItem>
+                                )}
+                            />
+                        </div>
+                        <div className="grid grid-cols-1 gap-4">
+                            <FormField
+                                control={form.control}
                                 name="category"
                                 render={({ field }) => (
                                     <FormItem>
@@ -156,7 +190,7 @@ export function TourDialog({ tour, open, onOpenChange, onSave }: TourDialogProps
                                         <Select
                                             onValueChange={(v) => {
                                                 field.onChange(v);
-                                                if (v === 'vehicle' && !form.getValues('vehicleDetails')) {
+                                                if ((v === 'vehicle' || v === 'transfer') && !form.getValues('vehicleDetails')) {
                                                     form.setValue('vehicleDetails', {
                                                         make: "",
                                                         model: "",
@@ -164,7 +198,7 @@ export function TourDialog({ tour, open, onOpenChange, onSave }: TourDialogProps
                                                         transmission: "Automatic",
                                                         features: []
                                                     });
-                                                } else if (v !== 'vehicle') {
+                                                } else if (v !== 'vehicle' && v !== 'transfer') {
                                                     form.setValue('vehicleDetails', null);
                                                 }
                                             }}
@@ -187,7 +221,7 @@ export function TourDialog({ tour, open, onOpenChange, onSave }: TourDialogProps
                             />
                         </div>
 
-                        {category === 'vehicle' && (
+                        {(category === 'vehicle' || category === 'transfer') && (
                             <div className="p-4 bg-muted/50 rounded-lg space-y-4 border border-border">
                                 <h4 className="font-semibold text-sm">Vehicle Specifications</h4>
                                 <div className="grid grid-cols-2 gap-4">
@@ -239,6 +273,54 @@ export function TourDialog({ tour, open, onOpenChange, onSave }: TourDialogProps
                                                         <SelectItem value="Manual">Manual</SelectItem>
                                                     </SelectContent>
                                                 </Select>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="vehicleDetails.features"
+                                        render={() => (
+                                            <FormItem className="col-span-2">
+                                                <div className="mb-2">
+                                                    <FormLabel className="text-sm font-medium">Features</FormLabel>
+                                                </div>
+                                                <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+                                                    {VEHICLE_FEATURES.map((item) => (
+                                                        <FormField
+                                                            key={item}
+                                                            control={form.control}
+                                                            name="vehicleDetails.features"
+                                                            render={({ field }) => {
+                                                                return (
+                                                                    <FormItem
+                                                                        key={item}
+                                                                        className="flex flex-row items-center space-x-2 space-y-0"
+                                                                    >
+                                                                        <FormControl>
+                                                                            <Checkbox
+                                                                                checked={field.value?.includes(item)}
+                                                                                onCheckedChange={(checked) => {
+                                                                                    const current = field.value || [];
+                                                                                    return checked
+                                                                                        ? field.onChange([...current, item])
+                                                                                        : field.onChange(
+                                                                                            current.filter(
+                                                                                                (value) => value !== item
+                                                                                            )
+                                                                                        )
+                                                                                }}
+                                                                            />
+                                                                        </FormControl>
+                                                                        <FormLabel className="font-normal text-sm cursor-pointer">
+                                                                            {item}
+                                                                        </FormLabel>
+                                                                    </FormItem>
+                                                                )
+                                                            }}
+                                                        />
+                                                    ))}
+                                                </div>
                                                 <FormMessage />
                                             </FormItem>
                                         )}

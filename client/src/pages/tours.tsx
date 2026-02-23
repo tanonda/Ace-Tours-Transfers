@@ -35,7 +35,7 @@ export default function Tours() {
     return acc;
   }, []);
 
-  const toursList = uniqueTours.filter(t => t.category === "tour");
+  const toursList = uniqueTours.filter(t => t.category === "tour" && t.isActive !== false);
 
   return (
     <Layout>

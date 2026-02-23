@@ -621,7 +621,8 @@ export async function registerRoutes(
 
   app.put("/api/tours/:id", requireAdmin, async (req, res) => {
     try {
-      const tour = await storage.updateTour(req.params.id, req.body);
+      const { id, ...updateData } = req.body;
+      const tour = await storage.updateTour(req.params.id, updateData);
       res.json(tour);
     } catch (error) {
       res.status(400).json({ error: "Failed to update tour" });
@@ -1235,7 +1236,7 @@ export async function registerRoutes(
 
       const appUrlSetting = await storage.getSiteSetting("app_url");
       const appUrl = ((typeof appUrlSetting?.value === "string" ? appUrlSetting.value : "") ||
-                      process.env.APP_URL || "https://acetours.vu").replace(/\/$/, "");
+        process.env.APP_URL || "https://acetours.vu").replace(/\/$/, "");
       const shortRef = booking.id.replace(/^book_/i, "").replace(/-/g, "").slice(0, 8).toUpperCase();
       // QR payload: the manage-booking deep-link — scannable by the tour guide or guest
       const qrData = `${appUrl}/manage-booking?ref=${booking.id}`;

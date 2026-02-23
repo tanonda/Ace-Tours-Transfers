@@ -30,6 +30,7 @@ export const tours = pgTable("tours", {
   image: text("image").notNull(),
   description: text("description").array().notNull(),
   category: text("category").notNull(), // 'tour', 'transfer', or 'vehicle'
+  isActive: boolean("is_active").notNull().default(true),
   // DEPRECATED: Use defaultCapacity instead. This column will be removed in v2.0
   // Keeping for backward compatibility only. Do not use in new code.
   capacity: integer("capacity").notNull().default(999),
