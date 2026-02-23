@@ -105,12 +105,12 @@ export default function AdminAuditLogs() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="space-y-1.5">
                 <Label htmlFor="product-filter">Product</Label>
-                <Select value={productId} onValueChange={setProductId}>
+                <Select value={productId} onValueChange={(v) => setProductId(v === "all" ? "" : v)}>
                   <SelectTrigger id="product-filter">
                     <SelectValue placeholder="All products" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All products</SelectItem>
+                    <SelectItem value="all">All products</SelectItem>
                     {tours.map((t: any) => (
                       <SelectItem key={t.id} value={t.id}>{t.title || t.name || t.id}</SelectItem>
                     ))}
@@ -120,12 +120,12 @@ export default function AdminAuditLogs() {
 
               <div className="space-y-1.5">
                 <Label htmlFor="action-filter">Action Type</Label>
-                <Select value={action} onValueChange={setAction}>
+                <Select value={action} onValueChange={(v) => setAction(v === "all" ? "" : v)}>
                   <SelectTrigger id="action-filter">
                     <SelectValue placeholder="All actions" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All actions</SelectItem>
+                    <SelectItem value="all">All actions</SelectItem>
                     <SelectItem value="booking_confirmed">Booking Confirmed</SelectItem>
                     <SelectItem value="booking_cancelled">Booking Cancelled</SelectItem>
                     <SelectItem value="hold_created">Hold Created</SelectItem>
