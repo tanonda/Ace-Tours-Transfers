@@ -2,6 +2,7 @@
 import { Link, useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { fetchTour } from "@/lib/api";
+import { apiRequest } from "@/lib/queryClient";
 import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ShoppingCart } from "lucide-react";
@@ -32,6 +33,20 @@ export default function TransferDetail() {
     queryFn: () => fetchTour(id!),
     enabled: !!id,
   });
+
+  const { data: reviews = [] } = useQuery({
+    queryKey: ["product-reviews", id],
+    queryFn: async () => {
+      const res = await apiRequest("GET", `/api/tours/${id}/reviews`);
+      return res.json();
+    },
+    enabled: !!id,
+  });
+
+  const averageRating = reviews.length > 0
+    ? reviews.reduce((acc: number, r: any) => acc + r.rating, 0) / reviews.length
+    : 0;
+  const starsDisplay = Math.round(averageRating);
 
   useEffect(() => {
     const sp = new URLSearchParams(window.location.search);
@@ -185,21 +200,35 @@ export default function TransferDetail() {
             <div className="bg-[#1a1710] border border-[rgba(244,168,48,0.18)] rounded-[14px] p-7">
               <div className="font-serif text-[1.2rem] font-bold mb-5 flex items-center gap-3 after:content-[''] after:flex-1 after:h-[1px] after:bg-[rgba(244,168,48,0.18)]">Guest Reviews</div>
               <div className="flex items-center gap-6 pb-5 mb-5 border-b border-[rgba(244,168,48,0.18)]">
-                <div className="font-serif text-6xl font-bold text-[#f4a830]">5.0</div>
+                <div className="font-serif text-6xl font-bold text-[#f4a830]">
+                  {reviews.length > 0 ? averageRating.toFixed(1) : "–"}
+                </div>
                 <div className="flex-1">
-                  <div className="text-[#f4a830] text-[1.1rem] tracking-[2px]">★★★★★</div>
-                  <div className="text-[0.82rem] text-[#8a826e] mt-1">Based on 8 verified bookings</div>
+                  <div className="text-[#f4a830] text-[1.1rem] tracking-[2px]">
+                    {"★".repeat(starsDisplay)}{"☆".repeat(5 - starsDisplay)}
+                  </div>
+                  <div className="text-[0.82rem] text-[#8a826e] mt-1">
+                    Based on {reviews.length} verified {reviews.length === 1 ? "booking" : "bookings"}
+                  </div>
                 </div>
               </div>
-              <div className="bg-[#211e18] rounded-[10px] p-4">
-                <div className="flex justify-between items-start mb-2">
-                  <div>
-                    <div className="font-semibold text-[0.9rem]">John T.</div>
-                    <div className="text-[#f4a830] text-[0.78rem]">★★★★★</div>
-                  </div>
-                  <div className="text-[0.75rem] text-[#8a826e]">3 days ago</div>
-                </div>
-                <p className="text-[0.855rem] text-[#b8b0a0] leading-[1.6] italic">"Very professional and punctual service. The driver was helpful with our luggage."</p>
+              <div className="space-y-3">
+                {reviews.length > 0 ? (
+                  reviews.slice(0, 3).map((r: any) => (
+                    <div key={r.id} className="bg-[#211e18] rounded-[10px] p-4">
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <div className="font-semibold text-[0.9rem]">{r.authorName || r.userName || "Guest"}</div>
+                          <div className="text-[#f4a830] text-[0.78rem]">{"★".repeat(r.rating)}</div>
+                        </div>
+                        <div className="text-[0.75rem] text-[#8a826e]">{new Date(r.createdAt).toLocaleDateString()}</div>
+                      </div>
+                      <p className="text-[0.855rem] text-[#b8b0a0] leading-[1.6] italic">"{r.comment}"</p>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-[0.88rem] text-[#8a826e] italic">No reviews yet. Be the first to leave one!</p>
+                )}
               </div>
             </div>
 

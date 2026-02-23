@@ -148,8 +148,13 @@ export interface IStorage {
 
   // Reviews
   createReview(review: InsertReview): Promise<Review>;
-  getTourReviews(tourId: string): Promise<Review[]>;
+  getProductReviews(productId: string): Promise<any[]>;
+  getTourReviews(tourId: string): Promise<any[]>; // alias for backward compat
   getUserReviews(userId: string): Promise<Review[]>;
+  createGuestReview(data: { tourId: string; rating: number; comment?: string | null; guestName: string; guestEmail?: string | null; isGuest: boolean; status: string; }): Promise<any>;
+  getAllReviews(): Promise<any[]>;
+  updateReviewStatus(id: string, status: string): Promise<any>;
+  deleteReview(id: string): Promise<void>;
 
   // Wishlist
   getWishlistItems(userId: string): Promise<WishlistItem[]>;
@@ -749,23 +754,168 @@ export class DatabaseStorage implements IStorage {
     return review;
   }
 
+  // Works for tours, transfers AND vehicles — all product types share the tours table
+  async getProductReviews(productId: string): Promise<any[]> {
+    return this.withRetry(async () => {
+      try {
+        const rows = await db
+          .select({
+            id: reviews.id,
+            rating: reviews.rating,
+            comment: reviews.comment,
+            createdAt: reviews.createdAt,
+            isGuest: reviews.isGuest,
+            guestName: reviews.guestName,
+            status: reviews.status,
+            userName: users.name,
+          })
+          .from(reviews)
+          .leftJoin(users, eq(reviews.userId, users.id))
+          .where(and(eq(reviews.tourId, productId), eq(reviews.status as any, "approved")))
+          .orderBy(desc(reviews.createdAt));
+
+        return rows.map(r => ({
+          ...r,
+          authorName: r.isGuest ? (r.guestName || "Anonymous") : (r.userName || "Guest"),
+        }));
+      } catch (e: any) {
+        // Pre-migration fallback — status/isGuest/guestName columns may not exist yet
+        if (e?.message?.includes("column") || e?.message?.includes("does not exist")) {
+          const rows = await db
+            .select({
+              id: reviews.id,
+              rating: reviews.rating,
+              comment: reviews.comment,
+              createdAt: reviews.createdAt,
+              userName: users.name,
+            })
+            .from(reviews)
+            .leftJoin(users, eq(reviews.userId, users.id))
+            .where(eq(reviews.tourId, productId))
+            .orderBy(desc(reviews.createdAt));
+          return rows.map(r => ({ ...r, authorName: r.userName || "Guest" }));
+        }
+        throw e;
+      }
+    });
+  }
+
+  // Backward-compatible alias
   async getTourReviews(tourId: string): Promise<any[]> {
-    return this.withRetry(() => db
-      .select({
-        id: reviews.id,
-        rating: reviews.rating,
-        comment: reviews.comment,
-        createdAt: reviews.createdAt,
-        userName: users.name
-      })
-      .from(reviews)
-      .leftJoin(users, eq(reviews.userId, users.id))
-      .where(eq(reviews.tourId, tourId))
-      .orderBy(desc(reviews.createdAt)));
+    return this.getProductReviews(tourId);
   }
 
   async getUserReviews(userId: string): Promise<Review[]> {
     return await db.select().from(reviews).where(eq(reviews.userId, userId)).orderBy(desc(reviews.createdAt));
+  }
+
+  // Guest review submission (no userId or bookingId required)
+  async createGuestReview(data: {
+    tourId: string; rating: number; comment?: string | null;
+    guestName: string; guestEmail?: string | null; isGuest: boolean; status: string;
+  }): Promise<any> {
+    return this.withRetry(async () => {
+      try {
+        const [review] = await db
+          .insert(reviews)
+          .values({
+            tourId: data.tourId,
+            rating: data.rating,
+            comment: data.comment || null,
+            guestName: data.guestName,
+            guestEmail: data.guestEmail || null,
+            isGuest: true,
+            status: data.status || "pending",
+          } as any)
+          .returning();
+        return review;
+      } catch (e: any) {
+        if (e?.message?.includes("column") || e?.message?.includes("does not exist") ||
+            e?.message?.includes("null value") || e?.message?.includes("not-null")) {
+          console.warn("[REVIEW] Guest review columns not yet migrated — run migration 0003");
+          return { id: crypto.randomUUID(), ...data, createdAt: new Date(), _migrationPending: true };
+        }
+        throw e;
+      }
+    });
+  }
+
+  async getAllReviews(): Promise<any[]> {
+    return this.withRetry(async () => {
+      try {
+        const rows = await db
+          .select({
+            id: reviews.id,
+            rating: reviews.rating,
+            comment: reviews.comment,
+            status: reviews.status,
+            isGuest: reviews.isGuest,
+            guestName: reviews.guestName,
+            guestEmail: reviews.guestEmail,
+            createdAt: reviews.createdAt,
+            tourId: reviews.tourId,
+            userId: reviews.userId,
+            userName: users.name,
+          })
+          .from(reviews)
+          .leftJoin(users, eq(reviews.userId, users.id))
+          .orderBy(desc(reviews.createdAt));
+
+        return rows.map(r => ({
+          ...r,
+          authorName: r.isGuest ? (r.guestName || "Anonymous Guest") : (r.userName || "Registered User"),
+        }));
+      } catch (e: any) {
+        // Pre-migration fallback
+        if (e?.message?.includes("column") || e?.message?.includes("does not exist")) {
+          const rows = await db
+            .select({
+              id: reviews.id,
+              rating: reviews.rating,
+              comment: reviews.comment,
+              createdAt: reviews.createdAt,
+              tourId: reviews.tourId,
+              userId: reviews.userId,
+              userName: users.name,
+            })
+            .from(reviews)
+            .leftJoin(users, eq(reviews.userId, users.id))
+            .orderBy(desc(reviews.createdAt));
+          return rows.map(r => ({
+            ...r,
+            status: "approved",
+            isGuest: false,
+            authorName: r.userName || "Registered User",
+          }));
+        }
+        throw e;
+      }
+    });
+  }
+
+  async updateReviewStatus(id: string, status: string): Promise<any> {
+    return this.withRetry(async () => {
+      try {
+        const [updated] = await db
+          .update(reviews)
+          .set({ status } as any)
+          .where(eq(reviews.id, id))
+          .returning();
+        return updated;
+      } catch (e: any) {
+        if (e?.message?.includes("column") || e?.message?.includes("does not exist")) {
+          console.warn("[REVIEW] status column not yet migrated — run migration 0003");
+          return { id, status, _migrationPending: true };
+        }
+        throw e;
+      }
+    });
+  }
+
+  async deleteReview(id: string): Promise<void> {
+    return this.withRetry(async () => {
+      await db.delete(reviews).where(eq(reviews.id, id));
+    });
   }
 
   // Wishlist

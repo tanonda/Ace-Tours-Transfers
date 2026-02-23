@@ -85,20 +85,20 @@ export function Hero() {
 
   const { data: allTours = [] } = useQuery({ queryKey: ["tours"], queryFn: fetchTours });
 
-  const uniqueTours = useMemo(() => {
-    return allTours.reduce<typeof allTours>((acc, current) => {
-      if (!current?.title) return acc;
-      const tl = current.title.toLowerCase();
-      if (tl.includes("verification") || tl.includes("concurrent") || tl.includes("test_tour") || tl.includes("phase4")) return acc;
-      const norm = (s: string) => s.replace(/\s+Package$/i, "").trim();
-      if (!acc.find(item => item?.title && norm(item.title) === norm(current.title))) acc.push(current);
-      return acc;
-    }, []);
+  // Filter out only test/seed data — never deduplicate real products by title,
+  // as multiple distinct products can share similar names (e.g. different transfer routes).
+  const cleanProducts = useMemo(() => {
+    return allTours.filter(t => {
+      if (!t?.title) return false;
+      const tl = t.title.toLowerCase();
+      return !tl.includes("verification") && !tl.includes("concurrent") &&
+             !tl.includes("test_tour") && !tl.includes("phase4");
+    });
   }, [allTours]);
 
-  const tours     = useMemo(() => uniqueTours.filter(t => t.category === "tour"), [uniqueTours]);
-  const transfers = useMemo(() => uniqueTours.filter(t => t.category === "transfer"), [uniqueTours]);
-  const vehicles  = useMemo(() => uniqueTours.filter(t => t.category === "vehicle"), [uniqueTours]);
+  const tours     = useMemo(() => cleanProducts.filter(t => t.category === "tour"), [cleanProducts]);
+  const transfers = useMemo(() => cleanProducts.filter(t => t.category === "transfer"), [cleanProducts]);
+  const vehicles  = useMemo(() => cleanProducts.filter(t => t.category === "vehicle"), [cleanProducts]);
 
   const { updateDraft } = useBookingDraft();
   const category = getCategoryFromServiceType(serviceType);
@@ -149,7 +149,11 @@ export function Hero() {
       if (pickupDate) params.set("pickup", format(pickupDate, "yyyy-MM-dd"));
       if (returnDate) params.set("return", format(returnDate, "yyyy-MM-dd"));
       if (pickupDate) params.set("date", format(pickupDate, "yyyy-MM-dd"));
-      updateDraft({ date: pickupDate ? format(pickupDate, "yyyy-MM-dd") : "", adultPax: 1, childPax: 0 });
+      const hireDays = pickupDate && returnDate
+        ? Math.max(1, Math.round((returnDate.getTime() - pickupDate.getTime()) / 86400000))
+        : 1;
+      params.set("days", hireDays.toString());
+      updateDraft({ date: pickupDate ? format(pickupDate, "yyyy-MM-dd") : "", adultPax: hireDays, childPax: 0 });
     } else {
       setLocation("/tours");
       return;
@@ -256,13 +260,13 @@ export function Hero() {
             colSpan="md:col-span-6 lg:col-span-3" placeholder="Select return" />
           {pickupDate && returnDate && (
             <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
-              className="md:col-span-12 lg:col-span-2 hidden lg:flex items-center justify-center">
-              <div className="text-center">
+              className="md:col-span-12 lg:col-span-2 flex items-center justify-center">
+              <div className="text-center bg-orange-50 rounded-2xl px-6 py-3 border border-orange-100 w-full lg:w-auto">
                 <div className="text-2xl font-black text-[#f2800d]">
                   {Math.round((returnDate.getTime() - pickupDate.getTime()) / 86400000)}
                 </div>
                 <div className="text-xs text-gray-500 font-semibold uppercase tracking-wider">
-                  {Math.round((returnDate.getTime() - pickupDate.getTime()) / 86400000) === 1 ? "Day" : "Days"}
+                  {Math.round((returnDate.getTime() - pickupDate.getTime()) / 86400000) === 1 ? "Day" : "Days"} Hire
                 </div>
               </div>
             </motion.div>

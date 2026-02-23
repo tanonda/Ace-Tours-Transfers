@@ -15,17 +15,14 @@ import {
   BarChart3,
   FileText,
   Tag,
-  Calendar,
-  CheckCircle,
   CreditCard,
-  Clock,
-  AlertCircle,
-  ChevronRight,
   UserCog,
   DollarSign,
   Ban,
   Gauge,
-  ScrollText
+  ScrollText,
+  ChevronRight,
+  Star
 } from "lucide-react";
 import {
   Popover,
@@ -47,37 +44,34 @@ interface DashboardLayoutProps {
 
 export function DashboardLayout({ children, type }: DashboardLayoutProps) {
   const [location] = useLocation();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const { user, logout } = useAuth();
 
-  const toggleSidebar = () => {
-    setIsSidebarOpen(prev => !prev);
-  };
-
   const adminLinks = [
-    { icon: LayoutDashboard, label: "Overview", href: "/admin/dashboard", show: true },
-    { icon: CalendarDays, label: "Bookings", href: "/admin/bookings", show: true },
-    { icon: Map, label: "Products", href: "/admin/tours", show: true },
-    { icon: CalendarDays, label: "Calendar", href: "/admin/calendar", show: true },
-    { icon: Gauge, label: "Capacity", href: "/admin/capacity", show: true },
-    { icon: UserCog, label: "Staff", href: "/admin/staff", show: user?.role === "admin" },
-    { icon: Users, label: "Customers", href: "/admin/customers", show: user?.role === "admin" },
-    { icon: DollarSign, label: "Pricing", href: "/admin/pricing", show: user?.role === "admin" },
-    { icon: Ban, label: "Blackout Dates", href: "/admin/blackouts", show: user?.role === "admin" },
-    { icon: Tag, label: "Promotions", href: "/admin/promotions", show: user?.role === "admin" },
-    { icon: FileText, label: "CMS Content", href: "/admin/cms", show: user?.role === "admin" },
-    { icon: BarChart3, label: "Analytics", href: "/admin/analytics", show: user?.role === "admin" },
-    { icon: FileText, label: "Reports", href: "/admin/reports", show: user?.role === "admin" },
-    { icon: CreditCard, label: "Payments", href: "/admin/payments", show: user?.role === "admin" },
-    { icon: ScrollText, label: "Audit Logs", href: "/admin/audit-logs", show: user?.role === "admin" },
-    { icon: Settings, label: "Settings", href: "/admin/settings", show: user?.role === "admin" },
+    { icon: LayoutDashboard, label: "Overview", href: "/admin/dashboard", show: true, group: "main" },
+    { icon: CalendarDays, label: "Bookings", href: "/admin/bookings", show: true, group: "main" },
+    { icon: Map, label: "Products", href: "/admin/tours", show: true, group: "main" },
+    { icon: CalendarDays, label: "Calendar", href: "/admin/calendar", show: true, group: "main" },
+    { icon: Gauge, label: "Capacity", href: "/admin/capacity", show: true, group: "main" },
+    { icon: Star, label: "Reviews", href: "/admin/reviews", show: user?.role === "admin", group: "manage" },
+    { icon: UserCog, label: "Staff", href: "/admin/staff", show: user?.role === "admin", group: "manage" },
+    { icon: Users, label: "Customers", href: "/admin/customers", show: user?.role === "admin", group: "manage" },
+    { icon: DollarSign, label: "Pricing", href: "/admin/pricing", show: user?.role === "admin", group: "manage" },
+    { icon: Ban, label: "Blackout Dates", href: "/admin/blackouts", show: user?.role === "admin", group: "manage" },
+    { icon: Tag, label: "Promotions", href: "/admin/promotions", show: user?.role === "admin", group: "manage" },
+    { icon: FileText, label: "CMS Content", href: "/admin/cms", show: user?.role === "admin", group: "system" },
+    { icon: BarChart3, label: "Analytics", href: "/admin/analytics", show: user?.role === "admin", group: "system" },
+    { icon: FileText, label: "Reports", href: "/admin/reports", show: user?.role === "admin", group: "system" },
+    { icon: CreditCard, label: "Payments", href: "/admin/payments", show: user?.role === "admin", group: "system" },
+    { icon: ScrollText, label: "Audit Logs", href: "/admin/audit-logs", show: user?.role === "admin", group: "system" },
+    { icon: Settings, label: "Settings", href: "/admin/settings", show: user?.role === "admin", group: "system" },
   ];
 
   const customerLinks = [
-    { href: "/dashboard", label: "My Dashboard", icon: LayoutDashboard, emoji: "🏠" },
-    { href: "/dashboard/bookings", label: "My Bookings", icon: ShoppingBag, emoji: "🎫" },
-    { href: "/dashboard/saved", label: "Saved Tours", icon: Heart, emoji: "❤️" },
-    { href: "/dashboard/profile", label: "Profile & Settings", icon: User, emoji: "👤" },
+    { href: "/dashboard", label: "My Dashboard", icon: LayoutDashboard, emoji: "🏠", group: "main" },
+    { href: "/dashboard/bookings", label: "My Bookings", icon: ShoppingBag, emoji: "🎫", group: "main" },
+    { href: "/dashboard/saved", label: "Saved Tours", icon: Heart, emoji: "❤️", group: "main" },
+    { href: "/dashboard/profile", label: "Profile & Settings", icon: User, emoji: "👤", group: "main" },
   ];
 
   const links = type === "admin" ? adminLinks : customerLinks;
@@ -86,136 +80,212 @@ export function DashboardLayout({ children, type }: DashboardLayoutProps) {
     await logout();
   };
 
-  return (
-    <div className="min-h-screen bg-background text-foreground flex font-sans">
-      <div
-        className={`fixed left-0 top-1/2 -translate-y-1/2 z-40 bg-primary p-2 rounded-r-lg cursor-pointer shadow-lg w-8 flex items-center justify-center transition-opacity duration-200 ${isSidebarOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'
-          }`}
-        onClick={toggleSidebar}
-      >
-        <div className="h-8 w-1 bg-primary-foreground/30 rounded" />
-      </div>
-
-      <aside
-        className={`fixed inset-y-0 left-0 z-50 w-60 bg-background border-r border-border flex flex-col transition-transform duration-300 ease-in-out will-change-transform ${isSidebarOpen ? 'translate-x-0 shadow-xl' : '-translate-x-full'
-          }`}
-      >
-        <div className="flex items-center justify-between h-16 px-4 border-b border-border">
-          <Link href="/">
-            <div className="flex items-center gap-2.5 cursor-pointer">
-              <img
-                src={logo}
-                alt="Ace Tours"
-                className="w-9 h-9 rounded-full border-2 border-primary/30 shadow-sm object-cover"
-              />
-              <div>
-                <div className="text-foreground font-bold text-sm">Ace Tours</div>
-                <div className="text-muted-foreground text-xs">
-                  {type === "admin" ? "Admin Panel" : "Customer Portal"}
-                </div>
+  const SidebarContent = () => (
+    <div className="flex flex-col h-full">
+      {/* Logo */}
+      <div className="flex items-center justify-between h-16 px-5 border-b border-border/60 shrink-0">
+        <Link href="/">
+          <div className="flex items-center gap-3 cursor-pointer group">
+            <img
+              src={logo}
+              alt="Ace Tours"
+              className="w-8 h-8 rounded-lg border border-border/40 object-cover shadow-sm group-hover:ring-2 group-hover:ring-primary/40 transition-all"
+            />
+            <div>
+              <div className="text-foreground font-bold text-sm leading-tight">Ace Tours</div>
+              <div className="text-muted-foreground text-[10px] uppercase tracking-wide">
+                {type === "admin" ? "Admin Panel" : "My Account"}
               </div>
             </div>
-          </Link>
-          <button
-            onClick={() => setIsSidebarOpen(false)}
-            className="text-muted-foreground hover:text-foreground p-1 transition-colors"
-          >
-            <X size={20} />
-          </button>
-        </div>
+          </div>
+        </Link>
+        <button
+          onClick={() => setIsMobileSidebarOpen(false)}
+          className="lg:hidden text-muted-foreground hover:text-foreground p-1 transition-colors rounded-md hover:bg-muted"
+        >
+          <X size={18} />
+        </button>
+      </div>
 
-        <div className="p-4 flex-1 overflow-y-auto">
-          <div className="flex items-center gap-3 mb-6 p-3 bg-muted/50 rounded-xl">
-            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-primary-foreground font-bold">
-              {user?.name?.[0] || (type === "admin" ? "A" : "J")}
-            </div>
-            <div className="overflow-hidden">
-              <p className="font-semibold text-sm text-foreground truncate">
-                {user?.name || (type === "admin" ? "Admin User" : "Customer")}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {type === "admin" ? "Administrator" : "Customer"}
-              </p>
-            </div>
+      {/* User pill */}
+      <div className="px-3 py-3 border-b border-border/40 shrink-0">
+        <div className="flex items-center gap-3 px-3 py-2.5 bg-muted/40 rounded-xl border border-border/30">
+          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-bold text-sm shrink-0">
+            {user?.name?.[0]?.toUpperCase() || (type === "admin" ? "A" : "U")}
+          </div>
+          <div className="overflow-hidden min-w-0">
+            <p className="font-semibold text-xs text-foreground truncate">
+              {user?.name || (type === "admin" ? "Admin User" : "Customer")}
+            </p>
+            <p className="text-[10px] text-muted-foreground truncate">
+              {user?.email || (type === "admin" ? "Administrator" : "Customer")}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Nav */}
+      <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-1">
+        {type === "admin" ? (
+          <>
+            {/* Group: Main */}
+            <div className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest px-2 pt-1 pb-1.5">Main</div>
+            {adminLinks.filter(l => l.show && l.group === "main").map((link) => (
+              <Link key={link.href} href={link.href}>
+                <div
+                  className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer text-sm transition-all duration-150 ${
+                    location === link.href
+                      ? 'bg-primary text-primary-foreground font-semibold shadow-sm'
+                      : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                  }`}
+                >
+                  <link.icon className="h-4 w-4 shrink-0" />
+                  <span>{link.label}</span>
+                  {location === link.href && <ChevronRight className="h-3 w-3 ml-auto opacity-60" />}
+                </div>
+              </Link>
+            ))}
+
+            {/* Group: Manage */}
+            <div className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest px-2 pt-3 pb-1.5">Manage</div>
+            {adminLinks.filter(l => l.show && l.group === "manage").map((link) => (
+              <Link key={link.href} href={link.href}>
+                <div
+                  className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer text-sm transition-all duration-150 ${
+                    location === link.href
+                      ? 'bg-primary text-primary-foreground font-semibold shadow-sm'
+                      : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                  }`}
+                >
+                  <link.icon className="h-4 w-4 shrink-0" />
+                  <span>{link.label}</span>
+                  {location === link.href && <ChevronRight className="h-3 w-3 ml-auto opacity-60" />}
+                </div>
+              </Link>
+            ))}
+
+            {/* Group: System */}
+            <div className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest px-2 pt-3 pb-1.5">System</div>
+            {adminLinks.filter(l => l.show && l.group === "system").map((link) => (
+              <Link key={link.href} href={link.href}>
+                <div
+                  className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer text-sm transition-all duration-150 ${
+                    location === link.href
+                      ? 'bg-primary text-primary-foreground font-semibold shadow-sm'
+                      : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                  }`}
+                >
+                  <link.icon className="h-4 w-4 shrink-0" />
+                  <span>{link.label}</span>
+                  {location === link.href && <ChevronRight className="h-3 w-3 ml-auto opacity-60" />}
+                </div>
+              </Link>
+            ))}
+          </>
+        ) : (
+          customerLinks.map((link) => {
+            const isActive = location === link.href;
+            return (
+              <Link key={link.href} href={link.href}>
+                <div
+                  className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer text-sm transition-all duration-150 ${
+                    isActive
+                      ? 'bg-primary text-primary-foreground font-semibold shadow-sm'
+                      : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                  }`}
+                  data-testid={`nav-${link.label.toLowerCase().replace(/\s+/g, '-')}`}
+                >
+                  <span className="text-base">{link.emoji}</span>
+                  <span>{link.label}</span>
+                  {isActive && <ChevronRight className="h-3 w-3 ml-auto opacity-60" />}
+                </div>
+              </Link>
+            );
+          })
+        )}
+      </nav>
+
+      {/* Footer */}
+      <div className="px-3 py-3 border-t border-border/60 shrink-0">
+        <Button
+          variant="ghost"
+          className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg text-muted-foreground cursor-pointer text-sm text-left transition-all hover:bg-destructive/10 hover:text-destructive"
+          onClick={handleLogout}
+        >
+          <LogOut size={15} />
+          Sign Out
+        </Button>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen bg-background text-foreground flex font-sans">
+      {/* Desktop Sidebar - always visible */}
+      <aside className="hidden lg:flex flex-col w-56 shrink-0 bg-background border-r border-border sticky top-0 h-screen">
+        <SidebarContent />
+      </aside>
+
+      {/* Mobile Sidebar - slide in */}
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 w-60 bg-background border-r border-border flex flex-col lg:hidden transition-transform duration-300 ease-in-out ${
+          isMobileSidebarOpen ? 'translate-x-0 shadow-xl' : '-translate-x-full'
+        }`}
+      >
+        <SidebarContent />
+      </aside>
+
+      {/* Mobile overlay */}
+      <div
+        className={`fixed inset-0 bg-black/50 z-40 lg:hidden transition-opacity duration-200 ${
+          isMobileSidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={() => setIsMobileSidebarOpen(false)}
+      />
+
+      {/* Main content */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        {/* Top bar */}
+        <header className="bg-background/95 backdrop-blur border-b border-border h-14 flex items-center justify-between px-4 lg:px-6 sticky top-0 z-40">
+          <button
+            className="lg:hidden p-2 -ml-1 cursor-pointer text-muted-foreground rounded-lg transition-colors hover:bg-muted hover:text-foreground border-none bg-transparent"
+            onClick={() => setIsMobileSidebarOpen(true)}
+          >
+            <Menu size={20} />
+          </button>
+          {/* Breadcrumb / page context on desktop */}
+          <div className="hidden lg:flex items-center gap-2 text-sm text-muted-foreground">
+            <span className="font-medium text-foreground">
+              {type === "admin" ? "Admin Panel" : "My Account"}
+            </span>
+            {location !== "/admin/dashboard" && location !== "/dashboard" && (
+              <>
+                <ChevronRight size={14} />
+                <span className="capitalize">
+                  {location.split("/").filter(Boolean).at(-1)?.replace(/-/g, " ")}
+                </span>
+              </>
+            )}
           </div>
 
-          <nav className="flex flex-col gap-1">
-            {type === "admin" ? (
-              adminLinks.filter(link => link.show !== false).map((link) => (
-                <Link key={link.href} href={link.href}>
-                  <div
-                    className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg cursor-pointer text-sm transition-colors duration-150 ${location === link.href
-                      ? 'bg-accent text-accent-foreground font-semibold'
-                      : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
-                      }`}
-                  >
-                    <link.icon className={`h-4 w-4 ${location === link.href ? 'text-primary' : ''}`} />
-                    <span>{link.label}</span>
-                  </div>
-                </Link>
-              ))
-            ) : (
-              customerLinks.map((link) => {
-                const isActive = location === link.href;
-                return (
-                  <Link key={link.href} href={link.href}>
-                    <div
-                      className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg cursor-pointer text-sm transition-colors duration-150 ${isActive
-                        ? 'bg-accent text-accent-foreground font-semibold'
-                        : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
-                        }`}
-                      data-testid={`nav-${link.label.toLowerCase().replace(/\s+/g, '-')}`}
-                    >
-                      <span className="text-sm">{link.emoji}</span>
-                      <span>{link.label}</span>
-                    </div>
-                  </Link>
-                );
-              })
-            )}
-          </nav>
-        </div >
-
-        <div className="p-4 border-t border-border">
-          <Button
-            variant="ghost"
-            className="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-lg text-muted-foreground cursor-pointer text-sm text-left transition-colors duration-150 hover:bg-destructive/10 hover:text-destructive"
-            onClick={handleLogout}
-          >
-            <LogOut size={16} />
-            Sign Out
-          </Button>
-        </div>
-      </aside >
-
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <header className="bg-background border-b border-border h-16 flex items-center justify-between px-6 sticky top-0 z-40">
-          <button
-            className="p-2 -ml-2 cursor-pointer text-muted-foreground rounded-lg transition-colors duration-150 hover:bg-accent hover:text-foreground border-none bg-transparent"
-            onClick={toggleSidebar}
-          >
-            <Menu size={24} />
-          </button>
-
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <LanguageSelector />
             <ThemeToggle size="sm" />
-
             <NotificationsPopover />
 
             <Popover>
               <PopoverTrigger asChild>
-                <button className="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold text-sm cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all">
-                  {user?.name?.[0] || (type === "admin" ? "A" : "J")}
+                <button className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-bold text-xs cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all">
+                  {user?.name?.[0]?.toUpperCase() || (type === "admin" ? "A" : "U")}
                 </button>
               </PopoverTrigger>
-              <PopoverContent className="w-56 p-2" align="end">
-                <div className="px-2 py-3 border-b border-border mb-2">
+              <PopoverContent className="w-52 p-2" align="end">
+                <div className="px-2 py-2.5 border-b border-border mb-1.5">
                   <p className="font-semibold text-sm">{user?.name || 'User'}</p>
                   <p className="text-xs text-muted-foreground">{user?.email || ''}</p>
                 </div>
                 <Link href={type === 'admin' ? '/admin/settings' : '/dashboard/profile'}>
-                  <div className="flex items-center gap-2 px-2 py-2 rounded-md text-sm hover:bg-accent cursor-pointer">
+                  <div className="flex items-center gap-2 px-2 py-2 rounded-md text-sm hover:bg-muted cursor-pointer">
                     <User className="h-4 w-4" />
                     Profile & Settings
                   </div>
@@ -232,16 +302,10 @@ export function DashboardLayout({ children, type }: DashboardLayoutProps) {
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-6">
+        <main className="flex-1 overflow-y-auto p-4 lg:p-6">
           {children}
         </main>
       </div>
-
-      <div
-        className={`fixed inset-0 bg-black/50 z-40 lg:hidden transition-opacity duration-200 ${isSidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
-          }`}
-        onClick={() => setIsSidebarOpen(false)}
-      />
-    </div >
+    </div>
   );
 }

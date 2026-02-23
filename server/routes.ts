@@ -531,8 +531,9 @@ export async function registerRoutes(
     try {
       const tours = await storage.getTours();
       res.json(tours);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch tours" });
+    } catch (error: any) {
+      console.error("[ROUTE] GET /api/tours failed:", error?.message, error?.code);
+      res.status(500).json({ error: "Failed to fetch tours", detail: error?.message });
     }
   });
 
@@ -541,16 +542,51 @@ export async function registerRoutes(
       const tour = await storage.getTour(req.params.id);
       if (!tour) return res.status(404).json({ error: "Tour not found" });
       res.json(tour);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch tour" });
+    } catch (error: any) {
+      console.error("[ROUTE] GET /api/tours/:id failed:", error?.message, error?.code);
+      res.status(500).json({ error: "Failed to fetch tour", detail: error?.message });
     }
   });
 
-  // Reviews
+  // Reviews — works for tours, transfers AND vehicles (all share the tours table)
   app.get("/api/tours/:id/reviews", async (req, res) => {
     try {
-      const reviews = await storage.getTourReviews(req.params.id);
+      const reviews = await storage.getProductReviews(req.params.id);
       res.json(reviews);
+    } catch (error: any) {
+      console.error("[ROUTE] GET reviews failed:", error?.message);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Semantic alias — same handler, cleaner URL for transfers/vehicles
+  app.get("/api/products/:id/reviews", async (req, res) => {
+    try {
+      const reviews = await storage.getProductReviews(req.params.id);
+      res.json(reviews);
+    } catch (error: any) {
+      console.error("[ROUTE] GET /api/products/:id/reviews failed:", error?.message);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Guest review submission (no auth required, requires moderation)
+  app.post("/api/reviews/guest", async (req, res) => {
+    try {
+      const { tourId, rating, comment, guestName, guestEmail } = req.body;
+      if (!tourId || !rating) return res.status(400).json({ error: "tourId and rating are required" });
+      if (rating < 1 || rating > 5) return res.status(400).json({ error: "rating must be 1-5" });
+
+      const review = await storage.createGuestReview({
+        tourId,
+        rating: parseInt(rating),
+        comment: comment || null,
+        guestName: guestName || "Anonymous",
+        guestEmail: guestEmail || null,
+        isGuest: true,
+        status: "pending", // requires moderation
+      });
+      res.json({ success: true, id: review.id, message: "Thank you! Your review will appear after moderation." });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
@@ -628,6 +664,38 @@ export async function registerRoutes(
       res.json(tour);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch vehicle" });
+    }
+  });
+
+  // Admin Reviews API
+  app.get("/api/admin/reviews", requireAdmin, async (req, res) => {
+    try {
+      const allReviews = await storage.getAllReviews();
+      res.json(allReviews);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.patch("/api/admin/reviews/:id", requireAdmin, async (req, res) => {
+    try {
+      const { status } = req.body;
+      if (!["approved", "rejected", "pending"].includes(status)) {
+        return res.status(400).json({ error: "Invalid status" });
+      }
+      const review = await storage.updateReviewStatus(req.params.id, status);
+      res.json(review);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/admin/reviews/:id", requireAdmin, async (req, res) => {
+    try {
+      await storage.deleteReview(req.params.id);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -1214,40 +1282,9 @@ export async function registerRoutes(
         pickupLocation: pickupLocation ?? undefined
       });
 
-      // ✅ Send booking notification emails
-      try {
-        const bookingItems = await storage.getBookingItems(booking.id);
-        const firstItem = bookingItems[0];
-        const tourData = firstItem ? await storage.getTour(firstItem.productId) : null;
-        const tourInfo = tourData || { title: 'Tour/Transfer Booking', category: 'tour' };
-
-        const emailBooking = {
-          ...booking,
-          date: booking.date || new Date().toISOString().split('T')[0],
-          guests: `${firstItem?.adultPax || 1} Adult(s)${firstItem?.childPax ? ', ' + firstItem.childPax + ' Child(ren)' : ''}`,
-          amount: `VT ${(booking.totalAmountCents || 0).toLocaleString()}`,
-        };
-
-        // Send customer notification — determine payment method for correct template
-        if (booking.customerEmail) {
-          // We don't know the payment method at booking-creation time yet,
-          // so send a neutral booking-request email (no payment button/instructions).
-          // The payment flow will send a follow-up email with the right instructions.
-          await sendEmail({
-            to: booking.customerEmail,
-            subject: `Booking Request Received — ACT-${shortBookingRef(booking.id)}`,
-            html: await getBookingRequestTemplate(emailBooking, tourInfo),
-          });
-        }
-
-        // Send admin notification
-        await sendAdminEmail(
-          `🔔 New Booking: ${booking.customerName} — ${tourInfo.title}`,
-          await getAdminNewBookingTemplate(emailBooking, tourInfo)
-        );
-      } catch (emailError) {
-        console.error('[BOOKING] Email notification failed (non-fatal):', emailError);
-      }
+      // ✅ Email notifications are intentionally deferred until payment is confirmed.
+      // The payment completion handler (payment.routes.ts) sends emails after final payment.
+      // Sending emails here (at booking creation) would notify customers before they've paid.
 
       // Store booking ID in session for checkout access
       if (!((req.session as any).recentBookingIds)) {
@@ -1395,10 +1432,11 @@ export async function registerRoutes(
     try {
       const settings = await storage.getSiteSettings();
       res.json(settings);
-    } catch (error) {
+    } catch (error: any) {
       const ref = Date.now().toString();
-      console.error(`[SETTINGS ERROR][${ref}]`, error);
-      res.status(500).json({ error: "Internal error", ref });
+      console.error(`[SETTINGS ERROR][${ref}]`, error?.message, error?.code);
+      // Return empty array so the UI degrades gracefully
+      res.json([]);
     }
   });
 
@@ -1488,8 +1526,10 @@ export async function registerRoutes(
     try {
       const blocks = await storage.getContentBlocks();
       res.json(blocks);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch content blocks" });
+    } catch (error: any) {
+      console.error("[ROUTE] GET /api/content-blocks failed:", error?.message, error?.code);
+      // Return empty array so the UI degrades gracefully rather than crashing
+      res.json([]);
     }
   });
 
