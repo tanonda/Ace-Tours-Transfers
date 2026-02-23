@@ -186,27 +186,30 @@ export function Hero() {
           <Island className="md:col-span-6 lg:col-span-3">
             <IslandLabel label={t("hero.guests", "Guests")} />
             <div className="space-y-2">
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-                  <div className="h-7 w-7 rounded-xl bg-orange-50 flex items-center justify-center text-[#f2800d] group-hover/island:bg-[#f2800d] group-hover/island:text-white transition-all">
+              <div className="flex items-center justify-between gap-1">
+                <div className="flex items-center gap-2 text-sm font-semibold text-gray-700 min-w-0 pr-1">
+                  <div className="h-7 w-7 rounded-xl bg-orange-50 flex items-center justify-center text-[#f2800d] shrink-0 group-hover/island:bg-[#f2800d] group-hover/island:text-white transition-all">
                     <Users className="h-3.5 w-3.5" />
                   </div>
-                  Adults
+                  <span className="truncate">Adults</span>
                 </div>
                 <CounterInput id="hero-adult-count" name="adults" value={adultGuests} onValueChange={setAdultGuests}
-                  min={1} max={50} label="Adults" className="h-9 bg-transparent border-0 hover:bg-transparent shadow-none px-0 w-32"
-                  inputClassName="bg-transparent border-0 h-full text-sm font-bold text-gray-900 text-right" />
+                  min={1} max={50} label="Adults" className="h-9 bg-transparent border-0 hover:bg-transparent shadow-none px-0 w-[100px] shrink-0"
+                  inputClassName="bg-transparent border-0 h-full text-sm font-bold text-gray-900 text-center" />
               </div>
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-                  <div className="h-7 w-7 rounded-xl bg-blue-50 flex items-center justify-center text-blue-400">
+              <div className="flex items-center justify-between gap-1">
+                <div className="flex items-center gap-2 text-sm font-semibold text-gray-700 min-w-0 pr-1">
+                  <div className="h-7 w-7 rounded-xl bg-blue-50 flex items-center justify-center text-blue-400 shrink-0">
                     <Users className="h-3.5 w-3.5" />
                   </div>
-                  <span>Children <span className="text-gray-400 font-normal text-xs">(under 12)</span></span>
+                  <div className="flex flex-col leading-tight truncate">
+                    <span>Children</span>
+                    <span className="text-gray-400 font-normal text-[0.65rem]">&lt; 12 yrs</span>
+                  </div>
                 </div>
                 <CounterInput id="hero-child-count" name="children" value={childGuests} onValueChange={setChildGuests}
-                  min={0} max={30} label="Children" className="h-9 bg-transparent border-0 hover:bg-transparent shadow-none px-0 w-32"
-                  inputClassName="bg-transparent border-0 h-full text-sm font-bold text-gray-900 text-right" />
+                  min={0} max={30} label="Children" className="h-9 bg-transparent border-0 hover:bg-transparent shadow-none px-0 w-[100px] shrink-0"
+                  inputClassName="bg-transparent border-0 h-full text-sm font-bold text-gray-900 text-center" />
               </div>
             </div>
           </Island>
@@ -236,14 +239,16 @@ export function Hero() {
           <DatePickerIsland label="Transfer Date" value={transferDate} onChange={setTransferDate} colSpan="md:col-span-6 lg:col-span-2" />
           <Island className="md:col-span-6 lg:col-span-2">
             <IslandLabel label="Passengers" />
-            <div className="flex items-center justify-between h-14">
-              <div className="flex items-center gap-3">
-                <IslandIcon><Users className="h-5 w-5" /></IslandIcon>
-                <span className="text-sm font-semibold text-gray-700">Passengers</span>
+            <div className="flex items-center justify-between gap-1 h-14">
+              <div className="flex items-center gap-2 text-sm font-semibold text-gray-700 min-w-0 pr-1">
+                <div className="h-7 w-7 rounded-xl bg-orange-50 flex items-center justify-center text-[#f2800d] shrink-0 group-hover/island:bg-[#f2800d] group-hover/island:text-white transition-all">
+                  <Users className="h-3.5 w-3.5" />
+                </div>
+                <span className="truncate hidden 2xl:inline-block">Total</span>
               </div>
               <CounterInput id="transfer-pax" name="passengers" value={transferPassengers} onValueChange={setTransferPassengers}
-                min={1} max={50} label="Passengers" className="h-9 bg-transparent border-0 hover:bg-transparent shadow-none px-0 w-32"
-                inputClassName="bg-transparent border-0 h-full text-sm font-bold text-gray-900 text-right" />
+                min={1} max={50} label="Passengers" className="h-9 bg-transparent border-0 hover:bg-transparent shadow-none px-0 w-full max-w-[100px] shrink-0"
+                inputClassName="bg-transparent border-0 h-full text-sm font-bold text-gray-900 text-center" />
             </div>
           </Island>
         </>
