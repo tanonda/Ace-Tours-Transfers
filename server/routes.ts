@@ -615,6 +615,7 @@ export async function registerRoutes(
       const tour = await storage.createTour(validatedData);
       res.status(201).json(tour);
     } catch (error) {
+      console.error("[ROUTE] POST /api/tours Error:", error);
       res.status(400).json({ error: "Invalid tour data" });
     }
   });
@@ -625,6 +626,7 @@ export async function registerRoutes(
       const tour = await storage.updateTour(req.params.id, updateData);
       res.json(tour);
     } catch (error) {
+      console.error("[ROUTE] PUT /api/tours/:id Error:", error);
       res.status(400).json({ error: "Failed to update tour" });
     }
   });
@@ -634,6 +636,7 @@ export async function registerRoutes(
       await storage.deleteTour(req.params.id);
       res.json({ message: "Tour deleted successfully" });
     } catch (error) {
+      console.error("[ROUTE] DELETE /api/tours/:id Error:", error);
       res.status(500).json({ error: "Failed to delete tour" });
     }
   });
