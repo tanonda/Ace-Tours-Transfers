@@ -201,6 +201,7 @@ export function registerBookingEngineRoutes(
             });
             res.json(entries);
         } catch (error: any) {
+            console.error("[AUDIT LOG ROUTE ERROR]:", error);
             res.status(500).json({ error: error.message });
         }
     });
