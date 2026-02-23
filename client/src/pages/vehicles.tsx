@@ -19,6 +19,7 @@ export default function Vehicles() {
   // Filter out test data
   const vehicles = useMemo(() => {
     return rawVehicles.filter(current => {
+      if (current.isActive === false) return false;
       const titleLower = current.title.toLowerCase();
       return !(titleLower.includes("verification") ||
         titleLower.includes("concurrent") ||

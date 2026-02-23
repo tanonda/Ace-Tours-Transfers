@@ -101,6 +101,7 @@ export default function Reservations() {
     return allServices
       .filter(s => {
         const titleLower = (s.title || "").toLowerCase();
+        if (s.isActive === false) return false;
         const isTest = titleLower.includes("verification") ||
           titleLower.includes("concurrent") ||
           titleLower.includes("test_tour") ||
@@ -420,7 +421,7 @@ export default function Reservations() {
                           <TableBody>
                             {filteredBookings.map((booking) => (
                               <TableRow key={booking.id}>
-                                <TableCell className="font-mono text-sm">{}</TableCell>
+                                <TableCell className="font-mono text-sm">{ }</TableCell>
                                 <TableCell>{booking.customerName}</TableCell>
                                 <TableCell>{booking.tourName}</TableCell>
                                 <TableCell>{format(new Date(booking.date), "MMM d, yyyy")}</TableCell>

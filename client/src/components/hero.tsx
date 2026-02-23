@@ -90,15 +90,16 @@ export function Hero() {
   const cleanProducts = useMemo(() => {
     return allTours.filter(t => {
       if (!t?.title) return false;
+      if (t.isActive === false) return false;
       const tl = t.title.toLowerCase();
       return !tl.includes("verification") && !tl.includes("concurrent") &&
-             !tl.includes("test_tour") && !tl.includes("phase4");
+        !tl.includes("test_tour") && !tl.includes("phase4");
     });
   }, [allTours]);
 
-  const tours     = useMemo(() => cleanProducts.filter(t => t.category === "tour"), [cleanProducts]);
+  const tours = useMemo(() => cleanProducts.filter(t => t.category === "tour"), [cleanProducts]);
   const transfers = useMemo(() => cleanProducts.filter(t => t.category === "transfer"), [cleanProducts]);
-  const vehicles  = useMemo(() => cleanProducts.filter(t => t.category === "vehicle"), [cleanProducts]);
+  const vehicles = useMemo(() => cleanProducts.filter(t => t.category === "vehicle"), [cleanProducts]);
 
   const { updateDraft } = useBookingDraft();
   const category = getCategoryFromServiceType(serviceType);

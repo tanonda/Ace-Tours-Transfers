@@ -27,6 +27,7 @@ export default function Home() {
     return allTours.reduce<typeof allTours>((acc, current) => {
       // Skip test data with safety checks
       if (!current?.title) return acc;
+      if (current.isActive === false) return acc;
       const titleLower = current.title.toLowerCase();
       if (titleLower.includes("verification") ||
         titleLower.includes("concurrent") ||

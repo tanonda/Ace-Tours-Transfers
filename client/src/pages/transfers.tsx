@@ -35,7 +35,7 @@ export default function Transfers() {
     return acc;
   }, []);
 
-  const transfers = uniqueTours.filter(t => t.category === "transfer");
+  const transfers = uniqueTours.filter(t => t.category === "transfer" && t.isActive !== false);
 
   return (
     <Layout>
