@@ -8,7 +8,7 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Pencil, Trash, Search, Map, Car, LayoutGrid, DollarSign, Users, Clock, Image as ImageIcon, Loader2, Package } from "lucide-react";
-import { TourDialog } from "@/components/admin/tour-dialog";
+import { ProductDialog } from "@/components/admin/product-dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,7 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatPrice } from "@/lib/product.types";
 
-export default function AdminTours() {
+export default function AdminProducts() {
   const { t } = useTranslation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -215,7 +215,7 @@ export default function AdminTours() {
         </div>
       </div>
 
-      <TourDialog
+      <ProductDialog
         tour={selectedTour}
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}

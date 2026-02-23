@@ -38,7 +38,7 @@ const Confirmation = lazy(() => import("@/pages/confirmation"));
 // Admin pages
 const AdminDashboard = lazy(() => import("@/pages/admin/dashboard"));
 const AdminBookings = lazy(() => import("@/pages/admin/bookings"));
-const AdminTours = lazy(() => import("@/pages/admin/tours"));
+const AdminProducts = lazy(() => import("@/pages/admin/products"));
 const AdminUsers = lazy(() => import("@/pages/admin/users"));
 const AdminSettings = lazy(() => import("@/pages/admin/settings"));
 const AdminAnalytics = lazy(() => import("@/pages/admin/analytics"));
@@ -114,8 +114,8 @@ function Router() {
         <Route path="/admin/bookings">
           <ProtectedRoute requireAdmin><AdminBookings /></ProtectedRoute>
         </Route>
-        <Route path="/admin/tours">
-          <ProtectedRoute requireAdmin><AdminTours /></ProtectedRoute>
+        <Route path="/admin/products">
+          <ProtectedRoute requireAdmin><AdminProducts /></ProtectedRoute>
         </Route>
         <Route path="/admin/customers">
           <ProtectedRoute requireAdmin><AdminUsers /></ProtectedRoute>

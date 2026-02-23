@@ -50,7 +50,7 @@ export function DashboardLayout({ children, type }: DashboardLayoutProps) {
   const adminLinks = [
     { icon: LayoutDashboard, label: "Overview", href: "/admin/dashboard", show: true, group: "main" },
     { icon: CalendarDays, label: "Bookings", href: "/admin/bookings", show: true, group: "main" },
-    { icon: Map, label: "Products", href: "/admin/tours", show: true, group: "main" },
+    { icon: Map, label: "Products", href: "/admin/products", show: true, group: "main" },
     { icon: CalendarDays, label: "Calendar", href: "/admin/calendar", show: true, group: "main" },
     { icon: Gauge, label: "Capacity", href: "/admin/capacity", show: true, group: "main" },
     { icon: Star, label: "Reviews", href: "/admin/reviews", show: user?.role === "admin", group: "manage" },
@@ -133,11 +133,10 @@ export function DashboardLayout({ children, type }: DashboardLayoutProps) {
             {adminLinks.filter(l => l.show && l.group === "main").map((link) => (
               <Link key={link.href} href={link.href}>
                 <div
-                  className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer text-sm transition-all duration-150 ${
-                    location === link.href
+                  className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer text-sm transition-all duration-150 ${location === link.href
                       ? 'bg-primary text-primary-foreground font-semibold shadow-sm'
                       : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                  }`}
+                    }`}
                 >
                   <link.icon className="h-4 w-4 shrink-0" />
                   <span>{link.label}</span>
@@ -151,11 +150,10 @@ export function DashboardLayout({ children, type }: DashboardLayoutProps) {
             {adminLinks.filter(l => l.show && l.group === "manage").map((link) => (
               <Link key={link.href} href={link.href}>
                 <div
-                  className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer text-sm transition-all duration-150 ${
-                    location === link.href
+                  className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer text-sm transition-all duration-150 ${location === link.href
                       ? 'bg-primary text-primary-foreground font-semibold shadow-sm'
                       : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                  }`}
+                    }`}
                 >
                   <link.icon className="h-4 w-4 shrink-0" />
                   <span>{link.label}</span>
@@ -169,11 +167,10 @@ export function DashboardLayout({ children, type }: DashboardLayoutProps) {
             {adminLinks.filter(l => l.show && l.group === "system").map((link) => (
               <Link key={link.href} href={link.href}>
                 <div
-                  className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer text-sm transition-all duration-150 ${
-                    location === link.href
+                  className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer text-sm transition-all duration-150 ${location === link.href
                       ? 'bg-primary text-primary-foreground font-semibold shadow-sm'
                       : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                  }`}
+                    }`}
                 >
                   <link.icon className="h-4 w-4 shrink-0" />
                   <span>{link.label}</span>
@@ -188,11 +185,10 @@ export function DashboardLayout({ children, type }: DashboardLayoutProps) {
             return (
               <Link key={link.href} href={link.href}>
                 <div
-                  className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer text-sm transition-all duration-150 ${
-                    isActive
+                  className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer text-sm transition-all duration-150 ${isActive
                       ? 'bg-primary text-primary-foreground font-semibold shadow-sm'
                       : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                  }`}
+                    }`}
                   data-testid={`nav-${link.label.toLowerCase().replace(/\s+/g, '-')}`}
                 >
                   <span className="text-base">{link.emoji}</span>
@@ -228,18 +224,16 @@ export function DashboardLayout({ children, type }: DashboardLayoutProps) {
 
       {/* Mobile Sidebar - slide in */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-60 bg-background border-r border-border flex flex-col lg:hidden transition-transform duration-300 ease-in-out ${
-          isMobileSidebarOpen ? 'translate-x-0 shadow-xl' : '-translate-x-full'
-        }`}
+        className={`fixed inset-y-0 left-0 z-50 w-60 bg-background border-r border-border flex flex-col lg:hidden transition-transform duration-300 ease-in-out ${isMobileSidebarOpen ? 'translate-x-0 shadow-xl' : '-translate-x-full'
+          }`}
       >
         <SidebarContent />
       </aside>
 
       {/* Mobile overlay */}
       <div
-        className={`fixed inset-0 bg-black/50 z-40 lg:hidden transition-opacity duration-200 ${
-          isMobileSidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
-        }`}
+        className={`fixed inset-0 bg-black/50 z-40 lg:hidden transition-opacity duration-200 ${isMobileSidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          }`}
         onClick={() => setIsMobileSidebarOpen(false)}
       />
 

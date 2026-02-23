@@ -38,7 +38,7 @@ const tourSchema = z.object({
     category: z.string(),
     defaultCapacity: z.number().min(1, "Capacity must be at least 1").max(10000, "Capacity cannot exceed 10000"),
     description: z.string().min(10, "Description is required"),
-    image: z.string().min(1, "Image is required"),
+    image: z.string().optional(),
     vehicleDetails: z.object({
         make: z.string().min(1, "Make is required"),
         model: z.string().min(1, "Model is required"),
@@ -57,7 +57,8 @@ interface TourDialogProps {
     onSave: (tour: any) => void;
 }
 
-export function TourDialog({ tour, open, onOpenChange, onSave }: TourDialogProps) {
+export function ProductDialog({
+    tour, open, onOpenChange, onSave }: TourDialogProps) {
     const { t } = useTranslation();
     const [isUploading, setIsUploading] = useState(false);
 
@@ -114,6 +115,7 @@ export function TourDialog({ tour, open, onOpenChange, onSave }: TourDialogProps
         onSave({
             ...values,
             description: values.description.split("\n").filter(line => line.trim() !== ""),
+            image: values.image || "",
             id: tour?.id,
         });
         onOpenChange(false);
@@ -477,7 +479,8 @@ export function TourDialog({ tour, open, onOpenChange, onSave }: TourDialogProps
                             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                                 {t("common.cancel")}
                             </Button>
-                            <Button type="submit">
+                            <Button type="submit" disabled={isUploading}>
+                                {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                                 {tour ? t("common.saveChanges") : t("common.create")}
                             </Button>
                         </DialogFooter>
