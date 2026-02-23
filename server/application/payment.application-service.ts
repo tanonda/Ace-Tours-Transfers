@@ -217,10 +217,20 @@ export class PaymentApplicationService {
             const tourData = firstItem ? await this.storage.getTour(firstItem.productId) : null;
             const tourInfo = tourData || { title: 'Tour/Transfer Booking', id: '' };
 
+            function buildGuestString(item: any): string {
+              const parts: string[] = [
+                `${item?.adultPax || 1} Adult(s)`,
+              ];
+              if (item?.childPax) parts.push(`${item.childPax} Child(ren)`);
+              if (item?.infantPax) parts.push(`${item.infantPax} Infant(s)`);
+              if (item?.petPax) parts.push(`${item.petPax} Pet(s)`);
+              return parts.join(", ");
+            }
+
             const emailBooking = {
               ...booking,
               date: booking.date || new Date().toISOString().split('T')[0],
-              guests: `${firstItem?.adultPax || 1} Adult(s)${firstItem?.childPax ? ', ' + firstItem.childPax + ' Child(ren)' : ''}`,
+              guests: buildGuestString(firstItem),
               amount: `VT ${(booking.totalAmountCents || 0).toLocaleString()}`,
             };
 

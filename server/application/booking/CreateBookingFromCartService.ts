@@ -22,6 +22,8 @@ export interface CreateBookingRequest {
     productId: string;
     adultPax: number;
     childPax: number;
+    infantPax: number;    // NEW — infants under 2, no seat/pricing impact
+    petPax: number;       // NEW — pets, manifesting only
     date: string;
     slot?: string;
     quantity?: number;
@@ -65,54 +67,69 @@ export class CreateBookingFromCartService {
           const rates = await this.pricingEngine.getTourRate(item.productId, item.date);
           if (!rates) throw new Error(`Rates for product ${item.productId} not found`);
 
-          const totalQuantity = item.adultPax + item.childPax;
-          if (totalQuantity > 0) {
-            const isVehicle = product.category === 'vehicle';
+          // PRICING NOTE: Infants and pets do NOT count toward capacity or pricing.
+          // Only adults and children consume seats / affect price.
+          const totalPricedPax = item.adultPax + item.childPax;
+
+          if (totalPricedPax > 0) {
+            const isVehicle = product.category === "vehicle";
             const duration = isVehicle ? (item.quantity || 1) : 1;
 
             if (isVehicle && duration > 1) {
               // Multi-day consistency
-              const availableResources = await this.storage.getAvailableResourcesMultiDay(product.id, item.date, duration);
+              const availableResources = await this.storage.getAvailableResourcesMultiDay(
+                product.id,
+                item.date,
+                duration
+              );
               if (availableResources.length === 0) {
-                throw new Error(`No single ${product.title} unit available for the entire period ${item.date} to ${duration} days.`);
+                throw new Error(
+                  `No single ${product.title} unit available for the entire period ${item.date} to ${duration} days.`
+                );
               }
               const pinnedResourceId = availableResources[0].id;
-
-              const startDateParts = item.date.split('-').map(Number);
-              const startDate = new Date(Date.UTC(startDateParts[0], startDateParts[1] - 1, startDateParts[2]));
+              const startDateParts = item.date.split("-").map(Number);
+              const startDate = new Date(
+                Date.UTC(startDateParts[0], startDateParts[1] - 1, startDateParts[2])
+              );
               for (let d = 0; d < duration; d++) {
                 const currentDate = new Date(startDate);
                 currentDate.setUTCDate(startDate.getUTCDate() + d);
-                const dateStr = currentDate.toISOString().split('T')[0];
-
-                const hold = await this.availabilityService.createHold({
-                  tourId: product.id,
-                  date: dateStr,
-                  slot: item.slot,
-                  quantity: totalQuantity,
-                  sessionId: cartId,
-                  startTime: item.startTime,
-                  endTime: item.endTime,
-                  pinnedResourceId
-                }, tx);
+                const dateStr = currentDate.toISOString().split("T")[0];
+                const hold = await this.availabilityService.createHold(
+                  {
+                    tourId: product.id,
+                    date: dateStr,
+                    slot: item.slot,
+                    quantity: totalPricedPax,
+                    sessionId: cartId,
+                    startTime: item.startTime,
+                    endTime: item.endTime,
+                    pinnedResourceId,
+                  },
+                  tx
+                );
                 createdHolds.push(hold.id);
               }
             } else {
-              // Single day lock
-              const hold = await this.availabilityService.createHold({
-                tourId: product.id,
-                date: item.date,
-                slot: item.slot,
-                quantity: totalQuantity,
-                sessionId: cartId,
-                startTime: item.startTime,
-                endTime: item.endTime
-              }, tx);
+              // Single day lock — infants/pets do NOT consume capacity slots
+              const hold = await this.availabilityService.createHold(
+                {
+                  tourId: product.id,
+                  date: item.date,
+                  slot: item.slot,
+                  quantity: totalPricedPax, // infants/pets excluded from capacity
+                  sessionId: cartId,
+                  startTime: item.startTime,
+                  endTime: item.endTime,
+                },
+                tx
+              );
               createdHolds.push(hold.id);
             }
           }
 
-          // Price calculation
+          // Price calculation — infants and pets are FREE, only adults + children priced
           const pricing = await this.pricingEngine.calculateLineItem(
             item.adultPax,
             item.childPax,
@@ -122,33 +139,37 @@ export class CreateBookingFromCartService {
           );
 
           let serverPricedTotalCents = pricing.breakdown.finalTotalCents;
-          const priceDuration = (product.category === 'vehicle') ? (item.quantity || 1) : 1; // LOW-3: renamed from `duration` to avoid shadowing L71
+          const priceDuration = product.category === "vehicle" ? item.quantity || 1 : 1;
           serverPricedTotalCents *= priceDuration;
 
           const subtotalCents = serverPricedTotalCents;
-          const unitPriceCents = totalQuantity > 0 ? Math.round(subtotalCents / totalQuantity) : 0;
+          const unitPriceCents =
+            totalPricedPax > 0 ? Math.round(subtotalCents / totalPricedPax) : 0;
 
           cart.addItem({
             productId: product.id,
             name: product.title,
-            unitPriceCents: unitPriceCents,
-            quantity: totalQuantity,
+            unitPriceCents,
+            quantity: totalPricedPax,
             adultPax: item.adultPax,
             childPax: item.childPax,
             date: item.date,
             slot: item.slot,
-            productType: product.category
+            productType: product.category,
           });
         }
 
         // 2. Price the Cart via Pricing Context
-        const snapshot = await this.priceCartService.priceCart(cartId, request.items.map(i => ({
-          productId: i.productId,
-          adultPax: i.adultPax,
-          childPax: i.childPax,
-          quantity: i.quantity,
-          addonIds: i.addonIds
-        })));
+        const snapshot = await this.priceCartService.priceCart(
+          cartId,
+          request.items.map((i) => ({
+            productId: i.productId,
+            adultPax: i.adultPax,
+            childPax: i.childPax,
+            quantity: i.quantity,
+            addonIds: i.addonIds,
+          }))
+        );
         cart.setPricedSnapshot(snapshot);
 
         // 3. Create Booking Aggregate
@@ -156,10 +177,10 @@ export class CreateBookingFromCartService {
         const domainBooking = DomainBooking.createFromCart(bookingId, cart, {
           name: request.customerName,
           email: request.customerEmail,
-          pickupLocation: request.pickupLocation
+          pickupLocation: request.pickupLocation,
         });
 
-        // 4. Persist
+        // 4. Resolve aggregate time window
         let aggregateStart: string | null = null;
         let aggregateEnd: string | null = null;
         for (const it of request.items) {
@@ -171,65 +192,72 @@ export class CreateBookingFromCartService {
           }
         }
 
-        // 4. Persist top-level booking record.
-        // CRIT-3: tourId, date, tourName, holdId are FIRST-ITEM-ONLY convenience fields
-        // for display/admin. The authoritative item-level data lives in bookingItems table.
-        // All holds are linked via bookingSessionId (cartId), not holdId.
-        const persistedBooking = await this.storage.createBooking({
-          id: domainBooking.id,
-          customerName: domainBooking.customerName,
-          customerEmail: domainBooking.customerEmail,
-          amount: snapshot.totalCents.toString(),
-          totalAmountCents: snapshot.totalCents,
-          status: 'pending',
-          date: request.items[0].date,                 // CRIT-3: first item only
-          guests: request.items.reduce((sum, i) => sum + i.adultPax + i.childPax, 0),
-          tourId: request.items[0].productId,           // CRIT-3: first item only
-          tourName: cart.getItems()[0].name,             // CRIT-3: first item only
-          adultPaxTotal: request.items.reduce((sum, i) => sum + i.adultPax, 0),
-          childPaxTotal: request.items.reduce((sum, i) => sum + i.childPax, 0),
-          holdId: createdHolds[0] || null,               // CRIT-3: first hold only; all via bookingSessionId
-          bookingSessionId: cartId,                      // AUTHORITATIVE: links all holds for this order
-          idempotencyKey: request.idempotencyKey || null,
-          startTime: aggregateStart,
-          endTime: aggregateEnd,
-          pickupLocation: request.pickupLocation || null
-        }, tx);
+        // 5. Persist top-level booking record.
+        // CRIT-3: tourId, date, tourName, holdId are FIRST-ITEM-ONLY convenience fields.
+        const persistedBooking = await this.storage.createBooking(
+          {
+            id: domainBooking.id,
+            customerName: domainBooking.customerName,
+            customerEmail: domainBooking.customerEmail,
+            amount: snapshot.totalCents.toString(),
+            totalAmountCents: snapshot.totalCents,
+            status: "pending",
+            date: request.items[0].date,
+            guests: request.items.reduce((sum, i) => sum + i.adultPax + i.childPax, 0),
+            tourId: request.items[0].productId,
+            tourName: cart.getItems()[0].name,
+            adultPaxTotal:  request.items.reduce((sum, i) => sum + i.adultPax, 0),
+            childPaxTotal:  request.items.reduce((sum, i) => sum + i.childPax, 0),
+            infantPaxTotal: request.items.reduce((sum, i) => sum + (i.infantPax ?? 0), 0), // NEW
+            petPaxTotal:    request.items.reduce((sum, i) => sum + (i.petPax ?? 0), 0),    // NEW
+            holdId: createdHolds[0] || null,
+            bookingSessionId: cartId,
+            idempotencyKey: request.idempotencyKey || null,
+            startTime: aggregateStart,
+            endTime: aggregateEnd,
+            pickupLocation: request.pickupLocation || null,
+          },
+          tx
+        );
 
-        // Persist all items
-        for (const item of cart.getItems()) {
-          await this.storage.createBookingItem({
-            bookingId: persistedBooking.id,
-            productId: item.productId,
-            productName: item.name,
-            productType: item.productType,
-            quantity: item.quantity,
-            unitPriceCents: item.unitPriceCents,
-            subtotalCents: item.unitPriceCents * item.quantity,
-            adultPax: item.adultPax,
-            childPax: item.childPax
-          }, tx);
+        // 6. Persist all items
+        for (let idx = 0; idx < cart.getItems().length; idx++) {
+          const item = cart.getItems()[idx];
+          const req = request.items[idx];
+          await this.storage.createBookingItem(
+            {
+              bookingId: persistedBooking.id,
+              productId: item.productId,
+              productName: item.name,
+              productType: item.productType,
+              quantity: item.quantity,
+              unitPriceCents: item.unitPriceCents,
+              subtotalCents: item.unitPriceCents * item.quantity,
+              adultPax:  item.adultPax,
+              childPax:  item.childPax,
+              infantPax: req?.infantPax ?? 0,  // NEW
+              petPax:    req?.petPax ?? 0,     // NEW
+            },
+            tx
+          );
         }
 
-        // 5. Emit Event
-        await eventDispatcher.dispatch(new BookingCreated(domainBooking.id, domainBooking.amountCents));
+        // 7. Emit Event
+        await eventDispatcher.dispatch(
+          new BookingCreated(domainBooking.id, domainBooking.amountCents)
+        );
 
         return persistedBooking;
-
       } catch (error) {
         const elapsedMs = Date.now() - startTime;
         const errorMessage = error instanceof Error ? error.message : "unknown_error";
-
-        // Phase 8: Metrics
         console.error(`[BOOKING_CREATION_FAILED] ${errorMessage}`, {
           request: { ...request, items: request.items.length },
-          stack: error instanceof Error ? error.stack : undefined
+          stack: error instanceof Error ? error.stack : undefined,
         });
         metricsService.incrementFailure(errorMessage);
         metricsService.recordErrorSnippet("BOOKING_CREATION_FAILED", errorMessage);
         metricsService.recordTransactionTime(elapsedMs);
-
-        // Transaction will rollback automatically
         throw error;
       }
     });

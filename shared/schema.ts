@@ -104,6 +104,8 @@ export const bookings = pgTable("bookings", {
   currency: varchar("currency", { length: 3 }).notNull().default("VUV"),
   adultPaxTotal: integer("adult_pax_total").notNull().default(0),
   childPaxTotal: integer("child_pax_total").notNull().default(0),
+  infantPaxTotal: integer("infant_pax_total").notNull().default(0),  // Infants under 2 — no pricing impact
+  petPaxTotal: integer("pet_pax_total").notNull().default(0),     // Pets — no pricing impact
   status: text("status").notNull().default("pending"), // 'pending', 'confirmed', 'completed', 'cancelled'
   paymentReference: text("payment_reference"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -130,6 +132,8 @@ export const bookingItems = pgTable("booking_items", {
   subtotalCents: integer("subtotal_cents").notNull(),
   adultPax: integer("adult_pax").notNull().default(0),
   childPax: integer("child_pax").notNull().default(0),
+  infantPax: integer("infant_pax").notNull().default(0),  // Infants under 2 — manifesting only
+  petPax: integer("pet_pax").notNull().default(0),     // Pets — manifesting only
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

@@ -82,6 +82,8 @@ const createBookingItemSchema = z.object({
   productId: z.string(),
   adultPax: z.number().int().min(0),
   childPax: z.number().int().min(0),
+  infantPax: z.number().int().min(0).default(0), // NEW — infants under 2, free, no capacity impact
+  petPax: z.number().int().min(0).default(0), // NEW — pets, free, manifesting only
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format (YYYY-MM-DD)"),
   addonIds: z.array(z.string()).optional(),
   slot: z.string().optional(),
@@ -484,6 +486,8 @@ export async function registerRoutes(
         productId: String(item.productId || item.id),
         adultPax: parseInt(item.adultPax) || 0,
         childPax: parseInt(item.childPax) || 0,
+        infantPax: parseInt(item.infantPax) || 0, // NEW — stored, not priced
+        petPax: parseInt(item.petPax) || 0, // NEW — stored, not priced
         quantity: parseInt(item.quantity) || 1,
         addonIds: item.addonIds || []
       }));
