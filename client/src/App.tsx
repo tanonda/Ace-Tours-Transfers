@@ -54,6 +54,7 @@ const AdminPricing = lazy(() => import("@/pages/admin/pricing"));
 const AdminBlackouts = lazy(() => import("@/pages/admin/blackouts"));
 const AdminCapacity = lazy(() => import("@/pages/admin/capacity-dashboard"));
 const AdminAuditLogs = lazy(() => import("@/pages/admin/audit-logs"));
+const AdminReviews = lazy(() => import("@/pages/admin/reviews"));
 
 // Customer pages
 const CustomerDashboard = lazy(() => import("@/pages/customer/dashboard"));
@@ -158,6 +159,9 @@ function Router() {
         </Route>
         <Route path="/admin/audit-logs">
           <ProtectedRoute requireAdmin><AdminAuditLogs /></ProtectedRoute>
+        </Route>
+        <Route path="/admin/reviews">
+          <ProtectedRoute requireAdmin><AdminReviews /></ProtectedRoute>
         </Route>
 
         {/* Customer Routes - Protected */}

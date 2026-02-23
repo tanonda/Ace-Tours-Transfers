@@ -837,11 +837,17 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
 
 export const reviews = pgTable("reviews", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull().references(() => users.id),
+  userId: varchar("user_id").references(() => users.id), // nullable — guests have no user account
   tourId: varchar("tour_id").notNull().references(() => tours.id),
-  bookingId: varchar("booking_id").notNull().references(() => bookings.id),
+  bookingId: varchar("booking_id").references(() => bookings.id), // nullable — guests may not have a booking ref
   rating: integer("rating").notNull(), // 1 to 5
   comment: text("comment"),
+  // Moderation
+  status: varchar("status", { length: 20 }).notNull().default("approved"), // 'pending' | 'approved' | 'rejected'
+  // Guest reviewer fields (populated when userId is null)
+  guestName: varchar("guest_name", { length: 200 }),
+  guestEmail: varchar("guest_email", { length: 300 }),
+  isGuest: boolean("is_guest").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -871,6 +877,13 @@ export type Notification = typeof notifications.$inferSelect;
 export const insertReviewSchema = createInsertSchema(reviews).omit({
   id: true,
   createdAt: true,
+}).partial({
+  userId: true,
+  bookingId: true,
+  status: true,
+  guestName: true,
+  guestEmail: true,
+  isGuest: true,
 });
 
 export type InsertReview = z.infer<typeof insertReviewSchema>;
