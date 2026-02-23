@@ -77,7 +77,8 @@ export function Hero() {
   const [transferDate, setTransferDate] = useState<Date | undefined>(undefined);
   const [fromLocation, setFromLocation] = useState<string>("");
   const [toLocation, setToLocation] = useState<string>("");
-  const [transferPassengers, setTransferPassengers] = useState<number>(2);
+  const [transferAdultPassengers, setTransferAdultPassengers] = useState<number>(2);
+  const [transferChildPassengers, setTransferChildPassengers] = useState<number>(0);
 
   // Vehicle fields
   const [pickupDate, setPickupDate] = useState<Date | undefined>(undefined);
@@ -141,11 +142,12 @@ export function Hero() {
       updateDraft({ date: tourDate ? format(tourDate, "yyyy-MM-dd") : "", adultPax: adultGuests, childPax: childGuests });
     } else if (category === "transfer") {
       if (transferDate) params.set("date", format(transferDate, "yyyy-MM-dd"));
-      params.set("adults", transferPassengers.toString());
-      params.set("guests", transferPassengers.toString());
+      params.set("adults", transferAdultPassengers.toString());
+      params.set("children", transferChildPassengers.toString());
+      params.set("guests", (transferAdultPassengers + transferChildPassengers).toString());
       if (fromLocation) params.set("from", fromLocation);
       if (toLocation) params.set("to", toLocation);
-      updateDraft({ date: transferDate ? format(transferDate, "yyyy-MM-dd") : "", adultPax: transferPassengers, childPax: 0 });
+      updateDraft({ date: transferDate ? format(transferDate, "yyyy-MM-dd") : "", adultPax: transferAdultPassengers, childPax: transferChildPassengers });
     } else if (category === "vehicle") {
       if (pickupDate) params.set("pickup", format(pickupDate, "yyyy-MM-dd"));
       if (returnDate) params.set("return", format(returnDate, "yyyy-MM-dd"));
@@ -239,16 +241,32 @@ export function Hero() {
           <DatePickerIsland label="Transfer Date" value={transferDate} onChange={setTransferDate} colSpan="md:col-span-6 lg:col-span-2" />
           <Island className="md:col-span-6 lg:col-span-2">
             <IslandLabel label="Passengers" />
-            <div className="flex items-center justify-between gap-1 h-14">
-              <div className="flex items-center gap-2 text-sm font-semibold text-gray-700 min-w-0 pr-1">
-                <div className="h-7 w-7 rounded-xl bg-orange-50 flex items-center justify-center text-[#f2800d] shrink-0 group-hover/island:bg-[#f2800d] group-hover/island:text-white transition-all">
-                  <Users className="h-3.5 w-3.5" />
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-1">
+                <div className="flex items-center gap-2 text-sm font-semibold text-gray-700 min-w-0 pr-1">
+                  <div className="h-7 w-7 rounded-xl bg-orange-50 flex items-center justify-center text-[#f2800d] shrink-0 group-hover/island:bg-[#f2800d] group-hover/island:text-white transition-all">
+                    <Users className="h-3.5 w-3.5" />
+                  </div>
+                  <span className="truncate">Adults</span>
                 </div>
-                <span className="truncate hidden 2xl:inline-block">Total</span>
+                <CounterInput id="transfer-adult-count" name="adults" value={transferAdultPassengers} onValueChange={setTransferAdultPassengers}
+                  min={1} max={50} label="Adults" className="h-9 bg-transparent border-0 hover:bg-transparent shadow-none px-0 w-[100px] shrink-0"
+                  inputClassName="bg-transparent border-0 h-full text-sm font-bold text-gray-900 text-center" />
               </div>
-              <CounterInput id="transfer-pax" name="passengers" value={transferPassengers} onValueChange={setTransferPassengers}
-                min={1} max={50} label="Passengers" className="h-9 bg-transparent border-0 hover:bg-transparent shadow-none px-0 w-full max-w-[100px] shrink-0"
-                inputClassName="bg-transparent border-0 h-full text-sm font-bold text-gray-900 text-center" />
+              <div className="flex items-center justify-between gap-1">
+                <div className="flex items-center gap-2 text-sm font-semibold text-gray-700 min-w-0 pr-1">
+                  <div className="h-7 w-7 rounded-xl bg-blue-50 flex items-center justify-center text-blue-400 shrink-0">
+                    <Users className="h-3.5 w-3.5" />
+                  </div>
+                  <div className="flex flex-col leading-tight truncate">
+                    <span>Children</span>
+                    <span className="text-gray-400 font-normal text-[0.65rem]">&lt; 12 yrs</span>
+                  </div>
+                </div>
+                <CounterInput id="transfer-child-count" name="children" value={transferChildPassengers} onValueChange={setTransferChildPassengers}
+                  min={0} max={30} label="Children" className="h-9 bg-transparent border-0 hover:bg-transparent shadow-none px-0 w-[100px] shrink-0"
+                  inputClassName="bg-transparent border-0 h-full text-sm font-bold text-gray-900 text-center" />
+              </div>
             </div>
           </Island>
         </>
