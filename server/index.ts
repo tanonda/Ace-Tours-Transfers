@@ -35,12 +35,15 @@ validateConfig();
 // Global handler for unhandled promise rejections
 process.on('unhandledRejection', (reason, promise) => {
   console.error('[FATAL] Unhandled Rejection at:', promise, 'reason:', reason);
+  if (process.env.SENTRY_DSN) {
+    Sentry.captureException(reason);
+  }
   // Log and continue - some library-level errors (like Neon's ErrorEvent issue) 
   // shouldn't crash the entire process.
 });
 
 // Global handler for uncaught exceptions
-process.on('uncaughtException', (err) => {
+process.on('uncaughtException', async (err) => {
   console.error('[FATAL] Uncaught Exception:', err);
 
   // If it's the specific Neon TypeError, we can safely ignore/log it as it's a library bug
@@ -48,6 +51,11 @@ process.on('uncaughtException', (err) => {
   if (err instanceof TypeError && err.message.includes('Cannot set property message of #<ErrorEvent>')) {
     console.warn('[RECOVERY] Suppressed Neon library bug. Continuing...');
     return;
+  }
+
+  if (process.env.SENTRY_DSN) {
+    Sentry.captureException(err);
+    await Sentry.flush(2000);
   }
 
   // H6 Fix: Crash on all other critical errors to allow process manager restart
@@ -375,14 +383,14 @@ app.use((req, res, next) => {
     console.error('Failed to initialize Domain Event Handlers:', eventError);
   }
 
+  // Set up native Express error handler automatically provided by Sentry
+  if (process.env.SENTRY_DSN) {
+    Sentry.setupExpressErrorHandler(app);
+  }
+
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
-
-    // Report to Sentry if initialized
-    if (process.env.SENTRY_DSN && status >= 500) {
-      Sentry.captureException(err);
-    }
 
     res.status(status).json({ message });
   });
