@@ -188,19 +188,19 @@ export function Hero() {
           <Island className="md:col-span-6 lg:col-span-3">
             <IslandLabel label={t("hero.guests", "Guests")} />
             <div className="space-y-2">
-              <div className="flex items-center justify-between gap-1">
-                <div className="flex items-center gap-2 text-sm font-semibold text-gray-700 min-w-0 pr-1">
+              <div className="flex items-center justify-between gap-1 w-full">
+                <div className="flex items-center gap-2 text-sm font-semibold text-gray-700 min-w-0 pr-1 flex-1">
                   <div className="h-7 w-7 rounded-xl bg-orange-50 flex items-center justify-center text-[#f2800d] shrink-0 group-hover/island:bg-[#f2800d] group-hover/island:text-white transition-all">
                     <Users className="h-3.5 w-3.5" />
                   </div>
                   <span className="truncate">Adults</span>
                 </div>
                 <CounterInput id="hero-adult-count" name="adults" value={adultGuests} onValueChange={setAdultGuests}
-                  min={1} max={50} label="Adults" className="h-9 bg-transparent border-0 hover:bg-transparent shadow-none px-0 w-24 ml-auto shrink-0"
+                  min={1} max={50} label="Adults" className="h-9 bg-transparent border-0 hover:bg-transparent shadow-none px-0 w-[110px] shrink-0"
                   inputClassName="bg-transparent border-0 h-full text-sm font-bold text-gray-900 text-center" />
               </div>
-              <div className="flex items-center justify-between gap-1">
-                <div className="flex items-center gap-2 text-sm font-semibold text-gray-700 min-w-0 pr-1">
+              <div className="flex items-center justify-between gap-1 w-full">
+                <div className="flex items-center gap-2 text-sm font-semibold text-gray-700 min-w-0 pr-1 flex-1">
                   <div className="h-7 w-7 rounded-xl bg-blue-50 flex items-center justify-center text-blue-400 shrink-0">
                     <Users className="h-3.5 w-3.5" />
                   </div>
@@ -210,7 +210,7 @@ export function Hero() {
                   </div>
                 </div>
                 <CounterInput id="hero-child-count" name="children" value={childGuests} onValueChange={setChildGuests}
-                  min={0} max={30} label="Children" className="h-9 bg-transparent border-0 hover:bg-transparent shadow-none px-0 w-24 ml-auto shrink-0"
+                  min={0} max={30} label="Children" className="h-9 bg-transparent border-0 hover:bg-transparent shadow-none px-0 w-[110px] shrink-0"
                   inputClassName="bg-transparent border-0 h-full text-sm font-bold text-gray-900 text-center" />
               </div>
             </div>
@@ -242,19 +242,19 @@ export function Hero() {
           <Island className="md:col-span-6 lg:col-span-2">
             <IslandLabel label="Passengers" />
             <div className="space-y-2">
-              <div className="flex items-center justify-between gap-1">
-                <div className="flex items-center gap-2 text-sm font-semibold text-gray-700 min-w-0 pr-1">
+              <div className="flex items-center justify-between gap-1 w-full">
+                <div className="flex items-center gap-2 text-sm font-semibold text-gray-700 min-w-0 pr-1 flex-1">
                   <div className="h-7 w-7 rounded-xl bg-orange-50 flex items-center justify-center text-[#f2800d] shrink-0 group-hover/island:bg-[#f2800d] group-hover/island:text-white transition-all">
                     <Users className="h-3.5 w-3.5" />
                   </div>
                   <span className="truncate">Adults</span>
                 </div>
                 <CounterInput id="transfer-adult-count" name="adults" value={transferAdultPassengers} onValueChange={setTransferAdultPassengers}
-                  min={1} max={50} label="Adults" className="h-9 bg-transparent border-0 hover:bg-transparent shadow-none px-0 w-24 ml-auto shrink-0"
+                  min={1} max={50} label="Adults" className="h-9 bg-transparent border-0 hover:bg-transparent shadow-none px-0 w-[110px] shrink-0"
                   inputClassName="bg-transparent border-0 h-full text-sm font-bold text-gray-900 text-center" />
               </div>
-              <div className="flex items-center justify-between gap-1">
-                <div className="flex items-center gap-2 text-sm font-semibold text-gray-700 min-w-0 pr-1">
+              <div className="flex items-center justify-between gap-1 w-full">
+                <div className="flex items-center gap-2 text-sm font-semibold text-gray-700 min-w-0 pr-1 flex-1">
                   <div className="h-7 w-7 rounded-xl bg-blue-50 flex items-center justify-center text-blue-400 shrink-0">
                     <Users className="h-3.5 w-3.5" />
                   </div>
@@ -264,7 +264,7 @@ export function Hero() {
                   </div>
                 </div>
                 <CounterInput id="transfer-child-count" name="children" value={transferChildPassengers} onValueChange={setTransferChildPassengers}
-                  min={0} max={30} label="Children" className="h-9 bg-transparent border-0 hover:bg-transparent shadow-none px-0 w-24 ml-auto shrink-0"
+                  min={0} max={30} label="Children" className="h-9 bg-transparent border-0 hover:bg-transparent shadow-none px-0 w-[110px] shrink-0"
                   inputClassName="bg-transparent border-0 h-full text-sm font-bold text-gray-900 text-center" />
               </div>
             </div>
