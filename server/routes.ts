@@ -497,10 +497,10 @@ ${allPages.map(p => `  <url>
           ...b,
           fraud: bAny.fraudLevel != null
             ? {
-                score: bAny.fraudScore ?? 0,
-                level: bAny.fraudLevel,
-                signals: Array.isArray(bAny.fraudSignals) ? bAny.fraudSignals : [],
-              }
+              score: bAny.fraudScore ?? 0,
+              level: bAny.fraudLevel,
+              signals: Array.isArray(bAny.fraudSignals) ? bAny.fraudSignals : [],
+            }
             : null,
         };
       });
@@ -832,10 +832,10 @@ ${allPages.map(p => `  <url>
       }
 
       // Soft-delete: check for dependencies first
-      const [instanceCount] = await db.execute(sql`SELECT count(*)::int AS n FROM tour_instances WHERE tour_id = ${id}`);
-      const [bookingCount] = await db.execute(sql`SELECT count(*)::int AS n FROM bookings WHERE tour_id = ${id}`);
-      const instances = (instanceCount as any)?.n ?? 0;
-      const bkgs = (bookingCount as any)?.n ?? 0;
+      const instanceResult = await db.execute(sql`SELECT count(*)::int AS n FROM tour_instances WHERE tour_id = ${id}`);
+      const bookingResult = await db.execute(sql`SELECT count(*)::int AS n FROM bookings WHERE tour_id = ${id}`);
+      const instances = (instanceResult.rows[0] as any)?.n ?? 0;
+      const bkgs = (bookingResult.rows[0] as any)?.n ?? 0;
 
       if (instances > 0 || bkgs > 0) {
         // Has live data — soft-delete only (hide from storefront)
