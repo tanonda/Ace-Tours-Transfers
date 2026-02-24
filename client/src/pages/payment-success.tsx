@@ -24,6 +24,8 @@ type BookingItem = {
   productName?: string;
   adultPax?: number;
   childPax?: number;
+  infantPax?: number;
+  petPax?: number;
   date?: string;
   startTime?: string;
 };
@@ -63,6 +65,8 @@ export default function PaymentSuccess() {
     pickupLocation?: string;
     adultPaxTotal?: number;
     childPaxTotal?: number;
+    infantPaxTotal?: number;
+    petPaxTotal?: number;
     guests?: number;
   }>({
     queryKey: ["booking", bookingId],
@@ -104,6 +108,8 @@ export default function PaymentSuccess() {
   const bookingDate = firstItem?.date || booking?.date;
   const adultCount = firstItem?.adultPax || booking?.adultPaxTotal || 0;
   const childCount = firstItem?.childPax || booking?.childPaxTotal || 0;
+  const infantCount = firstItem?.infantPax || booking?.infantPaxTotal || 0;
+  const petCount = firstItem?.petPax || booking?.petPaxTotal || 0;
 
   const copyRef = () => {
     navigator.clipboard.writeText(displayRef);
@@ -188,11 +194,13 @@ export default function PaymentSuccess() {
                                 {format(new Date(bookingDate), "EEE, MMM d, yyyy")}
                               </span>
                             )}
-                            {adultCount > 0 && (
-                              <span className="flex items-center gap-1">
+                            {(adultCount > 0 || childCount > 0) && (
+                              <span className="flex flex-wrap items-center gap-1">
                                 <Users className="h-3 w-3" />
-                                {adultCount} adult{adultCount > 1 ? 's' : ''}
-                                {childCount > 0 && `, ${childCount} child${childCount > 1 ? 'ren' : ''}`}
+                                {adultCount} adult{adultCount !== 1 ? 's' : ''}
+                                {childCount > 0 && `, ${childCount} child${childCount !== 1 ? 'ren' : ''}`}
+                                {infantCount > 0 && `, ${infantCount} infant${infantCount !== 1 ? 's' : ''}`}
+                                {petCount > 0 && `, ${petCount} pet${petCount !== 1 ? 's' : ''}`}
                               </span>
                             )}
                           </div>

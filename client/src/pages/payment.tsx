@@ -63,6 +63,8 @@ type BookingItem = {
   productName?: string;
   adultPax?: number;
   childPax?: number;
+  infantPax?: number;
+  petPax?: number;
   date?: string;
   startTime?: string;
   endTime?: string;
@@ -83,6 +85,8 @@ type BookingDetails = {
   pickupLocation?: string;
   adultPaxTotal?: number;
   childPaxTotal?: number;
+  infantPaxTotal?: number;
+  petPaxTotal?: number;
   guests?: number;
   currency?: string;
 };
@@ -372,7 +376,7 @@ export default function Payment() {
                       <p className="text-xs text-muted-foreground truncate">{bookingDetails.customerEmail}</p>
                     </div>
                     <Badge variant="secondary" className="ml-auto text-[10px] shrink-0">
-                      Ref ACT-{(bookingDetails.id||'').replace(/^book_/i,'').replace(/-/g,'').slice(0,8).toUpperCase()}
+                      Ref ACT-{(bookingDetails.id || '').replace(/^book_/i, '').replace(/-/g, '').slice(0, 8).toUpperCase()}
                     </Badge>
                   </div>
 
@@ -395,14 +399,23 @@ export default function Payment() {
                                   <span className="flex items-center gap-1">
                                     <Clock className="h-3 w-3" />
                                     {item.startTime}
+                                    {item.endTime && ` - ${item.endTime}`}
                                   </span>
                                 )}
                                 <span className="flex items-center gap-1">
                                   <Users className="h-3 w-3" />
-                                  {item.adultPax || bookingDetails.adultPaxTotal || 1} adult{(item.adultPax || bookingDetails.adultPaxTotal || 1) > 1 ? 's' : ''}
-                                  {(item.childPax || bookingDetails.childPaxTotal || 0) > 0 && (
-                                    <>, {item.childPax || bookingDetails.childPaxTotal} child{(item.childPax || bookingDetails.childPaxTotal || 0) > 1 ? 'ren' : ''}</>
-                                  )}
+                                  <span className="flex flex-wrap items-center gap-1">
+                                    {item.adultPax || bookingDetails.adultPaxTotal || 1} adult{((item.adultPax || bookingDetails.adultPaxTotal || 1) > 1) ? 's' : ''}
+                                    {(item.childPax || bookingDetails.childPaxTotal || 0) > 0 && (
+                                      <>, {item.childPax || bookingDetails.childPaxTotal} child{((item.childPax || bookingDetails.childPaxTotal || 0) > 1) ? 'ren' : ''}</>
+                                    )}
+                                    {!!item.infantPax && item.infantPax > 0 && (
+                                      <>, {item.infantPax} infant{item.infantPax > 1 ? 's' : ''}</>
+                                    )}
+                                    {!!item.petPax && item.petPax > 0 && (
+                                      <>, {item.petPax} pet{item.petPax > 1 ? 's' : ''}</>
+                                    )}
+                                  </span>
                                 </span>
                               </div>
                             </div>
@@ -430,6 +443,12 @@ export default function Payment() {
                           <span className="flex items-center gap-1">
                             <Users className="h-3 w-3" />
                             {bookingDetails.guests} guest{bookingDetails.guests > 1 ? 's' : ''}
+                            {!!bookingDetails.infantPaxTotal && bookingDetails.infantPaxTotal > 0 && (
+                              <>, {bookingDetails.infantPaxTotal} infant{bookingDetails.infantPaxTotal > 1 ? 's' : ''}</>
+                            )}
+                            {!!bookingDetails.petPaxTotal && bookingDetails.petPaxTotal > 0 && (
+                              <>, {bookingDetails.petPaxTotal} pet{bookingDetails.petPaxTotal > 1 ? 's' : ''}</>
+                            )}
                           </span>
                         )}
                       </div>

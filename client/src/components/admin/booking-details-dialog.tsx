@@ -20,7 +20,7 @@ export function BookingDetailsDialog({ booking, open, onOpenChange }: BookingDet
   if (!booking) return null;
 
   const getStatusColor = (status: string) => {
-    switch(status) {
+    switch (status) {
       case "confirmed": return "bg-green-100 text-green-800 hover:bg-green-100";
       case "pending": return "bg-yellow-100 text-yellow-800 hover:bg-yellow-100";
       case "completed": return "bg-blue-100 text-blue-800 hover:bg-blue-100";
@@ -43,7 +43,7 @@ export function BookingDetailsDialog({ booking, open, onOpenChange }: BookingDet
             Booking Reference: <span className="font-mono font-medium text-foreground">{booking.id}</span>
           </DialogDescription>
         </DialogHeader>
-        
+
         <div className="grid gap-6 py-4">
           <div className="grid grid-cols-2 gap-6">
             <div className="space-y-4">
@@ -52,27 +52,35 @@ export function BookingDetailsDialog({ booking, open, onOpenChange }: BookingDet
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Customer</p>
                   <p className="font-medium">{booking.customerName}</p>
-                  <p className="text-sm text-muted-foreground">customer@example.com</p>
-                  <p className="text-sm text-muted-foreground">+678 123 4567</p>
+                  <p className="text-sm text-muted-foreground">{booking.customerEmail || "No email"}</p>
+                  <p className="text-sm text-muted-foreground">{booking.customerPhone || "No phone"}</p>
                 </div>
               </div>
-              
+
               <div className="flex items-start gap-3">
                 <Users className="h-5 w-5 text-muted-foreground mt-0.5" />
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Guests</p>
-                  <p className="font-medium">{booking.guests} People</p>
+                  <p className="font-medium">
+                    {booking.guests} Total
+                    <span className="text-xs text-muted-foreground ml-2 block">
+                      {booking.adultPaxTotal || 0} A
+                      {(booking.childPaxTotal || 0) > 0 && `, ${booking.childPaxTotal} C`}
+                      {(booking.infantPaxTotal || 0) > 0 && `, ${booking.infantPaxTotal} I`}
+                      {(booking.petPaxTotal || 0) > 0 && `, ${booking.petPaxTotal} P`}
+                    </span>
+                  </p>
                 </div>
               </div>
             </div>
-            
+
             <div className="space-y-4">
               <div className="flex items-start gap-3">
                 <MapPin className="h-5 w-5 text-muted-foreground mt-0.5" />
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Tour / Service</p>
                   <p className="font-medium">{booking.tourName}</p>
-                  <p className="text-sm text-muted-foreground">Pickup: Grand Hotel</p>
+                  <p className="text-sm text-muted-foreground">Pickup: {booking.pickupLocation || "N/A"}</p>
                 </div>
               </div>
 
@@ -80,8 +88,8 @@ export function BookingDetailsDialog({ booking, open, onOpenChange }: BookingDet
                 <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Date & Time</p>
-                  <p className="font-medium">{booking.date}</p>
-                  <p className="text-sm text-muted-foreground">08:00 AM</p>
+                  <p className="font-medium">{booking.date ? new Date(booking.date).toLocaleDateString() : "N/A"}</p>
+                  <p className="text-sm text-muted-foreground">{booking.notes ? `Notes: ${booking.notes}` : "No Notes"}</p>
                 </div>
               </div>
             </div>
@@ -94,7 +102,7 @@ export function BookingDetailsDialog({ booking, open, onOpenChange }: BookingDet
               <CreditCard className="h-5 w-5 text-[#004165]" />
               <span className="font-medium text-[#004165]">Total Amount</span>
             </div>
-            <span className="text-2xl font-bold text-[#004165]">{booking.amount}</span>
+            <span className="text-2xl font-bold text-[#004165]">{booking.amount} {booking.currency || "VT"}</span>
           </div>
 
           <div className="space-y-2">

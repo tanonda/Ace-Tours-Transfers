@@ -31,6 +31,8 @@ export default function PaymentCancel() {
             date: item.date,
             adultPax: item.adultPax || item.guests || 1,
             childPax: item.childPax || 0,
+            infantPax: item.infantPax || 0,
+            petPax: item.petPax || 0,
             type: item.type || "tour",
           });
         });

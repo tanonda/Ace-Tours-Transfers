@@ -60,7 +60,7 @@ async function getAppUrl(): Promise<string> {
     const { storage } = await import("../storage.js");
     const setting = await storage.getSiteSetting("app_url");
     const raw = (typeof setting?.value === "string" ? setting.value : "") ||
-                process.env.APP_URL || "https://acetours.vu";
+      process.env.APP_URL || "https://acetours.vu";
     _cachedAppUrl = raw.replace(/\/$/, "");
     _cacheExpiry = Date.now() + 60_000;
     return _cachedAppUrl;
@@ -127,10 +127,28 @@ function emailFooter(extra = ""): string {
     </div>`;
 }
 
-function bookingDetailsRows(eTour: string, eDate: string, eGuests: string, eAmount: string): string {
+function formatPaxSummary(booking: any): string {
+  const parts = [];
+  if (booking.adultPaxTotal > 0) parts.push(`${booking.adultPaxTotal} Adult(s)`);
+  if (booking.childPaxTotal > 0) parts.push(`${booking.childPaxTotal} Child(ren)`);
+  if (booking.infantPaxTotal > 0) parts.push(`${booking.infantPaxTotal} Infant(s)`);
+  if (booking.petPaxTotal > 0) parts.push(`${booking.petPaxTotal} Pet(s)`);
+  if (parts.length > 0) return escapeHtml(parts.join(', '));
+  return escapeHtml(String(booking.guests || 1));
+}
+
+function formatTimeSummary(booking: any): string {
+  if (booking.startTime && booking.endTime) return escapeHtml(`${booking.startTime} - ${booking.endTime}`);
+  if (booking.startTime) return escapeHtml(booking.startTime);
+  return "";
+}
+
+function bookingDetailsRows(eTour: string, eDate: string, eGuests: string, eAmount: string, eTime: string = ""): string {
+  const timeRow = eTime ? `<tr><td style="padding: 9px 0; color: #6b7280; font-size: 14px; border-bottom: 1px solid #f3f4f6;">Time</td><td style="padding: 9px 0; color: #111827; font-weight: 600; font-size: 14px; border-bottom: 1px solid #f3f4f6;">${eTime}</td></tr>` : "";
   return `
     <tr><td style="padding: 9px 0; color: #6b7280; width: 130px; font-size: 14px; border-bottom: 1px solid #f3f4f6;">Tour / Service</td><td style="padding: 9px 0; color: #111827; font-weight: 600; font-size: 14px; border-bottom: 1px solid #f3f4f6;">${eTour}</td></tr>
     <tr><td style="padding: 9px 0; color: #6b7280; font-size: 14px; border-bottom: 1px solid #f3f4f6;">Date</td><td style="padding: 9px 0; color: #111827; font-weight: 600; font-size: 14px; border-bottom: 1px solid #f3f4f6;">${eDate}</td></tr>
+    ${timeRow}
     <tr><td style="padding: 9px 0; color: #6b7280; font-size: 14px; border-bottom: 1px solid #f3f4f6;">Guests</td><td style="padding: 9px 0; color: #111827; font-weight: 600; font-size: 14px; border-bottom: 1px solid #f3f4f6;">${eGuests}</td></tr>
     <tr><td style="padding: 9px 0; color: #6b7280; font-size: 14px;">Total Amount</td><td style="padding: 9px 0; color: #059669; font-weight: 700; font-size: 16px;">${eAmount}</td></tr>`;
 }
@@ -173,26 +191,27 @@ export async function getBookingRequestTemplate(
   const appUrl = await getAppUrl();
   const logoUrl = `${appUrl}/assets/logo.png`;
 
-  const eId     = escapeHtml(shortBookingRef(booking.id));
-  const eName   = escapeHtml(booking.customerName);
-  const eTour   = escapeHtml(tour.title);
-  const eDate   = escapeHtml(booking.date);
-  const eGuests = escapeHtml(booking.guests);
+  const eId = escapeHtml(shortBookingRef(booking.id));
+  const eName = escapeHtml(booking.customerName);
+  const eTour = escapeHtml(tour.title);
+  const eDate = escapeHtml(booking.date);
+  const eTime = formatTimeSummary(booking);
+  const eGuests = formatPaxSummary(booking);
   const eAmount = escapeHtml(booking.amount);
 
   // Pre-generate QR code for embedding in email
   const qrDataUrl = await generateQrDataUrl(booking.id);
 
-  const isCash    = paymentMethod === "cash";
+  const isCash = paymentMethod === "cash";
   const isOffline = paymentMethod === "offline" || paymentMethod === "bank_transfer" || isCash;
-  const isOnline  = paymentMethod === "online";
+  const isOnline = paymentMethod === "online";
 
-  const bankName      = process.env.BANK_NAME || "ANZ Bank (Vanuatu) Ltd";
-  const accountName   = process.env.BANK_ACCOUNT_NAME || "Ace Tours &amp; Transfers";
+  const bankName = process.env.BANK_NAME || "ANZ Bank (Vanuatu) Ltd";
+  const accountName = process.env.BANK_ACCOUNT_NAME || "Ace Tours &amp; Transfers";
   const accountNumber = process.env.BANK_ACCOUNT_NUMBER || "Contact us for account details";
-  const swiftCode     = process.env.BANK_SWIFT_CODE || "";
-  const branchCode    = process.env.BANK_BRANCH_CODE || "";
-  const waNumber      = process.env.WHATSAPP_NUMBER || "6787744444";
+  const swiftCode = process.env.BANK_SWIFT_CODE || "";
+  const branchCode = process.env.BANK_BRANCH_CODE || "";
+  const waNumber = process.env.WHATSAPP_NUMBER || "6787744444";
 
   let paymentBlock = "";
 
@@ -256,10 +275,10 @@ export async function getBookingRequestTemplate(
   const introText = isCash
     ? "We've received your booking request. Please pay at the start of your tour — no payment is needed now."
     : isOffline
-    ? "We've received your booking request. Please complete your bank transfer using the instructions below to secure your spot."
-    : isOnline
-    ? "We've received your booking request. Please complete your payment to confirm your reservation."
-    : "We've received your booking request. Our team will be in touch shortly.";
+      ? "We've received your booking request. Please complete your bank transfer using the instructions below to secure your spot."
+      : isOnline
+        ? "We've received your booking request. Please complete your payment to confirm your reservation."
+        : "We've received your booking request. Our team will be in touch shortly.";
 
   return emailWrapper(`
     ${emailHeader(logoUrl, "Booking Request Received", "We've got your booking request")}
@@ -274,8 +293,8 @@ export async function getBookingRequestTemplate(
       <div style="background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
         <h3 style="margin: 0 0 14px 0; color: #004165; font-size: 15px; font-weight: 700;">📋 Booking Details</h3>
         <table style="width: 100%; border-collapse: collapse;">
-          ${bookingDetailsRows(eTour, eDate, eGuests, eAmount)}
-          <tr><td style="padding: 9px 0; color: #6b7280; font-size: 14px;">Status</td><td style="padding: 9px 0; font-size: 14px;"><span style="background: #fef3c7; color: #92400e; padding: 3px 10px; border-radius: 20px; font-weight: 600; font-size: 12px;">PENDING</span></td></tr>
+          ${bookingDetailsRows(eTour, eDate, eGuests, eAmount, eTime)}
+          <tr><td style="padding: 9px 0; color: #6b7280; font-size: 14px; border-top: 1px solid #f3f4f6;">Status</td><td style="padding: 9px 0; font-size: 14px; border-top: 1px solid #f3f4f6;"><span style="background: #fef3c7; color: #92400e; padding: 3px 10px; border-radius: 20px; font-weight: 600; font-size: 12px;">PENDING</span></td></tr>
         </table>
       </div>
 
@@ -300,14 +319,15 @@ export async function getBookingConfirmedTemplate(booking: any, tour: any): Prom
   const appUrl = await getAppUrl();
   const logoUrl = `${appUrl}/assets/logo.png`;
 
-  const eId          = escapeHtml(shortBookingRef(booking.id));
-  const eName        = escapeHtml(booking.customerName);
-  const eTour        = escapeHtml(tour.title);
-  const eDate        = escapeHtml(booking.date);
-  const eGuests      = escapeHtml(booking.guests);
-  const eAmount      = escapeHtml(booking.amount);
+  const eId = escapeHtml(shortBookingRef(booking.id));
+  const eName = escapeHtml(booking.customerName);
+  const eTour = escapeHtml(tour.title);
+  const eDate = escapeHtml(booking.date);
+  const eTime = formatTimeSummary(booking);
+  const eGuests = formatPaxSummary(booking);
+  const eAmount = escapeHtml(booking.amount);
   const pickupLocation = booking.pickupLocation ? escapeHtml(booking.pickupLocation) : null;
-  const notes        = booking.notes ? escapeHtml(booking.notes) : null;
+  const notes = booking.notes ? escapeHtml(booking.notes) : null;
 
   const qrDataUrl = await generateQrDataUrl(booking.id);
 
@@ -324,7 +344,7 @@ export async function getBookingConfirmedTemplate(booking: any, tour: any): Prom
       <div style="background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
         <h3 style="margin: 0 0 14px 0; color: #004165; font-size: 15px; font-weight: 700;">📋 Your Booking</h3>
         <table style="width: 100%; border-collapse: collapse;">
-          ${bookingDetailsRows(eTour, eDate, eGuests, eAmount)}
+          ${bookingDetailsRows(eTour, eDate, eGuests, eAmount, eTime)}
           ${pickupLocation ? `<tr><td style="padding: 9px 0; color: #6b7280; font-size: 14px; border-top: 1px solid #f3f4f6;">Pickup</td><td style="padding: 9px 0; color: #111827; font-size: 14px; border-top: 1px solid #f3f4f6;">${pickupLocation}</td></tr>` : ""}
           ${notes ? `<tr><td style="padding: 9px 0; color: #6b7280; font-size: 14px; vertical-align: top; border-top: 1px solid #f3f4f6;">Notes</td><td style="padding: 9px 0; color: #111827; font-size: 14px; border-top: 1px solid #f3f4f6;">${notes}</td></tr>` : ""}
           <tr><td style="padding: 9px 0; color: #6b7280; font-size: 14px; border-top: 1px solid #f3f4f6;">Status</td><td style="padding: 9px 0; font-size: 14px; border-top: 1px solid #f3f4f6;"><span style="background: #d1fae5; color: #065f46; padding: 3px 10px; border-radius: 20px; font-weight: 600; font-size: 12px;">✓ CONFIRMED</span></td></tr>
@@ -370,13 +390,14 @@ export async function getAdminNewBookingTemplate(booking: any, tour: any): Promi
   const appUrl = await getAppUrl();
   const logoUrl = `${appUrl}/assets/logo.png`;
 
-  const eId     = escapeHtml(shortBookingRef(booking.id));
-  const eName   = escapeHtml(booking.customerName);
-  const eEmail  = escapeHtml(booking.customerEmail);
-  const ePhone  = booking.customerPhone ? escapeHtml(booking.customerPhone) : null;
-  const eTour   = escapeHtml(tour.title);
-  const eDate   = escapeHtml(booking.date);
-  const eGuests = escapeHtml(booking.guests);
+  const eId = escapeHtml(shortBookingRef(booking.id));
+  const eName = escapeHtml(booking.customerName);
+  const eEmail = escapeHtml(booking.customerEmail);
+  const ePhone = booking.customerPhone ? escapeHtml(booking.customerPhone) : null;
+  const eTour = escapeHtml(tour.title);
+  const eDate = escapeHtml(booking.date);
+  const eTime = formatTimeSummary(booking);
+  const eGuests = formatPaxSummary(booking);
   const eAmount = escapeHtml(booking.amount);
   const eStatus = escapeHtml(booking.status);
 
@@ -390,7 +411,7 @@ export async function getAdminNewBookingTemplate(booking: any, tour: any): Promi
           <tr><td style="padding: 8px 0; color: #6b7280; width: 130px; font-size: 14px; border-bottom: 1px solid #f3f4f6;">Customer</td><td style="padding: 8px 0; color: #111827; font-weight: 600; font-size: 14px; border-bottom: 1px solid #f3f4f6;">${eName}</td></tr>
           <tr><td style="padding: 8px 0; color: #6b7280; font-size: 14px; border-bottom: 1px solid #f3f4f6;">Email</td><td style="padding: 8px 0; font-size: 14px; border-bottom: 1px solid #f3f4f6;"><a href="mailto:${eEmail}" style="color: #006699;">${eEmail}</a></td></tr>
           ${ePhone ? `<tr><td style="padding: 8px 0; color: #6b7280; font-size: 14px; border-bottom: 1px solid #f3f4f6;">Phone</td><td style="padding: 8px 0; color: #111827; font-size: 14px; border-bottom: 1px solid #f3f4f6;">${ePhone}</td></tr>` : ""}
-          ${bookingDetailsRows(eTour, eDate, eGuests, eAmount)}
+          ${bookingDetailsRows(eTour, eDate, eGuests, eAmount, eTime)}
           <tr><td style="padding: 9px 0; color: #6b7280; font-size: 14px; border-top: 1px solid #f3f4f6;">Status</td><td style="padding: 9px 0; font-size: 14px; border-top: 1px solid #f3f4f6;"><span style="background: #fef3c7; color: #92400e; padding: 2px 10px; border-radius: 20px; font-size: 12px; font-weight: 600;">${eStatus.toUpperCase()}</span></td></tr>
         </table>
       </div>
@@ -418,17 +439,18 @@ export async function getBookingStatusUpdateTemplate(booking: any, newStatus: st
   const appUrl = await getAppUrl();
   const logoUrl = `${appUrl}/assets/logo.png`;
 
-  const eId     = escapeHtml(shortBookingRef(booking.id));
-  const eName   = escapeHtml(booking.customerName);
-  const eTour   = escapeHtml(tour.title);
-  const eDate   = escapeHtml(booking.date);
-  const eGuests = escapeHtml(booking.guests);
+  const eId = escapeHtml(shortBookingRef(booking.id));
+  const eName = escapeHtml(booking.customerName);
+  const eTour = escapeHtml(tour.title);
+  const eDate = escapeHtml(booking.date);
+  const eTime = formatTimeSummary(booking);
+  const eGuests = formatPaxSummary(booking);
   const eAmount = escapeHtml(booking.amount);
 
   const statusConfig: Record<string, { bg: string; text: string; icon: string; message: string }> = {
     cancelled: { bg: "#fef2f2", text: "#991b1b", icon: "✗", message: "Your booking has been cancelled. If you did not request this, please contact us immediately." },
     completed: { bg: "#eff6ff", text: "#1e40af", icon: "★", message: "Thank you for choosing Ace Tours &amp; Transfers! We hope you had a wonderful experience." },
-    pending:   { bg: "#fef3c7", text: "#92400e", icon: "⏳", message: "Your booking is awaiting confirmation from our team." },
+    pending: { bg: "#fef3c7", text: "#92400e", icon: "⏳", message: "Your booking is awaiting confirmation from our team." },
   };
   const s = statusConfig[newStatus] || statusConfig.pending;
 
@@ -450,7 +472,7 @@ export async function getBookingStatusUpdateTemplate(booking: any, newStatus: st
       <div style="background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
         <h3 style="margin: 0 0 14px 0; color: #004165; font-size: 15px; font-weight: 700;">📋 Booking Summary</h3>
         <table style="width: 100%; border-collapse: collapse;">
-          ${bookingDetailsRows(eTour, eDate, eGuests, eAmount)}
+          ${bookingDetailsRows(eTour, eDate, eGuests, eAmount, eTime)}
         </table>
       </div>
 
@@ -469,15 +491,16 @@ export async function getPaymentConfirmationTemplate(booking: any, payment: any,
   const appUrl = await getAppUrl();
   const logoUrl = `${appUrl}/assets/logo.png`;
 
-  const eId      = escapeHtml(shortBookingRef(booking.id));
-  const eName    = escapeHtml(booking.customerName);
-  const eTour    = escapeHtml(tour.title);
-  const eDate    = escapeHtml(booking.date);
-  const eGuests  = escapeHtml(booking.guests);
-  const eAmount  = escapeHtml(booking.amount);
-  const ePayRef  = escapeHtml(payment.gatewayReference || "N/A");
-  const ePayGw   = escapeHtml(payment.gatewayId || payment.provider || "");
-  const ePayAmt  = escapeHtml(String(payment.amount || ""));
+  const eId = escapeHtml(shortBookingRef(booking.id));
+  const eName = escapeHtml(booking.customerName);
+  const eTour = escapeHtml(tour.title);
+  const eDate = escapeHtml(booking.date);
+  const eTime = formatTimeSummary(booking);
+  const eGuests = formatPaxSummary(booking);
+  const eAmount = escapeHtml(booking.amount);
+  const ePayRef = escapeHtml(payment.gatewayReference || "N/A");
+  const ePayGw = escapeHtml(payment.gatewayId || payment.provider || "");
+  const ePayAmt = escapeHtml(String(payment.amount || ""));
   const ePayCurr = escapeHtml(payment.currency || "VUV");
 
   const qrDataUrl = await generateQrDataUrl(booking.id);
@@ -495,7 +518,7 @@ export async function getPaymentConfirmationTemplate(booking: any, payment: any,
       <div style="background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; margin-bottom: 16px;">
         <h3 style="margin: 0 0 14px 0; color: #004165; font-size: 15px; font-weight: 700;">📋 Booking Details</h3>
         <table style="width: 100%; border-collapse: collapse;">
-          ${bookingDetailsRows(eTour, eDate, eGuests, eAmount)}
+          ${bookingDetailsRows(eTour, eDate, eGuests, eAmount, eTime)}
         </table>
       </div>
 
@@ -592,9 +615,9 @@ export async function getContactFormTemplate(contact: {
   const appUrl = await getAppUrl();
   const logoUrl = `${appUrl}/assets/logo.png`;
 
-  const eName    = escapeHtml(contact.name);
-  const eEmail   = escapeHtml(contact.email);
-  const ePhone   = contact.phone ? escapeHtml(contact.phone) : null;
+  const eName = escapeHtml(contact.name);
+  const eEmail = escapeHtml(contact.email);
+  const ePhone = contact.phone ? escapeHtml(contact.phone) : null;
   const eSubject = contact.subject ? escapeHtml(contact.subject) : null;
   const eMessage = escapeHtml(contact.message);
 

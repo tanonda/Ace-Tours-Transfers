@@ -58,8 +58,8 @@ export function ProductQuickView({ isOpen, onClose, product }: ProductQuickViewP
   const detailHref = product.category === "vehicle"
     ? `/vehicles/${product.id}`
     : product.category === "transfer"
-    ? `/transfers/${product.id}`
-    : `/tours/${product.id}`;
+      ? `/transfers/${product.id}`
+      : `/tours/${product.id}`;
 
   const handleAddToCart = () => {
     addToCart({
@@ -71,6 +71,8 @@ export function ProductQuickView({ isOpen, onClose, product }: ProductQuickViewP
       type: (product.category || "tour") as ProductCategory,
       adultPax: parseInt(adultPax) || 1,
       childPax: parseInt(childPax) || 0,
+      infantPax: 0,
+      petPax: 0,
       date: date ? new Date(date) : new Date(),
     });
     onClose();
@@ -122,7 +124,7 @@ export function ProductQuickView({ isOpen, onClose, product }: ProductQuickViewP
                   {/* Stars + title */}
                   <div>
                     <div className="flex text-[#f2800d] mb-2 gap-0.5">
-                      {[1,2,3,4,5].map(i => <Star key={i} className="h-4 w-4 fill-current" />)}
+                      {[1, 2, 3, 4, 5].map(i => <Star key={i} className="h-4 w-4 fill-current" />)}
                     </div>
                     <h2 className="font-serif text-2xl lg:text-3xl font-bold text-white leading-tight">{product.title}</h2>
                   </div>

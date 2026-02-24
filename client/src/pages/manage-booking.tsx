@@ -317,7 +317,7 @@ export default function ManageBooking() {
                         <div>
                             <h1 className="text-2xl md:text-3xl font-serif font-bold">Your Booking</h1>
                             <p className="text-muted-foreground text-sm mt-1">
-                                Ref: <span className="font-mono">ACT-{booking.id.replace(/^book_/i,'').replace(/-/g,'').slice(0,8).toUpperCase()}</span>
+                                Ref: <span className="font-mono">ACT-{booking.id.replace(/^book_/i, '').replace(/-/g, '').slice(0, 8).toUpperCase()}</span>
                             </p>
                         </div>
                         {getStatusBadge(booking.status)}
@@ -348,6 +348,8 @@ export default function ManageBooking() {
                                         <p className="font-medium">
                                             {booking.adultPaxTotal} Adult{booking.adultPaxTotal !== 1 ? "s" : ""}
                                             {booking.childPaxTotal > 0 && `, ${booking.childPaxTotal} Child${booking.childPaxTotal !== 1 ? "ren" : ""}`}
+                                            {booking.infantPaxTotal > 0 && `, ${booking.infantPaxTotal} Infant${booking.infantPaxTotal !== 1 ? "s" : ""}`}
+                                            {booking.petPaxTotal > 0 && `, ${booking.petPaxTotal} Pet${booking.petPaxTotal !== 1 ? "s" : ""}`}
                                         </p>
                                     </div>
                                 </div>
@@ -379,9 +381,15 @@ export default function ManageBooking() {
                                     <h4 className="text-sm font-semibold mb-2">Items</h4>
                                     <div className="space-y-2">
                                         {items.map((item: any) => (
-                                            <div key={item.id} className="flex justify-between text-sm">
-                                                <span>{item.productName} ({item.adultPax}A + {item.childPax}C)</span>
-                                                <span className="font-medium">{item.subtotalCents?.toLocaleString()} VUV</span>
+                                            <div key={item.id} className="flex justify-between text-sm items-start gap-4">
+                                                <div>
+                                                    <span className="font-medium">{item.productName}</span>
+                                                    <div className="text-xs text-muted-foreground mt-0.5 max-w-[200px] leading-tight">
+                                                        {item.adultPax}A{item.childPax > 0 && ` + ${item.childPax}C`}{item.infantPax > 0 && ` + ${item.infantPax}I`}{item.petPax > 0 && ` + ${item.petPax}P`}
+                                                        {item.startTime && ` • ${item.startTime}${item.endTime ? ` - ${item.endTime}` : ''}`}
+                                                    </div>
+                                                </div>
+                                                <span className="font-medium whitespace-nowrap">{item.subtotalCents?.toLocaleString()} VUV</span>
                                             </div>
                                         ))}
                                     </div>
@@ -639,7 +647,7 @@ export default function ManageBooking() {
                     <DialogHeader>
                         <DialogTitle>Cancel Your Booking?</DialogTitle>
                         <DialogDescription>
-                            Are you sure you want to cancel booking ACT-{booking.id.replace(/^book_/i,'').replace(/-/g,'').slice(0,8).toUpperCase()}?
+                            Are you sure you want to cancel booking ACT-{booking.id.replace(/^book_/i, '').replace(/-/g, '').slice(0, 8).toUpperCase()}?
                             This action cannot be undone.
                         </DialogDescription>
                     </DialogHeader>
