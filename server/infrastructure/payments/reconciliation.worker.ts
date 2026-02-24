@@ -57,8 +57,16 @@ export class ReconciliationWorker {
       const duration = Date.now() - startTime;
       console.log(`[WORKER] Reconciliation pass completed in ${duration}ms.`);
     } catch (error) {
-      const errorDetails = extractErrorDetails(error);
-      console.error(`[WORKER] Critical error during reconciliation pass:`, errorDetails);
+      const details = extractErrorDetails(error);
+      const isNetworkTimeout = details.message?.includes('ETIMEDOUT') ||
+        details.message?.includes('ENETUNREACH') ||
+        JSON.stringify(details).includes('ETIMEDOUT');
+
+      if (isNetworkTimeout) {
+        console.warn(`[WORKER] Database connection timeout during reconciliation (${details.message}). Will retry next cycle.`);
+      } else {
+        console.error(`[WORKER] Critical error during reconciliation pass:`, details);
+      }
     } finally {
       this.isRunning = false;
     }

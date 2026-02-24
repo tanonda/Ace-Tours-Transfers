@@ -105,11 +105,15 @@ export class HoldExpiryJob {
       const durationMs = Date.now() - startTime;
       log.info('Completed', { expired: totalExpired, failed: totalFailed, durationMs });
     } catch (error: any) {
-      const isNetworkTimeout = error?.message?.includes('ETIMEDOUT') || error?.message?.includes('ENETUNREACH');
+      const details = extractErrorDetails(error);
+      const isNetworkTimeout = details.message?.includes('ETIMEDOUT') ||
+        details.message?.includes('ENETUNREACH') ||
+        JSON.stringify(details).includes('ETIMEDOUT');
+
       if (isNetworkTimeout) {
-        log.warn(`Database connection timeout during sweep (${error.message}). Database may be sleeping. Will retry next cycle.`);
+        log.warn(`Database connection timeout during sweep (${details.message}). Database may be sleeping. Will retry next cycle.`);
       } else {
-        const errorDetails = extractErrorDetails(error);
+        const errorDetails = details;
         log.error('Critical error during hold expiry sweep', {
           error: errorDetails.message,
           details: errorDetails
