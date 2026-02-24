@@ -71,6 +71,7 @@ import {
 } from "../shared/schema.js";
 import { db } from "./db.js";
 import { eq, like, desc, and, or, isNull, sql, lte, asc, lt } from "drizzle-orm";
+import { extractErrorDetails } from "./lib/error-util.js";
 
 export interface IStorage {
   // User operations
@@ -241,7 +242,7 @@ export class DatabaseStorage implements IStorage {
   /**
    * Helper to wrap database operations in a retry logic for transient errors (e.g., Neon timeouts)
    */
-  private async withRetry<T>(operation: () => Promise<T>, retries = 5, delay = 1000): Promise<T> {
+  private async withRetry<T>(operation: () => Promise<T>, retries = 7, delay = 2000): Promise<T> {
     let lastError: any;
     for (let i = 0; i < retries; i++) {
       try {
@@ -249,19 +250,23 @@ export class DatabaseStorage implements IStorage {
       } catch (err: any) {
         lastError = err;
 
-        // Neon driver wraps errors in ErrorEvent or similar objects
-        // We stringify to look for typical transient signal strings
-        const errorString = (err?.message || "") + (err?.stack || "") + JSON.stringify(err);
+        // Use extractErrorDetails to get a descriptive message from complex error objects
+        // like AggregateError or ErrorEvent which are common in Neon driver failures.
+        const details = extractErrorDetails(err);
+        const errorString = (details.message || "") + (details.stack || "") + JSON.stringify(details);
+
         const isTransient = errorString.includes('ETIMEDOUT') ||
           errorString.includes('Connection terminated') ||
           errorString.includes('WebSocket') ||
           errorString.includes('ECONNRESET') ||
           errorString.includes('EAI_AGAIN') ||
-          errorString.includes('getaddrinfo');
+          errorString.includes('getaddrinfo') ||
+          errorString.includes('ENETUNREACH') ||
+          errorString.includes('AggregateError');
 
         if (!isTransient || i === retries - 1) break;
 
-        console.warn(`[STORAGE] Transient error detected, retrying (${i + 1}/${retries})...`);
+        console.warn(`[STORAGE] Transient database error detected, retrying (${i + 1}/${retries}) in ${delay * Math.pow(2, i)}ms... Error: ${details.message}`);
         await new Promise(resolve => setTimeout(resolve, delay * Math.pow(2, i))); // Exponential backoff
       }
     }
@@ -688,7 +693,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getStaleProcessingPayments(batchSize: number): Promise<Payment[]> {
-    return await db
+    return this.withRetry(() => db
       .select()
       .from(payments)
       .where(
@@ -698,12 +703,13 @@ export class DatabaseStorage implements IStorage {
           sql`${payments.createdAt} < NOW() - INTERVAL '1 hour'`
         )
       )
-      .limit(batchSize);
+      .limit(batchSize)
+    );
   }
 
   async getOverduePayments(): Promise<Payment[]> {
     // M6 Fix: Targeted query instead of full table scan
-    return await db
+    return this.withRetry(() => db
       .select()
       .from(payments)
       .where(
@@ -714,7 +720,8 @@ export class DatabaseStorage implements IStorage {
           ),
           sql`${payments.expiresAt} < NOW()`
         )
-      );
+      )
+    );
   }
 
   // Notifications
