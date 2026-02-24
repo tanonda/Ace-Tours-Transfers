@@ -22,7 +22,8 @@ import {
   Gauge,
   ScrollText,
   ChevronRight,
-  Star
+  Star,
+  ShieldAlert
 } from "lucide-react";
 import {
   Popover,
@@ -64,6 +65,7 @@ export function DashboardLayout({ children, type }: DashboardLayoutProps) {
     { icon: FileText, label: "Reports", href: "/admin/reports", show: user?.role === "admin", group: "system" },
     { icon: CreditCard, label: "Payments", href: "/admin/payments", show: user?.role === "admin", group: "system" },
     { icon: ScrollText, label: "Audit Logs", href: "/admin/audit-logs", show: user?.role === "admin", group: "system" },
+    { icon: ShieldAlert, label: "Fraud Review", href: "/admin/fraud", show: user?.role === "admin", group: "system" },
     { icon: Settings, label: "Settings", href: "/admin/settings", show: user?.role === "admin", group: "system" },
   ];
 

@@ -15,6 +15,7 @@ import { useCurrency } from "@/lib/currency-context";
 import { AvailabilityCalendar } from "@/components/AvailabilityCalendar";
 import { SEO, cloudinaryOpt } from "@/components/seo";
 import { GuestReviewForm } from "@/components/GuestReviewForm";
+import { useRealtimeAvailability } from "@/hooks/useRealtimeAvailability";
 
 const WHATSAPP_NUMBER = "6787114045";
 
@@ -32,6 +33,12 @@ export default function TransferDetail() {
   const [date, setDate] = useState<string>("");
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [urlInitialTime, setUrlInitialTime] = useState<string | null>(null);
+
+  // Availability guard — mirrors tour-detail logic
+  const { data: availability, loading: availLoading } = useRealtimeAvailability(
+    id && date ? { productId: id, date, adultPax, childPax, startTime: selectedTime || undefined } : null
+  );
+  const isBooked = !availability?.isAvailable && !!date;
 
   const { data: transfer, isLoading, error } = useQuery({
     queryKey: ["tour", id],
@@ -463,17 +470,23 @@ export default function TransferDetail() {
               {/* CTAs */}
               <div className="flex flex-col gap-3">
                 <Button
-                  disabled={!date}
-                  className={`w-full h-14 rounded-[10px] text-[0.95rem] font-bold tracking-[0.02em] ${date ? "bg-[#f4a830] text-[#0f0d09] hover:bg-[#fdc96a] shadow-[0_6px_24px_rgba(244,168,48,0.4)]" : "bg-[#211e18] text-[#4a4438] cursor-not-allowed border border-[rgba(244,168,48,0.18)] hover:bg-[#211e18]"}`}
+                  disabled={!date || isBooked || availLoading}
+                  className={`w-full h-14 rounded-[10px] text-[0.95rem] font-bold tracking-[0.02em] ${date && !isBooked ? "bg-[#f4a830] text-[#0f0d09] hover:bg-[#fdc96a] shadow-[0_6px_24px_rgba(244,168,48,0.4)]" : "bg-[#211e18] text-[#4a4438] cursor-not-allowed border border-[rgba(244,168,48,0.18)] hover:bg-[#211e18]"}`}
                   onClick={handleAddToCart}
                 >
                   <ShoppingCart className="mr-2 h-5 w-5" />
-                  {date ? "Add to Cart" : "Select a Date to Continue"}
+                  {date
+                    ? isBooked ? "Fully Booked — Choose Another Date" : "Add to Cart"
+                    : "Select a Date to Continue"
+                  }
                 </Button>
                 <Link
                   href={`/reservations?tab=book-new&service=${encodeURIComponent(transfer.title)}&adults=${adultPax}&children=${childPax}&date=${date}`}
                 >
-                  <button disabled={!date} className={`w-full h-12 rounded-[10px] text-[0.875rem] font-bold border-2 transition-all ${date ? "bg-transparent border-[#f4a830] text-[#f4a830] hover:bg-[#f4a830]/10" : "border-[rgba(244,168,48,0.18)] text-[#4a4438] cursor-not-allowed"}`}>
+                  <button
+                    disabled={!date || isBooked || availLoading}
+                    className={`w-full h-12 rounded-[10px] text-[0.875rem] font-bold border-2 transition-all ${date && !isBooked ? "bg-transparent border-[#f4a830] text-[#f4a830] hover:bg-[#f4a830]/10" : "border-[rgba(244,168,48,0.18)] text-[#4a4438] cursor-not-allowed"}`}
+                  >
                     Book Now
                   </button>
                 </Link>

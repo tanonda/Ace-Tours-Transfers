@@ -94,6 +94,7 @@ export interface IStorage {
 
   // Booking operations
   getBookings(): Promise<Booking[]>;
+  getFlaggedBookings(): Promise<Booking[]>;
   getBooking(id: string): Promise<Booking | undefined>;
   getBookingsByEmail(email: string): Promise<Booking[]>;
   getUserBookings(userId: string): Promise<Booking[]>;
@@ -361,6 +362,15 @@ export class DatabaseStorage implements IStorage {
   // Booking operations
   async getBookings(): Promise<Booking[]> {
     return await db.select().from(bookings).orderBy(desc(bookings.createdAt));
+  }
+
+  async getFlaggedBookings(): Promise<Booking[]> {
+    // Returns bookings that have been fraud-scored but not yet reviewed by an admin.
+    // Uses the dedicated fraud_level column — efficient with the partial index.
+    const allBookings = await db.select().from(bookings).orderBy(desc(bookings.createdAt));
+    return allBookings.filter(
+      b => (b as any).fraudLevel != null && (b as any).fraudReviewedAt == null
+    );
   }
 
   async getBooking(id: string): Promise<Booking | undefined> {
