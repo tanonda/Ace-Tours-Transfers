@@ -20,6 +20,7 @@ export interface AvailabilityCalendarProps {
   minDate?: Date;
   maxDate?: Date;
   selectedDate?: string;
+  selectedTime?: string | null;
   participants: Participants;
   onDateSelect: (date: string) => void;
   onTimeSelect?: (time: string) => void;

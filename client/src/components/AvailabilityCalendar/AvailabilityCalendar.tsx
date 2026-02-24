@@ -9,8 +9,8 @@ import type { AvailabilityCalendarProps, CalendarDayData } from './types';
 import './AvailabilityCalendar.css';
 
 const MONTHS = [
-  'January','February','March','April','May','June',
-  'July','August','September','October','November','December',
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
 ];
 
 export const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = React.memo(({
@@ -20,6 +20,7 @@ export const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = React.m
   minDate,
   maxDate,
   selectedDate: propSelectedDate,
+  selectedTime: propSelectedTime,
   participants,
 }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -203,6 +204,7 @@ export const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = React.m
           date={activeSelectedDate}
           onTimeSelect={handleTimeSelect}
           guests={totalGuests}
+          initialSelectedTime={propSelectedTime}
         />
       )}
     </div>
@@ -217,12 +219,17 @@ const TimeSlotsSection: React.FC<{
   date: string;
   onTimeSelect: (time: string) => void;
   guests: number;
-}> = ({ tourId, date, onTimeSelect, guests }) => {
+  initialSelectedTime?: string | null;
+}> = ({ tourId, date, onTimeSelect, guests, initialSelectedTime }) => {
   const [slots, setSlots] = useState<{ time: string; available: boolean; remaining: number }[]>([]);
   const [loading, setLoading] = useState(false);
   // Fix #11: Track and display slot loading errors instead of silently swallowing them
   const [slotError, setSlotError] = useState<string | null>(null);
-  const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  const [selectedTime, setSelectedTime] = useState<string | null>(initialSelectedTime || null);
+
+  useEffect(() => {
+    if (initialSelectedTime) setSelectedTime(initialSelectedTime);
+  }, [initialSelectedTime]);
 
   const loadSlots = async () => {
     setLoading(true);
@@ -241,7 +248,10 @@ const TimeSlotsSection: React.FC<{
 
   useEffect(() => {
     loadSlots();
-    setSelectedTime(null);
+    // Only clear selection if we're not initializing with a value
+    if (!initialSelectedTime) {
+      setSelectedTime(null);
+    }
   }, [tourId, date, guests]);
 
   if (slotError) {
