@@ -19,6 +19,8 @@ export interface BookingDraft {
   petPax: number;     // NEW — pets, manifesting only
   date: string;       // ISO date string or empty
   slot?: string;
+  startTime?: string;
+  endTime?: string;
 }
 
 interface BookingStateContextType {
@@ -51,6 +53,8 @@ function loadDraftFromStorage(): BookingDraft | null {
       ...parsed,
       infantPax: parsed.infantPax ?? 0,
       petPax: parsed.petPax ?? 0,
+      startTime: parsed.startTime,
+      endTime: parsed.endTime,
     };
   } catch (error) {
     console.warn("[BookingState] Failed to load draft from storage:", error);
@@ -140,16 +144,18 @@ export function usePrefillFromCart(productId: string): BookingDraft {
   if (cartItem) {
     return {
       productId,
-      adultPax:  cartItem.adultPax,
-      childPax:  cartItem.childPax,
+      adultPax: cartItem.adultPax,
+      childPax: cartItem.childPax,
       infantPax: (cartItem as any).infantPax ?? 0,  // backfill from cart if present
-      petPax:    (cartItem as any).petPax    ?? 0,
+      petPax: (cartItem as any).petPax ?? 0,
       date: cartItem.date
         ? cartItem.date instanceof Date
           ? cartItem.date.toISOString().split("T")[0]
           : new Date(cartItem.date).toISOString().split("T")[0]
         : "",
       slot: cartItem.slot,
+      startTime: cartItem.startTime,
+      endTime: cartItem.endTime,
     };
   }
 
