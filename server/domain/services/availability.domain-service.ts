@@ -261,23 +261,31 @@ export class AvailabilityDomainService {
 
     const results: Record<string, any> = {};
 
-    // For range checks, we use a single await loop for simplicity
-    // but in high load we might want to concurrentize this
-    for (const d of dates) {
+    // For range checks, we use Promise.all to parallelize daily checks for better performance
+    const resultsArray = await Promise.all(dates.map(async (d) => {
       const dateStr = format(d, 'yyyy-MM-dd');
-
       const { remainingCapacity, totalCapacity } = await this.calculateRemainingCapacity(
         productId,
         product.category,
         dateStr
       );
 
-      results[dateStr] = {
+      return {
+        dateStr,
         isAvailable: remainingCapacity >= minGuests,
         remainingCapacity,
         totalCapacity
       };
-    }
+    }));
+
+    // Convert array back to record
+    resultsArray.forEach(res => {
+      results[res.dateStr] = {
+        isAvailable: res.isAvailable,
+        remainingCapacity: res.remainingCapacity,
+        totalCapacity: res.totalCapacity
+      };
+    });
 
     return results;
   }
