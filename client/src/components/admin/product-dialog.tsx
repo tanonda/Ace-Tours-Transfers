@@ -112,11 +112,23 @@ export function ProductDialog({
     }, [tour, form]);
 
     const onSubmit = (values: TourFormValues) => {
+        // Parse price strings into cents for the server
+        // Accepts: "120", "$120", "VUV 1500", "120 / adult" — extract first number
+        const parsePriceCents = (priceStr: string | undefined): number => {
+          if (!priceStr) return 0;
+          const match = priceStr.match(/[\d,]+(\.\d+)?/);
+          if (!match) return 0;
+          const num = parseFloat(match[0].replace(/,/g, ""));
+          return Math.round(num * 100);
+        };
+
         onSave({
             ...values,
             description: values.description.split("\n").filter(line => line.trim() !== ""),
             image: values.image || "",
             id: tour?.id,
+            adultPriceCents: parsePriceCents(values.price),
+            childPriceCents: parsePriceCents(values.childPrice),
         });
         onOpenChange(false);
     };

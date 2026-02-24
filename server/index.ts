@@ -58,7 +58,41 @@ app.disable('x-powered-by'); // H4 Fix: Explicitly disable X-Powered-By
 
 // H4 & M9 Fix: Security headers and CORS - MUST BE FIRST
 app.use(helmet({
-  contentSecurityPolicy: false,
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: [
+        "'self'",
+        "'unsafe-inline'", // Required for React inline event handlers & JSON-LD scripts
+        "https://js.stripe.com",
+        "https://fonts.googleapis.com",
+      ],
+      styleSrc: [
+        "'self'",
+        "'unsafe-inline'", // Tailwind / CSS-in-JS
+        "https://fonts.googleapis.com",
+      ],
+      fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
+      imgSrc: [
+        "'self'",
+        "data:",
+        "blob:",
+        "https://res.cloudinary.com",
+        "https://lh3.googleusercontent.com",
+        "https://*.stripe.com",
+      ],
+      connectSrc: [
+        "'self'",
+        "https://api.stripe.com",
+        "https://res.cloudinary.com",
+        "wss:",
+        "ws:",
+      ],
+      frameSrc: ["https://js.stripe.com", "https://hooks.stripe.com"],
+      objectSrc: ["'none'"],
+      upgradeInsecureRequests: process.env.NODE_ENV === "production" ? [] : null,
+    } as any,
+  },
 }));
 app.use(compression()); // L5 Fix: Add gzip compression
 app.use(cors({
@@ -145,6 +179,7 @@ app.use((req, res, next) => {
     express.raw({ type: '*/*' })(req, res, next);
   } else {
     express.json({
+      limit: "50kb", // Prevent oversized JSON body DoS attacks
       verify: (req: any, _res, buf) => {
         req.rawBody = buf;
       },
@@ -377,6 +412,29 @@ app.use((req, res, next) => {
     console.log('[EVENT] Global event handlers registered');
   } catch (eventError) {
     console.error('Failed to initialize Domain Event Handlers:', eventError);
+  }
+
+  // Seed default feature flags (idempotent — uses upsert)
+  try {
+    const { storage: flagStorage } = await import('./storage.js');
+    const defaultFlags = [
+      { slug: 'payment-stripe', enabled: true, displayName: 'Stripe Payments', description: 'Enable online credit card payments via Stripe' },
+      { slug: 'payment-bank-transfer', enabled: true, displayName: 'Bank Transfer', description: 'Enable manual bank transfer payment method' },
+      { slug: 'vehicle-hire', enabled: true, displayName: 'Vehicle Hire', description: 'Enable vehicle and bus hire services' },
+      { slug: 'client-dashboard', enabled: false, displayName: 'Client Dashboard', description: 'Enable user-facing booking history and profile' },
+      { slug: 'reviews-system', enabled: false, displayName: 'Reviews System', description: 'Enable customer reviews and moderation' },
+      { slug: 'guest-reviews', enabled: true, displayName: 'Guest Reviews', description: 'Allow guests (non-logged-in users) to submit product reviews. Disable to require account sign-in for reviews.' },
+    ];
+    for (const flag of defaultFlags) {
+      const existing = await flagStorage.getFeatureFlag(flag.slug);
+      if (!existing) {
+        await flagStorage.upsertFeatureFlag(flag);
+        console.log(`[FLAGS] Seeded flag: ${flag.slug}`);
+      }
+    }
+    console.log('[FLAGS] Feature flag initialization complete');
+  } catch (flagError) {
+    console.error('Failed to seed feature flags:', flagError);
   }
 
   // Set up native Express error handler automatically provided by Sentry

@@ -56,7 +56,8 @@ export const queryClient = new QueryClient({
       queryFn: getQueryFn({ on401: "returnNull" }),
       refetchInterval: false,
       refetchOnWindowFocus: false,
-      staleTime: 30000,
+      // 5 minutes for most data — product detail, tours, transfers rarely change mid-session
+      staleTime: 5 * 60 * 1000,
       retry: false,
     },
     mutations: {

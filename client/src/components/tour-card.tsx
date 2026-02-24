@@ -10,6 +10,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useCurrency } from "@/lib/currency-context";
 import { type ProductCategory, formatPriceDisplay } from "@/lib/product.types";
+import { cloudinaryOpt } from "@/components/seo";
 
 interface TourProps {
   id: string;
@@ -46,9 +47,11 @@ export function TourCard({ tour, index }: { tour: TourProps; index: number }) {
             <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors z-10" />
             {tour.image && (
               <img
-                src={tour.image}
+                src={cloudinaryOpt(tour.image, 600)}
                 alt={tour.title}
                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                loading="lazy"
+                decoding="async"
                 onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
               />
             )}

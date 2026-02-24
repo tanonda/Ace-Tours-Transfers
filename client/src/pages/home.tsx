@@ -67,6 +67,8 @@ export default function Home() {
       <SEO
         title={t("home.seoTitle", "Ace Tours & Transfers - Private Tours in Vanuatu")}
         description={t("home.seoDesc", "Experience the best of Vanuatu with Ace Tours & Transfers. Meticulously pre-planned and custom-designed tour packages in Port Vila.")}
+        structuredType="LocalBusiness"
+        keywords={["Vanuatu tours", "Port Vila tours", "Efate tours", "Vanuatu airport transfer", "car hire Vanuatu", "things to do in Port Vila"]}
       />
       <Hero />
 
