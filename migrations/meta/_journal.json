@@ -36,6 +36,13 @@
       "when": 1771887032615,
       "tag": "0004_outstanding_storm",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1771990000000,
+      "tag": "0005_fraud_detection",
+      "breakpoints": true
     }
   ]
 }

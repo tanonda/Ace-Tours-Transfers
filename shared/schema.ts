@@ -117,6 +117,12 @@ export const bookings = pgTable("bookings", {
   confirmedAt: timestamp("confirmed_at"),  // Phase 4 readiness: tracked for production reporting
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
   notes: text("notes"),
+  // Fraud detection fields (added in migration 0005)
+  fraudScore: integer("fraud_score"),                 // 0–100 risk score
+  fraudLevel: varchar("fraud_level", { length: 10 }), // 'low' | 'medium' | 'high' | 'critical'
+  fraudSignals: jsonb("fraud_signals"),               // string[] of signal codes
+  fraudReviewedAt: timestamp("fraud_reviewed_at"),    // when an admin approved/dismissed
+  fraudReviewedBy: varchar("fraud_reviewed_by").references(() => users.id),
 }, (table) => ({
   holdUniqueIdx: uniqueIndex("idx_bookings_hold_unique").on(table.holdId),
 }));

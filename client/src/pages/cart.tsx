@@ -20,6 +20,18 @@ import { PricingBreakdown } from "@/components";
 export default function Cart() {
   const { t } = useTranslation();
   const { items, removeFromCart, total, clearCart, isExpiringSoon, expiresAt, pricingSnapshot, isLoadingPricing } = useCart();
+
+  // Client-side fallback total when pricing service is unavailable
+  const clientSideTotal = items.reduce((sum, item) => {
+    let subtotal = (item.price * item.adultPax) + (item.childPrice * item.childPax) + (item.addonTotal || 0);
+    if (item.adultPax >= 7) subtotal = Math.round(subtotal * 0.9);
+    if (item.date) {
+      const m = (item.date instanceof Date ? item.date : new Date(item.date)).getMonth();
+      if (m === 11 || m === 0) subtotal = Math.round(subtotal * 1.2);
+    }
+    return sum + subtotal * item.quantity;
+  }, 0);
+  const displayTotal = pricingSnapshot ? total : clientSideTotal;
   const [, setLocation] = useLocation();
   const { user } = useAuth();
   const { toast } = useToast();
@@ -243,8 +255,9 @@ export default function Cart() {
                     <div className="space-y-4">
                       <div className="flex justify-between font-bold text-lg pt-2 border-t mt-2">
                         <span>{t("cart.total")}</span>
-                        <span>{formatPriceDisplay(total, currency)}</span>
+                        <span>{formatPriceDisplay(displayTotal, currency)}</span>
                       </div>
+                      <p className="text-xs text-muted-foreground text-center">Estimated total — confirmed at payment</p>
                     </div>
                   )}
                 </CardContent>
@@ -253,7 +266,7 @@ export default function Cart() {
                     className="w-full py-6 text-lg"
                     size="lg"
                     onClick={handleCheckout}
-                    disabled={isProcessing || isLoadingPricing || !pricingSnapshot}
+                    disabled={isProcessing || isLoadingPricing}
                   >
                     {isProcessing ? "Processing..." : (isLoadingPricing ? "Pricing..." : t("cart.checkout"))}
                     {!isLoadingPricing && <ArrowRight className="ml-2 h-4 w-4" />}

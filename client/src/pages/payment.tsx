@@ -187,6 +187,8 @@ export default function Payment() {
             productId: i.id,
             adultPax: i.adultPax,
             childPax: i.childPax,
+            infantPax: i.infantPax ?? 0,
+            petPax: i.petPax ?? 0,
             date: i.date ? (typeof i.date === 'string' ? i.date : format(new Date(i.date), "yyyy-MM-dd")) : format(new Date(), "yyyy-MM-dd"),
             slot: i.slot,
             quantity: i.quantity,
@@ -280,7 +282,8 @@ export default function Payment() {
           const serverTotal = priceSnapshot.totalCents;
           const clientTotal = total;
 
-          if (Math.abs(serverTotal - clientTotal) > 100) {
+          // Only flag mismatch if we have a valid client total (pricing service was available)
+          if (clientTotal > 0 && Math.abs(serverTotal - clientTotal) > 100) {
             toast({
               title: "Price has changed",
               description: `Your cart total has been updated to ${formatPriceDisplay(serverTotal, currency)}. Please review the new total and click Pay again to continue.`,
@@ -295,8 +298,8 @@ export default function Payment() {
         currentBookingId = booking.id;
       }
 
-      const successUrl = `${window.location.origin}/payment/success`;
-      const cancelUrl = `${window.location.origin}/payment/cancel`;
+      const successUrl = `${window.location.origin}/payment/success?booking=${currentBookingId}`;
+      const cancelUrl = `${window.location.origin}/payment/cancel?booking=${currentBookingId}`;
 
       initiatePaymentMutation.mutate({
         bookingId: currentBookingId!,
@@ -340,7 +343,7 @@ export default function Payment() {
         <div className="container mx-auto px-4 relative z-10">
           {/* Header */}
           <div className="max-w-2xl mx-auto mb-6">
-            <Button variant="ghost" onClick={() => setLocation(bookingId ? "/reservations" : "/reservations?tab=cart")} className="mb-4 -ml-2">
+            <Button variant="ghost" onClick={() => setLocation(bookingId ? "/reservations" : "/cart")} className="mb-4 -ml-2">
               <ArrowLeft className="mr-2 h-4 w-4" /> Back
             </Button>
 

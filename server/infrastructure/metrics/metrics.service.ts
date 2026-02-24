@@ -427,6 +427,26 @@ class MetricsService {
             }
         }
 
+        // Alert 6: Fraud-flagged bookings pending review
+        try {
+            const { storage } = await import("../../storage.js");
+            const flagged = await storage.getFlaggedBookings();
+            if (flagged.length > 0) {
+                const alertKey = "fraud_pending_review";
+                if (this.shouldAlert(alertKey)) {
+                    alerts.push({
+                        severity: flagged.length >= 5 ? "critical" : "warning",
+                        message: `${flagged.length} booking(s) flagged for fraud review and awaiting admin action`,
+                        metric: "fraudFlaggedBookings",
+                        value: flagged.length,
+                        threshold: 1,
+                        timestamp: new Date().toISOString(),
+                    });
+                    this.updateAlertTime(alertKey);
+                }
+            }
+        } catch { /* non-fatal — fraud store may not be available */ }
+
         return alerts;
     }
 

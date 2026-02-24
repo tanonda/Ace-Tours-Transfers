@@ -404,13 +404,15 @@ export default function VehicleDetail() {
   }, [toast]);
 
   const totalPriceCents = vehicle ? vehicle.adultPriceCents * Math.max(1, hireDays) : 0;
-  const canBook = !!(pickupDate && returnDate && hireDays >= 1);
+  const canBook = !!(pickupDate && returnDate && hireDays >= 1 && availabilityStatus !== "unavailable");
 
   const handleAddToCart = () => {
     if (!vehicle || !pickupDate || !returnDate) return;
     addToCart({
       id: vehicle.id, title: vehicle.title,
-      price: totalPriceCents, childPrice: 0,
+      // Pass per-day unit price — cart quantity (hireDays) handles the multiplication.
+      // Previously passed totalPriceCents here which caused client-side fallback to double-count days.
+      price: vehicle.adultPriceCents, childPrice: 0,
       image: vehicle.image, type: "vehicle",
       adultPax: 1, childPax: 0,
       infantPax: 0, petPax: 0,
@@ -745,9 +747,12 @@ export default function VehicleDetail() {
                     : "bg-[#211e18] text-[#2a2620] cursor-not-allowed border border-[rgba(244,168,48,0.1)] hover:bg-[#211e18]"
                 ].join(" ")}
               >
-                {canBook
-                  ? `Hire for ${hireDays} ${hireDays === 1 ? "Day" : "Days"} — ${formatPriceDisplay(totalPriceCents, currency)}`
-                  : "Select pickup & return dates"}
+                {availabilityStatus === "unavailable"
+                  ? "Fully Booked — Choose Different Dates"
+                  : canBook
+                    ? `Hire for ${hireDays} ${hireDays === 1 ? "Day" : "Days"} — ${formatPriceDisplay(totalPriceCents, currency)}`
+                    : "Select pickup & return dates"
+                }
               </Button>
 
               {canBook && !(pickupTime && dropoffTime) && (

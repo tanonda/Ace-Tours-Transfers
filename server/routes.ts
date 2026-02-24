@@ -2,6 +2,8 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage.js";
 import { config } from "./config.js";
+import { db } from "./db.js";
+import { sql } from "drizzle-orm";
 import {
   insertBookingSchema,
   insertTourSchema,
@@ -480,6 +482,74 @@ ${allPages.map(p => `  <url>
     }
   });
 
+  // ── Fraud Detection Admin Routes ──────────────────────────────────────────
+
+  /**
+   * GET /api/admin/fraud
+   * Returns all bookings flagged for fraud review, enriched with parsed signal data.
+   */
+  app.get("/api/admin/fraud", requireAdmin, async (_req, res) => {
+    try {
+      const flagged = await storage.getFlaggedBookings();
+      const enriched = flagged.map(b => {
+        const bAny = b as any;
+        return {
+          ...b,
+          fraud: bAny.fraudLevel != null
+            ? {
+                score: bAny.fraudScore ?? 0,
+                level: bAny.fraudLevel,
+                signals: Array.isArray(bAny.fraudSignals) ? bAny.fraudSignals : [],
+              }
+            : null,
+        };
+      });
+      res.json(enriched);
+    } catch (error: any) {
+      res.status(500).json({ error: "Failed to fetch flagged bookings" });
+    }
+  });
+
+  /**
+   * POST /api/admin/fraud/:id/approve
+   * Clears the fraud flag from a booking, marking it as reviewed and safe.
+   */
+  app.post("/api/admin/fraud/:id/approve", requireAdmin, async (req, res) => {
+    try {
+      const booking = await storage.getBooking(req.params.id);
+      if (!booking) return res.status(404).json({ error: "Booking not found" });
+      // Record that an admin reviewed and approved this booking
+      await storage.updateBooking(req.params.id, {
+        fraudReviewedAt: new Date(),
+        fraudReviewedBy: (req.session as any)?.userId || null,
+      } as any);
+      res.json({ success: true, message: "Fraud flag cleared. Booking approved." });
+    } catch (error: any) {
+      res.status(500).json({ error: "Failed to approve booking" });
+    }
+  });
+
+  /**
+   * POST /api/admin/fraud/:id/dismiss
+   * Cancels a fraud-flagged booking.
+   */
+  app.post("/api/admin/fraud/:id/dismiss", requireAdmin, async (req, res) => {
+    try {
+      const booking = await storage.getBooking(req.params.id);
+      if (!booking) return res.status(404).json({ error: "Booking not found" });
+      await storage.updateBooking(req.params.id, {
+        status: "cancelled",
+        fraudReviewedAt: new Date(),
+        fraudReviewedBy: (req.session as any)?.userId || null,
+      } as any);
+      res.json({ success: true, message: "Booking cancelled due to fraud review." });
+    } catch (error: any) {
+      res.status(500).json({ error: "Failed to dismiss booking" });
+    }
+  });
+
+  // ── End Fraud Detection Admin Routes ──────────────────────────────────────
+
   app.get("/api/admin/capacity-summary", requireAdmin, async (req, res) => {
     try {
       const startDate = (req.query.start as string) || new Date().toISOString().split("T")[0];
@@ -735,12 +805,147 @@ ${allPages.map(p => `  <url>
   });
 
   app.delete("/api/tours/:id", requireAdmin, async (req, res) => {
+    const id = req.params.id;
+    const force = req.query.force === "true";
     try {
-      await storage.deleteTour(req.params.id);
-      res.json({ message: "Tour deleted successfully" });
+      // Check if tour exists
+      const tour = await storage.getTour(id);
+      if (!tour) return res.status(404).json({ error: "Product not found" });
+
+      if (force) {
+        // Hard-delete: cascade-wipe all dependents first (pre-launch / test data only)
+        // Order matters — children before parents
+        await db.execute(sql`DELETE FROM availability_holds WHERE tour_instance_id IN (SELECT id FROM tour_instances WHERE tour_id = ${id})`);
+        await db.execute(sql`DELETE FROM capacity_audit_log WHERE tour_instance_id IN (SELECT id FROM tour_instances WHERE tour_id = ${id})`);
+        await db.execute(sql`DELETE FROM tour_instances WHERE tour_id = ${id}`);
+        await db.execute(sql`DELETE FROM wishlist_items WHERE tour_id = ${id}`);
+        await db.execute(sql`DELETE FROM pricing_versions WHERE product_id = ${id}`);
+        await db.execute(sql`DELETE FROM product_blackout_dates WHERE product_id = ${id}`);
+        await db.execute(sql`DELETE FROM resources WHERE product_id = ${id}`);
+        // Cascade-wipe bookings and their children
+        await db.execute(sql`DELETE FROM booking_addons WHERE booking_id IN (SELECT id FROM bookings WHERE tour_id = ${id})`);
+        await db.execute(sql`DELETE FROM booking_items WHERE booking_id IN (SELECT id FROM bookings WHERE tour_id = ${id})`);
+        await db.execute(sql`DELETE FROM payments WHERE booking_id IN (SELECT id FROM bookings WHERE tour_id = ${id})`);
+        await db.execute(sql`DELETE FROM bookings WHERE tour_id = ${id}`);
+        await storage.deleteTour(id);
+        return res.json({ message: "Product permanently deleted", deleted: true });
+      }
+
+      // Soft-delete: check for dependencies first
+      const [instanceCount] = await db.execute(sql`SELECT count(*)::int AS n FROM tour_instances WHERE tour_id = ${id}`);
+      const [bookingCount] = await db.execute(sql`SELECT count(*)::int AS n FROM bookings WHERE tour_id = ${id}`);
+      const instances = (instanceCount as any)?.n ?? 0;
+      const bkgs = (bookingCount as any)?.n ?? 0;
+
+      if (instances > 0 || bkgs > 0) {
+        // Has live data — soft-delete only (hide from storefront)
+        await storage.updateTour(id, { isActive: false } as any);
+        return res.json({
+          message: "Product hidden from storefront (has linked bookings or schedule — use force delete to permanently remove)",
+          softDeleted: true,
+          dependents: { tourInstances: instances, bookings: bkgs },
+        });
+      }
+
+      // No linked data — safe to hard-delete directly
+      await db.execute(sql`DELETE FROM wishlist_items WHERE tour_id = ${id}`);
+      await db.execute(sql`DELETE FROM pricing_versions WHERE product_id = ${id}`);
+      await db.execute(sql`DELETE FROM product_blackout_dates WHERE product_id = ${id}`);
+      await db.execute(sql`DELETE FROM resources WHERE product_id = ${id}`);
+      await storage.deleteTour(id);
+      res.json({ message: "Product deleted successfully", deleted: true });
     } catch (error) {
       console.error("[ROUTE] DELETE /api/tours/:id Error:", error);
-      res.status(500).json({ error: "Failed to delete tour" });
+      res.status(500).json({ error: "Failed to delete product" });
+    }
+  });
+
+  // Pre-launch data reset endpoint
+  app.post("/api/admin/reset", requireAdmin, async (req, res) => {
+    const { keepProductIds = [], scope = {} } = req.body as {
+      keepProductIds: string[];
+      scope: {
+        bookings?: boolean;
+        payments?: boolean;
+        holds?: boolean;
+        users?: boolean;
+        newsletter?: boolean;
+        reviews?: boolean;
+        products?: boolean;
+      };
+    };
+    try {
+      const deleted: Record<string, number> = {};
+
+      if (scope.holds) {
+        const r = await db.execute(sql`DELETE FROM availability_holds`);
+        deleted.holds = (r as any).rowCount ?? 0;
+        await db.execute(sql`DELETE FROM capacity_audit_log`);
+      }
+
+      if (scope.bookings || scope.payments) {
+        await db.execute(sql`DELETE FROM booking_addons`);
+        await db.execute(sql`DELETE FROM booking_items`);
+        if (scope.payments) {
+          const r = await db.execute(sql`DELETE FROM payments`);
+          deleted.payments = (r as any).rowCount ?? 0;
+        }
+        if (scope.bookings) {
+          const r = await db.execute(sql`DELETE FROM bookings`);
+          deleted.bookings = (r as any).rowCount ?? 0;
+        }
+      }
+
+      if (scope.reviews) {
+        const r = await db.execute(sql`DELETE FROM reviews`);
+        deleted.reviews = (r as any).rowCount ?? 0;
+      }
+
+      if (scope.newsletter) {
+        const r = await db.execute(sql`DELETE FROM newsletter_subscribers`);
+        deleted.newsletter = (r as any).rowCount ?? 0;
+      }
+
+      if (scope.users) {
+        // Never delete the admin account
+        const r = await db.execute(sql`DELETE FROM users WHERE role != 'admin'`);
+        deleted.users = (r as any).rowCount ?? 0;
+        await db.execute(sql`DELETE FROM wishlist_items WHERE user_id NOT IN (SELECT id FROM users)`);
+      }
+
+      if (scope.products) {
+        // Delete all products EXCEPT those in keepProductIds
+        const toDelete = await db.execute(
+          keepProductIds.length > 0
+            ? sql`SELECT id FROM tours WHERE id NOT IN (${sql.raw(keepProductIds.map(id => `'${id.replace(/'/g, "''")}'`).join(","))})`
+            : sql`SELECT id FROM tours`
+        );
+        for (const row of (toDelete as any).rows ?? []) {
+          const pid = row.id;
+          await db.execute(sql`DELETE FROM availability_holds WHERE tour_instance_id IN (SELECT id FROM tour_instances WHERE tour_id = ${pid})`);
+          await db.execute(sql`DELETE FROM capacity_audit_log WHERE tour_instance_id IN (SELECT id FROM tour_instances WHERE tour_id = ${pid})`);
+          await db.execute(sql`DELETE FROM tour_instances WHERE tour_id = ${pid}`);
+          await db.execute(sql`DELETE FROM wishlist_items WHERE tour_id = ${pid}`);
+          await db.execute(sql`DELETE FROM pricing_versions WHERE product_id = ${pid}`);
+          await db.execute(sql`DELETE FROM product_blackout_dates WHERE product_id = ${pid}`);
+          await db.execute(sql`DELETE FROM resources WHERE product_id = ${pid}`);
+          await db.execute(sql`DELETE FROM booking_addons WHERE booking_id IN (SELECT id FROM bookings WHERE tour_id = ${pid})`);
+          await db.execute(sql`DELETE FROM booking_items WHERE booking_id IN (SELECT id FROM bookings WHERE tour_id = ${pid})`);
+          await db.execute(sql`DELETE FROM payments WHERE booking_id IN (SELECT id FROM bookings WHERE tour_id = ${pid})`);
+          await db.execute(sql`DELETE FROM bookings WHERE tour_id = ${pid}`);
+          await db.execute(sql`DELETE FROM tours WHERE id = ${pid}`);
+        }
+        deleted.products = ((toDelete as any).rows ?? []).length;
+        // Also wipe tour_instances for any surviving products
+        if (keepProductIds.length === 0) {
+          await db.execute(sql`DELETE FROM tour_instances`);
+        }
+      }
+
+      res.json({ ok: true, deleted });
+    } catch (error) {
+      console.error("[ROUTE] POST /api/admin/reset Error:", error);
+      res.status(500).json({ error: "Reset failed", detail: String(error) });
     }
   });
 
@@ -1388,6 +1593,46 @@ ${allPages.map(p => `  <url>
         idempotencyKey,
         pickupLocation: pickupLocation ?? undefined
       });
+
+      // ── Fraud Detection ──────────────────────────────────────────────────
+      // Run asynchronously after booking is created. Non-blocking: a fraud
+      // assessment failure never prevents the booking from being returned.
+      try {
+        const { FraudDetectionService } = await import("./infrastructure/fraud/FraudDetectionService.js");
+        const fraudService = new FraudDetectionService(storage);
+        const firstItem = items[0];
+        const assessment = await fraudService.assess({
+          bookingId: booking.id,
+          customerEmail: booking.customerEmail || customerEmail,
+          customerName: booking.customerName || customerName,
+          customerPhone: booking.customerPhone,
+          ipAddress: req.ip || req.socket?.remoteAddress || "unknown",
+          totalAmountCents: booking.totalAmountCents || 0,
+          guests: booking.guests || 0,
+          tourId: booking.tourId,
+          date: firstItem?.date || booking.date,
+          sessionId: req.sessionID,
+        });
+
+        if (assessment.requiresReview) {
+          // Write fraud data to dedicated typed columns (no notes pollution)
+          await fraudService.writeToBooking(booking.id, assessment);
+          console.log(`[FRAUD] Flagged booking ${booking.id} for review (score: ${assessment.riskScore})`);
+        }
+
+        // Hard block: critical score + IP burst detected
+        if (assessment.shouldBlock) {
+          // Cancel the booking immediately
+          await storage.updateBooking(booking.id, { status: "cancelled" });
+          return res.status(403).json({
+            error: "Your booking could not be processed. Please contact us directly if you believe this is an error.",
+          });
+        }
+      } catch (fraudErr) {
+        // Never let fraud detection crash the booking flow
+        console.error("[FRAUD] Assessment error (non-fatal):", fraudErr);
+      }
+      // ── End Fraud Detection ──────────────────────────────────────────────
 
       // ✅ Email notifications are intentionally deferred until payment is confirmed.
       // The payment completion handler (payment.routes.ts) sends emails after final payment.
