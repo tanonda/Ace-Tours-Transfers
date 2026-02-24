@@ -28,6 +28,7 @@ export interface GuestCounts {
 
 export interface TourSearchState extends GuestCounts {
   date: Date | undefined;
+  time: string;
 }
 
 export interface TransferSearchState extends GuestCounts {
@@ -52,6 +53,7 @@ export interface AvailabilitySearchResult {
   // Tour
   tour: TourSearchState;
   setTourDate: (d: Date | undefined) => void;
+  setTourTime: (t: string) => void;
   setTourAdults: (n: number) => void;
   setTourChildren: (n: number) => void;
   setTourInfants: (n: number) => void;  // NEW
@@ -107,8 +109,8 @@ function buildGuestSummary(adults: number, children: number, infants: number, pe
   const parts: string[] = [];
   parts.push(adults === 1 ? "1 Adult" : `${adults} Adults`);
   if (children > 0) parts.push(children === 1 ? "1 Child" : `${children} Children`);
-  if (infants > 0)  parts.push(infants === 1 ? "1 Infant" : `${infants} Infants`);
-  if (pets > 0)     parts.push(pets === 1 ? "1 Pet" : `${pets} Pets`);
+  if (infants > 0) parts.push(infants === 1 ? "1 Infant" : `${infants} Infants`);
+  if (pets > 0) parts.push(pets === 1 ? "1 Pet" : `${pets} Pets`);
   return parts.join(", ");
 }
 
@@ -142,27 +144,28 @@ export function useAvailabilitySearch(): AvailabilitySearchResult {
   }, []);
 
   // ── Tour state ────────────────────────────────────────────────────────────
-  const [tourDate,     setTourDate]     = useState<Date | undefined>(undefined);
-  const [tourAdults,   setTourAdults]   = useState(2);
+  const [tourDate, setTourDate] = useState<Date | undefined>(undefined);
+  const [tourTime, setTourTime] = useState("10:00");
+  const [tourAdults, setTourAdults] = useState(2);
   const [tourChildren, setTourChildren] = useState(0);
-  const [tourInfants,  setTourInfants]  = useState(0); // NEW
-  const [tourPets,     setTourPets]     = useState(0); // NEW
+  const [tourInfants, setTourInfants] = useState(0); // NEW
+  const [tourPets, setTourPets] = useState(0); // NEW
 
   // ── Transfer state ────────────────────────────────────────────────────────
-  const [transferFrom,     setTransferFrom]     = useState("");
-  const [transferTo,       setTransferTo]       = useState("");
-  const [transferDate,     setTransferDate]     = useState<Date | undefined>(undefined);
-  const [transferTime,     setTransferTime]     = useState("10:00");
-  const [transferAdults,   setTransferAdults]   = useState(2);
+  const [transferFrom, setTransferFrom] = useState("");
+  const [transferTo, setTransferTo] = useState("");
+  const [transferDate, setTransferDate] = useState<Date | undefined>(undefined);
+  const [transferTime, setTransferTime] = useState("10:00");
+  const [transferAdults, setTransferAdults] = useState(2);
   const [transferChildren, setTransferChildren] = useState(0);
-  const [transferInfants,  setTransferInfants]  = useState(0); // NEW
-  const [transferPets,     setTransferPets]     = useState(0); // NEW
+  const [transferInfants, setTransferInfants] = useState(0); // NEW
+  const [transferPets, setTransferPets] = useState(0); // NEW
 
   // ── Vehicle state ─────────────────────────────────────────────────────────
   const [pickupDate, setPickupDateRaw] = useState<Date | undefined>(undefined);
-  const [pickupTime, setPickupTime]    = useState("10:00");
+  const [pickupTime, setPickupTime] = useState("10:00");
   const [returnDate, setReturnDateRaw] = useState<Date | undefined>(undefined);
-  const [returnTime, setReturnTime]    = useState("10:00");
+  const [returnTime, setReturnTime] = useState("10:00");
 
   const setPickupDate = useCallback((d: Date | undefined) => {
     setPickupDateRaw(d);
@@ -181,9 +184,9 @@ export function useAvailabilitySearch(): AvailabilitySearchResult {
   });
 
   const allProducts = useMemo(() => filterProducts(rawProducts), [rawProducts]);
-  const tours     = useMemo(() => allProducts.filter((p) => p.category === "tour"),     [allProducts]);
+  const tours = useMemo(() => allProducts.filter((p) => p.category === "tour"), [allProducts]);
   const transfers = useMemo(() => allProducts.filter((p) => p.category === "transfer"), [allProducts]);
-  const vehicles  = useMemo(() => allProducts.filter((p) => p.category === "vehicle"),  [allProducts]);
+  const vehicles = useMemo(() => allProducts.filter((p) => p.category === "vehicle"), [allProducts]);
 
   // ── Derived ───────────────────────────────────────────────────────────────
   const hireDays = useMemo(() => {
@@ -225,18 +228,20 @@ export function useAvailabilitySearch(): AvailabilitySearchResult {
 
     if (activeTab === "tour") {
       if (tourDate) params.set("date", format(tourDate, "yyyy-MM-dd"));
-      params.set("adults",   tourAdults.toString());
+      params.set("adults", tourAdults.toString());
       params.set("children", tourChildren.toString());
-      params.set("infants",  tourInfants.toString()); // NEW
-      params.set("pets",     tourPets.toString());    // NEW
-      params.set("guests",   (tourAdults + tourChildren).toString()); // capacity guests only
+      params.set("infants", tourInfants.toString()); // NEW
+      params.set("pets", tourPets.toString());    // NEW
+      params.set("guests", (tourAdults + tourChildren).toString()); // capacity guests only
+      params.set("time", tourTime);
 
       updateDraft({
-        date:      tourDate ? format(tourDate, "yyyy-MM-dd") : "",
-        adultPax:  tourAdults,
-        childPax:  tourChildren,
+        date: tourDate ? format(tourDate, "yyyy-MM-dd") : "",
+        startTime: tourTime,
+        adultPax: tourAdults,
+        childPax: tourChildren,
         infantPax: tourInfants,  // NEW
-        petPax:    tourPets,     // NEW
+        petPax: tourPets,     // NEW
       });
 
       setLocation(
@@ -249,21 +254,22 @@ export function useAvailabilitySearch(): AvailabilitySearchResult {
 
     if (activeTab === "transfer") {
       if (transferDate) params.set("date", format(transferDate, "yyyy-MM-dd"));
-      params.set("time",     transferTime);
-      params.set("adults",   transferAdults.toString());
+      params.set("time", transferTime);
+      params.set("adults", transferAdults.toString());
       params.set("children", transferChildren.toString());
-      params.set("infants",  transferInfants.toString()); // NEW
-      params.set("pets",     transferPets.toString());    // NEW
-      params.set("guests",   (transferAdults + transferChildren).toString());
+      params.set("infants", transferInfants.toString()); // NEW
+      params.set("pets", transferPets.toString());    // NEW
+      params.set("guests", (transferAdults + transferChildren).toString());
       if (transferFrom) params.set("from", transferFrom);
-      if (transferTo)   params.set("to",   transferTo);
+      if (transferTo) params.set("to", transferTo);
 
       updateDraft({
-        date:      transferDate ? format(transferDate, "yyyy-MM-dd") : "",
-        adultPax:  transferAdults,
-        childPax:  transferChildren,
+        date: transferDate ? format(transferDate, "yyyy-MM-dd") : "",
+        startTime: transferTime,
+        adultPax: transferAdults,
+        childPax: transferChildren,
         infantPax: transferInfants,  // NEW
-        petPax:    transferPets,     // NEW
+        petPax: transferPets,     // NEW
       });
 
       setLocation(
@@ -277,7 +283,7 @@ export function useAvailabilitySearch(): AvailabilitySearchResult {
     if (activeTab === "vehicle") {
       if (pickupDate) {
         params.set("pickup", format(pickupDate, "yyyy-MM-dd"));
-        params.set("date",   format(pickupDate, "yyyy-MM-dd"));
+        params.set("date", format(pickupDate, "yyyy-MM-dd"));
       }
       if (returnDate) params.set("return", format(returnDate, "yyyy-MM-dd"));
       params.set("pickupTime", pickupTime);
@@ -285,11 +291,13 @@ export function useAvailabilitySearch(): AvailabilitySearchResult {
       params.set("days", hireDays.toString());
 
       updateDraft({
-        date:      pickupDate ? format(pickupDate, "yyyy-MM-dd") : "",
-        adultPax:  hireDays,
-        childPax:  0,
+        date: pickupDate ? format(pickupDate, "yyyy-MM-dd") : "",
+        startTime: pickupTime,
+        endTime: returnTime,
+        adultPax: hireDays,
+        childPax: 0,
         infantPax: 0,
-        petPax:    0,
+        petPax: 0,
       });
 
       setLocation(
@@ -316,8 +324,9 @@ export function useAvailabilitySearch(): AvailabilitySearchResult {
     activeTab,
     setActiveTab: handleSetActiveTab,
 
-    tour: { date: tourDate, adults: tourAdults, children: tourChildren, infants: tourInfants, pets: tourPets },
+    tour: { date: tourDate, time: tourTime, adults: tourAdults, children: tourChildren, infants: tourInfants, pets: tourPets },
     setTourDate,
+    setTourTime,
     setTourAdults,
     setTourChildren,
     setTourInfants,  // NEW

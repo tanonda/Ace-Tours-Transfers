@@ -299,7 +299,14 @@ export default function VehicleDetail() {
 
     if (urlPickupTime) setPickupTime(urlPickupTime);
     if (urlReturnTime) setDropoffTime(urlReturnTime);
-    if (id) updateDraft({ productId: id, adultPax: 1, childPax: 0, date: urlPickup });
+    if (id) updateDraft({
+      productId: id,
+      adultPax: 1,
+      childPax: 0,
+      date: urlPickup,
+      startTime: urlPickupTime || undefined,
+      endTime: urlReturnTime || undefined
+    });
   }, [id, updateDraft]);
 
   const handleRangeChange = useCallback((pickup: string, ret: string) => {

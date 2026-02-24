@@ -58,7 +58,9 @@ export default function TourDetail() {
     const urlChildren = sp.get("children");
     const urlInfants = sp.get("infants");
     const urlPets = sp.get("pets");
+    const urlTime = sp.get("time");
     if (urlDate) setDate(urlDate);
+    if (urlTime) setSelectedTime(urlTime);
     // Prefer explicit params from search; fall back to guests or defaults
     const parsedAdults = urlAdults ? parseInt(urlAdults) : (urlGuests ? parseInt(urlGuests) : 2);
     const parsedChildren = urlChildren ? parseInt(urlChildren) : 0;
@@ -76,7 +78,8 @@ export default function TourDetail() {
       childPax: parsedChildren,
       infantPax: parsedInfants,
       petPax: parsedPets,
-      date: urlDate || ""
+      date: urlDate || "",
+      startTime: urlTime || undefined
     });
 
     if (urlDate || urlGuests) {
@@ -87,8 +90,8 @@ export default function TourDetail() {
   }, [id, updateDraft]);
 
   useEffect(() => {
-    if (id) updateDraft({ productId: id, adultPax, childPax, infantPax, petPax, date });
-  }, [id, adultPax, childPax, infantPax, petPax, date, updateDraft]);
+    if (id) updateDraft({ productId: id, adultPax, childPax, infantPax, petPax, date, startTime: selectedTime || undefined });
+  }, [id, adultPax, childPax, infantPax, petPax, date, selectedTime, updateDraft]);
 
   const handleDateSelect = useCallback((d: string) => { setDate(d); setSelectedTime(null); }, []);
   const handleTimeSelect = useCallback((t: string) => { setSelectedTime(t); }, []);

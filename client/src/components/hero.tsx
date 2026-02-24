@@ -572,6 +572,13 @@ function SearchBar({ search }: SearchBarProps) {
                   divider
                   className="flex-1 min-w-[128px]"
                 />
+                <TimeCell
+                  label="Pickup time"
+                  value={search.tour.time}
+                  onChange={search.setTourTime}
+                  divider
+                  className="flex-1 min-w-[100px] max-w-[110px]"
+                />
                 <GuestsCell
                   label="Guests"
                   summary={search.tourGuestSummary}
