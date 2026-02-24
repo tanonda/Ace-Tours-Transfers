@@ -227,16 +227,24 @@ const TimeSlotsSection: React.FC<{
   const [slotError, setSlotError] = useState<string | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(initialSelectedTime || null);
 
+  // Keep selectedTime in sync with initialSelectedTime (from URL params / parent)
   useEffect(() => {
-    if (initialSelectedTime) setSelectedTime(initialSelectedTime);
+    if (initialSelectedTime) {
+      setSelectedTime(initialSelectedTime);
+    }
   }, [initialSelectedTime]);
 
-  const loadSlots = async () => {
+  const loadSlots = async (timeToRestore?: string | null) => {
     setLoading(true);
     setSlotError(null);
     try {
       const data = await fetchAvailableSlots(tourId, date, guests);
       setSlots(data);
+      // After slots load, pre-select the time from URL params if still relevant
+      if (timeToRestore) {
+        setSelectedTime(timeToRestore);
+        // Don't re-fire onTimeSelect – parent already has this value from URL
+      }
     } catch (error) {
       console.error("Failed to load slots", error);
       setSlotError("Could not load available times. Please try again.");
@@ -247,11 +255,14 @@ const TimeSlotsSection: React.FC<{
   };
 
   useEffect(() => {
-    loadSlots();
-    // Only clear selection if we're not initializing with a value
+    // When date changes, preserve any initialSelectedTime from parent (URL param)
+    // but clear interactively-set time if no initial value provided
+    const timeToRestore = initialSelectedTime || null;
     if (!initialSelectedTime) {
       setSelectedTime(null);
     }
+    loadSlots(timeToRestore);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tourId, date, guests]);
 
   if (slotError) {

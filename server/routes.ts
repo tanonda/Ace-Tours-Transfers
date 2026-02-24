@@ -77,6 +77,18 @@ const verifyLimiter = rateLimit({
   message: { error: "Too many verification attempts, please try again later." },
 });
 
+const newsletterLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // max 5 subscribe attempts per IP per 15 minutes
+  message: { error: "Too many subscription attempts, please try again later." },
+});
+
+const reviewsLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 3, // max 3 guest reviews per IP per hour
+  message: { error: "Too many review submissions. Please try again later." },
+});
+
 // C6 Fix: Zod schema for booking creation
 const createBookingItemSchema = z.object({
   productId: z.string(),
@@ -224,6 +236,47 @@ export async function registerRoutes(
   // 1. Enforce Integrity Guard
   app.use(BackupIntegrityGuard.enforceReadOnly);
 
+  // ── SEO: Sitemap ──────────────────────────────────────────────────────────
+  app.get("/sitemap.xml", async (_req, res) => {
+    try {
+      const SITE_URL = process.env.APP_URL || "https://ace-tours-transfers.onrender.com";
+      const tours = await storage.getTours();
+      const now = new Date().toISOString().split("T")[0];
+
+      const staticPages = [
+        { loc: "/", priority: "1.0", changefreq: "weekly" },
+        { loc: "/tours", priority: "0.9", changefreq: "daily" },
+        { loc: "/transfers", priority: "0.9", changefreq: "daily" },
+        { loc: "/vehicles", priority: "0.8", changefreq: "weekly" },
+        { loc: "/about", priority: "0.6", changefreq: "monthly" },
+        { loc: "/contact", priority: "0.6", changefreq: "monthly" },
+      ];
+
+      const tourPages = tours.map((t: any) => {
+        const type = t.category === "transfer" ? "transfers" : t.category === "vehicle" ? "vehicles" : "tours";
+        return { loc: `/${type}/${t.id}`, priority: "0.8", changefreq: "weekly" };
+      });
+
+      const allPages = [...staticPages, ...tourPages];
+
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${allPages.map(p => `  <url>
+    <loc>${SITE_URL}${p.loc}</loc>
+    <lastmod>${now}</lastmod>
+    <changefreq>${p.changefreq}</changefreq>
+    <priority>${p.priority}</priority>
+  </url>`).join("\n")}
+</urlset>`;
+
+      res.header("Content-Type", "application/xml");
+      res.header("Cache-Control", "public, max-age=3600");
+      res.send(xml);
+    } catch {
+      res.status(500).send("<!-- sitemap generation failed -->");
+    }
+  });
+
   registerAuthRoutes(app);
   registerUserRoutes(app);
 
@@ -336,7 +389,13 @@ export async function registerRoutes(
       });
       res.status(201).json(hold);
     } catch (error: any) {
-      res.status(400).json({ error: error.message });
+      // Translate known domain errors to user-friendly messages; never expose internals
+      const msg = error?.message || "";
+      if (msg.includes("capacity") || msg.includes("unavailable") || msg.includes("no availability")) {
+        res.status(409).json({ error: "This slot is no longer available. Please choose a different time." });
+      } else {
+        res.status(400).json({ error: "Could not reserve this slot. Please try again." });
+      }
     }
   });
 
@@ -514,7 +573,7 @@ export async function registerRoutes(
       });
     } catch (error: any) {
       console.error("Cart pricing error:", error);
-      res.status(400).json({ error: error.message || "Failed to price cart" });
+      res.status(400).json({ error: "Failed to calculate cart price. Please refresh and try again." });
     }
   });
 
@@ -537,7 +596,7 @@ export async function registerRoutes(
       res.json(tours);
     } catch (error: any) {
       console.error("[ROUTE] GET /api/tours failed:", error?.message, error?.code);
-      res.status(500).json({ error: "Failed to fetch tours", detail: error?.message });
+      res.status(500).json({ error: "Failed to fetch tours" });
     }
   });
 
@@ -548,7 +607,7 @@ export async function registerRoutes(
       res.json(tour);
     } catch (error: any) {
       console.error("[ROUTE] GET /api/tours/:id failed:", error?.message, error?.code);
-      res.status(500).json({ error: "Failed to fetch tour", detail: error?.message });
+      res.status(500).json({ error: "Failed to fetch tour" });
     }
   });
 
@@ -559,7 +618,7 @@ export async function registerRoutes(
       res.json(reviews);
     } catch (error: any) {
       console.error("[ROUTE] GET reviews failed:", error?.message);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: "Failed to fetch reviews." });
     }
   });
 
@@ -570,29 +629,47 @@ export async function registerRoutes(
       res.json(reviews);
     } catch (error: any) {
       console.error("[ROUTE] GET /api/products/:id/reviews failed:", error?.message);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: "Failed to fetch reviews." });
     }
   });
 
   // Guest review submission (no auth required, requires moderation)
-  app.post("/api/reviews/guest", async (req, res) => {
+  app.post("/api/reviews/guest", reviewsLimiter, async (req, res) => {
     try {
+      // Check if guest reviews feature flag is enabled
+      const guestReviewsFlag = await storage.getFeatureFlag("guest-reviews");
+      if (guestReviewsFlag && !guestReviewsFlag.enabled) {
+        return res.status(403).json({ error: "Guest reviews are currently disabled. Please create an account to leave a review." });
+      }
+
       const { tourId, rating, comment, guestName, guestEmail } = req.body;
       if (!tourId || !rating) return res.status(400).json({ error: "tourId and rating are required" });
       if (rating < 1 || rating > 5) return res.status(400).json({ error: "rating must be 1-5" });
 
+      // Sanitize & cap all user-supplied string fields
+      const safeComment = typeof comment === "string" ? comment.trim().slice(0, 2000) : null;
+      const safeGuestName = typeof guestName === "string" ? guestName.trim().slice(0, 100) : "Anonymous";
+      const safeGuestEmail = typeof guestEmail === "string" ? guestEmail.trim().slice(0, 254) : null;
+
+      // Basic email format check
+      if (safeGuestEmail) {
+        const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRe.test(safeGuestEmail)) return res.status(400).json({ error: "Invalid email address" });
+      }
+
       const review = await storage.createGuestReview({
         tourId,
         rating: parseInt(rating),
-        comment: comment || null,
-        guestName: guestName || "Anonymous",
-        guestEmail: guestEmail || null,
+        comment: safeComment,
+        guestName: safeGuestName,
+        guestEmail: safeGuestEmail,
         isGuest: true,
         status: "pending", // requires moderation
       });
       res.json({ success: true, id: review.id, message: "Thank you! Your review will appear after moderation." });
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error("[ROUTE] POST /api/reviews/guest failed:", error?.message);
+      res.status(500).json({ error: "Failed to submit review. Please try again." });
     }
   });
 
@@ -608,14 +685,27 @@ export async function registerRoutes(
       if (error instanceof ZodError) {
         res.status(400).json({ error: error.errors });
       } else {
-        res.status(500).json({ error: error.message });
+        console.error("[ROUTE] POST /api/reviews failed:", error?.message);
+        res.status(500).json({ error: "Failed to submit review. Please try again." });
       }
     }
   });
 
   app.post("/api/tours", requireAdmin, async (req, res) => {
     try {
-      const validatedData = insertTourSchema.parse(req.body);
+      const body = req.body;
+      // Ensure adultPriceCents is set — derive from price string if missing
+      if (body.adultPriceCents === undefined || body.adultPriceCents === null) {
+        const priceStr = String(body.price || "0");
+        const match = priceStr.match(/[\d,]+(\.\d+)?/);
+        body.adultPriceCents = match ? Math.round(parseFloat(match[0].replace(/,/g, "")) * 100) : 0;
+      }
+      if (body.childPriceCents === undefined || body.childPriceCents === null) {
+        const childStr = String(body.childPrice || "0");
+        const match = childStr.match(/[\d,]+(\.\d+)?/);
+        body.childPriceCents = match ? Math.round(parseFloat(match[0].replace(/,/g, "")) * 100) : 0;
+      }
+      const validatedData = insertTourSchema.parse(body);
       const tour = await storage.createTour(validatedData);
       res.status(201).json(tour);
     } catch (error) {
@@ -627,6 +717,15 @@ export async function registerRoutes(
   app.put("/api/tours/:id", requireAdmin, async (req, res) => {
     try {
       const { id, ...updateData } = req.body;
+      // Ensure priceCents fields are set if missing
+      if (updateData.adultPriceCents === undefined && updateData.price) {
+        const match = String(updateData.price).match(/[\d,]+(\.\d+)?/);
+        updateData.adultPriceCents = match ? Math.round(parseFloat(match[0].replace(/,/g, "")) * 100) : 0;
+      }
+      if (updateData.childPriceCents === undefined && updateData.childPrice !== undefined) {
+        const match = String(updateData.childPrice || "0").match(/[\d,]+(\.\d+)?/);
+        updateData.childPriceCents = match ? Math.round(parseFloat(match[0].replace(/,/g, "")) * 100) : 0;
+      }
       const tour = await storage.updateTour(req.params.id, updateData);
       res.json(tour);
     } catch (error) {
@@ -1306,7 +1405,22 @@ export async function registerRoutes(
 
       res.status(201).json(booking);
     } catch (error: any) {
-      res.status(400).json({ error: error.message });
+      const msg: string = error?.message || "";
+      console.error("[ROUTE] POST /api/bookings failed:", msg);
+      // Surface known domain errors as user-friendly messages; hide internal details
+      if (error instanceof ZodError) {
+        return res.status(400).json({ error: "Invalid booking data.", details: error.errors });
+      }
+      if (msg.toLowerCase().includes("capacity") || msg.toLowerCase().includes("unavailable")) {
+        return res.status(409).json({ error: "One or more items in your cart are no longer available. Please update your cart and try again." });
+      }
+      if (msg.toLowerCase().includes("past date") || msg.toLowerCase().includes("past_date")) {
+        return res.status(400).json({ error: "Bookings cannot be made for past dates." });
+      }
+      if (msg.toLowerCase().includes("idempotency") || msg.toLowerCase().includes("duplicate")) {
+        return res.status(409).json({ error: "This booking was already submitted. Please check your bookings." });
+      }
+      res.status(400).json({ error: "Failed to create booking. Please try again or contact us for assistance." });
     }
   });
 
@@ -1518,11 +1632,33 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/newsletter/subscribe", async (req, res) => {
+  app.post("/api/newsletter/subscribe", newsletterLimiter, async (req, res) => {
     try {
+      // Check feature flag
+      const newsletterFlag = await storage.getFeatureFlag("newsletter");
+      if (newsletterFlag && !newsletterFlag.enabled) {
+        return res.status(403).json({ error: "Newsletter subscriptions are currently disabled." });
+      }
+
       const { email, name, locale, source } = req.body;
       if (!email) return res.status(400).json({ error: "Email is required" });
-      const subscriber = await storage.subscribeNewsletter({ email, name: name || null, locale: locale || 'en', source: source || 'website' });
+
+      // Basic email format validation to prevent junk
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) return res.status(400).json({ error: "Invalid email address" });
+      if (email.length > 254) return res.status(400).json({ error: "Email address too long" });
+
+      // Sanitize name
+      const safeName = typeof name === "string" ? name.slice(0, 100).trim() : null;
+      const safeLocale = typeof locale === "string" ? locale.slice(0, 10).trim() : "en";
+      const safeSource = typeof source === "string" ? source.slice(0, 50).trim() : "website";
+
+      const subscriber = await storage.subscribeNewsletter({
+        email: email.toLowerCase().trim(),
+        name: safeName,
+        locale: safeLocale,
+        source: safeSource
+      });
       res.status(201).json({ message: "Subscribed!", subscriber });
     } catch (error) {
       res.status(400).json({ error: "Failed to subscribe" });

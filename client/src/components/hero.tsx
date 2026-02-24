@@ -758,12 +758,19 @@ export function Hero() {
       className="relative min-h-screen w-full overflow-hidden"
       aria-label="Hero — search for tours, transfers and vehicles"
     >
-      {/* Background image + gradient */}
+      {/* Background image + gradient — real <img> tag enables fetchpriority=high for LCP */}
       <div
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat scale-105"
-        style={{ backgroundImage: `url(${heroBg})` }}
+        className="absolute inset-0 scale-105 overflow-hidden"
         aria-hidden="true"
       >
+        <img
+          src={heroBg.replace("/upload/", "/upload/f_auto,q_auto,w_1600/")}
+          alt=""
+          className="w-full h-full object-cover object-center"
+          loading="eager"
+          fetchPriority="high"
+          decoding="async"
+        />
         <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/20 to-black/65" />
       </div>
 

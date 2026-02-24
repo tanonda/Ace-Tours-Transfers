@@ -13,6 +13,8 @@ import { useBookingDraft } from "@/lib/booking-state-context";
 import { formatPriceDisplay, type ProductCategory } from "@/lib/product.types";
 import { useCurrency } from "@/lib/currency-context";
 import { AvailabilityCalendar } from "@/components/AvailabilityCalendar";
+import { SEO, cloudinaryOpt } from "@/components/seo";
+import { GuestReviewForm } from "@/components/GuestReviewForm";
 
 const WHATSAPP_NUMBER = "6787114045";
 
@@ -29,6 +31,7 @@ export default function TransferDetail() {
   const [petPax, setPetPax] = useState(0);
   const [date, setDate] = useState<string>("");
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  const [urlInitialTime, setUrlInitialTime] = useState<string | null>(null);
 
   const { data: transfer, isLoading, error } = useQuery({
     queryKey: ["tour", id],
@@ -60,7 +63,10 @@ export default function TransferDetail() {
     const urlPets = sp.get("pets");
     const urlTime = sp.get("time");
     if (urlDate) setDate(urlDate);
-    if (urlTime) setSelectedTime(urlTime);
+    if (urlTime) {
+      setSelectedTime(urlTime);
+      setUrlInitialTime(urlTime);
+    }
     const parsedAdults = urlAdults ? parseInt(urlAdults) : (urlGuests ? parseInt(urlGuests) : 2);
     const parsedChildren = urlChildren ? parseInt(urlChildren) : 0;
     const parsedInfants = urlInfants ? parseInt(urlInfants) : 0;
@@ -140,13 +146,37 @@ export default function TransferDetail() {
     `Hi! I have a question about "${transfer.title}". `
   )}`;
 
+  const avgRating = reviews.length > 0
+    ? reviews.reduce((a: number, r: any) => a + r.rating, 0) / reviews.length : 0;
+
+  const transferFaqs = [
+    { question: `What is included in the ${transfer.title}?`, answer: transfer.description?.slice(0, 300) || "Please contact us for full inclusions." },
+    { question: "Where does the transfer pick me up?", answer: "We pick up from your hotel, cruise terminal, or the airport. Please provide your location at booking." },
+    { question: "What is the cancellation policy?", answer: "Free cancellation up to 24 hours before your scheduled transfer time." },
+    { question: "Can I book a private transfer?", answer: "Yes, all our transfers can be arranged as private service. Contact us via WhatsApp for private transfer pricing." },
+  ];
+
   return (
     <Layout>
+      <SEO
+        title={transfer.title}
+        description={transfer.description?.slice(0, 155) || `Book ${transfer.title} in Port Vila, Vanuatu. Reliable transfer service with Ace Tours & Transfers.`}
+        image={transfer.image}
+        type="product"
+        keywords={[transfer.title, "Vanuatu transfer", "Port Vila transport", "airport transfer Vanuatu"]}
+        structuredType="TouristAttraction"
+        productName={transfer.title}
+        productDescription={transfer.description}
+        offer={transfer.adultPriceCents ? { price: transfer.adultPriceCents, currency: "VUV", availability: "InStock" } : undefined}
+        aggregateRating={reviews.length > 0 ? { ratingValue: avgRating, reviewCount: reviews.length } : undefined}
+        reviews={reviews.slice(0, 5).map((r: any) => ({ author: r.userName || "Guest", rating: r.rating, body: r.comment, datePublished: r.createdAt?.slice(0, 10) }))}
+        faqs={transferFaqs}
+      />
       <div className="min-h-screen bg-[#0f0d09] text-[#f0ece4] font-sans pt-16">
 
         {/* HERO */}
         <div className="relative h-[340px] overflow-hidden">
-          <img src={transfer.image} className="w-full h-full object-cover filter brightness-[0.5] object-center" alt={transfer.title} />
+          <img src={cloudinaryOpt(transfer.image, 1200)} className="w-full h-full object-cover filter brightness-[0.5] object-center" alt={`${transfer.title} - Vanuatu transfer`} loading="eager" fetchPriority="high" />
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0f0d09]" />
           <div className="absolute bottom-8 left-0 right-0 max-w-[1280px] mx-auto px-8">
             <div className="flex items-center gap-2 text-[0.8rem] text-[#8a826e] mb-3">
@@ -173,7 +203,7 @@ export default function TransferDetail() {
 
             {/* Photo — adaptive: no forced height, respects portrait/landscape */}
             <div className="rounded-[14px] overflow-hidden bg-[#211e18] flex items-center justify-center">
-              <img src={transfer.image} className="w-full h-auto max-h-[540px] object-contain block" alt={transfer.title} />
+              <img src={cloudinaryOpt(transfer.image, 900)} className="w-full h-auto max-h-[540px] object-contain block" alt={`${transfer.title} - photo`} loading="lazy" />
             </div>
 
             {/* Description */}
@@ -250,6 +280,15 @@ export default function TransferDetail() {
                 ) : (
                   <p className="text-[0.88rem] text-[#8a826e] italic">No reviews yet. Be the first to leave one!</p>
                 )}
+              </div>
+
+              {/* Review submission form */}
+              <div className="mt-5 pt-5 border-t border-[rgba(244,168,48,0.12)]">
+                <GuestReviewForm
+                  productId={id!}
+                  productTitle={transfer.title}
+                  reviewQueryKey={["product-reviews", id!]}
+                />
               </div>
             </div>
 
@@ -405,7 +444,7 @@ export default function TransferDetail() {
                 <AvailabilityCalendar
                   tourId={transfer.id}
                   selectedDate={date}
-                  selectedTime={selectedTime}
+                  selectedTime={selectedTime || urlInitialTime}
                   participants={{ adults: adultPax, children: childPax }}
                   onDateSelect={handleDateSelect}
                   onTimeSelect={handleTimeSelect}

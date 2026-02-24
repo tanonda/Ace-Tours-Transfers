@@ -7,9 +7,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useQuery } from "@tanstack/react-query";
 import { fetchAuditLogs, fetchTours } from "@/lib/api";
-import { ScrollText, RefreshCw, Download, Search, Filter } from "lucide-react";
+import { ScrollText, RefreshCw, Download, Search, Filter, Clock, User, Package, Hash, Info, ChevronRight } from "lucide-react";
 
 const ACTION_COLORS: Record<string, string> = {
   booking_confirmed:    "bg-green-100 text-green-800",
@@ -22,11 +28,142 @@ const ACTION_COLORS: Record<string, string> = {
   blackout_deleted:     "bg-gray-100 text-gray-800",
 };
 
+function DetailRow({ icon, label, children }: { icon: React.ReactNode; label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-start gap-3 py-2.5 border-b border-muted last:border-0">
+      <div className="mt-0.5 shrink-0">{icon}</div>
+      <div className="flex-1 min-w-0">
+        <div className="text-xs text-muted-foreground font-medium mb-0.5">{label}</div>
+        <div className="text-sm text-foreground">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+function AuditLogDetailDialog({
+  entry,
+  tourTitle,
+  open,
+  onClose,
+}: {
+  entry: any;
+  tourTitle: string;
+  open: boolean;
+  onClose: () => void;
+}) {
+  if (!entry) return null;
+
+  const metadata = entry.metadata;
+  const metaEntries = metadata && typeof metadata === "object"
+    ? Object.entries(metadata)
+    : [];
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="sm:max-w-[560px] max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-[#004165]">
+            <Info className="h-5 w-5" />
+            Audit Log Detail
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4 mt-2">
+          {/* Action badge */}
+          <div className="flex items-center gap-3">
+            <Badge
+              variant="outline"
+              className={`text-sm font-semibold px-3 py-1 ${ACTION_COLORS[entry.action] || "bg-gray-100 text-gray-700"}`}
+            >
+              {entry.action}
+            </Badge>
+          </div>
+
+          {/* Core fields */}
+          <div className="divide-y divide-muted border rounded-lg overflow-hidden">
+            <DetailRow icon={<Clock className="h-4 w-4 text-muted-foreground" />} label="Timestamp">
+              {new Date(entry.createdAt).toLocaleString("en-AU", {
+                weekday: "short",
+                year: "numeric",
+                month: "short",
+                day: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+                second: "2-digit",
+              })}
+            </DetailRow>
+
+            <DetailRow icon={<Package className="h-4 w-4 text-muted-foreground" />} label="Product">
+              <span>{tourTitle || entry.productId || "—"}</span>
+              {entry.productId && (
+                <span className="ml-2 text-xs text-muted-foreground font-mono">
+                  ({entry.productId.slice(0, 8)}…)
+                </span>
+              )}
+            </DetailRow>
+
+            <DetailRow icon={<User className="h-4 w-4 text-muted-foreground" />} label="Performed By">
+              {entry.performedBy || "—"}
+            </DetailRow>
+
+            {entry.quantity != null && (
+              <DetailRow icon={<Hash className="h-4 w-4 text-muted-foreground" />} label="Quantity">
+                <span className={`font-mono font-bold ${entry.quantity > 0 ? "text-green-700" : entry.quantity < 0 ? "text-red-700" : "text-muted-foreground"}`}>
+                  {entry.quantity > 0 ? `+${entry.quantity}` : entry.quantity}
+                </span>
+              </DetailRow>
+            )}
+
+            <DetailRow icon={<Hash className="h-4 w-4 text-muted-foreground" />} label="Log ID">
+              <span className="font-mono text-xs text-muted-foreground">{entry.id}</span>
+            </DetailRow>
+          </div>
+
+          {/* Metadata section */}
+          {metaEntries.length > 0 && (
+            <div>
+              <h4 className="text-sm font-semibold text-[#004165] mb-2 flex items-center gap-2">
+                <Info className="h-4 w-4" />
+                Additional Details
+              </h4>
+              <div className="bg-muted/40 rounded-lg border divide-y divide-muted overflow-hidden">
+                {metaEntries.map(([key, value]) => (
+                  <div key={key} className="flex gap-3 px-4 py-2.5 text-sm">
+                    <span className="text-muted-foreground font-medium shrink-0 w-36 truncate capitalize">
+                      {key.replace(/_/g, " ")}
+                    </span>
+                    <span className="font-mono text-xs break-all text-foreground">
+                      {typeof value === "object" ? JSON.stringify(value, null, 2) : String(value)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Raw JSON toggle */}
+          <details className="group">
+            <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground transition-colors flex items-center gap-1 select-none">
+              <ChevronRight className="h-3 w-3 group-open:rotate-90 transition-transform" />
+              View raw JSON
+            </summary>
+            <pre className="mt-2 text-xs bg-muted rounded p-3 overflow-auto max-h-48 font-mono">
+              {JSON.stringify(entry, null, 2)}
+            </pre>
+          </details>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function AdminAuditLogs() {
   const [productId, setProductId] = useState<string>("");
   const [action, setAction] = useState<string>("");
   const [search, setSearch] = useState<string>("");
   const [limit, setLimit] = useState<number>(200);
+  const [selectedEntry, setSelectedEntry] = useState<any>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
 
   const { data: tours = [] } = useQuery({ queryKey: ["/api/tours"], queryFn: fetchTours });
 
@@ -48,6 +185,11 @@ export default function AdminAuditLogs() {
       tours.find((t: any) => t.id === e.productId)?.title?.toLowerCase().includes(s)
     );
   });
+
+  const handleRowClick = (entry: any) => {
+    setSelectedEntry(entry);
+    setDetailOpen(true);
+  };
 
   const handleExport = () => {
     const rows = [
@@ -71,6 +213,10 @@ export default function AdminAuditLogs() {
     URL.revokeObjectURL(url);
   };
 
+  const selectedTourTitle = selectedEntry
+    ? tours.find((t: any) => t.id === selectedEntry.productId)?.title || selectedEntry.productId || "—"
+    : "";
+
   return (
     <DashboardLayout type="admin">
       <div className="space-y-6">
@@ -81,7 +227,7 @@ export default function AdminAuditLogs() {
             </div>
             <div>
               <h1 className="text-3xl font-bold text-[#004165]">Audit Log</h1>
-              <p className="text-muted-foreground text-sm">Track capacity events, holds, and booking changes</p>
+              <p className="text-muted-foreground text-sm">Track capacity events, holds, and booking changes — click any row to view details</p>
             </div>
           </div>
           <div className="flex gap-2">
@@ -190,8 +336,12 @@ export default function AdminAuditLogs() {
         {/* Table */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">
-              Entries <span className="text-muted-foreground font-normal text-sm">({filtered.length})</span>
+            <CardTitle className="text-base flex items-center gap-2">
+              Entries
+              <span className="text-muted-foreground font-normal text-sm">({filtered.length})</span>
+              <span className="ml-auto text-xs text-muted-foreground font-normal italic">
+                Click any row to view full details
+              </span>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -205,24 +355,32 @@ export default function AdminAuditLogs() {
                     <TableHead>Quantity</TableHead>
                     <TableHead>Performed By</TableHead>
                     <TableHead>Details</TableHead>
+                    <TableHead className="w-8"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {isLoading ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                         Loading audit log…
                       </TableCell>
                     </TableRow>
                   ) : filtered.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                         No entries found for the selected filters.
                       </TableCell>
                     </TableRow>
                   ) : (
                     filtered.map((e: any) => (
-                      <TableRow key={e.id}>
+                      <TableRow
+                        key={e.id}
+                        className="cursor-pointer hover:bg-[#004165]/5 transition-colors group"
+                        onClick={() => handleRowClick(e)}
+                        tabIndex={0}
+                        onKeyDown={(ev) => ev.key === "Enter" && handleRowClick(e)}
+                        aria-label={`View details for ${e.action}`}
+                      >
                         <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                           {new Date(e.createdAt).toLocaleString()}
                         </TableCell>
@@ -248,6 +406,9 @@ export default function AdminAuditLogs() {
                         <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate">
                           {e.metadata ? JSON.stringify(e.metadata) : "—"}
                         </TableCell>
+                        <TableCell>
+                          <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </TableCell>
                       </TableRow>
                     ))
                   )}
@@ -257,6 +418,14 @@ export default function AdminAuditLogs() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Detail Dialog */}
+      <AuditLogDetailDialog
+        entry={selectedEntry}
+        tourTitle={selectedTourTitle}
+        open={detailOpen}
+        onClose={() => setDetailOpen(false)}
+      />
     </DashboardLayout>
   );
 }

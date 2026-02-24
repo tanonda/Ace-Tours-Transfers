@@ -4,9 +4,12 @@ import { fetchVehicle } from "@/lib/api";
 import { apiRequest } from "@/lib/queryClient";
 import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Clock, ChevronLeft, ChevronRight, Calendar, Fuel, Users, Settings, Wind, Shield, Wifi, Baby, Zap } from "lucide-react";
+import { ArrowLeft, Clock, ChevronLeft, ChevronRight, Calendar, Fuel, Users, Settings, Wind, Shield, Wifi, Baby, Zap, CheckCircle2, AlertTriangle, XCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useToast } from "@/hooks/use-toast";
+import { SEO, cloudinaryOpt } from "@/components/seo";
+import { GuestReviewForm } from "@/components/GuestReviewForm";
 import { useCart } from "@/lib/cart-context";
 import { useBookingDraft } from "@/lib/booking-state-context";
 import { formatPriceDisplay } from "@/lib/product.types";
@@ -157,24 +160,42 @@ function RangeCalendar({ pickupDate, returnDate, onRangeChange }: {
   );
 }
 
-// ─── Time picker ──────────────────────────────────────────────────────────────
-function TimePicker({ label, productId, date, selected, onSelect }: {
+// ─── Time picker (with availability awareness + toast) ────────────────────────
+function TimePicker({ label, productId, date, selected, onSelect, onAvailabilityLoaded }: {
   label: string; productId: string; date: string;
-  selected: string | null; onSelect: (t: string) => void;
+  selected: string | null;
+  onSelect: (t: string, remaining: number) => void;
+  onAvailabilityLoaded?: (hasAny: boolean, totalSlots: number, availableSlots: number) => void;
 }) {
   const [slots, setSlots] = useState<{ time: string; available: boolean; remaining: number }[]>([]);
   const [loading, setLoading] = useState(false);
+  const prevDate = useRef<string>("");
 
   useEffect(() => {
     if (!date || !productId) return;
+    if (date === prevDate.current) return;
+    prevDate.current = date;
     setLoading(true);
-    fetchSlots(productId, date).then(data => { setSlots(data); setLoading(false); });
-  }, [date, productId]);
+    fetchSlots(productId, date).then(data => {
+      setSlots(data);
+      setLoading(false);
+      if (onAvailabilityLoaded && data.length > 0) {
+        const avail = data.filter((s: any) => s.available).length;
+        onAvailabilityLoaded(avail > 0, data.length, avail);
+      }
+    });
+  }, [date, productId, onAvailabilityLoaded]);
 
   const displaySlots = slots.length > 0 ? slots :
     ["06:00", "06:30", "07:00", "07:30", "08:00", "08:30", "09:00", "09:30", "10:00", "10:30",
       "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00"]
       .map(t => ({ time: t, available: true, remaining: 99 }));
+
+  // Legend summary
+  const hasRealSlots = slots.length > 0;
+  const availCount = hasRealSlots ? slots.filter(s => s.available).length : null;
+  const totalCount = hasRealSlots ? slots.length : null;
+  const allUnavail = hasRealSlots && availCount === 0;
 
   if (loading) return (
     <div>
@@ -189,26 +210,66 @@ function TimePicker({ label, productId, date, selected, onSelect }: {
 
   return (
     <div>
-      <div className="text-[0.68rem] font-bold uppercase tracking-widest text-[#8a826e] mb-2 flex items-center gap-2">
-        <Clock size={10} className="text-[#f4a830]" />{label}
+      <div className="text-[0.68rem] font-bold uppercase tracking-widest text-[#8a826e] mb-2 flex items-center justify-between gap-2">
+        <span className="flex items-center gap-2"><Clock size={10} className="text-[#f4a830]" />{label}</span>
+        {hasRealSlots && (
+          <span className={`text-[0.62rem] font-bold px-2 py-0.5 rounded-full ${
+            allUnavail ? "bg-[rgba(224,85,85,0.12)] text-[#e05555] border border-[rgba(224,85,85,0.25)]" :
+            availCount! <= 2 ? "bg-[rgba(244,168,48,0.12)] text-[#f4a830] border border-[rgba(244,168,48,0.25)]" :
+            "bg-[rgba(76,175,125,0.12)] text-[#4caf7d] border border-[rgba(76,175,125,0.25)]"
+          }`}>
+            {allUnavail ? "Fully booked" : `${availCount} of ${totalCount} open`}
+          </span>
+        )}
       </div>
-      <div className="grid grid-cols-4 gap-1.5 max-h-[132px] overflow-y-auto">
-        {displaySlots.map(slot => {
-          const isSel = selected === slot.time;
-          const isUnavail = !slot.available;
-          return (
-            <button key={slot.time} disabled={isUnavail} onClick={() => slot.available && onSelect(slot.time)}
-              className={[
-                "h-9 rounded-lg text-[0.73rem] font-semibold border transition-all",
-                isSel ? "bg-[#f4a830] text-[#0f0d09] border-[#f4a830] font-black shadow-[0_0_8px_rgba(244,168,48,0.3)]" :
-                  isUnavail ? "bg-[rgba(224,85,85,0.06)] border-[rgba(224,85,85,0.15)] text-[#3a342c] cursor-not-allowed" :
-                    "bg-[#211e18] border-[rgba(244,168,48,0.18)] text-[#b8b0a0] hover:border-[#f4a830] hover:text-[#f4a830]"
-              ].join(" ")}>
-              {slot.time}
-            </button>
-          );
-        })}
-      </div>
+
+      {allUnavail ? (
+        <div className="flex items-center gap-2 py-4 px-3 rounded-lg bg-[rgba(224,85,85,0.06)] border border-[rgba(224,85,85,0.15)]">
+          <XCircle size={15} className="text-[#e05555] shrink-0" />
+          <p className="text-[0.78rem] text-[#e05555]">No slots available for this date. Please choose a different day.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-4 gap-1.5 max-h-[132px] overflow-y-auto">
+          {displaySlots.map(slot => {
+            const isSel = selected === slot.time;
+            const isUnavail = !slot.available;
+            const isLow = slot.available && slot.remaining <= 3 && slot.remaining < 99;
+            return (
+              <div key={slot.time} className="relative">
+                <button disabled={isUnavail} onClick={() => slot.available && onSelect(slot.time, slot.remaining)}
+                  title={isUnavail ? "Not available" : isLow ? `Only ${slot.remaining} left` : undefined}
+                  className={[
+                    "h-9 w-full rounded-lg text-[0.73rem] font-semibold border transition-all",
+                    isSel ? "bg-[#f4a830] text-[#0f0d09] border-[#f4a830] font-black shadow-[0_0_8px_rgba(244,168,48,0.3)]" :
+                      isUnavail ? "bg-[rgba(224,85,85,0.06)] border-[rgba(224,85,85,0.15)] text-[#2a2620] cursor-not-allowed line-through decoration-[rgba(224,85,85,0.4)]" :
+                      isLow ? "bg-[rgba(244,168,48,0.08)] border-[rgba(244,168,48,0.35)] text-[#f4a830] hover:border-[#f4a830]" :
+                        "bg-[#211e18] border-[rgba(244,168,48,0.18)] text-[#b8b0a0] hover:border-[#f4a830] hover:text-[#f4a830]"
+                  ].join(" ")}>
+                  {slot.time}
+                </button>
+                {isLow && !isSel && (
+                  <span className="absolute -top-1 -right-1 w-3 h-3 bg-[#f4a830] rounded-full border border-[#0f0d09]" title={`Only ${slot.remaining} left`} />
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Legend */}
+      {hasRealSlots && !allUnavail && (
+        <div className="flex items-center gap-3 mt-2 flex-wrap">
+          <span className="flex items-center gap-1 text-[0.6rem] text-[#3a342c]">
+            <span className="w-2.5 h-2.5 rounded bg-[#211e18] border border-[rgba(244,168,48,0.18)]" />Available
+          </span>
+          <span className="flex items-center gap-1 text-[0.6rem] text-[#3a342c]">
+            <span className="w-2.5 h-2.5 rounded bg-[rgba(244,168,48,0.08)] border border-[rgba(244,168,48,0.35)]" />Low availability
+          </span>
+          <span className="flex items-center gap-1 text-[0.6rem] text-[#3a342c]">
+            <span className="w-2.5 h-2.5 rounded bg-[rgba(224,85,85,0.06)] border border-[rgba(224,85,85,0.15)]" />Booked
+          </span>
+        </div>
+      )}
     </div>
   );
 }
@@ -255,11 +316,13 @@ export default function VehicleDetail() {
   const { addToCart } = useCart();
   const { updateDraft } = useBookingDraft();
   const { currency } = useCurrency();
+  const { toast } = useToast();
 
   const [pickupDate, setPickupDate] = useState<string>("");
   const [returnDate, setReturnDate] = useState<string>("");
   const [pickupTime, setPickupTime] = useState<string | null>(null);
   const [dropoffTime, setDropoffTime] = useState<string | null>(null);
+  const [availabilityStatus, setAvailabilityStatus] = useState<"unknown" | "available" | "limited" | "unavailable">("unknown");
 
   const hireDays = pickupDate && returnDate
     ? Math.max(1, differenceInCalendarDays(parseISO(returnDate), parseISO(pickupDate)))
@@ -314,7 +377,31 @@ export default function VehicleDetail() {
     setReturnDate(ret);
     setPickupTime(null);
     setDropoffTime(null);
+    setAvailabilityStatus("unknown");
   }, []);
+
+  const handleAvailabilityLoaded = useCallback((hasAny: boolean, total: number, available: number) => {
+    if (!hasAny) {
+      setAvailabilityStatus("unavailable");
+      toast({
+        title: "No availability",
+        description: "This vehicle is fully booked on the selected date. Please choose a different pickup date.",
+        variant: "destructive",
+      });
+    } else if (available <= 2) {
+      setAvailabilityStatus("limited");
+      toast({
+        title: `Only ${available} slot${available === 1 ? "" : "s"} left!`,
+        description: "High demand — select your time soon to secure this vehicle.",
+      });
+    } else {
+      setAvailabilityStatus("available");
+      toast({
+        title: "Vehicle available",
+        description: `${available} of ${total} time slots open on this date.`,
+      });
+    }
+  }, [toast]);
 
   const totalPriceCents = vehicle ? vehicle.adultPriceCents * Math.max(1, hireDays) : 0;
   const canBook = !!(pickupDate && returnDate && hireDays >= 1);
@@ -362,13 +449,33 @@ export default function VehicleDetail() {
     { icon: "🧭", label: "Coverage", value: "Efate Island" },
   ].filter(Boolean) as { icon: any; label: string; value: string }[];
 
+  const vehicleFaqs = [
+    { question: `What is included in hiring the ${vehicle.title}?`, answer: `The ${vehicle.title} hire includes fuel, insurance, and GPS navigation for Efate Island. Driver is optional.` },
+    { question: "Do I need an international driver's licence?", answer: "Yes, an international driving permit is required for self-drive hire in Vanuatu." },
+    { question: "What is the cancellation policy?", answer: "Free cancellation up to 24 hours before your hire start time." },
+    { question: "Can I hire the vehicle with a driver?", answer: "Yes, a professional local driver can be arranged for your convenience. Please ask us via WhatsApp." },
+  ];
+
   return (
     <Layout>
+      <SEO
+        title={`${vehicle.title} - Vehicle Hire`}
+        description={`Hire the ${vehicle.title} in Port Vila, Vanuatu. ${vd.seats ? `Seats up to ${vd.seats} passengers.` : ""} Self-drive or with driver. Book with Ace Tours & Transfers.`}
+        image={vehicle.image}
+        type="product"
+        keywords={[vehicle.title, "car hire Vanuatu", "vehicle hire Port Vila", "self drive Vanuatu", vd.make || "", vd.model || ""]}
+        structuredType="Product"
+        productName={vehicle.title}
+        offer={vehicle.adultPriceCents ? { price: vehicle.adultPriceCents, currency: "VUV", availability: "InStock" } : undefined}
+        aggregateRating={reviews.length > 0 ? { ratingValue: averageRating, reviewCount: reviews.length } : undefined}
+        reviews={reviews.slice(0, 5).map((r: any) => ({ author: r.userName || "Guest", rating: r.rating, body: r.comment, datePublished: r.createdAt?.slice(0, 10) }))}
+        faqs={vehicleFaqs}
+      />
       <div className="min-h-screen bg-[#0f0d09] text-[#f0ece4] font-sans pt-16">
 
         {/* Hero */}
         <div className="relative h-[340px] overflow-hidden">
-          <img src={vehicle.image} className="w-full h-full object-cover brightness-[0.42] object-center" alt={vehicle.title} />
+          <img src={cloudinaryOpt(vehicle.image, 1200)} className="w-full h-full object-cover brightness-[0.42] object-center" alt={`${vehicle.title} - vehicle hire Vanuatu`} loading="eager" fetchPriority="high" />
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#0f0d09]/20 to-[#0f0d09]" />
           <div className="absolute inset-0 opacity-[0.025]"
             style={{ backgroundImage: "linear-gradient(#f4a830 1px,transparent 1px),linear-gradient(90deg,#f4a830 1px,transparent 1px)", backgroundSize: "44px 44px" }} />
@@ -380,7 +487,17 @@ export default function VehicleDetail() {
             </div>
             <h1 className="font-serif text-[2.5rem] md:text-5xl font-bold leading-tight mb-3">{vehicle.title}</h1>
             <div className="flex flex-wrap gap-2">
-              <span className="px-3 py-1 rounded-full border border-[#4caf7d]/40 bg-[#4caf7d]/10 text-[#4caf7d] text-[0.72rem] font-semibold">✓ Available Today</span>
+              <span className={`px-3 py-1 rounded-full border text-[0.72rem] font-semibold ${
+                availabilityStatus === "unavailable" ? "border-[#e05555]/40 bg-[#e05555]/10 text-[#e05555]" :
+                availabilityStatus === "limited" ? "border-[#f4a830]/40 bg-[#f4a830]/10 text-[#f4a830]" :
+                availabilityStatus === "available" ? "border-[#4caf7d]/40 bg-[#4caf7d]/10 text-[#4caf7d]" :
+                "border-[#4caf7d]/40 bg-[#4caf7d]/10 text-[#4caf7d]"
+              }`}>
+                {availabilityStatus === "unavailable" ? "✗ Fully Booked" :
+                 availabilityStatus === "limited" ? "⚡ Limited Availability" :
+                 availabilityStatus === "available" ? "✓ Available" :
+                 "✓ Check Dates Below"}
+              </span>
               <span className="px-3 py-1 rounded-full border border-[#f4a830]/35 bg-[#f4a830]/8 text-[#f4a830] text-[0.72rem] font-semibold">
                 {reviews.length > 0 ? `★ ${averageRating.toFixed(1)} · ${reviews.length} reviews` : "★ No reviews yet"}
               </span>
@@ -397,7 +514,7 @@ export default function VehicleDetail() {
           <div className="flex flex-col gap-7">
 
             <div className="rounded-[14px] overflow-hidden aspect-[16/9]">
-              <img src={vehicle.image} className="w-full h-full object-cover" alt={vehicle.title} />
+              <img src={cloudinaryOpt(vehicle.image, 900)} className="w-full h-full object-cover" alt={`${vehicle.title} - photo`} loading="lazy" />
             </div>
 
             {/* Specs */}
@@ -495,6 +612,15 @@ export default function VehicleDetail() {
                   <p className="text-[0.85rem] text-[#3a342c] italic">No reviews yet — be the first to share your experience.</p>
                 )}
               </div>
+
+              {/* Review submission form */}
+              <div className="mt-5 pt-5 border-t border-[rgba(244,168,48,0.1)]">
+                <GuestReviewForm
+                  productId={id!}
+                  productTitle={vehicle.title}
+                  reviewQueryKey={["product-reviews", id!]}
+                />
+              </div>
             </section>
           </div>
 
@@ -533,7 +659,13 @@ export default function VehicleDetail() {
                     productId={vehicle.id}
                     date={pickupDate}
                     selected={pickupTime}
-                    onSelect={setPickupTime}
+                    onSelect={(t, remaining) => {
+                      setPickupTime(t);
+                      if (remaining <= 3 && remaining < 99) {
+                        toast({ title: `⚡ Only ${remaining} spot${remaining === 1 ? "" : "s"} at ${t}`, description: "Book now before it fills up!" });
+                      }
+                    }}
+                    onAvailabilityLoaded={handleAvailabilityLoaded}
                   />
                 </div>
               )}
@@ -546,7 +678,7 @@ export default function VehicleDetail() {
                     productId={vehicle.id}
                     date={returnDate}
                     selected={dropoffTime}
-                    onSelect={setDropoffTime}
+                    onSelect={(t, _remaining) => setDropoffTime(t)}
                   />
                 </div>
               )}
@@ -581,6 +713,24 @@ export default function VehicleDetail() {
                       <span className="text-[#f4a830]">{formatPriceDisplay(totalPriceCents, currency)}</span>
                     </div>
                   </div>
+                </div>
+              )}
+
+              {/* Availability status banner */}
+              {availabilityStatus !== "unknown" && (
+                <div className={`flex items-start gap-2.5 p-3 rounded-[10px] border text-[0.78rem] ${
+                  availabilityStatus === "unavailable" ? "bg-[rgba(224,85,85,0.07)] border-[rgba(224,85,85,0.2)] text-[#e05555]" :
+                  availabilityStatus === "limited" ? "bg-[rgba(244,168,48,0.07)] border-[rgba(244,168,48,0.2)] text-[#f4a830]" :
+                  "bg-[rgba(76,175,125,0.07)] border-[rgba(76,175,125,0.2)] text-[#4caf7d]"
+                }`}>
+                  {availabilityStatus === "unavailable" ? <XCircle size={15} className="shrink-0 mt-0.5" /> :
+                   availabilityStatus === "limited" ? <AlertTriangle size={15} className="shrink-0 mt-0.5" /> :
+                   <CheckCircle2 size={15} className="shrink-0 mt-0.5" />}
+                  <span>
+                    {availabilityStatus === "unavailable" ? "This vehicle is fully booked on your selected pickup date. Choose a different day." :
+                     availabilityStatus === "limited" ? "Very few slots remain for your pickup date. Select a time quickly to secure your booking." :
+                     "Great news — this vehicle has good availability on your selected dates."}
+                  </span>
                 </div>
               )}
 

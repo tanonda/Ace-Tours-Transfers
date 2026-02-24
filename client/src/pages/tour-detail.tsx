@@ -15,6 +15,8 @@ import { formatPriceDisplay, type ProductCategory } from "@/lib/product.types";
 import { useCurrency } from "@/lib/currency-context";
 import { AvailabilityCalendar } from "@/components/AvailabilityCalendar";
 import { AvailabilityStatus } from "@/components/AvailabilityStatus";
+import { SEO, cloudinaryOpt } from "@/components/seo";
+import { GuestReviewForm } from "@/components/GuestReviewForm";
 
 export default function TourDetail() {
   const { id } = useParams<{ id: string }>();
@@ -29,6 +31,8 @@ export default function TourDetail() {
   const [petPax, setPetPax] = useState(0);
   const [date, setDate] = useState<string>("");
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  // Store the time from URL params as stable "initial" so time slot picker can pre-select it
+  const [urlInitialTime, setUrlInitialTime] = useState<string | null>(null);
 
   const { data: tour, isLoading, error } = useQuery({
     queryKey: ["tour", id],
@@ -60,7 +64,10 @@ export default function TourDetail() {
     const urlPets = sp.get("pets");
     const urlTime = sp.get("time");
     if (urlDate) setDate(urlDate);
-    if (urlTime) setSelectedTime(urlTime);
+    if (urlTime) {
+      setSelectedTime(urlTime);
+      setUrlInitialTime(urlTime); // stable reference for AvailabilityCalendar initialSelectedTime
+    }
     // Prefer explicit params from search; fall back to guests or defaults
     const parsedAdults = urlAdults ? parseInt(urlAdults) : (urlGuests ? parseInt(urlGuests) : 2);
     const parsedChildren = urlChildren ? parseInt(urlChildren) : 0;
@@ -93,7 +100,12 @@ export default function TourDetail() {
     if (id) updateDraft({ productId: id, adultPax, childPax, infantPax, petPax, date, startTime: selectedTime || undefined });
   }, [id, adultPax, childPax, infantPax, petPax, date, selectedTime, updateDraft]);
 
-  const handleDateSelect = useCallback((d: string) => { setDate(d); setSelectedTime(null); }, []);
+  const handleDateSelect = useCallback((d: string) => { 
+    // Clear user-selected time when choosing a new date (preserves clean UX)
+    // The AvailabilityCalendar will restore initialSelectedTime (from URL) if date matches
+    setDate(d); 
+    setSelectedTime(null); 
+  }, []);
   const handleTimeSelect = useCallback((t: string) => { setSelectedTime(t); }, []);
 
   const handleAddToCart = () => {
@@ -147,16 +159,43 @@ export default function TourDetail() {
   const totalPax = adultPax + childPax;
   const isBooked = !availability?.isAvailable && !!date;
 
+  // Build SEO data
+  const avgRating = reviews.length > 0
+    ? reviews.reduce((a: number, r: any) => a + r.rating, 0) / reviews.length
+    : 0;
+  const tourFaqs = [
+    { question: `What is included in the ${tour.title}?`, answer: tour.description?.slice(0, 300) || "Please contact us for full inclusions." },
+    { question: "Is this tour suitable for children?", answer: "Yes, this tour accommodates children. Child pricing is available at checkout." },
+    { question: "What is the cancellation policy?", answer: "Free cancellation up to 24 hours before your scheduled tour. Contact us for late cancellations." },
+    { question: "Where does the tour depart from?", answer: "Pick-up is available from most Port Vila hotels. Please confirm your location at booking." },
+  ];
+
   return (
     <Layout>
+      <SEO
+        title={tour.title}
+        description={tour.description?.slice(0, 155) || `Book ${tour.title} in Port Vila, Vanuatu. ${tour.duration || ""} tour with Ace Tours & Transfers.`}
+        image={tour.image}
+        type="product"
+        keywords={[tour.title, "Vanuatu tour", "Port Vila tour", tour.category || ""]}
+        structuredType="TouristAttraction"
+        productName={tour.title}
+        productDescription={tour.description}
+        offer={tour.adultPriceCents ? { price: tour.adultPriceCents, currency: "VUV", availability: "InStock" } : undefined}
+        aggregateRating={reviews.length > 0 ? { ratingValue: avgRating, reviewCount: reviews.length } : undefined}
+        reviews={reviews.slice(0, 5).map((r: any) => ({ author: r.userName || "Guest", rating: r.rating, body: r.comment, datePublished: r.createdAt?.slice(0, 10) }))}
+        faqs={tourFaqs}
+      />
       <div className="min-h-screen bg-[#0f0d09] text-[#f0ece4] font-sans pt-16">
 
         {/* ── HERO ── */}
         <div className="relative h-[340px] overflow-hidden">
           <img
-            src={tour.image}
+            src={cloudinaryOpt(tour.image, 1200)}
             className="w-full h-full object-cover filter brightness-[0.5] object-center"
-            alt={tour.title}
+            alt={`${tour.title} - Vanuatu tour`}
+            loading="eager"
+            fetchPriority="high"
           />
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0f0d09]" />
           <div className="absolute bottom-8 left-0 right-0 max-w-[1280px] mx-auto px-8">
@@ -200,9 +239,10 @@ export default function TourDetail() {
             {/* Photo — adaptive height, no cropping */}
             <div className="rounded-[14px] overflow-hidden bg-[#211e18] aspect-[16/9]">
               <img
-                src={tour.image}
+                src={cloudinaryOpt(tour.image, 900)}
                 className="w-full h-full object-cover object-center block"
-                alt={tour.title}
+                alt={`${tour.title} - tour photo`}
+                loading="lazy"
               />
             </div>
 
@@ -283,6 +323,15 @@ export default function TourDetail() {
                 ) : (
                   <p className="text-[0.88rem] text-[#8a826e] italic">{t("quickView.noReviews", "No reviews yet. Be the first to leave one!")}</p>
                 )}
+              </div>
+
+              {/* Review submission form */}
+              <div className="mt-5 pt-5 border-t border-[rgba(244,168,48,0.12)]">
+                <GuestReviewForm
+                  productId={id!}
+                  productTitle={tour.title}
+                  reviewQueryKey={["tour-reviews", id!]}
+                />
               </div>
             </div>
 
@@ -495,7 +544,7 @@ export default function TourDetail() {
                 <AvailabilityCalendar
                   tourId={id || ""}
                   selectedDate={date}
-                  selectedTime={selectedTime}
+                  selectedTime={selectedTime || urlInitialTime}
                   participants={{ adults: adultPax, children: childPax }}
                   onDateSelect={handleDateSelect}
                   onTimeSelect={handleTimeSelect}
