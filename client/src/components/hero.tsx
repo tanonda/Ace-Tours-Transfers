@@ -591,13 +591,14 @@ function SearchBar({ search }: SearchBarProps) {
             {/* ── Transfers ── */}
             {search.activeTab === "transfer" && (
               <>
-                <BarInput
-                  label="From"
-                  value={search.transfer.from}
-                  onChange={search.setTransferFrom}
-                  placeholder="Pickup point"
+                <ProductCell
+                  label="Transfer"
+                  value={search.selectedProductId}
+                  onChange={search.setSelectedProductId}
+                  products={search.transfers}
+                  placeholder="All transfers"
                   divider
-                  className="flex-[1.4]"
+                  className="flex-[2]"
                 />
                 <BarInput
                   label="To"
