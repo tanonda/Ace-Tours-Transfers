@@ -216,7 +216,11 @@ app.use((req, res, next) => {
       req.path.endsWith('.tsx') ||
       req.path.endsWith('.ts') ||
       req.path.endsWith('.css') ||
-      req.path.endsWith('.scss')
+      req.path.endsWith('.scss') ||
+      req.path.endsWith('.json') ||
+      req.path.startsWith('/src/') ||
+      req.path.startsWith('/assets/') ||
+      req.path.match(/\.(png|jpe?g|gif|svg|woff2?|ico)$/i)
     ));
 
   if (isViteDevAsset) {
