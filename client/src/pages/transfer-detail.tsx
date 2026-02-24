@@ -58,7 +58,9 @@ export default function TransferDetail() {
     const urlGuests = sp.get("guests");
     const urlInfants = sp.get("infants");
     const urlPets = sp.get("pets");
+    const urlTime = sp.get("time");
     if (urlDate) setDate(urlDate);
+    if (urlTime) setSelectedTime(urlTime);
     const parsedAdults = urlAdults ? parseInt(urlAdults) : (urlGuests ? parseInt(urlGuests) : 2);
     const parsedChildren = urlChildren ? parseInt(urlChildren) : 0;
     const parsedInfants = urlInfants ? parseInt(urlInfants) : 0;
@@ -74,13 +76,14 @@ export default function TransferDetail() {
       childPax: parsedChildren,
       infantPax: parsedInfants,
       petPax: parsedPets,
-      date: urlDate || ""
+      date: urlDate || "",
+      startTime: urlTime || undefined
     });
   }, [id, updateDraft]);
 
   useEffect(() => {
-    if (id) updateDraft({ productId: id, adultPax, childPax, infantPax, petPax, date });
-  }, [id, adultPax, childPax, infantPax, petPax, date, updateDraft]);
+    if (id) updateDraft({ productId: id, adultPax, childPax, infantPax, petPax, date, startTime: selectedTime || undefined });
+  }, [id, adultPax, childPax, infantPax, petPax, date, selectedTime, updateDraft]);
 
   const handleDateSelect = useCallback((d: string) => { setDate(d); setSelectedTime(null); }, []);
   const handleTimeSelect = useCallback((t: string) => { setSelectedTime(t); }, []);
