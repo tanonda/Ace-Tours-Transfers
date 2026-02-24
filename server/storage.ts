@@ -831,7 +831,7 @@ export class DatabaseStorage implements IStorage {
         return review;
       } catch (e: any) {
         if (e?.message?.includes("column") || e?.message?.includes("does not exist") ||
-            e?.message?.includes("null value") || e?.message?.includes("not-null")) {
+          e?.message?.includes("null value") || e?.message?.includes("not-null")) {
           console.warn("[REVIEW] Guest review columns not yet migrated — run migration 0003");
           return { id: crypto.randomUUID(), ...data, createdAt: new Date(), _migrationPending: true };
         }
@@ -1068,10 +1068,10 @@ export class DatabaseStorage implements IStorage {
 
   // Availability & Holds
   async getTourInstances(tourId: string, date: string): Promise<TourInstance[]> {
-    return await db
+    return this.withRetry(() => db
       .select()
       .from(tourInstances)
-      .where(and(eq(tourInstances.tourId, tourId), eq(tourInstances.serviceDate, date)));
+      .where(and(eq(tourInstances.tourId, tourId), eq(tourInstances.serviceDate, date))));
   }
 
   async getTourInstance(tourId: string, date: string, slot?: string): Promise<TourInstance | undefined> {
@@ -1110,8 +1110,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getHold(id: string): Promise<AvailabilityHold | undefined> {
-    const [hold] = await db.select().from(availabilityHolds).where(eq(availabilityHolds.id, id));
-    return hold || undefined;
+    return this.withRetry(async () => {
+      const [hold] = await db.select().from(availabilityHolds).where(eq(availabilityHolds.id, id));
+      return hold || undefined;
+    });
   }
 
   async createHold(hold: InsertAvailabilityHold): Promise<AvailabilityHold> {
@@ -1240,55 +1242,57 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAvailableResources(productId: string, date: string, startTime?: string, endTime?: string): Promise<Resource[]> {
-    // Find resources for this product that are active
-    const allResources = await db.select().from(resources)
-      .where(and(eq(resources.productId, productId), eq(resources.status, 'active')));
+    return this.withRetry(async () => {
+      // Find resources for this product that are active
+      const allResources = await db.select().from(resources)
+        .where(and(eq(resources.productId, productId), eq(resources.status, 'active')));
 
-    // Get all active holds for this product on this date
-    // For vehicles, we check interval overlap: start1 < end2 AND start2 < end1
-    const activeHolds = await db
-      .select({
-        resourceId: availabilityHolds.resourceId,
-        startTime: tourInstances.startTime,
-        endTime: tourInstances.endTime
-      })
-      .from(availabilityHolds)
-      .innerJoin(tourInstances, eq(availabilityHolds.tourInstanceId, tourInstances.id))
-      .where(and(
-        eq(tourInstances.tourId, productId),
-        eq(tourInstances.serviceDate, date),
-        sql`availability_holds.status IN ('ACTIVE', 'CONFIRMED')`,
-        sql`${availabilityHolds.resourceId} IS NOT NULL`
-      ));
+      // Get all active holds for this product on this date
+      // For vehicles, we check interval overlap: start1 < end2 AND start2 < end1
+      const activeHolds = await db
+        .select({
+          resourceId: availabilityHolds.resourceId,
+          startTime: tourInstances.startTime,
+          endTime: tourInstances.endTime
+        })
+        .from(availabilityHolds)
+        .innerJoin(tourInstances, eq(availabilityHolds.tourInstanceId, tourInstances.id))
+        .where(and(
+          eq(tourInstances.tourId, productId),
+          eq(tourInstances.serviceDate, date),
+          sql`availability_holds.status IN ('ACTIVE', 'CONFIRMED')`,
+          sql`${availabilityHolds.resourceId} IS NOT NULL`
+        ));
 
-    if (!startTime && !endTime) {
-      // Full day or legacy check - any hold on this date blocks the resource
+      if (!startTime && !endTime) {
+        // Full day or legacy check - any hold on this date blocks the resource
+        const heldResourceIds = new Set<string>();
+        activeHolds.forEach(h => {
+          if (h.resourceId) heldResourceIds.add(h.resourceId);
+        });
+        return allResources.filter(r => !heldResourceIds.has(r.id));
+      }
+
+      // Time-aware overlap check
+      const { timeToMinutes } = await import("./domain/availability/time-interval.js");
+      const reqStart = timeToMinutes(startTime || "00:00");
+      const reqEnd = timeToMinutes(endTime || "23:59");
+
       const heldResourceIds = new Set<string>();
       activeHolds.forEach(h => {
-        if (h.resourceId) heldResourceIds.add(h.resourceId);
+        if (!h.resourceId) return;
+
+        const holdStart = timeToMinutes(h.startTime || "00:00");
+        const holdEnd = timeToMinutes(h.endTime || "23:59");
+
+        // Interval overlap: start1 < end2 AND start2 < end1
+        if (reqStart < holdEnd && holdStart < reqEnd) {
+          heldResourceIds.add(h.resourceId);
+        }
       });
+
       return allResources.filter(r => !heldResourceIds.has(r.id));
-    }
-
-    // Time-aware overlap check
-    const { timeToMinutes } = await import("./domain/availability/time-interval.js");
-    const reqStart = timeToMinutes(startTime || "00:00");
-    const reqEnd = timeToMinutes(endTime || "23:59");
-
-    const heldResourceIds = new Set<string>();
-    activeHolds.forEach(h => {
-      if (!h.resourceId) return;
-
-      const holdStart = timeToMinutes(h.startTime || "00:00");
-      const holdEnd = timeToMinutes(h.endTime || "23:59");
-
-      // Interval overlap: start1 < end2 AND start2 < end1
-      if (reqStart < holdEnd && holdStart < reqEnd) {
-        heldResourceIds.add(h.resourceId);
-      }
     });
-
-    return allResources.filter(r => !heldResourceIds.has(r.id));
   }
 
   async getAvailableResourcesMultiDay(productId: string, startDate: string, duration: number, startTime?: string, endTime?: string): Promise<Resource[]> {
@@ -1367,20 +1371,24 @@ export class DatabaseStorage implements IStorage {
     await db.delete(resources).where(eq(resources.id, id));
   }
 
-  // Blackout Dates (Phase 4)
+  // Blackout Dates (Phase 4 — tours, transfers, vehicles)
   async getBlackoutDates(productId: string): Promise<BlackoutDate[]> {
-    return await db.select().from(productBlackoutDates)
-      .where(eq(productBlackoutDates.productId, productId))
-      .orderBy(productBlackoutDates.date);
+    return this.withRetry(() => db.select().from(productBlackoutDates).where(eq(productBlackoutDates.productId, productId)));
   }
 
   async isBlackedOut(productId: string, date: string): Promise<boolean> {
-    const [result] = await db.select().from(productBlackoutDates)
-      .where(and(
-        eq(productBlackoutDates.productId, productId),
-        eq(productBlackoutDates.date, date)
-      ));
-    return !!result;
+    return this.withRetry(async () => {
+      const [blackout] = await db
+        .select()
+        .from(productBlackoutDates)
+        .where(
+          and(
+            eq(productBlackoutDates.productId, productId),
+            eq(productBlackoutDates.date, date)
+          )
+        );
+      return !!blackout;
+    });
   }
 
   async createBlackoutDate(data: InsertBlackoutDate): Promise<BlackoutDate> {
@@ -1394,21 +1402,24 @@ export class DatabaseStorage implements IStorage {
 
   // Pricing Versions (Phase 5)
   async getPricingVersions(productId: string): Promise<PricingVersion[]> {
-    return await db.select().from(pricingVersions)
-      .where(eq(pricingVersions.productId, productId))
-      .orderBy(desc(pricingVersions.effectiveFrom));
+    return this.withRetry(() => db.select().from(pricingVersions).where(eq(pricingVersions.productId, productId)));
   }
 
   async getEffectivePricingVersion(productId: string, date: string): Promise<PricingVersion | undefined> {
-    // Find the most recent version effective on or before the given date
-    const [version] = await db.select().from(pricingVersions)
-      .where(and(
-        eq(pricingVersions.productId, productId),
-        lte(pricingVersions.effectiveFrom, date)
-      ))
-      .orderBy(desc(pricingVersions.effectiveFrom))
-      .limit(1);
-    return version || undefined;
+    return this.withRetry(async () => {
+      const [version] = await db
+        .select()
+        .from(pricingVersions)
+        .where(
+          and(
+            eq(pricingVersions.productId, productId),
+            lte(pricingVersions.effectiveFrom, date)
+          )
+        )
+        .orderBy(desc(pricingVersions.effectiveFrom))
+        .limit(1);
+      return version || undefined;
+    });
   }
 
   async createPricingVersion(version: InsertPricingVersion): Promise<PricingVersion> {

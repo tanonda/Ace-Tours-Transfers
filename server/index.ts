@@ -207,6 +207,19 @@ sessionStore.on('error', (err: Error) => {
 });
 
 // Session setup with conditional bypass for Vite dev assets
+const sessionMiddleware = session({
+  store: sessionStore,
+  secret: config.session.secret!, // C2 Fix: Use the validated secret, non-null assertion as validateConfig() ensures it exists or exits
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: config.env === "production",
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    sameSite: config.env === "production" ? "strict" : "lax", // CRIT-4 + MED-1 FIX: strict prevents CSRF and eliminates need for origin pinning (same-origin deployment)
+  },
+});
+
 app.use((req, res, next) => {
   // Skip session for Vite internal paths and static assets in dev
   const isViteDevAsset = req.path.startsWith('/@') ||
@@ -227,18 +240,7 @@ app.use((req, res, next) => {
     return next();
   }
 
-  session({
-    store: sessionStore,
-    secret: config.session.secret!, // C2 Fix: Use the validated secret, non-null assertion as validateConfig() ensures it exists or exits
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      secure: config.env === "production",
-      httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      sameSite: config.env === "production" ? "strict" : "lax", // CRIT-4 + MED-1 FIX: strict prevents CSRF and eliminates need for origin pinning (same-origin deployment)
-    },
-  })(req, res, next);
+  sessionMiddleware(req, res, next);
 });
 
 export function log(message: string, source = "express") {
