@@ -38,7 +38,16 @@ export function EditBookingDialog({ booking, open, onOpenChange, onSave }: EditB
   };
 
   const handleVerified = () => {
-    onSave(formData);
+    // Only send mutable fields back to prevent 400 Bad Request
+    const safeUpdates = {
+      id: formData.id,
+      customerName: formData.customerName,
+      customerPhone: formData.customerPhone,
+      pickupLocation: formData.pickupLocation,
+      notes: formData.notes,
+      status: formData.status,
+    };
+    onSave(safeUpdates as any);
     onOpenChange(false);
   };
 
@@ -51,73 +60,51 @@ export function EditBookingDialog({ booking, open, onOpenChange, onSave }: EditB
             Update booking details for <span className="font-medium text-foreground">{booking.id}</span>
           </DialogDescription>
         </DialogHeader>
-        
+
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="customer">Customer Name</Label>
-              <Input 
-                id="customer" 
-                value={formData.customerName} 
-                onChange={(e) => setFormData({...formData, customerName: e.target.value})}
+              <Input
+                id="customer"
+                value={formData.customerName}
+                onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="date">Date</Label>
-              <Input 
-                id="date" 
-                type="date"
-                value={formData.date} 
-                onChange={(e) => setFormData({...formData, date: e.target.value})}
+              <Label htmlFor="customerPhone">Phone Number</Label>
+              <Input
+                id="customerPhone"
+                value={formData.customerPhone || ""}
+                onChange={(e) => setFormData({ ...formData, customerPhone: e.target.value })}
               />
             </div>
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="tour">Tour / Service</Label>
-            <Select 
-              value={formData.tourName} 
-              onValueChange={(value) => setFormData({...formData, tourName: value})}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select tour" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Efate Scenic Tour">Efate Scenic Tour</SelectItem>
-                <SelectItem value="Airport Transfer">Airport Transfer</SelectItem>
-                <SelectItem value="Roots & Routes">Roots & Routes</SelectItem>
-                <SelectItem value="Bus Hire">Bus Hire</SelectItem>
-                <SelectItem value="Event Transfer">Event Transfer</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="guests">Guests</Label>
-              <Input 
-                id="guests" 
-                type="number" 
-                min="1"
-                value={formData.guests} 
-                onChange={(e) => setFormData({...formData, guests: parseInt(e.target.value) || 0})}
+              <Label htmlFor="pickupLocation">Pickup Location</Label>
+              <Input
+                id="pickupLocation"
+                value={formData.pickupLocation || ""}
+                onChange={(e) => setFormData({ ...formData, pickupLocation: e.target.value })}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="amount">Amount</Label>
-              <Input 
-                id="amount" 
-                value={formData.amount} 
-                onChange={(e) => setFormData({...formData, amount: e.target.value})}
+              <Label htmlFor="notes">Notes</Label>
+              <Input
+                id="notes"
+                value={formData.notes || ""}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               />
             </div>
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="status">Status</Label>
-            <Select 
-              value={formData.status} 
-              onValueChange={(value) => setFormData({...formData, status: value})}
+            <Select
+              value={formData.status}
+              onValueChange={(value) => setFormData({ ...formData, status: value })}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select status" />

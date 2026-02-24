@@ -87,7 +87,7 @@ function DateCell({
             open && "bg-blue-50/50",
             // Right divider — thin vertical line like Skyscanner
             divider &&
-              "after:absolute after:right-0 after:top-[20%] after:bottom-[20%] after:w-px after:bg-gray-200",
+            "after:absolute after:right-0 after:top-[20%] after:bottom-[20%] after:w-px after:bg-gray-200",
             className
           )}
         >
@@ -145,10 +145,10 @@ interface GuestsCellProps {
   children: number;
   infants: number;             // NEW
   pets: number;                // NEW
-  onAdultsChange:   (n: number) => void;
+  onAdultsChange: (n: number) => void;
   onChildrenChange: (n: number) => void;
-  onInfantsChange:  (n: number) => void;  // NEW
-  onPetsChange:     (n: number) => void;  // NEW
+  onInfantsChange: (n: number) => void;  // NEW
+  onPetsChange: (n: number) => void;  // NEW
   divider?: boolean;
   className?: string;
 }
@@ -244,7 +244,7 @@ function GuestsCell({
             "transition-colors duration-150 hover:bg-gray-50 focus-visible:outline-none focus-visible:bg-gray-50",
             open && "bg-blue-50/50",
             divider &&
-              "after:absolute after:right-0 after:top-[20%] after:bottom-[20%] after:w-px after:bg-gray-200",
+            "after:absolute after:right-0 after:top-[20%] after:bottom-[20%] after:w-px after:bg-gray-200",
             className
           )}
         >
@@ -343,7 +343,7 @@ function BarInput({
         "relative flex flex-col justify-center px-4 py-3 h-full",
         "transition-colors duration-150 hover:bg-gray-50 focus-within:bg-gray-50",
         divider &&
-          "after:absolute after:right-0 after:top-[20%] after:bottom-[20%] after:w-px after:bg-gray-200",
+        "after:absolute after:right-0 after:top-[20%] after:bottom-[20%] after:w-px after:bg-gray-200",
         className
       )}
     >
@@ -355,6 +355,45 @@ function BarInput({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         className="border-0 bg-transparent shadow-none p-0 h-auto text-[15px] font-semibold text-gray-900 placeholder:text-gray-400 placeholder:font-normal focus-visible:ring-0 leading-tight"
+      />
+    </div>
+  );
+}
+
+// ─── TimeCell ─────────────────────────────────────────────────────────────────
+// A time input rendered as a flush bar segment with vertical divider.
+interface TimeCellProps {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  divider?: boolean;
+  className?: string;
+}
+function TimeCell({
+  label,
+  value,
+  onChange,
+  divider = true,
+  className,
+}: TimeCellProps) {
+  return (
+    <div
+      className={cn(
+        "relative flex flex-col justify-center px-4 py-3 h-full",
+        "transition-colors duration-150 hover:bg-gray-50 focus-within:bg-gray-50",
+        divider &&
+        "after:absolute after:right-0 after:top-[20%] after:bottom-[20%] after:w-px after:bg-gray-200",
+        className
+      )}
+    >
+      <label className="text-[11px] font-semibold text-gray-500 leading-none mb-[6px]">
+        {label}
+      </label>
+      <Input
+        type="time"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="border-0 bg-transparent shadow-none p-0 h-auto text-[15px] font-semibold text-gray-900 focus-visible:ring-0 leading-tight [&::-webkit-calendar-picker-indicator]:ml-auto [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-50 hover:[&::-webkit-calendar-picker-indicator]:opacity-100"
       />
     </div>
   );
@@ -389,7 +428,7 @@ function ProductCell({
       className={cn(
         "relative flex-1 min-w-0",
         divider &&
-          "after:absolute after:right-0 after:top-[20%] after:bottom-[20%] after:w-px after:bg-gray-200 after:z-10",
+        "after:absolute after:right-0 after:top-[20%] after:bottom-[20%] after:w-px after:bg-gray-200 after:z-10",
         className
       )}
     >
@@ -444,9 +483,9 @@ function ProductCell({
 // ─── SearchTabs ───────────────────────────────────────────────────────────────
 // Pill-style tabs sitting above the search bar (like Skyscanner's One way / Return tabs).
 const TABS: { id: SearchTab; icon: React.ReactNode; label: string }[] = [
-  { id: "tour",     icon: <Map className="h-3.5 w-3.5" />,   label: "Tours" },
-  { id: "transfer", icon: <Car className="h-3.5 w-3.5" />,   label: "Transfers" },
-  { id: "vehicle",  icon: <Truck className="h-3.5 w-3.5" />, label: "Vehicle Hire" },
+  { id: "tour", icon: <Map className="h-3.5 w-3.5" />, label: "Tours" },
+  { id: "transfer", icon: <Car className="h-3.5 w-3.5" />, label: "Transfers" },
+  { id: "vehicle", icon: <Truck className="h-3.5 w-3.5" />, label: "Vehicle Hire" },
 ];
 
 interface SearchTabsProps {
@@ -576,6 +615,13 @@ function SearchBar({ search }: SearchBarProps) {
                   divider
                   className="flex-1 min-w-[128px]"
                 />
+                <TimeCell
+                  label="Pickup time"
+                  value={search.transfer.time}
+                  onChange={search.setTransferTime}
+                  divider
+                  className="flex-1 min-w-[100px] max-w-[110px]"
+                />
                 <GuestsCell
                   label="Passengers"
                   summary={search.transferPassengerSummary}
@@ -612,6 +658,13 @@ function SearchBar({ search }: SearchBarProps) {
                   divider
                   className="flex-1 min-w-[128px]"
                 />
+                <TimeCell
+                  label="Time"
+                  value={search.vehicle.pickupTime}
+                  onChange={search.setPickupTime}
+                  divider
+                  className="flex-1 min-w-[90px] max-w-[100px]"
+                />
                 <DateCell
                   label="Drop-off date"
                   value={search.vehicle.returnDate}
@@ -622,8 +675,15 @@ function SearchBar({ search }: SearchBarProps) {
                       : new Date()
                   }
                   placeholder="Add date"
-                  divider={search.hireDays > 0}
+                  divider
                   className="flex-1 min-w-[128px]"
+                />
+                <TimeCell
+                  label="Time"
+                  value={search.vehicle.returnTime}
+                  onChange={search.setReturnTime}
+                  divider={search.hireDays > 0}
+                  className="flex-1 min-w-[90px] max-w-[100px]"
                 />
                 {/* Duration badge — appears inline when both dates set */}
                 <AnimatePresence>
@@ -742,9 +802,9 @@ export function Hero() {
               {t("hero.popularSearches", "Popular:")}
             </span>
             {[
-              { label: t("nav.tours"),                              href: "/tours"     },
+              { label: t("nav.tours"), href: "/tours" },
               { label: t("hero.airportTransfer", "Airport Transfer"), href: "/transfers" },
-              { label: t("hero.dayTours", "Day Tours"),             href: "/tours"     },
+              { label: t("hero.dayTours", "Day Tours"), href: "/tours" },
             ].map((link) => (
               <Link key={link.label} href={link.href}>
                 <Button

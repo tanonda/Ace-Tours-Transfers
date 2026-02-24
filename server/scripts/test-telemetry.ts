@@ -52,7 +52,7 @@ async function runTelemetryTest() {
         await service.execute({
             customerName: "Telemetry Test",
             customerEmail: "test@example.com",
-            items: [{ productId: TEST_TOUR_ID, adultPax: 2, childPax: 0, date: TEST_DATE }]
+            items: [{ productId: TEST_TOUR_ID, adultPax: 2, childPax: 0, infantPax: 0, petPax: 0, date: TEST_DATE }]
         });
         console.log("✅ Booking creation recorded.");
     } catch (e) {

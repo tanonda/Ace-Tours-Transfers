@@ -34,11 +34,14 @@ export interface TransferSearchState extends GuestCounts {
   from: string;
   to: string;
   date: Date | undefined;
+  time: string;
 }
 
 export interface VehicleSearchState {
   pickupDate: Date | undefined;
+  pickupTime: string;
   returnDate: Date | undefined;
+  returnTime: string;
 }
 
 export interface AvailabilitySearchResult {
@@ -59,6 +62,7 @@ export interface AvailabilitySearchResult {
   setTransferFrom: (s: string) => void;
   setTransferTo: (s: string) => void;
   setTransferDate: (d: Date | undefined) => void;
+  setTransferTime: (t: string) => void;
   setTransferAdults: (n: number) => void;
   setTransferChildren: (n: number) => void;
   setTransferInfants: (n: number) => void;  // NEW
@@ -67,7 +71,9 @@ export interface AvailabilitySearchResult {
   // Vehicle
   vehicle: VehicleSearchState;
   setPickupDate: (d: Date | undefined) => void;
+  setPickupTime: (t: string) => void;
   setReturnDate: (d: Date | undefined) => void;
+  setReturnTime: (t: string) => void;
 
   // Products
   allProducts: any[];
@@ -146,6 +152,7 @@ export function useAvailabilitySearch(): AvailabilitySearchResult {
   const [transferFrom,     setTransferFrom]     = useState("");
   const [transferTo,       setTransferTo]       = useState("");
   const [transferDate,     setTransferDate]     = useState<Date | undefined>(undefined);
+  const [transferTime,     setTransferTime]     = useState("10:00");
   const [transferAdults,   setTransferAdults]   = useState(2);
   const [transferChildren, setTransferChildren] = useState(0);
   const [transferInfants,  setTransferInfants]  = useState(0); // NEW
@@ -153,7 +160,9 @@ export function useAvailabilitySearch(): AvailabilitySearchResult {
 
   // ── Vehicle state ─────────────────────────────────────────────────────────
   const [pickupDate, setPickupDateRaw] = useState<Date | undefined>(undefined);
+  const [pickupTime, setPickupTime]    = useState("10:00");
   const [returnDate, setReturnDateRaw] = useState<Date | undefined>(undefined);
+  const [returnTime, setReturnTime]    = useState("10:00");
 
   const setPickupDate = useCallback((d: Date | undefined) => {
     setPickupDateRaw(d);
@@ -240,6 +249,7 @@ export function useAvailabilitySearch(): AvailabilitySearchResult {
 
     if (activeTab === "transfer") {
       if (transferDate) params.set("date", format(transferDate, "yyyy-MM-dd"));
+      params.set("time",     transferTime);
       params.set("adults",   transferAdults.toString());
       params.set("children", transferChildren.toString());
       params.set("infants",  transferInfants.toString()); // NEW
@@ -270,6 +280,8 @@ export function useAvailabilitySearch(): AvailabilitySearchResult {
         params.set("date",   format(pickupDate, "yyyy-MM-dd"));
       }
       if (returnDate) params.set("return", format(returnDate, "yyyy-MM-dd"));
+      params.set("pickupTime", pickupTime);
+      params.set("returnTime", returnTime);
       params.set("days", hireDays.toString());
 
       updateDraft({
@@ -292,8 +304,8 @@ export function useAvailabilitySearch(): AvailabilitySearchResult {
   }, [
     activeTab,
     tourDate, tourAdults, tourChildren, tourInfants, tourPets,
-    transferFrom, transferTo, transferDate, transferAdults, transferChildren, transferInfants, transferPets,
-    pickupDate, returnDate, hireDays,
+    transferFrom, transferTo, transferDate, transferTime, transferAdults, transferChildren, transferInfants, transferPets,
+    pickupDate, pickupTime, returnDate, returnTime, hireDays,
     selectedProductId,
     updateDraft,
     setLocation,
@@ -311,18 +323,21 @@ export function useAvailabilitySearch(): AvailabilitySearchResult {
     setTourInfants,  // NEW
     setTourPets,     // NEW
 
-    transfer: { from: transferFrom, to: transferTo, date: transferDate, adults: transferAdults, children: transferChildren, infants: transferInfants, pets: transferPets },
+    transfer: { from: transferFrom, to: transferTo, date: transferDate, time: transferTime, adults: transferAdults, children: transferChildren, infants: transferInfants, pets: transferPets },
     setTransferFrom,
     setTransferTo,
     setTransferDate,
+    setTransferTime,
     setTransferAdults,
     setTransferChildren,
     setTransferInfants,  // NEW
     setTransferPets,     // NEW
 
-    vehicle: { pickupDate, returnDate },
+    vehicle: { pickupDate, pickupTime, returnDate, returnTime },
     setPickupDate,
+    setPickupTime,
     setReturnDate,
+    setReturnTime,
 
     allProducts,
     tours,

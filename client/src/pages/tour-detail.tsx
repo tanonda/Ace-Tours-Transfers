@@ -25,6 +25,8 @@ export default function TourDetail() {
 
   const [adultPax, setAdultPax] = useState(2);
   const [childPax, setChildPax] = useState(0);
+  const [infantPax, setInfantPax] = useState(0);
+  const [petPax, setPetPax] = useState(0);
   const [date, setDate] = useState<string>("");
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
 
@@ -54,13 +56,28 @@ export default function TourDetail() {
     const urlGuests = sp.get("guests");
     const urlAdults = sp.get("adults");
     const urlChildren = sp.get("children");
+    const urlInfants = sp.get("infants");
+    const urlPets = sp.get("pets");
     if (urlDate) setDate(urlDate);
-    // Prefer explicit adult/child params from new hero widget; fall back to total guests
+    // Prefer explicit params from search; fall back to guests or defaults
     const parsedAdults = urlAdults ? parseInt(urlAdults) : (urlGuests ? parseInt(urlGuests) : 2);
     const parsedChildren = urlChildren ? parseInt(urlChildren) : 0;
+    const parsedInfants = urlInfants ? parseInt(urlInfants) : 0;
+    const parsedPets = urlPets ? parseInt(urlPets) : 0;
+
     if (parsedAdults) setAdultPax(parsedAdults);
     if (parsedChildren) setChildPax(parsedChildren);
-    if (id) updateDraft({ productId: id, adultPax: parsedAdults, childPax: parsedChildren, date: urlDate || "" });
+    if (parsedInfants) setInfantPax(parsedInfants);
+    if (parsedPets) setPetPax(parsedPets);
+
+    if (id) updateDraft({
+      productId: id,
+      adultPax: parsedAdults,
+      childPax: parsedChildren,
+      infantPax: parsedInfants,
+      petPax: parsedPets,
+      date: urlDate || ""
+    });
 
     if (urlDate || urlGuests) {
       setTimeout(() => {
@@ -70,8 +87,8 @@ export default function TourDetail() {
   }, [id, updateDraft]);
 
   useEffect(() => {
-    if (id) updateDraft({ productId: id, adultPax, childPax, date });
-  }, [id, adultPax, childPax, date, updateDraft]);
+    if (id) updateDraft({ productId: id, adultPax, childPax, infantPax, petPax, date });
+  }, [id, adultPax, childPax, infantPax, petPax, date, updateDraft]);
 
   const handleDateSelect = useCallback((d: string) => { setDate(d); setSelectedTime(null); }, []);
   const handleTimeSelect = useCallback((t: string) => { setSelectedTime(t); }, []);
@@ -87,6 +104,8 @@ export default function TourDetail() {
       type: (tour.category || "tour") as ProductCategory,
       adultPax,
       childPax,
+      infantPax,
+      petPax,
       date: date ? new Date(date) : new Date(),
       startTime: selectedTime || undefined,
     });
@@ -328,6 +347,42 @@ export default function TourDetail() {
                       <span className="w-6 text-center font-bold text-[#f4a830]">{childPax}</span>
                       <button
                         onClick={() => setChildPax(prev => Math.min(20, prev + 1))}
+                        className="w-[28px] h-[28px] rounded-full bg-[#1a1710] border border-[rgba(244,168,48,0.18)] text-[#f0ece4] hover:border-[#f4a830] hover:bg-[#f4a830]/15 transition-all text-lg leading-none flex items-center justify-center"
+                      >+</button>
+                    </div>
+                  </div>
+                  {/* Infants */}
+                  <div className="flex items-center justify-between bg-[#211e18] border border-[rgba(244,168,48,0.18)] rounded-[10px] px-4 py-2">
+                    <div>
+                      <span className="text-[0.85rem] text-[#f0ece4] font-medium">{t("booking.infants", "Infants")}</span>
+                      <span className="text-[0.72rem] text-[#4caf7d] ml-2">Free</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => setInfantPax(prev => Math.max(0, prev - 1))}
+                        className="w-[28px] h-[28px] rounded-full bg-[#1a1710] border border-[rgba(244,168,48,0.18)] text-[#f0ece4] hover:border-[#f4a830] hover:bg-[#f4a830]/15 transition-all text-lg leading-none flex items-center justify-center"
+                      >−</button>
+                      <span className="w-6 text-center font-bold text-[#f4a830]">{infantPax}</span>
+                      <button
+                        onClick={() => setInfantPax(prev => Math.min(10, prev + 1))}
+                        className="w-[28px] h-[28px] rounded-full bg-[#1a1710] border border-[rgba(244,168,48,0.18)] text-[#f0ece4] hover:border-[#f4a830] hover:bg-[#f4a830]/15 transition-all text-lg leading-none flex items-center justify-center"
+                      >+</button>
+                    </div>
+                  </div>
+                  {/* Pets */}
+                  <div className="flex items-center justify-between bg-[#211e18] border border-[rgba(244,168,48,0.18)] rounded-[10px] px-4 py-2">
+                    <div>
+                      <span className="text-[0.85rem] text-[#f0ece4] font-medium">{t("booking.pets", "Pets")}</span>
+                      <span className="text-[0.72rem] text-[#4caf7d] ml-2">Free</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => setPetPax(prev => Math.max(0, prev - 1))}
+                        className="w-[28px] h-[28px] rounded-full bg-[#1a1710] border border-[rgba(244,168,48,0.18)] text-[#f0ece4] hover:border-[#f4a830] hover:bg-[#f4a830]/15 transition-all text-lg leading-none flex items-center justify-center"
+                      >−</button>
+                      <span className="w-6 text-center font-bold text-[#f4a830]">{petPax}</span>
+                      <button
+                        onClick={() => setPetPax(prev => Math.min(5, prev + 1))}
                         className="w-[28px] h-[28px] rounded-full bg-[#1a1710] border border-[rgba(244,168,48,0.18)] text-[#f0ece4] hover:border-[#f4a830] hover:bg-[#f4a830]/15 transition-all text-lg leading-none flex items-center justify-center"
                       >+</button>
                     </div>

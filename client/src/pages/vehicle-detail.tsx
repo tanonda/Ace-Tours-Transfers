@@ -51,7 +51,7 @@ function RangeCalendar({ pickupDate, returnDate, onRangeChange }: {
   const pickup = pickupDate ? parseISO(pickupDate) : null;
   const ret = returnDate ? parseISO(returnDate) : null;
 
-  const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+  const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
   const handleDayClick = (d: Date) => {
     if (isBefore(d, today)) return;
@@ -87,11 +87,10 @@ function RangeCalendar({ pickupDate, returnDate, onRangeChange }: {
 
       {/* Mode tabs */}
       <div className="flex border-b border-[rgba(244,168,48,0.12)]">
-        {(["pickup","return"] as const).map(mode => (
+        {(["pickup", "return"] as const).map(mode => (
           <div key={mode} onClick={() => setSelecting(mode)}
-            className={`flex-1 py-2 text-center text-[0.65rem] font-bold uppercase tracking-widest cursor-pointer transition-colors ${
-              selecting === mode ? "bg-[#f4a830]/10 text-[#f4a830] border-b-2 border-[#f4a830]" : "text-[#3a342c] hover:text-[#8a826e]"
-            }`}>
+            className={`flex-1 py-2 text-center text-[0.65rem] font-bold uppercase tracking-widest cursor-pointer transition-colors ${selecting === mode ? "bg-[#f4a830]/10 text-[#f4a830] border-b-2 border-[#f4a830]" : "text-[#3a342c] hover:text-[#8a826e]"
+              }`}>
             {mode === "pickup"
               ? (pickup ? format(pickup, "MMM d") : "Pick-up date")
               : (ret ? format(ret, "MMM d") : "Return date")
@@ -103,7 +102,7 @@ function RangeCalendar({ pickupDate, returnDate, onRangeChange }: {
       {/* Day grid */}
       <div className="px-3 pt-3">
         <div className="grid grid-cols-7 mb-1">
-          {["Su","Mo","Tu","We","Th","Fr","Sa"].map(d => (
+          {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map(d => (
             <div key={d} className="text-center text-[9px] font-bold uppercase tracking-widest text-[#3a342c] py-1">{d}</div>
           ))}
         </div>
@@ -128,9 +127,9 @@ function RangeCalendar({ pickupDate, returnDate, onRangeChange }: {
                 className={[
                   "flex items-center justify-center h-9 text-[0.8rem] font-semibold cursor-pointer transition-all select-none rounded-lg",
                   isPast ? "text-[#2a2620] cursor-not-allowed" :
-                  isPickup || isReturn ? "bg-[#f4a830] text-[#0f0d09] font-black shadow-[0_0_10px_rgba(244,168,48,0.35)]" :
-                  inRange ? "bg-[rgba(244,168,48,0.12)] text-[#f4a830] rounded-none" :
-                  "text-[#b8b0a0] hover:bg-[#211e18] hover:text-[#f4a830]"
+                    isPickup || isReturn ? "bg-[#f4a830] text-[#0f0d09] font-black shadow-[0_0_10px_rgba(244,168,48,0.35)]" :
+                      inRange ? "bg-[rgba(244,168,48,0.12)] text-[#f4a830] rounded-none" :
+                        "text-[#b8b0a0] hover:bg-[#211e18] hover:text-[#f4a830]"
                 ].join(" ")}
               >
                 {format(d as Date, "d")}
@@ -143,7 +142,7 @@ function RangeCalendar({ pickupDate, returnDate, onRangeChange }: {
       {/* Quick select */}
       <div className="px-3 pb-3 pt-1 border-t border-[rgba(244,168,48,0.1)] flex items-center gap-2 flex-wrap">
         <span className="text-[0.62rem] font-bold uppercase tracking-widest text-[#3a342c]">Quick:</span>
-        {[1,2,3,5,7,14].map(n => (
+        {[1, 2, 3, 5, 7, 14].map(n => (
           <button key={n} onClick={() => {
             const base = pickup || today;
             onRangeChange(format(base, "yyyy-MM-dd"), format(addDays(base, n), "yyyy-MM-dd"));
@@ -163,7 +162,7 @@ function TimePicker({ label, productId, date, selected, onSelect }: {
   label: string; productId: string; date: string;
   selected: string | null; onSelect: (t: string) => void;
 }) {
-  const [slots, setSlots] = useState<{time:string;available:boolean;remaining:number}[]>([]);
+  const [slots, setSlots] = useState<{ time: string; available: boolean; remaining: number }[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -173,9 +172,9 @@ function TimePicker({ label, productId, date, selected, onSelect }: {
   }, [date, productId]);
 
   const displaySlots = slots.length > 0 ? slots :
-    ["06:00","06:30","07:00","07:30","08:00","08:30","09:00","09:30","10:00","10:30",
-     "11:00","12:00","13:00","14:00","15:00","16:00","17:00","18:00","19:00","20:00"]
-    .map(t => ({ time: t, available: true, remaining: 99 }));
+    ["06:00", "06:30", "07:00", "07:30", "08:00", "08:30", "09:00", "09:30", "10:00", "10:30",
+      "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00"]
+      .map(t => ({ time: t, available: true, remaining: 99 }));
 
   if (loading) return (
     <div>
@@ -183,7 +182,7 @@ function TimePicker({ label, productId, date, selected, onSelect }: {
         <Clock size={10} className="text-[#f4a830]" />{label}
       </div>
       <div className="grid grid-cols-4 gap-1.5">
-        {[...Array(8)].map((_,i) => <div key={i} className="h-9 rounded-lg bg-[rgba(244,168,48,0.06)] animate-pulse" />)}
+        {[...Array(8)].map((_, i) => <div key={i} className="h-9 rounded-lg bg-[rgba(244,168,48,0.06)] animate-pulse" />)}
       </div>
     </div>
   );
@@ -202,8 +201,8 @@ function TimePicker({ label, productId, date, selected, onSelect }: {
               className={[
                 "h-9 rounded-lg text-[0.73rem] font-semibold border transition-all",
                 isSel ? "bg-[#f4a830] text-[#0f0d09] border-[#f4a830] font-black shadow-[0_0_8px_rgba(244,168,48,0.3)]" :
-                isUnavail ? "bg-[rgba(224,85,85,0.06)] border-[rgba(224,85,85,0.15)] text-[#3a342c] cursor-not-allowed" :
-                "bg-[#211e18] border-[rgba(244,168,48,0.18)] text-[#b8b0a0] hover:border-[#f4a830] hover:text-[#f4a830]"
+                  isUnavail ? "bg-[rgba(224,85,85,0.06)] border-[rgba(224,85,85,0.15)] text-[#3a342c] cursor-not-allowed" :
+                    "bg-[#211e18] border-[rgba(244,168,48,0.18)] text-[#b8b0a0] hover:border-[#f4a830] hover:text-[#f4a830]"
               ].join(" ")}>
               {slot.time}
             </button>
@@ -290,10 +289,16 @@ export default function VehicleDetail() {
     const urlPickup = sp.get("pickup") || sp.get("date") || "";
     const urlReturn = sp.get("return") || "";
     const urlDays = sp.get("days");
+    const urlPickupTime = sp.get("pickupTime") || sp.get("time");
+    const urlReturnTime = sp.get("returnTime");
+
     if (urlPickup) setPickupDate(urlPickup);
     if (urlReturn) setReturnDate(urlReturn);
     else if (urlPickup && urlDays)
-      setReturnDate(format(addDays(parseISO(urlPickup), parseInt(urlDays)||1), "yyyy-MM-dd"));
+      setReturnDate(format(addDays(parseISO(urlPickup), parseInt(urlDays) || 1), "yyyy-MM-dd"));
+
+    if (urlPickupTime) setPickupTime(urlPickupTime);
+    if (urlReturnTime) setDropoffTime(urlReturnTime);
     if (id) updateDraft({ productId: id, adultPax: 1, childPax: 0, date: urlPickup });
   }, [id, updateDraft]);
 
@@ -314,9 +319,11 @@ export default function VehicleDetail() {
       price: totalPriceCents, childPrice: 0,
       image: vehicle.image, type: "vehicle",
       adultPax: 1, childPax: 0,
+      infantPax: 0, petPax: 0,
       quantity: Math.max(1, hireDays),
       date: new Date(pickupDate),
       startTime: pickupTime || undefined,
+      endTime: dropoffTime || undefined,
       pickupDate, returnDate, pickupTime, dropoffTime, hireDays,
     } as any);
   };
@@ -340,13 +347,13 @@ export default function VehicleDetail() {
   const features: string[] = vd.features || [];
 
   const specs = [
-    vd.make       && { icon: "🏭", label: "Make",         value: vd.make },
-    vd.model      && { icon: "🚐", label: "Model",        value: vd.model },
-    vd.seats      && { icon: <Users size={15}/>, label: "Capacity", value: `${vd.seats} passengers` },
-    vd.transmission && { icon: <Settings size={15}/>, label: "Transmission", value: vd.transmission },
-                     { icon: <Fuel size={15}/>,    label: "Fuel",          value: "Included" },
-                     { icon: "🧭",                 label: "Coverage",      value: "Efate Island" },
-  ].filter(Boolean) as {icon:any;label:string;value:string}[];
+    vd.make && { icon: "🏭", label: "Make", value: vd.make },
+    vd.model && { icon: "🚐", label: "Model", value: vd.model },
+    vd.seats && { icon: <Users size={15} />, label: "Capacity", value: `${vd.seats} passengers` },
+    vd.transmission && { icon: <Settings size={15} />, label: "Transmission", value: vd.transmission },
+    { icon: <Fuel size={15} />, label: "Fuel", value: "Included" },
+    { icon: "🧭", label: "Coverage", value: "Efate Island" },
+  ].filter(Boolean) as { icon: any; label: string; value: string }[];
 
   return (
     <Layout>
@@ -357,7 +364,7 @@ export default function VehicleDetail() {
           <img src={vehicle.image} className="w-full h-full object-cover brightness-[0.42] object-center" alt={vehicle.title} />
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#0f0d09]/20 to-[#0f0d09]" />
           <div className="absolute inset-0 opacity-[0.025]"
-            style={{ backgroundImage:"linear-gradient(#f4a830 1px,transparent 1px),linear-gradient(90deg,#f4a830 1px,transparent 1px)", backgroundSize:"44px 44px" }} />
+            style={{ backgroundImage: "linear-gradient(#f4a830 1px,transparent 1px),linear-gradient(90deg,#f4a830 1px,transparent 1px)", backgroundSize: "44px 44px" }} />
           <div className="absolute bottom-8 left-0 right-0 max-w-[1280px] mx-auto px-6 md:px-8">
             <div className="flex items-center gap-2 text-[0.72rem] text-[#3a342c] mb-3">
               <a href="/" className="hover:text-[#f4a830] transition-colors">Home</a>
@@ -417,9 +424,9 @@ export default function VehicleDetail() {
               <SectionTitle>What's Included</SectionTitle>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {(features.length > 0 ? features : [
-                  "Professional licensed driver","Air conditioning",
-                  "Complimentary bottled water","Free Wi-Fi on board",
-                  "Child seats (on request)","Fuel & all tolls included",
+                  "Professional licensed driver", "Air conditioning",
+                  "Complimentary bottled water", "Free Wi-Fi on board",
+                  "Child seats (on request)", "Fuel & all tolls included",
                 ]).map((feat, i) => (
                   <div key={i} className="flex items-center gap-3 bg-[#211e18] border border-[rgba(244,168,48,0.1)] rounded-[8px] px-4 py-3">
                     <div className="w-7 h-7 rounded-lg bg-[#4caf7d]/10 border border-[#4caf7d]/22 flex items-center justify-center text-[#4caf7d] shrink-0">
@@ -436,9 +443,9 @@ export default function VehicleDetail() {
               <SectionTitle>Hire Terms</SectionTitle>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 {[
-                  { icon:"📅", label:"Minimum hire",  value: vehicle.duration || "1 day" },
-                  { icon:"⛽", label:"Fuel policy",    value:"Full-to-full" },
-                  { icon:"🛡️", label:"Cancellation",  value:"Free up to 24hrs" },
+                  { icon: "📅", label: "Minimum hire", value: vehicle.duration || "1 day" },
+                  { icon: "⛽", label: "Fuel policy", value: "Full-to-full" },
+                  { icon: "🛡️", label: "Cancellation", value: "Free up to 24hrs" },
                 ].map((item, i) => (
                   <div key={i} className="bg-[#211e18] rounded-[10px] p-4 flex flex-col gap-1">
                     <div className="text-lg mb-1">{item.icon}</div>

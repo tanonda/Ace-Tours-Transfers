@@ -23,8 +23,13 @@ import { cn } from "@/lib/utils";
 import { CalendarIcon } from "lucide-react";
 
 interface CreateBookingFormData extends Partial<InsertBooking> {
-  customerEmail: string; // Add customerEmail to form data
-  tourName: string; // Add tourName for easy handling in form
+  customerEmail: string;
+  tourName: string;
+  adultPax: number;
+  childPax: number;
+  infantPax: number;
+  petPax: number;
+  pickupTime: string;
 }
 
 interface CreateBookingDialogProps {
@@ -33,13 +38,12 @@ interface CreateBookingDialogProps {
   onSuccess: () => void; // Callback for successful creation
 }
 
-// Helper function to calculate amount
-const calculateAmount = (basePriceString: string, guests: number): string => {
+const calculateAmount = (basePriceString: string, adultPax: number, childPax: number): string => {
   const basePrice = parseFloat(basePriceString);
-  if (isNaN(basePrice) || guests < 0) {
+  if (isNaN(basePrice) || adultPax < 0 || childPax < 0) {
     return "0.00";
   }
-  const totalAmount = basePrice * guests;
+  const totalAmount = basePrice * adultPax; // Default simple calc. (real pricing might differ by child)
   return totalAmount.toFixed(2);
 };
 
@@ -56,63 +60,42 @@ export function CreateBookingDialog({ open, onOpenChange, onSuccess }: CreateBoo
   const transfersData = allPackages?.filter(p => p.category === "transfer") || [];
 
 
-    const [formData, setFormData] = useState<CreateBookingFormData>({
+  const [formData, setFormData] = useState<CreateBookingFormData>({
+    customerName: "",
+    tourId: "",
+    date: format(new Date(), "yyyy-MM-dd"),
+    adultPax: 1,
+    childPax: 0,
+    infantPax: 0,
+    petPax: 0,
+    pickupTime: "",
+    amount: "0.00",
+    status: "pending",
+    customerEmail: "",
+    tourName: "",
+  });
 
-      customerName: "",
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
 
-      tourId: "",
-
-      date: format(new Date(), "yyyy-MM-dd"),
-
-      guests: 1,
-
-      amount: "0.00",
-
-      status: "pending",
-
-      customerEmail: "",
-
-      tourName: "", // Now part of formData
-
-    });
-
-    const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
-
-    // Removed selectedTourName as it's now part of formData
-
-  
-
-    // Reset form data when dialog opens
-
-    useEffect(() => {
-
-      if (open) {
-
-        setFormData({
-
-          customerName: "",
-
-          tourId: "",
-
-          date: format(new Date(), "yyyy-MM-dd"),
-
-          guests: 1,
-
-          amount: "0.00",
-
-          status: "pending",
-
-          customerEmail: "",
-
-          tourName: "",
-
-        });
-
-        setSelectedDate(new Date());
-
-      }
-
-    }, [open]);
+  useEffect(() => {
+    if (open) {
+      setFormData({
+        customerName: "",
+        tourId: "",
+        date: format(new Date(), "yyyy-MM-dd"),
+        adultPax: 1,
+        childPax: 0,
+        infantPax: 0,
+        petPax: 0,
+        pickupTime: "",
+        amount: "0.00",
+        status: "pending",
+        customerEmail: "",
+        tourName: "",
+      });
+      setSelectedDate(new Date());
+    }
+  }, [open]);
 
   const createBookingMutation = useMutation({
     mutationFn: createBooking,
@@ -139,20 +122,25 @@ export function CreateBookingDialog({ open, onOpenChange, onSuccess }: CreateBoo
     }
 
     const payloadForBackend = {
-      userId: formData.userId, // Can be undefined/null if user is not logged in or admin creating for guest
-      tourId: selectedTour.id,
-      date: selectedDate ? format(selectedDate, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
-      guests: formData.guests || 1,
-      amount: formData.amount || "0.00",
-      status: formData.status as Booking["status"] || "pending",
-      // These are extracted from req.body by the backend, and also part of InsertBooking
-      name: formData.customerName, // Maps to `name` in req.body on server
-      email: formData.customerEmail, // Maps to `email` in req.body on server
-      customerName: formData.customerName, // This is explicitly part of InsertBooking
-      tourName: formData.tourName, // This is explicitly part of InsertBooking
+      customerName: formData.customerName,
+      customerEmail: formData.customerEmail,
+      pickupLocation: "",
+      status: formData.status,
+      items: [{
+        productId: selectedTour.id,
+        quantity: formData.adultPax + formData.childPax || 1,
+        price: parseFloat(formData.amount || "0") * 100 || 0,
+        adultPax: formData.adultPax,
+        childPax: formData.childPax,
+        infantPax: formData.infantPax,
+        petPax: formData.petPax,
+        startTime: formData.pickupTime || undefined,
+        type: selectedTour.category === "vehicle" ? "vehicle" : selectedTour.category === "transfer" ? "transfer" : "tour",
+        date: selectedDate ? format(selectedDate, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
+      }]
     };
 
-    createBookingMutation.mutate(payloadForBackend as InsertBooking);
+    createBookingMutation.mutate(payloadForBackend as any);
   };
 
   const handleDateSelect = (date: Date | undefined) => {
@@ -166,32 +154,29 @@ export function CreateBookingDialog({ open, onOpenChange, onSuccess }: CreateBoo
     );
 
     setFormData(prev => {
-      const guestsCount = selectedPackage?.minPax ? parseInt(selectedPackage.minPax) : 1;
+      const adultCount = selectedPackage?.minPax ? parseInt(selectedPackage.minPax) : 1;
       const basePrice = selectedPackage?.price || "0.00";
       return {
-          ...prev,
-          tourName: value,
-          tourId: selectedPackage?.id || "",
-          amount: calculateAmount(basePrice, guestsCount), // Calculate initial amount
-          guests: guestsCount, // Populate guests from minPax
-        };
+        ...prev,
+        tourName: value,
+        tourId: selectedPackage?.id || "",
+        amount: calculateAmount(basePrice, adultCount, prev.childPax),
+        adultPax: adultCount,
+      };
     });
   };
 
-  const handleGuestsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newGuests = parseInt(e.target.value) || 0;
-    
-    // Find the currently selected package to get its base price
-    const selectedPackage = allPackages?.find(
-      (item) => item.title === formData.tourName
-    );
+  const handlePaxChange = (field: 'adultPax' | 'childPax' | 'infantPax' | 'petPax', value: number) => {
+    const selectedPackage = allPackages?.find(item => item.title === formData.tourName);
     const basePrice = selectedPackage?.price || "0.00";
 
-    setFormData(prev => ({
-      ...prev,
-      guests: newGuests,
-      amount: calculateAmount(basePrice, newGuests), // Recalculate amount based on new guests
-    }));
+    setFormData(prev => {
+      const next = { ...prev, [field]: value };
+      return {
+        ...next,
+        amount: calculateAmount(basePrice, next.adultPax, next.childPax),
+      };
+    });
   };
 
 
@@ -204,31 +189,31 @@ export function CreateBookingDialog({ open, onOpenChange, onSuccess }: CreateBoo
             Enter details for the new booking.
           </DialogDescription>
         </DialogHeader>
-        
+
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-1 gap-4">
             <div className="space-y-2">
               <Label htmlFor="customerName">Customer Name</Label>
-              <Input 
-                id="customerName" 
-                value={formData.customerName} 
-                onChange={(e) => setFormData({...formData, customerName: e.target.value})}
+              <Input
+                id="customerName"
+                value={formData.customerName}
+                onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="customerEmail">Customer Email</Label>
-              <Input 
-                id="customerEmail" 
+              <Input
+                id="customerEmail"
                 type="email"
-                value={formData.customerEmail} 
-                onChange={(e) => setFormData({...formData, customerEmail: e.target.value})}
+                value={formData.customerEmail}
+                onChange={(e) => setFormData({ ...formData, customerEmail: e.target.value })}
               />
             </div>
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="tourName">Tour / Service</Label>
-            <Select 
+            <Select
               value={formData.tourName}
               onValueChange={handleTourNameChange}
               disabled={isLoadingPackages}
@@ -280,13 +265,51 @@ export function CreateBookingDialog({ open, onOpenChange, onSuccess }: CreateBoo
               </Popover>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="guests">Guests</Label>
-              <Input 
-                id="guests" 
-                type="number" 
-                min="1"
-                value={formData.guests} 
-                onChange={handleGuestsChange}
+              <Label htmlFor="pickupTime">Time</Label>
+              <Input
+                id="pickupTime"
+                type="time"
+                value={formData.pickupTime}
+                onChange={(e) => setFormData(p => ({ ...p, pickupTime: e.target.value }))}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-4 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="adultPax">Adults</Label>
+              <Input
+                id="adultPax"
+                type="number" min="1"
+                value={formData.adultPax}
+                onChange={(e) => handlePaxChange('adultPax', parseInt(e.target.value) || 0)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="childPax">Children</Label>
+              <Input
+                id="childPax"
+                type="number" min="0"
+                value={formData.childPax}
+                onChange={(e) => handlePaxChange('childPax', parseInt(e.target.value) || 0)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="infantPax">Infants</Label>
+              <Input
+                id="infantPax"
+                type="number" min="0"
+                value={formData.infantPax}
+                onChange={(e) => handlePaxChange('infantPax', parseInt(e.target.value) || 0)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="petPax">Pets</Label>
+              <Input
+                id="petPax"
+                type="number" min="0"
+                value={formData.petPax}
+                onChange={(e) => handlePaxChange('petPax', parseInt(e.target.value) || 0)}
               />
             </div>
           </div>
@@ -294,19 +317,19 @@ export function CreateBookingDialog({ open, onOpenChange, onSuccess }: CreateBoo
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="amount">Amount</Label>
-              <Input 
-                id="amount" 
+              <Input
+                id="amount"
                 type="number" // Changed to number for amount
                 step="0.01" // Allow decimal for currency
-                value={formData.amount} 
-                onChange={(e) => setFormData({...formData, amount: e.target.value})}
+                value={formData.amount}
+                onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="status">Status</Label>
-              <Select 
-                value={formData.status} 
-                onValueChange={(value) => setFormData({...formData, status: value as Booking["status"]})}
+              <Select
+                value={formData.status}
+                onValueChange={(value) => setFormData({ ...formData, status: value as Booking["status"] })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select status" />
@@ -324,9 +347,9 @@ export function CreateBookingDialog({ open, onOpenChange, onSuccess }: CreateBoo
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button 
-            className="bg-[#004165]" 
-            onClick={handleSave} 
+          <Button
+            className="bg-[#004165]"
+            onClick={handleSave}
             disabled={createBookingMutation.isPending}
           >
             {createBookingMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

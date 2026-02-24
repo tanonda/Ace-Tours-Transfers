@@ -579,17 +579,33 @@ export default function Reservations() {
                                 {/* Item details */}
                                 <div className="flex-1 min-w-0">
                                   <p className="font-semibold text-sm truncate">{item.title}</p>
-                                  <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-                                    <span className="flex items-center gap-1">
-                                      <Users className="h-3 w-3" />
-                                      {item.adultPax + item.childPax} {t("cart.guests", "guests")}
-                                    </span>
-                                    {item.adultPax > 0 && (
-                                      <span>{item.adultPax} {t("cart.adults", "adults")}</span>
+                                  <div className="flex flex-col gap-1 mt-1 text-xs text-muted-foreground">
+                                    {item.date && (
+                                      <div className="flex items-center gap-1.5 font-medium text-foreground/80">
+                                        <CalendarIcon className="h-3.5 w-3.5" />
+                                        {format(new Date(item.date), "MMM d, yyyy")}
+                                        {item.startTime && ` at ${item.startTime}`}
+                                        {item.endTime && ` - ${item.endTime}`}
+                                      </div>
                                     )}
-                                    {item.childPax > 0 && (
-                                      <span>{item.childPax} {t("cart.children", "children")}</span>
-                                    )}
+                                    <div className="flex flex-wrap items-center gap-3">
+                                      <span className="flex items-center gap-1">
+                                        <Users className="h-3.5 w-3.5" />
+                                        {item.adultPax + item.childPax + (item.infantPax || 0)} {t("cart.guests", "guests")}
+                                      </span>
+                                      {item.adultPax > 0 && (
+                                        <span>{item.adultPax} {t("cart.adults", "adults")}</span>
+                                      )}
+                                      {item.childPax > 0 && (
+                                        <span>{item.childPax} {t("cart.children", "children")}</span>
+                                      )}
+                                      {!!item.infantPax && item.infantPax > 0 && (
+                                        <span>{item.infantPax} {t("cart.infants", "infants")}</span>
+                                      )}
+                                      {!!item.petPax && item.petPax > 0 && (
+                                        <span>{item.petPax} {t("cart.pets", "pets")}</span>
+                                      )}
+                                    </div>
                                   </div>
                                 </div>
 

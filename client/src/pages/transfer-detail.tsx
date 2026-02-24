@@ -25,6 +25,8 @@ export default function TransferDetail() {
 
   const [adultPax, setAdultPax] = useState(2);
   const [childPax, setChildPax] = useState(0);
+  const [infantPax, setInfantPax] = useState(0);
+  const [petPax, setPetPax] = useState(0);
   const [date, setDate] = useState<string>("");
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
 
@@ -54,17 +56,31 @@ export default function TransferDetail() {
     const urlAdults = sp.get("adults");
     const urlChildren = sp.get("children");
     const urlGuests = sp.get("guests");
+    const urlInfants = sp.get("infants");
+    const urlPets = sp.get("pets");
     if (urlDate) setDate(urlDate);
     const parsedAdults = urlAdults ? parseInt(urlAdults) : (urlGuests ? parseInt(urlGuests) : 2);
     const parsedChildren = urlChildren ? parseInt(urlChildren) : 0;
+    const parsedInfants = urlInfants ? parseInt(urlInfants) : 0;
+    const parsedPets = urlPets ? parseInt(urlPets) : 0;
+
     if (parsedAdults) setAdultPax(parsedAdults);
     if (parsedChildren) setChildPax(parsedChildren);
-    if (id) updateDraft({ productId: id, adultPax: parsedAdults, childPax: parsedChildren, date: urlDate || "" });
+    if (parsedInfants) setInfantPax(parsedInfants);
+    if (parsedPets) setPetPax(parsedPets);
+    if (id) updateDraft({
+      productId: id,
+      adultPax: parsedAdults,
+      childPax: parsedChildren,
+      infantPax: parsedInfants,
+      petPax: parsedPets,
+      date: urlDate || ""
+    });
   }, [id, updateDraft]);
 
   useEffect(() => {
-    if (id) updateDraft({ productId: id, adultPax, childPax, date });
-  }, [id, adultPax, childPax, date, updateDraft]);
+    if (id) updateDraft({ productId: id, adultPax, childPax, infantPax, petPax, date });
+  }, [id, adultPax, childPax, infantPax, petPax, date, updateDraft]);
 
   const handleDateSelect = useCallback((d: string) => { setDate(d); setSelectedTime(null); }, []);
   const handleTimeSelect = useCallback((t: string) => { setSelectedTime(t); }, []);
@@ -80,6 +96,8 @@ export default function TransferDetail() {
       type: (transfer.category || "transfer") as ProductCategory,
       adultPax,
       childPax,
+      infantPax,
+      petPax,
       date: date ? new Date(date) : new Date(),
       startTime: selectedTime || undefined,
     });
@@ -280,6 +298,30 @@ export default function TransferDetail() {
                       <button onClick={() => setChildPax(p => Math.max(0, p - 1))} className="w-[28px] h-[28px] rounded-full bg-[#1a1710] border border-[rgba(244,168,48,0.18)] text-[#f0ece4] hover:border-[#f4a830] hover:bg-[#f4a830]/15 transition-all text-lg flex items-center justify-center">−</button>
                       <span className="w-6 text-center font-bold text-[#f4a830]">{childPax}</span>
                       <button onClick={() => setChildPax(p => Math.min(20, p + 1))} className="w-[28px] h-[28px] rounded-full bg-[#1a1710] border border-[rgba(244,168,48,0.18)] text-[#f0ece4] hover:border-[#f4a830] hover:bg-[#f4a830]/15 transition-all text-lg flex items-center justify-center">+</button>
+                    </div>
+                  </div>
+                  {/* Infants */}
+                  <div className="flex items-center justify-between bg-[#211e18] border border-[rgba(244,168,48,0.18)] rounded-[10px] px-4 py-2">
+                    <div>
+                      <span className="text-[0.85rem] text-[#f0ece4] font-medium">Infants</span>
+                      <span className="text-[0.72rem] text-[#4caf7d] ml-2">Free</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <button onClick={() => setInfantPax(p => Math.max(0, p - 1))} className="w-[28px] h-[28px] rounded-full bg-[#1a1710] border border-[rgba(244,168,48,0.18)] text-[#f0ece4] hover:border-[#f4a830] hover:bg-[#f4a830]/15 transition-all text-lg flex items-center justify-center">−</button>
+                      <span className="w-6 text-center font-bold text-[#f4a830]">{infantPax}</span>
+                      <button onClick={() => setInfantPax(p => Math.min(10, p + 1))} className="w-[28px] h-[28px] rounded-full bg-[#1a1710] border border-[rgba(244,168,48,0.18)] text-[#f0ece4] hover:border-[#f4a830] hover:bg-[#f4a830]/15 transition-all text-lg flex items-center justify-center">+</button>
+                    </div>
+                  </div>
+                  {/* Pets */}
+                  <div className="flex items-center justify-between bg-[#211e18] border border-[rgba(244,168,48,0.18)] rounded-[10px] px-4 py-2">
+                    <div>
+                      <span className="text-[0.85rem] text-[#f0ece4] font-medium">Pets</span>
+                      <span className="text-[0.72rem] text-[#4caf7d] ml-2">Free</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <button onClick={() => setPetPax(p => Math.max(0, p - 1))} className="w-[28px] h-[28px] rounded-full bg-[#1a1710] border border-[rgba(244,168,48,0.18)] text-[#f0ece4] hover:border-[#f4a830] hover:bg-[#f4a830]/15 transition-all text-lg flex items-center justify-center">−</button>
+                      <span className="w-6 text-center font-bold text-[#f4a830]">{petPax}</span>
+                      <button onClick={() => setPetPax(p => Math.min(5, p + 1))} className="w-[28px] h-[28px] rounded-full bg-[#1a1710] border border-[rgba(244,168,48,0.18)] text-[#f0ece4] hover:border-[#f4a830] hover:bg-[#f4a830]/15 transition-all text-lg flex items-center justify-center">+</button>
                     </div>
                   </div>
                 </div>

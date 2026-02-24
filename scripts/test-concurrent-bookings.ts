@@ -119,6 +119,8 @@ async function runConcurrentBookingTest(): Promise<TestResult> {
                 productId: testTour.id,
                 adultPax: GUESTS_PER_BOOKING,
                 childPax: 0,
+                infantPax: 0,
+                petPax: 0,
                 date: TEST_DATE_STR,
                 slot: "morning",
               },

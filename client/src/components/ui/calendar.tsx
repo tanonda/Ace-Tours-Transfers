@@ -29,7 +29,7 @@ function Calendar({
     <DayPicker
       showOutsideDays={showOutsideDays}
       className={cn(
-        "bg-background group/calendar p-3 md:p-4 [--cell-size:2.5rem] md:[--cell-size:3rem] [[data-slot=card-content]_&]:bg-transparent [[data-slot=popover-content]_&]:bg-transparent",
+        "bg-background group/calendar p-3 md:p-4 [--cell-size:3.5rem] md:[--cell-size:4.5rem] [[data-slot=card-content]_&]:bg-transparent [[data-slot=popover-content]_&]:bg-transparent",
         String.raw`rtl:**:[.rdp-button\_next>svg]:rotate-180`,
         String.raw`rtl:**:[.rdp-button\_previous>svg]:rotate-180`,
         className
@@ -80,14 +80,14 @@ function Calendar({
         caption_label: cn(
           "select-none font-semibold",
           captionLayout === "label"
-            ? "text-base sm:text-lg"
-            : "[&>svg]:text-muted-foreground flex h-8 items-center gap-1 rounded-md pl-2 pr-1 text-sm [&>svg]:size-3.5",
+            ? "text-xl sm:text-2xl"
+            : "[&>svg]:text-muted-foreground flex h-10 items-center gap-1 rounded-md pl-2 pr-1 text-base [&>svg]:size-4.5",
           defaultClassNames.caption_label
         ),
         table: "w-full border-collapse",
         weekdays: cn("flex", defaultClassNames.weekdays),
         weekday: cn(
-          "text-muted-foreground flex-1 select-none rounded-md text-sm sm:text-base font-medium",
+          "text-muted-foreground flex-1 select-none rounded-md text-base sm:text-lg font-medium",
           defaultClassNames.weekday
         ),
         week: cn("mt-2 flex w-full", defaultClassNames.week),
