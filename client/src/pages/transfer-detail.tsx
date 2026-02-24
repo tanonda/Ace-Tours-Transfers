@@ -359,6 +359,27 @@ export default function TransferDetail() {
                       </span>
                     </div>
                   )}
+                  {/* Infants line */}
+                  {infantPax > 0 && (
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[0.82rem] text-[#ccc6b8]">{infantPax} × Infant</span>
+                        <span className="text-[0.72rem] text-[#4caf7d]">Free</span>
+                      </div>
+                      <span className="text-[0.9rem] font-semibold text-[#4caf7d]">VT 0</span>
+                    </div>
+                  )}
+
+                  {/* Pets line */}
+                  {petPax > 0 && (
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[0.82rem] text-[#ccc6b8]">{petPax} × Pet</span>
+                        <span className="text-[0.72rem] text-[#4caf7d]">Free</span>
+                      </div>
+                      <span className="text-[0.9rem] font-semibold text-[#4caf7d]">VT 0</span>
+                    </div>
+                  )}
                   {/* Group discount */}
                   {adultPax >= 7 && (
                     <div className="flex items-center justify-between text-[#4caf7d]">
@@ -369,7 +390,10 @@ export default function TransferDetail() {
                   {/* Total */}
                   <div className="border-t border-[rgba(244,168,48,0.18)] pt-2 mt-1 flex items-center justify-between">
                     <span className="text-[0.8rem] font-bold text-[#8a826e] uppercase tracking-wider">{date ? "Total" : "Est. Total"}</span>
-                    <span className="text-[1.15rem] font-black text-[#f4a830]">{formatPriceDisplay(instantTotal, currency)}</span>
+                    <div className="text-right">
+                      <span className="text-[1.15rem] font-black text-[#f4a830] block leading-none">{formatPriceDisplay(instantTotal, currency)}</span>
+                      <span className="text-[0.62rem] text-[#8a826e] uppercase font-bold tracking-tighter">Includes 15% VAT</span>
+                    </div>
                   </div>
                   {!date && <p className="text-[0.68rem] text-[#8a826e] italic text-center pt-1">Select a date to confirm availability</p>}
                 </div>
@@ -381,6 +405,7 @@ export default function TransferDetail() {
                 <AvailabilityCalendar
                   tourId={transfer.id}
                   selectedDate={date}
+                  selectedTime={selectedTime}
                   participants={{ adults: adultPax, children: childPax }}
                   onDateSelect={handleDateSelect}
                   onTimeSelect={handleTimeSelect}

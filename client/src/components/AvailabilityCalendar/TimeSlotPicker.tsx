@@ -55,7 +55,50 @@ export const TimeSlotPicker: React.FC<TimeSlotPickerProps> = ({
     );
   }
 
-  if (slots.length === 0) return null;
+  if (slots.length === 0) {
+    return (
+      <div style={{
+        marginTop: '12px',
+        paddingTop: '12px',
+        borderTop: '1px solid rgba(244,168,48,0.18)',
+      }}>
+        <div style={{
+          fontSize: '10px',
+          fontWeight: 700,
+          textTransform: 'uppercase',
+          color: '#8a826e',
+          letterSpacing: '0.07em',
+          marginBottom: '8px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '5px',
+        }}>
+          <Clock size={10} style={{ color: '#f4a830' }} /> Choose Pickup Time
+        </div>
+        <input
+          type="time"
+          value={selectedTime || ''}
+          onChange={(e) => onSelect(e.target.value)}
+          style={{
+            width: '100%',
+            padding: '10px',
+            borderRadius: '10px',
+            border: '1.5px solid rgba(244,168,48,0.25)',
+            background: 'rgba(244,168,48,0.05)',
+            color: '#f0ece4',
+            fontSize: '15px',
+            fontWeight: 600,
+            outline: 'none',
+            cursor: 'pointer',
+          }}
+          className="time-picker-fallback"
+        />
+        <p style={{ fontSize: '10px', color: '#8a826e', marginTop: '6px', fontStyle: 'italic' }}>
+          Select your preferred pickup time above.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div style={{
