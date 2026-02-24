@@ -562,7 +562,7 @@ function SearchBar({ search }: SearchBarProps) {
                   products={search.tours}
                   placeholder="All tours"
                   divider
-                  className="flex-[2]"
+                  className="flex-[1.8] min-w-[200px]"
                 />
                 <DateCell
                   label="Date"
@@ -570,14 +570,14 @@ function SearchBar({ search }: SearchBarProps) {
                   onChange={search.setTourDate}
                   placeholder="Add date"
                   divider
-                  className="flex-1 min-w-[128px]"
+                  className="flex-1 min-w-[140px]"
                 />
                 <TimeCell
                   label="Pickup time"
                   value={search.tour.time}
                   onChange={search.setTourTime}
                   divider
-                  className="flex-1 min-w-[100px] max-w-[110px]"
+                  className="flex-1 min-w-[110px]"
                 />
                 <GuestsCell
                   label="Guests"
@@ -590,7 +590,7 @@ function SearchBar({ search }: SearchBarProps) {
                   onChildrenChange={search.setTourChildren}
                   onInfantsChange={search.setTourInfants}
                   onPetsChange={search.setTourPets}
-                  className="flex-1 min-w-[148px]"
+                  className="flex-1 min-w-[160px]"
                 />
               </>
             )}
@@ -605,7 +605,7 @@ function SearchBar({ search }: SearchBarProps) {
                   products={search.transfers}
                   placeholder="All transfers"
                   divider
-                  className="flex-[2]"
+                  className="flex-[1.5] min-w-[180px]"
                 />
                 <BarInput
                   label="To"
@@ -613,7 +613,7 @@ function SearchBar({ search }: SearchBarProps) {
                   onChange={search.setTransferTo}
                   placeholder="Drop-off point"
                   divider
-                  className="flex-[1.4]"
+                  className="flex-[1.5] min-w-[180px]"
                 />
                 <DateCell
                   label="Transfer date"
@@ -621,14 +621,14 @@ function SearchBar({ search }: SearchBarProps) {
                   onChange={search.setTransferDate}
                   placeholder="Add date"
                   divider
-                  className="flex-1 min-w-[128px]"
+                  className="flex-1 min-w-[140px]"
                 />
                 <TimeCell
                   label="Pickup time"
                   value={search.transfer.time}
                   onChange={search.setTransferTime}
                   divider
-                  className="flex-1 min-w-[100px] max-w-[110px]"
+                  className="flex-1 min-w-[110px]"
                 />
                 <GuestsCell
                   label="Passengers"
@@ -641,7 +641,7 @@ function SearchBar({ search }: SearchBarProps) {
                   onChildrenChange={search.setTransferChildren}
                   onInfantsChange={search.setTransferInfants}
                   onPetsChange={search.setTransferPets}
-                  className="flex-1 min-w-[148px]"
+                  className="flex-1 min-w-[160px]"
                 />
               </>
             )}
@@ -656,7 +656,7 @@ function SearchBar({ search }: SearchBarProps) {
                   products={search.vehicles}
                   placeholder="Any vehicle"
                   divider
-                  className="flex-[2]"
+                  className="flex-[1.5] min-w-[180px]"
                 />
                 <DateCell
                   label="Pick-up date"
@@ -664,14 +664,14 @@ function SearchBar({ search }: SearchBarProps) {
                   onChange={search.setPickupDate}
                   placeholder="Add date"
                   divider
-                  className="flex-1 min-w-[128px]"
+                  className="flex-1 min-w-[130px]"
                 />
                 <TimeCell
                   label="Time"
                   value={search.vehicle.pickupTime}
                   onChange={search.setPickupTime}
                   divider
-                  className="flex-1 min-w-[90px] max-w-[100px]"
+                  className="flex-1 min-w-[100px]"
                 />
                 <DateCell
                   label="Drop-off date"
@@ -684,14 +684,14 @@ function SearchBar({ search }: SearchBarProps) {
                   }
                   placeholder="Add date"
                   divider
-                  className="flex-1 min-w-[128px]"
+                  className="flex-1 min-w-[130px]"
                 />
                 <TimeCell
                   label="Time"
                   value={search.vehicle.returnTime}
                   onChange={search.setReturnTime}
                   divider={search.hireDays > 0}
-                  className="flex-1 min-w-[90px] max-w-[100px]"
+                  className="flex-1 min-w-[100px]"
                 />
                 {/* Duration badge — appears inline when both dates set */}
                 <AnimatePresence>
