@@ -16,7 +16,12 @@ import {
 } from "lucide-react";
 import { useState, useRef, useCallback, useEffect } from "react";
 
-// ─── Rich Text Editor (lightweight, no external deps) ────────────────────────
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import Link from '@tiptap/extension-link';
+import TextAlign from '@tiptap/extension-text-align';
+
+// ─── Rich Text Editor (TipTap) ────────────────────────
 
 function ToolbarButton({
   onClick, title, active, children
@@ -36,110 +41,152 @@ function ToolbarButton({
 function RichEditor({
   value, onChange, placeholder = "Start typing..."
 }: { value: string; onChange: (html: string) => void; placeholder?: string }) {
-  const editorRef = useRef<HTMLDivElement>(null);
-  const [isLinkDialogOpen, setIsLinkDialogOpen] = useState(false);
-  const [linkUrl, setLinkUrl] = useState("");
-  const savedRangeRef = useRef<Range | null>(null);
+  const editor = useEditor({
+    extensions: [
+      StarterKit,
+      Link.configure({
+        openOnClick: false,
+        HTMLAttributes: {
+          class: 'text-primary underline cursor-pointer',
+        },
+      }),
+      TextAlign.configure({
+        types: ['heading', 'paragraph'],
+      }),
+    ],
+    content: value,
+    onUpdate: ({ editor }) => {
+      onChange(editor.getHTML());
+    },
+    editorProps: {
+      attributes: {
+        class: 'min-h-[160px] p-4 text-sm focus:outline-none prose prose-sm max-w-none focus:ring-0 outline-none',
+        style: 'line-height: 1.6',
+      },
+    },
+  });
 
+  // Keep editor content in sync with external value changes (e.g. from React Query)
   useEffect(() => {
-    if (editorRef.current && editorRef.current.innerHTML !== value) {
-      editorRef.current.innerHTML = value || "";
+    if (editor && value !== editor.getHTML()) {
+      editor.commands.setContent(value);
     }
-  }, []);
+  }, [value, editor]);
 
-  const exec = useCallback((command: string, value?: string) => {
-    editorRef.current?.focus();
-    document.execCommand(command, false, value);
-    if (editorRef.current) onChange(editorRef.current.innerHTML);
-  }, [onChange]);
+  if (!editor) return null;
 
-  const handleInput = useCallback(() => {
-    if (editorRef.current) onChange(editorRef.current.innerHTML);
-  }, [onChange]);
+  const addLink = () => {
+    const previousUrl = editor.getAttributes('link').href;
+    const url = window.prompt('URL', previousUrl);
 
-  const insertLink = () => {
-    // Save selection before opening dialog
-    const sel = window.getSelection();
-    if (sel && sel.rangeCount > 0) savedRangeRef.current = sel.getRangeAt(0).cloneRange();
-    setIsLinkDialogOpen(true);
-  };
-
-  const confirmLink = () => {
-    if (!linkUrl) return;
-    editorRef.current?.focus();
-    // Restore saved selection
-    if (savedRangeRef.current) {
-      const sel = window.getSelection();
-      sel?.removeAllRanges();
-      sel?.addRange(savedRangeRef.current);
+    if (url === null) return;
+    if (url === '') {
+      editor.chain().focus().extendMarkRange('link').unsetLink().run();
+      return;
     }
-    document.execCommand("createLink", false, linkUrl);
-    if (editorRef.current) onChange(editorRef.current.innerHTML);
-    setLinkUrl("");
-    setIsLinkDialogOpen(false);
+
+    editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
   };
 
   return (
-    <div className="border border-border rounded-lg overflow-hidden">
+    <div className="border border-border rounded-lg overflow-hidden flex flex-col">
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-0.5 p-2 border-b border-border bg-muted/30">
-        <ToolbarButton onClick={() => exec("undo")} title="Undo"><Undo className="h-3.5 w-3.5" /></ToolbarButton>
-        <ToolbarButton onClick={() => exec("redo")} title="Redo"><Redo className="h-3.5 w-3.5" /></ToolbarButton>
+        <ToolbarButton onClick={() => editor.chain().focus().undo().run()} title="Undo"><Undo className="h-3.5 w-3.5" /></ToolbarButton>
+        <ToolbarButton onClick={() => editor.chain().focus().redo().run()} title="Redo"><Redo className="h-3.5 w-3.5" /></ToolbarButton>
         <div className="w-px h-5 bg-border mx-1" />
-        <ToolbarButton onClick={() => exec("formatBlock", "H1")} title="Heading 1"><Heading1 className="h-3.5 w-3.5" /></ToolbarButton>
-        <ToolbarButton onClick={() => exec("formatBlock", "H2")} title="Heading 2"><Heading2 className="h-3.5 w-3.5" /></ToolbarButton>
-        <ToolbarButton onClick={() => exec("formatBlock", "P")} title="Paragraph"><AlignLeft className="h-3.5 w-3.5" /></ToolbarButton>
+        <ToolbarButton 
+          onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} 
+          title="Heading 1"
+          active={editor.isActive('heading', { level: 1 })}
+        >
+          <Heading1 className="h-3.5 w-3.5" />
+        </ToolbarButton>
+        <ToolbarButton 
+          onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} 
+          title="Heading 2"
+          active={editor.isActive('heading', { level: 2 })}
+        >
+          <Heading2 className="h-3.5 w-3.5" />
+        </ToolbarButton>
+        <ToolbarButton 
+          onClick={() => editor.chain().focus().setParagraph().run()} 
+          title="Paragraph"
+          active={editor.isActive('paragraph') && !editor.isActive('heading')}
+        >
+          <AlignLeft className="h-3.5 w-3.5" />
+        </ToolbarButton>
         <div className="w-px h-5 bg-border mx-1" />
-        <ToolbarButton onClick={() => exec("bold")} title="Bold"><Bold className="h-3.5 w-3.5" /></ToolbarButton>
-        <ToolbarButton onClick={() => exec("italic")} title="Italic"><Italic className="h-3.5 w-3.5" /></ToolbarButton>
-        <ToolbarButton onClick={() => exec("justifyCenter")} title="Center"><AlignCenter className="h-3.5 w-3.5" /></ToolbarButton>
+        <ToolbarButton 
+          onClick={() => editor.chain().focus().toggleBold().run()} 
+          title="Bold"
+          active={editor.isActive('bold')}
+        >
+          <Bold className="h-3.5 w-3.5" />
+        </ToolbarButton>
+        <ToolbarButton 
+          onClick={() => editor.chain().focus().toggleItalic().run()} 
+          title="Italic"
+          active={editor.isActive('italic')}
+        >
+          <Italic className="h-3.5 w-3.5" />
+        </ToolbarButton>
+        <ToolbarButton 
+          onClick={() => editor.chain().focus().setTextAlign('center').run()} 
+          title="Center"
+          active={editor.isActive({ textAlign: 'center' })}
+        >
+          <AlignCenter className="h-3.5 w-3.5" />
+        </ToolbarButton>
         <div className="w-px h-5 bg-border mx-1" />
-        <ToolbarButton onClick={() => exec("insertUnorderedList")} title="Bullet List"><List className="h-3.5 w-3.5" /></ToolbarButton>
-        <ToolbarButton onClick={() => exec("formatBlock", "BLOCKQUOTE")} title="Quote"><Quote className="h-3.5 w-3.5" /></ToolbarButton>
-        <ToolbarButton onClick={() => exec("formatBlock", "PRE")} title="Code Block"><Code className="h-3.5 w-3.5" /></ToolbarButton>
-        <ToolbarButton onClick={() => exec("insertHorizontalRule")} title="Divider"><Minus className="h-3.5 w-3.5" /></ToolbarButton>
-        <ToolbarButton onClick={insertLink} title="Insert Link"><LinkIcon className="h-3.5 w-3.5" /></ToolbarButton>
+        <ToolbarButton 
+          onClick={() => editor.chain().focus().toggleBulletList().run()} 
+          title="Bullet List"
+          active={editor.isActive('bulletList')}
+        >
+          <List className="h-3.5 w-3.5" />
+        </ToolbarButton>
+        <ToolbarButton 
+          onClick={() => editor.chain().focus().toggleBlockquote().run()} 
+          title="Quote"
+          active={editor.isActive('blockquote')}
+        >
+          <Quote className="h-3.5 w-3.5" />
+        </ToolbarButton>
+        <ToolbarButton 
+          onClick={() => editor.chain().focus().toggleCodeBlock().run()} 
+          title="Code Block"
+          active={editor.isActive('codeBlock')}
+        >
+          <Code className="h-3.5 w-3.5" />
+        </ToolbarButton>
+        <ToolbarButton onClick={() => editor.chain().focus().setHorizontalRule().run()} title="Divider"><Minus className="h-3.5 w-3.5" /></ToolbarButton>
+        <ToolbarButton 
+          onClick={addLink} 
+          title="Insert Link"
+          active={editor.isActive('link')}
+        >
+          <LinkIcon className="h-3.5 w-3.5" />
+        </ToolbarButton>
       </div>
 
-      {/* Link input (inline) */}
-      {isLinkDialogOpen && (
-        <div className="flex items-center gap-2 px-3 py-2 border-b border-border bg-blue-50">
-          <Input
-            placeholder="https://..."
-            value={linkUrl}
-            onChange={e => setLinkUrl(e.target.value)}
-            onKeyDown={e => e.key === "Enter" && confirmLink()}
-            className="h-7 text-sm"
-            autoFocus
-          />
-          <Button size="sm" className="h-7 px-2 text-xs" onClick={confirmLink}>Add</Button>
-          <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => setIsLinkDialogOpen(false)}>Cancel</Button>
-        </div>
-      )}
-
-      {/* Editable area */}
-      <div
-        ref={editorRef}
-        contentEditable
-        suppressContentEditableWarning
-        onInput={handleInput}
-        className="min-h-[160px] p-4 text-sm focus:outline-none prose prose-sm max-w-none"
-        style={{ lineHeight: 1.6 }}
-        data-placeholder={placeholder}
-      />
+      <EditorContent editor={editor} />
 
       <style>{`
-        [contenteditable]:empty:before {
+        .ProseMirror { min-height: 160px; }
+        .ProseMirror p.is-editor-empty:first-child::before {
           content: attr(data-placeholder);
+          float: left;
           color: hsl(var(--muted-foreground));
           pointer-events: none;
+          height: 0;
         }
-        [contenteditable] h1 { font-size: 1.5rem; font-weight: 700; margin: 0.5rem 0; }
-        [contenteditable] h2 { font-size: 1.25rem; font-weight: 600; margin: 0.5rem 0; }
-        [contenteditable] blockquote { border-left: 3px solid hsl(var(--primary)); padding-left: 1rem; color: hsl(var(--muted-foreground)); margin: 0.5rem 0; }
-        [contenteditable] pre { background: hsl(var(--muted)); padding: 0.75rem; border-radius: 6px; font-family: monospace; font-size: 0.8rem; }
-        [contenteditable] ul { list-style: disc; padding-left: 1.5rem; }
-        [contenteditable] a { color: hsl(var(--primary)); text-decoration: underline; }
+        .ProseMirror h1 { font-size: 1.5rem; font-weight: 700; margin: 0.5rem 0; }
+        .ProseMirror h2 { font-size: 1.25rem; font-weight: 600; margin: 0.5rem 0; }
+        .ProseMirror blockquote { border-left: 3px solid hsl(var(--primary)); padding-left: 1rem; color: hsl(var(--muted-foreground)); margin: 0.5rem 0; }
+        .ProseMirror pre { background: hsl(var(--muted)); padding: 0.75rem; border-radius: 6px; font-family: monospace; font-size: 0.8rem; }
+        .ProseMirror ul { list-style: disc; padding-left: 1.5rem; }
+        .ProseMirror a { color: hsl(var(--primary)); text-decoration: underline; }
       `}</style>
     </div>
   );

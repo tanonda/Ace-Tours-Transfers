@@ -215,17 +215,17 @@ export async function fetchAllCmsContent(): Promise<Record<string, CmsContent[]>
 }
 
 export async function createCmsContent(data: any): Promise<CmsContent> {
-  const res = await apiRequest("POST", "/api/cms-content", data);
+  const res = await apiRequest("POST", "/api/admin/cms-content", data);
   return res.json();
 }
 
 export async function updateCmsContent(id: string, data: any): Promise<CmsContent> {
-  const res = await apiRequest("PATCH", `/api/cms-content/${id}`, data);
+  const res = await apiRequest("PATCH", `/api/admin/cms-content/${id}`, data);
   return res.json();
 }
 
 export async function deleteCmsContent(id: string): Promise<void> {
-  await apiRequest("DELETE", `/api/cms-content/${id}`);
+  await apiRequest("DELETE", `/api/admin/cms-content/${id}`);
 }
 
 // Newsletter
