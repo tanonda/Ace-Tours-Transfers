@@ -110,4 +110,32 @@ export function registerUserRoutes(app: Express) {
       res.status(500).json({ error: "Failed to fetch customers" });
     }
   });
+
+  // E: Send welcome/invite email to a user
+  app.post("/api/users/:id/send-welcome", requireAdmin, async (req, res) => {
+    try {
+      const user = await userProfileDomainService.getUserById(req.params.id);
+      if (!user) return res.status(404).json({ error: "User not found" });
+
+      // Use existing email infrastructure (nodemailer via GMAIL_USER env)
+      const { sendEmail } = await import("../lib/email.js").catch(() => ({ sendEmail: null }));
+      if (!sendEmail) {
+        return res.status(503).json({ error: "Email not configured. Set GMAIL_USER and GMAIL_APP_PASSWORD." });
+      }
+      const appUrl = process.env.APP_URL || "https://acetours.vu";
+      await (sendEmail as any)({
+        to: user.email,
+        subject: "Welcome to Ace Tours & Transfers",
+        html: `<p>Hi ${user.name ?? "there"},</p>
+<p>Welcome to the Ace Tours & Transfers admin platform.</p>
+<p>You can log in at: <a href="${appUrl}/login">${appUrl}/login</a></p>
+<p>If you need to reset your password, use the "Forgot password" link on the login page.</p>
+<p>— Ace Tours & Transfers</p>`,
+      });
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Failed to send welcome email:", error);
+      res.status(500).json({ error: "Failed to send welcome email" });
+    }
+  });
 }

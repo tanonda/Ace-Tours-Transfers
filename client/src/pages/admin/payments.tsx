@@ -6,6 +6,8 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
     Dialog,
     DialogContent,
@@ -16,7 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, CreditCard, Settings, Check } from "lucide-react";
+import { Loader2, CreditCard, Settings, Check, AlertTriangle, Info, ExternalLink } from "lucide-react";
 import {
     AnzEGateCredentialsSchema,
     BredBankCredentialsSchema,
@@ -37,7 +39,7 @@ import {
     DigitalWalletConfigSchema,
     InternationalFallbackConfigSchema,
 } from "@shared/schema";
-import { z } from "zod"; // Import z from zod
+import { z } from "zod";
 import { useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -223,6 +225,39 @@ export default function AdminPayments() {
                     <h1 className="text-2xl font-bold text-foreground">{t("payments.title")}</h1>
                     <p className="text-sm text-muted-foreground">{t("payments.description")}</p>
                 </div>
+
+                {/* K: Stripe — future-ready notice */}
+                <Alert className="border-purple-200 bg-purple-50">
+                    <CreditCard className="h-4 w-4 text-purple-600" />
+                    <AlertTitle className="text-purple-800">Stripe — Ready for Future Integration</AlertTitle>
+                    <AlertDescription className="text-purple-700 text-sm">
+                        Stripe code has been removed from the active checkout flow to prevent conflicts.
+                        The gateway schema and configuration UI are preserved here for when you're ready to re-enable it.
+                        To activate: re-add <code className="bg-purple-100 px-1 rounded text-xs">STRIPE_SECRET_KEY</code> and{" "}
+                        <code className="bg-purple-100 px-1 rounded text-xs">STRIPE_PUBLISHABLE_KEY</code> to your Render environment,
+                        then toggle Stripe active below and re-implement the checkout webhook.
+                    </AlertDescription>
+                </Alert>
+
+                {/* K: PayPal — setup guide */}
+                <Alert className="border-blue-200 bg-blue-50">
+                    <Info className="h-4 w-4 text-blue-600" />
+                    <AlertTitle className="text-blue-800">PayPal — Setup Guide</AlertTitle>
+                    <AlertDescription className="text-blue-700 text-sm space-y-1">
+                        <p>
+                            PayPal schema and credentials fields are ready. To connect:
+                        </p>
+                        <ol className="list-decimal list-inside space-y-0.5 text-xs mt-1">
+                            <li>Create a PayPal Business account at <a href="https://www.paypal.com/bizsignup" target="_blank" rel="noopener noreferrer" className="underline">paypal.com/bizsignup</a></li>
+                            <li>Go to <strong>Developer Dashboard → My Apps & Credentials → Create App</strong></li>
+                            <li>Copy your <strong>Client ID</strong> and <strong>Secret</strong> (use Sandbox for testing first)</li>
+                            <li>Paste them into the PayPal gateway "Configure" dialog below</li>
+                            <li>Add env vars: <code className="bg-blue-100 px-1 rounded">PAYPAL_CLIENT_ID</code> and <code className="bg-blue-100 px-1 rounded">PAYPAL_CLIENT_SECRET</code></li>
+                            <li>Implement the <code className="bg-blue-100 px-1 rounded">/api/payments/paypal/create-order</code> and <code className="bg-blue-100 px-1 rounded">/api/payments/paypal/capture</code> endpoints in your payment routes</li>
+                        </ol>
+                        <p className="text-xs mt-1 text-blue-600">PayPal is free to set up — they charge per transaction (typically 3.49% + fixed fee for international).</p>
+                    </AlertDescription>
+                </Alert>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {gateways.map((gateway) => (

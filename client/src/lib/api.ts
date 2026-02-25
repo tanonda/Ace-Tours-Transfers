@@ -272,6 +272,10 @@ export async function markNotificationRead(id: string): Promise<void> {
   await apiRequest("PATCH", `/api/notifications/${id}/read`);
 }
 
+export async function sendWelcomeEmail(userId: string): Promise<void> {
+  await apiRequest("POST", `/api/users/${userId}/send-welcome`);
+}
+
 export async function verifyBooking(data: { bookingId: string; type: string; value: string }): Promise<any> {
   const res = await apiRequest("POST", "/api/bookings/verify", data);
   return res.json();

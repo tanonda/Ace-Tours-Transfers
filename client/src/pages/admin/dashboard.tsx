@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/hooks/use-toast";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { useTranslation } from "react-i18next";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 
 function KPI({ label, value, delta, colorClass }: { label: string; value: string | number; delta?: string; colorClass?: string }) {
   return (
@@ -158,6 +159,29 @@ export default function AdminDashboard() {
     queryFn: fetchTours,
   });
 
+  // C: Live uptime from BetterStack proxy (free tier). Falls back to "N/A" if not configured.
+  const { data: uptimeData } = useQuery({
+    queryKey: ["uptime"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/uptime");
+      if (!res.ok) return null;
+      return res.json();
+    },
+    refetchInterval: 5 * 60 * 1000, // refresh every 5 min
+    retry: false,
+  });
+
+  // C: Revenue breakdown by category for Recharts bar chart
+  const { data: revenueByCategory = [] } = useQuery({
+    queryKey: ["revenue-by-category"],
+    queryFn: async () => {
+      const res = await fetch("/api/analytics/revenue-by-category");
+      if (!res.ok) return [];
+      return res.json();
+    },
+    retry: false,
+  });
+
   const updateMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) => updateBooking(id, { status }),
     onSuccess: () => {
@@ -249,7 +273,12 @@ export default function AdminDashboard() {
           <KPI label={t("dashboard.revenue")} value={fmtVT(totalRevenue * 100)} delta="+8%" colorClass="bg-yellow-500 text-yellow-950" />
           <KPI label={t("dashboard.bookings")} value={stats?.total || bookings.length} delta="+3%" colorClass="bg-blue-500 text-blue-950" />
           <KPI label={t("dashboard.activeTours")} value={tours.length} delta="+1%" colorClass="bg-green-500 text-green-950" />
-          <KPI label={t("dashboard.uptime")} value="99.97%" delta="+0.01%" colorClass="bg-red-400 text-red-950" />
+          <KPI
+            label={t("dashboard.uptime")}
+            value={uptimeData?.uptime ?? "N/A"}
+            delta={uptimeData?.status === "up" ? "Operational" : uptimeData?.status === "down" ? "⚠ Down" : undefined}
+            colorClass="bg-red-400 text-red-950"
+          />
         </section>
 
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-5">
@@ -280,11 +309,29 @@ export default function AdminDashboard() {
           <div className="flex flex-col gap-4">
             <div className="p-5 rounded-xl bg-card border border-border">
               <h4 className="text-foreground text-sm font-semibold mb-3">{t("dashboard.revenueBreakdown")}</h4>
-              <svg width="100%" height={120} viewBox="0 0 200 100" preserveAspectRatio="none">
-                <rect x="10" y="50" width="50" height="50" rx="6" className="fill-blue-500"></rect>
-                <rect x="75" y="25" width="50" height="75" rx="6" className="fill-red-400"></rect>
-                <rect x="140" y="10" width="50" height="90" rx="6" className="fill-green-500"></rect>
-              </svg>
+              {revenueByCategory.length > 0 ? (
+                <ResponsiveContainer width="100%" height={120}>
+                  <BarChart data={revenueByCategory} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+                    <XAxis dataKey="category" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
+                    <YAxis hide />
+                    <Tooltip
+                      formatter={(val: number) => [`${Math.round(val / 100).toLocaleString()} VT`, "Revenue"]}
+                      contentStyle={{ fontSize: 11, borderRadius: 6, border: "1px solid hsl(var(--border))", background: "hsl(var(--card))" }}
+                    />
+                    <Bar dataKey="revenueCents" radius={[4, 4, 0, 0]}>
+                      {revenueByCategory.map((_: any, i: number) => (
+                        <Cell key={i} fill={["#3b82f6", "#ef4444", "#22c55e"][i % 3]} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-[120px] flex items-end justify-around gap-3">
+                  <div className="flex-1 bg-blue-500 rounded-t-md" style={{ height: "50%" }} />
+                  <div className="flex-1 bg-red-400 rounded-t-md" style={{ height: "75%" }} />
+                  <div className="flex-1 bg-green-500 rounded-t-md" style={{ height: "90%" }} />
+                </div>
+              )}
               <div className="flex justify-around mt-3 text-xs text-muted-foreground">
                 <span>{t("nav.tours")}</span>
                 <span>{t("nav.transfers")}</span>

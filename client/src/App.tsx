@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -56,12 +56,43 @@ const AdminCapacity = lazy(() => import("@/pages/admin/capacity-dashboard"));
 const AdminAuditLogs = lazy(() => import("@/pages/admin/audit-logs"));
 const AdminReviews = lazy(() => import("@/pages/admin/reviews"));
 const AdminFraud = lazy(() => import("@/pages/admin/fraud"));
+const AdminNewsletter = lazy(() => import("@/pages/admin/newsletter"));
 
 // Customer pages
 const CustomerDashboard = lazy(() => import("@/pages/customer/dashboard"));
 const CustomerBookings = lazy(() => import("@/pages/customer/bookings"));
 const CustomerSaved = lazy(() => import("@/pages/customer/saved"));
 const CustomerProfile = lazy(() => import("@/pages/customer/profile"));
+
+// I: Dynamically inject GA4 / GTM scripts from CMS settings (both are 100% free)
+function AnalyticsInjector() {
+  useEffect(() => {
+    fetch("/api/public/analytics-config")
+      .then(r => r.json())
+      .then(({ ga4MeasurementId, gtmContainerId }) => {
+        // Google Tag Manager
+        if (gtmContainerId && !document.getElementById("gtm-script")) {
+          const s = document.createElement("script");
+          s.id = "gtm-script";
+          s.innerHTML = `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','${gtmContainerId}');`;
+          document.head.appendChild(s);
+        }
+        // GA4 (only if GTM not set — avoid double-counting)
+        if (ga4MeasurementId && !gtmContainerId && !document.getElementById("ga4-script")) {
+          const s = document.createElement("script");
+          s.id = "ga4-script";
+          s.async = true;
+          s.src = `https://www.googletagmanager.com/gtag/js?id=${ga4MeasurementId}`;
+          document.head.appendChild(s);
+          const s2 = document.createElement("script");
+          s2.innerHTML = `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${ga4MeasurementId}');`;
+          document.head.appendChild(s2);
+        }
+      })
+      .catch(() => {}); // fail silently — analytics is non-critical
+  }, []);
+  return null;
+}
 
 if (typeof window !== 'undefined') {
   window.addEventListener('error', (event) => {
@@ -167,6 +198,9 @@ function Router() {
         <Route path="/admin/fraud">
           <ProtectedRoute requireAdmin><AdminFraud /></ProtectedRoute>
         </Route>
+        <Route path="/admin/newsletter">
+          <ProtectedRoute requireAdmin><AdminNewsletter /></ProtectedRoute>
+        </Route>
 
         {/* Customer Routes - Protected */}
         <Route path="/dashboard">
@@ -207,6 +241,7 @@ function App() {
                     <CartProvider>
                       <BookingStateProvider>
                         <Toaster />
+                        <AnalyticsInjector />
                         <Router />
                         <WhatsAppWidget />
                       </BookingStateProvider>

@@ -208,9 +208,9 @@ export default function TransferDetail() {
           {/* LEFT */}
           <div className="flex flex-col gap-7">
 
-            {/* Photo — adaptive: no forced height, respects portrait/landscape */}
-            <div className="rounded-[14px] overflow-hidden bg-[#211e18] flex items-center justify-center">
-              <img src={cloudinaryOpt(transfer.image, 900)} className="w-full h-auto max-h-[540px] object-contain block" alt={`${transfer.title} - photo`} loading="lazy" />
+            {/* Photo — matching tour/vehicle detail: fill container with cover */}
+            <div className="rounded-[14px] overflow-hidden bg-[#211e18]" style={{height: '480px'}}>
+              <img src={cloudinaryOpt(transfer.image, 900)} className="w-full h-full object-cover object-center block" alt={`${transfer.title} - photo`} loading="lazy" />
             </div>
 
             {/* Description */}

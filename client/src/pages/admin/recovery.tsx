@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { DashboardLayout } from "@/components/dashboard-layout";
 import { 
   ShieldAlert, 
   RotateCcw, 
@@ -138,7 +139,8 @@ export default function RecoveryPage() {
   };
 
   return (
-    <div className="container mx-auto py-10 space-y-8">
+    <DashboardLayout type="admin">
+    <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Recovery Operations</h1>
         <p className="text-muted-foreground">Deterministic disaster recovery and financial reconciliation center.</p>
@@ -310,5 +312,6 @@ export default function RecoveryPage() {
         </CardContent>
       </Card>
     </div>
+    </DashboardLayout>
   );
 }

@@ -21,11 +21,13 @@ export default function About() {
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
             <div>
-              <img 
-                src="https://images.unsplash.com/photo-1596394516093-501ba68a0ba6?q=80&w=2070&auto=format&fit=crop" 
-                alt="Vanuatu Landscape" 
-                className="rounded-lg shadow-xl w-full h-[400px] object-cover"
-              />
+              <div className="relative rounded-lg shadow-xl overflow-hidden aspect-[4/3] w-full">
+                <img 
+                  src="https://images.unsplash.com/photo-1596394516093-501ba68a0ba6?q=80&w=2070&auto=format&fit=crop" 
+                  alt="Vanuatu Landscape" 
+                  className="w-full h-full object-cover"
+                />
+              </div>
             </div>
             <div>
               <h2 className="text-3xl font-bold mb-6 font-serif">{t("about.storyTitle")}</h2>
@@ -93,6 +95,22 @@ export default function About() {
               </CardContent>
             </Card>
           </div>
+        </div>
+      </section>
+      <section className="py-12 bg-primary/5 border-t border-border/30">
+        <div className="container mx-auto px-4 text-center">
+          <p className="text-muted-foreground text-sm mb-3">
+            Proud member of the Vanuatu tourism community. For destination information, visit the official tourism authority.
+          </p>
+          <a
+            href="https://vanuatu.travel"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 text-primary font-semibold hover:underline"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+            Vanuatu Tourism Office — vanuatu.travel
+          </a>
         </div>
       </section>
     </Layout>

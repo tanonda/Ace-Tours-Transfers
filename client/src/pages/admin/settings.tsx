@@ -131,6 +131,8 @@ export default function AdminSettings() {
             <TabsTrigger value="banking">Bank Transfer</TabsTrigger>
             <TabsTrigger value="email">Email Config</TabsTrigger>
             <TabsTrigger value="newsletter">Newsletter</TabsTrigger>
+            <TabsTrigger value="seo">SEO / GEO</TabsTrigger>
+            <TabsTrigger value="analytics">Analytics</TabsTrigger>
             <TabsTrigger value="flags">Feature Flags</TabsTrigger>
           </TabsList>
 
@@ -396,6 +398,163 @@ export default function AdminSettings() {
                 </CardContent>
               </Card>
             </div>
+          </TabsContent>
+
+          <TabsContent value="seo" className="mt-4 space-y-4">
+            {/* H: SEO Control Surface */}
+            <Card>
+              <CardHeader>
+                <CardTitle>SEO &amp; Metadata</CardTitle>
+                <CardDescription>
+                  Control page titles, meta descriptions, and Open Graph tags. Changes take effect on next page load.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {[
+                  { key: "seo_site_name", label: "Site Name", placeholder: "Ace Tours & Transfers Vanuatu" },
+                  { key: "seo_title_template", label: "Title Template", placeholder: "{page} | Ace Tours Vanuatu" },
+                  { key: "seo_default_description", label: "Default Meta Description", placeholder: "Experience the best of Vanuatu with Ace Tours & Transfers..." },
+                  { key: "seo_default_keywords", label: "Default Keywords", placeholder: "vanuatu tours, port vila transfers, efate island" },
+                  { key: "seo_canonical_url", label: "Canonical URL Prefix", placeholder: "https://acetours.vu" },
+                  { key: "seo_og_image", label: "Default OG Image URL", placeholder: "https://res.cloudinary.com/..." },
+                ].map((item) => (
+                  <div key={item.key} className="flex gap-4 items-end">
+                    <div className="flex-1 space-y-2">
+                      <Label htmlFor={item.key}>{item.label}</Label>
+                      <Input
+                        id={item.key}
+                        value={formData[item.key] || ""}
+                        onChange={(e) => handleChange(item.key, e.target.value)}
+                        placeholder={item.placeholder}
+                      />
+                    </div>
+                    <Button onClick={() => handleSave(item.key)} disabled={updateMutation.isPending}>
+                      {updateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Schema.org Markup</CardTitle>
+                <CardDescription>
+                  Structured data helps search engines and AI assistants understand your business. These settings are injected as JSON-LD.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {[
+                  { key: "schema_business_name", label: "Business Name", placeholder: "Ace Tours & Transfers" },
+                  { key: "schema_business_type", label: "Business Type", placeholder: "TouristInformationCenter" },
+                  { key: "schema_phone", label: "Business Phone", placeholder: "+678 12345" },
+                  { key: "schema_address", label: "Street Address", placeholder: "Port Vila, Efate, Vanuatu" },
+                  { key: "schema_price_range", label: "Price Range", placeholder: "$$" },
+                ].map((item) => (
+                  <div key={item.key} className="flex gap-4 items-end">
+                    <div className="flex-1 space-y-2">
+                      <Label htmlFor={item.key}>{item.label}</Label>
+                      <Input
+                        id={item.key}
+                        value={formData[item.key] || ""}
+                        onChange={(e) => handleChange(item.key, e.target.value)}
+                        placeholder={item.placeholder}
+                      />
+                    </div>
+                    <Button onClick={() => handleSave(item.key)} disabled={updateMutation.isPending}>
+                      {updateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="analytics" className="mt-4 space-y-4">
+            {/* I: Analytics — GA4 + GTM (both 100% free, no monthly fees) */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Google Analytics 4 (GA4)</CardTitle>
+                <CardDescription>
+                  GA4 is completely free — no monthly fees, no usage caps for standard use.
+                  Create a free account at <a href="https://analytics.google.com" target="_blank" rel="noopener noreferrer" className="text-primary underline">analytics.google.com</a>,
+                  create a property, and paste your Measurement ID below. The tracking script loads automatically.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex gap-4 items-end">
+                  <div className="flex-1 space-y-2">
+                    <Label htmlFor="ga4_measurement_id">GA4 Measurement ID</Label>
+                    <Input
+                      id="ga4_measurement_id"
+                      value={formData["ga4_measurement_id"] || ""}
+                      onChange={(e) => handleChange("ga4_measurement_id", e.target.value)}
+                      placeholder="G-XXXXXXXXXX"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Format: <code className="bg-muted px-1 rounded text-xs">G-XXXXXXXXXX</code> — found in GA4 → Admin → Data Streams → your stream
+                    </p>
+                  </div>
+                  <Button onClick={() => handleSave("ga4_measurement_id")} disabled={updateMutation.isPending}>
+                    {updateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Google Tag Manager (GTM)</CardTitle>
+                <CardDescription>
+                  GTM is also free. Use it to manage GA4, Facebook Pixel, and other tags without code changes.
+                  Create a free container at <a href="https://tagmanager.google.com" target="_blank" rel="noopener noreferrer" className="text-primary underline">tagmanager.google.com</a>.
+                  If you use GTM, you can manage GA4 from inside it — you don't need both fields filled in.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex gap-4 items-end">
+                  <div className="flex-1 space-y-2">
+                    <Label htmlFor="gtm_container_id">GTM Container ID</Label>
+                    <Input
+                      id="gtm_container_id"
+                      value={formData["gtm_container_id"] || ""}
+                      onChange={(e) => handleChange("gtm_container_id", e.target.value)}
+                      placeholder="GTM-XXXXXXX"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Format: <code className="bg-muted px-1 rounded text-xs">GTM-XXXXXXX</code> — found in GTM → Admin → Container Settings
+                    </p>
+                  </div>
+                  <Button onClick={() => handleSave("gtm_container_id")} disabled={updateMutation.isPending}>
+                    {updateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Uptime Monitoring (BetterStack)</CardTitle>
+                <CardDescription>
+                  BetterStack Uptime is free — unlimited monitors, 3-minute check intervals, no credit card required.
+                  Sign up free at <a href="https://betterstack.com/uptime" target="_blank" rel="noopener noreferrer" className="text-primary underline">betterstack.com/uptime</a>,
+                  create a monitor for your site, then add the credentials to your server environment.
+                  These values go in your <code className="bg-muted px-1 rounded text-xs">.env</code> / Render environment variables — not stored in the database.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 space-y-2 text-sm">
+                  <p className="font-semibold text-amber-800">Environment Variables Required (set in Render Dashboard → Environment)</p>
+                  <div className="font-mono text-xs bg-white border border-amber-200 rounded p-3 space-y-1">
+                    <p><span className="text-blue-600">BETTERSTACK_API_KEY</span>=your_api_key_here</p>
+                    <p><span className="text-blue-600">BETTERSTACK_MONITOR_ID</span>=your_monitor_id_here</p>
+                  </div>
+                  <p className="text-amber-700 text-xs">
+                    API Key: BetterStack → Account → API tokens. Monitor ID: visible in the URL when viewing your monitor.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="flags" className="mt-4">

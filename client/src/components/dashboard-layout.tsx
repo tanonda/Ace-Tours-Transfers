@@ -23,7 +23,9 @@ import {
   ScrollText,
   ChevronRight,
   Star,
-  ShieldAlert
+  ShieldAlert,
+  Mail,
+  RotateCcw
 } from "lucide-react";
 import {
   Popover,
@@ -44,7 +46,7 @@ interface DashboardLayoutProps {
 }
 
 export function DashboardLayout({ children, type }: DashboardLayoutProps) {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const { user, logout } = useAuth();
 
@@ -64,8 +66,10 @@ export function DashboardLayout({ children, type }: DashboardLayoutProps) {
     { icon: BarChart3, label: "Analytics", href: "/admin/analytics", show: user?.role === "admin", group: "system" },
     { icon: FileText, label: "Reports", href: "/admin/reports", show: user?.role === "admin", group: "system" },
     { icon: CreditCard, label: "Payments", href: "/admin/payments", show: user?.role === "admin", group: "system" },
+    { icon: Mail, label: "Newsletter", href: "/admin/newsletter", show: user?.role === "admin", group: "system" },
     { icon: ScrollText, label: "Audit Logs", href: "/admin/audit-logs", show: user?.role === "admin", group: "system" },
     { icon: ShieldAlert, label: "Fraud Review", href: "/admin/fraud", show: user?.role === "admin", group: "system" },
+    { icon: RotateCcw, label: "Recovery", href: "/admin/recovery", show: user?.role === "admin", group: "system" },
     { icon: Settings, label: "Settings", href: "/admin/settings", show: user?.role === "admin", group: "system" },
   ];
 
@@ -251,13 +255,15 @@ export function DashboardLayout({ children, type }: DashboardLayoutProps) {
           </button>
           {/* Breadcrumb / page context on desktop */}
           <div className="hidden lg:flex items-center gap-2 text-sm text-muted-foreground">
-            <span className="font-medium text-foreground">
-              {type === "admin" ? "Admin Panel" : "My Account"}
-            </span>
+            <Link href={type === "admin" ? "/admin/dashboard" : "/dashboard"}>
+              <span className="font-medium text-foreground hover:text-primary cursor-pointer transition-colors">
+                {type === "admin" ? "Admin Panel" : "My Account"}
+              </span>
+            </Link>
             {location !== "/admin/dashboard" && location !== "/dashboard" && (
               <>
                 <ChevronRight size={14} />
-                <span className="capitalize">
+                <span className="capitalize text-foreground">
                   {location.split("/").filter(Boolean).at(-1)?.replace(/-/g, " ")}
                 </span>
               </>
@@ -280,12 +286,13 @@ export function DashboardLayout({ children, type }: DashboardLayoutProps) {
                   <p className="font-semibold text-sm">{user?.name || 'User'}</p>
                   <p className="text-xs text-muted-foreground">{user?.email || ''}</p>
                 </div>
-                <Link href={type === 'admin' ? '/admin/settings' : '/dashboard/profile'}>
-                  <div className="flex items-center gap-2 px-2 py-2 rounded-md text-sm hover:bg-muted cursor-pointer">
-                    <User className="h-4 w-4" />
-                    Profile & Settings
-                  </div>
-                </Link>
+                <button
+                  onClick={() => setLocation(type === 'admin' ? '/admin/settings' : '/dashboard/profile')}
+                  className="flex items-center gap-2 px-2 py-2 rounded-md text-sm hover:bg-muted cursor-pointer w-full text-left"
+                >
+                  <User className="h-4 w-4" />
+                  Profile & Settings
+                </button>
                 <button
                   onClick={handleLogout}
                   className="flex items-center gap-2 px-2 py-2 rounded-md text-sm w-full hover:bg-destructive/10 hover:text-destructive cursor-pointer text-left"
