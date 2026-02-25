@@ -24,6 +24,8 @@ export default function AdminPricing() {
   const [effectiveFrom, setEffectiveFrom] = useState<string>(new Date().toISOString().split('T')[0]);
   const [adultPrice, setAdultPrice] = useState<string>("");
   const [childPrice, setChildPrice] = useState<string>("");
+  const [infantPrice, setInfantPrice] = useState<string>("");
+  const [petPrice, setPetPrice] = useState<string>("");
   const [isCreating, setIsCreating] = useState(false);
 
   const { data: tours = [] } = useQuery({ queryKey: ["/api/tours"], queryFn: fetchTours });
@@ -57,6 +59,8 @@ export default function AdminPricing() {
       toast({ title: "Pricing version created", description: `Effective from ${effectiveFrom}.` });
       setAdultPrice("");
       setChildPrice("");
+      setInfantPrice("");
+      setPetPrice("");
       // Auto-show the product we just added
       setViewProductId(productId);
     } catch (err) {
@@ -135,44 +139,42 @@ export default function AdminPricing() {
                   <Label htmlFor="adult-price">Adult Price (AUD) *</Label>
                   <div className="relative">
                     <span className="absolute left-3 top-2.5 text-muted-foreground text-sm">$</span>
-                    <Input
-                      id="adult-price"
-                      className="pl-7"
-                      placeholder="120.00"
-                      value={adultPrice}
-                      onChange={e => setAdultPrice(e.target.value)}
-                      type="number"
-                      min="0"
-                      step="0.01"
-                    />
+                    <Input id="adult-price" className="pl-7" placeholder="120.00" value={adultPrice} onChange={e => setAdultPrice(e.target.value)} type="number" min="0" step="0.01" />
                   </div>
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="child-price">Child Price (AUD)</Label>
                   <div className="relative">
                     <span className="absolute left-3 top-2.5 text-muted-foreground text-sm">$</span>
-                    <Input
-                      id="child-price"
-                      className="pl-7"
-                      placeholder="60.00"
-                      value={childPrice}
-                      onChange={e => setChildPrice(e.target.value)}
-                      type="number"
-                      min="0"
-                      step="0.01"
-                    />
+                    <Input id="child-price" className="pl-7" placeholder="60.00" value={childPrice} onChange={e => setChildPrice(e.target.value)} type="number" min="0" step="0.01" />
                   </div>
-                  <p className="text-xs text-muted-foreground">Leave blank for free or N/A</p>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="infant-price">Infant Price (AUD)</Label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-2.5 text-muted-foreground text-sm">$</span>
+                    <Input id="infant-price" className="pl-7" placeholder="0.00" value={infantPrice} onChange={e => setInfantPrice(e.target.value)} type="number" min="0" step="0.01" />
+                  </div>
+                  <p className="text-xs text-muted-foreground">Under 2 yrs — often free</p>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="pet-price">Pet Price (AUD)</Label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-2.5 text-muted-foreground text-sm">$</span>
+                    <Input id="pet-price" className="pl-7" placeholder="0.00" value={petPrice} onChange={e => setPetPrice(e.target.value)} type="number" min="0" step="0.01" />
+                  </div>
+                  <p className="text-xs text-muted-foreground">Leave blank if not applicable</p>
                 </div>
               </div>
 
-              {/* Preview */}
               {adultPrice && (
                 <div className="p-3 bg-green-50 border border-green-200 rounded-lg space-y-1">
                   <div className="text-xs font-semibold text-green-700 uppercase tracking-wide">Preview</div>
-                  <div className="flex gap-4 text-sm">
+                  <div className="flex flex-wrap gap-4 text-sm">
                     <span className="text-green-800">Adult: <strong>{formatCurrency(Math.round(parseFloat(adultPrice || "0") * 100))}</strong></span>
                     {childPrice && <span className="text-green-800">Child: <strong>{formatCurrency(Math.round(parseFloat(childPrice) * 100))}</strong></span>}
+                    {infantPrice && <span className="text-green-800">Infant: <strong>{formatCurrency(Math.round(parseFloat(infantPrice) * 100))}</strong></span>}
+                    {petPrice && <span className="text-green-800">Pet: <strong>{formatCurrency(Math.round(parseFloat(petPrice) * 100))}</strong></span>}
                   </div>
                 </div>
               )}
@@ -259,8 +261,10 @@ export default function AdminPricing() {
                 <TableRow>
                   <TableHead>Product</TableHead>
                   <TableHead>Effective From</TableHead>
-                  <TableHead>Adult Price</TableHead>
-                  <TableHead>Child Price</TableHead>
+                  <TableHead>Adult</TableHead>
+                  <TableHead>Child</TableHead>
+                  <TableHead>Infant</TableHead>
+                  <TableHead>Pet</TableHead>
                   <TableHead>Status</TableHead>
                 </TableRow>
               </TableHeader>
@@ -292,6 +296,12 @@ export default function AdminPricing() {
                           <TableCell className="font-bold text-sm">{formatCurrency(v.adultPriceCents)}</TableCell>
                           <TableCell className="text-sm text-muted-foreground">
                             {v.childPriceCents > 0 ? formatCurrency(v.childPriceCents) : "—"}
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {v.infantPriceCents > 0 ? formatCurrency(v.infantPriceCents) : "—"}
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {v.petPriceCents > 0 ? formatCurrency(v.petPriceCents) : "—"}
                           </TableCell>
                           <TableCell>
                             {isActive ? (

@@ -47,6 +47,7 @@ export default function AdminCalendar() {
   const [managingTourId, setManagingTourId] = useState<string>("");
   const [dailyInstances, setDailyInstances] = useState<any[]>([]);
   const [isUpserting, setIsUpserting] = useState(false);
+  const [todayDialogOpen, setTodayDialogOpen] = useState(false); // F: View All Today
   const [upsertForm, setUpsertForm] = useState({
     timeSlot: "",
     totalCapacity: 20,
@@ -463,22 +464,31 @@ export default function AdminCalendar() {
           <div className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <CalendarIcon className="h-5 w-5 text-[#004165]" />
-                  Today's Schedule
-                </CardTitle>
-                <CardDescription>
-                  {new Date().toLocaleDateString('en-US', {
-                    weekday: 'long',
-                    month: 'long',
-                    day: 'numeric'
-                  })}
-                </CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <CalendarIcon className="h-5 w-5 text-[#004165]" />
+                      Today's Schedule
+                    </CardTitle>
+                    <CardDescription>
+                      {new Date().toLocaleDateString('en-US', {
+                        weekday: 'long',
+                        month: 'long',
+                        day: 'numeric'
+                      })}
+                    </CardDescription>
+                  </div>
+                  {todayBookings.length > 0 && (
+                    <Button variant="outline" size="sm" onClick={() => setTodayDialogOpen(true)}>
+                      View All ({todayBookings.length})
+                    </Button>
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
                 {todayBookings.length > 0 ? (
                   <div className="space-y-3">
-                    {todayBookings.map(booking => (
+                    {todayBookings.slice(0, 3).map(booking => (
                       <div key={booking.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                         <div className={`w-2 h-2 rounded-full ${getBookingColor(booking.status)}`} />
                         <div className="flex-1 min-w-0">
@@ -488,6 +498,14 @@ export default function AdminCalendar() {
                         <span className="text-xs text-muted-foreground">{booking.guests} pax</span>
                       </div>
                     ))}
+                    {todayBookings.length > 3 && (
+                      <button
+                        className="w-full text-xs text-primary hover:underline text-center py-1"
+                        onClick={() => setTodayDialogOpen(true)}
+                      >
+                        +{todayBookings.length - 3} more — View all
+                      </button>
+                    )}
                   </div>
                 ) : (
                   <div className="text-center py-6 text-muted-foreground">
@@ -497,6 +515,39 @@ export default function AdminCalendar() {
                 )}
               </CardContent>
             </Card>
+
+            {/* F: Today's full booking list dialog */}
+            <Dialog open={todayDialogOpen} onOpenChange={setTodayDialogOpen}>
+              <DialogContent className="max-w-lg">
+                <DialogHeader>
+                  <DialogTitle>All Bookings Today</DialogTitle>
+                  <DialogDescription>
+                    {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })} — {todayBookings.length} booking(s)
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-3 max-h-[400px] overflow-y-auto">
+                  {todayBookings.map(booking => (
+                    <div key={booking.id} className="p-4 border rounded-lg space-y-2">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-medium text-sm">{booking.tourName}</h4>
+                        <Badge className={
+                          booking.status === 'confirmed' ? 'bg-green-100 text-green-800' :
+                          booking.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                          booking.status === 'completed' ? 'bg-blue-100 text-blue-800' :
+                          'bg-red-100 text-red-800'
+                        }>{booking.status}</Badge>
+                      </div>
+                      <div className="grid grid-cols-2 gap-1 text-xs text-muted-foreground">
+                        <span>{booking.customerName}</span>
+                        <span>{booking.guests} guests</span>
+                        <span>{booking.customerEmail}</span>
+                        <span className="font-medium text-foreground">{booking.amount}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </DialogContent>
+            </Dialog>
 
             <Card>
               <CardHeader>
@@ -509,22 +560,62 @@ export default function AdminCalendar() {
                 {upcomingBookings.length > 0 ? (
                   <div className="space-y-3">
                     {upcomingBookings.map(booking => (
-                      <div key={booking.id} className="flex items-start gap-3 p-3 border rounded-lg">
-                        <div className="text-center bg-[#004165] text-white rounded px-2 py-1">
-                          <div className="text-xs">{new Date(booking.date).toLocaleDateString('en-US', { month: 'short' })}</div>
-                          <div className="text-lg font-bold">{new Date(booking.date).getDate()}</div>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm truncate">{booking.tourName}</p>
-                          <p className="text-xs text-muted-foreground">{booking.customerName}</p>
-                          <div className="flex items-center gap-2 mt-1">
-                            <Badge variant="outline" className="text-xs">
-                              {booking.guests} guests
-                            </Badge>
-                            <span className="text-xs font-medium text-[#004165]">{booking.amount}</span>
+                      <Dialog key={booking.id}>
+                        <DialogTrigger asChild>
+                          <div className="flex items-start gap-3 p-3 border rounded-lg cursor-pointer hover:bg-muted/50 hover:border-primary/40 transition-all group">
+                            <div className="text-center bg-[#004165] text-white rounded px-2 py-1 group-hover:bg-primary transition-colors">
+                              <div className="text-xs">{new Date(booking.date).toLocaleDateString('en-US', { month: 'short' })}</div>
+                              <div className="text-lg font-bold">{new Date(booking.date).getDate()}</div>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-sm truncate">{booking.tourName}</p>
+                              <p className="text-xs text-muted-foreground">{booking.customerName}</p>
+                              <div className="flex items-center gap-2 mt-1">
+                                <Badge variant="outline" className="text-xs">{booking.guests} guests</Badge>
+                                <span className="text-xs font-medium text-[#004165]">{booking.amount}</span>
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      </div>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>{booking.tourName}</DialogTitle>
+                            <DialogDescription>
+                              {new Date(booking.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                            </DialogDescription>
+                          </DialogHeader>
+                          <div className="space-y-3 text-sm">
+                            <div className="grid grid-cols-2 gap-3">
+                              <div className="p-3 bg-muted/30 rounded-lg">
+                                <p className="text-xs text-muted-foreground">Customer</p>
+                                <p className="font-medium">{booking.customerName}</p>
+                              </div>
+                              <div className="p-3 bg-muted/30 rounded-lg">
+                                <p className="text-xs text-muted-foreground">Guests</p>
+                                <p className="font-medium">{booking.guests}</p>
+                              </div>
+                              <div className="p-3 bg-muted/30 rounded-lg">
+                                <p className="text-xs text-muted-foreground">Amount</p>
+                                <p className="font-medium text-[#004165]">{booking.amount}</p>
+                              </div>
+                              <div className="p-3 bg-muted/30 rounded-lg">
+                                <p className="text-xs text-muted-foreground">Status</p>
+                                <Badge className={
+                                  booking.status === 'confirmed' ? 'bg-green-100 text-green-800' :
+                                  booking.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                  'bg-red-100 text-red-800'
+                                }>{booking.status}</Badge>
+                              </div>
+                            </div>
+                            {booking.customerEmail && (
+                              <div className="p-3 bg-muted/30 rounded-lg">
+                                <p className="text-xs text-muted-foreground">Email</p>
+                                <p className="font-medium">{booking.customerEmail}</p>
+                              </div>
+                            )}
+                          </div>
+                        </DialogContent>
+                      </Dialog>
                     ))}
                   </div>
                 ) : (

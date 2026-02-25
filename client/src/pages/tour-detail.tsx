@@ -128,7 +128,7 @@ export default function TourDetail() {
 
   const averageRating = reviews.length > 0
     ? reviews.reduce((acc: number, r: any) => acc + r.rating, 0) / reviews.length
-    : 5;
+    : 0;
 
   const starsDisplay = Math.round(averageRating);
 
@@ -213,9 +213,11 @@ export default function TourDetail() {
               <span className="px-3 py-1 rounded-full border border-[#4caf7d] bg-[#4caf7d]/15 text-[#4caf7d] text-[0.78rem] font-medium">
                 ✓ {t("tour.availableNow", "Available Now")}
               </span>
+              {reviews.length > 0 && (
               <span className="px-3 py-1 rounded-full border border-[#f4a830] bg-[#f4a830]/15 text-[#f4a830] text-[0.78rem] font-medium">
                 {"★".repeat(starsDisplay)} {averageRating.toFixed(1)} — {reviews.length} {t("quickView.reviews", "reviews")}
               </span>
+              )}
               {tour.duration && (
                 <span className="px-3 py-1 rounded-full border border-[rgba(244,168,48,0.18)] bg-[#1a1710] text-[#8a826e] text-[0.78rem] font-medium">
                   ⏱ {tour.duration}

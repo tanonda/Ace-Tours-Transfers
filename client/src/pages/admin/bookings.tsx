@@ -1,89 +1,91 @@
 import { DashboardLayout } from "@/components/dashboard-layout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Filter, MoreHorizontal, Eye } from "lucide-react";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Search, Filter, MoreHorizontal, Eye, Download, Trash2,
+  CheckSquare, X, RefreshCw, Plus, CheckCircle2, XCircle, Clock, AlertTriangle
+} from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { BookingDetailsDialog } from "@/components/admin/booking-details-dialog";
 import { EditBookingDialog } from "@/components/admin/edit-booking-dialog";
 import { CreateBookingDialog } from "@/components/admin/create-booking-dialog";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchBookings, updateBooking, deleteBooking, exportBookingsCSV } from "@/lib/api";
 import type { Booking } from "@shared/schema";
-import { Download } from "lucide-react";
 
 export default function AdminBookings() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { data: bookings = [], isLoading } = useQuery({
+  const { data: bookings = [], isLoading, refetch } = useQuery({
     queryKey: ["bookings"],
     queryFn: fetchBookings,
   });
-  
+
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [isCreateOpen, setIsCreateOpen] = useState(false); // New state for create dialog
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [dateSort, setDateSort] = useState<"asc" | "desc">("desc");
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, updates }: { id: string; updates: Partial<Booking> }) =>
-      updateBooking(id, updates),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["bookings"] });
-      toast({ title: "Booking Updated", description: "Booking has been updated successfully." });
-    },
+    mutationFn: ({ id, updates }: { id: string; updates: Partial<Booking> }) => updateBooking(id, updates),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["bookings"] }); toast({ title: "Booking Updated" }); },
   });
 
   const deleteMutation = useMutation({
     mutationFn: deleteBooking,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["bookings"] });
-      toast({ title: "Booking Deleted", description: "Booking has been deleted successfully." });
-    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["bookings"] }); toast({ title: "Booking Deleted" }); },
   });
-  
-  const getStatusColor = (status: string) => {
-    switch(status) {
-      case "confirmed": return "bg-green-100 text-green-800 hover:bg-green-100";
-      case "pending": return "bg-yellow-100 text-yellow-800 hover:bg-yellow-100";
-      case "completed": return "bg-blue-100 text-blue-800 hover:bg-blue-100";
-      case "cancelled": return "bg-red-100 text-red-800 hover:bg-red-100";
-      default: return "bg-gray-100 text-gray-800";
-    }
+
+  const getStatusColor = (s: string) => ({
+    confirmed: "bg-green-100 text-green-800 border-green-200",
+    pending: "bg-yellow-100 text-yellow-800 border-yellow-200",
+    completed: "bg-blue-100 text-blue-800 border-blue-200",
+    cancelled: "bg-red-100 text-red-800 border-red-200",
+  }[s] || "bg-gray-100 text-gray-800");
+
+  const filteredBookings = useMemo(() => {
+    let result = bookings.filter(b => {
+      if (statusFilter !== "all" && b.status !== statusFilter) return false;
+      if (!searchQuery.trim()) return true;
+      const tokens = searchQuery.toLowerCase().trim().split(/\s+/);
+      const text = [b.customerName, b.tourName, b.id, b.date, b.status, String(b.guests ?? ""), b.amount].join(" ").toLowerCase();
+      return tokens.every(t => text.includes(t));
+    });
+    return [...result].sort((a, b) => {
+      const diff = new Date(a.date).getTime() - new Date(b.date).getTime();
+      return dateSort === "desc" ? -diff : diff;
+    });
+  }, [bookings, searchQuery, statusFilter, dateSort]);
+
+  const allSelected = filteredBookings.length > 0 && filteredBookings.every(b => selectedIds.has(b.id));
+  const someSelected = selectedIds.size > 0;
+  const toggleSelectAll = () => setSelectedIds(allSelected ? new Set() : new Set(filteredBookings.map(b => b.id)));
+  const toggleSelect = (id: string) => setSelectedIds(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+
+  const bulkUpdateStatus = async (status: string) => {
+    for (const id of Array.from(selectedIds)) await updateBooking(id, { status } as any);
+    queryClient.invalidateQueries({ queryKey: ["bookings"] });
+    toast({ title: `${selectedIds.size} booking(s) updated to "${status}"` });
+    setSelectedIds(new Set());
   };
 
-  const handleViewBooking = (booking: Booking) => {
-    setSelectedBooking(booking);
-    setIsViewOpen(true);
-  };
-
-  const handleEditBooking = (booking: Booking) => {
-    setSelectedBooking(booking);
-    setIsEditOpen(true);
-  };
-
-  const handleSaveBooking = (updatedBooking: Booking) => {
-    updateMutation.mutate({ id: updatedBooking.id, updates: updatedBooking });
-  };
-
-  const handleDeleteBooking = (id: string) => {
-    if (confirm("Are you sure you want to delete this booking?")) {
-      deleteMutation.mutate(id);
-    }
-  };
-
-  const handleExportCSV = async () => {
-    try {
-      await exportBookingsCSV();
-      toast({ title: "Export Complete", description: "Bookings CSV has been downloaded." });
-    } catch (error) {
-      toast({ title: "Export Failed", description: "Failed to export bookings.", variant: "destructive" });
-    }
+  const bulkDelete = async () => {
+    if (!confirm(`Delete ${selectedIds.size} booking(s)?`)) return;
+    for (const id of Array.from(selectedIds)) await deleteBooking(id);
+    queryClient.invalidateQueries({ queryKey: ["bookings"] });
+    toast({ title: `${selectedIds.size} booking(s) deleted.` });
+    setSelectedIds(new Set());
   };
 
   return (
@@ -95,119 +97,113 @@ export default function AdminBookings() {
             <p className="text-muted-foreground">Manage and track all tour reservations.</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={handleExportCSV} data-testid="button-export-csv">
-              <Download className="h-4 w-4 mr-2" /> Export CSV
-            </Button>
-            <Button className="bg-[#004165]" onClick={() => setIsCreateOpen(true)}>Create Booking</Button>
+            <Button variant="outline" size="sm" onClick={() => refetch()}><RefreshCw className="h-4 w-4 mr-2" />Refresh</Button>
+            <Button variant="outline" size="sm" onClick={async () => { try { await exportBookingsCSV(); toast({ title: "Exported" }); } catch { toast({ title: "Failed", variant: "destructive" }); } }}><Download className="h-4 w-4 mr-2" />Export CSV</Button>
+            <Button className="bg-[#004165]" size="sm" onClick={() => setIsCreateOpen(true)}><Plus className="h-4 w-4 mr-2" />New Booking</Button>
           </div>
         </div>
 
         <Card>
-          <CardHeader className="pb-3">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="relative w-full sm:w-72">
+          <CardHeader className="pb-3 space-y-3">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Search bookings..." className="pl-8" />
+                <Input placeholder="Smart search: name, tour, ID, date, status…" className="pl-8" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+                {searchQuery && <button onClick={() => setSearchQuery("")} className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>}
               </div>
-              <div className="flex items-center gap-2 w-full sm:w-auto">
-                 <Select defaultValue="all">
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="confirmed">Confirmed</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="cancelled">Cancelled</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Button variant="outline" size="icon">
-                  <Filter className="h-4 w-4" />
-                </Button>
-              </div>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[160px]"><SelectValue placeholder="Status" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="confirmed">Confirmed</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button variant="outline" size="icon" onClick={() => setDateSort(d => d === "desc" ? "asc" : "desc")} title="Toggle date sort">
+                <Filter className="h-4 w-4" />
+              </Button>
             </div>
+
+            {someSelected && (
+              <div className="flex flex-wrap items-center gap-2 px-3 py-2 bg-primary/5 border border-primary/20 rounded-lg">
+                <span className="text-sm font-medium text-primary">{selectedIds.size} selected</span>
+                <div className="flex gap-2 ml-auto flex-wrap">
+                  <Button size="sm" variant="outline" onClick={() => bulkUpdateStatus("confirmed")} className="text-green-700 border-green-300 hover:bg-green-50"><CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />Confirm</Button>
+                  <Button size="sm" variant="outline" onClick={() => bulkUpdateStatus("cancelled")} className="text-orange-700 border-orange-300 hover:bg-orange-50"><XCircle className="h-3.5 w-3.5 mr-1.5" />Cancel</Button>
+                  <Button size="sm" variant="outline" onClick={() => bulkUpdateStatus("completed")} className="text-blue-700 border-blue-300 hover:bg-blue-50"><CheckSquare className="h-3.5 w-3.5 mr-1.5" />Complete</Button>
+                  <Button size="sm" variant="destructive" onClick={bulkDelete}><Trash2 className="h-3.5 w-3.5 mr-1.5" />Delete</Button>
+                  <Button size="sm" variant="ghost" onClick={() => setSelectedIds(new Set())}><X className="h-3.5 w-3.5 mr-1" />Clear</Button>
+                </div>
+              </div>
+            )}
           </CardHeader>
-          <CardContent>
+
+          <CardContent className="p-0">
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-10 pl-4"><Checkbox checked={allSelected} onCheckedChange={toggleSelectAll} /></TableHead>
                   <TableHead>Booking ID</TableHead>
                   <TableHead>Customer</TableHead>
                   <TableHead>Tour / Service</TableHead>
-                  <TableHead>Date</TableHead>
+                  <TableHead className="cursor-pointer hover:text-primary select-none" onClick={() => setDateSort(d => d === "desc" ? "asc" : "desc")}>
+                    Date {dateSort === "desc" ? "↓" : "↑"}
+                  </TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Amount</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead className="text-right pr-4">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8">
-                      Loading bookings...
+                  <TableRow><TableCell colSpan={8} className="text-center py-10"><RefreshCw className="h-5 w-5 animate-spin mx-auto mb-2" /><p className="text-muted-foreground">Loading…</p></TableCell></TableRow>
+                ) : filteredBookings.length === 0 ? (
+                  <TableRow><TableCell colSpan={8} className="text-center py-10 text-muted-foreground">{searchQuery || statusFilter !== "all" ? "No bookings match your search/filter." : "No bookings yet."}</TableCell></TableRow>
+                ) : filteredBookings.map(booking => (
+                  <TableRow key={booking.id} className={selectedIds.has(booking.id) ? "bg-primary/5" : ""}>
+                    <TableCell className="pl-4"><Checkbox checked={selectedIds.has(booking.id)} onCheckedChange={() => toggleSelect(booking.id)} /></TableCell>
+                    <TableCell className="font-mono text-xs text-muted-foreground">#{booking.id?.slice(0, 8).toUpperCase()}</TableCell>
+                    <TableCell className="font-medium">{booking.customerName}</TableCell>
+                    <TableCell className="max-w-[180px] truncate">{booking.tourName}</TableCell>
+                    <TableCell>{new Date(booking.date).toLocaleDateString()}</TableCell>
+                    <TableCell>
+                      <Badge className={getStatusColor(booking.status)} variant="outline">
+                        {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right font-medium">{booking.amount}</TableCell>
+                    <TableCell className="text-right pr-4">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => { setSelectedBooking(booking); setIsViewOpen(true); }}><Eye className="h-4 w-4 mr-2" />View Details</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => { setSelectedBooking(booking); setIsEditOpen(true); }}>Edit Booking</DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => updateMutation.mutate({ id: booking.id, updates: { status: "confirmed" } as any })}><CheckCircle2 className="h-4 w-4 mr-2 text-green-600" />Confirm</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => updateMutation.mutate({ id: booking.id, updates: { status: "cancelled" } as any })}><XCircle className="h-4 w-4 mr-2 text-orange-600" />Cancel</DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem className="text-red-600" onClick={() => { if (confirm("Delete this booking?")) deleteMutation.mutate(booking.id); }}><Trash2 className="h-4 w-4 mr-2" />Delete</DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
-                ) : bookings.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8">
-                      No bookings found.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  bookings.map((booking) => (
-                    <TableRow key={booking.id}>
-                      <TableCell className="font-medium">{}</TableCell>
-                      <TableCell>{booking.customerName}</TableCell>
-                      <TableCell>{booking.tourName}</TableCell>
-                      <TableCell>{new Date(booking.date).toLocaleDateString()}</TableCell>
-                      <TableCell>
-                        <Badge className={getStatusColor(booking.status)} variant="outline">
-                          {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">{booking.amount}</TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleViewBooking(booking)}>View Details</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleEditBooking(booking)}>Edit Booking</DropdownMenuItem>
-                            <DropdownMenuItem className="text-red-600" onClick={() => handleDeleteBooking(booking.id)}>Delete Booking</DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
+                ))}
               </TableBody>
             </Table>
+            {filteredBookings.length > 0 && (
+              <div className="px-4 py-2 border-t border-border text-xs text-muted-foreground">
+                Showing {filteredBookings.length} of {bookings.length} bookings{searchQuery && ` · "${searchQuery}"`}
+              </div>
+            )}
           </CardContent>
         </Card>
 
-        <BookingDetailsDialog 
-          booking={selectedBooking} 
-          open={isViewOpen} 
-          onOpenChange={setIsViewOpen} 
-        />
-
-                <EditBookingDialog
-                  booking={selectedBooking}
-                  open={isEditOpen}
-                  onOpenChange={setIsEditOpen}
-                  onSave={handleSaveBooking}
-                />
-        
-                <CreateBookingDialog
-                  open={isCreateOpen}
-                  onOpenChange={setIsCreateOpen}
-                  onSuccess={() => queryClient.invalidateQueries({ queryKey: ["bookings"] })}
-                />
-              </div>
+        <BookingDetailsDialog booking={selectedBooking} open={isViewOpen} onOpenChange={setIsViewOpen} />
+        <EditBookingDialog booking={selectedBooking} open={isEditOpen} onOpenChange={setIsEditOpen} onSave={b => updateMutation.mutate({ id: b.id, updates: b })} />
+        <CreateBookingDialog open={isCreateOpen} onOpenChange={setIsCreateOpen} onSuccess={() => queryClient.invalidateQueries({ queryKey: ["bookings"] })} />
+      </div>
     </DashboardLayout>
   );
 }

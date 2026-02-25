@@ -137,7 +137,7 @@ export default function AdminFraud() {
   const highCount = flagged.filter(b => b.fraud?.level === "high").length;
 
   return (
-    <DashboardLayout>
+    <DashboardLayout type="admin">
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">

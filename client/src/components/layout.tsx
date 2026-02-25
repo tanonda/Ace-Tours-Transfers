@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/navigation-menu";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
-import { fetchTours } from "@/lib/api";
+import { fetchTours, fetchVehicles } from "@/lib/api";
 import { useCart } from "@/lib/cart-context";
 import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -63,6 +63,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const { data: allTours = [] } = useQuery({
     queryKey: ["tours"],
     queryFn: fetchTours,
+  });
+
+  const { data: allVehicles = [] } = useQuery({
+    queryKey: ["vehicles"],
+    queryFn: fetchVehicles,
   });
 
   // Deduplicate tours by normalized title to handle DB duplicates and naming variations
@@ -234,12 +239,25 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <NavigationMenu className="relative z-50">
               <NavigationMenuList>
                 <NavigationMenuItem>
-                  <Link href="/vehicles" className={cn(
-                    "group inline-flex h-9 w-max items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors focus:outline-none disabled:pointer-events-none disabled:opacity-50",
-                    navTextColor
-                  )}>
+                  <NavigationMenuTrigger className={cn("bg-transparent hover:bg-transparent focus:bg-transparent data-[state=open]:bg-transparent", navTextColor)}>
                     {t("nav.vehicleHire", "Vehicle Hire")}
-                  </Link>
+                  </NavigationMenuTrigger>
+                  <NavigationMenuContent>
+                    <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
+                      {allVehicles.map((vehicle) => (
+                        <ListItem
+                          key={vehicle.id}
+                          title={vehicle.title}
+                          href={`/vehicles/${vehicle.id}`}
+                        >
+                          {Array.isArray(vehicle.description) ? vehicle.description[0] : vehicle.description}
+                        </ListItem>
+                      ))}
+                      <ListItem href="/vehicles" title={t("nav.viewAllVehicles", "View All Vehicles")} className="bg-muted/50">
+                        {t("nav.seeAllVehicles", "Browse our full fleet")}
+                      </ListItem>
+                    </ul>
+                  </NavigationMenuContent>
                 </NavigationMenuItem>
               </NavigationMenuList>
             </NavigationMenu>

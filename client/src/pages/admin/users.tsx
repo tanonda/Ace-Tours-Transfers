@@ -7,9 +7,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Mail, Phone, Download, Users, DollarSign, Calendar, MapPin, PlusCircle, Pencil } from "lucide-react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { fetchAllUsers, fetchBookings, updateUserRole, resetUserPassword, createUser } from "@/lib/api";
+import { Search, Mail, Phone, Download, Users, DollarSign, Calendar, MapPin, PlusCircle, Pencil, Send, KeyRound } from "lucide-react";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { fetchAllUsers, fetchBookings, updateUserRole, resetUserPassword, createUser, sendWelcomeEmail } from "@/lib/api";
 import { useState, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
 import type { User, Booking, InsertUser } from "@shared/schema";
@@ -164,6 +164,12 @@ export default function AdminUsers() {
       console.error("Failed to reset password:", error);
     }
   };
+
+  const sendWelcomeMutation = useMutation({
+    mutationFn: (userId: string) => sendWelcomeEmail(userId),
+    onSuccess: () => toast({ title: "Welcome email sent", description: "An invitation email has been dispatched." }),
+    onError: () => toast({ title: "Error", description: "Failed to send welcome email.", variant: "destructive" }),
+  });
 
 
   return (
@@ -445,8 +451,19 @@ export default function AdminUsers() {
                       </div>
                     </div>
                     <div className="flex justify-end gap-2 mt-4">
-                      <Button variant="outline" onClick={() => setIsResetPasswordDialogOpen(true)}>Reset Password</Button>
-                      {/* Potentially add other user actions here */}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={sendWelcomeMutation.isPending}
+                        onClick={() => selectedUser && sendWelcomeMutation.mutate(selectedUser.id)}
+                      >
+                        <Send className="h-3.5 w-3.5 mr-1.5" />
+                        Send Welcome Email
+                      </Button>
+                      <Button variant="outline" onClick={() => setIsResetPasswordDialogOpen(true)}>
+                        <KeyRound className="h-3.5 w-3.5 mr-1.5" />
+                        Reset Password
+                      </Button>
                     </div>
                   </TabsContent>
                   <TabsContent value="bookings">

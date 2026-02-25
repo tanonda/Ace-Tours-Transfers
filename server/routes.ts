@@ -1648,6 +1648,24 @@ ${allPages.map(p => `  <url>
         (req.session as any).recentBookingIds = (req.session as any).recentBookingIds.slice(-5);
       }
 
+      // D: Broadcast new booking event to all connected admin SSE clients
+      try {
+        const sseClients: Array<{ res: any; userId: string; role: string }> = (app as any)._sseClients ?? [];
+        const payload = JSON.stringify({
+          id: booking.id,
+          customerName: booking.customerName,
+          tourName: booking.tourName,
+          amount: booking.amount,
+          status: booking.status,
+          createdAt: new Date().toISOString(),
+        });
+        sseClients
+          .filter(c => c.role === "admin")
+          .forEach(c => {
+            try { c.res.write(`event: new_booking\ndata: ${payload}\n\n`); } catch { /* closed */ }
+          });
+      } catch { /* never crash the booking */ }
+
       res.status(201).json(booking);
     } catch (error: any) {
       const msg: string = error?.message || "";
@@ -1985,8 +2003,58 @@ ${allPages.map(p => `  <url>
 
   app.patch("/api/notifications/:id/read", requireAuth, async (req, res) => {
     await storage.markNotificationAsRead(req.params.id);
+    // Broadcast to all SSE clients that a notification was read
+    sseClients.forEach(client => {
+      if (client.userId === req.session.userId || req.session.userRole === 'admin') {
+        client.res.write(`event: notification_read\ndata: ${JSON.stringify({ id: req.params.id })}\n\n`);
+      }
+    });
     res.json({ success: true });
   });
+
+  app.patch("/api/notifications/mark-all-read", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userRole === 'admin' ? undefined : req.session.userId;
+      const unread = await storage.getUnreadNotifications(userId);
+      for (const n of unread) await storage.markNotificationAsRead(n.id);
+      res.json({ success: true, count: unread.length });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to mark all read" });
+    }
+  });
+
+  // SSE endpoint for real-time notifications (no external package needed)
+  const sseClients: Array<{ res: any; userId: string; role: string }> = [];
+
+  app.get("/api/notifications/stream", requireAuth, (req, res) => {
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.setHeader("X-Accel-Buffering", "no"); // Disable nginx buffering
+    res.flushHeaders();
+
+    const client = { res, userId: req.session.userId!, role: req.session.userRole! };
+    sseClients.push(client);
+
+    // Send initial heartbeat
+    res.write(`:heartbeat\n\n`);
+
+    // Keepalive ping every 25s to prevent proxy timeouts
+    const ping = setInterval(() => {
+      try { res.write(`:ping\n\n`); } catch { clearInterval(ping); }
+    }, 25000);
+
+    req.on("close", () => {
+      clearInterval(ping);
+      const idx = sseClients.indexOf(client);
+      if (idx !== -1) sseClients.splice(idx, 1);
+    });
+  });
+
+  // Expose broadcaster for use in booking creation routes
+  (app as any)._sseClients = sseClients;
+
+
 
   // Analytics API
   app.get("/api/analytics/stats", requireAdmin, async (_req, res) => {
@@ -2008,7 +2076,63 @@ ${allPages.map(p => `  <url>
     }
   });
 
+  // C: Revenue by product category for dashboard bar chart
+  app.get("/api/analytics/revenue-by-category", requireAdmin, async (_req, res) => {
+    try {
+      const allBookings = await storage.getAllBookings();
+      const catMap: Record<string, number> = { Tours: 0, Transfers: 0, "Bus Hire": 0 };
+      for (const b of allBookings) {
+        if (b.status === "cancelled") continue;
+        const cents = b.totalAmountCents ?? 0;
+        const name = (b.tourName ?? "").toLowerCase();
+        if (name.includes("transfer") || name.includes("airport")) catMap["Transfers"] += cents;
+        else if (name.includes("hire") || name.includes("vehicle") || name.includes("bus")) catMap["Bus Hire"] += cents;
+        else catMap["Tours"] += cents;
+      }
+      res.json(Object.entries(catMap).map(([category, revenueCents]) => ({ category, revenueCents })));
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch category revenue" });
+    }
+  });
+
+  // C: BetterStack Uptime proxy — free tier, no credit card required.
+  // Set env var BETTERSTACK_API_KEY and BETTERSTACK_MONITOR_ID from https://betterstack.com/uptime
+  // Falls back gracefully to null if not configured so the UI shows "N/A".
+  app.get("/api/admin/uptime", requireAdmin, async (_req, res) => {
+    try {
+      const apiKey = process.env.BETTERSTACK_API_KEY;
+      const monitorId = process.env.BETTERSTACK_MONITOR_ID;
+      if (!apiKey || !monitorId) {
+        return res.json({ uptime: null, status: null, configured: false });
+      }
+      const response = await fetch(`https://uptime.betterstack.com/api/v2/monitors/${monitorId}`, {
+        headers: { Authorization: `Bearer ${apiKey}` },
+      });
+      if (!response.ok) return res.json({ uptime: null, status: null, configured: true });
+      const data = await response.json() as any;
+      const attrs = data?.data?.attributes;
+      const uptimePct = attrs?.availability != null ? `${Number(attrs.availability).toFixed(2)}%` : "N/A";
+      res.json({ uptime: uptimePct, status: attrs?.status ?? null, configured: true });
+    } catch {
+      res.json({ uptime: null, status: null, configured: false });
+    }
+  });
+
   // LOW-4: Stripe routes removed — not available to Vanuatu merchants.
+
+  // I: Public analytics config — returns GA4/GTM IDs for client-side injection
+  app.get("/api/public/analytics-config", async (_req, res) => {
+    try {
+      const ga4 = await storage.getSiteSetting("ga4_measurement_id");
+      const gtm = await storage.getSiteSetting("gtm_container_id");
+      res.json({
+        ga4MeasurementId: ga4?.value || null,
+        gtmContainerId: gtm?.value || null,
+      });
+    } catch {
+      res.json({ ga4MeasurementId: null, gtmContainerId: null });
+    }
+  });
 
   registerPaymentRoutes(app, storage);
   await registerRecoveryRoutes(app, storage);
