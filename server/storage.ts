@@ -183,6 +183,7 @@ export interface IStorage {
 
   // CMS Content
   getCmsContent(blockSlug: string, locale?: string): Promise<CmsContent[]>;
+  getAllCmsContent(): Promise<CmsContent[]>;
   getCmsContentItem(id: string): Promise<CmsContent | undefined>;
   createCmsContent(content: InsertCmsContent): Promise<CmsContent>;
   updateCmsContent(id: string, data: Partial<InsertCmsContent>): Promise<CmsContent>;
@@ -1058,6 +1059,10 @@ export class DatabaseStorage implements IStorage {
       .from(cmsContent)
       .where(eq(cmsContent.blockSlug, blockSlug))
       .orderBy(cmsContent.sortOrder);
+  }
+
+  async getAllCmsContent(): Promise<CmsContent[]> {
+    return await db.select().from(cmsContent).orderBy(cmsContent.sortOrder);
   }
 
   async getCmsContentItem(id: string): Promise<CmsContent | undefined> {

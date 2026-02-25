@@ -1931,12 +1931,20 @@ ${allPages.map(p => `  <url>
   // CMS/Content Blocks API
   app.get("/api/content-blocks", async (_req, res) => {
     try {
-      const blocks = await storage.getContentBlocks();
-      res.json(blocks);
+      const allContent = await storage.getAllCmsContent();
+      const result: Record<string, any[]> = {};
+
+      allContent.forEach(item => {
+        if (!result[item.blockSlug]) {
+          result[item.blockSlug] = [];
+        }
+        result[item.blockSlug].push(item);
+      });
+
+      res.json(result);
     } catch (error: any) {
       console.error("[ROUTE] GET /api/content-blocks failed:", error?.message, error?.code);
-      // Return empty array so the UI degrades gracefully rather than crashing
-      res.json([]);
+      res.json({});
     }
   });
 
@@ -1956,6 +1964,25 @@ ${allPages.map(p => `  <url>
       res.status(201).json(content);
     } catch (error) {
       res.status(400).json({ error: "Failed to create content" });
+    }
+  });
+
+  app.patch("/api/admin/cms-content/:id", requireAdmin, async (req, res) => {
+    try {
+      const content = await storage.updateCmsContent(req.params.id, req.body);
+      if (!content) return res.status(404).json({ error: "Content not found" });
+      res.json(content);
+    } catch (error) {
+      res.status(400).json({ error: "Failed to update content" });
+    }
+  });
+
+  app.delete("/api/admin/cms-content/:id", requireAdmin, async (req, res) => {
+    try {
+      await storage.deleteCmsContent(req.params.id);
+      res.status(204).end();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete content" });
     }
   });
 
