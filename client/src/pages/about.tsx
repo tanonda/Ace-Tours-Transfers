@@ -3,16 +3,18 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { CheckCircle, MapPin, Phone, Mail, Clock } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { useCmsText } from "@/hooks/use-cms-text";
 
 export default function About() {
   const { t } = useTranslation();
+  const cms = useCmsText("about");
   return (
     <Layout>
       <div className="pt-40 pb-10 bg-primary/5">
         <div className="container mx-auto px-4 text-center">
-          <h1 className="text-4xl md:text-5xl font-serif font-bold mb-4">{t("about.title")}</h1>
+          <h1 className="text-4xl md:text-5xl font-serif font-bold mb-4">{cms.text("page_title", t("about.title"))}</h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            {t("about.subtitle")}
+            {cms.text("page_subtitle", t("about.subtitle"))}
           </p>
         </div>
       </div>
@@ -30,21 +32,21 @@ export default function About() {
               </div>
             </div>
             <div>
-              <h2 className="text-3xl font-bold mb-6 font-serif">{t("about.storyTitle")}</h2>
+              <h2 className="text-3xl font-bold mb-6 font-serif">{cms.text("story_title", t("about.storyTitle"))}</h2>
               <p className="text-lg text-muted-foreground mb-4">
-                {t("about.storyDesc1")}
+                {cms.text("story_desc1", t("about.storyDesc1"))}
               </p>
               <p className="text-lg text-muted-foreground mb-6">
-                {t("about.storyDesc2")}
+                {cms.text("story_desc2", t("about.storyDesc2"))}
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {[
-                  t("about.locallyOwned"),
-                  t("about.fullyLicensed"),
-                  t("about.expertGuides"),
-                  t("about.modernFleet"),
-                  t("about.customItineraries"),
-                  t("about.support247")
+                  cms.text("badge1", t("about.locallyOwned")),
+                  cms.text("badge2", t("about.fullyLicensed")),
+                  cms.text("badge3", t("about.expertGuides")),
+                  cms.text("badge4", t("about.modernFleet")),
+                  cms.text("badge5", t("about.customItineraries")),
+                  cms.text("badge6", t("about.support247")),
                 ].map((item, i) => (
                   <div key={i} className="flex items-center gap-2">
                     <CheckCircle className="text-primary h-5 w-5 shrink-0" />
@@ -59,16 +61,16 @@ export default function About() {
 
       <section className="py-16 bg-muted/30">
         <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl font-bold mb-12 font-serif">{t("about.whyChooseUs")}</h2>
+          <h2 className="text-3xl font-bold mb-12 font-serif">{cms.text("why_choose_us", t("about.whyChooseUs"))}</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <Card className="border-none shadow-md bg-card">
               <CardContent className="pt-6">
                 <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4 text-primary">
                   <MapPin className="h-6 w-6" />
                 </div>
-                <h3 className="text-xl font-bold mb-2">{t("about.localExpertise")}</h3>
+                <h3 className="text-xl font-bold mb-2">{cms.text("feature1_title", t("about.localExpertise"))}</h3>
                 <p className="text-muted-foreground">
-                  {t("about.localExpertiseDesc")}
+                  {cms.text("feature1_desc", t("about.localExpertiseDesc"))}
                 </p>
               </CardContent>
             </Card>
@@ -77,9 +79,9 @@ export default function About() {
                 <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4 text-primary">
                   <Clock className="h-6 w-6" />
                 </div>
-                <h3 className="text-xl font-bold mb-2">{t("about.reliableService")}</h3>
+                <h3 className="text-xl font-bold mb-2">{cms.text("feature2_title", t("about.reliableService"))}</h3>
                 <p className="text-muted-foreground">
-                  {t("about.reliableServiceDesc")}
+                  {cms.text("feature2_desc", t("about.reliableServiceDesc"))}
                 </p>
               </CardContent>
             </Card>
@@ -88,9 +90,9 @@ export default function About() {
                 <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4 text-primary">
                   <CheckCircle className="h-6 w-6" />
                 </div>
-                <h3 className="text-xl font-bold mb-2">{t("about.safetyFirst")}</h3>
+                <h3 className="text-xl font-bold mb-2">{cms.text("feature3_title", t("about.safetyFirst"))}</h3>
                 <p className="text-muted-foreground">
-                  {t("about.safetyFirstDesc")}
+                  {cms.text("feature3_desc", t("about.safetyFirstDesc"))}
                 </p>
               </CardContent>
             </Card>

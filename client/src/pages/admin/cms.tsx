@@ -12,9 +12,9 @@ import { Badge } from "@/components/ui/badge";
 import {
   Loader2, Save, Upload, ImageIcon, Bold, Italic, List,
   Heading1, Heading2, Link as LinkIcon, Undo, Redo, AlignLeft,
-  AlignCenter, Code, Quote, Minus, RefreshCw
+  AlignCenter, Code, Quote, Minus
 } from "lucide-react";
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
@@ -54,7 +54,7 @@ function RichEditor({
         types: ['heading', 'paragraph'],
       }),
     ],
-    content: value || "",
+    content: value,
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML());
     },
@@ -66,15 +66,10 @@ function RichEditor({
     },
   });
 
-  // Sync editor content when value changes externally (e.g. from React Query refetch)
-  const prevValue = useRef(value);
+  // Keep editor content in sync with external value changes (e.g. from React Query)
   useEffect(() => {
-    if (editor && value !== prevValue.current) {
-      prevValue.current = value;
-      const currentHTML = editor.getHTML();
-      if (value !== currentHTML) {
-        editor.commands.setContent(value || "", false);
-      }
+    if (editor && value !== editor.getHTML()) {
+      editor.commands.setContent(value);
     }
   }, [value, editor]);
 
@@ -83,37 +78,109 @@ function RichEditor({
   const addLink = () => {
     const previousUrl = editor.getAttributes('link').href;
     const url = window.prompt('URL', previousUrl);
+
     if (url === null) return;
     if (url === '') {
       editor.chain().focus().extendMarkRange('link').unsetLink().run();
       return;
     }
+
     editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
   };
 
   return (
     <div className="border border-border rounded-lg overflow-hidden flex flex-col">
+      {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-0.5 p-2 border-b border-border bg-muted/30">
         <ToolbarButton onClick={() => editor.chain().focus().undo().run()} title="Undo"><Undo className="h-3.5 w-3.5" /></ToolbarButton>
         <ToolbarButton onClick={() => editor.chain().focus().redo().run()} title="Redo"><Redo className="h-3.5 w-3.5" /></ToolbarButton>
         <div className="w-px h-5 bg-border mx-1" />
-        <ToolbarButton onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} title="Heading 1" active={editor.isActive('heading', { level: 1 })}><Heading1 className="h-3.5 w-3.5" /></ToolbarButton>
-        <ToolbarButton onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} title="Heading 2" active={editor.isActive('heading', { level: 2 })}><Heading2 className="h-3.5 w-3.5" /></ToolbarButton>
-        <ToolbarButton onClick={() => editor.chain().focus().setParagraph().run()} title="Paragraph" active={editor.isActive('paragraph') && !editor.isActive('heading')}><AlignLeft className="h-3.5 w-3.5" /></ToolbarButton>
+        <ToolbarButton 
+          onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} 
+          title="Heading 1"
+          active={editor.isActive('heading', { level: 1 })}
+        >
+          <Heading1 className="h-3.5 w-3.5" />
+        </ToolbarButton>
+        <ToolbarButton 
+          onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} 
+          title="Heading 2"
+          active={editor.isActive('heading', { level: 2 })}
+        >
+          <Heading2 className="h-3.5 w-3.5" />
+        </ToolbarButton>
+        <ToolbarButton 
+          onClick={() => editor.chain().focus().setParagraph().run()} 
+          title="Paragraph"
+          active={editor.isActive('paragraph') && !editor.isActive('heading')}
+        >
+          <AlignLeft className="h-3.5 w-3.5" />
+        </ToolbarButton>
         <div className="w-px h-5 bg-border mx-1" />
-        <ToolbarButton onClick={() => editor.chain().focus().toggleBold().run()} title="Bold" active={editor.isActive('bold')}><Bold className="h-3.5 w-3.5" /></ToolbarButton>
-        <ToolbarButton onClick={() => editor.chain().focus().toggleItalic().run()} title="Italic" active={editor.isActive('italic')}><Italic className="h-3.5 w-3.5" /></ToolbarButton>
-        <ToolbarButton onClick={() => editor.chain().focus().setTextAlign('center').run()} title="Center" active={editor.isActive({ textAlign: 'center' })}><AlignCenter className="h-3.5 w-3.5" /></ToolbarButton>
+        <ToolbarButton 
+          onClick={() => editor.chain().focus().toggleBold().run()} 
+          title="Bold"
+          active={editor.isActive('bold')}
+        >
+          <Bold className="h-3.5 w-3.5" />
+        </ToolbarButton>
+        <ToolbarButton 
+          onClick={() => editor.chain().focus().toggleItalic().run()} 
+          title="Italic"
+          active={editor.isActive('italic')}
+        >
+          <Italic className="h-3.5 w-3.5" />
+        </ToolbarButton>
+        <ToolbarButton 
+          onClick={() => editor.chain().focus().setTextAlign('center').run()} 
+          title="Center"
+          active={editor.isActive({ textAlign: 'center' })}
+        >
+          <AlignCenter className="h-3.5 w-3.5" />
+        </ToolbarButton>
         <div className="w-px h-5 bg-border mx-1" />
-        <ToolbarButton onClick={() => editor.chain().focus().toggleBulletList().run()} title="Bullet List" active={editor.isActive('bulletList')}><List className="h-3.5 w-3.5" /></ToolbarButton>
-        <ToolbarButton onClick={() => editor.chain().focus().toggleBlockquote().run()} title="Quote" active={editor.isActive('blockquote')}><Quote className="h-3.5 w-3.5" /></ToolbarButton>
-        <ToolbarButton onClick={() => editor.chain().focus().toggleCodeBlock().run()} title="Code Block" active={editor.isActive('codeBlock')}><Code className="h-3.5 w-3.5" /></ToolbarButton>
+        <ToolbarButton 
+          onClick={() => editor.chain().focus().toggleBulletList().run()} 
+          title="Bullet List"
+          active={editor.isActive('bulletList')}
+        >
+          <List className="h-3.5 w-3.5" />
+        </ToolbarButton>
+        <ToolbarButton 
+          onClick={() => editor.chain().focus().toggleBlockquote().run()} 
+          title="Quote"
+          active={editor.isActive('blockquote')}
+        >
+          <Quote className="h-3.5 w-3.5" />
+        </ToolbarButton>
+        <ToolbarButton 
+          onClick={() => editor.chain().focus().toggleCodeBlock().run()} 
+          title="Code Block"
+          active={editor.isActive('codeBlock')}
+        >
+          <Code className="h-3.5 w-3.5" />
+        </ToolbarButton>
         <ToolbarButton onClick={() => editor.chain().focus().setHorizontalRule().run()} title="Divider"><Minus className="h-3.5 w-3.5" /></ToolbarButton>
-        <ToolbarButton onClick={addLink} title="Insert Link" active={editor.isActive('link')}><LinkIcon className="h-3.5 w-3.5" /></ToolbarButton>
+        <ToolbarButton 
+          onClick={addLink} 
+          title="Insert Link"
+          active={editor.isActive('link')}
+        >
+          <LinkIcon className="h-3.5 w-3.5" />
+        </ToolbarButton>
       </div>
+
       <EditorContent editor={editor} />
+
       <style>{`
         .ProseMirror { min-height: 160px; }
+        .ProseMirror p.is-editor-empty:first-child::before {
+          content: attr(data-placeholder);
+          float: left;
+          color: hsl(var(--muted-foreground));
+          pointer-events: none;
+          height: 0;
+        }
         .ProseMirror h1 { font-size: 1.5rem; font-weight: 700; margin: 0.5rem 0; }
         .ProseMirror h2 { font-size: 1.25rem; font-weight: 600; margin: 0.5rem 0; }
         .ProseMirror blockquote { border-left: 3px solid hsl(var(--primary)); padding-left: 1rem; color: hsl(var(--muted-foreground)); margin: 0.5rem 0; }
@@ -127,76 +194,15 @@ function RichEditor({
 
 // ─── Main CMS Page ─────────────────────────────────────────────────────────────
 
-const SECTIONS: Record<string, { label: string; fields: Array<{ key: string; label: string; type: string; description?: string }> }> = {
-  home: {
-    label: "Home Page",
-    fields: [
-      { key: "hero_title", label: "Hero Title", type: "text", description: "Main headline shown in the hero banner" },
-      { key: "hero_subtitle", label: "Hero Subtitle", type: "text", description: "Supporting text below the headline" },
-      { key: "hero_image", label: "Hero Background Image", type: "image", description: "1920×1080 recommended" },
-      { key: "about_title", label: "About Section Title", type: "text", description: "Heading for the homepage about section" },
-      { key: "about_desc", label: "About Section Body", type: "rich", description: "Rich text content for the about section" },
-      { key: "tours_label", label: "Tours Section Label", type: "text", description: "Small label above the tours section heading" },
-      { key: "tours_title", label: "Tours Section Title", type: "text", description: "Heading for the featured tours section" },
-      { key: "tours_desc", label: "Tours Section Description", type: "text", description: "Intro paragraph under the tours heading" },
-      { key: "cta_title", label: "CTA Banner Title", type: "text", description: "Heading for the call-to-action section" },
-      { key: "cta_desc", label: "CTA Banner Description", type: "text", description: "Supporting text in the CTA section" },
-    ]
-  },
-  about: {
-    label: "About Us",
-    fields: [
-      { key: "story_title", label: "Our Story Title", type: "text", description: "Heading for the about page" },
-      { key: "story_content", label: "Our Story Body", type: "rich", description: "Full story content — supports rich formatting" },
-      { key: "team_intro", label: "Team Introduction", type: "rich", description: "Introduction paragraph for the team section" },
-      { key: "mission_title", label: "Mission Title", type: "text", description: "Heading for the mission section" },
-      { key: "mission_content", label: "Mission Content", type: "rich", description: "Mission statement body text" },
-    ]
-  },
-  contact: {
-    label: "Contact",
-    fields: [
-      { key: "contact_title", label: "Contact Page Title", type: "text", description: "Page heading" },
-      { key: "contact_subtitle", label: "Contact Page Subtitle", type: "text", description: "Supporting subtitle" },
-      { key: "contact_intro", label: "Contact Introduction", type: "rich", description: "Opening paragraph on the contact page" },
-      { key: "contact_address", label: "Office Address", type: "text", description: "Physical address displayed on the contact page" },
-      { key: "contact_hours", label: "Opening Hours", type: "text", description: "Business hours text" },
-    ]
-  },
-  footer: {
-    label: "Footer",
-    fields: [
-      { key: "footer_tagline", label: "Footer Tagline", type: "text", description: "Short tagline shown in footer" },
-      { key: "footer_about", label: "Footer About Blurb", type: "text", description: "1–2 sentence description in footer" },
-      { key: "footer_copyright", label: "Copyright Text", type: "text", description: "Copyright notice (year is prepended automatically)" },
-    ]
-  },
-  tours: {
-    label: "Tours Page",
-    fields: [
-      { key: "tours_page_title", label: "Page Title", type: "text", description: "Heading for the tours listing page" },
-      { key: "tours_page_intro", label: "Page Introduction", type: "rich", description: "Introductory text on the tours page" },
-    ]
-  },
-  transfers: {
-    label: "Transfers Page",
-    fields: [
-      { key: "transfers_page_title", label: "Page Title", type: "text", description: "Heading for the transfers listing page" },
-      { key: "transfers_page_intro", label: "Page Introduction", type: "rich", description: "Introductory text on the transfers page" },
-    ]
-  },
-};
-
 export default function AdminCMS() {
   const { t } = useTranslation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("home");
   const [isUploading, setIsUploading] = useState(false);
-  // Local edits keyed by "section.fieldKey" — holds the in-progress value
-  const [localEdits, setLocalEdits] = useState<Record<string, string>>({});
+  const [richContent, setRichContent] = useState<Record<string, string>>({});
 
-  const { data: content = {}, isLoading, refetch } = useQuery({
+  const { data: content = {}, isLoading } = useQuery({
     queryKey: ["cms-content"],
     queryFn: fetchAllCmsContent,
   });
@@ -218,48 +224,29 @@ export default function AdminCMS() {
       queryClient.invalidateQueries({ queryKey: ["cms-content"] });
       toast({ title: "Content created", description: "New content block published." });
     },
-    onError: () => {
-      toast({ title: t("common.error"), description: "Failed to create content.", variant: "destructive" });
-    },
   });
 
-  /**
-   * Get the latest saved item for a field.
-   * The API returns ALL historical entries — we pick the one with the latest createdAt.
-   */
-  const getLatestContent = (blockSlug: string, fieldKey: string): { id?: string; value: string; type: string } => {
-    const blockContent = (content as any)[blockSlug] || [];
-    const matching = blockContent.filter((c: any) => c.contentKey === fieldKey);
-    if (matching.length === 0) return { value: "", type: "text" };
-    // Sort by createdAt desc and take the first
-    const latest = [...matching].sort((a: any, b: any) =>
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    )[0];
-    return { id: latest.id, value: latest.value ?? "", type: latest.contentType ?? "text" };
-  };
-
-  const handleSave = (blockSlug: string, fieldKey: string, fieldType: string, value: string) => {
-    const existing = getLatestContent(blockSlug, fieldKey);
-    if (existing.id) {
-      updateMutation.mutate({ id: existing.id, data: { value } });
+  const handleSave = (item: any, value: string) => {
+    if (item.id) {
+      updateMutation.mutate({ id: item.id, data: { value } });
     } else {
       createMutation.mutate({
-        blockSlug,
-        contentKey: fieldKey,
-        contentType: fieldType,
+        blockSlug: activeTab,
+        contentKey: item.key,
+        contentType: item.type,
         value,
         locale: 'en'
       });
     }
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, blockSlug: string, fieldKey: string) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, item: any) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setIsUploading(true);
     try {
       const result = await uploadImage(file);
-      handleSave(blockSlug, fieldKey, "image", result.url);
+      handleSave(item, result.url);
       toast({ title: "Image uploaded", description: "Image has been saved." });
     } catch {
       toast({ title: t("common.error"), description: "Image upload failed.", variant: "destructive" });
@@ -268,17 +255,99 @@ export default function AdminCMS() {
     }
   };
 
-  const editKey = (section: string, fieldKey: string) => `${section}.${fieldKey}`;
-
-  const getDisplayValue = (section: string, fieldKey: string): string => {
-    const localKey = editKey(section, fieldKey);
-    // If user has typed something locally, use that
-    if (localKey in localEdits) return localEdits[localKey];
-    // Otherwise use the persisted value from the API
-    return getLatestContent(section, fieldKey).value;
+  const getContent = (key: string): any => {
+    const blockContent = (content as any)[activeTab] || [];
+    const item = blockContent.find((c: any) => c.contentKey === key);
+    return item ? { ...item, value: item.value } : { key, value: "", type: "text" };
   };
 
-  const isSaving = updateMutation.isPending || createMutation.isPending;
+  const SECTIONS = {
+    home: {
+      label: "Home Page",
+      fields: [
+        // Hero
+        { key: "hero_title_part1",    label: "Hero Title — Line 1",       type: "text",  description: "White text: e.g. \"Time for your\"" },
+        { key: "hero_title_part2",    label: "Hero Title — Line 2",       type: "text",  description: "Orange italic text: e.g. \"next adventure\"" },
+        { key: "hero_subtitle",       label: "Hero Subtitle",              type: "text",  description: "Sentence below the headline in the hero" },
+        { key: "hero_image",          label: "Hero Background Image",      type: "image", description: "1920×1080 recommended" },
+        // About
+        { key: "about_label",         label: "About Label",                type: "text",  description: "Small uppercase label above the about heading" },
+        { key: "about_title",         label: "About Heading",              type: "text",  description: "Main about section heading" },
+        { key: "about_desc1",         label: "About Body — Paragraph 1",  type: "text",  description: "First paragraph in the about section" },
+        { key: "about_desc2",         label: "About Body — Paragraph 2",  type: "text",  description: "Second paragraph in the about section" },
+        { key: "about_quote",         label: "About Pull Quote",           type: "text",  description: "Italic quote card overlaid on the photo" },
+        { key: "about_badge1",        label: "Trust Badge 1",              type: "text",  description: "e.g. Fully Insured" },
+        { key: "about_badge2",        label: "Trust Badge 2",              type: "text",  description: "e.g. Experienced Drivers" },
+        { key: "about_badge3",        label: "Trust Badge 3",              type: "text",  description: "e.g. Custom Itineraries" },
+        { key: "about_badge4",        label: "Trust Badge 4",              type: "text",  description: "e.g. Safety First" },
+        // Tours section
+        { key: "tours_label",         label: "Tours Section Label",        type: "text",  description: "Small label above the tours heading" },
+        { key: "tours_title",         label: "Tours Section Heading",      type: "text",  description: "e.g. Unforgettable Tours" },
+        { key: "tours_desc",          label: "Tours Section Description",  type: "text",  description: "Subheading under the tours title" },
+        // Transfers section
+        { key: "transfers_label",     label: "Transfers Section Label",    type: "text",  description: "" },
+        { key: "transfers_title",     label: "Transfers Section Heading",  type: "text",  description: "" },
+        { key: "transfers_desc",      label: "Transfers Description",      type: "text",  description: "" },
+        // Vehicles section
+        { key: "vehicles_label",      label: "Vehicles Section Label",     type: "text",  description: "" },
+        { key: "vehicles_title",      label: "Vehicles Section Heading",   type: "text",  description: "" },
+        { key: "vehicles_desc",       label: "Vehicles Description",       type: "text",  description: "" },
+        // CTA
+        { key: "cta_title",           label: "CTA Banner Heading",         type: "text",  description: "Large text in the orange CTA banner" },
+        { key: "cta_desc",            label: "CTA Banner Subtext",         type: "text",  description: "" },
+        { key: "cta_button",          label: "CTA Button Text",            type: "text",  description: "" },
+        // Trust indicators
+        { key: "trust_licensed",      label: "Trust: Licensed Title",      type: "text",  description: "" },
+        { key: "trust_licensed_desc", label: "Trust: Licensed Description",type: "text",  description: "" },
+        { key: "trust_rated",         label: "Trust: Top Rated Title",     type: "text",  description: "" },
+        { key: "trust_rated_desc",    label: "Trust: Top Rated Description",type: "text", description: "" },
+        { key: "trust_secure",        label: "Trust: Secure Title",        type: "text",  description: "" },
+        { key: "trust_secure_desc",   label: "Trust: Secure Description",  type: "text",  description: "" },
+      ]
+    },
+    about: {
+      label: "About Us",
+      fields: [
+        { key: "page_title",       label: "Page Title",              type: "text", description: "H1 at top of the about page" },
+        { key: "page_subtitle",    label: "Page Subtitle",           type: "text", description: "Subheading under the page title" },
+        { key: "story_title",      label: "Our Story — Heading",     type: "text", description: "" },
+        { key: "story_desc1",      label: "Our Story — Paragraph 1", type: "text", description: "" },
+        { key: "story_desc2",      label: "Our Story — Paragraph 2", type: "text", description: "" },
+        { key: "badge1",           label: "Credential Badge 1",      type: "text", description: "e.g. Locally Owned & Operated" },
+        { key: "badge2",           label: "Credential Badge 2",      type: "text", description: "" },
+        { key: "badge3",           label: "Credential Badge 3",      type: "text", description: "" },
+        { key: "badge4",           label: "Credential Badge 4",      type: "text", description: "" },
+        { key: "badge5",           label: "Credential Badge 5",      type: "text", description: "" },
+        { key: "badge6",           label: "Credential Badge 6",      type: "text", description: "" },
+        { key: "why_choose_us",    label: "Why Choose Us — Heading", type: "text", description: "" },
+        { key: "feature1_title",   label: "Feature 1 Title",         type: "text", description: "e.g. Local Expertise" },
+        { key: "feature1_desc",    label: "Feature 1 Description",   type: "text", description: "" },
+        { key: "feature2_title",   label: "Feature 2 Title",         type: "text", description: "" },
+        { key: "feature2_desc",    label: "Feature 2 Description",   type: "text", description: "" },
+        { key: "feature3_title",   label: "Feature 3 Title",         type: "text", description: "" },
+        { key: "feature3_desc",    label: "Feature 3 Description",   type: "text", description: "" },
+      ]
+    },
+    contact: {
+      label: "Contact",
+      fields: [
+        { key: "page_title",          label: "Page Title",              type: "text", description: "H1 at top of the contact page" },
+        { key: "page_subtitle",       label: "Page Subtitle",           type: "text", description: "" },
+        { key: "get_in_touch_desc",   label: "Intro Paragraph",         type: "text", description: "Opening paragraph below the title" },
+        { key: "phone_availability",  label: "Phone Availability Note", type: "text", description: "e.g. Available 24/7 for emergencies" },
+        { key: "email_reply_time",    label: "Email Reply Time Note",   type: "text", description: "e.g. We usually reply within 24 hours" },
+        { key: "office_hours",        label: "Office Hours Note",       type: "text", description: "" },
+        { key: "whatsapp_desc",       label: "WhatsApp CTA Description",type: "text", description: "Text under the WhatsApp chat button" },
+      ]
+    },
+    footer: {
+      label: "Footer",
+      fields: [
+        { key: "description", label: "Footer Description", type: "text", description: "2–3 sentences shown below the logo in the footer" },
+        { key: "copyright",   label: "Copyright Text",     type: "text", description: "Text after the year and company name, e.g. All rights reserved." },
+      ]
+    }
+  };
 
   if (isLoading) {
     return (
@@ -295,37 +364,29 @@ export default function AdminCMS() {
       <div className="flex flex-col gap-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">{t("cms.title", "Content Management")}</h1>
+            <h1 className="text-2xl font-bold text-foreground">{t("cms.title")}</h1>
             <p className="text-sm text-muted-foreground">Edit page content with rich text formatting — changes publish immediately.</p>
           </div>
-          <div className="flex items-center gap-3">
-            <Button variant="outline" size="sm" onClick={() => refetch()}>
-              <RefreshCw className="h-3.5 w-3.5 mr-1" />
-              Refresh
-            </Button>
-            <Badge variant="secondary" className="gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-              Live CMS
-            </Badge>
-          </div>
+          <Badge variant="secondary" className="gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+            Live CMS
+          </Badge>
         </div>
 
-        <Tabs value={activeTab} onValueChange={(tab) => {
-          setActiveTab(tab);
-          setLocalEdits({}); // clear local edits when switching tabs
-        }}>
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="flex-wrap h-auto gap-1">
             {Object.entries(SECTIONS).map(([key, section]) => (
               <TabsTrigger key={key} value={key}>{section.label}</TabsTrigger>
             ))}
           </TabsList>
 
-          {Object.entries(SECTIONS).map(([sectionKey, section]) => (
-            <TabsContent key={sectionKey} value={sectionKey} className="mt-4 space-y-4">
+          {Object.entries(SECTIONS).map(([key, section]) => (
+            <TabsContent key={key} value={key} className="mt-4 space-y-4">
               {section.fields.map((field) => {
-                const savedItem = getLatestContent(sectionKey, field.key);
-                const displayValue = getDisplayValue(sectionKey, field.key);
-                const lKey = editKey(sectionKey, field.key);
+                const item = getContent(field.key);
+                if (!item.id) item.type = field.type;
+                const displayValue = item.value || "";
+                const richKey = `${key}.${field.key}`;
 
                 return (
                   <Card key={field.key}>
@@ -336,19 +397,14 @@ export default function AdminCMS() {
                           {field.description && (
                             <CardDescription className="mt-0.5">{field.description}</CardDescription>
                           )}
-                          {savedItem.id && (
-                            <p className="text-xs text-muted-foreground mt-1 font-mono opacity-60">
-                              ID: {savedItem.id.slice(0, 8)}…
-                            </p>
-                          )}
                         </div>
                         {field.type !== 'image' && (
                           <Button
                             size="sm"
-                            disabled={isSaving}
-                            onClick={() => handleSave(sectionKey, field.key, field.type, displayValue)}
+                            disabled={updateMutation.isPending || createMutation.isPending}
+                            onClick={() => handleSave(item, richContent[richKey] ?? displayValue)}
                           >
-                            {isSaving
+                            {(updateMutation.isPending || createMutation.isPending)
                               ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
                               : <><Save className="h-3.5 w-3.5 mr-1" />Save</>
                             }
@@ -357,60 +413,83 @@ export default function AdminCMS() {
                       </div>
                     </CardHeader>
                     <CardContent>
-                      {field.type === 'rich' ? (
-                        <RichEditor
-                          key={`${sectionKey}-${field.key}-${savedItem.id ?? "new"}`}
-                          value={displayValue}
-                          onChange={(html) => setLocalEdits(prev => ({ ...prev, [lKey]: html }))}
-                          placeholder={`Enter ${field.label.toLowerCase()}...`}
-                        />
-                      ) : field.type === 'image' ? (
-                        <div className="flex items-start gap-4">
-                          {displayValue ? (
-                            <img
-                              src={displayValue}
-                              alt={field.label}
-                              className="w-40 h-24 object-cover rounded-lg border border-border"
+                      <div className={field.type === 'image' ? "" : "grid grid-cols-1 lg:grid-cols-2 gap-4"}>
+                        {/* Edit Column */}
+                        <div>
+                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">✏️ Edit</p>
+                          {field.type === 'rich' ? (
+                            <RichEditor
+                              value={richContent[richKey] ?? displayValue}
+                              onChange={(html) => setRichContent(prev => ({ ...prev, [richKey]: html }))}
+                              placeholder={`Enter ${field.label.toLowerCase()}...`}
                             />
-                          ) : (
-                            <div className="w-40 h-24 bg-muted/50 rounded-lg border border-border flex items-center justify-center text-muted-foreground">
-                              <ImageIcon className="h-6 w-6" />
+                          ) : field.type === 'image' ? (
+                            <div className="flex items-start gap-4">
+                              {item.value ? (
+                                <img src={item.value} alt={field.label} className="w-40 h-24 object-cover rounded-lg border border-border" />
+                              ) : (
+                                <div className="w-40 h-24 bg-muted/50 rounded-lg border border-border flex items-center justify-center text-muted-foreground">
+                                  <ImageIcon className="h-6 w-6" />
+                                </div>
+                              )}
+                              <div className="flex-1">
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                  <Input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, item)} disabled={isUploading} className="w-full max-w-sm cursor-pointer" />
+                                  {isUploading && <Loader2 className="animate-spin h-4 w-4" />}
+                                </label>
+                                <p className="text-xs text-muted-foreground mt-1.5">
+                                  <Upload className="h-3 w-3 inline mr-1" />Uploads to Cloudinary — replaces current image immediately.
+                                </p>
+                              </div>
                             </div>
+                          ) : (
+                            <Input
+                              defaultValue={displayValue}
+                              placeholder={`Enter ${field.label.toLowerCase()}...`}
+                              onChange={(e) => setRichContent(prev => ({ ...prev, [richKey]: e.target.value }))}
+                              onBlur={(e) => handleSave(item, e.target.value)}
+                            />
                           )}
-                          <div className="flex-1">
-                            <label className="flex items-center gap-2 cursor-pointer">
-                              <input
-                                type="file"
-                                accept="image/*"
-                                onChange={(e) => handleImageUpload(e, sectionKey, field.key)}
-                                disabled={isUploading}
-                                className="w-full max-w-sm cursor-pointer text-sm"
-                              />
-                              {isUploading && <Loader2 className="animate-spin h-4 w-4" />}
-                            </label>
-                            <p className="text-xs text-muted-foreground mt-1.5">
-                              <Upload className="h-3 w-3 inline mr-1" />
-                              Uploads to Cloudinary — replaces current image immediately.
-                            </p>
+                        </div>
+
+                        {/* Preview Column — only for non-image fields */}
+                        {field.type !== 'image' && (
+                          <div>
+                            <div className="flex items-center gap-2 mb-2">
+                              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">👁 Preview</p>
+                              {richContent[richKey] && richContent[richKey] !== displayValue && (
+                                <span className="text-[10px] bg-orange-500/15 text-orange-600 border border-orange-500/25 rounded-full px-2 py-0.5 font-semibold">Unsaved changes</span>
+                              )}
+                            </div>
+                            <div className="border border-border rounded-lg bg-muted/20 overflow-hidden">
+                              {/* Currently live from DB */}
+                              <div className="border-b border-border px-3 py-2 bg-green-500/5">
+                                <p className="text-[10px] text-green-600 font-semibold uppercase tracking-wide mb-1">✅ Currently Live (Database)</p>
+                                {displayValue ? (
+                                  field.type === 'rich' ? (
+                                    <div className="prose prose-sm max-w-none text-sm" dangerouslySetInnerHTML={{ __html: displayValue }} />
+                                  ) : (
+                                    <p className="text-sm text-foreground">{displayValue}</p>
+                                  )
+                                ) : (
+                                  <p className="text-xs text-muted-foreground italic">No content saved yet — run the seed migration or save a value above.</p>
+                                )}
+                              </div>
+                              {/* Proposed — shown only when there are unsaved changes */}
+                              {richContent[richKey] && richContent[richKey] !== displayValue && (
+                                <div className="px-3 py-2 bg-orange-500/5">
+                                  <p className="text-[10px] text-orange-600 font-semibold uppercase tracking-wide mb-1">⏳ Proposed (unsaved)</p>
+                                  {field.type === 'rich' ? (
+                                    <div className="prose prose-sm max-w-none text-sm" dangerouslySetInnerHTML={{ __html: richContent[richKey] }} />
+                                  ) : (
+                                    <p className="text-sm text-foreground">{richContent[richKey]}</p>
+                                  )}
+                                </div>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      ) : (
-                        <div className="space-y-1">
-                          <Input
-                            value={displayValue}
-                            placeholder={`Enter ${field.label.toLowerCase()}...`}
-                            onChange={(e) => setLocalEdits(prev => ({ ...prev, [lKey]: e.target.value }))}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') handleSave(sectionKey, field.key, field.type, displayValue);
-                            }}
-                          />
-                          {savedItem.value && savedItem.value !== displayValue && (
-                            <p className="text-xs text-amber-600 dark:text-amber-400">
-                              Unsaved changes — click Save to publish
-                            </p>
-                          )}
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </CardContent>
                   </Card>
                 );

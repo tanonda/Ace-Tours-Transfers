@@ -49,9 +49,9 @@ export default function AdminUsers() {
   });
 
   const filteredUsers = users.filter(user =>
+    user.role === 'customer' && (
     user.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    user.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    user.role?.toLowerCase().includes(searchQuery.toLowerCase())
+    user.email?.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   const getUserBookings = (userId: string): Booking[] => {
@@ -177,8 +177,8 @@ export default function AdminUsers() {
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-[#004165]">User Management</h1>
-            <p className="text-muted-foreground">View and manage all registered users and their roles.</p>
+            <h1 className="text-3xl font-bold text-[#004165]">Customer Management</h1>
+            <p className="text-muted-foreground">View and manage registered customers. For staff and admin accounts, visit the Staff page.</p>
           </div>
           <div className="flex gap-2">
             <Button onClick={() => setIsCreateUserDialogOpen(true)} data-testid="button-create-user">

@@ -119,7 +119,7 @@ export default function AdminAnalytics() {
           <KPI label="Avg Booking Value" value={
             stats?.total ? `${Math.round(totalRevenue / (stats.total * 100)).toLocaleString()} VT` : "—"
           } icon={TrendingUp} colorClass="bg-green-500/15 text-green-600" />
-          <KPI label="Top Tour" value={topTours[0]?.tourName?.split(' ').slice(0,2).join(' ') || "—"}
+          <KPI label="Top Product" value={topTours[0]?.tourName?.split(' ').slice(0,2).join(' ') || "—"}
             sublabel={topTours[0] ? `${Math.round((topTours[0].revenue||0)/100).toLocaleString()} VT` : undefined}
             icon={Star} colorClass="bg-purple-500/15 text-purple-600" />
         </div>
@@ -201,7 +201,8 @@ export default function AdminAnalytics() {
           {/* Top Tours */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">{t("admin.topPerformingTours", "Top Performing Tours")}</CardTitle>
+              <CardTitle className="text-base">Top Performing Products</CardTitle>
+              <p className="text-xs text-muted-foreground mt-0.5">Tours, transfers & vehicle hires — by revenue</p>
               <CardDescription>By total revenue generated</CardDescription>
             </CardHeader>
             <CardContent>

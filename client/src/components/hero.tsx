@@ -20,6 +20,7 @@ const heroBg =
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "wouter";
 import { useTranslation } from "react-i18next";
+import { useCmsText } from "@/hooks/use-cms-text";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -751,6 +752,7 @@ function SearchBar({ search }: SearchBarProps) {
 // ─── Hero ─────────────────────────────────────────────────────────────────────
 export function Hero() {
   const { t } = useTranslation();
+  const cms = useCmsText("home");
   const search = useAvailabilitySearch();
 
   return (
@@ -785,14 +787,14 @@ export function Hero() {
         >
           <h1 className="font-serif text-5xl md:text-7xl lg:text-8xl mb-5 leading-[1.1] drop-shadow-[0_4px_8px_rgba(0,0,0,0.55)]">
             <span className="text-white font-bold block md:inline">
-              {t("hero.titlePart1")}{" "}
+              {cms.text("hero_title_part1", t("hero.titlePart1"))}{" "}
             </span>
             <span className="text-[#f2800d] italic font-normal lowercase">
-              {t("hero.titlePart2")}
+              {cms.text("hero_title_part2", t("hero.titlePart2"))}
             </span>
           </h1>
           <p className="text-lg md:text-xl text-white/80 drop-shadow-md max-w-2xl mx-auto font-medium leading-relaxed">
-            {t("home.toursDesc")}
+            {cms.text("hero_subtitle", t("home.toursDesc"))}
           </p>
         </motion.div>
 
