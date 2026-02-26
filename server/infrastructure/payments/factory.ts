@@ -1,10 +1,16 @@
 import { PaymentGateway } from "../../../shared/schema.js";
 import { PaymentGatewayService, PaymentStatus } from "../../domain/payments/interfaces.js";
-// LOW-4: StripeAdapter import removed — Stripe not available to Vanuatu merchants
 import { ManualAdapter } from "./manual.adapter.js";
 import { AnzAdapter } from "./anz.adapter.js";
 import { BspAdapter } from "./bsp.adapter.js";
 import { BredAdapter } from "./bred.adapter.js";
+import { StripeAdapter } from "./stripe.adapter.js";
+import { PayPalAdapter } from "./paypal.adapter.js";
+import { WanTokMoneyAdapter } from "./wantok-money.adapter.js";
+import { DigicelMobileMoneyAdapter } from "./digicel-mobile-money.adapter.js";
+import { KwikPayAdapter } from "./kwikpay.adapter.js";
+import { GooglePayAdapter } from "./google-pay.adapter.js";
+import { ApplePayAdapter } from "./apple-pay.adapter.js";
 import { config } from "../../config.js";
 import { createLogger } from "../../lib/logger.js";
 import { PaymentMethodClassifier } from "../../domain/payments/payment-method-classifier.js";
@@ -19,14 +25,23 @@ export class PaymentFactory {
     'cash': ManualAdapter as any,              // Cash on delivery
     'bank-transfer': ManualAdapter as any,     // Alias variant
     'bank': ManualAdapter as any,              // Alias variant
-    // LOW-4: 'stripe' removed — not available to Vanuatu merchants
-    // Local bank gateways
+    // Local bank gateways (ANZ/BSP/BRED use hosted-redirect Mastercard-style flows)
     'anz': AnzAdapter as any,
     'anz-egate': AnzAdapter as any,
     'bsp': BspAdapter as any,
     'bsp-bank': BspAdapter as any,
     'bred': BredAdapter as any,
     'bred-bank': BredAdapter as any,
+    // International / digital (stub implementations — configure credentials before activating)
+    'stripe': StripeAdapter as any,
+    'paypal': PayPalAdapter as any,
+    // Local e-wallets (stub implementations — not yet available via public API)
+    'wantok-money': WanTokMoneyAdapter as any,
+    'digicel-mobile-money': DigicelMobileMoneyAdapter as any,
+    'kwikpay': KwikPayAdapter as any,
+    // Digital wallets (rely on underlying processor — stub implementations)
+    'google-pay': GooglePayAdapter as any,
+    'apple-pay': ApplePayAdapter as any,
   };
 
   static getPaymentGatewayService(gatewayConfig: PaymentGateway): PaymentGatewayService {

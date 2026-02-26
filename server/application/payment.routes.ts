@@ -330,16 +330,17 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
     }
   });
 
-  // CRIT-5 FIX: Validate update body — only allow known, safe fields.
-  // Credentials and slug are excluded to prevent injection.
+  // Allow updating credentials and config — credentials must be an object (not validated here,
+  // schema-level validation happens client-side via Zod schemas in payments.tsx).
   const gatewayUpdateSchema = z.object({
     displayName: z.string().min(1).max(100).optional(),
     description: z.string().max(500).nullable().optional(),
     active: z.boolean().optional(),
     isDefault: z.boolean().optional(),
     priority: z.number().int().min(0).max(100).optional(),
+    credentials: z.record(z.any()).optional(), // Gateway API keys/secrets
     config: z.record(z.any()).optional(),
-  }).strict(); // .strict() rejects any extra keys
+  }); // No .strict() — allow forward-compatible fields
 
   app.put("/api/admin/payment-gateways/:id", requireAdmin, async (req, res) => {
     try {

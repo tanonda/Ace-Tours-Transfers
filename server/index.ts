@@ -360,6 +360,23 @@ app.use((req, res, next) => {
   await initStripe();
   await registerRoutes(httpServer, app);
 
+  // ── Gateway Auto-Seed Guard ────────────────────────────────────────────────
+  // Ensures payment_gateways is never empty after a DB reset or reprovisioning.
+  // Only inserts rows that don't already exist (idempotent ON CONFLICT skip).
+  try {
+    const { storage } = await import('./storage.js');
+    const existing = await storage.getPaymentGateways();
+    if (existing.length === 0) {
+      console.log('[STARTUP] payment_gateways table is empty — running auto-seed...');
+      const { seedGateways } = await import('./seed-gateways.js');
+      await seedGateways();
+    } else {
+      console.log(`[STARTUP] payment_gateways OK — ${existing.length} gateways registered.`);
+    }
+  } catch (gwSeedErr) {
+    console.warn('[STARTUP] Gateway auto-seed check failed (non-fatal):', gwSeedErr);
+  }
+
   // Initialize Reconciliation Worker (Phase 4)
   try {
     const { storage } = await import('./storage.js');

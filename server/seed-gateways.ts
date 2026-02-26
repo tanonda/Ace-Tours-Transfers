@@ -6,108 +6,158 @@ import { eq } from "drizzle-orm";
 /**
  * Standalone script to seed payment gateways on any database.
  * Run with: DATABASE_URL=<prod_url> npx tsx server/seed-gateways.ts
+ *
+ * Also exported as `seedGateways()` for use in server startup auto-seed.
  */
 
-async function main() {
-  console.log("Seeding payment gateways...");
+const GATEWAY_DATA = [
+  // ── ACTIVE BY DEFAULT (no merchant account required) ───────────────────
+  {
+    slug: "manual_transfer",
+    displayName: "Bank Transfer",
+    description: "Customer transfers directly to Ace Tours bank account. Admin confirms on receipt.",
+    active: true,
+    isDefault: true,   // Primary payment method until an online gateway is live
+    priority: 1,
+    supportedCurrencies: ["VUV", "AUD", "USD", "NZD"],
+    credentials: {},
+    config: {}
+  },
+  {
+    slug: "cash",
+    displayName: "Cash on Delivery",
+    description: "Customer pays in cash at the start of their tour or vehicle pickup.",
+    active: true,
+    isDefault: false,
+    priority: 2,
+    supportedCurrencies: ["VUV", "AUD", "USD", "NZD"],
+    credentials: {},
+    config: {}
+  },
+  // ── INACTIVE — activate when merchant credentials are obtained ──────────
+  {
+    slug: "stripe",
+    displayName: "Stripe",
+    description: "International card payments via Stripe. NOTE: Stripe is NOT available to Vanuatu merchants — keep inactive.",
+    active: false,
+    isDefault: false,
+    priority: 99,
+    supportedCurrencies: ["USD", "AUD", "NZD"],
+    credentials: {},
+    config: { environment: "test" }
+  },
+  {
+    slug: "anz-egate",
+    displayName: "ANZ eGate",
+    description: "Local Vanuatu bank gateway via ANZ Pacific.",
+    active: false,
+    isDefault: false,
+    priority: 2,
+    supportedCurrencies: ["VUV", "AUD"],
+    credentials: {},
+    config: {}
+  },
+  {
+    slug: "bsp-bank",
+    displayName: "BSP Bank",
+    description: "Bank of South Pacific online payment gateway.",
+    active: false,
+    isDefault: false,
+    priority: 3,
+    supportedCurrencies: ["VUV"],
+    credentials: {},
+    config: {}
+  },
+  {
+    slug: "bred-bank",
+    displayName: "Bred Bank",
+    description: "Bred Bank Vanuatu payment processing.",
+    active: false,
+    isDefault: false,
+    priority: 4,
+    supportedCurrencies: ["VUV"],
+    credentials: {},
+    config: {}
+  },
+  {
+    slug: "wantok-money",
+    displayName: "WanTok Money",
+    description: "Local mobile money and e-wallet payments.",
+    active: false,
+    isDefault: false,
+    priority: 5,
+    supportedCurrencies: ["VUV"],
+    credentials: {},
+    config: {}
+  },
+  {
+    slug: "paypal",
+    displayName: "PayPal",
+    description: "International PayPal payments for tourists.",
+    active: false,
+    isDefault: false,
+    priority: 6,
+    supportedCurrencies: ["USD", "AUD", "NZD"],
+    credentials: {},
+    config: {}
+  },
+  {
+    slug: "digicel-mobile-money",
+    displayName: "Digicel Mobile Money",
+    description: "Digicel Vanuatu mobile money. Customers pay via Digicel app or USSD.",
+    active: false,
+    isDefault: false,
+    priority: 7,
+    supportedCurrencies: ["VUV"],
+    credentials: {},
+    config: {}
+  },
+  {
+    slug: "kwikpay",
+    displayName: "KwikPay",
+    description: "KwikPay e-wallet for Vanuatu. Fast QR-code or USSD payments.",
+    active: false,
+    isDefault: false,
+    priority: 8,
+    supportedCurrencies: ["VUV"],
+    credentials: {},
+    config: {}
+  },
+  {
+    slug: "google-pay",
+    displayName: "Google Pay",
+    description: "Google Pay digital wallet. Requires an underlying payment processor (BRED or PayPal).",
+    active: false,
+    isDefault: false,
+    priority: 9,
+    supportedCurrencies: ["USD", "AUD"],
+    credentials: {},
+    config: {}
+  },
+  {
+    slug: "apple-pay",
+    displayName: "Apple Pay",
+    description: "Apple Pay digital wallet. Requires Apple Developer account and domain verification.",
+    active: false,
+    isDefault: false,
+    priority: 10,
+    supportedCurrencies: ["USD", "AUD"],
+    credentials: {},
+    config: {}
+  },
+];
 
-  const gatewayData = [
-    // ── ACTIVE BY DEFAULT (no merchant account required) ───────────────────
-    {
-      slug: "manual_transfer",
-      displayName: "Bank Transfer",
-      description: "Customer transfers directly to Ace Tours bank account. Admin confirms on receipt.",
-      active: true,
-      isDefault: true,   // Primary payment method until an online gateway is live
-      priority: 1,
-      supportedCurrencies: ["VUV", "AUD", "USD", "NZD"],
-      credentials: {},
-      config: {}
-    },
-    {
-      slug: "cash",
-      displayName: "Cash on Delivery",
-      description: "Customer pays in cash at the start of their tour or vehicle pickup.",
-      active: true,
-      isDefault: false,
-      priority: 2,
-      supportedCurrencies: ["VUV", "AUD", "USD", "NZD"],
-      credentials: {},
-      config: {}
-    },
-    // ── INACTIVE — activate when merchant credentials are obtained ──────────
-    {
-      slug: "stripe",
-      displayName: "Stripe",
-      description: "International card payments via Stripe. NOTE: Stripe is NOT available to Vanuatu merchants — keep inactive.",
-      active: false,
-      isDefault: false,
-      priority: 99,
-      supportedCurrencies: ["USD", "AUD", "NZD"],
-      credentials: {},
-      config: { environment: "test" }
-    },
-    {
-      slug: "anz-egate",
-      displayName: "ANZ eGate",
-      description: "Local Vanuatu bank gateway via ANZ Pacific.",
-      active: false,
-      isDefault: false,
-      priority: 2,
-      supportedCurrencies: ["VUV", "AUD"],
-      credentials: {},
-      config: {}
-    },
-    {
-      slug: "bsp-bank",
-      displayName: "BSP Bank",
-      description: "Bank of South Pacific online payment gateway.",
-      active: false,
-      isDefault: false,
-      priority: 3,
-      supportedCurrencies: ["VUV"],
-      credentials: {},
-      config: {}
-    },
-    {
-      slug: "bred-bank",
-      displayName: "Bred Bank",
-      description: "Bred Bank Vanuatu payment processing.",
-      active: false,
-      isDefault: false,
-      priority: 4,
-      supportedCurrencies: ["VUV"],
-      credentials: {},
-      config: {}
-    },
-    {
-      slug: "wantok-money",
-      displayName: "WanTok Money",
-      description: "Local mobile money and e-wallet payments.",
-      active: false,
-      isDefault: false,
-      priority: 5,
-      supportedCurrencies: ["VUV"],
-      credentials: {},
-      config: {}
-    },
-    {
-      slug: "paypal",
-      displayName: "PayPal",
-      description: "International PayPal payments for tourists.",
-      active: false,
-      isDefault: false,
-      priority: 6,
-      supportedCurrencies: ["USD", "AUD", "NZD"],
-      credentials: {},
-      config: {}
-    }
-  ];
+/**
+ * Seed payment gateways — safe to call at startup or via CLI.
+ * Uses upsert-by-slug (insert if new, update display fields if existing).
+ */
+export async function seedGateways(): Promise<void> {
+  console.log("Seeding payment gateways...");
 
   let created = 0;
   let skipped = 0;
 
-  for (const gateway of gatewayData) {
+  for (const gateway of GATEWAY_DATA) {
     const existing = await db.select().from(paymentGateways).where(eq(paymentGateways.slug, gateway.slug)).limit(1);
     if (existing.length === 0) {
       await db.insert(paymentGateways).values(gateway);
@@ -131,11 +181,18 @@ async function main() {
     }
   }
 
-  console.log(`\nDone! Created: ${created}, Skipped: ${skipped}`);
-  process.exit(0);
+  console.log(`\nDone! Created: ${created}, Updated: ${skipped}`);
 }
 
-main().catch((err) => {
-  console.error("Error:", err);
-  process.exit(1);
-});
+// CLI entry point — only runs when executed directly, not when imported
+const isMain = process.argv[1] && (
+  process.argv[1].endsWith('seed-gateways.ts') ||
+  process.argv[1].endsWith('seed-gateways.js')
+);
+
+if (isMain) {
+  seedGateways().catch((err) => {
+    console.error("Error:", err);
+    process.exit(1);
+  }).then(() => process.exit(0));
+}
