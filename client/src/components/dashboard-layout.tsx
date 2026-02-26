@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { Link, useLocation } from "wouter";
+import { useState, useTransition, useCallback, useEffect, useRef } from "react";
+import { useLocation } from "wouter";
+import { LayoutContext, useLayoutContext } from "@/lib/layout-context";
 import {
   LayoutDashboard,
   CalendarDays,
@@ -25,7 +26,8 @@ import {
   Star,
   ShieldAlert,
   Mail,
-  RotateCcw
+  RotateCcw,
+  Landmark
 } from "lucide-react";
 import {
   Popover,
@@ -46,9 +48,43 @@ interface DashboardLayoutProps {
 }
 
 export function DashboardLayout({ children, type }: DashboardLayoutProps) {
+  const { insideShell } = useLayoutContext();
   const [location, setLocation] = useLocation();
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const { user, logout } = useAuth();
+  const [isPending, startTransition] = useTransition();
+
+  // Smooth progress bar that animates while a lazy page is loading
+  const progressRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!progressRef.current) return;
+    if (isPending) {
+      progressRef.current.style.width = "0%";
+      progressRef.current.style.opacity = "1";
+      // animate to 80% quickly, then slow down (will jump to 100% on done)
+      requestAnimationFrame(() => {
+        if (progressRef.current) progressRef.current.style.width = "70%";
+      });
+    } else {
+      progressRef.current.style.width = "100%";
+      const t = setTimeout(() => {
+        if (progressRef.current) progressRef.current.style.opacity = "0";
+      }, 250);
+      return () => clearTimeout(t);
+    }
+  }, [isPending]);
+
+  // Navigate with startTransition so current content stays visible while new page loads
+  const navigate = useCallback((href: string) => {
+    startTransition(() => setLocation(href));
+    setIsMobileSidebarOpen(false);
+  }, [setLocation]);
+
+  // When AdminLayoutShell or CustomerLayoutShell already provides the layout,
+  // DashboardLayout becomes a transparent pass-through. This avoids double-sidebar.
+  if (insideShell) {
+    return <>{children}</>;
+  }
 
   const adminLinks = [
     { icon: LayoutDashboard, label: "Overview", href: "/admin/dashboard", show: true, group: "main" },
@@ -66,6 +102,7 @@ export function DashboardLayout({ children, type }: DashboardLayoutProps) {
     { icon: BarChart3, label: "Analytics", href: "/admin/analytics", show: user?.role === "admin", group: "system" },
     { icon: FileText, label: "Reports", href: "/admin/reports", show: user?.role === "admin", group: "system" },
     { icon: CreditCard, label: "Payments", href: "/admin/payments", show: user?.role === "admin", group: "system" },
+    { icon: Landmark, label: "Reconciliation", href: "/admin/reconciliation", show: user?.role === "admin", group: "system" },
     { icon: Mail, label: "Newsletter", href: "/admin/newsletter", show: user?.role === "admin", group: "system" },
     { icon: ScrollText, label: "Audit Logs", href: "/admin/audit-logs", show: user?.role === "admin", group: "system" },
     { icon: ShieldAlert, label: "Fraud Review", href: "/admin/fraud", show: user?.role === "admin", group: "system" },
@@ -90,7 +127,7 @@ export function DashboardLayout({ children, type }: DashboardLayoutProps) {
     <div className="flex flex-col h-full">
       {/* Logo */}
       <div className="flex items-center justify-between h-16 px-5 border-b border-border/60 shrink-0">
-        <Link href="/">
+        <button onClick={() => navigate("/")} className="border-none bg-transparent p-0">
           <div className="flex items-center gap-3 cursor-pointer group">
             <img
               src={logo}
@@ -104,7 +141,7 @@ export function DashboardLayout({ children, type }: DashboardLayoutProps) {
               </div>
             </div>
           </div>
-        </Link>
+        </button>
         <button
           onClick={() => setIsMobileSidebarOpen(false)}
           className="lg:hidden text-muted-foreground hover:text-foreground p-1 transition-colors rounded-md hover:bg-muted"
@@ -137,7 +174,7 @@ export function DashboardLayout({ children, type }: DashboardLayoutProps) {
             {/* Group: Main */}
             <div className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest px-2 pt-1 pb-1.5">Main</div>
             {adminLinks.filter(l => l.show && l.group === "main").map((link) => (
-              <Link key={link.href} href={link.href}>
+              <button key={link.href} onClick={() => navigate(link.href)} className="w-full text-left">
                 <div
                   className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer text-sm transition-all duration-150 ${location === link.href
                       ? 'bg-primary text-primary-foreground font-semibold shadow-sm'
@@ -148,13 +185,13 @@ export function DashboardLayout({ children, type }: DashboardLayoutProps) {
                   <span>{link.label}</span>
                   {location === link.href && <ChevronRight className="h-3 w-3 ml-auto opacity-60" />}
                 </div>
-              </Link>
+              </button>
             ))}
 
             {/* Group: Manage */}
             <div className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest px-2 pt-3 pb-1.5">Manage</div>
             {adminLinks.filter(l => l.show && l.group === "manage").map((link) => (
-              <Link key={link.href} href={link.href}>
+              <button key={link.href} onClick={() => navigate(link.href)} className="w-full text-left">
                 <div
                   className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer text-sm transition-all duration-150 ${location === link.href
                       ? 'bg-primary text-primary-foreground font-semibold shadow-sm'
@@ -165,13 +202,13 @@ export function DashboardLayout({ children, type }: DashboardLayoutProps) {
                   <span>{link.label}</span>
                   {location === link.href && <ChevronRight className="h-3 w-3 ml-auto opacity-60" />}
                 </div>
-              </Link>
+              </button>
             ))}
 
             {/* Group: System */}
             <div className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest px-2 pt-3 pb-1.5">System</div>
             {adminLinks.filter(l => l.show && l.group === "system").map((link) => (
-              <Link key={link.href} href={link.href}>
+              <button key={link.href} onClick={() => navigate(link.href)} className="w-full text-left">
                 <div
                   className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer text-sm transition-all duration-150 ${location === link.href
                       ? 'bg-primary text-primary-foreground font-semibold shadow-sm'
@@ -182,14 +219,14 @@ export function DashboardLayout({ children, type }: DashboardLayoutProps) {
                   <span>{link.label}</span>
                   {location === link.href && <ChevronRight className="h-3 w-3 ml-auto opacity-60" />}
                 </div>
-              </Link>
+              </button>
             ))}
           </>
         ) : (
           customerLinks.map((link) => {
             const isActive = location === link.href;
             return (
-              <Link key={link.href} href={link.href}>
+              <button key={link.href} onClick={() => navigate(link.href)} className="w-full text-left">
                 <div
                   className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer text-sm transition-all duration-150 ${isActive
                       ? 'bg-primary text-primary-foreground font-semibold shadow-sm'
@@ -201,7 +238,7 @@ export function DashboardLayout({ children, type }: DashboardLayoutProps) {
                   <span>{link.label}</span>
                   {isActive && <ChevronRight className="h-3 w-3 ml-auto opacity-60" />}
                 </div>
-              </Link>
+              </button>
             );
           })
         )}
@@ -247,6 +284,12 @@ export function DashboardLayout({ children, type }: DashboardLayoutProps) {
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top bar */}
         <header className="bg-background/95 backdrop-blur border-b border-border h-14 flex items-center justify-between px-4 lg:px-6 sticky top-0 z-40">
+          {/* Progress bar — shown during lazy page transitions */}
+          <div
+            ref={progressRef}
+            className="absolute top-0 left-0 h-0.5 bg-primary transition-all duration-500 ease-out"
+            style={{ width: "0%", opacity: 0 }}
+          />
           <button
             className="lg:hidden p-2 -ml-1 cursor-pointer text-muted-foreground rounded-lg transition-colors hover:bg-muted hover:text-foreground border-none bg-transparent"
             onClick={() => setIsMobileSidebarOpen(true)}
@@ -255,11 +298,11 @@ export function DashboardLayout({ children, type }: DashboardLayoutProps) {
           </button>
           {/* Breadcrumb / page context on desktop */}
           <div className="hidden lg:flex items-center gap-2 text-sm text-muted-foreground">
-            <Link href={type === "admin" ? "/admin/dashboard" : "/dashboard"}>
+            <button onClick={() => navigate(type === "admin" ? "/admin/dashboard" : "/dashboard")}>
               <span className="font-medium text-foreground hover:text-primary cursor-pointer transition-colors">
                 {type === "admin" ? "Admin Panel" : "My Account"}
               </span>
-            </Link>
+            </button>
             {location !== "/admin/dashboard" && location !== "/dashboard" && (
               <>
                 <ChevronRight size={14} />
@@ -287,7 +330,7 @@ export function DashboardLayout({ children, type }: DashboardLayoutProps) {
                   <p className="text-xs text-muted-foreground">{user?.email || ''}</p>
                 </div>
                 <button
-                  onClick={() => setLocation(type === 'admin' ? '/admin/settings' : '/dashboard/profile')}
+                  onClick={() => navigate(type === 'admin' ? '/admin/settings' : '/dashboard/profile')}
                   className="flex items-center gap-2 px-2 py-2 rounded-md text-sm hover:bg-muted cursor-pointer w-full text-left"
                 >
                   <User className="h-4 w-4" />
@@ -305,7 +348,7 @@ export function DashboardLayout({ children, type }: DashboardLayoutProps) {
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-4 lg:p-6">
+        <main className="flex-1 overflow-y-auto p-4 lg:p-6 animate-in fade-in duration-200">
           {children}
         </main>
       </div>

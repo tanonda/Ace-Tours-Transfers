@@ -219,14 +219,37 @@ export default function RecoveryPage() {
                       High-privilege operation. Type <strong>I_AM_SURE</strong> to confirm.
                     </DialogDescription>
                   </DialogHeader>
-                  <div className="py-4">
+                  <div className="py-4 space-y-3">
                     <Input placeholder="Type I_AM_SURE" value={confirmInput} onChange={e => setConfirmInput(e.target.value)} />
+                    {playbookMutation.isPending && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/40 px-3 py-2 rounded-md">
+                        <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin shrink-0" />
+                        Running recovery playbook… this may take a moment.
+                      </div>
+                    )}
+                    {playbookMutation.isSuccess && (
+                      <div className="flex items-center gap-2 text-sm text-green-700 bg-green-50 border border-green-200 px-3 py-2 rounded-md">
+                        ✓ Recovery completed successfully.
+                      </div>
+                    )}
+                    {playbookMutation.isError && (
+                      <div className="flex items-center gap-2 text-sm text-red-700 bg-red-50 border border-red-200 px-3 py-2 rounded-md">
+                        ✗ Recovery failed. Check logs for details.
+                      </div>
+                    )}
                   </div>
                   <DialogFooter>
-                    <Button variant="ghost" onClick={() => setIsConfirmingPlaybook(false)}>Cancel</Button>
+                    <Button variant="ghost" onClick={() => { setIsConfirmingPlaybook(false); setConfirmInput(""); }}>
+                      {playbookMutation.isSuccess ? "Close" : "Cancel"}
+                    </Button>
                     <Button variant="destructive" onClick={() => handleRunPlaybook()}
                       disabled={confirmInput !== "I_AM_SURE" || playbookMutation.isPending}>
-                      {playbookMutation.isPending ? "Executing..." : "Execute Recovery"}
+                      {playbookMutation.isPending ? (
+                        <span className="flex items-center gap-2">
+                          <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          Executing…
+                        </span>
+                      ) : "Execute Recovery"}
                     </Button>
                   </DialogFooter>
                 </DialogContent>

@@ -35,7 +35,20 @@ export default function AdminBookings() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [dateSort, setDateSort] = useState<"asc" | "desc">("desc");
+  const [sortCol, setSortCol] = useState<"id" | "customerName" | "tourName" | "date" | "status" | "amount">("date");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  // keep backward-compat alias
+  const dateSort = sortDir;
+  const setDateSort = (v: "asc" | "desc" | ((p: "asc" | "desc") => "asc" | "desc")) =>
+    setSortDir(typeof v === "function" ? v(sortDir) : v);
+
+  const handleSort = (col: typeof sortCol) => {
+    if (sortCol === col) setSortDir(d => d === "asc" ? "desc" : "asc");
+    else { setSortCol(col); setSortDir("asc"); }
+  };
+  const SortIcon = ({ col }: { col: typeof sortCol }) => sortCol === col
+    ? <span className="ml-1">{sortDir === "asc" ? "↑" : "↓"}</span>
+    : <span className="ml-1 opacity-30">↕</span>;
 
   const updateMutation = useMutation({
     mutationFn: ({ id, updates }: { id: string; updates: Partial<Booking> }) => updateBooking(id, updates),
@@ -63,10 +76,28 @@ export default function AdminBookings() {
       return tokens.every(t => text.includes(t));
     });
     return [...result].sort((a, b) => {
-      const diff = new Date(a.date).getTime() - new Date(b.date).getTime();
-      return dateSort === "desc" ? -diff : diff;
+      let valA: string | number = "";
+      let valB: string | number = "";
+      switch (sortCol) {
+        case "id": valA = (a.id || "").toLowerCase(); valB = (b.id || "").toLowerCase(); break;
+        case "customerName": valA = (a.customerName || "").toLowerCase(); valB = (b.customerName || "").toLowerCase(); break;
+        case "tourName": valA = (a.tourName || "").toLowerCase(); valB = (b.tourName || "").toLowerCase(); break;
+        case "status": valA = (a.status || "").toLowerCase(); valB = (b.status || "").toLowerCase(); break;
+        case "amount":
+          valA = parseFloat(String(a.amount).replace(/[^0-9.]/g, "")) || 0;
+          valB = parseFloat(String(b.amount).replace(/[^0-9.]/g, "")) || 0;
+          break;
+        case "date":
+        default:
+          valA = new Date(a.date).getTime();
+          valB = new Date(b.date).getTime();
+          break;
+      }
+      if (valA < valB) return sortDir === "asc" ? -1 : 1;
+      if (valA > valB) return sortDir === "asc" ? 1 : -1;
+      return 0;
     });
-  }, [bookings, searchQuery, statusFilter, dateSort]);
+  }, [bookings, searchQuery, statusFilter, sortCol, sortDir]);
 
   const allSelected = filteredBookings.length > 0 && filteredBookings.every(b => selectedIds.has(b.id));
   const someSelected = selectedIds.size > 0;
@@ -81,11 +112,17 @@ export default function AdminBookings() {
   };
 
   const bulkDelete = async () => {
-    if (!confirm(`Delete ${selectedIds.size} booking(s)?`)) return;
-    for (const id of Array.from(selectedIds)) await deleteBooking(id);
-    queryClient.invalidateQueries({ queryKey: ["bookings"] });
-    toast({ title: `${selectedIds.size} booking(s) deleted.` });
-    setSelectedIds(new Set());
+    if (!confirm(`Delete ${selectedIds.size} booking(s)? This cannot be undone.`)) return;
+    const ids = Array.from(selectedIds);
+    try {
+      for (const id of ids) await deleteMutation.mutateAsync(id);
+      queryClient.invalidateQueries({ queryKey: ["bookings"] });
+      toast({ title: `${ids.length} booking(s) deleted.` });
+      setSelectedIds(new Set());
+    } catch {
+      toast({ title: "Delete failed", description: "Some bookings could not be deleted.", variant: "destructive" });
+      queryClient.invalidateQueries({ queryKey: ["bookings"] });
+    }
   };
 
   return (
@@ -145,14 +182,12 @@ export default function AdminBookings() {
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-10 pl-4"><Checkbox checked={allSelected} onCheckedChange={toggleSelectAll} /></TableHead>
-                  <TableHead>Booking ID</TableHead>
-                  <TableHead>Customer</TableHead>
-                  <TableHead>Tour / Service</TableHead>
-                  <TableHead className="cursor-pointer hover:text-primary select-none" onClick={() => setDateSort(d => d === "desc" ? "asc" : "desc")}>
-                    Date {dateSort === "desc" ? "↓" : "↑"}
-                  </TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
+                  <TableHead className="cursor-pointer hover:text-primary select-none" onClick={() => handleSort("id")}>Booking ID<SortIcon col="id" /></TableHead>
+                  <TableHead className="cursor-pointer hover:text-primary select-none" onClick={() => handleSort("customerName")}>Customer<SortIcon col="customerName" /></TableHead>
+                  <TableHead className="cursor-pointer hover:text-primary select-none" onClick={() => handleSort("tourName")}>Tour / Service<SortIcon col="tourName" /></TableHead>
+                  <TableHead className="cursor-pointer hover:text-primary select-none" onClick={() => handleSort("date")}>Date<SortIcon col="date" /></TableHead>
+                  <TableHead className="cursor-pointer hover:text-primary select-none" onClick={() => handleSort("status")}>Status<SortIcon col="status" /></TableHead>
+                  <TableHead className="text-right cursor-pointer hover:text-primary select-none" onClick={() => handleSort("amount")}>Amount<SortIcon col="amount" /></TableHead>
                   <TableHead className="text-right pr-4">Actions</TableHead>
                 </TableRow>
               </TableHeader>

@@ -252,11 +252,11 @@ export default function AdminDashboard() {
         <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <KPICard
             label={t("dashboard.revenue")}
-            value={fmtVT(totalRevenue * 100)}
+            value={`VT ${totalRevenue.toLocaleString()}`}
             delta="+8%"
             icon={DollarSign}
             colorClass="bg-yellow-500/15 text-yellow-600"
-            sublabel="All time"
+            sublabel="All bookings to date"
           />
           <KPICard
             label={t("dashboard.bookings")}

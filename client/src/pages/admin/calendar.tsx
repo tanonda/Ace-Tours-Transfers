@@ -17,7 +17,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Plus,
-  Clock
+  Clock,
+  X
 } from "lucide-react";
 import {
   upsertAvailability,
@@ -350,10 +351,22 @@ export default function AdminCalendar() {
                         </div>
 
                         <div className="px-6 pb-6 mt-4 pt-4 border-t border-border space-y-4">
-                          <h3 className="font-bold text-base flex items-center gap-2">
-                            <RefreshCw className="h-4 w-4 text-primary" />
-                            Manage Availability
-                          </h3>
+                          <div className="flex items-center justify-between">
+                            <h3 className="font-bold text-base flex items-center gap-2">
+                              <RefreshCw className="h-4 w-4 text-primary" />
+                              Manage Availability
+                            </h3>
+                            {managingTourId && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-muted-foreground"
+                                onClick={() => { setManagingTourId(""); setDailyInstances([]); }}
+                              >
+                                <X className="h-4 w-4 mr-1" /> Cancel
+                              </Button>
+                            )}
+                          </div>
 
                           <div className="space-y-3">
                             <Label>Select Product to Manage</Label>
@@ -479,13 +492,28 @@ export default function AdminCalendar() {
                 {todayBookings.length > 0 ? (
                   <div className="space-y-3">
                     {todayBookings.slice(0, 3).map(booking => (
-                      <div key={booking.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                        <div className={`w-2 h-2 rounded-full ${getBookingColor(booking.status)}`} />
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm truncate">{booking.tourName}</p>
-                          <p className="text-xs text-muted-foreground">{booking.customerName}</p>
+                      <div key={booking.id} className="p-3 bg-muted/40 rounded-lg border border-border/50">
+                        <div className="flex items-start gap-3">
+                          <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${getBookingColor(booking.status)}`} />
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm truncate">{booking.tourName}</p>
+                            <p className="text-xs text-muted-foreground">{booking.customerName}</p>
+                            <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                              {booking.pickupTime && (
+                                <span className="flex items-center gap-1">
+                                  <Clock className="h-3 w-3" />{booking.pickupTime}
+                                </span>
+                              )}
+                              <span className="flex items-center gap-1">
+                                <Users className="h-3 w-3" />{booking.guests || 1} pax
+                              </span>
+                              <span className="font-medium text-foreground">{booking.amount}</span>
+                            </div>
+                          </div>
+                          <Badge variant="outline" className={`text-[10px] shrink-0 ${getBookingColor(booking.status).replace('bg-', 'bg-').replace('-500', '-100')}`}>
+                            {booking.status}
+                          </Badge>
                         </div>
-                        <span className="text-xs text-muted-foreground">{booking.guests} pax</span>
                       </div>
                     ))}
                     {todayBookings.length > 3 && (
