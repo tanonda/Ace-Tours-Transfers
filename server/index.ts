@@ -10,7 +10,6 @@ import path from "path";
 import { runMigrations } from 'stripe-replit-sync';
 import { getStripeSync } from './stripeClient.js';
 import { config, validateConfig } from "./config.js";
-import { migrate } from "drizzle-orm/neon-serverless/migrator";
 import * as Sentry from "@sentry/node";
 import helmet from "helmet";
 import cors from "cors";
@@ -329,14 +328,23 @@ app.use((req, res, next) => {
     const { BackupIntegrityGuard } = await import('./infrastructure/recovery/integrity-guard.js');
     const integrityGuard = new BackupIntegrityGuard();
 
-    // Run database migrations first
+    // Run database migrations first using the existing shared pool — avoids
+    // spawning a competing WebSocket connection at startup that races and times out.
     try {
-      console.log('[MIGRATIONS] Running Drizzle migrations...');
-      await migrate(db, { migrationsFolder: "migrations" });
-      console.log('[MIGRATIONS] Drizzle migrations completed successfully');
+      console.log('[MIGRATIONS] Running migrations...');
+      const { runIdempotentMigrations } = await import('./migrate.js');
+      await runIdempotentMigrations(neonPool);
+      console.log('[MIGRATIONS] Migrations completed successfully');
     } catch (migrationError: any) {
-      // Don't fail startup if migrations fail - they might already be applied
-      console.warn('[MIGRATIONS] Migration execution warning:', migrationError.message);
+      // Don't fail startup if migrations fail - they might already be applied.
+      // Neon throws an ErrorEvent (not a standard Error) on WebSocket timeouts,
+      // so we extract the real error from the nested symbol if .message is empty.
+      const errMsg =
+        migrationError?.message ||
+        migrationError?.[Symbol.for('kError')]?.message ||
+        migrationError?.code ||
+        String(migrationError);
+      console.warn('[MIGRATIONS] Migration execution warning:', errMsg);
     }
 
     const status = await integrityGuard.checkIntegrity();

@@ -22,6 +22,7 @@ import ws from "ws";
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
+import { fileURLToPath } from "url";
 
 neonConfig.webSocketConstructor = ws;
 
@@ -50,11 +51,15 @@ function splitStatements(sql: string): string[] {
     .filter(s => s.replace(/--[^\n]*/g, "").trim().length > 0); // skip comment-only blocks
 }
 
-async function main() {
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+/**
+ * Core migration logic. Accepts an optional existing Pool (e.g. the shared
+ * neonPool from db.ts) to avoid spinning up a competing WebSocket connection
+ * at startup. If no pool is provided, a new one is created and cleaned up.
+ */
+export async function runIdempotentMigrations(existingPool?: any): Promise<void> {
+  let ownPool: any = null;
+  const pool = existingPool ?? (ownPool = new Pool({ connectionString: process.env.DATABASE_URL }));
   const client = await pool.connect();
-  console.log("Running migrations...");
-  console.log("DATABASE_URL used for migration: Configured");
 
   try {
     // 1. Create tracking table
@@ -116,12 +121,29 @@ async function main() {
     console.log("Migrations complete!");
   } finally {
     client.release();
-    await pool.end();
-    process.exit(0);
+    if (ownPool) {
+      await ownPool.end();
+    }
   }
 }
 
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+// CLI entry point — only runs when invoked directly: npx tsx server/migrate.ts
+async function main() {
+  console.log("Running migrations...");
+  console.log("DATABASE_URL used for migration: Configured");
+  await runIdempotentMigrations();
+  process.exit(0);
+}
+
+// Guard: only auto-run when this file is the entry point (not when imported)
+const isMain = process.argv[1] && (
+  process.argv[1].endsWith('migrate.ts') ||
+  process.argv[1].endsWith('migrate.js')
+);
+
+if (isMain) {
+  main().catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
+}

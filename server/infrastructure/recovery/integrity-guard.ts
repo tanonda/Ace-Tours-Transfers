@@ -27,37 +27,67 @@ export class BackupIntegrityGuard {
       // 1. Check if we can even connect
       await db.execute(sql`SELECT 1`);
 
-      // 2. Check if migrations table exists (might not on fresh setup)
-      const tableExistsResult = await db.execute(sql`
-        SELECT count(*) as total FROM information_schema.tables 
-        WHERE table_schema = 'public' AND table_name = '__drizzle_migrations'
-      `);
-      const migrationsTableExists = parseInt((tableExistsResult.rows[0] as any).total) > 0;
-
-      if (!migrationsTableExists) {
-        console.warn("[INTEGRITY] Migrations table not found. Database appears to be fresh or not initialized.");
-        return {
-          isSafe: true,
-          message: "Database not yet migrated. Initial setup required.",
-          details: {
-            migrationCount: 0,
-            driftDetected: false
-          }
-        };
+      // 2. Determine the expected migration count from the journal (source of truth),
+      //    falling back to raw file count if the journal is unavailable.
+      let expectedMigrationCount: number;
+      try {
+        const journalPath = path.join(process.cwd(), 'migrations', 'meta', '_journal.json');
+        const journal = JSON.parse(fs.readFileSync(journalPath, 'utf8'));
+        expectedMigrationCount = (journal.entries ?? []).length;
+      } catch {
+        const migrationFiles = fs.readdirSync(path.join(process.cwd(), 'migrations')).filter(f => f.endsWith('.sql'));
+        expectedMigrationCount = migrationFiles.length;
       }
 
-      // 3. Count migrations in the database vs local files
-      const migrationFiles = fs.readdirSync(path.join(process.cwd(), 'migrations')).filter(f => f.endsWith('.sql'));
-      const localMigrationCount = migrationFiles.length;
+      // 3. Prefer our custom idempotent tracking table (drizzle_migrations_applied)
+      //    which correctly handles migrations without Drizzle snapshot files.
+      //    Fall back to __drizzle_migrations if the custom table doesn't exist yet.
+      let dbMigrationCount = 0;
+      let trackingTableUsed = 'drizzle_migrations_applied';
 
-      const migrationResult = await db.execute(sql`SELECT count(*) FROM "__drizzle_migrations"`);
-      const dbMigrationCount = parseInt((migrationResult.rows[0] as any).count);
+      const customTableResult = await db.execute(sql`
+        SELECT count(*) as total FROM information_schema.tables 
+        WHERE table_schema = 'public' AND table_name = 'drizzle_migrations_applied'
+      `);
+      const customTableExists = parseInt((customTableResult.rows[0] as any).total) > 0;
 
-      if (dbMigrationCount < localMigrationCount) {
+      if (customTableExists) {
+        const countResult = await db.execute(sql`SELECT count(*) FROM "drizzle_migrations_applied"`);
+        dbMigrationCount = parseInt((countResult.rows[0] as any).count);
+      } else {
+        // Fallback: check if standard Drizzle migrations table exists
+        const drizzleTableResult = await db.execute(sql`
+          SELECT count(*) as total FROM information_schema.tables 
+          WHERE table_schema = 'public' AND table_name = '__drizzle_migrations'
+        `);
+        const drizzleTableExists = parseInt((drizzleTableResult.rows[0] as any).total) > 0;
+
+        if (!drizzleTableExists) {
+          console.warn("[INTEGRITY] No migration tracking table found. Database appears to be fresh or not initialized.");
+          return {
+            isSafe: true,
+            message: "Database not yet migrated. Initial setup required.",
+            details: { migrationCount: 0, driftDetected: false }
+          };
+        }
+
+        trackingTableUsed = '__drizzle_migrations';
+        const countResult = await db.execute(sql`SELECT count(*) FROM "__drizzle_migrations"`);
+        dbMigrationCount = parseInt((countResult.rows[0] as any).count);
+      }
+
+      const countStatus = dbMigrationCount === expectedMigrationCount
+        ? 'up to date'
+        : dbMigrationCount > expectedMigrationCount
+          ? `${dbMigrationCount} applied (${dbMigrationCount - expectedMigrationCount} ahead of journal — harmless)`
+          : `${dbMigrationCount}/${expectedMigrationCount}`;
+      console.log(`[INTEGRITY] Tracking via '${trackingTableUsed}': ${countStatus}.`);
+
+      if (dbMigrationCount < expectedMigrationCount) {
         BackupIntegrityGuard.writeBlocked = true;
         return {
           isSafe: false,
-          message: "SCHEMA DRIFT DETECTED: Database is behind local migrations. Writes are blocked to prevent corruption.",
+          message: `SCHEMA DRIFT DETECTED: Database has ${dbMigrationCount} of ${expectedMigrationCount} migrations applied. Writes are blocked to prevent corruption.`,
           details: {
             migrationCount: dbMigrationCount,
             driftDetected: true
