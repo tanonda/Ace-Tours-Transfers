@@ -157,7 +157,7 @@ export default function TransferDetail() {
     ? reviews.reduce((a: number, r: any) => a + r.rating, 0) / reviews.length : 0;
 
   const transferFaqs = [
-    { question: `What is included in the ${transfer.title}?`, answer: transfer.description?.slice(0, 300) || "Please contact us for full inclusions." },
+    { question: `What is included in the ${transfer.title}?`, answer: (Array.isArray(transfer.description) ? transfer.description[0] : transfer.description)?.slice(0, 300) || "Please contact us for full inclusions." },
     { question: "Where does the transfer pick me up?", answer: "We pick up from your hotel, cruise terminal, or the airport. Please provide your location at booking." },
     { question: "What is the cancellation policy?", answer: "Free cancellation up to 24 hours before your scheduled transfer time." },
     { question: "Can I book a private transfer?", answer: "Yes, all our transfers can be arranged as private service. Contact us via WhatsApp for private transfer pricing." },
@@ -167,13 +167,13 @@ export default function TransferDetail() {
     <Layout>
       <SEO
         title={transfer.title}
-        description={transfer.description?.slice(0, 155) || `Book ${transfer.title} in Port Vila, Vanuatu. Reliable transfer service with Ace Tours & Transfers.`}
+        description={(Array.isArray(transfer.description) ? transfer.description[0] : transfer.description)?.slice(0, 155) || `Book ${transfer.title} in Port Vila, Vanuatu. Reliable transfer service with Ace Tours & Transfers.`}
         image={transfer.image}
         type="product"
         keywords={[transfer.title, "Vanuatu transfer", "Port Vila transport", "airport transfer Vanuatu"]}
         structuredType="TouristAttraction"
         productName={transfer.title}
-        productDescription={transfer.description}
+        productDescription={Array.isArray(transfer.description) ? transfer.description[0] : transfer.description}
         offer={transfer.adultPriceCents ? { price: transfer.adultPriceCents, currency: "VUV", availability: "InStock" } : undefined}
         aggregateRating={reviews.length > 0 ? { ratingValue: avgRating, reviewCount: reviews.length } : undefined}
         reviews={reviews.slice(0, 5).map((r: any) => ({ author: r.userName || "Guest", rating: r.rating, body: r.comment, datePublished: r.createdAt?.slice(0, 10) }))}
@@ -209,7 +209,7 @@ export default function TransferDetail() {
           <div className="flex flex-col gap-7">
 
             {/* Photo — matching tour/vehicle detail: fill container with cover */}
-            <div className="rounded-[14px] overflow-hidden bg-[#211e18]" style={{height: '480px'}}>
+            <div className="rounded-[14px] overflow-hidden bg-[#211e18]" style={{ height: '480px' }}>
               <img src={cloudinaryOpt(transfer.image, 900)} className="w-full h-full object-cover object-center block" alt={`${transfer.title} - photo`} loading="lazy" />
             </div>
 
