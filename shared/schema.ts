@@ -317,8 +317,6 @@ export const pricingVersions = pgTable("pricing_versions", {
   effectiveFrom: text("effective_from").notNull(), // YYYY-MM-DD
   adultPriceCents: integer("adult_price_cents").notNull(),
   childPriceCents: integer("child_price_cents").notNull().default(0), // 0 for transfers/vehicles
-  infantPriceCents: integer("infant_price_cents").notNull().default(0),
-  petPriceCents: integer("pet_price_cents").notNull().default(0),
   ruleMetadata: jsonb("rule_metadata"), // { groupDiscountThreshold, seasonalRules, etc. }
   createdAt: timestamp("created_at").notNull().defaultNow(),
   createdBy: varchar("created_by").references(() => users.id),
@@ -907,3 +905,27 @@ export const session = pgTable("session", {
   sess: jsonb("sess").notNull(),
   expire: timestamp("expire", { mode: 'date', precision: 6 }).notNull(),
 });
+
+// Promotions & Discount Codes
+export const promotions = pgTable("promotions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  code: text("code").notNull().unique(),
+  description: text("description").notNull().default(""),
+  discountType: text("discount_type").notNull().default("percentage"), // 'percentage' | 'fixed'
+  discountValue: integer("discount_value").notNull().default(0),       // percent (0-100) or VUV cents
+  minPurchaseCents: integer("min_purchase_cents").notNull().default(0),
+  maxUses: integer("max_uses").notNull().default(0),   // 0 = unlimited
+  usedCount: integer("used_count").notNull().default(0),
+  validFrom: text("valid_from").notNull(),             // YYYY-MM-DD
+  validTo: text("valid_to").notNull(),                 // YYYY-MM-DD
+  applicableTo: text("applicable_to").notNull().default("all"), // 'all' | 'tours' | 'transfers'
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  createdBy: varchar("created_by").references(() => users.id),
+});
+
+export const insertPromotionSchema = createInsertSchema(promotions).omit({
+  id: true, usedCount: true, createdAt: true,
+});
+export type InsertPromotion = z.infer<typeof insertPromotionSchema>;
+export type Promotion = typeof promotions.$inferSelect;
