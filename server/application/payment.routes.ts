@@ -6,6 +6,7 @@ import { requireAuth, requireAdmin } from "../routes.js";
 import { config } from "../config.js";
 import { rateLimit } from "express-rate-limit";
 import { z } from "zod";
+import { adminAudit } from "../infrastructure/audit/admin-audit-log.service.js";
 
 const paymentLimiter = rateLimit({
   windowMs: 60 * 1000,
@@ -351,7 +352,25 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
           details: parsed.error.flatten().fieldErrors,
         });
       }
+      // Fetch before-state for diff
+      const before = await storage.getPaymentGateway(req.params.id);
       const gateway = await storage.updatePaymentGateway(req.params.id, parsed.data);
+
+      // Determine action label: credentials-only save vs general update
+      const hasCredentials = parsed.data.credentials && Object.keys(parsed.data.credentials).length > 0;
+      const action = hasCredentials ? "gateway.credentials_update" : "gateway.update";
+
+      await adminAudit.log({
+        action,
+        entityType: "payment_gateway",
+        entityId: gateway.slug,
+        entityName: gateway.displayName,
+        performedBy: (req.session as any)?.userId,
+        previousValue: before,
+        newValue: gateway,
+        req,
+      });
+
       res.json(gateway);
     } catch (error) {
       res.status(400).json({ error: "Failed to update payment gateway" });
@@ -360,7 +379,21 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
 
   app.post("/api/admin/payment-gateways/:id/set-default", requireAdmin, async (req, res) => {
     try {
+      const before = await storage.getPaymentGateway(req.params.id);
       await storage.setDefaultPaymentGateway(req.params.id);
+      const after = await storage.getPaymentGateway(req.params.id);
+
+      await adminAudit.log({
+        action: "gateway.set_default",
+        entityType: "payment_gateway",
+        entityId: before?.slug,
+        entityName: before?.displayName,
+        performedBy: (req.session as any)?.userId,
+        previousValue: { isDefault: before?.isDefault },
+        newValue: { isDefault: after?.isDefault },
+        req,
+      });
+
       res.json({ message: "Default gateway set successfully" });
     } catch (error) {
       res.status(400).json({ error: "Failed to set default gateway" });
@@ -394,6 +427,15 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
         forceStatus
       );
 
+      await adminAudit.log({
+        action: "payment.reconcile",
+        entityType: "booking",
+        entityId: req.params.id,
+        performedBy: (req.session as any)?.userId,
+        metadata: { note, forceStatus },
+        req,
+      });
+
       res.json({ success: true, message: "Payment reconciled successfully" });
     } catch (error: any) {
       console.error("Manual reconciliation error:", error);
@@ -408,6 +450,15 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
       const reconService = new PaymentReconciliationService(storage);
 
       await reconService.syncPaymentStatus(req.params.id);
+
+      await adminAudit.log({
+        action: "payment.sync",
+        entityType: "booking",
+        entityId: req.params.id,
+        performedBy: (req.session as any)?.userId,
+        req,
+      });
+
       res.json({ success: true, message: "Payment status synced with gateway" });
     } catch (error: any) {
       res.status(500).json({ error: error.message || "Failed to sync payment status" });

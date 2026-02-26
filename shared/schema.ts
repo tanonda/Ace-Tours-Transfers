@@ -338,6 +338,26 @@ export const capacityAuditLog = pgTable("capacity_audit_log", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// Admin Action Audit Log — tracks sensitive admin mutations for compliance/paper trail
+export const adminAuditLog = pgTable("admin_audit_log", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  action: text("action").notNull(),       // e.g. 'gateway.update', 'flag.toggle', 'booking.confirm'
+  entityType: text("entity_type").notNull(), // 'payment_gateway' | 'feature_flag' | 'booking' | 'site_settings' | 'system'
+  entityId: text("entity_id"),            // gateway slug / flag key / booking id / etc.
+  entityName: text("entity_name"),        // human-readable label
+  performedBy: text("performed_by"),      // userId
+  previousValue: jsonb("previous_value"), // before snapshot (credentials redacted)
+  newValue: jsonb("new_value"),           // after snapshot  (credentials redacted)
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export type AdminAuditLog = typeof adminAuditLog.$inferSelect;
+export type InsertAdminAuditLog = typeof adminAuditLog.$inferInsert;
+
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   bookings: many(bookings),

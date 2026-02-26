@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { IStorage } from "../storage.js";
 import { AuditLogService } from "../infrastructure/audit/audit-log.service.js";
+import { AdminAuditLogService } from "../infrastructure/audit/admin-audit-log.service.js";
 import { metricsService } from "../infrastructure/metrics/metrics.service.js";
 
 /**
@@ -13,6 +14,7 @@ export function registerBookingEngineRoutes(
     requireAdmin: any
 ) {
     const auditLog = new AuditLogService(storage);
+    const adminAuditLog = new AdminAuditLogService();
 
     // ─── RESOURCES (Phase 1) ──────────────────────────────────────────
 
@@ -189,7 +191,7 @@ export function registerBookingEngineRoutes(
 
     // ─── CAPACITY AUDIT LOG (Phase 7) ─────────────────────────────────
 
-    // Query audit log
+    // Query capacity audit log (inventory events)
     app.get("/api/admin/audit-log", requireAdmin, async (req, res) => {
         try {
             const { productId, action, limit, offset } = req.query;
@@ -202,6 +204,29 @@ export function registerBookingEngineRoutes(
             res.json(entries);
         } catch (error: any) {
             console.error("[AUDIT LOG ROUTE ERROR]:", error);
+            res.status(500).json({ error: error.message });
+        }
+    });
+
+    // ─── ADMIN ACTION AUDIT LOG ────────────────────────────────────────
+
+    // Query admin action audit log (admin mutations paper trail)
+    app.get("/api/admin/admin-audit-log", requireAdmin, async (req, res) => {
+        try {
+            const { action, entityType, entityId, performedBy, from, to, limit, offset } = req.query;
+            const entries = await adminAuditLog.getLog({
+                action: action as string | undefined,
+                entityType: entityType as string | undefined,
+                entityId: entityId as string | undefined,
+                performedBy: performedBy as string | undefined,
+                from: from as string | undefined,
+                to: to as string | undefined,
+                limit: limit ? parseInt(limit as string) : 200,
+                offset: offset ? parseInt(offset as string) : 0,
+            });
+            res.json(entries);
+        } catch (error: any) {
+            console.error("[ADMIN AUDIT LOG ROUTE ERROR]:", error);
             res.status(500).json({ error: error.message });
         }
     });

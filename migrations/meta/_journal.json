@@ -64,6 +64,13 @@
       "when": 1772200000000,
       "tag": "0008_seed_cms_content",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1772250000000,
+      "tag": "0009_admin_audit_log",
+      "breakpoints": true
     }
   ]
 }
