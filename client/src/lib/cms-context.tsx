@@ -1,4 +1,4 @@
-import { createContext, useContext, ReactNode, useEffect, useState } from "react";
+import { createContext, useContext, ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 interface ContentBlock {
@@ -30,10 +30,24 @@ interface CMSContextType {
 
 const CMSContext = createContext<CMSContextType | undefined>(undefined);
 
-async function fetchContentBlocks(): Promise<ContentBlock[]> {
-  const response = await fetch("/api/content-blocks");
-  if (!response.ok) throw new Error("Failed to fetch content blocks");
-  return response.json();
+// /api/feature-flags returns the block-toggle flags (newsletter, etc.)
+async function fetchFeatureBlocks(): Promise<ContentBlock[]> {
+  try {
+    const response = await fetch("/api/feature-flags");
+    if (!response.ok) return [];
+    const flags = await response.json();
+    return (Array.isArray(flags) ? flags : []).map((f: any) => ({
+      id: f.id ?? f.slug,
+      slug: f.slug,
+      label: f.label ?? f.slug,
+      description: f.description ?? null,
+      enabled: f.enabled ?? true,
+      config: f.config ?? null,
+      updatedAt: f.updatedAt ?? "",
+    }));
+  } catch {
+    return [];
+  }
 }
 
 async function fetchSiteSettings(): Promise<SiteSetting[]> {
@@ -43,18 +57,18 @@ async function fetchSiteSettings(): Promise<SiteSetting[]> {
 }
 
 export function CMSProvider({ children }: { children: ReactNode }) {
-  const { 
-    data: contentBlocks = [], 
+  const {
+    data: contentBlocks = [],
     isLoading: blocksLoading,
     refetch: refetchBlocks
   } = useQuery({
-    queryKey: ["content-blocks"],
-    queryFn: fetchContentBlocks,
+    queryKey: ["feature-flags"],
+    queryFn: fetchFeatureBlocks,
     staleTime: 5 * 60 * 1000,
   });
 
-  const { 
-    data: siteSettings = [], 
+  const {
+    data: siteSettings = [],
     isLoading: settingsLoading,
     refetch: refetchSettings
   } = useQuery({
