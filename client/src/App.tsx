@@ -29,6 +29,7 @@ const ManageBooking = lazy(() => import("@/pages/manage-booking"));
 const Login = lazy(() => import("@/pages/login"));
 const Register = lazy(() => import("@/pages/register"));
 const NotFound = lazy(() => import("@/pages/not-found"));
+const PrivacyPolicy = lazy(() => import("@/pages/privacy-policy"));
 const TourDetail = lazy(() => import("@/pages/tour-detail"));
 const TransferDetail = lazy(() => import("@/pages/transfer-detail"));
 const Vehicles = lazy(() => import("@/pages/vehicles"));
@@ -138,6 +139,7 @@ function Router() {
         <Route path="/confirmation" component={Confirmation} />
         <Route path="/login" component={Login} />
         <Route path="/register" component={Register} />
+        <Route path="/privacy-policy" component={PrivacyPolicy} />
 
         {/* Admin Routes - Protected */}
         <Route path="/admin/dashboard">

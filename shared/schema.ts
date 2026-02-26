@@ -317,6 +317,8 @@ export const pricingVersions = pgTable("pricing_versions", {
   effectiveFrom: text("effective_from").notNull(), // YYYY-MM-DD
   adultPriceCents: integer("adult_price_cents").notNull(),
   childPriceCents: integer("child_price_cents").notNull().default(0), // 0 for transfers/vehicles
+  infantPriceCents: integer("infant_price_cents").notNull().default(0),
+  petPriceCents: integer("pet_price_cents").notNull().default(0),
   ruleMetadata: jsonb("rule_metadata"), // { groupDiscountThreshold, seasonalRules, etc. }
   createdAt: timestamp("created_at").notNull().defaultNow(),
   createdBy: varchar("created_by").references(() => users.id),

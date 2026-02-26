@@ -638,6 +638,18 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 <li><Link href="/transfers" className="text-white/70 hover:text-white transition-colors">{t("nav.transfers")}</Link></li>
                 <li><Link href="/about" className="text-white/70 hover:text-white transition-colors">{t("nav.about")}</Link></li>
                 <li><Link href="/contact" className="text-white/70 hover:text-white transition-colors">{t("nav.contact")}</Link></li>
+                <li><Link href="/privacy-policy" className="text-white/70 hover:text-white transition-colors">Privacy Policy</Link></li>
+                <li>
+                  <a
+                    href="https://vanuatu.travel"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-white/70 hover:text-white transition-colors flex items-center gap-1"
+                  >
+                    Vanuatu Tourism Office
+                    <span className="text-xs opacity-60">↗</span>
+                  </a>
+                </li>
               </ul>
             </div>
 
@@ -683,8 +695,15 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </div>
           )}
 
-          <div className="border-t border-white/10 pt-8 text-center text-white/40 text-sm">
+          <div className="border-t border-white/10 pt-8 text-center text-white/40 text-sm space-y-2">
             <p>&copy; {new Date().getFullYear()} {t("app.title")}. {t("footer.copyright")}</p>
+            <p>
+              <Link href="/privacy-policy" className="hover:text-white/70 transition-colors">Privacy Policy</Link>
+              <span className="mx-2">·</span>
+              <a href="https://vanuatu.travel" target="_blank" rel="noopener noreferrer" className="hover:text-white/70 transition-colors">
+                Vanuatu Tourism Office
+              </a>
+            </p>
           </div>
         </div>
       </footer>

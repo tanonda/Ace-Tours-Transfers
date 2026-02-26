@@ -311,7 +311,7 @@ export function useAvailabilitySearch(): AvailabilitySearchResult {
     setLocation("/tours");
   }, [
     activeTab,
-    tourDate, tourAdults, tourChildren, tourInfants, tourPets,
+    tourDate, tourTime, tourAdults, tourChildren, tourInfants, tourPets,
     transferFrom, transferTo, transferDate, transferTime, transferAdults, transferChildren, transferInfants, transferPets,
     pickupDate, pickupTime, returnDate, returnTime, hireDays,
     selectedProductId,
