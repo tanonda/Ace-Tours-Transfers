@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { useQuery } from "@tanstack/react-query";
 import { fetchAuditLogs, fetchTours } from "@/lib/api";
-import { ScrollText, RefreshCw, Download, Search, Filter, Clock, User, Package, Hash, Info, ChevronRight } from "lucide-react";
+import { ScrollText, RefreshCw, Download, Search, Filter, Clock, User, Package, Hash, Info, ChevronRight, Calendar } from "lucide-react";
 
 const ACTION_COLORS: Record<string, string> = {
   booking_confirmed:    "bg-green-100 text-green-800",
@@ -162,6 +162,8 @@ export default function AdminAuditLogs() {
   const [action, setAction] = useState<string>("");
   const [search, setSearch] = useState<string>("");
   const [limit, setLimit] = useState<number>(200);
+  const [dateFrom, setDateFrom] = useState<string>("");
+  const [dateTo, setDateTo] = useState<string>("");
   const [selectedEntry, setSelectedEntry] = useState<any>(null);
   const [detailOpen, setDetailOpen] = useState(false);
 
@@ -177,13 +179,17 @@ export default function AdminAuditLogs() {
   });
 
   const filtered = entries.filter((e: any) => {
-    if (!search) return true;
+    if (!search && !dateFrom && !dateTo) return true;
     const s = search.toLowerCase();
-    return (
+    const matchSearch = !search || (
       e.action?.toLowerCase().includes(s) ||
       e.performedBy?.toLowerCase().includes(s) ||
       tours.find((t: any) => t.id === e.productId)?.title?.toLowerCase().includes(s)
     );
+    const entryDate = new Date(e.createdAt);
+    const matchDateFrom = !dateFrom || entryDate >= new Date(dateFrom);
+    const matchDateTo = !dateTo || entryDate <= new Date(dateTo + "T23:59:59");
+    return matchSearch && matchDateFrom && matchDateTo;
   });
 
   const handleRowClick = (entry: any) => {
@@ -240,6 +246,15 @@ export default function AdminAuditLogs() {
           </div>
         </div>
 
+        {/* Retention policy info */}
+        <div className="flex items-start gap-3 p-4 rounded-lg border border-blue-200 bg-blue-50/60">
+          <Info className="h-4 w-4 text-blue-600 mt-0.5 shrink-0" />
+          <div className="text-sm text-blue-800">
+            <span className="font-semibold">Retention Policy:</span> Audit log entries are retained for <strong>12 months</strong> from the event date.
+            Entries older than 12 months are automatically archived. Use Export CSV to archive records before they expire.
+          </div>
+        </div>
+
         {/* Filters */}
         <Card>
           <CardHeader className="pb-3">
@@ -248,7 +263,7 @@ export default function AdminAuditLogs() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
               <div className="space-y-1.5">
                 <Label htmlFor="product-filter">Product</Label>
                 <Select value={productId} onValueChange={(v) => setProductId(v === "all" ? "" : v)}>
@@ -311,6 +326,16 @@ export default function AdminAuditLogs() {
                     onChange={(e) => setSearch(e.target.value)}
                   />
                 </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>From Date</Label>
+                <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>To Date</Label>
+                <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} />
               </div>
             </div>
           </CardContent>

@@ -35,6 +35,7 @@ export const bookingFormBaseSchema = z.object({
   notes: z.string().optional(),
   addonIds: z.array(z.string()).default([]),
   pickupLocation: z.string().optional(),
+  promoCode: z.string().optional(),
 });
 
 export const bookingFormSchema = bookingFormBaseSchema.refine((data) => {
@@ -113,8 +114,15 @@ export function BookingForm({
       startTime: initialValues?.startTime || "",
       endTime: initialValues?.endTime || "",
       pickupLocation: initialValues?.pickupLocation || "",
+      promoCode: "",
     },
   });
+
+  // Promo code state
+  const [promoInput, setPromoInput] = useState("");
+  const [promoStatus, setPromoStatus] = useState<"idle" | "checking" | "valid" | "invalid">("idle");
+  const [promoDiscount, setPromoDiscount] = useState<number>(0); // discountCents
+  const [promoMessage, setPromoMessage] = useState<string>("");
 
   // Track if initial values have been applied to prevent resetting on re-renders
   const hasAppliedInitialValues = useRef(false);
@@ -128,6 +136,46 @@ export function BookingForm({
   const watchedStartTime = form.watch("startTime");
   const watchedEndTime = form.watch("endTime");
   const watchedNotes = form.watch("notes");
+
+  // Validate a promo code against the server
+  const validatePromoCode = async (code: string) => {
+    if (!code.trim()) return;
+    setPromoStatus("checking");
+    try {
+      // Calculate current total for min-purchase check
+      const adults = parseInt(form.getValues("adultPax") || "0");
+      const children = parseInt(form.getValues("childPax") || "0");
+      const estimatedCents = (adults * adultPriceCents) + (children * childPriceCents);
+      const res = await fetch("/api/promotions/validate", {
+        method: "POST", credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: code.trim().toUpperCase(), orderTotalCents: estimatedCents }),
+      });
+      const data = await res.json();
+      if (data.valid) {
+        setPromoStatus("valid");
+        setPromoDiscount(data.discountCents || 0);
+        setPromoMessage(data.message || "Promo applied!");
+        form.setValue("promoCode", code.trim().toUpperCase());
+      } else {
+        setPromoStatus("invalid");
+        setPromoDiscount(0);
+        setPromoMessage(data.message || "Invalid promo code");
+        form.setValue("promoCode", "");
+      }
+    } catch {
+      setPromoStatus("invalid");
+      setPromoMessage("Could not validate promo code");
+    }
+  };
+
+  const clearPromo = () => {
+    setPromoInput("");
+    setPromoStatus("idle");
+    setPromoDiscount(0);
+    setPromoMessage("");
+    form.setValue("promoCode", "");
+  };
 
   const isTransfer = useMemo(
     () => services.find(s => s.title === watchedService)?.category === 'transfer',
@@ -725,6 +773,41 @@ export function BookingForm({
               />
             </motion.div>
 
+            {/* Promo Code */}
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.28 }}>
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Have a promo code?</p>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={promoInput}
+                    onChange={e => { setPromoInput(e.target.value.toUpperCase()); if (promoStatus !== "idle") clearPromo(); }}
+                    placeholder="Enter code (e.g. SUMMER20)"
+                    className="flex-1 px-3 py-2 border border-slate-200 rounded-xl text-sm font-mono uppercase bg-slate-50/50 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:bg-white transition-all"
+                    onKeyDown={e => e.key === "Enter" && (e.preventDefault(), validatePromoCode(promoInput))}
+                  />
+                  {promoStatus === "valid" ? (
+                    <button type="button" onClick={clearPromo}
+                      className="px-3 py-2 text-xs rounded-xl border border-red-200 text-red-500 hover:bg-red-50 transition-colors">
+                      Remove
+                    </button>
+                  ) : (
+                    <button type="button"
+                      onClick={() => validatePromoCode(promoInput)}
+                      disabled={!promoInput.trim() || promoStatus === "checking"}
+                      className="px-3 py-2 text-xs rounded-xl bg-slate-900 text-white hover:bg-slate-700 disabled:opacity-40 transition-colors font-semibold">
+                      {promoStatus === "checking" ? "…" : "Apply"}
+                    </button>
+                  )}
+                </div>
+                {promoMessage && (
+                  <p className={`text-xs font-medium px-2 py-1 rounded-lg ${promoStatus === "valid" ? "text-green-700 bg-green-50 border border-green-200" : "text-red-600 bg-red-50 border border-red-200"}`}>
+                    {promoStatus === "valid" ? `✓ ${promoMessage}` : `✗ ${promoMessage}`}
+                  </p>
+                )}
+              </div>
+            </motion.div>
+
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -938,6 +1021,14 @@ export function BookingForm({
                       </div>
                     ))
                   }
+
+                  {/* Promo discount line */}
+                  {promoStatus === "valid" && promoDiscount > 0 && (
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-green-600 font-semibold">Promo Discount</span>
+                      <span className="font-bold text-green-700 font-mono">−{formatPriceDisplay(promoDiscount, currency)}</span>
+                    </div>
+                  )}
 
                   {/* Total */}
                   <div className="flex justify-between items-center pt-4 border-t-2 border-slate-900 border-dashed mt-2">

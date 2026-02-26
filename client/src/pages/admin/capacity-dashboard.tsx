@@ -212,50 +212,99 @@ function AddAvailabilityDialog({
     }
   };
 
-  const activeTours = tours.filter(t => t.isActive !== false && !t.title.toLowerCase().includes("test"));
-
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="sm:max-w-[480px]">
+      <DialogContent className="sm:max-w-[560px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-[#004165]">
             <Plus className="h-5 w-5" />
             Add Availability Slot
           </DialogTitle>
         </DialogHeader>
-        <div className="space-y-4 py-2">
+        <div className="space-y-5 py-2">
+          {/* Product selector — shows ALL products (tours + transfers + vehicles) */}
           <div className="space-y-1.5">
-            <Label>Product</Label>
+            <Label className="font-semibold">Product *</Label>
             <Select value={tourId} onValueChange={setTourId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select tour / transfer / vehicle" />
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select a tour, transfer or vehicle hire..." />
               </SelectTrigger>
-              <SelectContent>
-                {activeTours.map((t) => (
-                  <SelectItem key={t.id} value={t.id}>{t.title}</SelectItem>
-                ))}
+              <SelectContent className="max-h-[360px] overflow-y-auto">
+                {tours.length === 0 && (
+                  <div className="px-3 py-2 text-sm text-muted-foreground">No products available</div>
+                )}
+                {/* Group by category */}
+                {["tour","transfer","vehicle"].map(cat => {
+                  const group = tours.filter((t: any) => {
+                    const c = (t.category || "tour").toLowerCase();
+                    if (cat === "tour") return !c.includes("transfer") && !c.includes("vehicle");
+                    return c.includes(cat);
+                  });
+                  if (group.length === 0) return null;
+                  return (
+                    <div key={cat}>
+                      <div className="px-2 py-1 text-xs font-bold text-muted-foreground uppercase tracking-wide">
+                        {cat === "tour" ? "Tours" : cat === "transfer" ? "Transfers" : "Vehicle Hire"}
+                      </div>
+                      {group.map((t: any) => (
+                        <SelectItem key={t.id} value={t.id}>
+                          <span className="flex items-center gap-2">
+                            {t.title}
+                            {t.isActive === false && <span className="text-xs text-red-500">(inactive)</span>}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </div>
+                  );
+                })}
               </SelectContent>
             </Select>
+            {tourId && (() => {
+              const selected = tours.find((t: any) => t.id === tourId);
+              return selected ? (
+                <div className="text-xs text-muted-foreground bg-muted/40 rounded p-2">
+                  <strong>{selected.title}</strong>
+                  {selected.duration && <span> · {selected.duration}</span>}
+                  {selected.defaultCapacity && <span> · Default cap: {selected.defaultCapacity}</span>}
+                </div>
+              ) : null;
+            })()}
           </div>
+
           <div className="space-y-1.5">
-            <Label>Date</Label>
+            <Label className="font-semibold">Date *</Label>
             <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} min={format(new Date(), "yyyy-MM-dd")} />
           </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label>Total Capacity</Label>
+              <Label className="font-semibold">Total Capacity</Label>
               <Input type="number" min={1} value={totalCapacity} onChange={(e) => setTotalCapacity(parseInt(e.target.value) || 1)} />
+              <p className="text-xs text-muted-foreground">Max seats/spots for this date</p>
             </div>
             <div className="space-y-1.5">
-              <Label>Blocked Seats</Label>
-              <Input type="number" min={0} value={blockedCount} onChange={(e) => setBlockedCount(parseInt(e.target.value) || 0)} />
+              <Label className="font-semibold">Blocked Seats</Label>
+              <Input type="number" min={0} max={totalCapacity} value={blockedCount} onChange={(e) => setBlockedCount(parseInt(e.target.value) || 0)} />
+              <p className="text-xs text-muted-foreground">Reserved / unavailable</p>
+            </div>
+          </div>
+
+          {/* Available preview */}
+          <div className="bg-muted/30 rounded-lg p-3 text-sm">
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground">Available for booking</span>
+              <span className="font-bold text-lg text-green-700">{Math.max(0, totalCapacity - blockedCount)}</span>
+            </div>
+            <div className="flex justify-between items-center mt-1">
+              <span className="text-muted-foreground">Total capacity</span>
+              <span className="font-medium">{totalCapacity}</span>
             </div>
           </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>
           <Button onClick={handleSave} disabled={saving || !tourId} className="bg-[#004165] text-white hover:bg-[#004165]/90">
-            {saving ? "Creating…" : "Create Slot"}
+            {saving ? "Creating…" : "Create Availability Slot"}
           </Button>
         </DialogFooter>
       </DialogContent>

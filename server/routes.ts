@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage.js";
 import { config } from "./config.js";
 import { db } from "./db.js";
-import { sql } from "drizzle-orm";
+import { sql, eq } from "drizzle-orm";
 import {
   insertBookingSchema,
   insertTourSchema,
@@ -18,6 +18,7 @@ import {
   insertAvailabilityHoldSchema,
   insertTourInstanceSchema,
   insertReviewSchema,
+  newsletterSubscribers,
   Booking,
   PaymentGateway,
 } from "../shared/schema.js";
@@ -1948,6 +1949,36 @@ ${allPages.map(p => `  <url>
     }
   });
 
+  // Update subscriber (manually confirm, unsubscribe, re-subscribe, edit name)
+  app.patch("/api/newsletter/subscribers/:id", requireAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { confirmed, unsubscribedAt, name } = req.body;
+      // Build update using drizzle ORM
+      const updateData: Record<string, any> = {};
+      if (confirmed !== undefined) updateData.confirmed = confirmed;
+      if (unsubscribedAt !== undefined) updateData.unsubscribedAt = unsubscribedAt === null ? null : new Date(unsubscribedAt);
+      if (name !== undefined) updateData.name = name;
+      if (Object.keys(updateData).length === 0) return res.json({ success: true });
+      await db.update(newsletterSubscribers).set(updateData).where(eq(newsletterSubscribers.id, id));
+      res.json({ success: true });
+    } catch (error) {
+      console.error("[NEWSLETTER PATCH ERROR]:", error);
+      res.status(500).json({ error: "Failed to update subscriber" });
+    }
+  });
+
+  // Delete subscriber permanently
+  app.delete("/api/newsletter/subscribers/:id", requireAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      await db.execute(sql`DELETE FROM newsletter_subscribers WHERE id = ${id}`);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete subscriber" });
+    }
+  });
+
   app.post("/api/newsletter/subscribe", newsletterLimiter, async (req, res) => {
     try {
       // Check feature flag
@@ -2162,7 +2193,8 @@ ${allPages.map(p => `  <url>
       const allBookings = await storage.getAllBookings();
       const catMap: Record<string, number> = { Tours: 0, Transfers: 0, "Bus Hire": 0 };
       for (const b of allBookings) {
-        if (b.status === "cancelled") continue;
+        // Only count actual revenue — confirmed and completed bookings only
+        if (b.status !== "confirmed" && b.status !== "completed") continue;
         const cents = b.totalAmountCents ?? 0;
         const name = (b.tourName ?? "").toLowerCase();
         if (name.includes("transfer") || name.includes("airport")) catMap["Transfers"] += cents;

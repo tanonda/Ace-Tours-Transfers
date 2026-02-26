@@ -305,9 +305,9 @@ export default function AdminCalendar() {
                           </div>
                         </button>
                       </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>
+                      <DialogContent className="max-w-2xl w-[95vw] max-h-[88vh] overflow-y-auto flex flex-col p-0">
+                        <DialogHeader className="px-6 pt-6 pb-4 border-b border-border sticky top-0 bg-background z-10">
+                          <DialogTitle className="text-lg">
                             {day.date.toLocaleDateString('en-US', {
                               weekday: 'long',
                               year: 'numeric',
@@ -319,49 +319,39 @@ export default function AdminCalendar() {
                             {day.bookings.length} booking(s) on this day
                           </DialogDescription>
                         </DialogHeader>
-                        <div className="space-y-3 max-h-[400px] overflow-y-auto">
+                        <div className="overflow-y-auto flex-1 px-6 py-4 space-y-3">
                           {day.bookings.length > 0 ? (
                             day.bookings.map(booking => (
-                              <div
-                                key={booking.id}
-                                className="p-4 border rounded-lg space-y-2"
-                              >
-                                <div className="flex items-center justify-between">
-                                  <h4 className="font-medium">{booking.tourName}</h4>
+                              <div key={booking.id} className="p-4 border border-border rounded-xl space-y-2 hover:bg-muted/20 transition-colors">
+                                <div className="flex items-center justify-between flex-wrap gap-2">
+                                  <h4 className="font-semibold text-sm">{booking.tourName}</h4>
                                   <Badge className={
-                                    booking.status === 'confirmed' ? 'bg-green-100 text-green-800' :
-                                      booking.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                                        booking.status === 'completed' ? 'bg-blue-100 text-blue-800' :
-                                          'bg-red-100 text-red-800'
-                                  }>
-                                    {booking.status}
-                                  </Badge>
+                                    booking.status === 'confirmed' ? 'bg-green-100 text-green-800 border-green-200' :
+                                      booking.status === 'pending' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' :
+                                        booking.status === 'completed' ? 'bg-blue-100 text-blue-800 border-blue-200' :
+                                          'bg-red-100 text-red-800 border-red-200'
+                                  } variant="outline">{booking.status}</Badge>
                                 </div>
-                                <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
-                                  <div className="flex items-center gap-2">
-                                    <Users className="h-4 w-4" />
-                                    {booking.customerName}
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    <Users className="h-4 w-4" />
-                                    {booking.guests} guests
-                                  </div>
-                                </div>
-                                <div className="text-sm font-medium text-[#004165]">
-                                  {booking.amount}
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2 text-sm">
+                                  <div><span className="text-muted-foreground text-xs block">Customer</span><p className="font-medium text-sm">{booking.customerName}</p></div>
+                                  <div><span className="text-muted-foreground text-xs block">Guests</span><p className="font-medium text-sm">{booking.guests} pax</p></div>
+                                  <div><span className="text-muted-foreground text-xs block">Amount</span><p className="font-semibold text-sm text-[#004165]">{booking.amount}</p></div>
+                                  {booking.customerEmail && <div className="col-span-2 sm:col-span-1"><span className="text-muted-foreground text-xs block">Email</span><p className="text-xs truncate">{booking.customerEmail}</p></div>}
+                                  {booking.customerPhone && <div><span className="text-muted-foreground text-xs block">Phone</span><p className="text-xs">{booking.customerPhone}</p></div>}
+                                  <div><span className="text-muted-foreground text-xs block">Booking ID</span><p className="font-mono text-xs text-muted-foreground">{booking.id.slice(0,12)}</p></div>
                                 </div>
                               </div>
                             ))
                           ) : (
                             <div className="text-center py-8 text-muted-foreground">
-                              No bookings for this day
+                              <p className="text-sm">No bookings for this day</p>
                             </div>
                           )}
                         </div>
 
-                        <div className="mt-6 pt-6 border-t space-y-4">
-                          <h3 className="font-bold text-lg flex items-center gap-2">
-                            <RefreshCw className="h-5 w-5 text-primary" />
+                        <div className="px-6 pb-6 mt-4 pt-4 border-t border-border space-y-4">
+                          <h3 className="font-bold text-base flex items-center gap-2">
+                            <RefreshCw className="h-4 w-4 text-primary" />
                             Manage Availability
                           </h3>
 
@@ -516,35 +506,90 @@ export default function AdminCalendar() {
               </CardContent>
             </Card>
 
-            {/* F: Today's full booking list dialog */}
+            {/* F: Today's full booking list dialog — detailed with print/CSV */}
             <Dialog open={todayDialogOpen} onOpenChange={setTodayDialogOpen}>
-              <DialogContent className="max-w-lg">
+              <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
                 <DialogHeader>
-                  <DialogTitle>All Bookings Today</DialogTitle>
-                  <DialogDescription>
-                    {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })} — {todayBookings.length} booking(s)
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-3 max-h-[400px] overflow-y-auto">
-                  {todayBookings.map(booking => (
-                    <div key={booking.id} className="p-4 border rounded-lg space-y-2">
-                      <div className="flex items-center justify-between">
-                        <h4 className="font-medium text-sm">{booking.tourName}</h4>
-                        <Badge className={
-                          booking.status === 'confirmed' ? 'bg-green-100 text-green-800' :
-                          booking.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                          booking.status === 'completed' ? 'bg-blue-100 text-blue-800' :
-                          'bg-red-100 text-red-800'
-                        }>{booking.status}</Badge>
-                      </div>
-                      <div className="grid grid-cols-2 gap-1 text-xs text-muted-foreground">
-                        <span>{booking.customerName}</span>
-                        <span>{booking.guests} guests</span>
-                        <span>{booking.customerEmail}</span>
-                        <span className="font-medium text-foreground">{booking.amount}</span>
-                      </div>
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <DialogTitle>Today's Schedule</DialogTitle>
+                      <DialogDescription>
+                        {new Date().toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} — {todayBookings.length} booking(s)
+                      </DialogDescription>
                     </div>
-                  ))}
+                    <div className="flex gap-2 shrink-0">
+                      <Button size="sm" variant="outline" className="h-8 text-xs"
+                        onClick={() => {
+                          const rows = [
+                            ["#","Customer","Email","Phone","Tour/Transfer","Guests","Amount","Status","Booking ID"],
+                            ...todayBookings.map((b: any, i: number) => [
+                              String(i+1), b.customerName||"", b.customerEmail||"", b.customerPhone||"",
+                              b.tourName||"", String(b.guests||""), b.amount||"", b.status||"",
+                              (b.id||"").slice(0,12)
+                            ])
+                          ];
+                          const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");
+                          const a = document.createElement("a");
+                          a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+                          a.download = `schedule-${new Date().toISOString().split("T")[0]}.csv`;
+                          a.click();
+                        }}>
+                        ⬇ CSV
+                      </Button>
+                      <Button size="sm" variant="outline" className="h-8 text-xs"
+                        onClick={() => {
+                          const w = window.open("","_blank","width=900,height=700");
+                          if (!w) return;
+                          const rows = todayBookings.map((b: any, i: number) => `
+                            <tr>
+                              <td>${i+1}</td><td>${b.customerName||""}</td>
+                              <td>${b.customerEmail||""}</td><td>${b.customerPhone||""}</td>
+                              <td>${b.tourName||""}</td><td>${b.guests||""}</td>
+                              <td>${b.amount||""}</td><td>${b.status||""}</td>
+                            </tr>`).join("");
+                          w.document.write(`<!DOCTYPE html><html><head><title>Schedule — ${new Date().toLocaleDateString()}</title>
+                            <style>body{font-family:Arial,sans-serif;padding:20px}h1{color:#004165}table{width:100%;border-collapse:collapse;font-size:12px}th{background:#004165;color:white;padding:8px;text-align:left}td{padding:7px 8px;border-bottom:1px solid #eee}tr:nth-child(even){background:#f9f9f9}@media print{button{display:none}}</style></head>
+                            <body><h1>Ace Tours & Transfers — Daily Schedule</h1><p><strong>Date:</strong> ${new Date().toLocaleDateString('en-AU', { weekday:'long', day:'numeric', month:'long', year:'numeric' })}</p>
+                            <table><thead><tr><th>#</th><th>Customer</th><th>Email</th><th>Phone</th><th>Tour / Transfer</th><th>Guests</th><th>Amount</th><th>Status</th></tr></thead>
+                            <tbody>${rows}</tbody></table>
+                            <script>window.onload=()=>window.print()<\/script></body></html>`);
+                          w.document.close();
+                        }}>
+                        🖨 Print
+                      </Button>
+                    </div>
+                  </div>
+                </DialogHeader>
+                <div className="space-y-3 overflow-y-auto flex-1 pr-1">
+                  {todayBookings.length === 0 ? (
+                    <div className="text-center py-10 text-muted-foreground">No bookings today.</div>
+                  ) : (
+                    todayBookings.map((booking: any, i: number) => (
+                      <div key={booking.id} className="p-4 border border-border rounded-xl space-y-3 bg-muted/20">
+                        <div className="flex items-center justify-between flex-wrap gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">{i+1}</span>
+                            <h4 className="font-semibold text-sm">{booking.tourName}</h4>
+                          </div>
+                          <Badge className={
+                            booking.status === 'confirmed' ? 'bg-green-100 text-green-800' :
+                            booking.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                            booking.status === 'completed' ? 'bg-blue-100 text-blue-800' :
+                            'bg-red-100 text-red-800'
+                          }>{booking.status}</Badge>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-1.5 text-sm">
+                          <div><span className="text-muted-foreground text-xs block">Customer</span><span className="font-medium">{booking.customerName}</span></div>
+                          <div><span className="text-muted-foreground text-xs block">Email</span><span className="text-xs">{booking.customerEmail||"—"}</span></div>
+                          <div><span className="text-muted-foreground text-xs block">Phone</span><span className="text-xs">{booking.customerPhone||"—"}</span></div>
+                          <div><span className="text-muted-foreground text-xs block">Guests</span><span className="font-medium">{booking.guests}</span></div>
+                          <div><span className="text-muted-foreground text-xs block">Amount</span><span className="font-semibold text-[#004165]">{booking.amount}</span></div>
+                          <div><span className="text-muted-foreground text-xs block">Booking ID</span><span className="font-mono text-xs">{(booking.id||"").slice(0,12)}</span></div>
+                        </div>
+                        {booking.notes && <div className="text-xs text-muted-foreground bg-yellow-50 border border-yellow-200 rounded p-2"><strong>Notes:</strong> {booking.notes}</div>}
+                      </div>
+                    ))
+                  )}
                 </div>
               </DialogContent>
             </Dialog>
@@ -577,7 +622,7 @@ export default function AdminCalendar() {
                             </div>
                           </div>
                         </DialogTrigger>
-                        <DialogContent>
+                        <DialogContent className="max-w-sm max-h-[80vh] overflow-y-auto">
                           <DialogHeader>
                             <DialogTitle>{booking.tourName}</DialogTitle>
                             <DialogDescription>

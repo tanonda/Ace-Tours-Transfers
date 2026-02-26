@@ -322,7 +322,7 @@ export default function AdminPayments() {
             </div>
 
             <Dialog open={!!selectedGateway} onOpenChange={(open) => !open && setSelectedGateway(null)}>
-                <DialogContent>
+                <DialogContent className="w-[92vw] max-w-xl max-h-[78vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle>{t("payments.configure")} {selectedGateway?.displayName}</DialogTitle>
                         <DialogDescription>
@@ -330,10 +330,11 @@ export default function AdminPayments() {
                         </DialogDescription>
                     </DialogHeader>
 
-                    <div className="space-y-4 py-4">
+                    <div className="space-y-4 py-2">
                         {selectedGateway && gatewaySchemas[selectedGateway.slug]?.credentials && (
                             <>
-                                <h4 className="font-semibold text-base">{t("payments.credentials")}</h4>
+                                <h4 className="font-semibold text-base sticky top-0 bg-background py-1">{t("payments.credentials")}</h4>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 {Object.keys(gatewaySchemas[selectedGateway.slug].credentials!.shape).map(key => {
                                     const fieldError = credentialsErrors[key];
                                     return (
@@ -351,11 +352,13 @@ export default function AdminPayments() {
                                         </div>
                                     );
                                 })}
+                                </div>
                             </>
                         )}
                         {selectedGateway && gatewaySchemas[selectedGateway.slug]?.config && (
                             <>
-                                <h4 className="font-semibold text-base mt-6">{t("payments.config")}</h4>
+                                <h4 className="font-semibold text-base mt-4 sticky top-0 bg-background py-1">{t("payments.config")}</h4>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 {Object.keys(gatewaySchemas[selectedGateway.slug].config!.shape).map(key => {
                                     const fieldError = configErrors[key];
                                     return (
@@ -363,7 +366,7 @@ export default function AdminPayments() {
                                             <Label htmlFor={`config-${key}`}>{key.split(/(?=[A-Z])/).map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ')}</Label>
                                             <Input
                                                 id={`config-${key}`}
-                                                type="text" // Config fields are usually not passwords
+                                                type="text"
                                                 value={config[key] || ""}
                                                 onChange={(e) => handleConfigChange(key, e.target.value)}
                                                 placeholder={`Enter ${key.split(/(?=[A-Z])/).map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ')}`}
@@ -373,11 +376,12 @@ export default function AdminPayments() {
                                         </div>
                                     );
                                 })}
+                                </div>
                             </>
                         )}
                     </div>
 
-                    <DialogFooter>
+                    <DialogFooter className="pt-4 border-t border-border mt-2">
                         <Button variant="outline" onClick={() => setSelectedGateway(null)}>
                             {t("common.cancel")}
                         </Button>
