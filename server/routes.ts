@@ -3,7 +3,8 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage.js";
 import { config } from "./config.js";
 import { db } from "./db.js";
-import { sql, eq } from "drizzle-orm";
+import { sql, eq, desc } from "drizzle-orm";
+import * as schema from "../shared/schema.js";
 import {
   insertBookingSchema,
   insertTourSchema,
@@ -1023,11 +1024,11 @@ ${allPages.map(p => `  <url>
     try {
       const d = req.body;
       const [promo] = await db.insert(schema.promotions).values({
-        code: (d.code||"").toUpperCase().trim(), description: d.description||"",
-        discountType: d.discountType||"percentage", discountValue: parseInt(d.discountValue)||0,
-        minPurchaseCents: Math.round((parseFloat(d.minPurchase||0))*100),
-        maxUses: parseInt(d.maxUses)||0, validFrom: d.validFrom, validTo: d.validTo,
-        applicableTo: d.applicableTo||"all", isActive: d.isActive!==false,
+        code: (d.code || "").toUpperCase().trim(), description: d.description || "",
+        discountType: d.discountType || "percentage", discountValue: parseInt(d.discountValue) || 0,
+        minPurchaseCents: Math.round((parseFloat(d.minPurchase || 0)) * 100),
+        maxUses: parseInt(d.maxUses) || 0, validFrom: d.validFrom, validTo: d.validTo,
+        applicableTo: d.applicableTo || "all", isActive: d.isActive !== false,
         createdBy: (req as any).user?.id,
       }).returning();
       res.json(promo);
@@ -1036,7 +1037,7 @@ ${allPages.map(p => `  <url>
   app.patch("/api/admin/promotions/:id", requireAdmin, async (req, res) => {
     try {
       const [p] = await db.update(schema.promotions).set(req.body).where(eq(schema.promotions.id, req.params.id)).returning();
-      res.json(p||{});
+      res.json(p || {});
     } catch (error: any) { res.status(500).json({ error: error.message }); }
   });
   app.delete("/api/admin/promotions/:id", requireAdmin, async (req, res) => {
@@ -1056,12 +1057,14 @@ ${allPages.map(p => `  <url>
       if (today < promo.validFrom) return res.json({ valid: false, message: "Promo not yet valid" });
       if (today > promo.validTo) return res.json({ valid: false, message: "Promo has expired" });
       if (promo.maxUses > 0 && promo.usedCount >= promo.maxUses) return res.json({ valid: false, message: "Usage limit reached" });
-      if (promo.minPurchaseCents > 0 && (subtotalCents||0) < promo.minPurchaseCents)
-        return res.json({ valid: false, message: `Minimum purchase of ${Math.round(promo.minPurchaseCents/100).toLocaleString()} VT required` });
-      const discountCents = promo.discountType==="percentage" ? Math.round((subtotalCents||0)*(promo.discountValue/100)) : promo.discountValue;
-      res.json({ valid:true, promoId:promo.id, code:promo.code, description:promo.description,
-        discountType:promo.discountType, discountValue:promo.discountValue, discountCents,
-        message: (promo.discountType==="percentage" ? promo.discountValue+"% off" : Math.round(promo.discountValue/100).toLocaleString()+" VT off")+" applied!" });
+      if (promo.minPurchaseCents > 0 && (subtotalCents || 0) < promo.minPurchaseCents)
+        return res.json({ valid: false, message: `Minimum purchase of ${Math.round(promo.minPurchaseCents / 100).toLocaleString()} VT required` });
+      const discountCents = promo.discountType === "percentage" ? Math.round((subtotalCents || 0) * (promo.discountValue / 100)) : promo.discountValue;
+      res.json({
+        valid: true, promoId: promo.id, code: promo.code, description: promo.description,
+        discountType: promo.discountType, discountValue: promo.discountValue, discountCents,
+        message: (promo.discountType === "percentage" ? promo.discountValue + "% off" : Math.round(promo.discountValue / 100).toLocaleString() + " VT off") + " applied!"
+      });
     } catch (error: any) { res.status(500).json({ error: error.message }); }
   });
 
@@ -2190,7 +2193,7 @@ ${allPages.map(p => `  <url>
   // C: Revenue by product category for dashboard bar chart
   app.get("/api/analytics/revenue-by-category", requireAdmin, async (_req, res) => {
     try {
-      const allBookings = await storage.getAllBookings();
+      const allBookings = await storage.getBookings();
       const catMap: Record<string, number> = { Tours: 0, Transfers: 0, "Bus Hire": 0 };
       for (const b of allBookings) {
         // Only count actual revenue — confirmed and completed bookings only
