@@ -215,24 +215,127 @@ export class MastercardGatewayAdapter implements PaymentGatewayService {
   }
 
   /**
-   * Queries the current status of a payment with the Mastercard Payment Gateway.
+   * Queries the current status of a payment with the Mastercard Payment Gateway
+   * using the standard MIGS vpc_Command=queryDR (Query Direct Response).
+   *
+   * If the API endpoint is not yet configured (no ANZ merchant agreement),
+   * returns a clear "not configured" status instead of fake mock data.
    */
   async queryPaymentStatus(request: PaymentStatusRequest): Promise<PaymentStatusResponse> {
-    console.log(`Mastercard Gateway: Querying status for payment ${request.paymentId} / ${request.gatewayReference}`);
+    const endpoint = this.credentials.apiEndpoint || this.config.bankApiEndpointUrl;
 
-    // This would involve making a server-to-server query to the MCPGS
-    // using the vpc_MerchTxnRef or other transaction identifiers.
+    // Guard: if no endpoint is configured, return honestly instead of faking it
+    if (!endpoint) {
+      console.warn(`Mastercard Gateway: queryPaymentStatus called but no API endpoint configured for ${this.gatewayConfig.displayName}. Configure the endpoint URL in Admin → Payments.`);
+      return {
+        status: PaymentStatus.Pending,
+        message: `Payment status query unavailable: API endpoint not configured for ${this.gatewayConfig.displayName}. Configure in Admin → Payments.`,
+      };
+    }
 
-    // Mock logic: assume completed if gatewayReference exists
-    const mockStatus = request.gatewayReference ? PaymentStatus.Completed : PaymentStatus.Pending;
+    const txnRef = request.gatewayReference;
+    if (!txnRef) {
+      return {
+        status: PaymentStatus.Pending,
+        message: 'Cannot query status: no gateway transaction reference available.',
+      };
+    }
 
-    return {
-      status: mockStatus,
-      gatewayReference: request.gatewayReference || `mock-vpc-ref-${Date.now()}`,
-      amount: 10000, // Mock amount in cents
-      currency: this.config.defaultDisplayCurrency || 'VUV', // Use configured currency
-      message: 'Status retrieved (Mastercard Gateway mock).',
+    console.log(`Mastercard Gateway: Querying status for payment ${request.paymentId} (ref: ${txnRef}) via ${this.gatewayConfig.displayName}`);
+
+    // Build VPC queryDR parameters
+    const vpcParams: Record<string, string> = {
+      vpc_Command: 'queryDR',
+      vpc_AccessCode: this.credentials.accessCode,
+      vpc_Merchant: this.credentials.merchantId,
+      vpc_MerchTxnRef: txnRef,
+      vpc_Version: this.credentials.version || '1',
     };
+
+    // Sign the request
+    const secureHash = this.generateSecureHash(vpcParams);
+    vpcParams.vpc_SecureHash = secureHash;
+    vpcParams.vpc_SecureHashType = 'SHA256';
+
+    try {
+      // Server-to-server HTTPS POST to the MIGS gateway
+      const body = Object.keys(vpcParams)
+        .map(key => `${key}=${encodeURIComponent(vpcParams[key])}`)
+        .join('&');
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body,
+        signal: AbortSignal.timeout(15_000), // 15s timeout
+      });
+
+      if (!response.ok) {
+        console.error(`Mastercard Gateway: queryDR HTTP error ${response.status} from ${this.gatewayConfig.displayName}`);
+        return {
+          status: PaymentStatus.Pending,
+          message: `Gateway returned HTTP ${response.status} during status query.`,
+        };
+      }
+
+      // Parse url-encoded response from the gateway
+      const responseText = await response.text();
+      const responseParams: Record<string, string> = {};
+      for (const pair of responseText.split('&')) {
+        const [key, ...rest] = pair.split('=');
+        responseParams[decodeURIComponent(key)] = decodeURIComponent(rest.join('='));
+      }
+
+      // Verify response hash if present
+      if (responseParams.vpc_SecureHash) {
+        const hashValid = this.verifySecureHash(responseParams, responseParams.vpc_SecureHash);
+        if (!hashValid) {
+          console.error(`Mastercard Gateway: queryDR response hash verification FAILED for ${this.gatewayConfig.displayName}`);
+          return {
+            status: PaymentStatus.Pending,
+            message: 'Status query response failed hash verification — possible tampering.',
+          };
+        }
+      }
+
+      // Map VPC response code to internal PaymentStatus
+      // vpc_TxnResponseCode: '0' = approved, '300' = pending/unknown,
+      // anything else = declined/failed (codes vary by bank)
+      const responseCode = responseParams.vpc_TxnResponseCode;
+      const drExists = responseParams.vpc_DRExists; // 'Y' if original txn found
+
+      let status: PaymentStatus;
+      if (drExists === 'N') {
+        // Transaction not found at the gateway
+        status = PaymentStatus.Pending;
+      } else if (responseCode === '0') {
+        status = PaymentStatus.Completed;
+      } else if (responseCode === '300' || responseCode === 'P') {
+        status = PaymentStatus.Processing; // Still pending at gateway
+      } else {
+        status = PaymentStatus.Failed;
+      }
+
+      const amount = responseParams.vpc_Amount ? parseInt(responseParams.vpc_Amount, 10) : undefined;
+
+      return {
+        status,
+        gatewayReference: responseParams.vpc_TransactionNo || txnRef,
+        amount,
+        currency: this.config.defaultDisplayCurrency || 'VUV',
+        message: `queryDR response code: ${responseCode || 'N/A'} (${this.gatewayConfig.displayName})`,
+        failureReason: status === PaymentStatus.Failed
+          ? `VPC response code: ${responseCode} — ${responseParams.vpc_Message || 'Declined'}`
+          : undefined,
+      };
+    } catch (error: any) {
+      // Network error, timeout, DNS failure, etc.
+      console.error(`Mastercard Gateway: queryDR network error for ${this.gatewayConfig.displayName}:`, error.message);
+      return {
+        status: PaymentStatus.Pending,
+        message: `Status query failed: ${error.message}. Will retry later.`,
+      };
+    }
   }
 
   /**
