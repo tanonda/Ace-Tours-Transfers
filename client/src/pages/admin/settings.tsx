@@ -130,7 +130,7 @@ export default function AdminSettings() {
             <TabsTrigger value="social">Social Media</TabsTrigger>
             <TabsTrigger value="banking">Bank Transfer</TabsTrigger>
             <TabsTrigger value="email">Email Config</TabsTrigger>
-            <TabsTrigger value="newsletter">Newsletter</TabsTrigger>
+            {/* Newsletter moved to its own dedicated page: /admin/newsletter */}
             <TabsTrigger value="seo">SEO / GEO</TabsTrigger>
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
             <TabsTrigger value="flags">Feature Flags</TabsTrigger>
@@ -258,7 +258,8 @@ export default function AdminSettings() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="newsletter" className="mt-4">
+          <TabsContent value="newsletter-removed" className="mt-4">
+            {/* Newsletter management has moved to its own dedicated page */}
             <div className="flex flex-col gap-4">
               {/* Enable/disable newsletter toggle */}
               <Card>

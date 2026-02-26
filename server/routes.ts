@@ -1011,6 +1011,59 @@ ${allPages.map(p => `  <url>
     }
   });
 
+  // Promotions API
+  app.get("/api/admin/promotions", requireAdmin, async (_req, res) => {
+    try {
+      const rows = await db.select().from(schema.promotions).orderBy(desc(schema.promotions.createdAt));
+      res.json(rows);
+    } catch (error: any) { res.status(500).json({ error: error.message }); }
+  });
+  app.post("/api/admin/promotions", requireAdmin, async (req, res) => {
+    try {
+      const d = req.body;
+      const [promo] = await db.insert(schema.promotions).values({
+        code: (d.code||"").toUpperCase().trim(), description: d.description||"",
+        discountType: d.discountType||"percentage", discountValue: parseInt(d.discountValue)||0,
+        minPurchaseCents: Math.round((parseFloat(d.minPurchase||0))*100),
+        maxUses: parseInt(d.maxUses)||0, validFrom: d.validFrom, validTo: d.validTo,
+        applicableTo: d.applicableTo||"all", isActive: d.isActive!==false,
+        createdBy: (req as any).user?.id,
+      }).returning();
+      res.json(promo);
+    } catch (error: any) { res.status(500).json({ error: error.message }); }
+  });
+  app.patch("/api/admin/promotions/:id", requireAdmin, async (req, res) => {
+    try {
+      const [p] = await db.update(schema.promotions).set(req.body).where(eq(schema.promotions.id, req.params.id)).returning();
+      res.json(p||{});
+    } catch (error: any) { res.status(500).json({ error: error.message }); }
+  });
+  app.delete("/api/admin/promotions/:id", requireAdmin, async (req, res) => {
+    try {
+      await db.delete(schema.promotions).where(eq(schema.promotions.id, req.params.id));
+      res.json({ success: true });
+    } catch (error: any) { res.status(500).json({ error: error.message }); }
+  });
+  app.post("/api/promotions/validate", async (req, res) => {
+    try {
+      const { code, subtotalCents } = req.body;
+      if (!code) return res.json({ valid: false, message: "No code provided" });
+      const [promo] = await db.select().from(schema.promotions).where(eq(schema.promotions.code, (code as string).toUpperCase().trim())).limit(1);
+      if (!promo) return res.json({ valid: false, message: "Invalid promo code" });
+      if (!promo.isActive) return res.json({ valid: false, message: "Promo code is inactive" });
+      const today = new Date().toISOString().split("T")[0];
+      if (today < promo.validFrom) return res.json({ valid: false, message: "Promo not yet valid" });
+      if (today > promo.validTo) return res.json({ valid: false, message: "Promo has expired" });
+      if (promo.maxUses > 0 && promo.usedCount >= promo.maxUses) return res.json({ valid: false, message: "Usage limit reached" });
+      if (promo.minPurchaseCents > 0 && (subtotalCents||0) < promo.minPurchaseCents)
+        return res.json({ valid: false, message: `Minimum purchase of ${Math.round(promo.minPurchaseCents/100).toLocaleString()} VT required` });
+      const discountCents = promo.discountType==="percentage" ? Math.round((subtotalCents||0)*(promo.discountValue/100)) : promo.discountValue;
+      res.json({ valid:true, promoId:promo.id, code:promo.code, description:promo.description,
+        discountType:promo.discountType, discountValue:promo.discountValue, discountCents,
+        message: (promo.discountType==="percentage" ? promo.discountValue+"% off" : Math.round(promo.discountValue/100).toLocaleString()+" VT off")+" applied!" });
+    } catch (error: any) { res.status(500).json({ error: error.message }); }
+  });
+
   // Bookings API
   app.get("/api/bookings", requireAdmin, async (_req, res) => {
     try {

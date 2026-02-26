@@ -7,117 +7,84 @@ import { useToast } from "@/hooks/use-toast";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { useTranslation } from "react-i18next";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
-
-function KPI({ label, value, delta, colorClass }: { label: string; value: string | number; delta?: string; colorClass?: string }) {
-  return (
-    <div data-testid={`kpi-${label.toLowerCase().replace(/\s+/g, '-')}`} className="p-4 rounded-xl bg-card border border-border">
-      <div className="flex items-center justify-between mb-2">
-        <div className="text-xs text-muted-foreground uppercase tracking-wide">{label}</div>
-        <div className={`w-9 h-9 rounded-lg flex items-center justify-center font-bold text-sm ${colorClass || 'bg-primary text-primary-foreground'}`}>
-          {label[0]}
-        </div>
-      </div>
-      <div className="flex items-baseline gap-2">
-        <div className="text-2xl font-bold text-foreground">{value}</div>
-        {delta && (
-          <div className={`text-xs font-medium ${delta.startsWith('+') ? 'text-green-500' : 'text-red-500'}`}>
-            {delta}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
+import {
+  TrendingUp, DollarSign, CalendarCheck, Map, Activity,
+  ExternalLink, AlertCircle, Download, Plus, BarChart2, ChevronRight, Clock
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 function BookingModal({ booking, onClose, onUpdate, t }: { booking: any; onClose: () => void; onUpdate: (status: string) => void; t: (key: string) => string }) {
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[1000]">
-      <div className="bg-card p-6 rounded-2xl w-[400px] max-w-[90%] border border-border">
-        <h3 className="text-foreground text-lg font-semibold mb-4">{t("dashboard.bookingDetails")}</h3>
-        <div className="flex flex-col gap-3 text-muted-foreground">
-          <div><strong className="text-foreground">{t("booking.id")}:</strong> #{`ACT-${(booking.id||'').replace(/^book_/i,'').replace(/-/g,'').slice(0,8).toUpperCase()}`}</div>
-          <div><strong className="text-foreground">{t("booking.customer")}:</strong> {booking.customerName}</div>
-          <div><strong className="text-foreground">{t("booking.tour")}:</strong> {booking.tourName}</div>
-          <div><strong className="text-foreground">{t("booking.date")}:</strong> {booking.date}</div>
-          <div><strong className="text-foreground">{t("booking.guests")}:</strong> {booking.guests}</div>
-          <div><strong className="text-foreground">{t("booking.amount")}:</strong> {booking.amount}</div>
-          <div><strong className="text-foreground">{t("booking.status")}:</strong> {booking.status}</div>
+      <div className="bg-card p-6 rounded-2xl w-[440px] max-w-[92vw] border border-border shadow-xl">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-foreground text-lg font-semibold">{t("dashboard.bookingDetails")}</h3>
         </div>
-        <div className="mt-5 flex gap-2">
-          <button
-            data-testid="button-confirm-booking"
-            onClick={() => onUpdate('confirmed')}
-            className="flex-1 py-2.5 rounded-lg border-none bg-green-500 text-white font-semibold cursor-pointer hover:bg-green-600 transition-colors"
-          >
-            {t("booking.confirm")}
-          </button>
-          <button
-            data-testid="button-cancel-booking"
-            onClick={() => onUpdate('cancelled')}
-            className="flex-1 py-2.5 rounded-lg border-none bg-red-500 text-white font-semibold cursor-pointer hover:bg-red-600 transition-colors"
-          >
-            {t("booking.cancel")}
-          </button>
+        <div className="grid grid-cols-2 gap-3 text-sm mb-5">
+          {[
+            [t("booking.id"), `ACT-${(booking.id||'').replace(/^book_/i,'').replace(/-/g,'').slice(0,8).toUpperCase()}`],
+            [t("booking.customer"), booking.customerName],
+            [t("booking.tour"), booking.tourName],
+            [t("booking.date"), booking.date],
+            [t("booking.guests"), booking.guests],
+            [t("booking.amount"), booking.amount],
+          ].map(([label, val]) => (
+            <div key={String(label)} className="bg-muted/40 rounded-lg p-3">
+              <div className="text-xs text-muted-foreground mb-0.5">{label}</div>
+              <div className="font-semibold text-foreground">{val}</div>
+            </div>
+          ))}
         </div>
-        <button
-          data-testid="button-close-modal"
-          onClick={onClose}
-          className="mt-3 w-full py-2.5 rounded-lg border border-border bg-transparent text-foreground cursor-pointer hover:bg-muted transition-colors"
-        >
-          {t("dashboard.close")}
-        </button>
+        <div className="flex gap-2 mb-2">
+          <button data-testid="button-confirm-booking" onClick={() => onUpdate('confirmed')} className="flex-1 py-2.5 rounded-lg bg-green-500 text-white font-semibold text-sm hover:bg-green-600 transition-colors">{t("booking.confirm")}</button>
+          <button data-testid="button-cancel-booking" onClick={() => onUpdate('cancelled')} className="flex-1 py-2.5 rounded-lg bg-red-500 text-white font-semibold text-sm hover:bg-red-600 transition-colors">{t("booking.cancel")}</button>
+        </div>
+        <button data-testid="button-close-modal" onClick={onClose} className="w-full py-2.5 rounded-lg border border-border bg-transparent text-foreground text-sm hover:bg-muted transition-colors">{t("dashboard.close")}</button>
       </div>
     </div>
   );
 }
 
-function Table({ rows, onOpenBooking, t }: { rows: any[]; onOpenBooking: (booking: any) => void; t: (key: string) => string }) {
+function BookingsTable({ rows, onOpenBooking, t }: { rows: any[]; onOpenBooking: (b: any) => void; t: (k: string) => string }) {
   const getTranslatedStatus = (status: string) => {
-    const statusLower = status.toLowerCase();
-    if (statusLower === 'paid' || statusLower === 'confirmed') return t("booking.confirmed");
-    if (statusLower === 'pending') return t("booking.pending");
-    if (statusLower === 'completed') return t("booking.completed");
-    if (statusLower === 'cancelled') return t("booking.cancelled");
+    const s = status?.toLowerCase();
+    if (s === 'paid' || s === 'confirmed') return t("booking.confirmed");
+    if (s === 'pending') return t("booking.pending");
+    if (s === 'completed') return t("booking.completed");
+    if (s === 'cancelled') return t("booking.cancelled");
     return status;
   };
-
   return (
     <table className="w-full border-collapse">
       <thead className="text-left text-muted-foreground">
         <tr>
-          <th className="py-3 px-2 text-xs uppercase tracking-wide border-b border-border">{t("booking.id")}</th>
-          <th className="py-3 px-2 text-xs uppercase tracking-wide border-b border-border">{t("booking.customer")}</th>
-          <th className="py-3 px-2 text-xs uppercase tracking-wide border-b border-border">{t("dashboard.route")}</th>
-          <th className="py-3 px-2 text-xs uppercase tracking-wide border-b border-border">{t("booking.date")}</th>
-          <th className="py-3 px-2 text-xs uppercase tracking-wide border-b border-border">{t("booking.amount")}</th>
-          <th className="py-3 px-2 text-xs uppercase tracking-wide border-b border-border">{t("booking.status")}</th>
-          <th className="py-3 px-2 text-xs uppercase tracking-wide border-b border-border">{t("dashboard.action")}</th>
+          {[t("booking.id"), t("booking.customer"), t("dashboard.route"), t("booking.date"), t("booking.amount"), t("booking.status"), t("dashboard.action")].map(h => (
+            <th key={h} className="py-3 px-2 text-xs uppercase tracking-wide border-b border-border">{h}</th>
+          ))}
         </tr>
       </thead>
       <tbody>
         {rows.map(r => (
-          <tr key={r.id} data-testid={`row-booking-${r.id}`} className="border-b border-border/30">
-            <td className="py-3 px-2 text-foreground text-sm">#{r.id?.slice(0, 6) || r.id}</td>
-            <td className="py-3 px-2 text-foreground text-sm">{r.customerName || r.name}</td>
-            <td className="py-3 px-2 text-foreground text-sm">{r.tourName || r.route}</td>
-            <td className="py-3 px-2 text-foreground text-sm">{r.date}</td>
-            <td className="py-3 px-2 text-foreground text-sm">{r.amount}</td>
+          <tr key={r.id} data-testid={`row-booking-${r.id}`} className="border-b border-border/30 hover:bg-muted/20 transition-colors">
+            <td className="py-3 px-2 text-foreground text-sm font-mono text-xs">#{(r.id||'').slice(0,6)}</td>
             <td className="py-3 px-2">
-              <span className={`px-2.5 py-1 rounded-md text-xs font-semibold ${r.status === 'confirmed' || r.status === 'Paid'
-                  ? 'bg-green-500/15 text-green-500'
-                  : r.status === 'pending' || r.status === 'Pending'
-                    ? 'bg-yellow-500/15 text-yellow-500'
-                    : 'bg-red-500/15 text-red-500'
-                }`}>
+              <div className="text-sm font-medium text-foreground">{r.customerName}</div>
+              {r.customerEmail && <div className="text-xs text-muted-foreground">{r.customerEmail}</div>}
+            </td>
+            <td className="py-3 px-2 text-foreground text-sm max-w-[150px] truncate">{r.tourName}</td>
+            <td className="py-3 px-2 text-muted-foreground text-sm">{r.date}</td>
+            <td className="py-3 px-2 text-foreground text-sm font-semibold">{r.amount}</td>
+            <td className="py-3 px-2">
+              <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                r.status === 'confirmed' || r.status === 'paid' ? 'bg-green-500/15 text-green-600' :
+                r.status === 'pending' ? 'bg-yellow-500/15 text-yellow-600' :
+                r.status === 'completed' ? 'bg-blue-500/15 text-blue-600' :
+                'bg-red-500/15 text-red-500'}`}>
                 {getTranslatedStatus(r.status)}
               </span>
             </td>
             <td className="py-3 px-2">
-              <button
-                data-testid={`button-open-${r.id}`}
-                onClick={() => onOpenBooking(r)}
-                className="bg-primary text-primary-foreground px-3 py-1.5 rounded-md border-none font-semibold cursor-pointer text-xs hover:opacity-90 transition-opacity"
-              >
+              <button data-testid={`button-open-${r.id}`} onClick={() => onOpenBooking(r)} className="bg-primary text-primary-foreground px-3 py-1.5 rounded-md border-none font-semibold cursor-pointer text-xs hover:opacity-90 transition-opacity">
                 {t("common.view")}
               </button>
             </td>
@@ -125,6 +92,33 @@ function Table({ rows, onOpenBooking, t }: { rows: any[]; onOpenBooking: (bookin
         ))}
       </tbody>
     </table>
+  );
+}
+
+function KPICard({ label, value, delta, icon: Icon, colorClass, sublabel, href }: {
+  label: string; value: string | number; delta?: string; icon: any; colorClass: string; sublabel?: string; href?: string;
+}) {
+  return (
+    <div className="p-5 rounded-xl bg-card border border-border hover:border-primary/20 transition-colors">
+      <div className="flex items-start justify-between mb-3">
+        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${colorClass}`}>
+          <Icon className="w-5 h-5" />
+        </div>
+        {delta && (
+          <div className="flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-full bg-green-500/10 text-green-600">
+            <TrendingUp className="w-3 h-3" />{delta}
+          </div>
+        )}
+        {href && (
+          <a href={href} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary">
+            <ExternalLink className="w-3.5 h-3.5" />
+          </a>
+        )}
+      </div>
+      <div className="text-2xl font-bold text-foreground mb-0.5">{value}</div>
+      <div className="text-xs text-muted-foreground uppercase tracking-wide">{label}</div>
+      {sublabel && <div className="text-xs text-muted-foreground mt-1">{sublabel}</div>}
+    </div>
   );
 }
 
@@ -140,26 +134,14 @@ export default function AdminDashboard() {
 
   const fmtVT = (n?: number) => {
     if (n == null) return '-';
-    const locale = i18n.language === 'zh' ? 'zh-CN' : i18n.language === 'fr' ? 'fr-FR' : i18n.language === 'es' ? 'es-ES' : 'en-US';
+    const locale = i18n.language === 'zh' ? 'zh-CN' : i18n.language === 'fr' ? 'fr-FR' : 'en-US';
     return `${n.toLocaleString(locale)} ${t("dashboard.currencySuffix")}`;
   };
 
-  const { data: bookings = [] } = useQuery({
-    queryKey: ["bookings"],
-    queryFn: fetchBookings,
-  });
+  const { data: bookings = [] } = useQuery({ queryKey: ["bookings"], queryFn: fetchBookings });
+  const { data: stats } = useQuery({ queryKey: ["stats"], queryFn: fetchBookingStats });
+  const { data: tours = [] } = useQuery({ queryKey: ["tours"], queryFn: fetchTours });
 
-  const { data: stats } = useQuery({
-    queryKey: ["stats"],
-    queryFn: fetchBookingStats,
-  });
-
-  const { data: tours = [] } = useQuery({
-    queryKey: ["tours"],
-    queryFn: fetchTours,
-  });
-
-  // C: Live uptime from BetterStack proxy (free tier). Falls back to "N/A" if not configured.
   const { data: uptimeData } = useQuery({
     queryKey: ["uptime"],
     queryFn: async () => {
@@ -167,11 +149,10 @@ export default function AdminDashboard() {
       if (!res.ok) return null;
       return res.json();
     },
-    refetchInterval: 5 * 60 * 1000, // refresh every 5 min
+    refetchInterval: 5 * 60 * 1000,
     retry: false,
   });
 
-  // C: Revenue breakdown by category for Recharts bar chart
   const { data: revenueByCategory = [] } = useQuery({
     queryKey: ["revenue-by-category"],
     queryFn: async () => {
@@ -190,9 +171,7 @@ export default function AdminDashboard() {
       toast({ title: t("dashboard.bookingUpdated"), description: t("dashboard.bookingUpdatedDesc") });
       setSelectedBooking(null);
     },
-    onError: () => {
-      toast({ title: t("common.error"), description: t("dashboard.updateFailed"), variant: "destructive" });
-    }
+    onError: () => toast({ title: t("common.error"), description: t("dashboard.updateFailed"), variant: "destructive" }),
   });
 
   const handleExportCSV = async () => {
@@ -205,30 +184,25 @@ export default function AdminDashboard() {
   };
 
   const filteredBookings = bookings.filter(b => {
-    // Filter by status
     const statusMatch = statusFilter === 'all' || b.status.toLowerCase() === statusFilter.toLowerCase();
-
-    // Filter by search query (searches across multiple fields)
     if (!searchQuery.trim()) return statusMatch;
-
-    const query = searchQuery.toLowerCase();
-    const matches =
-      b.customerName?.toLowerCase().includes(query) ||
-      b.tourName?.toLowerCase().includes(query) ||
-      b.id?.toLowerCase().includes(query) ||
-      b.amount?.toLowerCase().includes(query) ||
-      b.status?.toLowerCase().includes(query) ||
-      b.date?.toLowerCase().includes(query) ||
-      b.guests?.toString().includes(query);
-
+    const q = searchQuery.toLowerCase();
+    const matches = b.customerName?.toLowerCase().includes(q) || b.tourName?.toLowerCase().includes(q) ||
+      b.id?.toLowerCase().includes(q) || b.amount?.toLowerCase().includes(q) ||
+      b.status?.toLowerCase().includes(q) || b.date?.toLowerCase().includes(q);
     return statusMatch && matches;
   });
 
   const recentBookings = filteredBookings.slice(0, 10);
-  const totalRevenue = bookings.reduce((sum, b) => {
-    const amount = parseFloat(String(b.amount).replace(/[^0-9.]/g, '')) || 0;
-    return sum + amount;
-  }, 0);
+  const totalRevenue = bookings.reduce((sum, b) => sum + (parseFloat(String(b.amount).replace(/[^0-9.]/g, '')) || 0), 0);
+  const pendingCount = bookings.filter(b => b.status === 'pending').length;
+  const confirmedCount = bookings.filter(b => b.status === 'confirmed').length;
+
+  // BetterStack uptime
+  const uptimeStatus = uptimeData?.status;
+  const uptimeValue = uptimeData?.uptime ?? (uptimeData?.configured === false ? "Configure" : "N/A");
+  const uptimeDot = uptimeStatus === 'up' ? 'bg-green-500' : uptimeStatus === 'down' ? 'bg-red-500' : 'bg-yellow-400';
+  const uptimeLabel = uptimeStatus === 'up' ? 'Operational' : uptimeStatus === 'down' ? '⚠ Down' : 'Unknown';
 
   return (
     <DashboardLayout type="admin">
@@ -242,14 +216,11 @@ export default function AdminDashboard() {
       )}
 
       <div className="flex flex-col gap-5">
+        {/* Header */}
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">
-              {t("dashboard.welcome")}, {user?.name || 'Admin'}
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {t("dashboard.whatsHappening")}
-            </p>
+            <h1 className="text-2xl font-bold text-foreground">{t("dashboard.welcome")}, {user?.name || 'Admin'}</h1>
+            <p className="mt-1 text-sm text-muted-foreground">{t("dashboard.whatsHappening")}</p>
           </div>
           <div className="flex gap-2">
             <input
@@ -259,56 +230,110 @@ export default function AdminDashboard() {
               onChange={(e) => setSearchQuery(e.target.value)}
               className="py-2.5 px-3.5 rounded-lg border border-border min-w-[200px] bg-background text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
-            <button
-              data-testid="button-export-csv"
-              onClick={handleExportCSV}
-              className="bg-primary py-2.5 px-4 rounded-lg cursor-pointer border-none text-primary-foreground text-sm font-semibold hover:opacity-90 transition-opacity"
-            >
+            <Button data-testid="button-export-csv" onClick={handleExportCSV} size="sm" className="gap-2">
+              <Download className="w-4 h-4" />
               {t("common.export")}
-            </button>
+            </Button>
           </div>
         </div>
 
+        {/* Pending alert banner */}
+        {pendingCount > 0 && (
+          <div className="flex items-center gap-3 px-4 py-3 bg-yellow-500/10 border border-yellow-500/30 rounded-xl text-sm">
+            <AlertCircle className="w-4 h-4 text-yellow-600 shrink-0" />
+            <span className="font-semibold text-yellow-700">{pendingCount} booking{pendingCount > 1 ? 's' : ''} pending review</span>
+            <button onClick={() => setStatusFilter('pending')} className="ml-auto text-xs font-semibold text-yellow-700 hover:underline">
+              Show pending →
+            </button>
+          </div>
+        )}
+
+        {/* KPI Cards */}
         <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <KPI label={t("dashboard.revenue")} value={fmtVT(totalRevenue * 100)} delta="+8%" colorClass="bg-yellow-500 text-yellow-950" />
-          <KPI label={t("dashboard.bookings")} value={stats?.total || bookings.length} delta="+3%" colorClass="bg-blue-500 text-blue-950" />
-          <KPI label={t("dashboard.activeTours")} value={tours.length} delta="+1%" colorClass="bg-green-500 text-green-950" />
-          <KPI
-            label={t("dashboard.uptime")}
-            value={uptimeData?.uptime ?? "N/A"}
-            delta={uptimeData?.status === "up" ? "Operational" : uptimeData?.status === "down" ? "⚠ Down" : undefined}
-            colorClass="bg-red-400 text-red-950"
+          <KPICard
+            label={t("dashboard.revenue")}
+            value={fmtVT(totalRevenue * 100)}
+            delta="+8%"
+            icon={DollarSign}
+            colorClass="bg-yellow-500/15 text-yellow-600"
+            sublabel="All time"
           />
+          <KPICard
+            label={t("dashboard.bookings")}
+            value={stats?.total || bookings.length}
+            delta={`${confirmedCount} confirmed`}
+            icon={CalendarCheck}
+            colorClass="bg-blue-500/15 text-blue-600"
+            sublabel={`${pendingCount} pending`}
+          />
+          <KPICard
+            label={t("dashboard.activeTours")}
+            value={tours.filter((t: any) => t.isActive !== false).length}
+            icon={Map}
+            colorClass="bg-green-500/15 text-green-600"
+            sublabel={`${tours.length} total products`}
+          />
+          {/* Uptime card with live BetterStack link */}
+          <div className="p-5 rounded-xl bg-card border border-border hover:border-primary/20 transition-colors">
+            <div className="flex items-start justify-between mb-3">
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-red-500/15 text-red-500">
+                <Activity className="w-5 h-5" />
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className={`w-2 h-2 rounded-full ${uptimeDot} ${uptimeStatus === 'up' ? 'animate-pulse' : ''}`} />
+                <span className="text-xs font-medium text-muted-foreground">{uptimeLabel}</span>
+              </div>
+            </div>
+            <div className="text-2xl font-bold text-foreground mb-0.5">{uptimeValue}</div>
+            <div className="text-xs text-muted-foreground uppercase tracking-wide mb-2">{t("dashboard.uptime")}</div>
+            <a href="https://uptime.betterstack.com" target="_blank" rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
+              BetterStack <ExternalLink className="w-3 h-3" />
+            </a>
+          </div>
         </section>
 
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-5">
-          <div className="p-5 rounded-xl bg-card border border-border">
-            <div className="flex items-center justify-between mb-4">
+
+          {/* Bookings table */}
+          <div className="rounded-xl bg-card border border-border overflow-hidden">
+            <div className="flex items-center justify-between p-5 border-b border-border">
               <h3 className="text-foreground text-base font-semibold">{t("dashboard.recentBookings")}</h3>
-              <select
-                data-testid="select-status-filter"
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="py-1.5 px-3 rounded-md bg-muted border border-border text-foreground text-xs cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50"
-              >
-                <option value="all">{t("dashboard.allStatuses")}</option>
-                <option value="confirmed">{t("booking.confirmed")}</option>
-                <option value="pending">{t("booking.pending")}</option>
-                <option value="cancelled">{t("booking.cancelled")}</option>
-              </select>
+              <div className="flex items-center gap-2">
+                <select
+                  data-testid="select-status-filter"
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="py-1.5 px-3 rounded-md bg-muted border border-border text-foreground text-xs cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50"
+                >
+                  <option value="all">{t("dashboard.allStatuses")}</option>
+                  <option value="confirmed">{t("booking.confirmed")}</option>
+                  <option value="pending">{t("booking.pending")}</option>
+                  <option value="cancelled">{t("booking.cancelled")}</option>
+                </select>
+                <button onClick={() => setLocation('/admin/bookings')} className="text-xs text-primary hover:underline flex items-center gap-0.5">
+                  All <ChevronRight className="w-3 h-3" />
+                </button>
+              </div>
             </div>
             {recentBookings.length > 0 ? (
-              <Table rows={recentBookings} onOpenBooking={setSelectedBooking} t={t} />
-            ) : (
-              <div className="py-10 text-center text-muted-foreground">
-                {t("dashboard.noBookingsYet")}
+              <div className="overflow-x-auto">
+                <BookingsTable rows={recentBookings} onOpenBooking={setSelectedBooking} t={t} />
               </div>
+            ) : (
+              <div className="py-12 text-center text-muted-foreground">{t("dashboard.noBookingsYet")}</div>
             )}
           </div>
 
+          {/* Right column */}
           <div className="flex flex-col gap-4">
+
+            {/* Revenue breakdown chart */}
             <div className="p-5 rounded-xl bg-card border border-border">
-              <h4 className="text-foreground text-sm font-semibold mb-3">{t("dashboard.revenueBreakdown")}</h4>
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-foreground text-sm font-semibold">{t("dashboard.revenueBreakdown")}</h4>
+                <button onClick={() => setLocation('/admin/analytics')} className="text-xs text-primary hover:underline">Details →</button>
+              </div>
               {revenueByCategory.length > 0 ? (
                 <ResponsiveContainer width="100%" height={120}>
                   <BarChart data={revenueByCategory} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
@@ -327,78 +352,67 @@ export default function AdminDashboard() {
                 </ResponsiveContainer>
               ) : (
                 <div className="h-[120px] flex items-end justify-around gap-3">
-                  <div className="flex-1 bg-blue-500 rounded-t-md" style={{ height: "50%" }} />
-                  <div className="flex-1 bg-red-400 rounded-t-md" style={{ height: "75%" }} />
-                  <div className="flex-1 bg-green-500 rounded-t-md" style={{ height: "90%" }} />
+                  {[["#3b82f6", "50%"], ["#ef4444", "75%"], ["#22c55e", "90%"]].map(([c, h], i) => (
+                    <div key={i} className="flex-1 rounded-t-md opacity-30" style={{ backgroundColor: c, height: h }} />
+                  ))}
                 </div>
               )}
               <div className="flex justify-around mt-3 text-xs text-muted-foreground">
-                <span>{t("nav.tours")}</span>
-                <span>{t("nav.transfers")}</span>
-                <span>Bus Hire</span>
+                <span>{t("nav.tours")}</span><span>{t("nav.transfers")}</span><span>Bus Hire</span>
               </div>
             </div>
 
+            {/* System health with BetterStack link */}
             <div className="p-5 rounded-xl bg-card border border-border">
               <h4 className="text-foreground text-sm font-semibold mb-3">{t("dashboard.systemHealth")}</h4>
-              <div className="text-sm text-muted-foreground">
+              <div className="space-y-2 text-sm">
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                  <span className="w-2 h-2 rounded-full bg-green-500" />
                   <span className="text-foreground">{t("dashboard.allSystemsNominal")}</span>
                 </div>
-                <div className="text-xs text-muted-foreground">
-                  {t("dashboard.apiLatency")} • {t("dashboard.dbConnections")}
-                </div>
+                <div className="text-xs text-muted-foreground">{t("dashboard.apiLatency")} • {t("dashboard.dbConnections")}</div>
+              </div>
+              <div className="mt-3 pt-3 border-t border-border">
+                <a href="https://uptime.betterstack.com" target="_blank" rel="noopener noreferrer"
+                  className="text-xs text-primary hover:underline flex items-center gap-1">
+                  <ExternalLink className="w-3 h-3" /> Open BetterStack monitoring
+                </a>
               </div>
             </div>
 
+            {/* Quick actions */}
             <div className="p-5 rounded-xl bg-card border border-border">
               <h4 className="text-foreground text-sm font-semibold mb-3">{t("dashboard.quickActions")}</h4>
               <div className="flex flex-wrap gap-2">
-                <button
-                  data-testid="button-new-booking"
-                  onClick={() => setLocation('/reservations?tab=book-new')}
-                  className="bg-muted px-3 py-2 rounded-lg cursor-pointer border border-border text-foreground text-xs hover:bg-accent transition-colors"
-                >
+                <button data-testid="button-new-booking" onClick={() => setLocation('/reservations?tab=book-new')}
+                  className="bg-muted px-3 py-2 rounded-lg border border-border text-foreground text-xs hover:bg-accent transition-colors">
                   {t("dashboard.newBooking")}
                 </button>
-                <button
-                  data-testid="button-create-promo"
-                  onClick={() => setLocation('/admin/promotions')}
-                  className="bg-muted px-3 py-2 rounded-lg cursor-pointer border border-border text-foreground text-xs hover:bg-accent transition-colors"
-                >
+                <button data-testid="button-create-promo" onClick={() => setLocation('/admin/promotions')}
+                  className="bg-muted px-3 py-2 rounded-lg border border-border text-foreground text-xs hover:bg-accent transition-colors">
                   {t("dashboard.createPromo")}
                 </button>
-                <button
-                  data-testid="button-view-reports"
-                  onClick={() => setLocation('/admin/reports')}
-                  className="bg-muted px-3 py-2 rounded-lg cursor-pointer border border-border text-foreground text-xs hover:bg-accent transition-colors"
-                >
+                <button data-testid="button-view-reports" onClick={() => setLocation('/admin/reports')}
+                  className="bg-muted px-3 py-2 rounded-lg border border-border text-foreground text-xs hover:bg-accent transition-colors">
                   {t("dashboard.viewReports")}
                 </button>
               </div>
             </div>
 
+            {/* Recent activity */}
             <div className="p-5 rounded-xl bg-gradient-to-br from-primary/10 to-destructive/10 border border-primary/30">
               <h4 className="text-foreground text-sm font-semibold">{t("dashboard.notifications")}</h4>
               <ul className="mt-3 space-y-2">
-                {bookings.slice(0, 3).map((b) => (
+                {bookings.slice(0, 3).map((b: any) => (
                   <li key={b.id} className="flex items-center gap-2 text-sm">
-                    <span className={`w-1.5 h-1.5 rounded-full ${b.status === 'confirmed' ? 'bg-green-500' :
-                        b.status === 'pending' ? 'bg-yellow-500' : 'bg-red-400'
-                      }`}></span>
-                    <span className={
-                      b.status === 'confirmed' ? 'text-green-500' :
-                        b.status === 'pending' ? 'text-yellow-500' : 'text-red-400'
-                    }>
+                    <span className={`w-1.5 h-1.5 rounded-full ${b.status === 'confirmed' ? 'bg-green-500' : b.status === 'pending' ? 'bg-yellow-500' : 'bg-red-400'}`} />
+                    <span className={b.status === 'confirmed' ? 'text-green-500' : b.status === 'pending' ? 'text-yellow-500' : 'text-red-400'}>
                       {b.status === 'confirmed' ? t("booking.confirmed") : b.status === 'pending' ? t("dashboard.newBookingNotif") : t("booking.cancelled")}
                     </span>
                     <span className="text-muted-foreground">#{b.id?.slice(0, 6)}</span>
                   </li>
                 ))}
-                {bookings.length === 0 && (
-                  <li className="text-muted-foreground text-sm">{t("dashboard.noRecentActivity")}</li>
-                )}
+                {bookings.length === 0 && <li className="text-muted-foreground text-sm">{t("dashboard.noRecentActivity")}</li>}
               </ul>
             </div>
           </div>
