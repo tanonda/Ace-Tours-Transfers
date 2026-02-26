@@ -143,7 +143,7 @@ export class MastercardGatewayAdapter implements PaymentGatewayService {
 
     // Add 3D Secure parameters if enforced and conditions met (mock logic)
     if (this.config.enforce3DSecure && request.amount > (this.config.threeDSecureThreshold || 0)) {
-        vpcParams.vpc_3DSecure = 'Y'; // Example parameter
+      vpcParams.vpc_3DSecure = 'Y'; // Example parameter
     }
 
 
@@ -207,8 +207,9 @@ export class MastercardGatewayAdapter implements PaymentGatewayService {
     return {
       success: true,
       message: `Callback processed. MCPGS Response Code: ${responseCode}`,
-      paymentId: event.rawEvent.ourPaymentId, // Assuming this was passed through metadata/ReturnURL
-      bookingId: vpcResponseParams.vpc_OrderInfo, // Assuming we pass bookingId as vpc_OrderInfo
+      // paymentId is resolved by the application service via bookingId lookup.
+      // VPC params from the bank do not include our internal payment ID.
+      bookingId: vpcResponseParams.vpc_OrderInfo, // We set vpc_OrderInfo = bookingId in initiatePayment
       newPaymentStatus: newStatus,
     };
   }
