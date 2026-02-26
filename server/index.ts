@@ -232,7 +232,7 @@ const pgPool = neonPool;
 const sessionStore = new PGStore({
   pool: pgPool as any,
   tableName: "session",
-  pruneSessionInterval: 0, // Disable automatic pruning to avoid Neon pool compatibility issues
+  pruneSessionInterval: false, // Disable: passing 0 uses the default interval; false actually disables it
 });
 
 // Add error handling for session store
