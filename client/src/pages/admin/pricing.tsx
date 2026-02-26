@@ -13,7 +13,8 @@ import { useToast } from "@/hooks/use-toast";
 import { DollarSign, Plus, TrendingUp, Info, Star } from "lucide-react";
 
 function formatCurrency(cents: number): string {
-  return new Intl.NumberFormat("en-AU", { style: "currency", currency: "AUD" }).format(cents / 100);
+  const vt = Math.round(cents / 100);
+  return `VT ${vt.toLocaleString('en-US')}`;
 }
 
 export default function AdminPricing() {
@@ -136,31 +137,31 @@ export default function AdminPricing() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label htmlFor="adult-price">Adult Price (AUD) *</Label>
+                  <Label htmlFor="adult-price">Adult Price (VUV) *</Label>
                   <div className="relative">
-                    <span className="absolute left-3 top-2.5 text-muted-foreground text-sm">$</span>
+                    <span className="absolute left-3 top-2.5 text-muted-foreground text-sm">VT</span>
                     <Input id="adult-price" className="pl-7" placeholder="120.00" value={adultPrice} onChange={e => setAdultPrice(e.target.value)} type="number" min="0" step="0.01" />
                   </div>
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="child-price">Child Price (AUD)</Label>
+                  <Label htmlFor="child-price">Child Price (VUV)</Label>
                   <div className="relative">
-                    <span className="absolute left-3 top-2.5 text-muted-foreground text-sm">$</span>
+                    <span className="absolute left-3 top-2.5 text-muted-foreground text-sm">VT</span>
                     <Input id="child-price" className="pl-7" placeholder="60.00" value={childPrice} onChange={e => setChildPrice(e.target.value)} type="number" min="0" step="0.01" />
                   </div>
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="infant-price">Infant Price (AUD)</Label>
+                  <Label htmlFor="infant-price">Infant Price (VUV)</Label>
                   <div className="relative">
-                    <span className="absolute left-3 top-2.5 text-muted-foreground text-sm">$</span>
+                    <span className="absolute left-3 top-2.5 text-muted-foreground text-sm">VT</span>
                     <Input id="infant-price" className="pl-7" placeholder="0.00" value={infantPrice} onChange={e => setInfantPrice(e.target.value)} type="number" min="0" step="0.01" />
                   </div>
                   <p className="text-xs text-muted-foreground">Under 2 yrs — often free</p>
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="pet-price">Pet Price (AUD)</Label>
+                  <Label htmlFor="pet-price">Pet Price (VUV)</Label>
                   <div className="relative">
-                    <span className="absolute left-3 top-2.5 text-muted-foreground text-sm">$</span>
+                    <span className="absolute left-3 top-2.5 text-muted-foreground text-sm">VT</span>
                     <Input id="pet-price" className="pl-7" placeholder="0.00" value={petPrice} onChange={e => setPetPrice(e.target.value)} type="number" min="0" step="0.01" />
                   </div>
                   <p className="text-xs text-muted-foreground">Leave blank if not applicable</p>
