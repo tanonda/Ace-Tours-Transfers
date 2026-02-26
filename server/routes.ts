@@ -59,6 +59,7 @@ import {
 import { ZodError, z } from "zod";
 import { rateLimit as customRateLimit } from "./lib/rate-limiter.js";
 import { rateLimit } from "express-rate-limit";
+import { adminAudit } from "./infrastructure/audit/admin-audit-log.service.js";
 
 // Rate limiter for availability check
 const availabilityLimiter = rateLimit({
@@ -1894,9 +1895,20 @@ ${allPages.map(p => `  <url>
 
   app.put("/api/admin/settings/:key", requireAdmin, async (req, res) => {
     try {
+      const before = await storage.getSiteSetting(req.params.key).catch(() => null);
       const setting = await storage.upsertSiteSetting({
         key: req.params.key,
         value: req.body.value,
+      });
+      await adminAudit.log({
+        action: "settings.update",
+        entityType: "site_settings",
+        entityId: req.params.key,
+        entityName: req.params.key,
+        performedBy: req.session.userId,
+        previousValue: before ? { value: (before as any).value } : null,
+        newValue: { value: req.body.value },
+        req,
       });
       res.json(setting);
     } catch (error) {
@@ -2100,6 +2112,17 @@ ${allPages.map(p => `  <url>
       const updated = await storage.upsertFeatureFlag({
         ...flag,
         enabled
+      });
+
+      await adminAudit.log({
+        action: "flag.toggle",
+        entityType: "feature_flag",
+        entityId: slug,
+        entityName: (flag as any).displayName || (flag as any).name || slug,
+        performedBy: req.session.userId,
+        previousValue: { enabled: flag.enabled },
+        newValue: { enabled: updated.enabled },
+        req,
       });
 
       console.log(`[FEATURE-FLAG] ${updated.slug} toggled to ${updated.enabled ? 'ON' : 'OFF'} by admin`);

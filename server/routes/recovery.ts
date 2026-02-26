@@ -5,6 +5,7 @@ import { InventoryRepairService } from "../application/availability/inventory-re
 import { PaymentBookingDiffService } from "../application/recovery/recovery-report.service.js";
 import { BackupIntegrityGuard } from "../infrastructure/recovery/integrity-guard.js";
 import { requireAdmin } from "../routes.js";
+import { adminAudit } from "../infrastructure/audit/admin-audit-log.service.js";
 
 export async function registerRecoveryRoutes(app: Express, storage: IStorage) {
   const repairService = new InventoryRepairService(storage);
@@ -59,6 +60,23 @@ export async function registerRecoveryRoutes(app: Express, storage: IStorage) {
       results.steps.push({ step: 'final_diff_report', result: finalReport });
 
       console.log(`[RECOVERY][${runId}] Playbook completed. ${inventorySummary.totalFixed} items fixed.`);
+
+      // Audit: record recovery run
+      await adminAudit.log({
+        action: dryRun ? "recovery.dry_run" : "recovery.run",
+        entityType: "system",
+        entityId: runId,
+        entityName: "Inventory Recovery Playbook",
+        performedBy: (req.session as any)?.userId,
+        metadata: {
+          dryRun: !!dryRun,
+          totalFixed: inventorySummary.totalFixed,
+          totalErrors: inventorySummary.totalErrors,
+          totalProcessed: inventorySummary.totalProcessed,
+        },
+        req,
+      });
+
       res.json(results);
     } catch (error: any) {
       console.error(`[RECOVERY][${runId}] Playbook failed:`, error);
@@ -72,6 +90,17 @@ export async function registerRecoveryRoutes(app: Express, storage: IStorage) {
    */
   app.post("/api/admin/recovery/repair-instance/:id", requireAdmin, async (req, res) => {
     const result = await repairService.repairTourInstance(req.params.id);
+
+    await adminAudit.log({
+      action: "recovery.repair_instance",
+      entityType: "system",
+      entityId: req.params.id,
+      entityName: "Tour Instance Repair",
+      performedBy: (req.session as any)?.userId,
+      newValue: result,
+      req,
+    });
+
     res.json(result);
   });
 }

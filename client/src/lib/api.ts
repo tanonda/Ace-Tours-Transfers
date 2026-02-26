@@ -419,10 +419,34 @@ export async function fetchAuditLogs(filters?: { productId?: string; action?: st
   if (filters?.action) qs.set('action', filters.action);
   if (filters?.limit) qs.set('limit', String(filters.limit));
   if (filters?.offset) qs.set('offset', String(filters.offset));
-  if (filters?.offset) qs.set('offset', String(filters.offset));
   const res = await apiRequest("GET", `/api/admin/audit-log?${qs.toString()}`);
   return res.json();
 }
+
+// Admin Action Audit Log — tracks admin mutations (gateway, flags, settings, recovery)
+export async function fetchAdminActionLog(filters?: {
+  action?: string;
+  entityType?: string;
+  entityId?: string;
+  performedBy?: string;
+  from?: string;
+  to?: string;
+  limit?: number;
+  offset?: number;
+}) {
+  const qs = new URLSearchParams();
+  if (filters?.action) qs.set('action', filters.action);
+  if (filters?.entityType) qs.set('entityType', filters.entityType);
+  if (filters?.entityId) qs.set('entityId', filters.entityId);
+  if (filters?.performedBy) qs.set('performedBy', filters.performedBy);
+  if (filters?.from) qs.set('from', filters.from);
+  if (filters?.to) qs.set('to', filters.to);
+  if (filters?.limit) qs.set('limit', String(filters.limit));
+  if (filters?.offset) qs.set('offset', String(filters.offset));
+  const res = await apiRequest("GET", `/api/admin/admin-audit-log?${qs.toString()}`);
+  return res.json();
+}
+
 
 export async function fetchAvailableSlots(
   productId: string,
