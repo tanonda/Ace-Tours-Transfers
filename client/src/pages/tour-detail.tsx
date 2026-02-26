@@ -100,11 +100,11 @@ export default function TourDetail() {
     if (id) updateDraft({ productId: id, adultPax, childPax, infantPax, petPax, date, startTime: selectedTime || undefined });
   }, [id, adultPax, childPax, infantPax, petPax, date, selectedTime, updateDraft]);
 
-  const handleDateSelect = useCallback((d: string) => { 
+  const handleDateSelect = useCallback((d: string) => {
     // Clear user-selected time when choosing a new date (preserves clean UX)
     // The AvailabilityCalendar will restore initialSelectedTime (from URL) if date matches
-    setDate(d); 
-    setSelectedTime(null); 
+    setDate(d);
+    setSelectedTime(null);
   }, []);
   const handleTimeSelect = useCallback((t: string) => { setSelectedTime(t); }, []);
 
@@ -164,7 +164,7 @@ export default function TourDetail() {
     ? reviews.reduce((a: number, r: any) => a + r.rating, 0) / reviews.length
     : 0;
   const tourFaqs = [
-    { question: `What is included in the ${tour.title}?`, answer: tour.description?.slice(0, 300) || "Please contact us for full inclusions." },
+    { question: `What is included in the ${tour.title}?`, answer: (Array.isArray(tour.description) ? tour.description[0] : tour.description)?.slice(0, 300) || "Please contact us for full inclusions." },
     { question: "Is this tour suitable for children?", answer: "Yes, this tour accommodates children. Child pricing is available at checkout." },
     { question: "What is the cancellation policy?", answer: "Free cancellation up to 24 hours before your scheduled tour. Contact us for late cancellations." },
     { question: "Where does the tour depart from?", answer: "Pick-up is available from most Port Vila hotels. Please confirm your location at booking." },
@@ -174,13 +174,13 @@ export default function TourDetail() {
     <Layout>
       <SEO
         title={tour.title}
-        description={tour.description?.slice(0, 155) || `Book ${tour.title} in Port Vila, Vanuatu. ${tour.duration || ""} tour with Ace Tours & Transfers.`}
+        description={(Array.isArray(tour.description) ? tour.description[0] : tour.description)?.slice(0, 155) || `Book ${tour.title} in Port Vila, Vanuatu. ${tour.duration || ""} tour with Ace Tours & Transfers.`}
         image={tour.image}
         type="product"
         keywords={[tour.title, "Vanuatu tour", "Port Vila tour", tour.category || ""]}
         structuredType="TouristAttraction"
         productName={tour.title}
-        productDescription={tour.description}
+        productDescription={Array.isArray(tour.description) ? tour.description[0] : tour.description}
         offer={tour.adultPriceCents ? { price: tour.adultPriceCents, currency: "VUV", availability: "InStock" } : undefined}
         aggregateRating={reviews.length > 0 ? { ratingValue: avgRating, reviewCount: reviews.length } : undefined}
         reviews={reviews.slice(0, 5).map((r: any) => ({ author: r.userName || "Guest", rating: r.rating, body: r.comment, datePublished: r.createdAt?.slice(0, 10) }))}
@@ -214,9 +214,9 @@ export default function TourDetail() {
                 ✓ {t("tour.availableNow", "Available Now")}
               </span>
               {reviews.length > 0 && (
-              <span className="px-3 py-1 rounded-full border border-[#f4a830] bg-[#f4a830]/15 text-[#f4a830] text-[0.78rem] font-medium">
-                {"★".repeat(starsDisplay)} {averageRating.toFixed(1)} — {reviews.length} {t("quickView.reviews", "reviews")}
-              </span>
+                <span className="px-3 py-1 rounded-full border border-[#f4a830] bg-[#f4a830]/15 text-[#f4a830] text-[0.78rem] font-medium">
+                  {"★".repeat(starsDisplay)} {averageRating.toFixed(1)} — {reviews.length} {t("quickView.reviews", "reviews")}
+                </span>
               )}
               {tour.duration && (
                 <span className="px-3 py-1 rounded-full border border-[rgba(244,168,48,0.18)] bg-[#1a1710] text-[#8a826e] text-[0.78rem] font-medium">

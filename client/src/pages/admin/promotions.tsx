@@ -28,9 +28,13 @@ interface Promotion {
   applicableTo: 'all' | 'tours' | 'transfers';
 }
 
-const emptyForm = {
-  code: '', description: '', discountType: 'percentage' as const, discountValue: 0,
-  minPurchase: 0, maxUses: 0, validFrom: '', validTo: '', applicableTo: 'all' as const, isActive: true
+const emptyForm: {
+  code: string; description: string; discountType: 'percentage' | 'fixed'; discountValue: number;
+  minPurchase: number; maxUses: number; validFrom: string; validTo: string;
+  applicableTo: 'all' | 'tours' | 'transfers'; isActive: boolean;
+} = {
+  code: '', description: '', discountType: 'percentage', discountValue: 0,
+  minPurchase: 0, maxUses: 0, validFrom: '', validTo: '', applicableTo: 'all', isActive: true
 };
 
 async function fetchPromotions(): Promise<Promotion[]> {
@@ -125,7 +129,7 @@ export default function AdminPromotions() {
   };
 
   const formatDiscount = (p: Promotion) =>
-    p.discountType === 'percentage' ? `${p.discountValue}%` : `${(p.discountValue/100).toLocaleString()} VT`;
+    p.discountType === 'percentage' ? `${p.discountValue}%` : `${(p.discountValue / 100).toLocaleString()} VT`;
 
   const isExpired = (p: Promotion) => new Date().toISOString().split('T')[0] > p.validTo;
   const isUpcoming = (p: Promotion) => new Date().toISOString().split('T')[0] < p.validFrom;
@@ -303,7 +307,7 @@ export default function AdminPromotions() {
                               <span className="font-semibold text-sm">{formatDiscount(promo)}</span>
                             </div>
                             {promo.minPurchaseCents > 0 && (
-                              <div className="text-xs text-muted-foreground">Min: {(promo.minPurchaseCents/100).toLocaleString()} VT</div>
+                              <div className="text-xs text-muted-foreground">Min: {(promo.minPurchaseCents / 100).toLocaleString()} VT</div>
                             )}
                           </TableCell>
                           <TableCell>
@@ -376,7 +380,7 @@ export default function AdminPromotions() {
                 <div>
                   <span className={`font-semibold ${testResult.valid ? 'text-green-700' : 'text-red-600'}`}>{testResult.valid ? 'Valid' : 'Invalid'}</span>
                   <span className="text-muted-foreground ml-2">{testResult.message}</span>
-                  {testResult.valid && <span className="text-green-700 ml-2">→ {(testResult.discountCents/100).toLocaleString()} VT discount on 5,000 VT order</span>}
+                  {testResult.valid && <span className="text-green-700 ml-2">→ {(testResult.discountCents / 100).toLocaleString()} VT discount on 5,000 VT order</span>}
                 </div>
               </div>
             )}
