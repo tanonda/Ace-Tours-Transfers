@@ -282,8 +282,25 @@ export class PaymentApplicationService {
     const adapter = PaymentFactory.getPaymentGatewayService(gateway);
     const result = await adapter.handleWebhook(event);
 
-    if (result.success && result.paymentId && result.newPaymentStatus) {
-      const existingPayment = await this.storage.getPayment(result.paymentId);
+    // Resolve the payment: prefer explicit paymentId, fall back to bookingId lookup.
+    // Bank gateway callbacks (ANZ eGate, BSP, BRED) don't carry our internal paymentId
+    // through the redirect — only the bookingId survives as vpc_OrderInfo.
+    let resolvedPaymentId = result.paymentId;
+    if (!resolvedPaymentId && result.bookingId) {
+      const bookingPayments = await this.storage.getPaymentsByBooking(result.bookingId);
+      const activePayment = bookingPayments.find(p =>
+        [PaymentStatus.Pending, PaymentStatus.Processing, PaymentStatus.ManualReviewRequired].includes(p.status as PaymentStatus)
+      );
+      if (activePayment) {
+        resolvedPaymentId = activePayment.id;
+        console.log(`[WEBHOOK] Resolved paymentId ${resolvedPaymentId} from bookingId ${result.bookingId}`);
+      } else {
+        console.warn(`[WEBHOOK] No active payment found for bookingId ${result.bookingId}`);
+      }
+    }
+
+    if (result.success && resolvedPaymentId && result.newPaymentStatus) {
+      const existingPayment = await this.storage.getPayment(resolvedPaymentId);
 
       const terminalStates = [PaymentStatus.Completed, PaymentStatus.Failed, PaymentStatus.Cancelled, PaymentStatus.Expired];
       if (existingPayment && terminalStates.includes(existingPayment.status as PaymentStatus)) {
@@ -301,7 +318,7 @@ export class PaymentApplicationService {
         provider: gateway.slug
       });
 
-      await this.storage.updatePayment(result.paymentId, {
+      await this.storage.updatePayment(resolvedPaymentId, {
         status: result.newPaymentStatus,
         gatewayReference: result.gatewayReference,
         failureReason: result.newPaymentStatus === PaymentStatus.Failed ? 'gateway_failure' : undefined
