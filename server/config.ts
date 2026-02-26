@@ -77,7 +77,22 @@ export const config = {
   cloudinary: {
     url: process.env.CLOUDINARY_URL,
     enabled: !!process.env.CLOUDINARY_URL,
-  }
+  },
+
+  // SMS Notifications
+  sms: {
+    provider: (process.env.SMS_PROVIDER as 'android_gateway' | 'twilio' | 'console') || 'console',
+    adminPhone: process.env.SMS_ADMIN_PHONE,
+    androidGateway: {
+      url: process.env.ANDROID_GATEWAY_URL,
+      apiKey: process.env.ANDROID_GATEWAY_API_KEY,
+    },
+    twilio: {
+      accountSid: process.env.TWILIO_ACCOUNT_SID,
+      authToken: process.env.TWILIO_AUTH_TOKEN,
+      fromNumber: process.env.TWILIO_FROM_NUMBER,
+    },
+  },
 };
 
 export function validateConfig() {
