@@ -35,3 +35,14 @@ pool.on('error', (err) => {
   // Do not exit process, let the pool handle reconnection
 });
 export const db = drizzle(pool, { schema });
+
+// Keepalive: Neon serverless suspends after ~5 min of inactivity, causing ETIMEDOUT
+// storms on the next request. A lightweight ping every 4 min prevents suspension.
+// Fire-and-forget — errors are expected if the DB is momentarily unreachable and
+// the pool's own retry logic handles reconnection.
+const KEEPALIVE_INTERVAL_MS = 4 * 60 * 1000; // 4 minutes
+setInterval(() => {
+  pool.query('SELECT 1').catch(() => {
+    // Silently swallow — the retry logic in storage.ts handles reconnection
+  });
+}, KEEPALIVE_INTERVAL_MS).unref(); // .unref() so it doesn't prevent process exit
