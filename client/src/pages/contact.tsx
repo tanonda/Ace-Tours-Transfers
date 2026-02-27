@@ -84,7 +84,7 @@ export default function Contact() {
                 <div>
                   <h3 className="font-bold text-lg mb-1">{t("contact.location")}</h3>
                   <p className="text-foreground font-medium">Port Vila, Vanuatu</p>
-                  <p className="text-sm text-muted-foreground mt-1">{cms.text("office_hours", t("contact.officeHours"))}</p>
+                  <div className="text-sm text-muted-foreground mt-1 prose prose-sm prose-p:m-0" dangerouslySetInnerHTML={{ __html: cms.html("office_hours", t("contact.officeHours")) }} />
                 </div>
               </CardContent>
             </Card>

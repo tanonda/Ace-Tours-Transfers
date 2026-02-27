@@ -147,12 +147,14 @@ export default function Home() {
                 <span className="text-primary font-semibold uppercase tracking-wider text-sm">{cms.text("about_label", t("home.aboutLabel"))}</span>
               </div>
               <h2 className="text-4xl md:text-5xl font-bold mb-6 text-foreground">{cms.text("about_title", t("home.aboutTitle"))}</h2>
-              <p className="text-lg text-muted-foreground mb-6 leading-relaxed">
-                {cms.text("about_desc1", t("home.aboutDesc1"))}
-              </p>
-              <p className="text-lg text-muted-foreground mb-8 leading-relaxed">
-                {cms.text("about_desc2", t("home.aboutDesc2"))}
-              </p>
+              <div
+                className="text-lg text-muted-foreground mb-6 leading-relaxed prose prose-lg prose-p:my-2"
+                dangerouslySetInnerHTML={{ __html: cms.html("about_desc1", t("home.aboutDesc1")) }}
+              />
+              <div
+                className="text-lg text-muted-foreground mb-8 leading-relaxed prose prose-lg prose-p:my-2"
+                dangerouslySetInnerHTML={{ __html: cms.html("about_desc2", t("home.aboutDesc2")) }}
+              />
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
                 {[
@@ -180,7 +182,10 @@ export default function Home() {
           <div className="text-center max-w-3xl mx-auto mb-16">
             <span className="text-primary font-semibold uppercase tracking-wider text-sm mb-2 block">{cms.text("tours_label", t("home.toursLabel"))}</span>
             <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-6">{cms.text("tours_title", t("home.toursTitle"))}</h2>
-            <p className="text-lg text-muted-foreground">{cms.text("tours_desc", t("home.toursDesc"))}</p>
+            <div
+              className="text-lg text-muted-foreground prose prose-lg prose-p:my-1 mx-auto"
+              dangerouslySetInnerHTML={{ __html: cms.html("tours_desc", t("home.toursDesc")) }}
+            />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -197,7 +202,10 @@ export default function Home() {
           <div className="text-center max-w-3xl mx-auto mb-16">
             <span className="text-primary font-semibold uppercase tracking-wider text-sm mb-2 block">{cms.text("transfers_label", t("home.transfersLabel", "Airport & Hotel"))}</span>
             <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-6">{cms.text("transfers_title", t("home.transfersTitle"))}</h2>
-            <p className="text-lg text-muted-foreground">{cms.text("transfers_desc", t("home.transfersDesc"))}</p>
+            <div
+              className="text-lg text-muted-foreground prose prose-lg prose-p:my-1 mx-auto"
+              dangerouslySetInnerHTML={{ __html: cms.html("transfers_desc", t("home.transfersDesc")) }}
+            />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -215,7 +223,10 @@ export default function Home() {
             <div className="text-center max-w-3xl mx-auto mb-16">
               <span className="text-primary font-semibold uppercase tracking-wider text-sm mb-2 block">{cms.text("vehicles_label", t("vehicles.label", "Self-Drive"))}</span>
               <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-6">{cms.text("vehicles_title", t("vehicles.title", "Vehicle Hire"))}</h2>
-              <p className="text-lg text-muted-foreground">{cms.text("vehicles_desc", t("vehicles.description", "Explore Vanuatu at your own pace with our reliable vehicle hire service."))}</p>
+              <div
+                className="text-lg text-muted-foreground prose prose-lg prose-p:my-1 mx-auto"
+                dangerouslySetInnerHTML={{ __html: cms.html("vehicles_desc", t("vehicles.description", "Explore Vanuatu at your own pace with our reliable vehicle hire service.")) }}
+              />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -232,7 +243,10 @@ export default function Home() {
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
         <div className="container mx-auto px-4 relative text-center text-white">
           <h2 className="text-4xl md:text-6xl font-bold mb-8 font-serif">{cms.text("cta_title", t("home.ctaTitle"))}</h2>
-          <p className="text-xl md:text-2xl mb-10 max-w-2xl mx-auto opacity-90">{cms.text("cta_desc", t("home.ctaDesc"))}</p>
+          <div
+            className="text-xl md:text-2xl mb-10 max-w-2xl mx-auto opacity-90 prose prose-xl prose-invert prose-p:my-2"
+            dangerouslySetInnerHTML={{ __html: cms.html("cta_desc", t("home.ctaDesc")) }}
+          />
           <Link href="/reservations?tab=book-new">
             <Button size="lg" variant="secondary" className="text-primary font-bold px-10 py-8 text-xl shadow-2xl">{cms.text("cta_button", t("home.ctaButton"))}</Button>
           </Link>
