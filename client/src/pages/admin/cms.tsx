@@ -273,8 +273,8 @@ export default function AdminCMS() {
         // About
         { key: "about_label",         label: "About Label",                type: "text",  description: "Small uppercase label above the about heading" },
         { key: "about_title",         label: "About Heading",              type: "text",  description: "Main about section heading" },
-        { key: "about_desc1",         label: "About Body — Paragraph 1",  type: "text",  description: "First paragraph in the about section" },
-        { key: "about_desc2",         label: "About Body — Paragraph 2",  type: "text",  description: "Second paragraph in the about section" },
+        { key: "about_desc1",         label: "About Body — Paragraph 1",  type: "rich",  description: "First paragraph in the about section" },
+        { key: "about_desc2",         label: "About Body — Paragraph 2",  type: "rich",  description: "Second paragraph in the about section" },
         { key: "about_quote",         label: "About Pull Quote",           type: "text",  description: "Italic quote card overlaid on the photo" },
         { key: "about_badge1",        label: "Trust Badge 1",              type: "text",  description: "e.g. Fully Insured" },
         { key: "about_badge2",        label: "Trust Badge 2",              type: "text",  description: "e.g. Experienced Drivers" },
@@ -283,15 +283,15 @@ export default function AdminCMS() {
         // Tours section
         { key: "tours_label",         label: "Tours Section Label",        type: "text",  description: "Small label above the tours heading" },
         { key: "tours_title",         label: "Tours Section Heading",      type: "text",  description: "e.g. Unforgettable Tours" },
-        { key: "tours_desc",          label: "Tours Section Description",  type: "text",  description: "Subheading under the tours title" },
+        { key: "tours_desc",          label: "Tours Section Description",  type: "rich",  description: "Subheading under the tours title" },
         // Transfers section
         { key: "transfers_label",     label: "Transfers Section Label",    type: "text",  description: "" },
         { key: "transfers_title",     label: "Transfers Section Heading",  type: "text",  description: "" },
-        { key: "transfers_desc",      label: "Transfers Description",      type: "text",  description: "" },
+        { key: "transfers_desc",      label: "Transfers Description",      type: "rich",  description: "" },
         // Vehicles section
         { key: "vehicles_label",      label: "Vehicles Section Label",     type: "text",  description: "" },
         { key: "vehicles_title",      label: "Vehicles Section Heading",   type: "text",  description: "" },
-        { key: "vehicles_desc",       label: "Vehicles Description",       type: "text",  description: "" },
+        { key: "vehicles_desc",       label: "Vehicles Description",       type: "rich",  description: "" },
         // CTA
         { key: "cta_title",           label: "CTA Banner Heading",         type: "text",  description: "Large text in the orange CTA banner" },
         { key: "cta_desc",            label: "CTA Banner Subtext",         type: "text",  description: "" },
@@ -311,8 +311,9 @@ export default function AdminCMS() {
         { key: "page_title",       label: "Page Title",              type: "text", description: "H1 at top of the about page" },
         { key: "page_subtitle",    label: "Page Subtitle",           type: "text", description: "Subheading under the page title" },
         { key: "story_title",      label: "Our Story — Heading",     type: "text", description: "" },
-        { key: "story_desc1",      label: "Our Story — Paragraph 1", type: "text", description: "" },
-        { key: "story_desc2",      label: "Our Story — Paragraph 2", type: "text", description: "" },
+        { key: "story_image",      label: "Our Story — Image",       type: "image", description: "Image displayed alongside our story" },
+        { key: "story_desc1",      label: "Our Story — Paragraph 1", type: "rich", description: "" },
+        { key: "story_desc2",      label: "Our Story — Paragraph 2", type: "rich", description: "" },
         { key: "badge1",           label: "Credential Badge 1",      type: "text", description: "e.g. Locally Owned & Operated" },
         { key: "badge2",           label: "Credential Badge 2",      type: "text", description: "" },
         { key: "badge3",           label: "Credential Badge 3",      type: "text", description: "" },
@@ -321,11 +322,11 @@ export default function AdminCMS() {
         { key: "badge6",           label: "Credential Badge 6",      type: "text", description: "" },
         { key: "why_choose_us",    label: "Why Choose Us — Heading", type: "text", description: "" },
         { key: "feature1_title",   label: "Feature 1 Title",         type: "text", description: "e.g. Local Expertise" },
-        { key: "feature1_desc",    label: "Feature 1 Description",   type: "text", description: "" },
+        { key: "feature1_desc",    label: "Feature 1 Description",   type: "rich", description: "" },
         { key: "feature2_title",   label: "Feature 2 Title",         type: "text", description: "" },
-        { key: "feature2_desc",    label: "Feature 2 Description",   type: "text", description: "" },
+        { key: "feature2_desc",    label: "Feature 2 Description",   type: "rich", description: "" },
         { key: "feature3_title",   label: "Feature 3 Title",         type: "text", description: "" },
-        { key: "feature3_desc",    label: "Feature 3 Description",   type: "text", description: "" },
+        { key: "feature3_desc",    label: "Feature 3 Description",   type: "rich", description: "" },
       ]
     },
     contact: {
@@ -333,10 +334,10 @@ export default function AdminCMS() {
       fields: [
         { key: "page_title",          label: "Page Title",              type: "text", description: "H1 at top of the contact page" },
         { key: "page_subtitle",       label: "Page Subtitle",           type: "text", description: "" },
-        { key: "get_in_touch_desc",   label: "Intro Paragraph",         type: "text", description: "Opening paragraph below the title" },
+        { key: "get_in_touch_desc",   label: "Intro Paragraph",         type: "rich", description: "Opening paragraph below the title" },
         { key: "phone_availability",  label: "Phone Availability Note", type: "text", description: "e.g. Available 24/7 for emergencies" },
         { key: "email_reply_time",    label: "Email Reply Time Note",   type: "text", description: "e.g. We usually reply within 24 hours" },
-        { key: "office_hours",        label: "Office Hours Note",       type: "text", description: "" },
+        { key: "office_hours",        label: "Office Hours Note",       type: "rich", description: "" },
         { key: "whatsapp_desc",       label: "WhatsApp CTA Description",type: "text", description: "Text under the WhatsApp chat button" },
       ]
     },

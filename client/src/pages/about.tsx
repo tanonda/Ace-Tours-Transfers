@@ -24,21 +24,23 @@ export default function About() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
             <div>
               <div className="relative rounded-lg shadow-xl overflow-hidden aspect-[4/3] w-full">
-                <img 
-                  src="https://images.unsplash.com/photo-1596394516093-501ba68a0ba6?q=80&w=2070&auto=format&fit=crop" 
-                  alt="Vanuatu Landscape" 
+                <img
+                  src={cms.text("story_image", "https://images.unsplash.com/photo-1596394516093-501ba68a0ba6?q=80&w=2070&auto=format&fit=crop")}
+                  alt="Vanuatu Landscape"
                   className="w-full h-full object-cover"
                 />
               </div>
             </div>
             <div>
               <h2 className="text-3xl font-bold mb-6 font-serif">{cms.text("story_title", t("about.storyTitle"))}</h2>
-              <p className="text-lg text-muted-foreground mb-4">
-                {cms.text("story_desc1", t("about.storyDesc1"))}
-              </p>
-              <p className="text-lg text-muted-foreground mb-6">
-                {cms.text("story_desc2", t("about.storyDesc2"))}
-              </p>
+              <div
+                className="text-lg text-muted-foreground mb-4 prose prose-p:my-2"
+                dangerouslySetInnerHTML={{ __html: cms.html("story_desc1", t("about.storyDesc1")) }}
+              />
+              <div
+                className="text-lg text-muted-foreground mb-6 prose prose-p:my-2"
+                dangerouslySetInnerHTML={{ __html: cms.html("story_desc2", t("about.storyDesc2")) }}
+              />
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {[
                   cms.text("badge1", t("about.locallyOwned")),
@@ -69,9 +71,10 @@ export default function About() {
                   <MapPin className="h-6 w-6" />
                 </div>
                 <h3 className="text-xl font-bold mb-2">{cms.text("feature1_title", t("about.localExpertise"))}</h3>
-                <p className="text-muted-foreground">
-                  {cms.text("feature1_desc", t("about.localExpertiseDesc"))}
-                </p>
+                <div
+                  className="text-muted-foreground text-sm prose prose-sm prose-p:my-1"
+                  dangerouslySetInnerHTML={{ __html: cms.html("feature1_desc", t("about.localExpertiseDesc")) }}
+                />
               </CardContent>
             </Card>
             <Card className="border-none shadow-md bg-card">
@@ -80,9 +83,10 @@ export default function About() {
                   <Clock className="h-6 w-6" />
                 </div>
                 <h3 className="text-xl font-bold mb-2">{cms.text("feature2_title", t("about.reliableService"))}</h3>
-                <p className="text-muted-foreground">
-                  {cms.text("feature2_desc", t("about.reliableServiceDesc"))}
-                </p>
+                <div
+                  className="text-muted-foreground text-sm prose prose-sm prose-p:my-1"
+                  dangerouslySetInnerHTML={{ __html: cms.html("feature2_desc", t("about.reliableServiceDesc")) }}
+                />
               </CardContent>
             </Card>
             <Card className="border-none shadow-md bg-card">
@@ -91,9 +95,10 @@ export default function About() {
                   <CheckCircle className="h-6 w-6" />
                 </div>
                 <h3 className="text-xl font-bold mb-2">{cms.text("feature3_title", t("about.safetyFirst"))}</h3>
-                <p className="text-muted-foreground">
-                  {cms.text("feature3_desc", t("about.safetyFirstDesc"))}
-                </p>
+                <div
+                  className="text-muted-foreground text-sm prose prose-sm prose-p:my-1"
+                  dangerouslySetInnerHTML={{ __html: cms.html("feature3_desc", t("about.safetyFirstDesc")) }}
+                />
               </CardContent>
             </Card>
           </div>
