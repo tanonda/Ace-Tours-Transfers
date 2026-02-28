@@ -173,64 +173,73 @@ export function DashboardLayout({ children, type }: DashboardLayoutProps) {
           <>
             {/* Group: Main */}
             <div className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest px-2 pt-1 pb-1.5">Main</div>
-            {adminLinks.filter(l => l.show && l.group === "main").map((link) => (
-              <button key={link.href} onClick={() => navigate(link.href)} className="w-full text-left">
-                <div
-                  className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer text-sm transition-all duration-150 ${location === link.href
+            {adminLinks.filter(l => l.show && l.group === "main").map((link) => {
+              const isActive = location === link.href || (link.href !== '/admin/dashboard' && location.startsWith(link.href));
+              return (
+                <button key={link.href} onClick={() => navigate(link.href)} className="w-full text-left">
+                  <div
+                    className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer text-sm transition-all duration-150 ${isActive
                       ? 'bg-primary text-primary-foreground font-semibold shadow-sm'
                       : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                    }`}
-                >
-                  <link.icon className="h-4 w-4 shrink-0" />
-                  <span>{link.label}</span>
-                  {location === link.href && <ChevronRight className="h-3 w-3 ml-auto opacity-60" />}
-                </div>
-              </button>
-            ))}
+                      }`}
+                  >
+                    <link.icon className="h-4 w-4 shrink-0" />
+                    <span>{link.label}</span>
+                    {isActive && <ChevronRight className="h-3 w-3 ml-auto opacity-60" />}
+                  </div>
+                </button>
+              );
+            })}
 
             {/* Group: Manage */}
             <div className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest px-2 pt-3 pb-1.5">Manage</div>
-            {adminLinks.filter(l => l.show && l.group === "manage").map((link) => (
-              <button key={link.href} onClick={() => navigate(link.href)} className="w-full text-left">
-                <div
-                  className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer text-sm transition-all duration-150 ${location === link.href
+            {adminLinks.filter(l => l.show && l.group === "manage").map((link) => {
+              const isActive = location === link.href || location.startsWith(link.href);
+              return (
+                <button key={link.href} onClick={() => navigate(link.href)} className="w-full text-left">
+                  <div
+                    className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer text-sm transition-all duration-150 ${isActive
                       ? 'bg-primary text-primary-foreground font-semibold shadow-sm'
                       : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                    }`}
-                >
-                  <link.icon className="h-4 w-4 shrink-0" />
-                  <span>{link.label}</span>
-                  {location === link.href && <ChevronRight className="h-3 w-3 ml-auto opacity-60" />}
-                </div>
-              </button>
-            ))}
+                      }`}
+                  >
+                    <link.icon className="h-4 w-4 shrink-0" />
+                    <span>{link.label}</span>
+                    {isActive && <ChevronRight className="h-3 w-3 ml-auto opacity-60" />}
+                  </div>
+                </button>
+              );
+            })}
 
             {/* Group: System */}
             <div className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest px-2 pt-3 pb-1.5">System</div>
-            {adminLinks.filter(l => l.show && l.group === "system").map((link) => (
-              <button key={link.href} onClick={() => navigate(link.href)} className="w-full text-left">
-                <div
-                  className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer text-sm transition-all duration-150 ${location === link.href
+            {adminLinks.filter(l => l.show && l.group === "system").map((link) => {
+              const isActive = location === link.href || location.startsWith(link.href);
+              return (
+                <button key={link.href} onClick={() => navigate(link.href)} className="w-full text-left">
+                  <div
+                    className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer text-sm transition-all duration-150 ${isActive
                       ? 'bg-primary text-primary-foreground font-semibold shadow-sm'
                       : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                    }`}
-                >
-                  <link.icon className="h-4 w-4 shrink-0" />
-                  <span>{link.label}</span>
-                  {location === link.href && <ChevronRight className="h-3 w-3 ml-auto opacity-60" />}
-                </div>
-              </button>
-            ))}
+                      }`}
+                  >
+                    <link.icon className="h-4 w-4 shrink-0" />
+                    <span>{link.label}</span>
+                    {isActive && <ChevronRight className="h-3 w-3 ml-auto opacity-60" />}
+                  </div>
+                </button>
+              );
+            })}
           </>
         ) : (
           customerLinks.map((link) => {
-            const isActive = location === link.href;
+            const isActive = location === link.href || (link.href !== '/dashboard' && location.startsWith(link.href));
             return (
               <button key={link.href} onClick={() => navigate(link.href)} className="w-full text-left">
                 <div
                   className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer text-sm transition-all duration-150 ${isActive
-                      ? 'bg-primary text-primary-foreground font-semibold shadow-sm'
-                      : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                    ? 'bg-primary text-primary-foreground font-semibold shadow-sm'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                     }`}
                   data-testid={`nav-${link.label.toLowerCase().replace(/\s+/g, '-')}`}
                 >

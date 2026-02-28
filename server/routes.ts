@@ -35,6 +35,7 @@ import { BackupIntegrityGuard } from "./infrastructure/recovery/integrity-guard.
 import { ExpressSessionAdapter } from "./infrastructure/session.adapter.js";
 import { AvailabilityDomainService } from "./domain/services/availability.domain-service.js";
 import { BookingApplicationService } from "./application/booking.application-service.js";
+import { PaymentReconciliationService } from "./application/payment-reconciliation.service.js";
 import { PriceCartService } from "./application/pricing/PriceCartService.js";
 import { cloudinaryService } from "./infrastructure/storage/cloudinary-service.js";
 import { metricsService } from "./infrastructure/metrics/metrics.service.js";
@@ -2213,21 +2214,21 @@ ${allPages.map(p => `  <url>
     }
   });
 
+  app.get("/api/analytics/top-products", requireAdmin, async (_req, res) => {
+    try {
+      // Fetch top 5 products by revenue
+      const products = await storage.getTopPerformingProducts(5);
+      res.json(products);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch top products data" });
+    }
+  });
+
   // C: Revenue by product category for dashboard bar chart
   app.get("/api/analytics/revenue-by-category", requireAdmin, async (_req, res) => {
     try {
-      const allBookings = await storage.getBookings();
-      const catMap: Record<string, number> = { Tours: 0, Transfers: 0, "Bus Hire": 0 };
-      for (const b of allBookings) {
-        // Only count actual revenue — confirmed and completed bookings only
-        if (b.status !== "confirmed" && b.status !== "completed") continue;
-        const cents = b.totalAmountCents ?? 0;
-        const name = (b.tourName ?? "").toLowerCase();
-        if (name.includes("transfer") || name.includes("airport")) catMap["Transfers"] += cents;
-        else if (name.includes("hire") || name.includes("vehicle") || name.includes("bus")) catMap["Bus Hire"] += cents;
-        else catMap["Tours"] += cents;
-      }
-      res.json(Object.entries(catMap).map(([category, revenueCents]) => ({ category, revenueCents })));
+      const revenueData = await storage.getRevenueByCategory();
+      res.json(revenueData);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch category revenue" });
     }
@@ -2257,6 +2258,47 @@ ${allPages.map(p => `  <url>
   });
 
   // LOW-4: Stripe routes removed — not available to Vanuatu merchants.
+
+  // Payment Reconciliation Routes
+  app.get("/api/admin/reconciliation/stale", requireAdmin, async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 50;
+      const payments = await storage.getStaleProcessingPayments(limit);
+      res.json(payments);
+    } catch (error) {
+      console.error("[ROUTE] GET /api/admin/reconciliation/stale Error:", error);
+      res.status(500).json({ error: "Failed to fetch stale payments" });
+    }
+  });
+
+  app.post("/api/admin/reconciliation/sync/:id", requireAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { note, forceStatus } = req.body;
+      const adminId = (req as any).user?.id; // Assuming user is attached by requireAdmin middleware
+
+      const reconciliationService = new PaymentReconciliationService(storage);
+      await reconciliationService.reconcileManually(id, adminId, note, forceStatus);
+
+      const updatedPayment = await storage.getPayment(id);
+      res.json(updatedPayment);
+    } catch (error: any) {
+      console.error(`[ROUTE] POST /api/admin/reconciliation/sync/${req.params.id} Error:`, error);
+      res.status(500).json({ error: error.message || "Failed to sync payment" });
+    }
+  });
+
+  app.post("/api/admin/reconciliation/batch", requireAdmin, async (req, res) => {
+    try {
+      const limit = parseInt(req.body.limit as string) || 50;
+      const reconciliationService = new PaymentReconciliationService(storage);
+      await reconciliationService.reconcileStalePayments(limit);
+      res.json({ success: true, message: `Batch reconciliation triggered for up to ${limit} payments.` });
+    } catch (error) {
+      console.error("[ROUTE] POST /api/admin/reconciliation/batch Error:", error);
+      res.status(500).json({ error: "Failed to run batch reconciliation" });
+    }
+  });
 
   // I: Public analytics config — returns GA4/GTM IDs for client-side injection
   app.get("/api/public/analytics-config", async (_req, res) => {

@@ -13,6 +13,7 @@ import { AuthProvider, ProtectedRoute } from "@/lib/auth-context";
 import { ThemeProvider } from "@/lib/theme-context";
 import { CMSProvider } from "@/lib/cms-context";
 import { WhatsAppWidget } from "@/components/whatsapp-widget";
+import { NProgressRouter } from "@/components/nprogress-router";
 
 // Lazy-loaded pages
 const Home = lazy(() => import("@/pages/home"));
@@ -49,6 +50,7 @@ const AdminCalendar = lazy(() => import("@/pages/admin/calendar"));
 const AdminRecovery = lazy(() => import("@/pages/admin/recovery"));
 const AdminStaff = lazy(() => import("@/pages/admin/staff"));
 const AdminCMS = lazy(() => import("@/pages/admin/cms"));
+const AdminReconciliation = lazy(() => import("@/pages/admin/reconciliation"));
 const AdminPayments = lazy(() => import("@/pages/admin/payments"));
 // Previously missing admin pages — now routed
 const AdminPricing = lazy(() => import("@/pages/admin/pricing"));
@@ -90,7 +92,7 @@ function AnalyticsInjector() {
           document.head.appendChild(s2);
         }
       })
-      .catch(() => {}); // fail silently — analytics is non-critical
+      .catch(() => { }); // fail silently — analytics is non-critical
   }, []);
   return null;
 }
@@ -178,6 +180,9 @@ function Router() {
         <Route path="/admin/cms">
           <ProtectedRoute requireAdmin><AdminCMS /></ProtectedRoute>
         </Route>
+        <Route path="/admin/reconciliation">
+          <ProtectedRoute requireAdmin><AdminReconciliation /></ProtectedRoute>
+        </Route>
         <Route path="/admin/payments">
           <ProtectedRoute requireAdmin><AdminPayments /></ProtectedRoute>
         </Route>
@@ -244,6 +249,7 @@ function App() {
                       <BookingStateProvider>
                         <Toaster />
                         <AnalyticsInjector />
+                        <NProgressRouter />
                         <Router />
                         <WhatsAppWidget />
                       </BookingStateProvider>

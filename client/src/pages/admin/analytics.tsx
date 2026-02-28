@@ -40,9 +40,9 @@ export default function AdminAnalytics() {
     queryKey: ["revenue-daily", period],
     queryFn: () => fetch(`/api/analytics/revenue/daily?days=${period}`).then(res => res.json()),
   });
-  const { data: topTours = [] } = useQuery({
-    queryKey: ["top-tours"],
-    queryFn: () => fetch("/api/analytics/top-tours").then(res => res.json()),
+  const { data: topProducts = [] } = useQuery({
+    queryKey: ["top-products"],
+    queryFn: () => fetch("/api/analytics/top-products").then(res => res.json()),
   });
   const { data: revenueByCategory = [] } = useQuery({
     queryKey: ["revenue-by-category"],
@@ -119,8 +119,8 @@ export default function AdminAnalytics() {
           <KPI label="Avg Booking Value" value={
             stats?.total ? `${Math.round(totalRevenue / (stats.total * 100)).toLocaleString()} VT` : "—"
           } icon={TrendingUp} colorClass="bg-green-500/15 text-green-600" />
-          <KPI label="Top Product" value={topTours[0]?.tourName?.split(' ').slice(0,2).join(' ') || "—"}
-            sublabel={topTours[0] ? `${Math.round((topTours[0].revenue||0)/100).toLocaleString()} VT` : undefined}
+          <KPI label="Top Product" value={topProducts[0]?.productName?.split(' ').slice(0, 2).join(' ') || "—"}
+            sublabel={topProducts[0] ? `${Math.round((topProducts[0].revenue || 0) / 100).toLocaleString()} VT` : undefined}
             icon={Star} colorClass="bg-purple-500/15 text-purple-600" />
         </div>
 
@@ -144,7 +144,7 @@ export default function AdminAnalytics() {
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
                   <XAxis dataKey="date" tickFormatter={val => new Date(val).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
                     tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-                  <YAxis tickFormatter={val => `${Math.round(val/1000)}k`} tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                  <YAxis tickFormatter={val => `${Math.round(val / 1000)}k`} tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
                   <ReTooltip
                     formatter={(val: number) => [`${Math.round(val).toLocaleString()} VT`, "Revenue"]}
                     labelFormatter={label => new Date(label).toLocaleDateString()}
@@ -207,23 +207,23 @@ export default function AdminAnalytics() {
             </CardHeader>
             <CardContent>
               <div className="h-[260px]">
-                {topTours.length > 0 ? (
+                {topProducts.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={topTours} layout="vertical">
+                    <BarChart data={topProducts} layout="vertical">
                       <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="hsl(var(--border))" />
                       <XAxis type="number" hide />
-                      <YAxis dataKey="tourName" type="category" width={130} tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                      <YAxis dataKey="productName" type="category" width={130} tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
                       <ReTooltip
                         formatter={(val: number) => [`${Math.round(val / 100).toLocaleString()} VT`, "Revenue"]}
                         contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid hsl(var(--border))", background: "hsl(var(--card))" }}
                       />
                       <Bar dataKey="revenue" radius={[0, 4, 4, 0]}>
-                        {topTours.map((_: any, i: number) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                        {topProducts.map((_: any, i: number) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                       </Bar>
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="flex items-center justify-center h-full text-muted-foreground text-sm">No tour data yet</div>
+                  <div className="flex items-center justify-center h-full text-muted-foreground text-sm">No product data yet</div>
                 )}
               </div>
             </CardContent>
@@ -242,7 +242,7 @@ export default function AdminAnalytics() {
                     <BarChart data={revenueByCategory}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
                       <XAxis dataKey="category" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
-                      <YAxis tickFormatter={v => `${Math.round(v/100000)}k`} tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                      <YAxis tickFormatter={v => `${Math.round(v / 100000)}k`} tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
                       <ReTooltip
                         formatter={(val: number) => [`${Math.round(val / 100).toLocaleString()} VT`, "Revenue"]}
                         contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid hsl(var(--border))", background: "hsl(var(--card))" }}

@@ -112,7 +112,8 @@ export interface IStorage {
   getBookingStats(): Promise<{ total: number; confirmed: number; pending: number; completed: number; }>;
   getRevenueByMonth(): Promise<{ month: string; total: number; }[]>;
   getRevenueDaily(days: number): Promise<{ date: string; amount: number; }[]>;
-  getTopPerformingTours(limit: number): Promise<{ tourName: string; bookingCount: number; revenue: number; }[]>;
+  getTopPerformingProducts(limit: number): Promise<{ productName: string; bookingCount: number; revenue: number; }[]>;
+  getRevenueByCategory(): Promise<{ category: string; revenueCents: number; }[]>;
 
   // Content Blocks (CMS)
   getContentBlocks(): Promise<ContentBlock[]>;
@@ -552,20 +553,52 @@ export class DatabaseStorage implements IStorage {
     return results;
   }
 
-  async getTopPerformingTours(limit: number): Promise<{ tourName: string; bookingCount: number; revenue: number; }[]> {
+  async getTopPerformingProducts(limit: number): Promise<{ productName: string; bookingCount: number; revenue: number; }[]> {
+    // We join with items to get accurate product types, but fall back to bookings 
+    // for historical data that might not have items
     const results = await db
       .select({
-        tourName: bookings.tourName,
-        bookingCount: sql<number>`count(${bookings.id})`.mapWith(Number),
-        revenue: sql<number>`sum(${bookings.totalAmountCents})`.mapWith(Number)
+        productName: sql<string>`COALESCE(${bookingItems.productName}, ${bookings.tourName})`,
+        bookingCount: sql<number>`count(DISTINCT ${bookings.id})`.mapWith(Number),
+        revenue: sql<number>`sum(COALESCE(${bookingItems.subtotalCents}, ${bookings.totalAmountCents}))`.mapWith(Number)
       })
       .from(bookings)
-      .where(eq(bookings.status, 'confirmed'))
-      .groupBy(bookings.tourName)
-      .orderBy(desc(sql`sum(${bookings.totalAmountCents})`))
+      .leftJoin(bookingItems, eq(bookings.id, bookingItems.bookingId))
+      .where(inArray(bookings.status, ['confirmed', 'completed']))
+      .groupBy(sql`COALESCE(${bookingItems.productName}, ${bookings.tourName})`)
+      .orderBy(desc(sql`sum(COALESCE(${bookingItems.subtotalCents}, ${bookings.totalAmountCents}))`))
       .limit(limit);
 
     return results;
+  }
+
+  async getRevenueByCategory(): Promise<{ category: string; revenueCents: number; }[]> {
+    // Phase 2 requires grouping by `productType` using the `bookingItems` table where authoritative pricing lives
+    const results = await db
+      .select({
+        category: sql<string>`COALESCE(${bookingItems.productType}, 'unknown')`,
+        revenueCents: sql<number>`sum(${bookingItems.subtotalCents})`.mapWith(Number)
+      })
+      .from(bookingItems)
+      .innerJoin(bookings, eq(bookingItems.bookingId, bookings.id))
+      .where(inArray(bookings.status, ['confirmed', 'completed']))
+      .groupBy(sql`COALESCE(${bookingItems.productType}, 'unknown')`);
+
+    // We also need to map the raw categories from DB -> Display labels
+    const displayMap: Record<string, string> = {
+      'tour': 'Tours',
+      'transfer': 'Transfers',
+      'vehicle': 'Bus Hire',
+      'unknown': 'Other'
+    };
+
+    const finalResults: Record<string, number> = { 'Tours': 0, 'Transfers': 0, 'Bus Hire': 0 };
+    for (const r of results) {
+      const displayKey = displayMap[r.category] || 'Other';
+      finalResults[displayKey] = (finalResults[displayKey] || 0) + r.revenueCents;
+    }
+
+    return Object.entries(finalResults).map(([category, revenueCents]) => ({ category, revenueCents }));
   }
 
   // Content Blocks (CMS)
