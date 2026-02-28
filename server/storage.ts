@@ -70,7 +70,7 @@ import {
   type InsertCapacityAuditLog
 } from "../shared/schema.js";
 import { db } from "./db.js";
-import { eq, like, desc, and, or, isNull, sql, lte, asc, lt } from "drizzle-orm";
+import { eq, like, desc, and, or, isNull, sql, lte, asc, lt, inArray } from "drizzle-orm";
 import { extractErrorDetails } from "./lib/error-util.js";
 
 export interface IStorage {

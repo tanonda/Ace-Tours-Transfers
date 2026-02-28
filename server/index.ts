@@ -464,6 +464,16 @@ app.use((req, res, next) => {
 
   // Set up native Express error handler automatically provided by Sentry
   if (process.env.SENTRY_DSN) {
+    // Normalizes ErrorEvents from Neon so Sentry can extract a meaningful title/message
+    app.use((err: any, _req: Request, _res: Response, next: NextFunction) => {
+      if (err && err.constructor && err.constructor.name === 'ErrorEvent') {
+        const normalizedErr = new Error(err.message || "Neon Database Connection Error (ErrorEvent)");
+        normalizedErr.name = "NeonConnectionError";
+        normalizedErr.stack = err.stack;
+        return next(normalizedErr);
+      }
+      next(err);
+    });
     Sentry.setupExpressErrorHandler(app);
   }
 

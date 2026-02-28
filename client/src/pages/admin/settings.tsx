@@ -25,7 +25,7 @@ function SettingItem({
   value: string;
   placeholder?: string;
   onChange: (val: string) => void;
-  onSave: () => Promise<void>;
+  onSave: () => Promise<any>;
 }) {
   const [isSaving, setIsSaving] = useState(false);
 
