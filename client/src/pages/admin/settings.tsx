@@ -12,6 +12,133 @@ import { Loader2, Save, Flag, Mail, Users, Download, Trash2, CheckCircle, Clock,
 import { useState, useEffect } from "react";
 import { Switch } from "@/components/ui/switch";
 
+function SettingItem({
+  itemKey,
+  label,
+  value,
+  placeholder,
+  onChange,
+  onSave
+}: {
+  itemKey: string;
+  label: string;
+  value: string;
+  placeholder?: string;
+  onChange: (val: string) => void;
+  onSave: () => Promise<void>;
+}) {
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSaveClick = async () => {
+    setIsSaving(true);
+    try {
+      await onSave();
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <div className="flex gap-4 items-end">
+      <div className="flex-1 space-y-2">
+        <Label htmlFor={itemKey}>{label}</Label>
+        <Input
+          id={itemKey}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder || `Enter ${label.toLowerCase()}`}
+        />
+      </div>
+      <Button onClick={handleSaveClick} disabled={isSaving}>
+        {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+      </Button>
+    </div>
+  );
+}
+
+function SettingList({
+  itemKey,
+  label,
+  description,
+  values,
+  placeholder,
+  onSave
+}: {
+  itemKey: string;
+  label: string;
+  description?: string;
+  values: string[];
+  placeholder?: string;
+  onSave: (newValues: string[]) => Promise<void>;
+}) {
+  const [list, setList] = useState<string[]>(values);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    setList(values);
+  }, [values]);
+
+  const handleSaveClick = async () => {
+    setIsSaving(true);
+    try {
+      await onSave(list.filter(v => v.trim() !== ""));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const addRow = () => setList([...list, ""]);
+
+  const updateRow = (index: number, val: string) => {
+    const newList = [...list];
+    newList[index] = val;
+    setList(newList);
+  };
+
+  const removeRow = (index: number) => {
+    const newList = list.filter((_, i) => i !== index);
+    setList(newList);
+  };
+
+  return (
+    <div className="space-y-3 p-4 border rounded-lg bg-card text-card-foreground shadow-sm">
+      <div className="flex justify-between items-start">
+        <div>
+          <Label className="text-base">{label}</Label>
+          {description && <p className="text-sm text-muted-foreground">{description}</p>}
+        </div>
+        <Button onClick={handleSaveClick} disabled={isSaving || list.every(v => v.trim() === '')} size="sm">
+          {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+          Save List
+        </Button>
+      </div>
+
+      <div className="space-y-2 mt-4">
+        {list.map((val, i) => (
+          <div key={i} className="flex gap-2 items-center">
+            <Input
+              value={val}
+              onChange={(e) => updateRow(i, e.target.value)}
+              placeholder={placeholder || "Enter value..."}
+              className="flex-1"
+            />
+            <Button variant="ghost" size="icon" onClick={() => removeRow(i)} className="text-destructive hover:bg-destructive/10">
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        ))}
+        {list.length === 0 && (
+          <p className="text-sm text-muted-foreground italic py-2 text-center border border-dashed rounded-md">No items added yet.</p>
+        )}
+      </div>
+
+      <Button variant="outline" size="sm" onClick={addRow} className="mt-2 w-full text-muted-foreground hover:text-foreground">
+        + Add New Item
+      </Button>
+    </div>
+  );
+}
+
 export default function AdminSettings() {
   const { t } = useTranslation();
   const { toast } = useToast();
@@ -146,23 +273,15 @@ export default function AdminSettings() {
               </CardHeader>
               <CardContent className="space-y-4">
                 {SETTING_GROUPS.contact.map((item) => (
-                  <div key={item.key} className="flex gap-4 items-end">
-                    <div className="flex-1 space-y-2">
-                      <Label htmlFor={item.key}>{item.label}</Label>
-                      <Input
-                        id={item.key}
-                        value={formData[item.key] || ""}
-                        onChange={(e) => handleChange(item.key, e.target.value)}
-                        placeholder={`Enter ${item.label.toLowerCase()}`}
-                      />
-                    </div>
-                    <Button
-                      onClick={() => handleSave(item.key)}
-                      disabled={updateMutation.isPending}
-                    >
-                      {updateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                    </Button>
-                  </div>
+                  <SettingItem
+                    key={item.key}
+                    itemKey={item.key}
+                    label={item.label}
+                    value={formData[item.key] || ""}
+                    placeholder={`Enter ${item.label.toLowerCase()}`}
+                    onChange={(val) => handleChange(item.key, val)}
+                    onSave={() => updateMutation.mutateAsync({ key: item.key, value: formData[item.key] || "" })}
+                  />
                 ))}
               </CardContent>
             </Card>
@@ -178,24 +297,31 @@ export default function AdminSettings() {
               </CardHeader>
               <CardContent className="space-y-4">
                 {SETTING_GROUPS.social.map((item) => (
-                  <div key={item.key} className="flex gap-4 items-end">
-                    <div className="flex-1 space-y-2">
-                      <Label htmlFor={item.key}>{item.label}</Label>
-                      <Input
-                        id={item.key}
-                        value={formData[item.key] || ""}
-                        onChange={(e) => handleChange(item.key, e.target.value)}
-                        placeholder={`Enter ${item.label.toLowerCase()}`}
-                      />
-                    </div>
-                    <Button
-                      onClick={() => handleSave(item.key)}
-                      disabled={updateMutation.isPending}
-                    >
-                      {updateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                    </Button>
-                  </div>
+                  <SettingItem
+                    key={item.key}
+                    itemKey={item.key}
+                    label={item.label}
+                    value={formData[item.key] || ""}
+                    placeholder={`Enter ${item.label.toLowerCase()}`}
+                    onChange={(val) => handleChange(item.key, val)}
+                    onSave={() => updateMutation.mutateAsync({ key: item.key, value: formData[item.key] || "" })}
+                  />
                 ))}
+
+                <div className="pt-4 mt-6 border-t">
+                  <SettingList
+                    itemKey="social_custom_links"
+                    label="Additional Links"
+                    description="Add any other custom links (e.g., TripAdvisor, YouTube). One URL per line."
+                    placeholder="https://..."
+                    values={formData["social_custom_links"] ? JSON.parse(formData["social_custom_links"]) : []}
+                    onSave={async (newValues) => {
+                      const valueString = JSON.stringify(newValues);
+                      handleChange("social_custom_links", valueString);
+                      await updateMutation.mutateAsync({ key: "social_custom_links", value: valueString });
+                    }}
+                  />
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -210,20 +336,15 @@ export default function AdminSettings() {
               </CardHeader>
               <CardContent className="space-y-4">
                 {SETTING_GROUPS.banking.map((item) => (
-                  <div key={item.key} className="flex gap-4 items-end">
-                    <div className="flex-1 space-y-2">
-                      <Label htmlFor={item.key}>{item.label}</Label>
-                      <Input
-                        id={item.key}
-                        value={formData[item.key] || ""}
-                        onChange={(e) => handleChange(item.key, e.target.value)}
-                        placeholder={item.placeholder}
-                      />
-                    </div>
-                    <Button onClick={() => handleSave(item.key)} disabled={updateMutation.isPending}>
-                      {updateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                    </Button>
-                  </div>
+                  <SettingItem
+                    key={item.key}
+                    itemKey={item.key}
+                    label={item.label}
+                    value={formData[item.key] || ""}
+                    placeholder={item.placeholder}
+                    onChange={(val) => handleChange(item.key, val)}
+                    onSave={() => updateMutation.mutateAsync({ key: item.key, value: formData[item.key] || "" })}
+                  />
                 ))}
               </CardContent>
             </Card>
@@ -239,20 +360,15 @@ export default function AdminSettings() {
               </CardHeader>
               <CardContent className="space-y-4">
                 {SETTING_GROUPS.email.map((item) => (
-                  <div key={item.key} className="flex gap-4 items-end">
-                    <div className="flex-1 space-y-2">
-                      <Label htmlFor={item.key}>{item.label}</Label>
-                      <Input
-                        id={item.key}
-                        value={formData[item.key] || ""}
-                        onChange={(e) => handleChange(item.key, e.target.value)}
-                        placeholder={item.placeholder}
-                      />
-                    </div>
-                    <Button onClick={() => handleSave(item.key)} disabled={updateMutation.isPending}>
-                      {updateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                    </Button>
-                  </div>
+                  <SettingItem
+                    key={item.key}
+                    itemKey={item.key}
+                    label={item.label}
+                    value={formData[item.key] || ""}
+                    placeholder={item.placeholder}
+                    onChange={(val) => handleChange(item.key, val)}
+                    onSave={() => updateMutation.mutateAsync({ key: item.key, value: formData[item.key] || "" })}
+                  />
                 ))}
               </CardContent>
             </Card>
@@ -419,20 +535,15 @@ export default function AdminSettings() {
                   { key: "seo_canonical_url", label: "Canonical URL Prefix", placeholder: "https://acetours.vu" },
                   { key: "seo_og_image", label: "Default OG Image URL", placeholder: "https://res.cloudinary.com/..." },
                 ].map((item) => (
-                  <div key={item.key} className="flex gap-4 items-end">
-                    <div className="flex-1 space-y-2">
-                      <Label htmlFor={item.key}>{item.label}</Label>
-                      <Input
-                        id={item.key}
-                        value={formData[item.key] || ""}
-                        onChange={(e) => handleChange(item.key, e.target.value)}
-                        placeholder={item.placeholder}
-                      />
-                    </div>
-                    <Button onClick={() => handleSave(item.key)} disabled={updateMutation.isPending}>
-                      {updateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                    </Button>
-                  </div>
+                  <SettingItem
+                    key={item.key}
+                    itemKey={item.key}
+                    label={item.label}
+                    value={formData[item.key] || ""}
+                    placeholder={item.placeholder}
+                    onChange={(val) => handleChange(item.key, val)}
+                    onSave={() => updateMutation.mutateAsync({ key: item.key, value: formData[item.key] || "" })}
+                  />
                 ))}
               </CardContent>
             </Card>
@@ -452,20 +563,15 @@ export default function AdminSettings() {
                   { key: "schema_address", label: "Street Address", placeholder: "Port Vila, Efate, Vanuatu" },
                   { key: "schema_price_range", label: "Price Range", placeholder: "$$" },
                 ].map((item) => (
-                  <div key={item.key} className="flex gap-4 items-end">
-                    <div className="flex-1 space-y-2">
-                      <Label htmlFor={item.key}>{item.label}</Label>
-                      <Input
-                        id={item.key}
-                        value={formData[item.key] || ""}
-                        onChange={(e) => handleChange(item.key, e.target.value)}
-                        placeholder={item.placeholder}
-                      />
-                    </div>
-                    <Button onClick={() => handleSave(item.key)} disabled={updateMutation.isPending}>
-                      {updateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                    </Button>
-                  </div>
+                  <SettingItem
+                    key={item.key}
+                    itemKey={item.key}
+                    label={item.label}
+                    value={formData[item.key] || ""}
+                    placeholder={item.placeholder}
+                    onChange={(val) => handleChange(item.key, val)}
+                    onSave={() => updateMutation.mutateAsync({ key: item.key, value: formData[item.key] || "" })}
+                  />
                 ))}
               </CardContent>
             </Card>
@@ -483,23 +589,17 @@ export default function AdminSettings() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex gap-4 items-end">
-                  <div className="flex-1 space-y-2">
-                    <Label htmlFor="ga4_measurement_id">GA4 Measurement ID</Label>
-                    <Input
-                      id="ga4_measurement_id"
-                      value={formData["ga4_measurement_id"] || ""}
-                      onChange={(e) => handleChange("ga4_measurement_id", e.target.value)}
-                      placeholder="G-XXXXXXXXXX"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Format: <code className="bg-muted px-1 rounded text-xs">G-XXXXXXXXXX</code> — found in GA4 → Admin → Data Streams → your stream
-                    </p>
-                  </div>
-                  <Button onClick={() => handleSave("ga4_measurement_id")} disabled={updateMutation.isPending}>
-                    {updateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                  </Button>
-                </div>
+                <SettingItem
+                  itemKey="ga4_measurement_id"
+                  label="GA4 Measurement ID"
+                  value={formData["ga4_measurement_id"] || ""}
+                  placeholder="G-XXXXXXXXXX"
+                  onChange={(val) => handleChange("ga4_measurement_id", val)}
+                  onSave={() => updateMutation.mutateAsync({ key: "ga4_measurement_id", value: formData["ga4_measurement_id"] || "" })}
+                />
+                <p className="text-xs text-muted-foreground mt-2">
+                  Format: <code className="bg-muted px-1 rounded text-xs">G-XXXXXXXXXX</code> — found in GA4 → Admin → Data Streams → your stream
+                </p>
               </CardContent>
             </Card>
 
@@ -513,23 +613,17 @@ export default function AdminSettings() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex gap-4 items-end">
-                  <div className="flex-1 space-y-2">
-                    <Label htmlFor="gtm_container_id">GTM Container ID</Label>
-                    <Input
-                      id="gtm_container_id"
-                      value={formData["gtm_container_id"] || ""}
-                      onChange={(e) => handleChange("gtm_container_id", e.target.value)}
-                      placeholder="GTM-XXXXXXX"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Format: <code className="bg-muted px-1 rounded text-xs">GTM-XXXXXXX</code> — found in GTM → Admin → Container Settings
-                    </p>
-                  </div>
-                  <Button onClick={() => handleSave("gtm_container_id")} disabled={updateMutation.isPending}>
-                    {updateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                  </Button>
-                </div>
+                <SettingItem
+                  itemKey="gtm_container_id"
+                  label="GTM Container ID"
+                  value={formData["gtm_container_id"] || ""}
+                  placeholder="GTM-XXXXXXX"
+                  onChange={(val) => handleChange("gtm_container_id", val)}
+                  onSave={() => updateMutation.mutateAsync({ key: "gtm_container_id", value: formData["gtm_container_id"] || "" })}
+                />
+                <p className="text-xs text-muted-foreground mt-2">
+                  Format: <code className="bg-muted px-1 rounded text-xs">GTM-XXXXXXX</code> — found in GTM → Admin → Container Settings
+                </p>
               </CardContent>
             </Card>
 
