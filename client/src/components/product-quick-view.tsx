@@ -86,9 +86,9 @@ export function ProductQuickView({ isOpen, onClose, product }: ProductQuickViewP
             <div className="flex flex-col lg:flex-row h-full max-h-[90vh]">
 
               {/* ── Image panel ── */}
-              <div className="relative w-full lg:w-[45%] h-56 lg:h-auto shrink-0">
+              <div className="relative w-full lg:w-[45%] h-56 lg:h-auto shrink-0 bg-[#211e18]">
                 {product.image ? (
-                  <img src={product.image} alt={product.title} className="w-full h-full object-cover object-center" />
+                  <img src={product.image} alt={product.title} className="w-full h-full object-contain object-center" />
                 ) : (
                   <div className="w-full h-full bg-[#211e18]" />
                 )}

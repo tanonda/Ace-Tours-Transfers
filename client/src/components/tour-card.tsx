@@ -43,13 +43,13 @@ export function TourCard({ tour, index }: { tour: TourProps; index: number }) {
           className="h-full flex flex-col overflow-hidden border-none shadow-lg hover:shadow-xl transition-shadow duration-300 group cursor-pointer"
           onClick={() => setShowQuickView(true)}
         >
-          <div className="relative h-64 overflow-hidden">
+          <div className="relative h-64 overflow-hidden bg-[#211e18]">
             <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors z-10" />
             {tour.image && (
               <img
                 src={cloudinaryOpt(tour.image, 600)}
                 alt={tour.title}
-                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                className="w-full h-full object-contain transition-transform duration-700 group-hover:scale-110"
                 loading="lazy"
                 decoding="async"
                 onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}

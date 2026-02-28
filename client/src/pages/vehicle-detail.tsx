@@ -213,11 +213,10 @@ function TimePicker({ label, productId, date, selected, onSelect, onAvailability
       <div className="text-[0.68rem] font-bold uppercase tracking-widest text-[#8a826e] mb-2 flex items-center justify-between gap-2">
         <span className="flex items-center gap-2"><Clock size={10} className="text-[#f4a830]" />{label}</span>
         {hasRealSlots && (
-          <span className={`text-[0.62rem] font-bold px-2 py-0.5 rounded-full ${
-            allUnavail ? "bg-[rgba(224,85,85,0.12)] text-[#e05555] border border-[rgba(224,85,85,0.25)]" :
-            availCount! <= 2 ? "bg-[rgba(244,168,48,0.12)] text-[#f4a830] border border-[rgba(244,168,48,0.25)]" :
-            "bg-[rgba(76,175,125,0.12)] text-[#4caf7d] border border-[rgba(76,175,125,0.25)]"
-          }`}>
+          <span className={`text-[0.62rem] font-bold px-2 py-0.5 rounded-full ${allUnavail ? "bg-[rgba(224,85,85,0.12)] text-[#e05555] border border-[rgba(224,85,85,0.25)]" :
+              availCount! <= 2 ? "bg-[rgba(244,168,48,0.12)] text-[#f4a830] border border-[rgba(244,168,48,0.25)]" :
+                "bg-[rgba(76,175,125,0.12)] text-[#4caf7d] border border-[rgba(76,175,125,0.25)]"
+            }`}>
             {allUnavail ? "Fully booked" : `${availCount} of ${totalCount} open`}
           </span>
         )}
@@ -242,8 +241,8 @@ function TimePicker({ label, productId, date, selected, onSelect, onAvailability
                     "h-9 w-full rounded-lg text-[0.73rem] font-semibold border transition-all",
                     isSel ? "bg-[#f4a830] text-[#0f0d09] border-[#f4a830] font-black shadow-[0_0_8px_rgba(244,168,48,0.3)]" :
                       isUnavail ? "bg-[rgba(224,85,85,0.06)] border-[rgba(224,85,85,0.15)] text-[#2a2620] cursor-not-allowed line-through decoration-[rgba(224,85,85,0.4)]" :
-                      isLow ? "bg-[rgba(244,168,48,0.08)] border-[rgba(244,168,48,0.35)] text-[#f4a830] hover:border-[#f4a830]" :
-                        "bg-[#211e18] border-[rgba(244,168,48,0.18)] text-[#b8b0a0] hover:border-[#f4a830] hover:text-[#f4a830]"
+                        isLow ? "bg-[rgba(244,168,48,0.08)] border-[rgba(244,168,48,0.35)] text-[#f4a830] hover:border-[#f4a830]" :
+                          "bg-[#211e18] border-[rgba(244,168,48,0.18)] text-[#b8b0a0] hover:border-[#f4a830] hover:text-[#f4a830]"
                   ].join(" ")}>
                   {slot.time}
                 </button>
@@ -476,8 +475,8 @@ export default function VehicleDetail() {
       <div className="min-h-screen bg-[#0f0d09] text-[#f0ece4] font-sans pt-16">
 
         {/* Hero */}
-        <div className="relative h-[340px] overflow-hidden">
-          <img src={cloudinaryOpt(vehicle.image, 1200)} className="w-full h-full object-cover brightness-[0.42] object-center" alt={`${vehicle.title} - vehicle hire Vanuatu`} loading="eager" fetchPriority="high" />
+        <div className="relative h-[340px] overflow-hidden bg-[#0f0d09]">
+          <img src={cloudinaryOpt(vehicle.image, 1200)} className="w-full h-full object-contain brightness-[0.42] object-center" alt={`${vehicle.title} - vehicle hire Vanuatu`} loading="eager" fetchPriority="high" />
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#0f0d09]/20 to-[#0f0d09]" />
           <div className="absolute inset-0 opacity-[0.025]"
             style={{ backgroundImage: "linear-gradient(#f4a830 1px,transparent 1px),linear-gradient(90deg,#f4a830 1px,transparent 1px)", backgroundSize: "44px 44px" }} />
@@ -489,16 +488,15 @@ export default function VehicleDetail() {
             </div>
             <h1 className="font-serif text-[2.5rem] md:text-5xl font-bold leading-tight mb-3">{vehicle.title}</h1>
             <div className="flex flex-wrap gap-2">
-              <span className={`px-3 py-1 rounded-full border text-[0.72rem] font-semibold ${
-                availabilityStatus === "unavailable" ? "border-[#e05555]/40 bg-[#e05555]/10 text-[#e05555]" :
-                availabilityStatus === "limited" ? "border-[#f4a830]/40 bg-[#f4a830]/10 text-[#f4a830]" :
-                availabilityStatus === "available" ? "border-[#4caf7d]/40 bg-[#4caf7d]/10 text-[#4caf7d]" :
-                "border-[#4caf7d]/40 bg-[#4caf7d]/10 text-[#4caf7d]"
-              }`}>
+              <span className={`px-3 py-1 rounded-full border text-[0.72rem] font-semibold ${availabilityStatus === "unavailable" ? "border-[#e05555]/40 bg-[#e05555]/10 text-[#e05555]" :
+                  availabilityStatus === "limited" ? "border-[#f4a830]/40 bg-[#f4a830]/10 text-[#f4a830]" :
+                    availabilityStatus === "available" ? "border-[#4caf7d]/40 bg-[#4caf7d]/10 text-[#4caf7d]" :
+                      "border-[#4caf7d]/40 bg-[#4caf7d]/10 text-[#4caf7d]"
+                }`}>
                 {availabilityStatus === "unavailable" ? "✗ Fully Booked" :
-                 availabilityStatus === "limited" ? "⚡ Limited Availability" :
-                 availabilityStatus === "available" ? "✓ Available" :
-                 "✓ Check Dates Below"}
+                  availabilityStatus === "limited" ? "⚡ Limited Availability" :
+                    availabilityStatus === "available" ? "✓ Available" :
+                      "✓ Check Dates Below"}
               </span>
               <span className="px-3 py-1 rounded-full border border-[#f4a830]/35 bg-[#f4a830]/8 text-[#f4a830] text-[0.72rem] font-semibold">
                 {reviews.length > 0 ? `★ ${averageRating.toFixed(1)} · ${reviews.length} reviews` : "★ No reviews yet"}
@@ -515,8 +513,8 @@ export default function VehicleDetail() {
           {/* LEFT */}
           <div className="flex flex-col gap-7">
 
-            <div className="rounded-[14px] overflow-hidden aspect-[16/9]">
-              <img src={cloudinaryOpt(vehicle.image, 900)} className="w-full h-full object-cover" alt={`${vehicle.title} - photo`} loading="lazy" />
+            <div className="rounded-[14px] overflow-hidden bg-[#211e18] aspect-[16/9]">
+              <img src={cloudinaryOpt(vehicle.image, 900)} className="w-full h-full object-contain" alt={`${vehicle.title} - photo`} loading="lazy" />
             </div>
 
             {/* Specs */}
@@ -720,18 +718,17 @@ export default function VehicleDetail() {
 
               {/* Availability status banner */}
               {availabilityStatus !== "unknown" && (
-                <div className={`flex items-start gap-2.5 p-3 rounded-[10px] border text-[0.78rem] ${
-                  availabilityStatus === "unavailable" ? "bg-[rgba(224,85,85,0.07)] border-[rgba(224,85,85,0.2)] text-[#e05555]" :
-                  availabilityStatus === "limited" ? "bg-[rgba(244,168,48,0.07)] border-[rgba(244,168,48,0.2)] text-[#f4a830]" :
-                  "bg-[rgba(76,175,125,0.07)] border-[rgba(76,175,125,0.2)] text-[#4caf7d]"
-                }`}>
+                <div className={`flex items-start gap-2.5 p-3 rounded-[10px] border text-[0.78rem] ${availabilityStatus === "unavailable" ? "bg-[rgba(224,85,85,0.07)] border-[rgba(224,85,85,0.2)] text-[#e05555]" :
+                    availabilityStatus === "limited" ? "bg-[rgba(244,168,48,0.07)] border-[rgba(244,168,48,0.2)] text-[#f4a830]" :
+                      "bg-[rgba(76,175,125,0.07)] border-[rgba(76,175,125,0.2)] text-[#4caf7d]"
+                  }`}>
                   {availabilityStatus === "unavailable" ? <XCircle size={15} className="shrink-0 mt-0.5" /> :
-                   availabilityStatus === "limited" ? <AlertTriangle size={15} className="shrink-0 mt-0.5" /> :
-                   <CheckCircle2 size={15} className="shrink-0 mt-0.5" />}
+                    availabilityStatus === "limited" ? <AlertTriangle size={15} className="shrink-0 mt-0.5" /> :
+                      <CheckCircle2 size={15} className="shrink-0 mt-0.5" />}
                   <span>
                     {availabilityStatus === "unavailable" ? "This vehicle is fully booked on your selected pickup date. Choose a different day." :
-                     availabilityStatus === "limited" ? "Very few slots remain for your pickup date. Select a time quickly to secure your booking." :
-                     "Great news — this vehicle has good availability on your selected dates."}
+                      availabilityStatus === "limited" ? "Very few slots remain for your pickup date. Select a time quickly to secure your booking." :
+                        "Great news — this vehicle has good availability on your selected dates."}
                   </span>
                 </div>
               )}
