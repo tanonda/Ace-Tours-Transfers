@@ -1126,7 +1126,7 @@ ${allPages.map(p => `  <url>
 
   app.get("/api/analytics/top-tours", requireAdmin, async (_req, res) => {
     try {
-      const data = await storage.getTopPerformingTours(5);
+      const data = await storage.getTopPerformingProducts(5);
       res.json(data);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
