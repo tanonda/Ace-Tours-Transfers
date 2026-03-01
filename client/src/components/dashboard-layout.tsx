@@ -27,7 +27,8 @@ import {
   ShieldAlert,
   Mail,
   RotateCcw,
-  Landmark
+  Landmark,
+  Bell
 } from "lucide-react";
 import {
   Popover,
@@ -93,6 +94,7 @@ export function DashboardLayout({ children, type }: DashboardLayoutProps) {
     { icon: CalendarDays, label: "Calendar", href: "/admin/calendar", show: true, group: "main" },
     { icon: Gauge, label: "Capacity", href: "/admin/capacity", show: user?.role === "admin", group: "main" },
     { icon: Star, label: "Reviews", href: "/admin/reviews", show: user?.role === "admin", group: "manage" },
+    { icon: Bell, label: "Notifications", href: "/admin/notifications", show: true, group: "manage" },
     { icon: UserCog, label: "Staff", href: "/admin/staff", show: user?.role === "admin", group: "manage" },
     { icon: Users, label: "Customers", href: "/admin/customers", show: user?.role === "admin", group: "manage" },
     { icon: DollarSign, label: "Pricing", href: "/admin/pricing", show: user?.role === "admin", group: "manage" },
