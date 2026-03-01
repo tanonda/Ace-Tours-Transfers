@@ -16,10 +16,10 @@ export class AuthDomainService {
   }
 
   async login(email: string, password: string): Promise<AuthResult | null> {
-    const user = await this.storage.getUserByEmail(email);
+    const user = await this.storage.getUserByEmail(email.trim().toLowerCase());
     if (!user) return null;
 
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    const isPasswordValid = await this.verifyPassword(password, user.password);
     if (!isPasswordValid) return null;
 
     if (user.isActive === false) {
@@ -27,6 +27,25 @@ export class AuthDomainService {
     }
 
     return user;
+  }
+
+  private async verifyPassword(password: string, storedPassword: string): Promise<boolean> {
+    if (!storedPassword) {
+      return false;
+    }
+
+    try {
+      return await bcrypt.compare(password, storedPassword);
+    } catch (error) {
+      // Backwards compatibility for legacy plaintext passwords.
+      // If bcrypt compare fails due to an invalid hash format, gracefully
+      // fall back to direct comparison instead of surfacing a 500.
+      const bcryptErrorMessage = error instanceof Error ? error.message : "";
+      if (bcryptErrorMessage.toLowerCase().includes("invalid salt")) {
+        return password === storedPassword;
+      }
+      return false;
+    }
   }
 
   /**

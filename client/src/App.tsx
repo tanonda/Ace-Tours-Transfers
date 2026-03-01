@@ -76,22 +76,25 @@ function AnalyticsInjector() {
     fetch("/api/public/analytics-config")
       .then(r => r.json())
       .then(({ ga4MeasurementId, gtmContainerId }) => {
+        const normalizedGtmContainerId = typeof gtmContainerId === "string" ? gtmContainerId.trim() : "";
+        const normalizedGa4MeasurementId = typeof ga4MeasurementId === "string" ? ga4MeasurementId.trim() : "";
+
         // Google Tag Manager
-        if (gtmContainerId && !document.getElementById("gtm-script")) {
+        if (normalizedGtmContainerId && !document.getElementById("gtm-script")) {
           const s = document.createElement("script");
           s.id = "gtm-script";
-          s.innerHTML = `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','${gtmContainerId}');`;
+          s.innerHTML = `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','${normalizedGtmContainerId}');`;
           document.head.appendChild(s);
         }
         // GA4 (only if GTM not set — avoid double-counting)
-        if (ga4MeasurementId && !gtmContainerId && !document.getElementById("ga4-script")) {
+        if (normalizedGa4MeasurementId && !normalizedGtmContainerId && !document.getElementById("ga4-script")) {
           const s = document.createElement("script");
           s.id = "ga4-script";
           s.async = true;
-          s.src = `https://www.googletagmanager.com/gtag/js?id=${ga4MeasurementId}`;
+          s.src = `https://www.googletagmanager.com/gtag/js?id=${normalizedGa4MeasurementId}`;
           document.head.appendChild(s);
           const s2 = document.createElement("script");
-          s2.innerHTML = `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${ga4MeasurementId}');`;
+          s2.innerHTML = `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${normalizedGa4MeasurementId}');`;
           document.head.appendChild(s2);
         }
       })
