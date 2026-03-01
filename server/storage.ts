@@ -281,82 +281,100 @@ export class DatabaseStorage implements IStorage {
 
   // User operations
   async getUser(id: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user || undefined;
+    return this.withRetry(async () => {
+      const [user] = await db.select().from(users).where(eq(users.id, id));
+      return user || undefined;
+    });
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
-    return user || undefined;
+    return this.withRetry(async () => {
+      const [user] = await db.select().from(users).where(eq(users.username, username));
+      return user || undefined;
+    });
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.email, email));
-    return user || undefined;
+    return this.withRetry(async () => {
+      const [user] = await db.select().from(users).where(eq(users.email, email));
+      return user || undefined;
+    });
   }
 
   async getAllUsers(): Promise<User[]> {
-    return await db.select().from(users);
+    return this.withRetry(() => db.select().from(users));
   }
 
   async updateUserRole(id: string, role: string): Promise<User | undefined> {
-    const [user] = await db
-      .update(users)
-      .set({ role, updatedAt: new Date() })
-      .where(eq(users.id, id))
-      .returning();
-    return user || undefined;
+    return this.withRetry(async () => {
+      const [user] = await db
+        .update(users)
+        .set({ role, updatedAt: new Date() })
+        .where(eq(users.id, id))
+        .returning();
+      return user || undefined;
+    });
   }
 
   async updateUserStatus(id: string, isActive: boolean): Promise<User | undefined> {
-    const [user] = await db
-      .update(users)
-      .set({ isActive, updatedAt: new Date() })
-      .where(eq(users.id, id))
-      .returning();
-    return user || undefined;
+    return this.withRetry(async () => {
+      const [user] = await db
+        .update(users)
+        .set({ isActive, updatedAt: new Date() })
+        .where(eq(users.id, id))
+        .returning();
+      return user || undefined;
+    });
   }
 
   async updateUserPassword(id: string, password: string): Promise<User | undefined> {
-    const [user] = await db
-      .update(users)
-      .set({ password, updatedAt: new Date() })
-      .where(eq(users.id, id))
-      .returning();
-    return user || undefined;
+    return this.withRetry(async () => {
+      const [user] = await db
+        .update(users)
+        .set({ password, updatedAt: new Date() })
+        .where(eq(users.id, id))
+        .returning();
+      return user || undefined;
+    });
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const [user] = await db.insert(users).values(insertUser).returning();
-    return user;
+    return this.withRetry(async () => {
+      const [user] = await db.insert(users).values(insertUser).returning();
+      return user;
+    });
   }
 
   async getCustomers(): Promise<User[]> {
-    return await db.select().from(users).where(eq(users.role, 'customer'));
+    return this.withRetry(() => db.select().from(users).where(eq(users.role, 'customer')));
   }
 
   async getUserByResetToken(token: string): Promise<User | undefined> {
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(
-        and(
-          eq(users.passwordResetToken, token),
-          sql`${users.passwordResetTokenExpiry} > NOW()`
-        )
-      );
-    return user || undefined;
+    return this.withRetry(async () => {
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(
+          and(
+            eq(users.passwordResetToken, token),
+            sql`${users.passwordResetTokenExpiry} > NOW()`
+          )
+        );
+      return user || undefined;
+    });
   }
 
   async setUserResetToken(userId: string, token: string | null, expiry: Date | null): Promise<void> {
-    await db
-      .update(users)
-      .set({
-        passwordResetToken: token,
-        passwordResetTokenExpiry: expiry,
-        updatedAt: new Date()
-      })
-      .where(eq(users.id, userId));
+    return this.withRetry(async () => {
+      await db
+        .update(users)
+        .set({
+          passwordResetToken: token,
+          passwordResetTokenExpiry: expiry,
+          updatedAt: new Date()
+        })
+        .where(eq(users.id, userId));
+    });
   }
 
   // Tour operations

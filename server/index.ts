@@ -65,6 +65,7 @@ app.use(helmet({
         "'unsafe-inline'", // Required for React inline event handlers & JSON-LD scripts
         "https://js.stripe.com",
         "https://fonts.googleapis.com",
+        "https://www.googletagmanager.com",
       ],
       styleSrc: [
         "'self'",
@@ -79,11 +80,13 @@ app.use(helmet({
         "https://res.cloudinary.com",
         "https://lh3.googleusercontent.com",
         "https://*.stripe.com",
+        "https://www.googletagmanager.com",
       ],
       connectSrc: [
         "'self'",
         "https://api.stripe.com",
         "https://res.cloudinary.com",
+        "https://www.googletagmanager.com",
         "wss:",
         "ws:",
       ],
