@@ -108,6 +108,7 @@ export function DashboardLayout({ children, type }: DashboardLayoutProps) {
     { icon: ShieldAlert, label: "Fraud Review", href: "/admin/fraud", show: user?.role === "admin", group: "system" },
     { icon: RotateCcw, label: "Recovery", href: "/admin/recovery", show: user?.role === "admin", group: "system" },
     { icon: Settings, label: "Settings", href: "/admin/settings", show: user?.role === "admin", group: "system" },
+    { icon: User, label: "My Profile", href: "/admin/profile", show: true, group: "system" },
   ];
 
   const customerLinks = [
@@ -339,7 +340,7 @@ export function DashboardLayout({ children, type }: DashboardLayoutProps) {
                   <p className="text-xs text-muted-foreground">{user?.email || ''}</p>
                 </div>
                 <button
-                  onClick={() => navigate(type === 'admin' ? '/admin/settings' : '/dashboard/profile')}
+                  onClick={() => navigate(type === 'admin' ? '/admin/profile' : '/dashboard/profile')}
                   className="flex items-center gap-2 px-2 py-2 rounded-md text-sm hover:bg-muted cursor-pointer w-full text-left"
                 >
                   <User className="h-4 w-4" />

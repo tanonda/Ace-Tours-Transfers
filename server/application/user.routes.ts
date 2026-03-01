@@ -4,6 +4,7 @@ import { userProfileDomainService } from "../domain/users/user-profile.domain-se
 import { requireAdmin } from "../routes.js";
 import { insertUserSchema, adminInsertUserSchema } from '../../shared/schema.js';
 import { ZodError } from "zod";
+import { storage } from "../storage.js";
 
 export function registerUserRoutes(app: Express) {
   // Admin-only User Management
@@ -184,6 +185,50 @@ export function registerUserRoutes(app: Express) {
     } catch (error) {
       console.error("Failed to send welcome email:", error);
       res.status(500).json({ error: "Failed to send welcome email" });
+    }
+  });
+
+  // Self-service: Update own profile (name, email, phone)
+  app.patch("/api/users/:id/profile", async (req, res) => {
+    try {
+      if (!req.session.userId) return res.status(401).json({ error: "Unauthorized" });
+      // Only self or admin can update profile
+      if (req.session.userRole !== 'admin' && req.session.userId !== req.params.id) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      const { name, email, phone } = req.body;
+      const updated = await storage.updateUserProfile(req.params.id, { name, email, phone });
+      if (!updated) return res.status(404).json({ error: "User not found" });
+      res.json({ id: updated.id, name: updated.name, email: updated.email, phone: updated.phone, role: updated.role });
+    } catch (error) {
+      console.error("Failed to update user profile:", error);
+      res.status(500).json({ error: "Failed to update profile" });
+    }
+  });
+
+  // Self-service: Change own password (with current password verification)
+  app.patch("/api/users/:id/change-password", async (req, res) => {
+    try {
+      if (!req.session.userId) return res.status(401).json({ error: "Unauthorized" });
+      if (req.session.userRole !== 'admin' && req.session.userId !== req.params.id) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      const { currentPassword, newPassword } = req.body;
+      if (!newPassword || newPassword.length < 6) {
+        return res.status(400).json({ error: "New password must be at least 6 characters" });
+      }
+      // Verify current password
+      const user = await storage.getUser(req.params.id);
+      if (!user) return res.status(404).json({ error: "User not found" });
+      const bcrypt = await import("bcrypt");
+      const valid = await bcrypt.compare(currentPassword, user.password);
+      if (!valid) return res.status(400).json({ error: "Current password is incorrect" });
+      const hashed = await bcrypt.hash(newPassword, 10);
+      await storage.updateUserPassword(req.params.id, hashed);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Failed to change password:", error);
+      res.status(500).json({ error: "Failed to change password" });
     }
   });
 }

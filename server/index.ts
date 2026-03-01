@@ -439,6 +439,16 @@ app.use((req, res, next) => {
     console.error('Failed to initialize Hold Expiry Job:', holdError);
   }
 
+  // Initialize Archive Cleanup Job (runs daily)
+  try {
+    const { storage } = await import('./storage.js');
+    const { ArchiveCleanupJob } = await import('./infrastructure/jobs/archive-cleanup.job.js');
+    const archiveCleanupJob = new ArchiveCleanupJob(storage);
+    archiveCleanupJob.start();
+  } catch (archiveError) {
+    console.error('Failed to initialize Archive Cleanup Job:', archiveError);
+  }
+
   // Initialize Domain Event Handlers
   try {
     const { storage } = await import('./storage.js');

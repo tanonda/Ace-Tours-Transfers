@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Save, Flag, Mail, Users, Download, Trash2, CheckCircle, Clock, Globe } from "lucide-react";
+import { Loader2, Save, Flag, Mail, Users, Download, Trash2, CheckCircle, Clock, Globe, CreditCard } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Switch } from "@/components/ui/switch";
 
@@ -250,6 +250,7 @@ export default function AdminSettings() {
             <TabsTrigger value="social">Social Media</TabsTrigger>
             <TabsTrigger value="email">Email Config</TabsTrigger>
             {/* Newsletter moved to its own dedicated page: /admin/newsletter */}
+            <TabsTrigger value="payments">Payment Instructions</TabsTrigger>
             <TabsTrigger value="seo">SEO / GEO</TabsTrigger>
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
             <TabsTrigger value="flags">Feature Flags</TabsTrigger>
@@ -338,6 +339,109 @@ export default function AdminSettings() {
                     onSave={() => updateMutation.mutateAsync({ key: item.key, value: formData[item.key] || "" })}
                   />
                 ))}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Payment Instructions Tab */}
+          <TabsContent value="payments" className="mt-4 space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CreditCard className="h-5 w-5" />
+                  Offline Payment Instructions
+                </CardTitle>
+                <CardDescription>
+                  Configure guest-facing instructions for offline payment methods. These are shown to customers on their booking confirmation page and emails.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Bank Transfer */}
+                <div className="space-y-3">
+                  <h3 className="font-semibold text-sm text-foreground border-b pb-2">🏦 Bank Transfer</h3>
+                  <SettingItem
+                    itemKey="bank_transfer_account_name"
+                    label="Account Name"
+                    value={formData["bank_transfer_account_name"] || ""}
+                    placeholder="e.g. Ace Tours & Transfers Vanuatu Ltd"
+                    onChange={(val) => handleChange("bank_transfer_account_name", val)}
+                    onSave={() => updateMutation.mutateAsync({ key: "bank_transfer_account_name", value: formData["bank_transfer_account_name"] || "" })}
+                  />
+                  <SettingItem
+                    itemKey="bank_transfer_account_number"
+                    label="Account Number"
+                    value={formData["bank_transfer_account_number"] || ""}
+                    placeholder="e.g. 1234567"
+                    onChange={(val) => handleChange("bank_transfer_account_number", val)}
+                    onSave={() => updateMutation.mutateAsync({ key: "bank_transfer_account_number", value: formData["bank_transfer_account_number"] || "" })}
+                  />
+                  <SettingItem
+                    itemKey="bank_transfer_bank_name"
+                    label="Bank Name"
+                    value={formData["bank_transfer_bank_name"] || ""}
+                    placeholder="e.g. BSP · ANZ · BRED"
+                    onChange={(val) => handleChange("bank_transfer_bank_name", val)}
+                    onSave={() => updateMutation.mutateAsync({ key: "bank_transfer_bank_name", value: formData["bank_transfer_bank_name"] || "" })}
+                  />
+                  <SettingItem
+                    itemKey="bank_transfer_reference_format"
+                    label="Reference Format"
+                    value={formData["bank_transfer_reference_format"] || ""}
+                    placeholder="e.g. Use your Booking ID as reference (e.g. ACT-XXXX)"
+                    onChange={(val) => handleChange("bank_transfer_reference_format", val)}
+                    onSave={() => updateMutation.mutateAsync({ key: "bank_transfer_reference_format", value: formData["bank_transfer_reference_format"] || "" })}
+                  />
+                </div>
+
+                {/* Cash on Delivery */}
+                <div className="space-y-3">
+                  <h3 className="font-semibold text-sm text-foreground border-b pb-2">💵 Cash on Delivery</h3>
+                  <SettingItem
+                    itemKey="cash_instructions"
+                    label="Cash Payment Instructions"
+                    value={formData["cash_instructions"] || ""}
+                    placeholder="e.g. Pay your driver in cash (VUV preferred). Please bring exact change."
+                    onChange={(val) => handleChange("cash_instructions", val)}
+                    onSave={() => updateMutation.mutateAsync({ key: "cash_instructions", value: formData["cash_instructions"] || "" })}
+                  />
+                  <SettingItem
+                    itemKey="cash_accepted_currencies"
+                    label="Accepted Currencies"
+                    value={formData["cash_accepted_currencies"] || ""}
+                    placeholder="e.g. VUV, AUD, NZD"
+                    onChange={(val) => handleChange("cash_accepted_currencies", val)}
+                    onSave={() => updateMutation.mutateAsync({ key: "cash_accepted_currencies", value: formData["cash_accepted_currencies"] || "" })}
+                  />
+                </div>
+
+                {/* E-Wallets */}
+                <div className="space-y-3">
+                  <h3 className="font-semibold text-sm text-foreground border-b pb-2">📱 E-Wallets (WanTok · Digicel · KwikPay)</h3>
+                  <SettingItem
+                    itemKey="ewallet_phone_number"
+                    label="Merchant Phone Number"
+                    value={formData["ewallet_phone_number"] || ""}
+                    placeholder="e.g. +678 7342389"
+                    onChange={(val) => handleChange("ewallet_phone_number", val)}
+                    onSave={() => updateMutation.mutateAsync({ key: "ewallet_phone_number", value: formData["ewallet_phone_number"] || "" })}
+                  />
+                  <SettingItem
+                    itemKey="ewallet_reference_format"
+                    label="Payment Reference"
+                    value={formData["ewallet_reference_format"] || ""}
+                    placeholder="e.g. Send your Booking ID as the payment reference"
+                    onChange={(val) => handleChange("ewallet_reference_format", val)}
+                    onSave={() => updateMutation.mutateAsync({ key: "ewallet_reference_format", value: formData["ewallet_reference_format"] || "" })}
+                  />
+                  <SettingItem
+                    itemKey="ewallet_instructions"
+                    label="Additional Instructions"
+                    value={formData["ewallet_instructions"] || ""}
+                    placeholder="e.g. Screenshot your payment receipt and email/WhatsApp to us for faster confirmation."
+                    onChange={(val) => handleChange("ewallet_instructions", val)}
+                    onSave={() => updateMutation.mutateAsync({ key: "ewallet_instructions", value: formData["ewallet_instructions"] || "" })}
+                  />
+                </div>
               </CardContent>
             </Card>
           </TabsContent>

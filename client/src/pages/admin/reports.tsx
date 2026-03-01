@@ -60,14 +60,14 @@ export default function AdminReports() {
     return acc;
   }, []);
 
-  const totalRevenue = allBookings.reduce((sum: number, b: any) => {
+  const totalRevenue = stats?.totalRevenueCents ? stats.totalRevenueCents / 100 : allBookings.reduce((sum: number, b: any) => {
     if (b.status === 'confirmed' || b.status === 'completed') {
       return sum + ((b.totalAmountCents || 0) / 100);
     }
     return sum;
   }, 0);
 
-  const pendingPaymentsAmount = allBookings.reduce((sum: number, b: any) => {
+  const pendingPaymentsAmount = stats?.pendingRevenueCents ? stats.pendingRevenueCents / 100 : allBookings.reduce((sum: number, b: any) => {
     if (b.status === 'pending') {
       return sum + ((b.totalAmountCents || 0) / 100);
     }
@@ -174,7 +174,7 @@ export default function AdminReports() {
             { label: "Total Revenue", value: fmtCurrency(totalRevenue), sub: "Confirmed/Completed", icon: DollarSign, color: "bg-yellow-500/15 text-yellow-600" },
             { label: "Total Bookings", value: stats?.total || 0, sub: `${stats?.confirmed} confirmed`, icon: Calendar, color: "bg-blue-500/15 text-blue-600" },
             { label: "Monthly Avg Revenue", value: fmtCurrency(averageMonthly), sub: `Across ${monthlyRevenue.length || 1} month${monthlyRevenue.length > 1 ? 's' : ''}`, icon: TrendingUp, color: "bg-green-500/15 text-green-600" },
-            { label: "Pending Payments", value: fmtCurrency(pendingPaymentsAmount), sub: `${stats?.pending || 0} issues waiting`, icon: CreditCard, color: "bg-red-500/15 text-red-500" },
+            { label: "Pending Payments", value: fmtCurrency(pendingPaymentsAmount), sub: stats?.pending ? `${stats.pending} booking${stats.pending > 1 ? 's' : ''} awaiting payment` : "No pending payments", icon: CreditCard, color: pendingPaymentsAmount > 0 ? "bg-red-500/15 text-red-500" : "bg-green-500/15 text-green-600" },
           ].map(kpi => (
             <Card key={kpi.label}>
               <CardContent className="p-5">

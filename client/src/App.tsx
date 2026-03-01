@@ -31,6 +31,7 @@ const Login = lazy(() => import("@/pages/login"));
 const Register = lazy(() => import("@/pages/register"));
 const NotFound = lazy(() => import("@/pages/not-found"));
 const PrivacyPolicy = lazy(() => import("@/pages/privacy-policy"));
+const TermsOfService = lazy(() => import("@/pages/terms-of-service"));
 const TourDetail = lazy(() => import("@/pages/tour-detail"));
 const TransferDetail = lazy(() => import("@/pages/transfer-detail"));
 const Vehicles = lazy(() => import("@/pages/vehicles"));
@@ -63,12 +64,16 @@ const AdminReviews = lazy(() => import("@/pages/admin/reviews"));
 const AdminFraud = lazy(() => import("@/pages/admin/fraud"));
 const AdminNewsletter = lazy(() => import("@/pages/admin/newsletter"));
 const AdminNotifications = lazy(() => import("@/pages/admin/notifications"));
+const AdminProfile = lazy(() => import("@/pages/admin/profile"));
 
 // Customer pages
 const CustomerDashboard = lazy(() => import("@/pages/customer/dashboard"));
 const CustomerBookings = lazy(() => import("@/pages/customer/bookings"));
 const CustomerSaved = lazy(() => import("@/pages/customer/saved"));
 const CustomerProfile = lazy(() => import("@/pages/customer/profile"));
+
+// Field Service pages
+const FieldServiceDashboard = lazy(() => import("@/pages/field-service/dashboard"));
 
 // I: Dynamically inject GA4 / GTM scripts from CMS settings (both are 100% free)
 function AnalyticsInjector() {
@@ -148,6 +153,7 @@ function Router() {
         <Route path="/login" component={Login} />
         <Route path="/register" component={Register} />
         <Route path="/privacy-policy" component={PrivacyPolicy} />
+        <Route path="/terms-of-service" component={TermsOfService} />
         <Route path="/faq" component={FAQ} />
         <Route path="/reset-password" component={ResetPassword} />
 
@@ -218,6 +224,14 @@ function Router() {
         </Route>
         <Route path="/admin/notifications">
           <ProtectedRoute requireAdmin><AdminNotifications /></ProtectedRoute>
+        </Route>
+        <Route path="/admin/profile">
+          <ProtectedRoute requireStaff><AdminProfile /></ProtectedRoute>
+        </Route>
+
+        {/* Field Service Routes */}
+        <Route path="/field-service/dashboard">
+          <ProtectedRoute requireStaff><FieldServiceDashboard /></ProtectedRoute>
         </Route>
 
         {/* Customer Routes - Protected */}

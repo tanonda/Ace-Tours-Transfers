@@ -82,6 +82,7 @@ export interface IStorage {
   updateUserRole(id: string, role: string): Promise<User | undefined>;
   updateUserStatus(id: string, isActive: boolean): Promise<User | undefined>;
   updateUserPassword(id: string, password: string): Promise<User | undefined>;
+  updateUserProfile(id: string, data: { name?: string; email?: string; phone?: string }): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   getCustomers(): Promise<User[]>;
   getUserByResetToken(token: string): Promise<User | undefined>;
@@ -112,7 +113,7 @@ export interface IStorage {
   getBookingItems(bookingId: string): Promise<BookingItem[]>;
 
   // Analytics
-  getBookingStats(): Promise<{ total: number; confirmed: number; pending: number; completed: number; failed: number; cancelled: number; }>;
+  getBookingStats(): Promise<{ total: number; confirmed: number; pending: number; completed: number; failed: number; cancelled: number; totalRevenueCents: number; pendingRevenueCents: number; }>;
   getRevenueByMonth(): Promise<{ month: string; total: number; }[]>;
   getRevenueDaily(days: number): Promise<{ date: string; amount: number; }[]>;
   getTopPerformingProducts(limit: number): Promise<{ productName: string; bookingCount: number; revenue: number; }[]>;
@@ -332,6 +333,21 @@ export class DatabaseStorage implements IStorage {
       const [user] = await db
         .update(users)
         .set({ password, updatedAt: new Date() })
+        .where(eq(users.id, id))
+        .returning();
+      return user || undefined;
+    });
+  }
+
+  async updateUserProfile(id: string, data: { name?: string; email?: string; phone?: string }): Promise<User | undefined> {
+    return this.withRetry(async () => {
+      const updateData: any = { updatedAt: new Date() };
+      if (data.name) updateData.name = data.name;
+      if (data.email) updateData.email = data.email.trim().toLowerCase();
+      if (data.phone !== undefined) updateData.phone = data.phone;
+      const [user] = await db
+        .update(users)
+        .set(updateData)
         .where(eq(users.id, id))
         .returning();
       return user || undefined;
@@ -568,21 +584,23 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Analytics
-  async getBookingStats(): Promise<{ total: number; confirmed: number; pending: number; completed: number; failed: number; cancelled: number; }> {
-    // H8 Fix: Use aggregate queries instead of selecting all rows
+  async getBookingStats(): Promise<{ total: number; confirmed: number; pending: number; completed: number; failed: number; cancelled: number; totalRevenueCents: number; pendingRevenueCents: number; }> {
+    // Use aggregate queries — includes all non-archived bookings
     const stats = await db
       .select({
         status: bookings.status,
-        count: sql<number>`count(*)`.mapWith(Number)
+        count: sql<number>`count(*)`.mapWith(Number),
+        revenueCents: sql<number>`sum(${bookings.totalAmountCents})`.mapWith(Number),
       })
       .from(bookings)
+      .where(isNull(bookings.archivedAt))
       .groupBy(bookings.status);
 
-    const result = { total: 0, confirmed: 0, pending: 0, completed: 0, failed: 0, cancelled: 0 };
+    const result = { total: 0, confirmed: 0, pending: 0, completed: 0, failed: 0, cancelled: 0, totalRevenueCents: 0, pendingRevenueCents: 0 };
     stats.forEach(s => {
-      if (s.status === 'confirmed') result.confirmed = s.count;
-      else if (s.status === 'pending') result.pending = s.count;
-      else if (s.status === 'completed') result.completed = s.count;
+      if (s.status === 'confirmed') { result.confirmed = s.count; result.totalRevenueCents += (s.revenueCents || 0); }
+      else if (s.status === 'pending') { result.pending = s.count; result.pendingRevenueCents += (s.revenueCents || 0); }
+      else if (s.status === 'completed') { result.completed = s.count; result.totalRevenueCents += (s.revenueCents || 0); }
       else if (s.status === 'failed') result.failed = s.count;
       else if (s.status === 'cancelled') result.cancelled = s.count;
       result.total += s.count;
@@ -664,23 +682,22 @@ export class DatabaseStorage implements IStorage {
     cutoffDate.setDate(cutoffDate.getDate() - days);
     cutoffDate.setHours(0, 0, 0, 0);
 
-    // Phase 2 requires grouping by `productType` using the `bookingItems` table where authoritative pricing lives
-    const results = await db
-      .select({
-        category: sql<string>`COALESCE(${bookingItems.productType}, 'unknown')`,
-        revenueCents: sql<number>`sum(${bookingItems.subtotalCents})`.mapWith(Number)
-      })
-      .from(bookingItems)
-      .innerJoin(bookings, eq(bookingItems.bookingId, bookings.id))
-      .where(
-        and(
-          inArray(bookings.status, ['confirmed', 'completed']),
-          gt(bookings.createdAt, cutoffDate)
-        )
-      )
-      .groupBy(sql`COALESCE(${bookingItems.productType}, 'unknown')`);
+    // Option B: UNION approach — bookingItems (authoritative) + legacy bookings without items
+    // This ensures all historical revenue is included, not just post-bookingItems bookings.
+    const results = await db.execute(sql`
+      SELECT
+        COALESCE(bi.product_type, t.category, 'unknown') AS category,
+        SUM(COALESCE(bi.subtotal_cents, b.total_amount_cents, 0)) AS revenue_cents
+      FROM bookings b
+      LEFT JOIN booking_items bi ON bi.booking_id = b.id
+      LEFT JOIN tours t ON t.id = b.tour_id
+      WHERE
+        b.status IN ('confirmed', 'completed')
+        AND b.archived_at IS NULL
+        AND b.created_at > ${cutoffDate}
+      GROUP BY COALESCE(bi.product_type, t.category, 'unknown')
+    `);
 
-    // We also need to map the raw categories from DB -> Display labels
     const displayMap: Record<string, string> = {
       'tour': 'Tours',
       'transfer': 'Transfers',
@@ -690,9 +707,9 @@ export class DatabaseStorage implements IStorage {
     };
 
     const finalResults: Record<string, number> = { 'Tours': 0, 'Transfers': 0, 'Vehicle Hire': 0 };
-    for (const r of results) {
+    for (const r of (results.rows as any[])) {
       const displayKey = displayMap[r.category] || 'Other';
-      finalResults[displayKey] = (finalResults[displayKey] || 0) + r.revenueCents;
+      finalResults[displayKey] = (finalResults[displayKey] || 0) + Number(r.revenue_cents || 0);
     }
 
     return Object.entries(finalResults).map(([category, revenueCents]) => ({ category, revenueCents }));

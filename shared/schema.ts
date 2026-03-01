@@ -507,6 +507,7 @@ export const insertUserSchema = createInsertSchema(users).omit({
   updatedAt: true,
   passwordResetToken: true,
   passwordResetTokenExpiry: true,
+  isActive: true, // DB default (true) handles this — omitting prevents staff creation failures
 });
 
 export const adminInsertUserSchema = insertUserSchema.extend({

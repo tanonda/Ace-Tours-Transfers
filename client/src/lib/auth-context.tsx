@@ -60,7 +60,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         // Redirect based on role - use native navigation to avoid framework issues
         setTimeout(() => {
-          const targetPath = userData.role === "admin" ? "/admin/dashboard" : "/dashboard";
+          const targetPath = userData.role === "admin" ? "/admin/dashboard" 
+            : userData.role === "field_service" ? "/field-service/dashboard"
+            : "/dashboard";
           window.history.pushState({}, '', targetPath);
           window.dispatchEvent(new PopStateEvent('popstate'));
         }, 100);

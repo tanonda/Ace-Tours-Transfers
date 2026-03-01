@@ -49,7 +49,8 @@ export default function AdminAnalytics() {
     queryFn: () => fetch(`/api/analytics/revenue-by-category?days=${period}`).then(res => res.json()),
   });
 
-  const totalRevenue = revenueDaily.reduce((s: number, d: any) => s + (d.amount || 0), 0);
+  const totalRevenue = revenueDaily.reduce((s: number, d: any) => s + (d.amount || 0), 0)
+    || (stats?.totalRevenueCents || 0);
   const avgDaily = revenueDaily.length ? (totalRevenue / revenueDaily.length) : 0;
 
   const statusData = stats ? [

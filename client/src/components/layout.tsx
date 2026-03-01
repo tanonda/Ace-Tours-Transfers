@@ -722,6 +722,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
           <div className="border-t border-white/10 pt-8 text-center text-white/40 text-sm">
             <p>&copy; {new Date().getFullYear()} {t("app.title")}. {footerCms.text("copyright", t("footer.copyright"))}</p>
+            <div className="flex items-center justify-center gap-4 mt-2">
+              <a href="/privacy-policy" className="hover:text-white/70 transition-colors">Privacy Policy</a>
+              <span>·</span>
+              <a href="/terms-of-service" className="hover:text-white/70 transition-colors">Terms of Service</a>
+            </div>
           </div>
         </div>
       </footer>
