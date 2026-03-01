@@ -42,33 +42,46 @@ import {
 import { z } from "zod";
 import { useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 
 
 // Helper to map gateway slugs to their respective Zod schemas
 const gatewaySchemas: Record<string, { credentials?: z.ZodObject<any>, config?: z.ZodObject<any> }> = {
     'anz-egate': { credentials: AnzEGateCredentialsSchema, config: LocalBankConfigSchema },
-    'bred-bank': { credentials: BredBankCredentialsSchema, config: LocalBankConfigSchema },
+    'anz': { credentials: AnzEGateCredentialsSchema, config: LocalBankConfigSchema },
     'bsp-bank': { credentials: BspBankCredentialsSchema, config: LocalBankConfigSchema },
+    'bsp': { credentials: BspBankCredentialsSchema, config: LocalBankConfigSchema },
+    'bred-bank': { credentials: BredBankCredentialsSchema, config: LocalBankConfigSchema },
+    'bred': { credentials: BredBankCredentialsSchema, config: LocalBankConfigSchema },
+    'mastercard-gateway': { credentials: MastercardGatewayCredentialsSchema, config: LocalBankConfigSchema },
     'generic-local-bank': { credentials: GenericLocalBankCredentialsSchema, config: LocalBankConfigSchema },
     'stripe': { credentials: StripeCredentialsSchema, config: StripeConfigSchema },
     'google-pay': { credentials: GooglePayCredentialsSchema, config: DigitalWalletConfigSchema },
     'apple-pay': { credentials: ApplePayCredentialsSchema, config: DigitalWalletConfigSchema },
     'paypal': { credentials: PayPalCredentialsSchema, config: InternationalFallbackConfigSchema },
     'e-wallet': { credentials: EWalletCredentialsSchema, config: LocalEWalletConfigSchema },
-    'mastercard-gateway': { credentials: MastercardGatewayCredentialsSchema, config: LocalBankConfigSchema },
-    // NEW E-Wallets
     'wantok-money': { credentials: WanTokCredentialsSchema, config: LocalEWalletConfigSchema },
     'digicel-mobile-money': { credentials: DigicelMobileMoneyCredentialsSchema, config: LocalEWalletConfigSchema },
     'kwikpay': { credentials: KwikPayCredentialsSchema, config: LocalEWalletConfigSchema },
     'manual_transfer': { credentials: GenericLocalBankCredentialsSchema, config: undefined },
-    'cash': { credentials: undefined, config: undefined }, // No config needed
+    'bank-transfer': { credentials: GenericLocalBankCredentialsSchema, config: undefined },
+    'bank_transfer': { credentials: GenericLocalBankCredentialsSchema, config: undefined },
+    'bank': { credentials: GenericLocalBankCredentialsSchema, config: undefined },
+    'cash': { credentials: undefined, config: undefined },
 };
 
 // Define categorization for gateways based on their slug
 const GATEWAY_CATEGORIES = {
-    'online': ['anz-egate', 'bred-bank', 'bsp-bank', 'stripe', 'paypal', 'apple-pay', 'google-pay'],
-    'offline': ['manual_transfer', 'cash'],
-    'ewallet': ['wantok-money', 'digicel-mobile-money', 'kwikpay', 'e-wallet']
+    'online': [
+        'anz-egate', 'anz', 'bsp-bank', 'bsp', 'bred-bank', 'bred',
+        'mastercard-gateway', 'generic-local-bank', 'stripe', 'paypal'
+    ],
+    'ewallet': [
+        'wantok-money', 'digicel-mobile-money', 'kwikpay', 'e-wallet', 'apple-pay', 'google-pay'
+    ],
+    'offline': [
+        'manual_transfer', 'bank-transfer', 'bank_transfer', 'bank', 'cash'
+    ]
 };
 
 const getCategoryName = (categoryKey: string) => {
@@ -291,7 +304,7 @@ export default function AdminPayments() {
                             </h2>
                             {categoryKey === 'offline' && (
                                 <p className="text-sm text-muted-foreground pb-2">
-                                    Offline methods allow the customer to complete booking without immediate payment. You must configure instructions and bank details in the Settings tab.
+                                    Offline methods allow the customer to complete booking without immediate payment. You must configure bank details and payment instructions directly on each method below.
                                 </p>
                             )}
 
@@ -381,19 +394,33 @@ export default function AdminPayments() {
                                     <>
                                         <h4 className="font-semibold text-base sticky top-0 bg-background py-1">{t("payments.credentials")}</h4>
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            {/* ... (inside the map for credentials) */}
                                             {Object.keys(gatewaySchemas[selectedGateway.slug].credentials!.shape).map(key => {
                                                 const fieldError = credentialsErrors[key];
+                                                const label = key.split(/(?=[A-Z])/).map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ');
+
                                                 return (
-                                                    <div className="space-y-2" key={key}>
-                                                        <Label htmlFor={key}>{key.split(/(?=[A-Z])/).map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ')}</Label>
-                                                        <Input
-                                                            id={key}
-                                                            type={isPasswordField(key) ? "password" : "text"}
-                                                            value={credentials[key] || ""}
-                                                            onChange={(e) => handleCredentialChange(key, e.target.value)}
-                                                            placeholder={`Enter ${key.split(/(?=[A-Z])/).map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ')}`}
-                                                            className={fieldError ? "border-destructive" : ""}
-                                                        />
+                                                    <div className={`space-y-2 ${key === 'instructions' ? 'sm:col-span-2' : ''}`} key={key}>
+                                                        <Label htmlFor={key}>{label}</Label>
+                                                        {key === 'instructions' ? (
+                                                            <Textarea
+                                                                id={key}
+                                                                value={credentials[key] || ""}
+                                                                onChange={(e) => handleCredentialChange(key, e.target.value)}
+                                                                placeholder={`Enter ${label.toLowerCase()}`}
+                                                                className={fieldError ? "border-destructive" : ""}
+                                                                rows={4}
+                                                            />
+                                                        ) : (
+                                                            <Input
+                                                                id={key}
+                                                                type={isPasswordField(key) ? "password" : "text"}
+                                                                value={credentials[key] || ""}
+                                                                onChange={(e) => handleCredentialChange(key, e.target.value)}
+                                                                placeholder={`Enter ${label.toLowerCase()}`}
+                                                                className={fieldError ? "border-destructive" : ""}
+                                                            />
+                                                        )}
                                                         {fieldError && <p className="text-sm text-destructive">{fieldError}</p>}
                                                     </div>
                                                 );

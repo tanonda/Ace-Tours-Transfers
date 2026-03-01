@@ -1,19 +1,20 @@
 
-import { 
-  AuthDomainService, 
-  type AuthResult 
+import {
+  AuthDomainService,
+  type AuthResult
 } from "./auth.domain-service.js";
-import { 
-  type User, 
-  type InsertUser, 
-  tours, 
-  bookings, 
-  users 
+import {
+  type User,
+  type InsertUser,
+  tours,
+  bookings,
+  users
 } from "../../../shared/schema.js";
 import { storage, type IStorage } from "../../storage.js";
 import { eq, and, sql } from "drizzle-orm";
 import { db } from "../../db.js";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 
 export class UserProfileDomainService {
   private storage: IStorage;
@@ -41,9 +42,15 @@ export class UserProfileDomainService {
       throw new Error(`User with this username already exists: ${userData.username}`);
     }
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(userData.password, 10);
-    
+    // Hash password (if provided - staff invite might not have one yet)
+    let hashedPassword = "";
+    if (userData.password) {
+      hashedPassword = await bcrypt.hash(userData.password, 10);
+    } else {
+      // Generate a random temporary password if none provided
+      hashedPassword = await bcrypt.hash(crypto.randomBytes(16).toString('hex'), 10);
+    }
+
     // Create the user
     const user = await this.storage.createUser({
       ...userData,
@@ -70,12 +77,43 @@ export class UserProfileDomainService {
     return this.storage.updateUserRole(id, role);
   }
 
+  async updateUserStatus(id: string, isActive: boolean): Promise<User | undefined> {
+    return this.storage.updateUserStatus(id, isActive);
+  }
+
   async updateUserPassword(id: string, newPassword: string): Promise<User | undefined> {
     if (!newPassword) {
       throw new Error("New password is required");
     }
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     return this.storage.updateUserPassword(id, hashedPassword);
+  }
+
+  async generatePasswordResetToken(userId: string): Promise<string> {
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiry = new Date();
+    expiry.setHours(expiry.getHours() + 24); // 24 hours validity
+
+    await this.storage.setUserResetToken(userId, token, expiry);
+    return token;
+  }
+
+  async resetPasswordWithToken(token: string, newPassword: string): Promise<User> {
+    const user = await this.storage.getUserByResetToken(token);
+    if (!user) {
+      throw new Error("Invalid or expired reset token");
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update password and clear token
+    const updatedUser = await this.storage.updateUserPassword(user.id, hashedPassword);
+    if (!updatedUser) {
+      throw new Error("Failed to update password");
+    }
+
+    await this.storage.setUserResetToken(user.id, null, null);
+    return updatedUser;
   }
 
   /**

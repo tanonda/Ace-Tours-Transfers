@@ -6,8 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, RefreshCw, AlertCircle, Info, Landmark, Check, X, ShieldAlert, ChevronDown } from "lucide-react";
+import { Loader2, RefreshCw, AlertCircle, Info, Landmark, Check, X, ShieldAlert, ChevronDown, Wallet, Calendar, User, DollarSign } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { fetchBookings, updateBooking } from "@/lib/api";
+import { format } from "date-fns";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -37,9 +40,14 @@ export default function AdminReconciliation() {
     const [syncingPaymentId, setSyncingPaymentId] = useState<string | null>(null);
     const [isBatchSyncing, setIsBatchSyncing] = useState(false);
 
-    const { data: payments = [], isLoading } = useQuery<StalePayment[]>({
+    const { data: payments = [], isLoading: isStaleLoading } = useQuery<StalePayment[]>({
         queryKey: ["stale-payments"],
         queryFn: () => fetch("/api/admin/reconciliation/stale").then(res => res.json()),
+    });
+
+    const { data: bookings = [], isLoading: isBookingsLoading } = useQuery({
+        queryKey: ["admin-bookings"],
+        queryFn: () => fetchBookings(),
     });
 
     const syncMutation = useMutation({
@@ -58,7 +66,7 @@ export default function AdminReconciliation() {
                 description: `Status updated to ${updatedPayment.status}`,
             });
             queryClient.invalidateQueries({ queryKey: ["stale-payments"] });
-            queryClient.invalidateQueries({ queryKey: ["stats"] });
+            queryClient.invalidateQueries({ queryKey: ["admin-bookings"] });
         },
         onError: (err: any) => {
             toast({
@@ -72,34 +80,15 @@ export default function AdminReconciliation() {
         }
     });
 
-    const batchSyncMutation = useMutation({
-        mutationFn: async (limit: number = 50) => {
-            const res = await fetch("/api/admin/reconciliation/batch", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ limit }),
-            });
-            if (!res.ok) throw new Error(await res.text());
-            return res.json();
+    const updateBookingMutation = useMutation({
+        mutationFn: ({ id, updates }: { id: string; updates: any }) => updateBooking(id, updates),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["admin-bookings"] });
+            toast({ title: "Success", description: "Booking updated successfully." });
         },
-        onSuccess: (data) => {
-            toast({
-                title: "Batch Sync Complete",
-                description: data.message,
-            });
-            queryClient.invalidateQueries({ queryKey: ["stale-payments"] });
-            queryClient.invalidateQueries({ queryKey: ["stats"] });
+        onError: () => {
+            toast({ title: "Error", description: "Failed to update booking.", variant: "destructive" });
         },
-        onError: (err: any) => {
-            toast({
-                title: "Batch Sync Failed",
-                description: err.message || "Failed to run batch reconciliation",
-                variant: "destructive",
-            });
-        },
-        onSettled: () => {
-            setIsBatchSyncing(false);
-        }
     });
 
     const handleSync = (paymentId: string) => {
@@ -119,9 +108,13 @@ export default function AdminReconciliation() {
         syncMutation.mutate({ id: paymentId, note: "Admin forced failure", forceStatus: "failed" });
     };
 
-    const handleBatchSync = () => {
-        setIsBatchSyncing(true);
-        batchSyncMutation.mutate(50);
+    const handleConfirmOffline = (id: string) => {
+        updateBookingMutation.mutate({ id, updates: { status: 'confirmed' } });
+    };
+
+    const handleCancelOffline = (id: string) => {
+        if (!confirm("Are you sure you want to cancel this booking?")) return;
+        updateBookingMutation.mutate({ id, updates: { status: 'cancelled' } });
     };
 
     const formatDate = (dateString: string | null) => {
@@ -130,140 +123,214 @@ export default function AdminReconciliation() {
         return date.toLocaleString();
     };
 
+    // Offline payment methods detection
+    const OFFLINE_METHODS = [
+        'manual_transfer', 'bank-transfer', 'bank_transfer', 'bank', 'cash',
+        'cash-on-delivery', 'local-bank-transfer', 'local-bank', 'cash-at-office',
+        'v-money', 'm-vatu', 'my-cash', 'digi-cash'
+    ];
+    const pendingOfflineBookings = bookings.filter(b =>
+        b.status === 'pending' &&
+        OFFLINE_METHODS.includes(b.paymentMethod || '')
+    );
+
     return (
         <DashboardLayout type="admin">
             <div className="flex flex-col gap-6">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-                            <Landmark className="h-6 w-6 text-muted-foreground" />
-                            Payment Reconciliation
-                        </h1>
-                        <p className="text-sm text-muted-foreground">Monitor and resolve payments stuck in processing states.</p>
-                    </div>
-                    <Button
-                        onClick={handleBatchSync}
-                        disabled={isBatchSyncing || payments.length === 0}
-                        className="flex items-center gap-2"
-                    >
-                        {isBatchSyncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-                        Run Batch Sync
-                    </Button>
+                <div>
+                    <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                        <Landmark className="h-6 w-6 text-muted-foreground" />
+                        Management & Reconciliation
+                    </h1>
+                    <p className="text-sm text-muted-foreground">Monitor stale online payments and confirm offline manual bookings.</p>
                 </div>
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Stale Processing Payments</CardTitle>
-                        <CardDescription>
-                            Payments that have been in 'processing' status longer than expected and may require manual synchronization with the gateway.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        {isLoading ? (
-                            <div className="flex justify-center p-8">
-                                <Loader2 className="animate-spin h-6 w-6 text-muted-foreground" />
-                            </div>
-                        ) : payments.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center p-12 text-center border rounded-lg bg-muted/20 border-border">
-                                <Info className="h-10 w-10 text-muted-foreground mb-4 opacity-50" />
-                                <h3 className="text-lg font-medium text-foreground mb-1">No Stale Payments</h3>
-                                <p className="text-sm text-muted-foreground max-w-sm">
-                                    Great job! There are currently no payments stuck in a processing state that require your attention.
-                                </p>
-                            </div>
-                        ) : (
-                            <div className="rounded-md border">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Payment ID</TableHead>
-                                            <TableHead>Amount</TableHead>
-                                            <TableHead>Created At</TableHead>
-                                            <TableHead>Last Sync Attempt</TableHead>
-                                            <TableHead>Status</TableHead>
-                                            <TableHead className="text-right">Actions</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {payments.map((payment) => (
-                                            <TableRow key={payment.id}>
-                                                <TableCell className="font-medium text-xs font-mono">
-                                                    {payment.id.split('-')[0]}...
-                                                    <div className="text-[10px] text-muted-foreground block mt-1">
-                                                        Ref: {payment.gatewayReference || 'N/A'}
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell>
-                                                    {payment.currency.toUpperCase()} {(payment.amount / 100).toFixed(2)}
-                                                </TableCell>
-                                                <TableCell className="text-sm">
-                                                    {formatDate(payment.createdAt)}
-                                                </TableCell>
-                                                <TableCell className="text-sm">
-                                                    {formatDate(payment.lastReconciledAt)}
-                                                    {payment.reconciliationAttempts ? (
-                                                        <Badge variant="outline" className="ml-2 text-[10px]">
-                                                            {payment.reconciliationAttempts} tries
-                                                        </Badge>
-                                                    ) : null}
-                                                </TableCell>
-                                                <TableCell>
-                                                    <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 border-transparent">
-                                                        {payment.status}
-                                                    </Badge>
-                                                </TableCell>
-                                                <TableCell className="text-right">
-                                                    <DropdownMenu>
-                                                        <DropdownMenuTrigger asChild>
-                                                            <Button
-                                                                variant="outline"
-                                                                size="sm"
-                                                                disabled={syncingPaymentId === payment.id || isBatchSyncing}
-                                                            >
-                                                                {syncingPaymentId === payment.id ? (
-                                                                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                                                                ) : (
-                                                                    <RefreshCw className="h-4 w-4 mr-2" />
-                                                                )}
-                                                                Actions <ChevronDown className="h-4 w-4 ml-2 opacity-50" />
-                                                            </Button>
-                                                        </DropdownMenuTrigger>
-                                                        <DropdownMenuContent align="end" className="w-48">
-                                                            <DropdownMenuLabel>Reconcile Payment</DropdownMenuLabel>
-                                                            <DropdownMenuSeparator />
-                                                            <DropdownMenuItem onClick={() => handleSync(payment.id)}>
-                                                                <RefreshCw className="h-4 w-4 mr-2" /> Auto Sync
-                                                            </DropdownMenuItem>
-                                                            <DropdownMenuItem onClick={() => handleForceComplete(payment.id)} className="text-green-600 focus:text-green-600 focus:bg-green-50">
-                                                                <Check className="h-4 w-4 mr-2" /> Force Complete
-                                                            </DropdownMenuItem>
-                                                            <DropdownMenuItem onClick={() => handleForceFail(payment.id)} className="text-destructive focus:text-destructive focus:bg-destructive/10">
-                                                                <X className="h-4 w-4 mr-2" /> Force Fail
-                                                            </DropdownMenuItem>
-                                                        </DropdownMenuContent>
-                                                    </DropdownMenu>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </div>
-                        )}
+                <Tabs defaultValue="offline">
+                    <TabsList>
+                        <TabsTrigger value="offline" className="flex items-center gap-2">
+                            <Wallet className="h-4 w-4" />
+                            Offline Payments
+                            {pendingOfflineBookings.length > 0 && (
+                                <Badge variant="destructive" className="ml-1 h-5 w-5 flex items-center justify-center p-0 rounded-full">
+                                    {pendingOfflineBookings.length}
+                                </Badge>
+                            )}
+                        </TabsTrigger>
+                        <TabsTrigger value="stale" className="flex items-center gap-2">
+                            <RefreshCw className="h-4 w-4" />
+                            Stale Online
+                            {payments.length > 0 && (
+                                <Badge variant="destructive" className="ml-1 h-5 w-5 flex items-center justify-center p-0 rounded-full">
+                                    {payments.length}
+                                </Badge>
+                            )}
+                        </TabsTrigger>
+                    </TabsList>
 
-                        {payments.length > 0 && (
-                            <div className="mt-4 p-4 rounded-lg bg-blue-50/50 border border-blue-100 flex items-start gap-3">
-                                <AlertCircle className="h-5 w-5 text-blue-500 mt-0.5 shrink-0" />
-                                <div className="text-sm text-blue-800">
-                                    <p className="font-medium mb-1">How Reconciliation Works</p>
-                                    <p>
-                                        Syncing a payment will query the provider (e.g., Stripe, PayPal) for the real-time status of the transaction.
-                                        If the gateway reports the payment was successful, the system will automatically confirm the booking and send the confirmation email to the guest.
-                                    </p>
-                                </div>
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
+                    <TabsContent value="offline" className="mt-6 space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <Card>
+                                <CardHeader className="pb-2">
+                                    <CardTitle className="text-sm font-medium flex items-center gap-2 text-blue-600">
+                                        <Wallet className="h-4 w-4" /> Pending Offline
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold">{pendingOfflineBookings.length}</div>
+                                    <p className="text-xs text-muted-foreground">Waiting for manual confirmation</p>
+                                </CardContent>
+                            </Card>
+                            <Card>
+                                <CardHeader className="pb-2">
+                                    <CardTitle className="text-sm font-medium flex items-center gap-2 text-green-600">
+                                        <DollarSign className="h-4 w-4" /> Total Value
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold">
+                                        VUV {pendingOfflineBookings.reduce((sum, b) => sum + ((b.totalAmountCents || 0) / 100), 0).toLocaleString()}
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">Projected revenue from pending items</p>
+                                </CardContent>
+                            </Card>
+                        </div>
+
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Awaiting Confirmation</CardTitle>
+                                <CardDescription>
+                                    Bookings made with manual methods (Bank Transfer, Cash) that require admin verification.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                {isBookingsLoading ? (
+                                    <div className="flex justify-center p-8"><Loader2 className="animate-spin h-6 w-6 text-muted-foreground" /></div>
+                                ) : pendingOfflineBookings.length === 0 ? (
+                                    <div className="flex flex-col items-center justify-center p-12 text-center border rounded-lg bg-muted/20 border-border">
+                                        <Check className="h-10 w-10 text-muted-foreground mb-4 opacity-50" />
+                                        <h3 className="text-lg font-medium">All Reconciled</h3>
+                                        <p className="text-sm text-muted-foreground">No pending offline payments to confirm.</p>
+                                    </div>
+                                ) : (
+                                    <div className="rounded-md border overflow-hidden">
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow className="bg-muted/50">
+                                                    <TableHead>Booking</TableHead>
+                                                    <TableHead>Guest</TableHead>
+                                                    <TableHead>Method</TableHead>
+                                                    <TableHead className="text-right">Amount</TableHead>
+                                                    <TableHead className="text-right">Actions</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {pendingOfflineBookings.map((booking) => (
+                                                    <TableRow key={booking.id}>
+                                                        <TableCell className="font-mono text-xs">
+                                                            {booking.id.split('-')[0].toUpperCase()}
+                                                            <div className="text-[10px] text-muted-foreground mt-1">
+                                                                {format(new Date(booking.createdAt), "MMM dd, yyyy")}
+                                                            </div>
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <div className="font-semibold text-sm">{booking.customerName}</div>
+                                                            <div className="text-xs text-muted-foreground">{booking.customerEmail}</div>
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <Badge variant="outline" className="capitalize text-[10px]">
+                                                                {booking.paymentMethod?.replace(/[-_]/g, ' ') || 'Manual'}
+                                                            </Badge>
+                                                        </TableCell>
+                                                        <TableCell className="text-right font-bold text-primary">
+                                                            VUV {((booking.totalAmountCents || 0) / 100).toLocaleString()}
+                                                        </TableCell>
+                                                        <TableCell className="text-right">
+                                                            <div className="flex justify-end gap-2">
+                                                                <Button
+                                                                    size="sm"
+                                                                    className="h-8 bg-green-600 hover:bg-green-700"
+                                                                    onClick={() => handleConfirmOffline(booking.id)}
+                                                                >
+                                                                    Confirm
+                                                                </Button>
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="outline"
+                                                                    className="h-8 text-destructive"
+                                                                    onClick={() => handleCancelOffline(booking.id)}
+                                                                >
+                                                                    <X className="h-4 w-4" />
+                                                                </Button>
+                                                            </div>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+
+                    <TabsContent value="stale" className="mt-6 space-y-6">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Stale Online Payments</CardTitle>
+                                <CardDescription>
+                                    Payments that have been in 'processing' status longer than expected.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                {isStaleLoading ? (
+                                    <div className="flex justify-center p-8"><Loader2 className="animate-spin h-6 w-6 text-muted-foreground" /></div>
+                                ) : payments.length === 0 ? (
+                                    <div className="flex flex-col items-center justify-center p-12 text-center border rounded-lg bg-muted/20 border-border">
+                                        <Info className="h-10 w-10 text-muted-foreground mb-4 opacity-50" />
+                                        <h3 className="text-lg font-medium">No Stale Online Payments</h3>
+                                    </div>
+                                ) : (
+                                    <div className="rounded-md border">
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow>
+                                                    <TableHead>Payment ID</TableHead>
+                                                    <TableHead>Amount</TableHead>
+                                                    <TableHead>Status</TableHead>
+                                                    <TableHead className="text-right">Actions</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {payments.map((payment) => (
+                                                    <TableRow key={payment.id}>
+                                                        <TableCell className="font-mono text-xs">
+                                                            {payment.id.split('-')[0]}...
+                                                            <div className="text-[10px] text-muted-foreground mt-1">Ref: {payment.gatewayReference || 'N/A'}</div>
+                                                        </TableCell>
+                                                        <TableCell>{payment.currency.toUpperCase()} {(payment.amount / 100).toFixed(2)}</TableCell>
+                                                        <TableCell><Badge variant="secondary">{payment.status}</Badge></TableCell>
+                                                        <TableCell className="text-right">
+                                                            <DropdownMenu>
+                                                                <DropdownMenuTrigger asChild>
+                                                                    <Button variant="outline" size="sm">Actions <ChevronDown className="h-4 w-4 ml-2" /></Button>
+                                                                </DropdownMenuTrigger>
+                                                                <DropdownMenuContent align="end">
+                                                                    <DropdownMenuItem onClick={() => handleSync(payment.id)}>Auto Sync</DropdownMenuItem>
+                                                                    <DropdownMenuItem onClick={() => handleForceComplete(payment.id)} className="text-green-600">Force Complete</DropdownMenuItem>
+                                                                    <DropdownMenuItem onClick={() => handleForceFail(payment.id)} className="text-destructive">Force Fail</DropdownMenuItem>
+                                                                </DropdownMenuContent>
+                                                            </DropdownMenu>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+                </Tabs>
             </div>
         </DashboardLayout>
     );

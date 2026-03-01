@@ -39,14 +39,14 @@ export const tours = [
     capacity: 20 // Default capacity for tours
   },
   {
-    id: "bus",
-    title: "Bus Hire for the Day",
+    id: "vehicle_hire_day",
+    title: "Vehicle Hire for the Day",
     price: "A$400 / day",
     duration: "5-8 Hours",
     minPax: "Ideal for large groups",
     image: "https://res.cloudinary.com/dwro1dh5q/image/upload/v1765064623/ace-tours-assets/tour_bus_hire.jpg",
     description: [
-      "Hire the bus for the day",
+      "Hire the vehicle for the day",
       "Choose your own stops",
       "Light refreshments provided",
       "You take care of your entrance fees",
@@ -93,7 +93,7 @@ export const transfers = [
   {
     id: "hospitality",
     title: "Hospitality Package",
-    price: "VT 25,000 bus hire",
+    price: "VT 25,000 vehicle hire",
     duration: "Up to 10 hours",
     minPax: "Max 10 hours",
     description: [

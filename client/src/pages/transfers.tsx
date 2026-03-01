@@ -31,6 +31,9 @@ export default function Transfers() {
 
     if (existingIndex === -1) {
       acc.push(current);
+    } else if (current.isActive !== false && acc[existingIndex].isActive === false) {
+      // Prioritize active product over inactive product with same title
+      acc[existingIndex] = current;
     }
     return acc;
   }, []);

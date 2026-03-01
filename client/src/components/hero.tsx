@@ -21,6 +21,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "wouter";
 import { useTranslation } from "react-i18next";
 import { useCmsText } from "@/hooks/use-cms-text";
+import { useCMS } from "@/lib/cms-context";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -492,11 +493,13 @@ const TABS: { id: SearchTab; icon: React.ReactNode; label: string }[] = [
 interface SearchTabsProps {
   activeTab: SearchTab;
   onTabChange: (tab: SearchTab) => void;
+  showVehicleHire?: boolean;
 }
-function SearchTabs({ activeTab, onTabChange }: SearchTabsProps) {
+function SearchTabs({ activeTab, onTabChange, showVehicleHire = true }: SearchTabsProps) {
+  const availableTabs = TABS.filter(t => t.id !== 'vehicle' || showVehicleHire);
   return (
     <div role="tablist" aria-label="Search type" className="flex items-center gap-1 mb-3">
-      {TABS.map((tab) => (
+      {availableTabs.map((tab) => (
         <button
           key={tab.id}
           role="tab"
@@ -521,11 +524,16 @@ function SearchTabs({ activeTab, onTabChange }: SearchTabsProps) {
 // ─── SearchBar ────────────────────────────────────────────────────────────────
 interface SearchBarProps {
   search: ReturnType<typeof useAvailabilitySearch>;
+  showVehicleHire?: boolean;
 }
-function SearchBar({ search }: SearchBarProps) {
+function SearchBar({ search, showVehicleHire }: SearchBarProps) {
   return (
     <div className="w-full">
-      <SearchTabs activeTab={search.activeTab} onTabChange={search.setActiveTab} />
+      <SearchTabs
+        activeTab={search.activeTab}
+        onTabChange={search.setActiveTab}
+        showVehicleHire={showVehicleHire}
+      />
 
       {/*
        * The unified white bar.
@@ -753,6 +761,8 @@ function SearchBar({ search }: SearchBarProps) {
 export function Hero() {
   const { t } = useTranslation();
   const cms = useCmsText("home");
+  const { isBlockEnabled } = useCMS();
+  const showVehicleHire = isBlockEnabled('vehicle-hire');
   const search = useAvailabilitySearch();
 
   return (

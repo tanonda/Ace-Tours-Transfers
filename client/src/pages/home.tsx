@@ -12,6 +12,7 @@ import { fetchTours } from "@/lib/api";
 import { useTranslation } from "react-i18next";
 import React, { useMemo } from "react";
 import { useCmsText } from "@/hooks/use-cms-text";
+import { useCMS } from "@/lib/cms-context";
 
 // Using Cloudinary URL instead of local import
 const aboutImg = "https://res.cloudinary.com/dwro1dh5q/image/upload/v1764939968/ace-tours-stock/1764939966139_vanuatu_rarru_waterf_a12f619f.jpg.jpg";
@@ -19,6 +20,8 @@ const aboutImg = "https://res.cloudinary.com/dwro1dh5q/image/upload/v1764939968/
 export default function Home() {
   const { t } = useTranslation();
   const cms = useCmsText("home");
+  const { isBlockEnabled } = useCMS();
+  const showVehicleHire = isBlockEnabled('vehicle-hire');
   const { data: allTours = [] } = useQuery({
     queryKey: ["tours"],
     queryFn: fetchTours,
@@ -217,7 +220,7 @@ export default function Home() {
       </section>
 
       {/* Vehicle Hire Section */}
-      {vehicles.length > 0 && (
+      {showVehicleHire && vehicles.length > 0 && (
         <section className="py-24 bg-background">
           <div className="container mx-auto px-4">
             <div className="text-center max-w-3xl mx-auto mb-16">

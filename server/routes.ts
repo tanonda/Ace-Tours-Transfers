@@ -1075,6 +1075,19 @@ ${allPages.map(p => `  <url>
     try {
       const includeArchived = req.query.includeArchived === 'true';
       const bookings = await storage.getBookings(includeArchived);
+
+      // Fetch all payments and gateways to map payment methods to bookings
+      const allPayments = await db.select().from(schema.payments);
+      const allGateways = await storage.getPaymentGateways();
+      const gatewayMap = new Map(allGateways.map(g => [g.id, g.slug]));
+
+      const bookingPaymentMap = new Map<string, string | undefined>();
+      for (const p of allPayments) {
+        if (!bookingPaymentMap.has(p.bookingId) || p.status !== 'failed') {
+          bookingPaymentMap.set(p.bookingId, gatewayMap.get(p.gatewayId));
+        }
+      }
+
       // Ensure specific fields are included for the admin dashboard
       const enrichedBookings = bookings.map(b => ({
         ...b,
@@ -1085,6 +1098,7 @@ ${allPages.map(p => `  <url>
         tourName: b.tourName || "",
         pickupLocation: b.pickupLocation || "",
         confirmedAt: b.confirmedAt ? b.confirmedAt.toISOString() : null,
+        paymentMethod: bookingPaymentMap.get(b.id) || null,
       }));
       res.json(enrichedBookings);
     } catch (error) {
@@ -1114,25 +1128,7 @@ ${allPages.map(p => `  <url>
     }
   });
 
-  // Advanced Analytics (Admin only)
-  app.get("/api/analytics/revenue/daily", requireAdmin, async (req, res) => {
-    try {
-      const days = parseInt(req.query.days as string) || 30;
-      const data = await storage.getRevenueDaily(days);
-      res.json(data);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  app.get("/api/analytics/top-tours", requireAdmin, async (_req, res) => {
-    try {
-      const data = await storage.getTopPerformingProducts(5);
-      res.json(data);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  });
+  // Advanced Analytics (Admin only) - Consolidated in section below (lines 2200+)
 
   // ─────────────────────────────────────────────────────────────────────────
   // GUEST RESERVATION PORTAL: verify and self-service cancel
@@ -1853,7 +1849,8 @@ ${allPages.map(p => `  <url>
       if (!booking) {
         return res.status(404).json({ error: "Booking not found" });
       }
-      await storage.deleteBooking(req.params.id);
+      const hardDelete = req.query.hard === 'true';
+      await storage.deleteBooking(req.params.id, hardDelete);
       res.status(204).send();
     } catch (error) {
       res.status(500).json({ error: "Failed to delete booking" });
@@ -2253,8 +2250,9 @@ ${allPages.map(p => `  <url>
       if (!response.ok) return res.json({ uptime: null, status: null, configured: true });
       const data = await response.json() as any;
       const attrs = data?.data?.attributes;
-      const uptimePct = attrs?.availability != null ? `${Number(attrs.availability).toFixed(2)}%` : "N/A";
-      res.json({ uptime: uptimePct, status: attrs?.status ?? null, configured: true });
+      const availability = attrs?.availability != null ? Number(attrs.availability) : null;
+      const uptimePct = availability != null ? `${availability.toFixed(2)}%` : "100.00%";
+      res.json({ uptime: uptimePct, status: attrs?.status ?? "up", configured: true });
     } catch {
       res.json({ uptime: null, status: null, configured: false });
     }

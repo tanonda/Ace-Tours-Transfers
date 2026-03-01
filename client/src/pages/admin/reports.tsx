@@ -26,13 +26,14 @@ export default function AdminReports() {
 
   const { data: revenueData = [], isLoading: isLoadingRevenue } = useQuery({ queryKey: ["revenue"], queryFn: fetchRevenue });
   const { data: stats, isLoading: isLoadingStats } = useQuery({ queryKey: ["stats"], queryFn: fetchBookingStats });
-  const { data: allBookings = [], isLoading: isLoadingBookings } = useQuery({ queryKey: ["bookings"], queryFn: fetchBookings });
+  const { data: allBookings = [], isLoading: isLoadingBookings } = useQuery({ queryKey: ["bookings"], queryFn: () => fetchBookings() });
 
   const fmtCurrency = (val: number) => `${Math.round(val).toLocaleString()} VT`;
 
   const filteredBookings = allBookings.filter((b: any) => {
-    if (!b.date) return false;
-    const inRange = b.date >= dateFrom && b.date <= dateTo;
+    if (!b.createdAt) return false;
+    const bookingDate = new Date(b.createdAt).toISOString().split("T")[0];
+    const inRange = bookingDate >= dateFrom && bookingDate <= dateTo;
     const matchStatus = statusFilter === "all" || b.status === statusFilter;
     const matchSearch = !search || b.customerName?.toLowerCase().includes(search.toLowerCase()) ||
       b.tourName?.toLowerCase().includes(search.toLowerCase()) ||
@@ -40,26 +41,42 @@ export default function AdminReports() {
     return inRange && matchStatus && matchSearch;
   });
 
-  const guestManifest = allBookings.filter((b: any) => b.date === guestDate && b.status !== "cancelled");
+  const guestManifest = allBookings.filter((b: any) => {
+    if (!b.createdAt) return false;
+    return new Date(b.createdAt).toISOString().split("T")[0] === guestDate && b.status !== "cancelled";
+  });
 
   // Group daily revenue by month for the chart
   const monthlyRevenue = revenueData.reduce((acc: any[], curr: any) => {
     if (!curr.date) return acc;
-    const date = new Date(curr.date);
-    const month = date.toLocaleString('en-US', { month: 'short' }) + ' ' + date.getFullYear();
+    const dateStr = new Date(curr.date);
+    const month = dateStr.toLocaleString('en-US', { month: 'short' }) + ' ' + dateStr.getFullYear();
     const existing = acc.find(m => m.month === month);
     if (existing) {
-      existing.total += (curr.amount || 0);
+      existing.total += ((curr.amount || 0) / 100);
     } else {
-      acc.push({ month, total: (curr.amount || 0) });
+      acc.push({ month, total: ((curr.amount || 0) / 100) });
     }
     return acc;
   }, []);
 
-  const totalRevenue = revenueData.reduce((acc: number, curr: any) => acc + (curr.amount || 0), 0);
-  const averageMonthly = monthlyRevenue.length ? totalRevenue / monthlyRevenue.length : 0;
+  const totalRevenue = allBookings.reduce((sum: number, b: any) => {
+    if (b.status === 'confirmed' || b.status === 'completed') {
+      return sum + ((b.totalAmountCents || 0) / 100);
+    }
+    return sum;
+  }, 0);
+
+  const pendingPaymentsAmount = allBookings.reduce((sum: number, b: any) => {
+    if (b.status === 'pending') {
+      return sum + ((b.totalAmountCents || 0) / 100);
+    }
+    return sum;
+  }, 0);
+
+  const averageMonthly = monthlyRevenue.length ? totalRevenue / monthlyRevenue.length : totalRevenue;
   const filteredRevenue = filteredBookings.reduce((sum: number, b: any) => {
-    return sum + (parseFloat(String(b.amount ?? "0").replace(/[^0-9.]/g, "")) || 0);
+    return sum + ((b.totalAmountCents || 0) / 100);
   }, 0);
 
   const exportBookingCSV = () => {
@@ -154,10 +171,10 @@ export default function AdminReports() {
         {/* KPI Summary */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { label: "Total Revenue", value: fmtCurrency(totalRevenue), sub: "All time", icon: DollarSign, color: "bg-yellow-500/15 text-yellow-600" },
+            { label: "Total Revenue", value: fmtCurrency(totalRevenue), sub: "Confirmed/Completed", icon: DollarSign, color: "bg-yellow-500/15 text-yellow-600" },
             { label: "Total Bookings", value: stats?.total || 0, sub: `${stats?.confirmed} confirmed`, icon: Calendar, color: "bg-blue-500/15 text-blue-600" },
-            { label: "Monthly Avg Revenue", value: fmtCurrency(averageMonthly), sub: "Based on history", icon: TrendingUp, color: "bg-green-500/15 text-green-600" },
-            { label: "Pending Payments", value: stats?.pending || 0, sub: "Requires attention", icon: CreditCard, color: "bg-red-500/15 text-red-500" },
+            { label: "Monthly Avg Revenue", value: fmtCurrency(averageMonthly), sub: `Across ${monthlyRevenue.length || 1} month${monthlyRevenue.length > 1 ? 's' : ''}`, icon: TrendingUp, color: "bg-green-500/15 text-green-600" },
+            { label: "Pending Payments", value: fmtCurrency(pendingPaymentsAmount), sub: `${stats?.pending || 0} issues waiting`, icon: CreditCard, color: "bg-red-500/15 text-red-500" },
           ].map(kpi => (
             <Card key={kpi.label}>
               <CardContent className="p-5">

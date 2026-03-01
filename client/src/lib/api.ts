@@ -41,6 +41,10 @@ export async function logout() {
   await apiRequest("POST", "/api/auth/logout");
 }
 
+export async function resetPassword(data: { token: string; newPassword: string }): Promise<void> {
+  await apiRequest("POST", "/api/auth/reset-password", data);
+}
+
 export async function fetchAllUsers(): Promise<User[]> {
   const res = await apiRequest("GET", "/api/users");
   return res.json();
@@ -59,6 +63,11 @@ export async function createUser(user: InsertUser): Promise<User> {
 
 export async function updateUserRole(id: string, role: string): Promise<User> {
   const res = await apiRequest("PATCH", `/api/users/${id}/role`, { role });
+  return res.json();
+}
+
+export async function updateUserStatus(id: string, isActive: boolean): Promise<User> {
+  const res = await apiRequest("PATCH", `/api/users/${id}/status`, { isActive });
   return res.json();
 }
 
@@ -145,8 +154,9 @@ export async function updateBooking(id: string, updates: Partial<Booking>): Prom
   return res.json();
 }
 
-export async function deleteBooking(id: string): Promise<void> {
-  await apiRequest("DELETE", `/api/bookings/${id}`);
+export async function deleteBooking(id: string, hardDelete: boolean = false): Promise<void> {
+  const qs = hardDelete ? '?hard=true' : '';
+  await apiRequest("DELETE", `/api/bookings/${id}${qs}`);
 }
 
 export async function initiatePayment(bookingId: string, provider?: string): Promise<{ paymentId: string; checkoutUrl: string }> {

@@ -43,7 +43,7 @@ All 14 approved advisory items (A–N) implemented. Below is a complete breakdow
 ### What was built:
 - **Server** (`server/routes.ts`): `GET /api/admin/uptime` — proxies to BetterStack API, returns `{ uptime, status }`. Falls back to `null` if env vars not set.
 - **Dashboard** (`client/src/pages/admin/dashboard.tsx`): Uptime KPI now shows live percentage instead of hardcoded `99.97%`. Shows "N/A" until BetterStack is configured.
-- **Dashboard bar chart**: Replaced static SVG with live Recharts `BarChart` fed from a new `/api/analytics/revenue-by-category` endpoint that categorises bookings into Tours / Transfers / Bus Hire.
+- **Dashboard bar chart**: Replaced static SVG with live Recharts `BarChart` fed from a new `/api/analytics/revenue-by-category` endpoint that categorises bookings into Tours / Transfers / Vehicle Hire.
 
 ---
 

@@ -164,7 +164,7 @@ export default function AdminSettings() {
   }, [settings]);
 
   const { data: flags = [], isLoading: isFlagsLoading } = useQuery({
-    queryKey: ["feature-flags"],
+    queryKey: ["admin-feature-flags"],
     queryFn: fetchFeatureFlags,
   });
 
@@ -191,6 +191,7 @@ export default function AdminSettings() {
   const toggleFlagMutation = useMutation({
     mutationFn: ({ slug, enabled }: { slug: string; enabled: boolean }) => updateFeatureFlag(slug, enabled),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-feature-flags"] });
       queryClient.invalidateQueries({ queryKey: ["feature-flags"] });
       toast({ title: t("cms.updated"), description: "Feature flag updated." });
     },
@@ -217,14 +218,6 @@ export default function AdminSettings() {
       { key: "social_facebook", label: "Facebook URL", icon: "Facebook" },
       { key: "social_instagram", label: "Instagram URL", icon: "Instagram" },
       { key: "whatsapp_number", label: "WhatsApp Number", icon: "MessageCircle" },
-    ],
-    banking: [
-      { key: "bank_name", label: "Bank Name", placeholder: "e.g. ANZ Bank (Vanuatu) Ltd" },
-      { key: "bank_account_name", label: "Account Name", placeholder: "e.g. Ace Tours & Transfers" },
-      { key: "bank_account_number", label: "Account Number", placeholder: "e.g. 123-456-789" },
-      { key: "bank_swift_code", label: "SWIFT / BIC Code", placeholder: "e.g. ANZBVUVU" },
-      { key: "bank_branch_code", label: "Branch Code (optional)", placeholder: "e.g. 01" },
-      { key: "bank_payment_deadline_hours", label: "Payment Deadline (hours)", placeholder: "e.g. 24" },
     ],
     email: [
       { key: "admin_email", label: "Admin Notification Email", placeholder: "email to receive booking notifications" },
@@ -636,24 +629,26 @@ export default function AdminSettings() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                {flags.map((flag: any) => (
-                  <div key={flag.slug} className="flex items-center justify-between space-x-2">
-                    <div className="flex flex-col space-y-1">
-                      <Label htmlFor={flag.slug} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                        {flag.displayName}
-                      </Label>
-                      <p className="text-xs text-muted-foreground">
-                        {flag.description}
-                      </p>
+                {flags
+                  .filter((flag: any) => !flag.slug.startsWith('payment-') && flag.slug !== 'stripe' && flag.slug !== 'local-bank')
+                  .map((flag: any) => (
+                    <div key={flag.slug} className="flex items-center justify-between space-x-2">
+                      <div className="flex flex-col space-y-1">
+                        <Label htmlFor={flag.slug} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                          {flag.displayName}
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                          {flag.description}
+                        </p>
+                      </div>
+                      <Switch
+                        id={flag.slug}
+                        checked={flag.enabled}
+                        onCheckedChange={(checked) => toggleFlagMutation.mutate({ slug: flag.slug, enabled: checked })}
+                        disabled={toggleFlagMutation.isPending}
+                      />
                     </div>
-                    <Switch
-                      id={flag.slug}
-                      checked={flag.enabled}
-                      onCheckedChange={(checked) => toggleFlagMutation.mutate({ slug: flag.slug, enabled: checked })}
-                      disabled={toggleFlagMutation.isPending}
-                    />
-                  </div>
-                ))}
+                  ))}
               </CardContent>
             </Card>
           </TabsContent>

@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchTours, createTour, updateTour, fetchBookings } from "@/lib/api";
 import { useState } from "react";
@@ -45,10 +44,11 @@ export default function AdminProducts() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<"all" | "tour" | "transfer" | "vehicle">("all");
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'table'>('table');
+  const [showInactive, setShowInactive] = useState(true);
 
   const { data: tours = [], isLoading } = useQuery({ queryKey: ["tours"], queryFn: fetchTours });
-  const { data: bookings = [] } = useQuery({ queryKey: ["admin", "bookings"], queryFn: fetchBookings });
+  const { data: bookings = [] } = useQuery({ queryKey: ["admin", "bookings"], queryFn: () => fetchBookings() });
 
   const createMutation = useMutation({
     mutationFn: createTour,
@@ -81,7 +81,6 @@ export default function AdminProducts() {
       queryClient.invalidateQueries({ queryKey: ["tours"] });
 
       if (result.softDeleted) {
-        // Show the "has dependents" info — offer force delete
         setDeleteState(prev => ({ ...prev, result }));
         toast({
           title: "Product hidden from storefront",
@@ -100,6 +99,23 @@ export default function AdminProducts() {
   };
 
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+
+  const handleBulkStatusUpdate = async (isActive: boolean) => {
+    if (selectedItems.length === 0) return;
+    setIsBulkDeleting(true);
+    try {
+      for (const id of selectedItems) {
+        await updateMutation.mutateAsync({ id, data: { isActive } });
+      }
+      queryClient.invalidateQueries({ queryKey: ["tours"] });
+      setSelectedItems([]);
+      toast({ title: `Successfully ${isActive ? 'activated' : 'deactivated'} ${selectedItems.length} products.` });
+    } catch (err: any) {
+      toast({ title: t("common.error"), description: "Bulk status update failed.", variant: "destructive" });
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  };
 
   const handleBulkDelete = async () => {
     if (selectedItems.length === 0) return;
@@ -153,7 +169,8 @@ export default function AdminProducts() {
     const matchesSearch = tour.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       tour.category.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = activeTab === "all" || tour.category === activeTab;
-    return matchesSearch && matchesCategory;
+    const matchesVisibility = showInactive || tour.isActive !== false;
+    return matchesSearch && matchesCategory && matchesVisibility;
   });
 
   const tourStats = {
@@ -200,30 +217,139 @@ export default function AdminProducts() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input placeholder={t("common.searchPlaceholder")} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
             </div>
+            <div className="flex items-center gap-2 ml-2">
+              <label className="text-xs font-medium text-muted-foreground whitespace-nowrap">Show Hidden</label>
+              <button
+                onClick={() => setShowInactive(!showInactive)}
+                className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 ${showInactive ? 'bg-primary' : 'bg-input'}`}
+              >
+                <span className={`pointer-events-none block h-4 w-4 rounded-full bg-background shadow-lg ring-0 transition-transform ${showInactive ? 'translate-x-4' : 'translate-x-0'}`} />
+              </button>
+            </div>
           </div>
           <div className="flex items-center gap-3 w-full sm:w-auto">
             {selectedItems.length > 0 && (
-              <Button variant="destructive" size="sm" onClick={handleBulkDelete} disabled={isBulkDeleting}>
-                {isBulkDeleting ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : <Trash className="h-4 w-4 mr-2" />}
-                Delete Selected ({selectedItems.length})
-              </Button>
+              <div className="flex items-center gap-2 bg-primary/5 px-2 py-1 rounded-lg border border-primary/20 animate-in fade-in slide-in-from-right-2">
+                <span className="text-xs font-bold text-primary mr-2">{selectedItems.length} Selected</span>
+                <Button variant="outline" size="sm" onClick={() => handleBulkStatusUpdate(true)} className="h-8 text-xs text-green-600 border-green-200 hover:bg-green-50">
+                  <Plus className="h-3 w-3 mr-1.5" /> Activate
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => handleBulkStatusUpdate(false)} className="h-8 text-xs text-orange-600 border-orange-200 hover:bg-orange-50">
+                  <EyeOff className="h-3 w-3 mr-1.5" /> Deactivate
+                </Button>
+                <Button variant="destructive" size="sm" className="h-8 text-xs" onClick={handleBulkDelete} disabled={isBulkDeleting}>
+                  {isBulkDeleting ? <Loader2 className="animate-spin h-3 w-3 mr-1.5" /> : <Trash className="h-3 w-3 mr-1.5" />}
+                  Delete
+                </Button>
+              </div>
             )}
             <div className="flex items-center gap-1 bg-muted p-1 rounded-md">
-              <Button variant={viewMode === 'list' ? 'secondary' : 'ghost'} size="icon" className="h-8 w-8" onClick={() => setViewMode('list')}>
+              <Button variant={viewMode === 'list' ? 'secondary' : 'ghost'} size="icon" className="h-8 w-8" onClick={() => setViewMode('list')} title="List View">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
               </Button>
-              <Button variant={viewMode === 'grid' ? 'secondary' : 'ghost'} size="icon" className="h-8 w-8" onClick={() => setViewMode('grid')}>
+              <Button variant={viewMode === 'grid' ? 'secondary' : 'ghost'} size="icon" className="h-8 w-8" onClick={() => setViewMode('grid')} title="Grid View">
                 <LayoutGrid className="h-4 w-4" />
+              </Button>
+              <Button variant={viewMode === 'table' ? 'secondary' : 'ghost'} size="icon" className="h-8 w-8" onClick={() => setViewMode('table')} title="Detailed Table View">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3h18v18H3zM3 9h18M3 15h18M9 3v18"></path></svg>
               </Button>
             </div>
           </div>
         </div>
 
-        <div className={viewMode === 'grid' ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "flex flex-col gap-4"}>
-          {isLoading ? (
-            <div className="col-span-full py-10 text-center">{t("common.loading")}</div>
-          ) : filteredTours.length > 0 ? (
-            filteredTours.map((tour: any) => (
+        {isLoading ? (
+          <div className="py-20 text-center bg-card rounded-xl border border-dashed">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2 text-primary" />
+            <p className="text-muted-foreground">{t("common.loading")}</p>
+          </div>
+        ) : filteredTours.length === 0 ? (
+          <div className="py-20 text-center text-muted-foreground bg-card rounded-xl border border-border border-dashed">
+            <Map className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" />
+            <p>{t("admin.noToursFound")}</p>
+          </div>
+        ) : viewMode === 'table' ? (
+          <div className="bg-card rounded-xl border border-border overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm text-left">
+                <thead className="bg-muted text-muted-foreground font-medium border-b">
+                  <tr>
+                    <th className="p-4 w-10">
+                      <div className={`w-5 h-5 rounded flex items-center justify-center cursor-pointer border ${selectedItems.length === filteredTours.length ? "bg-primary border-primary text-primary-foreground" : "bg-white border-gray-300"}`}
+                        onClick={() => setSelectedItems(selectedItems.length === filteredTours.length ? [] : filteredTours.map((t: any) => t.id))}
+                      >
+                        {selectedItems.length === filteredTours.length && <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>}
+                      </div>
+                    </th>
+                    <th className="p-4">Product</th>
+                    <th className="p-4">Category</th>
+                    <th className="p-4">Price / Stats</th>
+                    <th className="p-4 uppercase text-[10px] tracking-wider font-bold">Status</th>
+                    <th className="p-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y relative">
+                  {filteredTours.map((tour: any) => (
+                    <tr key={tour.id} className={`hover:bg-muted/50 transition-colors ${!tour.isActive ? "bg-orange-50/30" : ""}`}>
+                      <td className="p-4">
+                        <div className={`w-5 h-5 rounded flex items-center justify-center cursor-pointer border ${selectedItems.includes(tour.id) ? "bg-primary border-primary text-primary-foreground" : "bg-white border-gray-300"}`}
+                          onClick={() => setSelectedItems(prev => prev.includes(tour.id) ? prev.filter(id => id !== tour.id) : [...prev, tour.id])}
+                        >
+                          {selectedItems.includes(tour.id) && <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>}
+                        </div>
+                      </td>
+                      <td className="p-4 font-medium">
+                        <div className="flex items-center gap-3">
+                          <div className="relative shrink-0">
+                            <img src={tour.image} className="w-12 h-12 rounded-lg object-cover border" alt="" />
+                            {!tour.isActive && (
+                              <div className="absolute -top-1 -right-1 bg-orange-500 rounded-full border-2 border-white p-0.5">
+                                <EyeOff className="h-2.5 w-2.5 text-white" />
+                              </div>
+                            )}
+                          </div>
+                          <div>
+                            <span className="block font-semibold cursor-pointer hover:text-primary transition-colors" onClick={() => { setSelectedTour(tour); setIsDialogOpen(true); }}>{tour.title}</span>
+                            <span className="text-[10px] text-muted-foreground uppercase tracking-tighter bg-muted px-1.5 py-0.5 rounded font-bold">ID: {tour.id.slice(0, 8)}</span>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="p-4">
+                        <div className="flex items-center gap-1.5">
+                          {tour.category === "tour" ? <Map className="h-3.5 w-3.5 text-blue-500" /> :
+                            tour.category === "transfer" ? <Car className="h-3.5 w-3.5 text-green-500" /> :
+                              <LayoutGrid className="h-3.5 w-3.5 text-orange-500" />}
+                          <span className="capitalize text-xs font-medium">{tour.category}</span>
+                        </div>
+                      </td>
+                      <td className="p-4">
+                        <div className="flex flex-col">
+                          <span className="font-bold text-foreground">{formatPrice(tour.adultPriceCents)}</span>
+                          <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                            <Users className="h-2.5 w-2.5" /> Cap: {tour.defaultCapacity}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="p-4">
+                        {tour.isActive ?
+                          <Badge variant="secondary" className="bg-green-500/10 text-green-600 border-0 hover:bg-green-500/20 px-2 py-0.5 font-bold uppercase text-[9px]">Active</Badge> :
+                          <Badge variant="secondary" className="bg-orange-500/10 text-orange-600 border-0 hover:bg-orange-500/20 px-2 py-0.5 font-bold uppercase text-[9px]">Hidden</Badge>
+                        }
+                      </td>
+                      <td className="p-4 text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setSelectedTour(tour); setIsDialogOpen(true); }}><Pencil className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => confirmDelete(tour.id, tour.title)}><Trash className="h-4 w-4" /></Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ) : (
+          <div className={viewMode === 'grid' ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "flex flex-col gap-4"}>
+            {filteredTours.map((tour: any) => (
               <div key={tour.id} className={`group relative bg-card rounded-xl border overflow-hidden hover:shadow-primary/20 transition-all ${!tour.isActive ? "border-orange-500/40 opacity-75" :
                 selectedItems.includes(tour.id) ? "border-primary ring-1 ring-primary" : "border-border"
                 } ${viewMode === 'list' ? 'flex flex-row items-center p-3 gap-4 h-32' : 'flex flex-col'}`}>
@@ -255,19 +381,19 @@ export default function AdminProducts() {
                   )}
                 </div>
 
-                <div className={`p-4 flex flex-col flex-1 ${viewMode === 'list' ? 'py-2 px-0 h-full justify-center' : ''}`}>
-                  <div className="flex justify-between items-start mb-1">
-                    <h3 className="font-bold text-lg leading-tight line-clamp-1 group-hover:text-primary transition-colors cursor-pointer" onClick={() => { setSelectedTour(tour); setIsDialogOpen(true); }}>
+                <div className={`p-4 flex flex-col flex-1 ${viewMode === 'list' ? 'flex-row items-center py-2 px-4 gap-6' : ''}`}>
+                  <div className={`flex justify-between items-start ${viewMode === 'list' ? 'w-1/3 mb-0' : 'mb-1'}`}>
+                    <h3 className="font-bold text-lg leading-tight line-clamp-2 group-hover:text-primary transition-colors cursor-pointer" onClick={() => { setSelectedTour(tour); setIsDialogOpen(true); }}>
                       {tour.title}
                     </h3>
                   </div>
 
-                  <div className="flex items-center gap-4 text-muted-foreground text-sm mb-3">
+                  <div className={`flex items-center gap-4 text-muted-foreground text-sm ${viewMode === 'list' ? 'w-1/4 mb-0' : 'mb-3'}`}>
                     <span className="font-bold text-foreground bg-primary/10 text-primary px-2 py-0.5 rounded-md">{formatPrice(tour.adultPriceCents)}</span>
                     <span className="flex items-center gap-1"><Map className="h-3.5 w-3.5" />{tour.duration}</span>
                   </div>
 
-                  <div className={`flex items-center gap-2 text-xs text-muted-foreground ${viewMode === 'list' ? 'mb-0' : 'mb-4'}`}>
+                  <div className={`flex items-center gap-2 text-xs text-muted-foreground ${viewMode === 'list' ? 'w-1/4 mb-0' : 'mb-4'}`}>
                     <Users className="h-3.5 w-3.5" />
                     <span>Capacity: <span className="font-medium text-foreground">{tour.defaultCapacity || "Not set"}</span> {tour.category === "vehicle" ? "vehicles" : "pax"}</span>
                   </div>
@@ -293,14 +419,9 @@ export default function AdminProducts() {
                   </div>
                 )}
               </div>
-            ))
-          ) : (
-            <div className="col-span-full py-20 text-center text-muted-foreground bg-card rounded-xl border border-border border-dashed">
-              <Map className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" />
-              <p>{t("admin.noToursFound")}</p>
-            </div>
-          )}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <ProductDialog

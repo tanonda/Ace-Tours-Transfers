@@ -7,11 +7,12 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Mail, Phone, Download, Users, DollarSign, Calendar, MapPin, PlusCircle, Pencil, Send, KeyRound, LayoutGrid, List } from "lucide-react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import { fetchAllUsers, fetchBookings, updateUserRole, resetUserPassword, createUser, sendWelcomeEmail } from "@/lib/api";
+import { fetchAllUsers, fetchBookings, updateUserRole, resetUserPassword, createUser, sendWelcomeEmail, updateUserStatus } from "@/lib/api";
 import { useState, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { Search, Mail, Phone, Download, Users, DollarSign, Calendar, MapPin, PlusCircle, Pencil, Send, KeyRound, LayoutGrid, List, EyeOff, CheckCircle2, AlertTriangle, MoreVertical, XCircle, Loader2 } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import type { User, Booking, InsertUser } from "@shared/schema";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -38,6 +39,8 @@ export default function AdminUsers() {
   const [isResetPasswordDialogOpen, setIsResetPasswordDialogOpen] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const [showInactive, setShowInactive] = useState(true);
+  const [selectedItems, setSelectedItems] = useState<string[]>([]);
 
   const { data: users = [], isLoading } = useQuery({
     queryKey: ["users"],
@@ -49,13 +52,17 @@ export default function AdminUsers() {
     queryFn: () => fetchBookings(),
   });
 
-  const filteredUsers = users.filter(user =>
-    user.role === 'customer' && (
-      !searchQuery ||
+  const filteredUsers = users.filter(user => {
+    const isCustomer = user.role === 'customer';
+    const matchesSearch = !searchQuery ||
       user.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.email?.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-  );
+      user.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.phone?.includes(searchQuery);
+
+    const matchesVisibility = showInactive || user.isActive !== false;
+
+    return isCustomer && matchesSearch && matchesVisibility;
+  });
 
   const getUserBookings = (userId: string): Booking[] => {
     return bookings.filter(b => b.userId === userId);
@@ -114,15 +121,41 @@ export default function AdminUsers() {
     toast({ title: "Export Complete", description: "User list has been downloaded." });
   };
 
-  const handleUpdateRole = async (userId: string, newRole: string) => {
+  const handleUpdateRole = async (userId: string, role: string) => {
     try {
-      await updateUserRole(userId, newRole);
+      await updateUserRole(userId, role);
       queryClient.invalidateQueries({ queryKey: ["users"] });
-      toast({ title: "Success", description: `User role updated to ${newRole}.` });
-      setSelectedUser(prev => prev ? { ...prev, role: newRole } : null);
+      toast({ title: "Role Updated", description: "User role has been updated." });
     } catch (error) {
-      toast({ title: "Error", description: "Failed to update user role." });
+      toast({ title: "Error", description: "Failed to update user role.", variant: "destructive" });
       console.error("Failed to update user role:", error);
+    }
+  };
+
+  const statusMutation = useMutation({
+    mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) => updateUserStatus(id, isActive),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      toast({ title: variables.isActive ? "User Activated" : "User Suspended", description: `Account for UID ${variables.id.slice(0, 8)} is now ${variables.isActive ? 'active' : 'suspended'}.` });
+    },
+    onError: () => toast({ title: "Error", description: "Failed to update account status.", variant: "destructive" }),
+  });
+
+  const [isBulkProcessing, setIsBulkProcessing] = useState(false);
+
+  const handleBulkStatusUpdate = async (isActive: boolean) => {
+    if (selectedItems.length === 0) return;
+    setIsBulkProcessing(true);
+    try {
+      for (const id of selectedItems) {
+        await statusMutation.mutateAsync({ id, isActive });
+      }
+      setSelectedItems([]);
+      toast({ title: "Bulk Update Complete", description: `Successfully ${isActive ? 'activated' : 'suspended'} ${selectedItems.length} customers.` });
+    } catch (err: any) {
+      toast({ title: "Error", description: "Bulk status update encountered errors.", variant: "destructive" });
+    } finally {
+      setIsBulkProcessing(false);
     }
   };
 
@@ -273,23 +306,46 @@ export default function AdminUsers() {
                 data-testid="input-search-customers"
               />
             </div>
-            <div className="flex gap-1 bg-muted p-1 rounded-md">
-              <Button
-                variant={viewMode === 'list' ? 'secondary' : 'ghost'}
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => setViewMode('list')}
-              >
-                <List className="h-4 w-4" />
-              </Button>
-              <Button
-                variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => setViewMode('grid')}
-              >
-                <LayoutGrid className="h-4 w-4" />
-              </Button>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <label className="text-xs font-medium text-muted-foreground whitespace-nowrap">Show Inactive</label>
+                <button
+                  onClick={() => setShowInactive(!showInactive)}
+                  className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 ${showInactive ? 'bg-primary' : 'bg-input'}`}
+                >
+                  <span className={`pointer-events-none block h-4 w-4 rounded-full bg-background shadow-lg ring-0 transition-transform ${showInactive ? 'translate-x-4' : 'translate-x-0'}`} />
+                </button>
+              </div>
+
+              {selectedItems.length > 0 && (
+                <div className="flex items-center gap-2 bg-primary/5 px-2 py-1 rounded-lg border border-primary/20 animate-in fade-in slide-in-from-right-2">
+                  <span className="text-xs font-bold text-primary mr-1 px-1">{selectedItems.length} Selected</span>
+                  <Button variant="outline" size="sm" onClick={() => handleBulkStatusUpdate(true)} className="h-8 text-xs text-green-600 border-green-200">
+                    <CheckCircle2 className="h-3 w-3 mr-1" /> Activate
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => handleBulkStatusUpdate(false)} className="h-8 text-xs text-orange-600 border-orange-200">
+                    <XCircle className="h-3 w-3 mr-1" /> Suspend
+                  </Button>
+                </div>
+              )}
+              <div className="flex gap-1 bg-muted p-1 rounded-md">
+                <Button
+                  variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => setViewMode('list')}
+                >
+                  <List className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => setViewMode('grid')}
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </CardHeader>
           <CardContent>
@@ -297,13 +353,19 @@ export default function AdminUsers() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-10">
+                      <div className={`w-4 h-4 rounded flex items-center justify-center cursor-pointer border ${selectedItems.length === filteredUsers.length && filteredUsers.length > 0 ? "bg-primary border-primary text-primary-foreground" : "bg-white border-gray-300"}`}
+                        onClick={() => setSelectedItems(selectedItems.length === filteredUsers.length ? [] : filteredUsers.map((u: any) => u.id))}
+                      >
+                        {selectedItems.length === filteredUsers.length && filteredUsers.length > 0 && <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>}
+                      </div>
+                    </TableHead>
                     <TableHead>User</TableHead>
                     <TableHead>Contact</TableHead>
-                    <TableHead>Role</TableHead>
                     <TableHead>Join Date</TableHead>
                     <TableHead className="text-center">Bookings</TableHead>
                     <TableHead className="text-right">Total Spent</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Account</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -326,24 +388,31 @@ export default function AdminUsers() {
                       const totalSpent = getUserTotalSpent(user.id);
 
                       return (
-                        <TableRow key={user.id} data-testid={`row-user-${user.id}`}>
+                        <TableRow key={user.id} data-testid={`row-user-${user.id}`} className={!user.isActive ? "opacity-60 bg-muted/30" : ""}>
+                          <TableCell>
+                            <div className={`w-4 h-4 rounded flex items-center justify-center cursor-pointer border ${selectedItems.includes(user.id) ? "bg-primary border-primary text-primary-foreground" : "bg-white border-gray-300"}`}
+                              onClick={() => setSelectedItems(prev => prev.includes(user.id) ? prev.filter(id => id !== user.id) : [...prev, user.id])}
+                            >
+                              {selectedItems.includes(user.id) && <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>}
+                            </div>
+                          </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-3">
-                              <Avatar>
-                                <AvatarFallback>
+                              <Avatar className="h-9 w-9">
+                                <AvatarFallback className={!user.isActive ? "bg-muted text-muted-foreground" : "bg-primary/10 text-primary font-semibold"}>
                                   {user.name?.split(' ').map(n => n[0]).join('') || 'U'}
                                 </AvatarFallback>
                               </Avatar>
                               <div>
                                 <div className="font-medium">{user.name || 'Unknown'}</div>
-                                <div className="text-sm text-muted-foreground">
-                                  ID: #{user.id.slice(0, 8)}
+                                <div className="text-[10px] text-muted-foreground flex items-center gap-1 uppercase tracking-tighter">
+                                  ID: {user.id.slice(0, 8)}
                                 </div>
                               </div>
                             </div>
                           </TableCell>
                           <TableCell>
-                            <div className="space-y-1 text-sm">
+                            <div className="space-y-1 text-xs">
                               <div className="flex items-center gap-2">
                                 <Mail className="h-3 w-3 text-muted-foreground" />
                                 {user.email}
@@ -356,12 +425,7 @@ export default function AdminUsers() {
                               )}
                             </div>
                           </TableCell>
-                          <TableCell>
-                            <Badge className="capitalize">
-                              {user.role}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
+                          <TableCell className="text-xs">
                             {user.createdAt
                               ? new Date(user.createdAt).toLocaleDateString('en-US', {
                                 month: 'short',
@@ -372,20 +436,39 @@ export default function AdminUsers() {
                             }
                           </TableCell>
                           <TableCell className="text-center">
-                            {userBookings.length}
+                            <Badge variant="outline" className="font-medium">{userBookings.length}</Badge>
                           </TableCell>
-                          <TableCell className="text-right font-medium">
+                          <TableCell className="text-right font-bold">
                             ${totalSpent.toFixed(2)}
                           </TableCell>
                           <TableCell className="text-right">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setSelectedUser(user)}
-                              data-testid={`button-view-${user.id}`}
-                            >
-                              View Profile
-                            </Button>
+                            {user.isActive !== false ?
+                              <Badge variant="secondary" className="bg-green-100 text-green-700 border-0 hover:bg-green-100 text-[10px] font-bold uppercase tracking-widest px-1.5 py-0">Active</Badge> :
+                              <Badge variant="secondary" className="bg-orange-100 text-orange-700 border-0 hover:bg-orange-100 text-[10px] font-bold uppercase tracking-widest px-1.5 py-0">Suspended</Badge>
+                            }
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-1">
+                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelectedUser(user)} title="View Profile"><Pencil className="h-4 w-4 text-muted-foreground" /></Button>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8"><MoreVertical className="h-4 w-4 text-muted-foreground" /></Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuLabel>Account Management</DropdownMenuLabel>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem onClick={() => statusMutation.mutate({ id: user.id, isActive: !user.isActive })}>
+                                    {user.isActive !== false ? <><XCircle className="h-4 w-4 mr-2" /> Suspend Account</> : <><CheckCircle2 className="h-4 w-4 mr-2" /> Activate Account</>}
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => { setSelectedUser(user); setIsResetPasswordDialogOpen(true); }}>
+                                    <KeyRound className="h-4 w-4 mr-2" /> Reset Password
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => sendWelcomeMutation.mutate(user.id)}>
+                                    <Send className="h-4 w-4 mr-2" /> Resend Welcome
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
                           </TableCell>
                         </TableRow>
                       );

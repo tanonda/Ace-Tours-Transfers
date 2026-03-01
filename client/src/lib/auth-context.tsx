@@ -15,6 +15,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   isAuthenticated: boolean;
   isAdmin: boolean;
+  isStaff: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -56,14 +57,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (res.ok) {
         const userData = await res.json();
         setUser(userData);
-        
+
         // Redirect based on role - use native navigation to avoid framework issues
         setTimeout(() => {
           const targetPath = userData.role === "admin" ? "/admin/dashboard" : "/dashboard";
           window.history.pushState({}, '', targetPath);
           window.dispatchEvent(new PopStateEvent('popstate'));
         }, 100);
-        
+
         return { success: true };
       } else {
         const error = await res.json();
@@ -96,6 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         logout,
         isAuthenticated: !!user,
         isAdmin: user?.role === "admin",
+        isStaff: user?.role === "admin" || user?.role === "field_service",
       }}
     >
       {children}
@@ -114,11 +116,13 @@ export function useAuth() {
 export function ProtectedRoute({
   children,
   requireAdmin = false,
+  requireStaff = false,
 }: {
   children: ReactNode;
   requireAdmin?: boolean;
+  requireStaff?: boolean;
 }) {
-  const { user, isLoading, isAuthenticated, isAdmin } = useAuth();
+  const { user, isLoading, isAuthenticated, isAdmin, isStaff } = useAuth();
   const [, setLocation] = useLocation();
 
   useEffect(() => {
@@ -127,9 +131,11 @@ export function ProtectedRoute({
         setLocation("/login");
       } else if (requireAdmin && !isAdmin) {
         setLocation("/dashboard");
+      } else if (requireStaff && !isStaff) {
+        setLocation("/dashboard");
       }
     }
-  }, [isLoading, isAuthenticated, isAdmin, requireAdmin, setLocation]);
+  }, [isLoading, isAuthenticated, isAdmin, isStaff, requireAdmin, requireStaff, setLocation]);
 
   if (isLoading) {
     return (
@@ -144,6 +150,10 @@ export function ProtectedRoute({
   }
 
   if (requireAdmin && !isAdmin) {
+    return null;
+  }
+
+  if (requireStaff && !isStaff) {
     return null;
   }
 

@@ -14,6 +14,7 @@ export const users = pgTable("users", {
   phone: text("phone"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  isActive: boolean("is_active").notNull().default(true),
   passwordResetToken: text("password_reset_token"),
   passwordResetTokenExpiry: timestamp("password_reset_token_expiry", { withTimezone: true }),
 });
@@ -106,7 +107,7 @@ export const bookings = pgTable("bookings", {
   childPaxTotal: integer("child_pax_total").notNull().default(0),
   infantPaxTotal: integer("infant_pax_total").notNull().default(0),  // Infants under 2 — no pricing impact
   petPaxTotal: integer("pet_pax_total").notNull().default(0),     // Pets — no pricing impact
-  status: text("status").notNull().default("pending"), // 'pending', 'confirmed', 'completed', 'cancelled'
+  status: text("status").notNull().default("pending"), // 'pending', 'confirmed', 'completed', 'cancelled', 'failed'
   paymentReference: text("payment_reference"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   customerName: text("customer_name").notNull(),
@@ -502,9 +503,14 @@ export const cmsContentRelations = relations(cmsContent, ({ one }) => ({
 // Insert Schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
-  role: true,
   createdAt: true,
   updatedAt: true,
+  passwordResetToken: true,
+  passwordResetTokenExpiry: true,
+});
+
+export const adminInsertUserSchema = insertUserSchema.extend({
+  role: z.enum(['admin', 'field_service', 'customer']).default('customer'),
 });
 
 export const insertTourSchema = createInsertSchema(tours).omit({
@@ -597,6 +603,7 @@ export const GenericLocalBankCredentialsSchema = z.object({
   accountName: z.string(),
   accountNumber: z.string(),
   swiftCode: z.string().optional(),
+  instructions: z.string().optional(),
 });
 
 
@@ -789,7 +796,7 @@ export type TourInstance = typeof tourInstances.$inferSelect;
 export type InsertAvailabilityHold = z.infer<typeof insertAvailabilityHoldSchema>;
 export type AvailabilityHold = typeof availabilityHolds.$inferSelect;
 export type InsertBooking = z.infer<typeof insertBookingSchema>;
-export type Booking = typeof bookings.$inferSelect & { customerEmail?: string, customerName?: string, confirmedAt?: Date | null, pickupLocation?: string | null };
+export type Booking = typeof bookings.$inferSelect & { customerEmail?: string, customerName?: string, confirmedAt?: Date | null, pickupLocation?: string | null, paymentMethod?: string | null };
 export type InsertContentBlock = z.infer<typeof insertContentBlockSchema>;
 export type ContentBlock = typeof contentBlocks.$inferSelect;
 export type InsertSiteSetting = z.infer<typeof insertSiteSettingSchema>;

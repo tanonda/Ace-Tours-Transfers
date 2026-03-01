@@ -19,10 +19,12 @@ import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchBookings, updateBooking, deleteBooking, exportBookingsCSV } from "@/lib/api";
 import type { Booking } from "@shared/schema";
+import { useAuth } from "@/lib/auth-context";
 
 export default function AdminBookings() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { isAdmin } = useAuth();
   const [includeArchived, setIncludeArchived] = useState(false);
 
   const { data: bookings = [], isLoading, refetch } = useQuery({
@@ -58,7 +60,7 @@ export default function AdminBookings() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: deleteBooking,
+    mutationFn: ({ id, hard }: { id: string; hard?: boolean }) => deleteBooking(id, hard),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["bookings"] }); toast({ title: "Booking Deleted" }); },
   });
 
@@ -67,6 +69,7 @@ export default function AdminBookings() {
     pending: "bg-yellow-100 text-yellow-800 border-yellow-200",
     completed: "bg-blue-100 text-blue-800 border-blue-200",
     cancelled: "bg-red-100 text-red-800 border-red-200",
+    failed: "bg-orange-100 text-orange-800 border-orange-200",
   }[s] || "bg-gray-100 text-gray-800");
 
   const filteredBookings = useMemo(() => {
@@ -114,12 +117,13 @@ export default function AdminBookings() {
   };
 
   const bulkDelete = async () => {
-    if (!confirm(`Delete ${selectedIds.size} booking(s)? This cannot be undone.`)) return;
+    const isHard = includeArchived;
+    if (!confirm(isHard ? `Permanently delete ${selectedIds.size} booking(s)? This cannot be undone.` : `Archive ${selectedIds.size} booking(s)?`)) return;
     const ids = Array.from(selectedIds);
     try {
-      for (const id of ids) await deleteMutation.mutateAsync(id);
+      for (const id of ids) await deleteMutation.mutateAsync({ id, hard: isHard });
       queryClient.invalidateQueries({ queryKey: ["bookings"] });
-      toast({ title: `${ids.length} booking(s) deleted.` });
+      toast({ title: `${ids.length} booking(s) ${isHard ? 'permanently deleted' : 'archived'}.` });
       setSelectedIds(new Set());
     } catch {
       toast({ title: "Delete failed", description: "Some bookings could not be deleted.", variant: "destructive" });
@@ -137,8 +141,12 @@ export default function AdminBookings() {
           </div>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={() => refetch()}><RefreshCw className="h-4 w-4 mr-2" />Refresh</Button>
-            <Button variant="outline" size="sm" onClick={async () => { try { await exportBookingsCSV(); toast({ title: "Exported" }); } catch { toast({ title: "Failed", variant: "destructive" }); } }}><Download className="h-4 w-4 mr-2" />Export CSV</Button>
-            <Button className="bg-[#004165]" size="sm" onClick={() => setIsCreateOpen(true)}><Plus className="h-4 w-4 mr-2" />New Booking</Button>
+            {isAdmin && (
+              <>
+                <Button variant="outline" size="sm" onClick={async () => { try { await exportBookingsCSV(); toast({ title: "Exported" }); } catch { toast({ title: "Failed", variant: "destructive" }); } }}><Download className="h-4 w-4 mr-2" />Export CSV</Button>
+                <Button className="bg-[#004165]" size="sm" onClick={() => setIsCreateOpen(true)}><Plus className="h-4 w-4 mr-2" />New Booking</Button>
+              </>
+            )}
           </div>
         </div>
 
@@ -158,6 +166,7 @@ export default function AdminBookings() {
                   <SelectItem value="pending">Pending</SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>
                   <SelectItem value="cancelled">Cancelled</SelectItem>
+                  <SelectItem value="failed">Failed/Unsuccessful</SelectItem>
                 </SelectContent>
               </Select>
               <div className="flex items-center space-x-2 mr-2">
@@ -171,14 +180,14 @@ export default function AdminBookings() {
               </Button>
             </div>
 
-            {someSelected && (
+            {someSelected && isAdmin && (
               <div className="flex flex-wrap items-center gap-2 px-3 py-2 bg-primary/5 border border-primary/20 rounded-lg">
                 <span className="text-sm font-medium text-primary">{selectedIds.size} selected</span>
                 <div className="flex gap-2 ml-auto flex-wrap">
                   <Button size="sm" variant="outline" onClick={() => bulkUpdateStatus("confirmed")} className="text-green-700 border-green-300 hover:bg-green-50"><CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />Confirm</Button>
                   <Button size="sm" variant="outline" onClick={() => bulkUpdateStatus("cancelled")} className="text-orange-700 border-orange-300 hover:bg-orange-50"><XCircle className="h-3.5 w-3.5 mr-1.5" />Cancel</Button>
                   <Button size="sm" variant="outline" onClick={() => bulkUpdateStatus("completed")} className="text-blue-700 border-blue-300 hover:bg-blue-50"><CheckSquare className="h-3.5 w-3.5 mr-1.5" />Complete</Button>
-                  <Button size="sm" variant="destructive" onClick={bulkDelete}><Trash2 className="h-3.5 w-3.5 mr-1.5" />Delete</Button>
+                  <Button size="sm" variant="destructive" onClick={bulkDelete}><Trash2 className="h-3.5 w-3.5 mr-1.5" />{includeArchived ? "Permanently Delete" : "Delete"}</Button>
                   <Button size="sm" variant="ghost" onClick={() => setSelectedIds(new Set())}><X className="h-3.5 w-3.5 mr-1" />Clear</Button>
                 </div>
               </div>
@@ -227,12 +236,21 @@ export default function AdminBookings() {
                         <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem onClick={() => { setSelectedBooking(booking); setIsViewOpen(true); }}><Eye className="h-4 w-4 mr-2" />View Details</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => { setSelectedBooking(booking); setIsEditOpen(true); }}>Edit Booking</DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={() => updateMutation.mutate({ id: booking.id, updates: { status: "confirmed" } as any })}><CheckCircle2 className="h-4 w-4 mr-2 text-green-600" />Confirm</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => updateMutation.mutate({ id: booking.id, updates: { status: "cancelled" } as any })}><XCircle className="h-4 w-4 mr-2 text-orange-600" />Cancel</DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-red-600" onClick={() => { if (confirm("Delete this booking?")) deleteMutation.mutate(booking.id); }}><Trash2 className="h-4 w-4 mr-2" />Delete</DropdownMenuItem>
+                          {isAdmin && (
+                            <>
+                              <DropdownMenuItem onClick={() => { setSelectedBooking(booking); setIsEditOpen(true); }}>Edit Booking</DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => updateMutation.mutate({ id: booking.id, updates: { status: "confirmed" } as any })}><CheckCircle2 className="h-4 w-4 mr-2 text-green-600" />Confirm</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => updateMutation.mutate({ id: booking.id, updates: { status: "cancelled" } as any })}><XCircle className="h-4 w-4 mr-2 text-orange-600" />Cancel</DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem className="text-red-600" onClick={() => {
+                                const isArchived = !!(booking as any).archivedAt;
+                                if (confirm(isArchived ? "Permanently delete this booking? This cannot be undone." : "Archive this booking?")) {
+                                  deleteMutation.mutate({ id: booking.id, hard: isArchived });
+                                }
+                              }}><Trash2 className="h-4 w-4 mr-2" />{(booking as any).archivedAt ? "Permanently Delete" : "Delete"}</DropdownMenuItem>
+                            </>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
