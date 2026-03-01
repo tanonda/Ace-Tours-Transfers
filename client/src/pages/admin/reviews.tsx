@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { useToast } from "@/hooks/use-toast";
-import { Star, CheckCircle, XCircle, Trash2, MessageSquare, Search, RefreshCw, Filter, Eye } from "lucide-react";
+import { Star, CheckCircle, XCircle, Trash2, MessageSquare, Search, RefreshCw, Filter, Eye, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -32,7 +32,7 @@ async function deleteReview(id: string) {
 function StarRating({ rating }: { rating: number }) {
   return (
     <div className="flex items-center gap-0.5">
-      {[1,2,3,4,5].map(i => (
+      {[1, 2, 3, 4, 5].map(i => (
         <Star key={i} className={`h-3.5 w-3.5 ${i <= rating ? "text-yellow-400 fill-yellow-400" : "text-muted-foreground/30"}`} />
       ))}
     </div>
@@ -58,7 +58,9 @@ export default function AdminReviews() {
   const [filter, setFilter] = useState<"all" | "pending" | "approved" | "rejected">("pending");
   const [search, setSearch] = useState("");
   const [ratingFilter, setRatingFilter] = useState<string>("all");
-  const [sortBy, setSortBy] = useState<"newest" | "oldest" | "rating-high" | "rating-low">("newest");
+  const [categoryFilter, setCategoryFilter] = useState<"all" | "tour" | "transfer" | "vehicle">("all");
+  const [sortCol, setSortCol] = useState<"createdAt" | "rating" | "authorName" | "tourTitle">("createdAt");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [selectedReview, setSelectedReview] = useState<any>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
@@ -66,6 +68,15 @@ export default function AdminReviews() {
     queryKey: ["admin-reviews"],
     queryFn: fetchAllReviews,
   });
+
+  const handleSort = (col: typeof sortCol) => {
+    if (sortCol === col) setSortDir(d => d === "asc" ? "desc" : "asc");
+    else { setSortCol(col); setSortDir("asc"); }
+  };
+
+  const SortIcon = ({ col }: { col: typeof sortCol }) => sortCol === col
+    ? <span className="ml-1">{sortDir === "asc" ? "↑" : "↓"}</span>
+    : <span className="ml-1 opacity-30">↕</span>;
 
   const updateMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: "approved" | "rejected" | "pending" }) => updateReviewStatus(id, status),
@@ -80,7 +91,7 @@ export default function AdminReviews() {
   });
 
   const handleBulkAction = async (status: "approved" | "rejected") => {
-    for (const id of selectedIds) {
+    for (const id of Array.from(selectedIds)) {
       await updateReviewStatus(id, status);
     }
     queryClient.invalidateQueries({ queryKey: ["admin-reviews"] });
@@ -90,7 +101,7 @@ export default function AdminReviews() {
 
   const handleBulkDelete = async () => {
     if (!confirm(`Delete ${selectedIds.size} review(s) permanently?`)) return;
-    for (const id of selectedIds) await deleteReview(id);
+    for (const id of Array.from(selectedIds)) await deleteReview(id);
     queryClient.invalidateQueries({ queryKey: ["admin-reviews"] });
     toast({ title: `${selectedIds.size} review(s) deleted` });
     setSelectedIds(new Set());
@@ -112,24 +123,59 @@ export default function AdminReviews() {
     }
   };
 
-  let filtered = reviews.filter((r: any) => {
-    const matchesFilter = filter === "all" || (r.status || "pending") === filter;
-    const matchesSearch = !search ||
-      r.authorName?.toLowerCase().includes(search.toLowerCase()) ||
-      r.guestName?.toLowerCase().includes(search.toLowerCase()) ||
-      r.comment?.toLowerCase().includes(search.toLowerCase()) ||
-      r.tourTitle?.toLowerCase().includes(search.toLowerCase());
-    const matchesRating = ratingFilter === "all" || String(r.rating) === ratingFilter;
-    return matchesFilter && matchesSearch && matchesRating;
-  });
+  const filtered = useMemo(() => {
+    let result = reviews.filter((r: any) => {
+      const matchesFilter = filter === "all" || (r.status || "pending") === filter;
 
-  filtered = [...filtered].sort((a: any, b: any) => {
-    if (sortBy === "newest") return new Date(b.createdAt||0).getTime() - new Date(a.createdAt||0).getTime();
-    if (sortBy === "oldest") return new Date(a.createdAt||0).getTime() - new Date(b.createdAt||0).getTime();
-    if (sortBy === "rating-high") return (b.rating||0) - (a.rating||0);
-    if (sortBy === "rating-low") return (a.rating||0) - (b.rating||0);
-    return 0;
-  });
+      // Smart Search Pattern
+      let matchesSearch = true;
+      if (search.trim()) {
+        const tokens = search.toLowerCase().trim().split(/\s+/);
+        const text = [
+          r.authorName,
+          r.guestName,
+          r.comment,
+          r.tourTitle,
+          r.status,
+          String(r.rating)
+        ].join(" ").toLowerCase();
+        matchesSearch = tokens.every(t => text.includes(t));
+      }
+
+      const matchesRating = ratingFilter === "all" || String(r.rating) === ratingFilter;
+      const matchesCategory = categoryFilter === "all" || r.tourCategory === categoryFilter;
+      return matchesFilter && matchesSearch && matchesRating && matchesCategory;
+    });
+
+    return [...result].sort((a: any, b: any) => {
+      let valA: any = "";
+      let valB: any = "";
+
+      switch (sortCol) {
+        case "authorName":
+          valA = (a.authorName || a.guestName || "").toLowerCase();
+          valB = (b.authorName || b.guestName || "").toLowerCase();
+          break;
+        case "tourTitle":
+          valA = (a.tourTitle || "").toLowerCase();
+          valB = (b.tourTitle || "").toLowerCase();
+          break;
+        case "rating":
+          valA = a.rating || 0;
+          valB = b.rating || 0;
+          break;
+        case "createdAt":
+        default:
+          valA = new Date(a.createdAt || 0).getTime();
+          valB = new Date(b.createdAt || 0).getTime();
+          break;
+      }
+
+      if (valA < valB) return sortDir === "asc" ? -1 : 1;
+      if (valA > valB) return sortDir === "asc" ? 1 : -1;
+      return 0;
+    });
+  }, [reviews, search, filter, ratingFilter, sortCol, sortDir]);
 
   const counts = {
     all: reviews.length,
@@ -165,9 +211,8 @@ export default function AdminReviews() {
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
           {([["all", "All"], ["pending", "Pending"], ["approved", "Approved"], ["rejected", "Rejected"]] as const).map(([key, label]) => (
             <button key={key} onClick={() => setFilter(key)}
-              className={`p-4 rounded-xl border text-left transition-all ${
-                filter === key ? "bg-primary text-primary-foreground border-primary shadow-sm" : "bg-card border-border hover:border-primary/40"
-              }`}>
+              className={`p-4 rounded-xl border text-left transition-all ${filter === key ? "bg-primary text-primary-foreground border-primary shadow-sm" : "bg-card border-border hover:border-primary/40"
+                }`}>
               <div className="text-2xl font-bold">{counts[key]}</div>
               <div className="text-xs capitalize mt-0.5 opacity-80">{label}</div>
             </button>
@@ -185,7 +230,7 @@ export default function AdminReviews() {
           <div className="bg-card border border-border rounded-xl p-4">
             <div className="text-sm font-semibold text-foreground mb-3">Rating Distribution</div>
             <div className="space-y-2">
-              {[5,4,3,2,1].map(star => {
+              {[5, 4, 3, 2, 1].map(star => {
                 const count = reviews.filter((r: any) => r.rating === star).length;
                 const pct = reviews.length ? (count / reviews.length) * 100 : 0;
                 return (
@@ -209,7 +254,16 @@ export default function AdminReviews() {
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Search by name, tour, or content..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+            <Input placeholder="Smart search: name, tour, rating, or content..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 pr-9" />
+            {search && (
+              <button
+                onClick={() => setSearch("")}
+                className="absolute right-3 top-2.5 text-muted-foreground hover:text-foreground transition-colors"
+                title="Clear search"
+              >
+                <XCircle className="h-4 w-4" />
+              </button>
+            )}
           </div>
           <Select value={ratingFilter} onValueChange={setRatingFilter}>
             <SelectTrigger className="w-36">
@@ -218,18 +272,19 @@ export default function AdminReviews() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Ratings</SelectItem>
-              {[5,4,3,2,1].map(r => <SelectItem key={r} value={String(r)}>{r} Stars</SelectItem>)}
+              {[5, 4, 3, 2, 1].map(r => <SelectItem key={r} value={String(r)}>{r} Stars</SelectItem>)}
             </SelectContent>
           </Select>
-          <Select value={sortBy} onValueChange={(v: any) => setSortBy(v)}>
+          <Select value={categoryFilter} onValueChange={v => setCategoryFilter(v as any)}>
             <SelectTrigger className="w-40">
-              <SelectValue placeholder="Sort by" />
+              <Package className="h-3.5 w-3.5 mr-1" />
+              <SelectValue placeholder="Category" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="newest">Newest First</SelectItem>
-              <SelectItem value="oldest">Oldest First</SelectItem>
-              <SelectItem value="rating-high">Highest Rating</SelectItem>
-              <SelectItem value="rating-low">Lowest Rating</SelectItem>
+              <SelectItem value="all">All Categories</SelectItem>
+              <SelectItem value="tour">Tours</SelectItem>
+              <SelectItem value="transfer">Transfers</SelectItem>
+              <SelectItem value="vehicle">Vehicle Hire</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -273,17 +328,25 @@ export default function AdminReviews() {
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-muted/40">
+                  <TableRow className="bg-muted/40 font-medium">
                     <TableHead className="w-10">
                       <input type="checkbox" checked={selectedIds.size === filtered.length && filtered.length > 0}
-                        onChange={toggleSelectAll} className="rounded" />
+                        onChange={toggleSelectAll} className="rounded" title="Select all filtered" />
                     </TableHead>
-                    <TableHead>Guest</TableHead>
-                    <TableHead>Tour / Product</TableHead>
-                    <TableHead>Rating</TableHead>
+                    <TableHead className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => handleSort("authorName")}>
+                      Guest <SortIcon col="authorName" />
+                    </TableHead>
+                    <TableHead className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => handleSort("tourTitle")}>
+                      Tour / Product <SortIcon col="tourTitle" />
+                    </TableHead>
+                    <TableHead className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => handleSort("rating")}>
+                      Rating <SortIcon col="rating" />
+                    </TableHead>
                     <TableHead>Review</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Date</TableHead>
+                    <TableHead className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => handleSort("createdAt")}>
+                      Date <SortIcon col="createdAt" />
+                    </TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>

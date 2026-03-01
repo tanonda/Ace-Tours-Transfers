@@ -22,6 +22,10 @@ export class AuthDomainService {
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) return null;
 
+    if (user.isActive === false) {
+      throw new Error("Account is suspended. Please contact administrator.");
+    }
+
     return user;
   }
 

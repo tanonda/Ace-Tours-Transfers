@@ -57,6 +57,7 @@ export default function AdminAnalytics() {
     { name: "Pending", value: stats.pending || 0, color: "#f59e0b" },
     { name: "Completed", value: stats.completed || 0, color: "#3b82f6" },
     { name: "Cancelled", value: stats.cancelled || 0, color: "#ef4444" },
+    { name: "Failed", value: stats.failed || 0, color: "#71717a" },
   ].filter(d => d.value > 0) : [];
 
   const exportCSV = () => {
@@ -241,12 +242,12 @@ export default function AdminAnalytics() {
                   <BarChart data={revenueByCategory}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
                     <XAxis dataKey="category" tick={{ fontSize: 12 }} axisLine={false} tickLine={false}
-                      tickFormatter={(val) => val === 'vehicle' ? 'Vehicle Hire' : val.charAt(0).toUpperCase() + val.slice(1)}
+                      tickFormatter={(val) => (val === 'vehicle' || val === 'bus') ? 'Vehicle Hire' : val.charAt(0).toUpperCase() + val.slice(1) + 's'}
                     />
-                    <YAxis tickFormatter={v => `${Math.round(v / 100000)}k`} tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                    <YAxis tickFormatter={v => `${Math.round(v / 1000)}k`} tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
                     <ReTooltip
                       formatter={(val: number) => [`${Math.round(val / 100).toLocaleString()} VT`, "Revenue"]}
-                      labelFormatter={(label) => label === 'vehicle' ? 'Vehicle Hire' : String(label).charAt(0).toUpperCase() + String(label).slice(1)}
+                      labelFormatter={(label) => (label === 'vehicle' || label === 'bus') ? 'Vehicle Hire' : String(label).charAt(0).toUpperCase() + String(label).slice(1) + 's'}
                       contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid hsl(var(--border))", background: "hsl(var(--card))" }}
                     />
                     <Bar dataKey="revenueCents" radius={[4, 4, 0, 0]}>

@@ -12,7 +12,7 @@ export class BookingEventHandler {
   constructor(
     private storage: IStorage,
     private availabilityService: AvailabilityApplicationService
-  ) {}
+  ) { }
 
   public register(): void {
     eventDispatcher.subscribe(PaymentConfirmed, this.onPaymentConfirmed.bind(this));
@@ -136,6 +136,8 @@ export class BookingEventHandler {
 
     console.log(`[EVENT][HANDLER] Handling PaymentFailed for Booking ${booking.id}`);
 
+    await this.storage.updateBooking(booking.id, { status: 'failed' });
+
     await mailingService.sendPaymentFailure(booking.customerEmail, {
       bookingId: booking.id,
       reason: event.reason
@@ -148,6 +150,7 @@ export class BookingEventHandler {
 
     console.log(`[EVENT][HANDLER] Handling PaymentExpired for Booking ${booking.id}`);
 
+    await this.storage.updateBooking(booking.id, { status: 'cancelled' });
     await mailingService.sendPaymentExpiry(booking.customerEmail, booking.id);
   }
 }

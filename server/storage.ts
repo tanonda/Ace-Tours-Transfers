@@ -70,7 +70,7 @@ import {
   type InsertCapacityAuditLog
 } from "../shared/schema.js";
 import { db } from "./db.js";
-import { eq, like, desc, and, or, isNull, sql, lte, asc, lt, inArray } from "drizzle-orm";
+import { eq, like, desc, and, or, isNull, sql, lte, asc, lt, inArray, gt } from "drizzle-orm";
 import { extractErrorDetails } from "./lib/error-util.js";
 
 export interface IStorage {
@@ -80,9 +80,12 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<User | undefined>;
   getAllUsers(): Promise<User[]>;
   updateUserRole(id: string, role: string): Promise<User | undefined>;
+  updateUserStatus(id: string, isActive: boolean): Promise<User | undefined>;
   updateUserPassword(id: string, password: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   getCustomers(): Promise<User[]>;
+  getUserByResetToken(token: string): Promise<User | undefined>;
+  setUserResetToken(userId: string, token: string | null, expiry: Date | null): Promise<void>;
 
   // Tour operations
   getTours(): Promise<Tour[]>;
@@ -109,7 +112,7 @@ export interface IStorage {
   getBookingItems(bookingId: string): Promise<BookingItem[]>;
 
   // Analytics
-  getBookingStats(): Promise<{ total: number; confirmed: number; pending: number; completed: number; }>;
+  getBookingStats(): Promise<{ total: number; confirmed: number; pending: number; completed: number; failed: number; cancelled: number; }>;
   getRevenueByMonth(): Promise<{ month: string; total: number; }[]>;
   getRevenueDaily(days: number): Promise<{ date: string; amount: number; }[]>;
   getTopPerformingProducts(limit: number): Promise<{ productName: string; bookingCount: number; revenue: number; }[]>;
@@ -305,6 +308,15 @@ export class DatabaseStorage implements IStorage {
     return user || undefined;
   }
 
+  async updateUserStatus(id: string, isActive: boolean): Promise<User | undefined> {
+    const [user] = await db
+      .update(users)
+      .set({ isActive, updatedAt: new Date() })
+      .where(eq(users.id, id))
+      .returning();
+    return user || undefined;
+  }
+
   async updateUserPassword(id: string, password: string): Promise<User | undefined> {
     const [user] = await db
       .update(users)
@@ -321,6 +333,30 @@ export class DatabaseStorage implements IStorage {
 
   async getCustomers(): Promise<User[]> {
     return await db.select().from(users).where(eq(users.role, 'customer'));
+  }
+
+  async getUserByResetToken(token: string): Promise<User | undefined> {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(
+        and(
+          eq(users.passwordResetToken, token),
+          sql`${users.passwordResetTokenExpiry} > NOW()`
+        )
+      );
+    return user || undefined;
+  }
+
+  async setUserResetToken(userId: string, token: string | null, expiry: Date | null): Promise<void> {
+    await db
+      .update(users)
+      .set({
+        passwordResetToken: token,
+        passwordResetTokenExpiry: expiry,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, userId));
   }
 
   // Tour operations
@@ -470,7 +506,7 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
-  async deleteBooking(id: string): Promise<void> {
+  async deleteBooking(id: string, hardDelete: boolean = false): Promise<void> {
     await db.transaction(async (tx) => {
       // M8 Fix: Properly release holds and handle confirmedCount before deletion
       const [booking] = await tx.select().from(bookings).where(eq(bookings.id, id));
@@ -490,8 +526,16 @@ export class DatabaseStorage implements IStorage {
           .where(eq(tourInstances.id, booking.tourInstanceId));
       }
 
-      // We now soft-delete by setting archivedAt
-      await tx.update(bookings).set({ archivedAt: new Date() }).where(eq(bookings.id, id));
+      if (hardDelete) {
+        // Delete dependent records first to avoid constraint violations
+        await tx.delete(payments).where(eq(payments.bookingId, id));
+        await tx.delete(bookingAddons).where(eq(bookingAddons.bookingId, id));
+        await tx.delete(bookingItems).where(eq(bookingItems.bookingId, id));
+        await tx.delete(bookings).where(eq(bookings.id, id));
+      } else {
+        // We now soft-delete by setting archivedAt
+        await tx.update(bookings).set({ archivedAt: new Date() }).where(eq(bookings.id, id));
+      }
     });
   }
 
@@ -506,7 +550,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Analytics
-  async getBookingStats(): Promise<{ total: number; confirmed: number; pending: number; completed: number; }> {
+  async getBookingStats(): Promise<{ total: number; confirmed: number; pending: number; completed: number; failed: number; cancelled: number; }> {
     // H8 Fix: Use aggregate queries instead of selecting all rows
     const stats = await db
       .select({
@@ -516,11 +560,13 @@ export class DatabaseStorage implements IStorage {
       .from(bookings)
       .groupBy(bookings.status);
 
-    const result = { total: 0, confirmed: 0, pending: 0, completed: 0 };
+    const result = { total: 0, confirmed: 0, pending: 0, completed: 0, failed: 0, cancelled: 0 };
     stats.forEach(s => {
       if (s.status === 'confirmed') result.confirmed = s.count;
-      if (s.status === 'pending') result.pending = s.count;
-      if (s.status === 'completed') result.completed = s.count;
+      else if (s.status === 'pending') result.pending = s.count;
+      else if (s.status === 'completed') result.completed = s.count;
+      else if (s.status === 'failed') result.failed = s.count;
+      else if (s.status === 'cancelled') result.cancelled = s.count;
       result.total += s.count;
     });
 
@@ -544,24 +590,33 @@ export class DatabaseStorage implements IStorage {
   async getRevenueDaily(days: number): Promise<{ date: string; amount: number; }[]> {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - days);
-    const dateStr = cutoffDate.toISOString().split('T')[0];
+    cutoffDate.setHours(0, 0, 0, 0);
 
     const results = await db
       .select({
-        date: revenueDaily.date,
-        amount: revenueDaily.totalGross
+        date: sql<string>`to_char(${bookings.createdAt}, 'YYYY-MM-DD')`,
+        amount: sql<number>`sum(${bookings.totalAmountCents})`.mapWith(Number)
       })
-      .from(revenueDaily)
-      .where(sql`${revenueDaily.date} >= ${dateStr}`)
-      .orderBy(revenueDaily.date);
+      .from(bookings)
+      .where(
+        and(
+          inArray(bookings.status, ['confirmed', 'completed']),
+          gt(bookings.createdAt, cutoffDate)
+        )
+      )
+      .groupBy(sql`to_char(${bookings.createdAt}, 'YYYY-MM-DD')`)
+      .orderBy(sql`to_char(${bookings.createdAt}, 'YYYY-MM-DD')`);
 
+    // Ensure we send back at least some empty days if data is sparse to keep charts looking normal.
+    // Instead of doing it in SQL, we can just return the raw and let the frontend/chart handle sparse dates
+    // or we can pad it here. Returning sparse is usually fine for Recharts if it uses category axis.
     return results;
   }
 
   async getTopPerformingProducts(limit: number, days: number = 30): Promise<{ productName: string; bookingCount: number; revenue: number; }[]> {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - days);
-    const dateStr = cutoffDate.toISOString().split('T')[0];
+    cutoffDate.setHours(0, 0, 0, 0);
 
     // We join with items to get accurate product types, but fall back to bookings 
     // for historical data that might not have items
@@ -576,7 +631,7 @@ export class DatabaseStorage implements IStorage {
       .where(
         and(
           inArray(bookings.status, ['confirmed', 'completed']),
-          sql`${bookings.createdAt} >= ${dateStr}`
+          gt(bookings.createdAt, cutoffDate)
         )
       )
       .groupBy(sql`COALESCE(${bookingItems.productName}, ${bookings.tourName})`)
@@ -589,7 +644,7 @@ export class DatabaseStorage implements IStorage {
   async getRevenueByCategory(days: number = 30): Promise<{ category: string; revenueCents: number; }[]> {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - days);
-    const dateStr = cutoffDate.toISOString().split('T')[0];
+    cutoffDate.setHours(0, 0, 0, 0);
 
     // Phase 2 requires grouping by `productType` using the `bookingItems` table where authoritative pricing lives
     const results = await db
@@ -602,7 +657,7 @@ export class DatabaseStorage implements IStorage {
       .where(
         and(
           inArray(bookings.status, ['confirmed', 'completed']),
-          sql`${bookings.createdAt} >= ${dateStr}`
+          gt(bookings.createdAt, cutoffDate)
         )
       )
       .groupBy(sql`COALESCE(${bookingItems.productType}, 'unknown')`);
@@ -612,6 +667,7 @@ export class DatabaseStorage implements IStorage {
       'tour': 'Tours',
       'transfer': 'Transfers',
       'vehicle': 'Vehicle Hire',
+      'bus': 'Vehicle Hire',
       'unknown': 'Other'
     };
 
@@ -928,11 +984,14 @@ export class DatabaseStorage implements IStorage {
             guestEmail: reviews.guestEmail,
             createdAt: reviews.createdAt,
             tourId: reviews.tourId,
+            tourTitle: tours.title,
+            tourCategory: tours.category,
             userId: reviews.userId,
             userName: users.name,
           })
           .from(reviews)
           .leftJoin(users, eq(reviews.userId, users.id))
+          .leftJoin(tours, eq(reviews.tourId, tours.id))
           .orderBy(desc(reviews.createdAt));
 
         return rows.map(r => ({

@@ -39,9 +39,9 @@ async function fetchFeatureBlocks(): Promise<ContentBlock[]> {
     return (Array.isArray(flags) ? flags : []).map((f: any) => ({
       id: f.id ?? f.slug,
       slug: f.slug,
-      label: f.label ?? f.slug,
+      label: f.displayName ?? f.label ?? f.slug,
       description: f.description ?? null,
-      enabled: f.enabled ?? true,
+      enabled: f.enabled ?? false, // Default to false if not specified for safety
       config: f.config ?? null,
       updatedAt: f.updatedAt ?? "",
     }));

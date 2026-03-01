@@ -18,7 +18,7 @@ import {
   KeyRound, Trash2, Eye, EyeOff, RefreshCw, Users, UserCheck, Lock
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchAllUsers, updateUserRole, createUser, resetUserPassword } from "@/lib/api";
+import { fetchAllUsers, updateUserRole, createUser, resetUserPassword, sendWelcomeEmail, updateUserStatus } from "@/lib/api";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import type { User } from "@shared/schema";
@@ -51,6 +51,8 @@ export default function AdminStaff() {
   const [showPassword, setShowPassword] = useState(false);
   const [resetPasswordValue, setResetPasswordValue] = useState("");
   const [resetPasswordDialogUser, setResetPasswordDialogUser] = useState<User | null>(null);
+  const [showInactive, setShowInactive] = useState(true);
+  const [selectedItems, setSelectedItems] = useState<string[]>([]);
 
   const { data: allUsers = [], isLoading } = useQuery({
     queryKey: ["users"],
@@ -59,10 +61,12 @@ export default function AdminStaff() {
 
   // Staff = admins + field_service only
   const staffUsers = allUsers.filter((u: User) => u.role === "admin" || u.role === "field_service");
-  const filtered = staffUsers.filter((u: User) =>
-    u.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    u.email?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filtered = staffUsers.filter((u: User) => {
+    const matchesSearch = u.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      u.email?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesVisibility = showInactive || u.isActive !== false;
+    return matchesSearch && matchesVisibility;
+  });
 
   const stats = {
     total: staffUsers.length,
@@ -82,9 +86,17 @@ export default function AdminStaff() {
 
   const createMutation = useMutation({
     mutationFn: createUser,
-    onSuccess: () => {
+    onSuccess: (user: User) => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
-      toast({ title: "Staff account created", description: `${newStaff.name} has been added.` });
+      toast({
+        title: "Staff account created",
+        description: `${newStaff.name} has been added. Sending welcome email...`
+      });
+      // Trigger welcome email with reset link
+      sendWelcomeEmail(user.id).catch(err => {
+        console.error("Failed to send welcome email:", err);
+        toast({ title: "Email failed", description: "Account created but welcome email failed to send.", variant: "warning" as any });
+      });
       setCreateDialogOpen(false);
       setNewStaff({ name: "", email: "", password: "", role: "field_service", username: "" });
     },
@@ -100,6 +112,40 @@ export default function AdminStaff() {
     },
     onError: () => toast({ title: "Failed to reset password", variant: "destructive" }),
   });
+
+  const statusMutation = useMutation({
+    mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) => updateUserStatus(id, isActive),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      toast({ title: variables.isActive ? "Staff Activated" : "Staff Suspended", description: `Account updated.` });
+    },
+    onError: () => toast({ title: "Error updating status", variant: "destructive" }),
+  });
+
+  const sendWelcomeMutation = useMutation({
+    mutationFn: (userId: string) => sendWelcomeEmail(userId),
+    onSuccess: () => toast({ title: "Welcome email sent", description: "The invitation has been resent." }),
+    onError: () => toast({ title: "Email failed", description: "Failed to resend welcome email.", variant: "destructive" }),
+  });
+
+  const [isBulkProcessing, setIsBulkProcessing] = useState(false);
+
+  const handleBulkStatusUpdate = async (isActive: boolean) => {
+    if (selectedItems.length === 0) return;
+    setIsBulkProcessing(true);
+    try {
+      for (const id of selectedItems) {
+        if (id === currentUser?.id) continue;
+        await statusMutation.mutateAsync({ id, isActive });
+      }
+      setSelectedItems([]);
+      toast({ title: "Bulk Update Complete", description: `Successfully updated ${selectedItems.length} staff members.` });
+    } catch (err: any) {
+      toast({ title: "Error", description: "Bulk status update encountered errors.", variant: "destructive" });
+    } finally {
+      setIsBulkProcessing(false);
+    }
+  };
 
   const getInitials = (name: string) => name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
 
@@ -158,9 +204,33 @@ export default function AdminStaff() {
           <CardHeader className="pb-3">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
               <CardTitle className="text-base">Staff Accounts</CardTitle>
-              <div className="relative w-full sm:w-72">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Search staff…" className="pl-8" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <label className="text-xs font-medium text-muted-foreground whitespace-nowrap">Show Inactive</label>
+                  <button
+                    onClick={() => setShowInactive(!showInactive)}
+                    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 ${showInactive ? 'bg-[#004165]' : 'bg-input'}`}
+                  >
+                    <span className={`pointer-events-none block h-4 w-4 rounded-full bg-background shadow-lg ring-0 transition-transform ${showInactive ? 'translate-x-4' : 'translate-x-0'}`} />
+                  </button>
+                </div>
+
+                {selectedItems.length > 0 && (
+                  <div className="flex items-center gap-2 bg-[#004165]/5 px-2 py-1 rounded-lg border border-[#004165]/20 animate-in fade-in slide-in-from-right-2">
+                    <span className="text-xs font-bold text-[#004165] mr-1 px-1">{selectedItems.length} Selected</span>
+                    <Button variant="outline" size="sm" onClick={() => handleBulkStatusUpdate(true)} className="h-8 text-xs text-green-600 border-green-200">
+                      <UserCheck className="h-3 w-3 mr-1" /> Activate
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => handleBulkStatusUpdate(false)} className="h-8 text-xs text-orange-600 border-orange-200">
+                      <Lock className="h-3 w-3 mr-1" /> Suspend
+                    </Button>
+                  </div>
+                )}
+
+                <div className="relative w-full sm:w-72">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input placeholder="Search staff…" className="pl-8" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+                </div>
               </div>
             </div>
           </CardHeader>
@@ -168,10 +238,17 @@ export default function AdminStaff() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/40">
+                  <TableHead className="w-10">
+                    <div className={`w-4 h-4 rounded flex items-center justify-center cursor-pointer border ${selectedItems.length === filtered.length && filtered.length > 0 ? "bg-[#004165] border-[#004165] text-white" : "bg-white border-gray-300"}`}
+                      onClick={() => setSelectedItems(selectedItems.length === filtered.length ? [] : filtered.map((u: any) => u.id))}
+                    >
+                      {selectedItems.length === filtered.length && filtered.length > 0 && <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>}
+                    </div>
+                  </TableHead>
                   <TableHead>Staff Member</TableHead>
                   <TableHead>Contact</TableHead>
                   <TableHead>Role</TableHead>
-                  <TableHead>Username</TableHead>
+                  <TableHead>Account</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -194,11 +271,20 @@ export default function AdminStaff() {
                     const roleCfg = ROLE_CONFIG[user.role] || ROLE_CONFIG.field_service;
                     const isMe = user.id === currentUser?.id;
                     return (
-                      <TableRow key={user.id} className="hover:bg-muted/20">
+                      <TableRow key={user.id} className={`hover:bg-muted/20 ${!user.isActive ? "opacity-60 bg-muted/30" : ""}`}>
+                        <TableCell>
+                          {!isMe && (
+                            <div className={`w-4 h-4 rounded flex items-center justify-center cursor-pointer border ${selectedItems.includes(user.id) ? "bg-[#004165] border-[#004165] text-white" : "bg-white border-gray-300"}`}
+                              onClick={() => setSelectedItems(prev => prev.includes(user.id) ? prev.filter(id => id !== user.id) : [...prev, user.id])}
+                            >
+                              {selectedItems.includes(user.id) && <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>}
+                            </div>
+                          )}
+                        </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-3">
                             <Avatar className="h-9 w-9">
-                              <AvatarFallback className="bg-[#004165]/10 text-[#004165] text-xs font-bold">
+                              <AvatarFallback className={`${!user.isActive ? "bg-muted text-muted-foreground" : "bg-[#004165]/10 text-[#004165]"} text-xs font-bold`}>
                                 {getInitials(user.name || "?")}
                               </AvatarFallback>
                             </Avatar>
@@ -206,7 +292,7 @@ export default function AdminStaff() {
                               <p className="font-semibold text-sm">{user.name}
                                 {isMe && <span className="ml-1.5 text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">You</span>}
                               </p>
-                              <p className="text-xs text-muted-foreground">{user.email}</p>
+                              <p className="text-[10px] text-muted-foreground uppercase tracking-tighter">ID: {user.id.slice(0, 8)}</p>
                             </div>
                           </div>
                         </TableCell>
@@ -216,13 +302,16 @@ export default function AdminStaff() {
                           </a>
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline" className={`text-xs ${roleCfg.color}`}>
+                          <Badge variant="outline" className={`text-[10px] font-bold uppercase tracking-widest ${roleCfg.color}`}>
                             {roleCfg.icon}
                             <span className="ml-1">{roleCfg.label}</span>
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-sm font-mono text-muted-foreground">
-                          {(user as any).username || "—"}
+                        <TableCell>
+                          {user.isActive !== false ?
+                            <Badge variant="secondary" className="bg-green-100 text-green-700 border-0 hover:bg-green-100 text-[10px] font-bold uppercase tracking-widest px-1.5 py-0">Active</Badge> :
+                            <Badge variant="secondary" className="bg-orange-100 text-orange-700 border-0 hover:bg-orange-100 text-[10px] font-bold uppercase tracking-widest px-1.5 py-0">Suspended</Badge>
+                          }
                         </TableCell>
                         <TableCell className="text-right">
                           <DropdownMenu>
@@ -249,8 +338,16 @@ export default function AdminStaff() {
                                     </DropdownMenuItem>
                                   )}
                                   <DropdownMenuSeparator />
+                                  {!isMe && (
+                                    <DropdownMenuItem onClick={() => statusMutation.mutate({ id: user.id, isActive: !user.isActive })}>
+                                      {user.isActive !== false ? <><Lock className="h-3.5 w-3.5 mr-2" /> Suspend Account</> : <><UserCheck className="h-3.5 w-3.5 mr-2" /> Activate Account</>}
+                                    </DropdownMenuItem>
+                                  )}
                                   <DropdownMenuItem onClick={() => { setResetPasswordDialogUser(user); setResetPasswordValue(""); }}>
                                     <KeyRound className="h-3.5 w-3.5 mr-2" /> Reset Password
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => sendWelcomeMutation.mutate(user.id)}>
+                                    <RefreshCw className="h-3.5 w-3.5 mr-2" /> Resend Welcome
                                   </DropdownMenuItem>
                                 </>
                               )}
@@ -398,11 +495,11 @@ export default function AdminStaff() {
               <Input type="email" placeholder="jane@acetours.vu" value={newStaff.email} onChange={e => setNewStaff(s => ({ ...s, email: e.target.value }))} />
             </div>
             <div className="space-y-1.5">
-              <Label>Password *</Label>
+              <Label>Password (Optional)</Label>
               <div className="relative">
                 <Input
                   type={showPassword ? "text" : "password"}
-                  placeholder="Enter password (min 6 chars)"
+                  placeholder="Leave blank to send invite link"
                   value={newStaff.password}
                   onChange={e => setNewStaff(s => ({ ...s, password: e.target.value }))}
                   className="pr-10"
@@ -412,6 +509,7 @@ export default function AdminStaff() {
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
+              <p className="text-[10px] text-muted-foreground">If left blank, staff will set their own password via the welcome email.</p>
             </div>
             <div className="space-y-1.5">
               <Label>Access Role *</Label>
@@ -434,7 +532,7 @@ export default function AdminStaff() {
             <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>Cancel</Button>
             <Button
               onClick={() => createMutation.mutate(newStaff)}
-              disabled={createMutation.isPending || !newStaff.name || !newStaff.email || !newStaff.password || !newStaff.username || newStaff.password.length < 6}
+              disabled={createMutation.isPending || !newStaff.name || !newStaff.email || !newStaff.username || (!!newStaff.password && newStaff.password.length < 6)}
               className="bg-[#004165] hover:bg-[#004165]/90"
             >
               {createMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

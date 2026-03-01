@@ -31,6 +31,9 @@ export default function Tours() {
 
     if (existingIndex === -1) {
       acc.push(current);
+    } else if (current.isActive !== false && acc[existingIndex].isActive === false) {
+      // Prioritize active product over inactive product with same title
+      acc[existingIndex] = current;
     }
     return acc;
   }, []);
@@ -41,7 +44,7 @@ export default function Tours() {
     <Layout>
       <SEO
         title={t("tours.seoTitle", "Our Tours - Explore Vanuatu's Best Attractions")}
-        description={t("tours.seoDesc", "Discover our range of meticulously planned tours in Vanuatu. From scenic cultural tours to bus hire for large groups.")}
+        description={t("tours.seoDesc", "Discover our range of meticulously planned tours in Vanuatu. From scenic cultural tours to vehicle hire for large groups.")}
       />
       <div className="bg-muted/30 pt-40 pb-20">
         <div className="container mx-auto px-4">

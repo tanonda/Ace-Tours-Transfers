@@ -89,9 +89,9 @@ export function DashboardLayout({ children, type }: DashboardLayoutProps) {
   const adminLinks = [
     { icon: LayoutDashboard, label: "Overview", href: "/admin/dashboard", show: true, group: "main" },
     { icon: CalendarDays, label: "Bookings", href: "/admin/bookings", show: true, group: "main" },
-    { icon: Map, label: "Products", href: "/admin/products", show: true, group: "main" },
+    { icon: Map, label: "Products", href: "/admin/products", show: user?.role === "admin", group: "main" },
     { icon: CalendarDays, label: "Calendar", href: "/admin/calendar", show: true, group: "main" },
-    { icon: Gauge, label: "Capacity", href: "/admin/capacity", show: true, group: "main" },
+    { icon: Gauge, label: "Capacity", href: "/admin/capacity", show: user?.role === "admin", group: "main" },
     { icon: Star, label: "Reviews", href: "/admin/reviews", show: user?.role === "admin", group: "manage" },
     { icon: UserCog, label: "Staff", href: "/admin/staff", show: user?.role === "admin", group: "manage" },
     { icon: Users, label: "Customers", href: "/admin/customers", show: user?.role === "admin", group: "manage" },

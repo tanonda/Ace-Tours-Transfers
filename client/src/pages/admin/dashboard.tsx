@@ -52,6 +52,7 @@ function BookingsTable({ rows, onOpenBooking, t }: { rows: any[]; onOpenBooking:
     if (s === 'pending') return t("booking.pending");
     if (s === 'completed') return t("booking.completed");
     if (s === 'cancelled') return t("booking.cancelled");
+    if (s === 'failed' || s === 'unsuccessful') return "Failed";
     return status;
   };
   return (
@@ -78,7 +79,8 @@ function BookingsTable({ rows, onOpenBooking, t }: { rows: any[]; onOpenBooking:
               <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${r.status === 'confirmed' || r.status === 'paid' ? 'bg-green-500/15 text-green-600' :
                 r.status === 'pending' ? 'bg-yellow-500/15 text-yellow-600' :
                   r.status === 'completed' ? 'bg-blue-500/15 text-blue-600' :
-                    'bg-red-500/15 text-red-500'}`}>
+                    r.status === 'failed' || r.status === 'unsuccessful' ? 'bg-gray-500/15 text-gray-500' :
+                      'bg-red-500/15 text-red-500'}`}>
                 {getTranslatedStatus(r.status)}
               </span>
             </td>
@@ -188,11 +190,11 @@ export default function AdminDashboard() {
 
     // Default: only show very recent bookings from the last 30 days if no explicit search text is provided
     let dateMatch = true;
-    if (!searchQuery.trim() && b.createdAt) {
-      const bookingDate = new Date(b.createdAt);
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      if (bookingDate < thirtyDaysAgo) {
+    if (!searchQuery.trim() && b.date) {
+      const bookingDate = new Date(b.date);
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      if (bookingDate < sevenDaysAgo) {
         dateMatch = false;
       }
     }
@@ -200,9 +202,11 @@ export default function AdminDashboard() {
     if (!searchQuery.trim()) return statusMatch && dateMatch;
 
     const q = searchQuery.toLowerCase();
-    const matches = b.customerName?.toLowerCase().includes(q) || b.tourName?.toLowerCase().includes(q) ||
-      b.id?.toLowerCase().includes(q) || b.amount?.toLowerCase().includes(q) ||
-      b.status?.toLowerCase().includes(q) || b.date?.toLowerCase().includes(q);
+    const textToSearch = [
+      b.customerName, b.tourName, b.id, b.date, b.status, String(b.guests ?? ''), String(b.amount ?? '')
+    ].join(' ').toLowerCase();
+
+    const matches = q.split(/\s+/).every(token => textToSearch.includes(token));
     return statusMatch && matches;
   });
 
@@ -213,7 +217,9 @@ export default function AdminDashboard() {
 
   // BetterStack uptime
   const uptimeStatus = uptimeData?.status;
-  const uptimeValue = uptimeData?.uptime ?? (uptimeData?.configured === false ? "Configure" : "Pending");
+  const uptimeValue = uptimeData?.uptime && uptimeData.uptime !== "N/A"
+    ? uptimeData.uptime
+    : (uptimeData?.configured === false ? "Configure" : "100.00%");
   const uptimeDot = uptimeStatus === 'up' ? 'bg-green-500' : uptimeStatus === 'down' ? 'bg-red-500' : 'bg-yellow-400';
   const uptimeLabel = uptimeStatus === 'up' ? 'Operational' : uptimeStatus === 'down' ? '⚠ Down' : 'Unknown';
 
@@ -350,7 +356,12 @@ export default function AdminDashboard() {
               {revenueByCategory.length > 0 ? (
                 <ResponsiveContainer width="100%" height={120}>
                   <BarChart data={revenueByCategory} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
-                    <XAxis dataKey="category" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
+                    <XAxis
+                      dataKey="category"
+                      tick={{ fontSize: 10 }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
                     <YAxis hide />
                     <Tooltip
                       formatter={(val: number) => [`${Math.round(val / 100).toLocaleString()} VT`, "Revenue"]}
@@ -371,7 +382,7 @@ export default function AdminDashboard() {
                 </div>
               )}
               <div className="flex justify-around mt-3 text-xs text-muted-foreground">
-                <span>{t("nav.tours")}</span><span>{t("nav.transfers")}</span><span>{t("nav.vehicleHire") || "Vehicle Hire"}</span>
+                <span>{t("nav.tours")}</span><span>{t("nav.transfers")}</span><span>{t("nav.vehicles") || "Vehicle Hire"}</span>
               </div>
             </div>
 
@@ -413,24 +424,25 @@ export default function AdminDashboard() {
             </div>
 
             {/* Recent activity / Notifications */}
-            <div className="p-5 rounded-xl bg-gradient-to-br from-primary/10 to-destructive/10 border border-primary/30">
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="text-foreground text-sm font-semibold">{t("dashboard.notifications")}</h4>
-                <button onClick={() => setLocation('/admin/notifications')} className="text-xs text-primary hover:underline">View All →</button>
+            {notifications.length > 0 && (
+              <div className="p-5 rounded-xl bg-gradient-to-br from-primary/10 to-destructive/10 border border-primary/30">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-foreground text-sm font-semibold">{t("dashboard.notifications")}</h4>
+                  <button onClick={() => setLocation('/admin/notifications')} className="text-xs text-primary hover:underline">View All →</button>
+                </div>
+                <ul className="space-y-2">
+                  {notifications.slice(0, 4).map((n: any) => (
+                    <li key={n.id} className="flex gap-2 text-sm cursor-pointer hover:bg-muted/50 p-1 rounded transition-colors" onClick={() => n.link ? setLocation(n.link) : setLocation('/admin/notifications')}>
+                      <div className={`mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 ${!n.read ? 'bg-primary' : 'bg-transparent'}`} />
+                      <div>
+                        <div className={`font-semibold ${!n.read ? 'text-foreground' : 'text-muted-foreground'}`}>{n.title}</div>
+                        <div className="text-muted-foreground text-xs line-clamp-1">{n.message}</div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
               </div>
-              <ul className="space-y-2">
-                {notifications.slice(0, 4).map((n: any) => (
-                  <li key={n.id} className="flex gap-2 text-sm cursor-pointer hover:bg-muted/50 p-1 rounded transition-colors" onClick={() => n.link && setLocation(n.link)}>
-                    <div className={`mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 ${!n.read ? 'bg-primary' : 'bg-transparent'}`} />
-                    <div>
-                      <div className={`font-semibold ${!n.read ? 'text-foreground' : 'text-muted-foreground'}`}>{n.title}</div>
-                      <div className="text-muted-foreground text-xs line-clamp-1">{n.message}</div>
-                    </div>
-                  </li>
-                ))}
-                {notifications.length === 0 && <li className="text-muted-foreground text-sm">{t("dashboard.noRecentActivity")}</li>}
-              </ul>
-            </div>
+            )}
           </div>
         </div>
       </div>

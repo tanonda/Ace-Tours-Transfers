@@ -97,12 +97,15 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
     if (existingIndex === -1) {
       acc.push(current);
+    } else if (current.isActive !== false && acc[existingIndex].isActive === false) {
+      // Prioritize active product over inactive product with same title
+      acc[existingIndex] = current;
     }
     return acc;
   }, []);
 
-  const tours = uniqueTours.filter(t => t.category === "tour");
-  const transfers = uniqueTours.filter(t => t.category === "transfer");
+  const tours = uniqueTours.filter(t => t.category === "tour" && t.isActive !== false);
+  const transfers = uniqueTours.filter(t => t.category === "transfer" && t.isActive !== false);
 
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -117,6 +120,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
   const isHome = location === "/";
   const showNewsletter = isBlockEnabled('newsletter');
+  const showVehicleHire = isBlockEnabled('vehicle-hire');
 
   const closeMobileMenu = () => {
     setMobileMenuOpen(false);
@@ -255,31 +259,33 @@ export function Layout({ children }: { children: React.ReactNode }) {
               </NavigationMenuList>
             </NavigationMenu>
 
-            <NavigationMenu className="relative z-50">
-              <NavigationMenuList>
-                <NavigationMenuItem>
-                  <NavigationMenuTrigger className={cn("bg-transparent hover:bg-transparent focus:bg-transparent data-[state=open]:bg-transparent", navTextColor)}>
-                    {t("nav.vehicleHire", "Vehicle Hire")}
-                  </NavigationMenuTrigger>
-                  <NavigationMenuContent>
-                    <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
-                      {allVehicles.map((vehicle) => (
-                        <ListItem
-                          key={vehicle.id}
-                          title={vehicle.title}
-                          href={`/vehicles/${vehicle.id}`}
-                        >
-                          {Array.isArray(vehicle.description) ? vehicle.description[0] : vehicle.description}
+            {showVehicleHire && (
+              <NavigationMenu className="relative z-50">
+                <NavigationMenuList>
+                  <NavigationMenuItem>
+                    <NavigationMenuTrigger className={cn("bg-transparent hover:bg-transparent focus:bg-transparent data-[state=open]:bg-transparent", navTextColor)}>
+                      {t("nav.vehicleHire", "Vehicle Hire")}
+                    </NavigationMenuTrigger>
+                    <NavigationMenuContent>
+                      <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
+                        {allVehicles.filter(v => v.isActive !== false).map((vehicle) => (
+                          <ListItem
+                            key={vehicle.id}
+                            title={vehicle.title}
+                            href={`/vehicles/${vehicle.id}`}
+                          >
+                            {Array.isArray(vehicle.description) ? vehicle.description[0] : vehicle.description}
+                          </ListItem>
+                        ))}
+                        <ListItem href="/vehicles" title={t("nav.viewAllVehicles", "View All Vehicles")} className="bg-muted/50">
+                          {t("nav.seeAllVehicles", "Browse our full fleet")}
                         </ListItem>
-                      ))}
-                      <ListItem href="/vehicles" title={t("nav.viewAllVehicles", "View All Vehicles")} className="bg-muted/50">
-                        {t("nav.seeAllVehicles", "Browse our full fleet")}
-                      </ListItem>
-                    </ul>
-                  </NavigationMenuContent>
-                </NavigationMenuItem>
-              </NavigationMenuList>
-            </NavigationMenu>
+                      </ul>
+                    </NavigationMenuContent>
+                  </NavigationMenuItem>
+                </NavigationMenuList>
+              </NavigationMenu>
+            )}
 
             <NavigationMenu className="relative z-50">
               <NavigationMenuList>
@@ -480,7 +486,17 @@ export function Layout({ children }: { children: React.ReactNode }) {
                       </Link>
                     </CollapsibleContent>
                   </Collapsible>
-
+                  {showVehicleHire && (
+                    <Link
+                      href="/vehicles"
+                      onClick={closeMobileMenu}
+                      className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors"
+                      data-testid="mobile-nav-vehicles"
+                    >
+                      <Car className="h-5 w-5 text-primary" />
+                      <span className="font-medium">{t("nav.vehicleHire", "Vehicle Hire")}</span>
+                    </Link>
+                  )}
                   <Link
                     href="/about"
                     onClick={closeMobileMenu}
@@ -657,6 +673,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 <li><Link href="/contact" className="text-white/70 hover:text-white transition-colors">{t("nav.contact")}</Link></li>
                 <li><Link href="/faq" className="text-white/70 hover:text-white transition-colors">FAQ</Link></li>
                 <li><a href="https://www.vanuatu.travel/" target="_blank" rel="noopener noreferrer" className="text-white/70 hover:text-white transition-colors">Vanuatu Tourism Office (VTO)</a></li>
+                <li><a href="https://www.vto.vu/" target="_blank" rel="noopener noreferrer" className="text-white/70 hover:text-white transition-colors">VTO Official Portal</a></li>
+                <li><a href="https://www.acetoursvanuatu.com/" target="_blank" rel="noopener noreferrer" className="text-white/70 hover:text-white transition-colors">Ace Tours (Primary Site)</a></li>
               </ul>
             </div>
 

@@ -24,6 +24,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { useCMS } from "@/lib/cms-context";
 import { BookingForm, bookingFormSchema } from "@/components/booking-form";
 import { z } from "zod";
 import { fetchTours } from "@/lib/api";
@@ -44,6 +45,8 @@ type Booking = {
 export default function Reservations() {
   const { t } = useTranslation();
   const { itemCount, items, removeFromCart, total, clearCart } = useCart();
+  const { isBlockEnabled } = useCMS();
+  const showVehicleHire = isBlockEnabled('vehicle-hire');
   const { user, isAuthenticated, isAdmin } = useAuth();
   const [location] = useLocation();
   const { toast } = useToast();
@@ -109,7 +112,9 @@ export default function Reservations() {
           titleLower.includes("phase4") ||
           s.image === "test.jpg" ||
           s.image === "/test.jpg";
-        return !isTest;
+        if (isTest) return false;
+        if (s.category === 'vehicle' && !showVehicleHire) return false;
+        return true;
       })
       .map(s => ({
         id: s.id,

@@ -18,7 +18,8 @@ import {
   ChevronRight,
   Plus,
   Clock,
-  X
+  X,
+  Lock
 } from "lucide-react";
 import {
   upsertAvailability,
@@ -28,6 +29,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
+import { useAuth } from "@/lib/auth-context";
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -41,6 +43,7 @@ interface CalendarDay {
 
 export default function AdminCalendar() {
   const { toast } = useToast();
+  const { isAdmin } = useAuth();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<CalendarDay | null>(null);
   const [viewMode, setViewMode] = useState<'month' | 'week'>('month');
@@ -97,7 +100,7 @@ export default function AdminCalendar() {
 
   const { data: bookings = [] } = useQuery({
     queryKey: ["bookings"],
-    queryFn: fetchBookings,
+    queryFn: () => fetchBookings(),
   });
 
   const { data: tours = [] } = useQuery({
@@ -217,7 +220,7 @@ export default function AdminCalendar() {
           <div className="flex items-center gap-3">
             <Select value={tourFilter} onValueChange={setTourFilter}>
               <SelectTrigger className="w-[180px]" data-testid="select-tour-filter">
-                <SelectValue placeholder="Filter by tour" />
+                <SelectValue placeholder="Filter by product" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Products</SelectItem>
@@ -356,7 +359,7 @@ export default function AdminCalendar() {
                               <RefreshCw className="h-4 w-4 text-primary" />
                               Manage Availability
                             </h3>
-                            {managingTourId && (
+                            {managingTourId && isAdmin && (
                               <Button
                                 variant="ghost"
                                 size="sm"
@@ -388,7 +391,7 @@ export default function AdminCalendar() {
                             </Select>
                           </div>
 
-                          {managingTourId && (
+                          {isAdmin ? (
                             <div className="space-y-4">
                               <div className="bg-muted/30 p-4 rounded-lg space-y-3">
                                 <h4 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Current Config</h4>
@@ -453,6 +456,11 @@ export default function AdminCalendar() {
                                   </div>
                                 </div>
                               </div>
+                            </div>
+                          ) : (
+                            <div className="p-4 bg-muted/50 rounded-lg text-center space-y-2 border border-dashed border-border">
+                              <Lock className="h-8 w-8 mx-auto text-muted-foreground/50" />
+                              <p className="text-xs text-muted-foreground font-medium">Availability management is restricted to administrators.</p>
                             </div>
                           )}
                         </div>

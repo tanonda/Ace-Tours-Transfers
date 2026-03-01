@@ -37,6 +37,7 @@ const Vehicles = lazy(() => import("@/pages/vehicles"));
 const VehicleDetail = lazy(() => import("@/pages/vehicle-detail"));
 const Confirmation = lazy(() => import("@/pages/confirmation"));
 const FAQ = lazy(() => import("@/pages/faq"));
+const ResetPassword = lazy(() => import("@/pages/reset-password"));
 
 // Admin pages
 const AdminDashboard = lazy(() => import("@/pages/admin/dashboard"));
@@ -145,13 +146,14 @@ function Router() {
         <Route path="/register" component={Register} />
         <Route path="/privacy-policy" component={PrivacyPolicy} />
         <Route path="/faq" component={FAQ} />
+        <Route path="/reset-password" component={ResetPassword} />
 
         {/* Admin Routes - Protected */}
         <Route path="/admin/dashboard">
-          <ProtectedRoute requireAdmin><AdminDashboard /></ProtectedRoute>
+          <ProtectedRoute requireStaff><AdminDashboard /></ProtectedRoute>
         </Route>
         <Route path="/admin/bookings">
-          <ProtectedRoute requireAdmin><AdminBookings /></ProtectedRoute>
+          <ProtectedRoute requireStaff><AdminBookings /></ProtectedRoute>
         </Route>
         <Route path="/admin/products">
           <ProtectedRoute requireAdmin><AdminProducts /></ProtectedRoute>
@@ -172,7 +174,7 @@ function Router() {
           <ProtectedRoute requireAdmin><AdminPromotions /></ProtectedRoute>
         </Route>
         <Route path="/admin/calendar">
-          <ProtectedRoute requireAdmin><AdminCalendar /></ProtectedRoute>
+          <ProtectedRoute requireStaff><AdminCalendar /></ProtectedRoute>
         </Route>
         <Route path="/admin/recovery">
           <ProtectedRoute requireAdmin><AdminRecovery /></ProtectedRoute>
