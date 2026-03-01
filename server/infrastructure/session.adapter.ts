@@ -17,20 +17,25 @@ export class ExpressSessionAdapter implements ISessionAdapter {
   }
 
   getUserId(): string | undefined {
-    return this.req.session.userId;
+    return this.req.session?.userId;
   }
 
   getUserRole(): string | undefined {
-    return this.req.session.userRole;
+    return this.req.session?.userRole;
   }
 
   setSession(userId: string, userRole: string): void {
-    this.req.session.userId = userId;
-    this.req.session.userRole = userRole;
+    if (this.req.session) {
+      this.req.session.userId = userId;
+      this.req.session.userRole = userRole;
+    }
   }
 
   destroySession(): Promise<void> {
     return new Promise((resolve, reject) => {
+      if (!this.req.session) {
+        return resolve();
+      }
       this.req.session.destroy((err) => {
         if (err) {
           return reject(err);

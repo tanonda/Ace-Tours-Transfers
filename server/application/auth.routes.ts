@@ -27,15 +27,18 @@ export function registerAuthRoutes(app: Express) {
         new ExpressSessionAdapter(req)
       );
 
+      console.log(`[AUTH] Login attempt for: ${email}`);
       const authResult = await authAppService.login(email, password);
 
       if (!authResult) {
+        console.log(`[AUTH] Login failed: Invalid credentials for ${email}`);
         return res.status(401).json({ error: "Invalid email or password" });
       }
 
+      console.log(`[AUTH] Login successful for: ${email}`);
       res.json(authResult);
     } catch (error) {
-      console.error("Login error:", error);
+      console.error("[AUTH] Login error:", error);
       res.status(500).json({ error: "Login failed" });
     }
   });
@@ -75,7 +78,14 @@ export function registerAuthRoutes(app: Express) {
 
   app.get("/api/auth/me", async (req: Request, res: Response) => {
     try {
+      if (!req.session) {
+        console.error("[AUTH] req.session is missing!");
+        return res.status(500).json({ error: "Session middleware error" });
+      }
+
       const userId = req.session.userId;
+      console.log(`[AUTH] /api/auth/me - session.userId: ${userId}`);
+
       if (!userId) {
         return res.json(null);
       }
@@ -87,13 +97,14 @@ export function registerAuthRoutes(app: Express) {
       const authResult = await authAppService.getAuthenticatedUser();
 
       if (!authResult) {
+        console.log(`[AUTH] User not found for ID: ${userId}, destroying session`);
         await new ExpressSessionAdapter(req).destroySession();
         return res.status(401).json({ error: "User not found" });
       }
 
       res.json(authResult);
     } catch (error) {
-      console.error("Failed to get user:", error);
+      console.error("[AUTH] Failed to get authenticated user:", error);
       res.status(500).json({ error: "Failed to get user" });
     }
   });

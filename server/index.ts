@@ -96,6 +96,19 @@ app.use(helmet({
     } as any,
   },
 }));
+// Session setup
+const PGStore = connectPgSimple(session);
+const sessionStore = new PGStore({
+  pool: neonPool as any,
+  tableName: "session",
+  createTableIfMissing: true,
+  pruneSessionInterval: false,
+});
+
+sessionStore.on('error', (err: Error) => {
+  console.error(`[SESSION ERROR] ${err.message}`);
+});
+
 app.use(compression()); // L5 Fix: Add gzip compression
 app.use(cors({
   origin: config.appUrl || (config.env === 'production' ? false : true), // M9 Fix: Lockdown CORS in prod
@@ -189,6 +202,39 @@ app.use((req, res, next) => {
   }
 });
 
+app.get('/api/health', async (_req, res) => {
+  try {
+    // 1. Check DB
+    await neonPool.query('SELECT 1');
+
+    // 2. Check Session
+    const sessionCount = await new Promise((resolve, reject) => {
+      (sessionStore as any).length((err: any, len: any) => {
+        if (err) reject(err);
+        else resolve(len);
+      });
+    });
+
+    res.json({
+      status: 'ok',
+      database: 'connected',
+      sessionStore: 'connected',
+      sessions: sessionCount,
+      env: {
+        nodeEnv: process.env.NODE_ENV,
+        hasSentry: !!process.env.SENTRY_DSN,
+        hasDatabase: !!process.env.DATABASE_URL,
+      }
+    });
+  } catch (error: any) {
+    console.error('[HEALTH CHECK FAILED]', error);
+    res.status(503).json({
+      status: 'error',
+      message: error.message,
+    });
+  }
+});
+
 app.post(
   '/api/stripe/webhook',
   async (req, res) => {
@@ -229,20 +275,8 @@ app.post(
 
 app.use(express.urlencoded({ extended: false }));
 
-const PGStore = connectPgSimple(session);
 const pgPool = neonPool;
-
-const sessionStore = new PGStore({
-  pool: pgPool as any,
-  tableName: "session",
-  createTableIfMissing: true,
-  pruneSessionInterval: false, // Disable: passing 0 uses the default interval; false actually disables it
-});
-
-// Add error handling for session store
-sessionStore.on('error', (err: Error) => {
-  log(`[SESSION ERROR] ${err.message}`, 'session');
-});
+// PGStore initialized below after middleware setup for clarity
 
 // Session setup with conditional bypass for Vite dev assets
 const sessionMiddleware = session({
@@ -259,6 +293,7 @@ const sessionMiddleware = session({
 });
 
 app.use((req, res, next) => {
+  // log(`[DEBUG] Session middleware checking path: ${req.path}`);
   // Skip session for Vite internal paths and static assets in dev
   const isViteDevAsset = req.path.startsWith('/@') ||
     req.path.startsWith('/vite-hmr') ||
@@ -486,6 +521,11 @@ app.use((req, res, next) => {
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
+
+    if (status >= 500) {
+      console.error(`[SERVER ERROR] ${status} - ${message}`);
+      console.error(err.stack);
+    }
 
     res.status(status).json({ message });
   });
