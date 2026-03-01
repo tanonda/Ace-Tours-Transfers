@@ -232,6 +232,7 @@ const pgPool = neonPool;
 const sessionStore = new PGStore({
   pool: pgPool as any,
   tableName: "session",
+  createTableIfMissing: true,
   pruneSessionInterval: false, // Disable: passing 0 uses the default interval; false actually disables it
 });
 
