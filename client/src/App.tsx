@@ -138,6 +138,12 @@ function AnalyticsInjector() {
           gtmScript.async = true;
           gtmScript.src = gtmScriptUrl;
           document.head.appendChild(gtmScript);
+        // Google Tag Manager
+        if (normalizedGtmContainerId && !document.getElementById("gtm-script")) {
+          const s = document.createElement("script");
+          s.id = "gtm-script";
+          s.innerHTML = `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','${normalizedGtmContainerId}');`;
+          document.head.appendChild(s);
         }
 
         // GA4 (only if GTM not set — avoid double-counting)
@@ -158,6 +164,15 @@ function AnalyticsInjector() {
           };
           dataLayerWindow.gtag("js", new Date());
           dataLayerWindow.gtag("config", normalizedGa4MeasurementId);
+        if (normalizedGa4MeasurementId && !normalizedGtmContainerId && !document.getElementById("ga4-script")) {
+          const s = document.createElement("script");
+          s.id = "ga4-script";
+          s.async = true;
+          s.src = `https://www.googletagmanager.com/gtag/js?id=${normalizedGa4MeasurementId}`;
+          document.head.appendChild(s);
+          const s2 = document.createElement("script");
+          s2.innerHTML = `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${normalizedGa4MeasurementId}');`;
+          document.head.appendChild(s2);
         }
       })
       .catch(() => { }); // fail silently — analytics is non-critical

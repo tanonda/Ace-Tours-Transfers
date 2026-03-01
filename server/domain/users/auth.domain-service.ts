@@ -39,6 +39,14 @@ export class AuthDomainService {
     } catch {
       // Invalid hash formats should not break login flow.
       // Treat as non-match rather than raising a 500.
+    } catch (error) {
+      // Backwards compatibility for legacy plaintext passwords.
+      // If bcrypt compare fails due to an invalid hash format, gracefully
+      // fall back to direct comparison instead of surfacing a 500.
+      const bcryptErrorMessage = error instanceof Error ? error.message : "";
+      if (bcryptErrorMessage.toLowerCase().includes("invalid salt")) {
+        return password === storedPassword;
+      }
       return false;
     }
   }
