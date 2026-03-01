@@ -16,10 +16,10 @@ export class AuthDomainService {
   }
 
   async login(email: string, password: string): Promise<AuthResult | null> {
-    const user = await this.storage.getUserByEmail(email);
+    const user = await this.storage.getUserByEmail(email.trim().toLowerCase());
     if (!user) return null;
 
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    const isPasswordValid = await this.verifyPassword(password, user.password);
     if (!isPasswordValid) return null;
 
     if (user.isActive === false) {
@@ -27,6 +27,20 @@ export class AuthDomainService {
     }
 
     return user;
+  }
+
+  private async verifyPassword(password: string, storedPassword: string): Promise<boolean> {
+    if (!storedPassword) {
+      return false;
+    }
+
+    try {
+      return await bcrypt.compare(password, storedPassword);
+    } catch {
+      // Invalid hash formats should not break login flow.
+      // Treat as non-match rather than raising a 500.
+      return false;
+    }
   }
 
   /**
