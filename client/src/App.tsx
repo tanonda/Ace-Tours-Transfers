@@ -70,29 +70,94 @@ const CustomerBookings = lazy(() => import("@/pages/customer/bookings"));
 const CustomerSaved = lazy(() => import("@/pages/customer/saved"));
 const CustomerProfile = lazy(() => import("@/pages/customer/profile"));
 
+
+function isScriptSourceAllowedByCsp(url: string) {
+  const cspTag = document.querySelector('meta[http-equiv="Content-Security-Policy"]');
+  const cspContent = cspTag?.getAttribute("content");
+  if (!cspContent) {
+    return true;
+  }
+
+  const directives = cspContent
+    .split(";")
+    .map((directive) => directive.trim())
+    .filter(Boolean);
+
+  const scriptDirective = directives.find((directive) => directive.startsWith("script-src"));
+  if (!scriptDirective) {
+    return true;
+  }
+
+  const [, ...sources] = scriptDirective.split(/\s+/);
+  if (sources.includes("*")) {
+    return true;
+  }
+
+  if (sources.includes("'self'")) {
+    if (url.startsWith(window.location.origin) || url.startsWith("/")) {
+      return true;
+    }
+  }
+
+  try {
+    const target = new URL(url, window.location.origin);
+    return sources.some((source) => {
+      const cleaned = source.replace(/^'+|'+$/g, "");
+      if (cleaned === target.origin || cleaned === target.host) {
+        return true;
+      }
+      if (cleaned.startsWith("https://") || cleaned.startsWith("http://")) {
+        return target.href.startsWith(cleaned);
+      }
+      return false;
+    });
+  } catch {
+    return false;
+  }
+}
+
 // I: Dynamically inject GA4 / GTM scripts from CMS settings (both are 100% free)
 function AnalyticsInjector() {
   useEffect(() => {
     fetch("/api/public/analytics-config")
       .then(r => r.json())
       .then(({ ga4MeasurementId, gtmContainerId }) => {
+        const normalizedGtmContainerId = typeof gtmContainerId === "string" ? gtmContainerId.trim() : "";
+        const normalizedGa4MeasurementId = typeof ga4MeasurementId === "string" ? ga4MeasurementId.trim() : "";
+
+        const gtmScriptUrl = `https://www.googletagmanager.com/gtm.js?id=${normalizedGtmContainerId}`;
+        const ga4ScriptUrl = `https://www.googletagmanager.com/gtag/js?id=${normalizedGa4MeasurementId}`;
+
         // Google Tag Manager
-        if (gtmContainerId && !document.getElementById("gtm-script")) {
-          const s = document.createElement("script");
-          s.id = "gtm-script";
-          s.innerHTML = `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','${gtmContainerId}');`;
-          document.head.appendChild(s);
+        if (normalizedGtmContainerId && !document.getElementById("gtm-script") && isScriptSourceAllowedByCsp(gtmScriptUrl)) {
+          (window as Window & { dataLayer?: unknown[] }).dataLayer = (window as Window & { dataLayer?: unknown[] }).dataLayer || [];
+          (window as Window & { dataLayer?: unknown[] }).dataLayer?.push({ "gtm.start": new Date().getTime(), event: "gtm.js" });
+
+          const gtmScript = document.createElement("script");
+          gtmScript.id = "gtm-script";
+          gtmScript.async = true;
+          gtmScript.src = gtmScriptUrl;
+          document.head.appendChild(gtmScript);
         }
+
         // GA4 (only if GTM not set — avoid double-counting)
-        if (ga4MeasurementId && !gtmContainerId && !document.getElementById("ga4-script")) {
-          const s = document.createElement("script");
-          s.id = "ga4-script";
-          s.async = true;
-          s.src = `https://www.googletagmanager.com/gtag/js?id=${ga4MeasurementId}`;
-          document.head.appendChild(s);
-          const s2 = document.createElement("script");
-          s2.innerHTML = `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${ga4MeasurementId}');`;
-          document.head.appendChild(s2);
+        if (normalizedGa4MeasurementId && !normalizedGtmContainerId && !document.getElementById("ga4-script") && isScriptSourceAllowedByCsp(ga4ScriptUrl)) {
+          const ga4Script = document.createElement("script");
+          ga4Script.id = "ga4-script";
+          ga4Script.async = true;
+          ga4Script.src = ga4ScriptUrl;
+          document.head.appendChild(ga4Script);
+
+          const dataLayerWindow = window as Window & {
+            dataLayer?: unknown[];
+            gtag?: (...args: unknown[]) => void;
+          };
+          dataLayerWindow.dataLayer = dataLayerWindow.dataLayer || [];
+          dataLayerWindow.gtag = (...args: unknown[]) => {
+            dataLayerWindow.dataLayer?.push(args);
+          };
+          dataLayerWindow.gtag("js", new Date());
+          dataLayerWindow.gtag("config", normalizedGa4MeasurementId);
         }
       })
       .catch(() => { }); // fail silently — analytics is non-critical
