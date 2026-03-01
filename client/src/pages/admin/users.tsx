@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Mail, Phone, Download, Users, DollarSign, Calendar, MapPin, PlusCircle, Pencil, Send, KeyRound } from "lucide-react";
+import { Search, Mail, Phone, Download, Users, DollarSign, Calendar, MapPin, PlusCircle, Pencil, Send, KeyRound, LayoutGrid, List } from "lucide-react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { fetchAllUsers, fetchBookings, updateUserRole, resetUserPassword, createUser, sendWelcomeEmail } from "@/lib/api";
 import { useState, useMemo } from "react";
@@ -26,7 +26,7 @@ const userFormSchema = z.object({
   email: z.string().email("Invalid email address"),
   phone: z.string().optional(),
   password: z.string().min(6, "Password must be at least 6 characters").max(50, "Password too long"),
-  role: z.enum(["admin", "field_service", "customer"]),
+  role: z.enum(["customer"]),
 });
 
 export default function AdminUsers() {
@@ -37,6 +37,7 @@ export default function AdminUsers() {
   const [isCreateUserDialogOpen, setIsCreateUserDialogOpen] = useState(false);
   const [isResetPasswordDialogOpen, setIsResetPasswordDialogOpen] = useState(false);
   const [newPassword, setNewPassword] = useState('');
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
 
   const { data: users = [], isLoading } = useQuery({
     queryKey: ["users"],
@@ -45,13 +46,15 @@ export default function AdminUsers() {
 
   const { data: bookings = [] } = useQuery({
     queryKey: ["bookings"],
-    queryFn: fetchBookings,
+    queryFn: () => fetchBookings(),
   });
 
   const filteredUsers = users.filter(user =>
     user.role === 'customer' && (
-    user.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    user.email?.toLowerCase().includes(searchQuery.toLowerCase()))
+      !searchQuery ||
+      user.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.email?.toLowerCase().includes(searchQuery.toLowerCase())
+    )
   );
 
   const getUserBookings = (userId: string): Booking[] => {
@@ -182,7 +185,7 @@ export default function AdminUsers() {
           </div>
           <div className="flex gap-2">
             <Button onClick={() => setIsCreateUserDialogOpen(true)} data-testid="button-create-user">
-              <PlusCircle className="h-4 w-4 mr-2" /> Create New User
+              <PlusCircle className="h-4 w-4 mr-2" /> Add Customer
             </Button>
             <Button variant="outline" onClick={handleExportUsers} data-testid="button-export-users">
               <Download className="h-4 w-4 mr-2" /> Export List
@@ -259,7 +262,7 @@ export default function AdminUsers() {
         </div>
 
         <Card>
-          <CardHeader className="pb-3">
+          <CardHeader className="pb-3 flex flex-row items-center justify-between">
             <div className="relative w-full sm:w-72">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
@@ -270,107 +273,185 @@ export default function AdminUsers() {
                 data-testid="input-search-customers"
               />
             </div>
+            <div className="flex gap-1 bg-muted p-1 rounded-md">
+              <Button
+                variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setViewMode('list')}
+              >
+                <List className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setViewMode('grid')}
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>User</TableHead>
-                  <TableHead>Contact</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Join Date</TableHead>
-                  <TableHead className="text-center">Bookings</TableHead>
-                  <TableHead className="text-right">Total Spent</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            {viewMode === 'list' ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>User</TableHead>
+                    <TableHead>Contact</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Join Date</TableHead>
+                    <TableHead className="text-center">Bookings</TableHead>
+                    <TableHead className="text-right">Total Spent</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-8">
+                        Loading users...
+                      </TableCell>
+                    </TableRow>
+                  ) : filteredUsers.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-8">
+                        No users found.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredUsers.map((user) => {
+                      const userBookings = getUserBookings(user.id);
+                      const totalSpent = getUserTotalSpent(user.id);
+
+                      return (
+                        <TableRow key={user.id} data-testid={`row-user-${user.id}`}>
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <Avatar>
+                                <AvatarFallback>
+                                  {user.name?.split(' ').map(n => n[0]).join('') || 'U'}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <div className="font-medium">{user.name || 'Unknown'}</div>
+                                <div className="text-sm text-muted-foreground">
+                                  ID: #{user.id.slice(0, 8)}
+                                </div>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="space-y-1 text-sm">
+                              <div className="flex items-center gap-2">
+                                <Mail className="h-3 w-3 text-muted-foreground" />
+                                {user.email}
+                              </div>
+                              {user.phone && (
+                                <div className="flex items-center gap-2">
+                                  <Phone className="h-3 w-3 text-muted-foreground" />
+                                  {user.phone}
+                                </div>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge className="capitalize">
+                              {user.role}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {user.createdAt
+                              ? new Date(user.createdAt).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric'
+                              })
+                              : 'N/A'
+                            }
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {userBookings.length}
+                          </TableCell>
+                          <TableCell className="text-right font-medium">
+                            ${totalSpent.toFixed(2)}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setSelectedUser(user)}
+                              data-testid={`button-view-${user.id}`}
+                            >
+                              View Profile
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {isLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8">
-                      Loading users...
-                    </TableCell>
-                  </TableRow>
+                  <div className="col-span-full text-center py-8">Loading users...</div>
                 ) : filteredUsers.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8">
-                      No users found.
-                    </TableCell>
-                  </TableRow>
+                  <div className="col-span-full text-center py-8">No users found.</div>
                 ) : (
                   filteredUsers.map((user) => {
                     const userBookings = getUserBookings(user.id);
                     const totalSpent = getUserTotalSpent(user.id);
 
                     return (
-                      <TableRow key={user.id} data-testid={`row-user-${user.id}`}>
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <Avatar>
-                              <AvatarFallback>
-                                {user.name?.split(' ').map(n => n[0]).join('') || 'U'}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <div className="font-medium">{user.name || 'Unknown'}</div>
-                              <div className="text-sm text-muted-foreground">
-                                ID: #{user.id.slice(0, 8)}
+                      <Card key={user.id} className="overflow-hidden cursor-pointer hover:border-primary/50 transition-colors" onClick={() => setSelectedUser(user)}>
+                        <CardHeader className="pb-2 bg-slate-50 border-b">
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-center gap-3">
+                              <Avatar className="h-10 w-10">
+                                <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                                  {user.name?.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'U'}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <CardTitle className="text-base">{user.name || 'Unknown'}</CardTitle>
+                                <CardDescription className="text-xs">ID: #{user.id.slice(0, 8)}</CardDescription>
                               </div>
                             </div>
+                            <Badge variant="outline" className="capitalize text-xs">{user.role}</Badge>
                           </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="space-y-1 text-sm">
-                            <div className="flex items-center gap-2">
-                              <Mail className="h-3 w-3 text-muted-foreground" />
-                              {user.email}
+                        </CardHeader>
+                        <CardContent className="pt-4 pb-2 space-y-3">
+                          <div className="space-y-2 text-sm">
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                              <Mail className="h-4 w-4 shrink-0" />
+                              <span className="truncate" title={user.email}>{user.email}</span>
                             </div>
                             {user.phone && (
-                              <div className="flex items-center gap-2">
-                                <Phone className="h-3 w-3 text-muted-foreground" />
-                                {user.phone}
+                              <div className="flex items-center gap-2 text-muted-foreground">
+                                <Phone className="h-4 w-4 shrink-0" />
+                                <span>{user.phone}</span>
                               </div>
                             )}
                           </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge className="capitalize">
-                            {user.role}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {user.createdAt
-                            ? new Date(user.createdAt).toLocaleDateString('en-US', {
-                                month: 'short',
-                                day: 'numeric',
-                                year: 'numeric'
-                              })
-                            : 'N/A'
-                          }
-                        </TableCell>
-                        <TableCell className="text-center">
-                          {userBookings.length}
-                        </TableCell>
-                        <TableCell className="text-right font-medium">
-                          ${totalSpent.toFixed(2)}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setSelectedUser(user)}
-                            data-testid={`button-view-${user.id}`}
-                          >
-                            View Profile
-                          </Button>
-                        </TableCell>
-                      </TableRow>
+                          <div className="grid grid-cols-2 gap-2 pt-2 border-t mt-2">
+                            <div>
+                              <p className="text-xs text-muted-foreground mb-1">Bookings</p>
+                              <p className="font-semibold">{userBookings.length}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-xs text-muted-foreground mb-1">Total Spent</p>
+                              <p className="font-semibold text-green-600">${totalSpent.toFixed(2)}</p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
                     );
                   })
                 )}
-              </TableBody>
-            </Table>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -475,9 +556,9 @@ export default function AdminUsers() {
                               <h4 className="font-medium">{booking.tourName}</h4>
                               <Badge className={
                                 booking.status === 'confirmed' ? 'bg-green-100 text-green-800' :
-                                booking.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                                booking.status === 'completed' ? 'bg-blue-100 text-blue-800' :
-                                'bg-red-100 text-red-800'
+                                  booking.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                    booking.status === 'completed' ? 'bg-blue-100 text-blue-800' :
+                                      'bg-red-100 text-red-800'
                               }>
                                 {booking.status}
                               </Badge>
@@ -515,9 +596,9 @@ export default function AdminUsers() {
         <Dialog open={isCreateUserDialogOpen} onOpenChange={setIsCreateUserDialogOpen}>
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
-              <DialogTitle>Create New User</DialogTitle>
+              <DialogTitle>Add New Customer</DialogTitle>
               <DialogDescription>
-                Add a new customer, field service, or admin account.
+                Create a new customer profile.
               </DialogDescription>
             </DialogHeader>
             <Form {...form}>
@@ -559,8 +640,6 @@ export default function AdminUsers() {
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="customer">Customer</SelectItem>
-                        <SelectItem value="field_service">Field Service</SelectItem>
-                        <SelectItem value="admin">Admin</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -570,7 +649,7 @@ export default function AdminUsers() {
                   <Button type="button" variant="outline" onClick={() => { setIsCreateUserDialogOpen(false); form.reset(); }}>
                     Cancel
                   </Button>
-                  <Button type="submit">Create User</Button>
+                  <Button type="submit">Add Customer</Button>
                 </div>
               </form>
             </Form>

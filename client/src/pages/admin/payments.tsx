@@ -60,6 +60,24 @@ const gatewaySchemas: Record<string, { credentials?: z.ZodObject<any>, config?: 
     'wantok-money': { credentials: WanTokCredentialsSchema, config: LocalEWalletConfigSchema },
     'digicel-mobile-money': { credentials: DigicelMobileMoneyCredentialsSchema, config: LocalEWalletConfigSchema },
     'kwikpay': { credentials: KwikPayCredentialsSchema, config: LocalEWalletConfigSchema },
+    'manual_transfer': { credentials: GenericLocalBankCredentialsSchema, config: undefined },
+    'cash': { credentials: undefined, config: undefined }, // No config needed
+};
+
+// Define categorization for gateways based on their slug
+const GATEWAY_CATEGORIES = {
+    'online': ['anz-egate', 'bred-bank', 'bsp-bank', 'stripe', 'paypal', 'apple-pay', 'google-pay'],
+    'offline': ['manual_transfer', 'cash'],
+    'ewallet': ['wantok-money', 'digicel-mobile-money', 'kwikpay', 'e-wallet']
+};
+
+const getCategoryName = (categoryKey: string) => {
+    switch (categoryKey) {
+        case 'online': return 'Online Payment Gateways';
+        case 'offline': return 'Offline & Manual Methods';
+        case 'ewallet': return 'Digital E-Wallets & Mobile Money';
+        default: return 'Other Gateways';
+    }
 };
 
 export default function AdminPayments() {
@@ -259,66 +277,87 @@ export default function AdminPayments() {
                     </AlertDescription>
                 </Alert>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {gateways.map((gateway) => (
-                        <div key={gateway.id} className="bg-card border border-border rounded-xl p-6 flex flex-col gap-4">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-primary/10 rounded-lg text-primary">
-                                        <CreditCard className="h-6 w-6" />
-                                    </div>
-                                    <div>
-                                        <h3 className="font-bold text-foreground">{gateway.displayName}</h3>
-                                        <div className="flex gap-2 mt-1">
-                                            {gateway.active ? (
-                                                <Badge variant="default" className="bg-green-500/15 text-green-600 hover:bg-green-500/25 border-none">
-                                                    {t("payments.active")}
-                                                </Badge>
-                                            ) : (
-                                                <Badge variant="secondary">{t("payments.inactive")}</Badge>
-                                            )}
-                                            {gateway.isDefault && (
-                                                <Badge variant="outline" className="border-primary text-primary">
-                                                    {t("payments.default")}
-                                                </Badge>
-                                            )}
+                {Object.entries(GATEWAY_CATEGORIES).map(([categoryKey, slugs]) => {
+                    // Filter gateways for this category
+                    const categoryGateways = gateways.filter(g => slugs.includes(g.slug));
+
+                    // Only render category if there are gateways in it
+                    if (categoryGateways.length === 0) return null;
+
+                    return (
+                        <div key={categoryKey} className="space-y-4 pt-4 first:pt-0">
+                            <h2 className="text-lg font-semibold text-foreground border-b pb-2">
+                                {getCategoryName(categoryKey)}
+                            </h2>
+                            {categoryKey === 'offline' && (
+                                <p className="text-sm text-muted-foreground pb-2">
+                                    Offline methods allow the customer to complete booking without immediate payment. You must configure instructions and bank details in the Settings tab.
+                                </p>
+                            )}
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {categoryGateways.map((gateway) => (
+                                    <div key={gateway.id} className="bg-card border border-border rounded-xl p-6 flex flex-col gap-4">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-3">
+                                                <div className="p-2 bg-primary/10 rounded-lg text-primary">
+                                                    <CreditCard className="h-6 w-6" />
+                                                </div>
+                                                <div>
+                                                    <h3 className="font-bold text-foreground">{gateway.displayName}</h3>
+                                                    <div className="flex gap-2 mt-1">
+                                                        {gateway.active ? (
+                                                            <Badge variant="default" className="bg-green-500/15 text-green-600 hover:bg-green-500/25 border-none">
+                                                                {t("payments.active")}
+                                                            </Badge>
+                                                        ) : (
+                                                            <Badge variant="secondary">{t("payments.inactive")}</Badge>
+                                                        )}
+                                                        {gateway.isDefault && (
+                                                            <Badge variant="outline" className="border-primary text-primary">
+                                                                {t("payments.default")}
+                                                            </Badge>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <Switch
+                                                checked={gateway.active}
+                                                onCheckedChange={() => toggleActive(gateway)}
+                                            />
+                                        </div>
+
+                                        <p className="text-sm text-muted-foreground line-clamp-2 min-h-[40px]">
+                                            {gateway.description || "No description provided."}
+                                        </p>
+
+                                        <div className="flex gap-2 mt-auto pt-4 border-t border-border">
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="flex-1"
+                                                onClick={() => handleConfigure(gateway)}
+                                            >
+                                                <Settings className="h-4 w-4 mr-2" />
+                                                {t("payments.configure")}
+                                            </Button>
+                                            <Button
+                                                variant={gateway.isDefault ? "secondary" : "default"}
+                                                size="sm"
+                                                className="flex-1"
+                                                disabled={gateway.isDefault || !gateway.active}
+                                                onClick={() => defaultMutation.mutate(gateway.id)}
+                                            >
+                                                {gateway.isDefault ? <Check className="h-4 w-4 mr-2" /> : null}
+                                                {gateway.isDefault ? t("payments.default") : t("payments.setDefault")}
+                                            </Button>
                                         </div>
                                     </div>
-                                </div>
-                                <Switch
-                                    checked={gateway.active}
-                                    onCheckedChange={() => toggleActive(gateway)}
-                                />
-                            </div>
-
-                            <p className="text-sm text-muted-foreground line-clamp-2 min-h-[40px]">
-                                {gateway.description || "No description provided."}
-                            </p>
-
-                            <div className="flex gap-2 mt-auto pt-4 border-t border-border">
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="flex-1"
-                                    onClick={() => handleConfigure(gateway)}
-                                >
-                                    <Settings className="h-4 w-4 mr-2" />
-                                    {t("payments.configure")}
-                                </Button>
-                                <Button
-                                    variant={gateway.isDefault ? "secondary" : "default"}
-                                    size="sm"
-                                    className="flex-1"
-                                    disabled={gateway.isDefault || !gateway.active}
-                                    onClick={() => defaultMutation.mutate(gateway.id)}
-                                >
-                                    {gateway.isDefault ? <Check className="h-4 w-4 mr-2" /> : null}
-                                    {gateway.isDefault ? t("payments.default") : t("payments.setDefault")}
-                                </Button>
+                                ))}
                             </div>
                         </div>
-                    ))}
-                </div>
+                    );
+                })}
             </div>
 
             <Dialog open={!!selectedGateway} onOpenChange={(open) => !open && setSelectedGateway(null)}>
@@ -331,52 +370,61 @@ export default function AdminPayments() {
                     </DialogHeader>
 
                     <div className="space-y-4 py-2">
-                        {selectedGateway && gatewaySchemas[selectedGateway.slug]?.credentials && (
+                        {!selectedGateway || (!gatewaySchemas[selectedGateway?.slug]?.credentials && !gatewaySchemas[selectedGateway?.slug]?.config) ? (
+                            <div className="text-center py-6">
+                                <Info className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
+                                <p className="text-muted-foreground">This payment method requires no specific credentials. Settings for bank accounts or instructions can be managed in the main Settings page.</p>
+                            </div>
+                        ) : (
                             <>
-                                <h4 className="font-semibold text-base sticky top-0 bg-background py-1">{t("payments.credentials")}</h4>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                {Object.keys(gatewaySchemas[selectedGateway.slug].credentials!.shape).map(key => {
-                                    const fieldError = credentialsErrors[key];
-                                    return (
-                                        <div className="space-y-2" key={key}>
-                                            <Label htmlFor={key}>{key.split(/(?=[A-Z])/).map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ')}</Label>
-                                            <Input
-                                                id={key}
-                                                type={isPasswordField(key) ? "password" : "text"}
-                                                value={credentials[key] || ""}
-                                                onChange={(e) => handleCredentialChange(key, e.target.value)}
-                                                placeholder={`Enter ${key.split(/(?=[A-Z])/).map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ')}`}
-                                                className={fieldError ? "border-destructive" : ""}
-                                            />
-                                            {fieldError && <p className="text-sm text-destructive">{fieldError}</p>}
+                                {selectedGateway && gatewaySchemas[selectedGateway.slug]?.credentials && (
+                                    <>
+                                        <h4 className="font-semibold text-base sticky top-0 bg-background py-1">{t("payments.credentials")}</h4>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            {Object.keys(gatewaySchemas[selectedGateway.slug].credentials!.shape).map(key => {
+                                                const fieldError = credentialsErrors[key];
+                                                return (
+                                                    <div className="space-y-2" key={key}>
+                                                        <Label htmlFor={key}>{key.split(/(?=[A-Z])/).map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ')}</Label>
+                                                        <Input
+                                                            id={key}
+                                                            type={isPasswordField(key) ? "password" : "text"}
+                                                            value={credentials[key] || ""}
+                                                            onChange={(e) => handleCredentialChange(key, e.target.value)}
+                                                            placeholder={`Enter ${key.split(/(?=[A-Z])/).map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ')}`}
+                                                            className={fieldError ? "border-destructive" : ""}
+                                                        />
+                                                        {fieldError && <p className="text-sm text-destructive">{fieldError}</p>}
+                                                    </div>
+                                                );
+                                            })}
                                         </div>
-                                    );
-                                })}
-                                </div>
-                            </>
-                        )}
-                        {selectedGateway && gatewaySchemas[selectedGateway.slug]?.config && (
-                            <>
-                                <h4 className="font-semibold text-base mt-4 sticky top-0 bg-background py-1">{t("payments.config")}</h4>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                {Object.keys(gatewaySchemas[selectedGateway.slug].config!.shape).map(key => {
-                                    const fieldError = configErrors[key];
-                                    return (
-                                        <div className="space-y-2" key={key}>
-                                            <Label htmlFor={`config-${key}`}>{key.split(/(?=[A-Z])/).map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ')}</Label>
-                                            <Input
-                                                id={`config-${key}`}
-                                                type="text"
-                                                value={config[key] || ""}
-                                                onChange={(e) => handleConfigChange(key, e.target.value)}
-                                                placeholder={`Enter ${key.split(/(?=[A-Z])/).map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ')}`}
-                                                className={fieldError ? "border-destructive" : ""}
-                                            />
-                                            {fieldError && <p className="text-sm text-destructive">{fieldError}</p>}
+                                    </>
+                                )}
+                                {selectedGateway && gatewaySchemas[selectedGateway.slug]?.config && (
+                                    <>
+                                        <h4 className="font-semibold text-base mt-4 sticky top-0 bg-background py-1">{t("payments.config")}</h4>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            {Object.keys(gatewaySchemas[selectedGateway.slug].config!.shape).map(key => {
+                                                const fieldError = configErrors[key];
+                                                return (
+                                                    <div className="space-y-2" key={key}>
+                                                        <Label htmlFor={`config-${key}`}>{key.split(/(?=[A-Z])/).map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ')}</Label>
+                                                        <Input
+                                                            id={`config-${key}`}
+                                                            type="text"
+                                                            value={config[key] || ""}
+                                                            onChange={(e) => handleConfigChange(key, e.target.value)}
+                                                            placeholder={`Enter ${key.split(/(?=[A-Z])/).map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ')}`}
+                                                            className={fieldError ? "border-destructive" : ""}
+                                                        />
+                                                        {fieldError && <p className="text-sm text-destructive">{fieldError}</p>}
+                                                    </div>
+                                                );
+                                            })}
                                         </div>
-                                    );
-                                })}
-                                </div>
+                                    </>
+                                )}
                             </>
                         )}
                     </div>

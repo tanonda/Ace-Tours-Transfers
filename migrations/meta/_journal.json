@@ -71,6 +71,13 @@
       "when": 1772250000000,
       "tag": "0009_admin_audit_log",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1772333534476,
+      "tag": "0010_lush_maria_hill",
+      "breakpoints": true
     }
   ]
 }

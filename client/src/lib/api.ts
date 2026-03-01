@@ -104,8 +104,9 @@ export async function fetchVehicle(id: string): Promise<Tour> {
 }
 
 // Bookings
-export async function fetchBookings(): Promise<Booking[]> {
-  const res = await apiRequest("GET", "/api/bookings");
+export async function fetchBookings(includeArchived: boolean = false): Promise<Booking[]> {
+  const qs = includeArchived ? '?includeArchived=true' : '';
+  const res = await apiRequest("GET", `/api/bookings${qs}`);
   return res.json();
 }
 
@@ -172,8 +173,8 @@ export async function fetchBookingStats() {
   return res.json();
 }
 
-export async function fetchRevenue(): Promise<{ month: string; total: number }[]> {
-  const res = await apiRequest("GET", "/api/analytics/revenue/daily");
+export async function fetchRevenue(): Promise<{ date: string; amount: number }[]> {
+  const res = await apiRequest("GET", "/api/analytics/revenue/daily?days=365");
   return res.json();
 }
 

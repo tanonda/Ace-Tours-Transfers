@@ -93,7 +93,7 @@ export interface IStorage {
   deleteTour(id: string): Promise<void>;
 
   // Booking operations
-  getBookings(): Promise<Booking[]>;
+  getBookings(includeArchived?: boolean): Promise<Booking[]>;
   getFlaggedBookings(): Promise<Booking[]>;
   getBooking(id: string): Promise<Booking | undefined>;
   getBookingsByEmail(email: string): Promise<Booking[]>;
@@ -362,14 +362,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Booking operations
-  async getBookings(): Promise<Booking[]> {
-    return await db.select().from(bookings).orderBy(desc(bookings.createdAt));
+  async getBookings(includeArchived: boolean = false): Promise<Booking[]> {
+    if (includeArchived) {
+      return await db.select().from(bookings).orderBy(desc(bookings.createdAt));
+    }
+    return await db.select().from(bookings).where(isNull(bookings.archivedAt)).orderBy(desc(bookings.createdAt));
   }
 
   async getFlaggedBookings(): Promise<Booking[]> {
     // Returns bookings that have been fraud-scored but not yet reviewed by an admin.
     // Uses the dedicated fraud_level column — efficient with the partial index.
-    const allBookings = await db.select().from(bookings).orderBy(desc(bookings.createdAt));
+    const allBookings = await db.select().from(bookings).where(isNull(bookings.archivedAt)).orderBy(desc(bookings.createdAt));
     return allBookings.filter(
       b => (b as any).fraudLevel != null && (b as any).fraudReviewedAt == null
     );
@@ -384,7 +387,7 @@ export class DatabaseStorage implements IStorage {
     return await db
       .select()
       .from(bookings)
-      .where(eq(bookings.customerEmail, email.trim().toLowerCase()))
+      .where(and(eq(bookings.customerEmail, email.trim().toLowerCase()), isNull(bookings.archivedAt)))
       .orderBy(desc(bookings.createdAt))
       .limit(20);
   }
@@ -393,7 +396,7 @@ export class DatabaseStorage implements IStorage {
     return await db
       .select()
       .from(bookings)
-      .where(eq(bookings.userId, userId))
+      .where(and(eq(bookings.userId, userId), isNull(bookings.archivedAt)))
       .orderBy(desc(bookings.createdAt));
   }
 
@@ -403,7 +406,8 @@ export class DatabaseStorage implements IStorage {
       .from(bookings)
       .where(and(
         eq(bookings.tourId, serviceId),
-        eq(bookings.date, dateString)
+        eq(bookings.date, dateString),
+        isNull(bookings.archivedAt)
       ));
   }
 
@@ -411,7 +415,7 @@ export class DatabaseStorage implements IStorage {
     return await db
       .select()
       .from(bookings)
-      .where(eq(bookings.bookingSessionId, sessionId))
+      .where(and(eq(bookings.bookingSessionId, sessionId), isNull(bookings.archivedAt)))
       .orderBy(desc(bookings.createdAt));
   }
 
@@ -486,7 +490,8 @@ export class DatabaseStorage implements IStorage {
           .where(eq(tourInstances.id, booking.tourInstanceId));
       }
 
-      await tx.delete(bookings).where(eq(bookings.id, id));
+      // We now soft-delete by setting archivedAt
+      await tx.update(bookings).set({ archivedAt: new Date() }).where(eq(bookings.id, id));
     });
   }
 
@@ -553,7 +558,11 @@ export class DatabaseStorage implements IStorage {
     return results;
   }
 
-  async getTopPerformingProducts(limit: number): Promise<{ productName: string; bookingCount: number; revenue: number; }[]> {
+  async getTopPerformingProducts(limit: number, days: number = 30): Promise<{ productName: string; bookingCount: number; revenue: number; }[]> {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - days);
+    const dateStr = cutoffDate.toISOString().split('T')[0];
+
     // We join with items to get accurate product types, but fall back to bookings 
     // for historical data that might not have items
     const results = await db
@@ -564,7 +573,12 @@ export class DatabaseStorage implements IStorage {
       })
       .from(bookings)
       .leftJoin(bookingItems, eq(bookings.id, bookingItems.bookingId))
-      .where(inArray(bookings.status, ['confirmed', 'completed']))
+      .where(
+        and(
+          inArray(bookings.status, ['confirmed', 'completed']),
+          sql`${bookings.createdAt} >= ${dateStr}`
+        )
+      )
       .groupBy(sql`COALESCE(${bookingItems.productName}, ${bookings.tourName})`)
       .orderBy(desc(sql`sum(COALESCE(${bookingItems.subtotalCents}, ${bookings.totalAmountCents}))`))
       .limit(limit);
@@ -572,7 +586,11 @@ export class DatabaseStorage implements IStorage {
     return results;
   }
 
-  async getRevenueByCategory(): Promise<{ category: string; revenueCents: number; }[]> {
+  async getRevenueByCategory(days: number = 30): Promise<{ category: string; revenueCents: number; }[]> {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - days);
+    const dateStr = cutoffDate.toISOString().split('T')[0];
+
     // Phase 2 requires grouping by `productType` using the `bookingItems` table where authoritative pricing lives
     const results = await db
       .select({
@@ -581,18 +599,23 @@ export class DatabaseStorage implements IStorage {
       })
       .from(bookingItems)
       .innerJoin(bookings, eq(bookingItems.bookingId, bookings.id))
-      .where(inArray(bookings.status, ['confirmed', 'completed']))
+      .where(
+        and(
+          inArray(bookings.status, ['confirmed', 'completed']),
+          sql`${bookings.createdAt} >= ${dateStr}`
+        )
+      )
       .groupBy(sql`COALESCE(${bookingItems.productType}, 'unknown')`);
 
     // We also need to map the raw categories from DB -> Display labels
     const displayMap: Record<string, string> = {
       'tour': 'Tours',
       'transfer': 'Transfers',
-      'vehicle': 'Bus Hire',
+      'vehicle': 'Vehicle Hire',
       'unknown': 'Other'
     };
 
-    const finalResults: Record<string, number> = { 'Tours': 0, 'Transfers': 0, 'Bus Hire': 0 };
+    const finalResults: Record<string, number> = { 'Tours': 0, 'Transfers': 0, 'Vehicle Hire': 0 };
     for (const r of results) {
       const displayKey = displayMap[r.category] || 'Other';
       finalResults[displayKey] = (finalResults[displayKey] || 0) + r.revenueCents;

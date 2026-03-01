@@ -1071,9 +1071,10 @@ ${allPages.map(p => `  <url>
   });
 
   // Bookings API
-  app.get("/api/bookings", requireAdmin, async (_req, res) => {
+  app.get("/api/bookings", requireAdmin, async (req, res) => {
     try {
-      const bookings = await storage.getBookings();
+      const includeArchived = req.query.includeArchived === 'true';
+      const bookings = await storage.getBookings(includeArchived);
       // Ensure specific fields are included for the admin dashboard
       const enrichedBookings = bookings.map(b => ({
         ...b,
@@ -2214,10 +2215,11 @@ ${allPages.map(p => `  <url>
     }
   });
 
-  app.get("/api/analytics/top-products", requireAdmin, async (_req, res) => {
+  app.get("/api/analytics/top-products", requireAdmin, async (req, res) => {
     try {
+      const days = parseInt(req.query.days as string) || 30;
       // Fetch top 5 products by revenue
-      const products = await storage.getTopPerformingProducts(5);
+      const products = await storage.getTopPerformingProducts(5, days);
       res.json(products);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch top products data" });
@@ -2225,9 +2227,10 @@ ${allPages.map(p => `  <url>
   });
 
   // C: Revenue by product category for dashboard bar chart
-  app.get("/api/analytics/revenue-by-category", requireAdmin, async (_req, res) => {
+  app.get("/api/analytics/revenue-by-category", requireAdmin, async (req, res) => {
     try {
-      const revenueData = await storage.getRevenueByCategory();
+      const days = parseInt(req.query.days as string) || 30;
+      const revenueData = await storage.getRevenueByCategory(days);
       res.json(revenueData);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch category revenue" });

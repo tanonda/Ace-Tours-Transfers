@@ -42,8 +42,22 @@ export default function AdminReports() {
 
   const guestManifest = allBookings.filter((b: any) => b.date === guestDate && b.status !== "cancelled");
 
-  const totalRevenue = revenueData.reduce((acc: number, curr: any) => acc + curr.total, 0);
-  const averageMonthly = totalRevenue / (revenueData.length || 1);
+  // Group daily revenue by month for the chart
+  const monthlyRevenue = revenueData.reduce((acc: any[], curr: any) => {
+    if (!curr.date) return acc;
+    const date = new Date(curr.date);
+    const month = date.toLocaleString('en-US', { month: 'short' }) + ' ' + date.getFullYear();
+    const existing = acc.find(m => m.month === month);
+    if (existing) {
+      existing.total += (curr.amount || 0);
+    } else {
+      acc.push({ month, total: (curr.amount || 0) });
+    }
+    return acc;
+  }, []);
+
+  const totalRevenue = revenueData.reduce((acc: number, curr: any) => acc + (curr.amount || 0), 0);
+  const averageMonthly = monthlyRevenue.length ? totalRevenue / monthlyRevenue.length : 0;
   const filteredRevenue = filteredBookings.reduce((sum: number, b: any) => {
     return sum + (parseFloat(String(b.amount ?? "0").replace(/[^0-9.]/g, "")) || 0);
   }, 0);
@@ -52,13 +66,13 @@ export default function AdminReports() {
     const rows = [
       ["Booking ID", "Customer", "Email", "Phone", "Tour", "Date", "Adults", "Children", "Infants", "Pets", "Amount", "Status"],
       ...filteredBookings.map((b: any) => [
-        `ACT-${(b.id||"").replace(/^book_/i,"").replace(/-/g,"").slice(0,8).toUpperCase()}`,
-        b.customerName||"", b.customerEmail||"", b.customerPhone||"",
-        b.tourName||"", b.date||"", b.guests||"", b.childGuests||"", b.infantGuests||"", b.petGuests||"",
-        b.amount||"", b.status||"",
+        `ACT-${(b.id || "").replace(/^book_/i, "").replace(/-/g, "").slice(0, 8).toUpperCase()}`,
+        b.customerName || "", b.customerEmail || "", b.customerPhone || "",
+        b.tourName || "", b.date || "", b.guests || "", b.childGuests || "", b.infantGuests || "", b.petGuests || "",
+        b.amount || "", b.status || "",
       ]),
     ];
-    const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");
+    const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
     a.download = `bookings-report-${dateFrom}-to-${dateTo}.csv`;
@@ -69,12 +83,12 @@ export default function AdminReports() {
     const rows = [
       ["#", "Customer Name", "Email", "Phone", "Tour/Transfer", "Adults", "Children", "Infants", "Status", "Amount", "Notes"],
       ...guestManifest.map((b: any, i: number) => [
-        String(i+1), b.customerName||"", b.customerEmail||"", b.customerPhone||"",
-        b.tourName||"", b.guests||"", b.childGuests||"", b.infantGuests||"",
-        b.status||"", b.amount||"", b.notes||""
+        String(i + 1), b.customerName || "", b.customerEmail || "", b.customerPhone || "",
+        b.tourName || "", b.guests || "", b.childGuests || "", b.infantGuests || "",
+        b.status || "", b.amount || "", b.notes || ""
       ]),
     ];
-    const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");
+    const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
     a.download = `guest-manifest-${guestDate}.csv`;
@@ -86,11 +100,11 @@ export default function AdminReports() {
     if (!w) return;
     const rows = guestManifest.map((b: any, i: number) => `
       <tr>
-        <td>${i+1}</td><td>${b.customerName||""}</td><td>${b.customerEmail||""}</td>
-        <td>${b.customerPhone||""}</td><td>${b.tourName||""}</td>
-        <td>${b.guests||""} adult${(b.childGuests||0)>0?` / ${b.childGuests} child`:""}</td>
+        <td>${i + 1}</td><td>${b.customerName || ""}</td><td>${b.customerEmail || ""}</td>
+        <td>${b.customerPhone || ""}</td><td>${b.tourName || ""}</td>
+        <td>${b.guests || ""} adult${(b.childGuests || 0) > 0 ? ` / ${b.childGuests} child` : ""}</td>
         <td><span class="badge ${b.status}">${b.status}</span></td>
-        <td>${b.amount||""}</td>
+        <td>${b.amount || ""}</td>
       </tr>`).join("");
     w.document.write(`<!DOCTYPE html><html><head><title>Guest Manifest — ${guestDate}</title>
       <style>
@@ -108,7 +122,7 @@ export default function AdminReports() {
       </style></head>
       <body>
         <h1>Ace Tours & Transfers — Guest Manifest</h1>
-        <p><strong>Date:</strong> ${new Date(guestDate).toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long',year:'numeric'})} &nbsp;|&nbsp; <strong>Total Guests:</strong> ${guestManifest.length}</p>
+        <p><strong>Date:</strong> ${new Date(guestDate).toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} &nbsp;|&nbsp; <strong>Total Guests:</strong> ${guestManifest.length}</p>
         <table>
           <thead><tr><th>#</th><th>Guest Name</th><th>Email</th><th>Phone</th><th>Tour / Transfer</th><th>Pax</th><th>Status</th><th>Amount</th></tr></thead>
           <tbody>${rows}</tbody>
@@ -177,13 +191,13 @@ export default function AdminReports() {
               <CardContent className="pl-2">
                 <div className="h-[350px]">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={revenueData}>
+                    <BarChart data={monthlyRevenue}>
                       <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                       <XAxis dataKey="month" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
-                      <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={v => `${Math.round(v/1000)}k`} />
+                      <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={v => `${Math.round(v / 1000)}k`} />
                       <Tooltip cursor={{ fill: 'transparent' }} formatter={(val: number) => [fmtCurrency(val), "Revenue"]}
                         contentStyle={{ backgroundColor: 'hsl(var(--card))', borderRadius: '8px', border: '1px solid hsl(var(--border))' }} />
-                      <Bar dataKey="total" fill="hsl(var(--primary))" radius={[4,4,0,0]} />
+                      <Bar dataKey="total" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -259,7 +273,7 @@ export default function AdminReports() {
                         {filteredBookings.map((b: any) => (
                           <TableRow key={b.id} className="hover:bg-muted/20 cursor-pointer" onClick={() => setSelectedBooking(b)}>
                             <TableCell className="font-mono text-xs">
-                              ACT-{(b.id||"").replace(/^book_/i,"").replace(/-/g,"").slice(0,8).toUpperCase()}
+                              ACT-{(b.id || "").replace(/^book_/i, "").replace(/-/g, "").slice(0, 8).toUpperCase()}
                             </TableCell>
                             <TableCell>
                               <div className="text-sm font-medium">{b.customerName}</div>
@@ -272,9 +286,9 @@ export default function AdminReports() {
                             <TableCell>
                               <Badge className={
                                 b.status === "confirmed" ? "bg-green-100 text-green-800" :
-                                b.status === "pending" ? "bg-yellow-100 text-yellow-800" :
-                                b.status === "completed" ? "bg-blue-100 text-blue-800" :
-                                "bg-red-100 text-red-800"
+                                  b.status === "pending" ? "bg-yellow-100 text-yellow-800" :
+                                    b.status === "completed" ? "bg-blue-100 text-blue-800" :
+                                      "bg-red-100 text-red-800"
                               }>{b.status}</Badge>
                             </TableCell>
                             <TableCell className="text-right" onClick={e => e.stopPropagation()}>
@@ -316,7 +330,7 @@ export default function AdminReports() {
                   <div className="flex gap-2 ml-auto">
                     <Badge variant="secondary">{guestManifest.length} guests</Badge>
                     <Badge variant="outline" className="text-green-600">
-                      {fmtCurrency(guestManifest.reduce((s: number, b: any) => s + (parseFloat(String(b.amount).replace(/[^0-9.]/g,''))||0), 0))}
+                      {fmtCurrency(guestManifest.reduce((s: number, b: any) => s + (parseFloat(String(b.amount).replace(/[^0-9.]/g, '')) || 0), 0))}
                     </Badge>
                   </div>
                 </div>
@@ -345,7 +359,7 @@ export default function AdminReports() {
                       <TableBody>
                         {guestManifest.map((b: any, i: number) => (
                           <TableRow key={b.id} className="hover:bg-muted/20">
-                            <TableCell className="text-muted-foreground text-sm font-bold">{i+1}</TableCell>
+                            <TableCell className="text-muted-foreground text-sm font-bold">{i + 1}</TableCell>
                             <TableCell>
                               <div className="font-medium text-sm">{b.customerName}</div>
                             </TableCell>
@@ -356,16 +370,16 @@ export default function AdminReports() {
                             <TableCell className="text-sm max-w-[140px] truncate">{b.tourName}</TableCell>
                             <TableCell>
                               <div className="text-sm space-y-0.5">
-                                <div>{b.guests || 0} adult{(b.guests||0)!==1?'s':''}</div>
-                                {(b.childGuests||0) > 0 && <div className="text-xs text-muted-foreground">{b.childGuests} child</div>}
-                                {(b.infantGuests||0) > 0 && <div className="text-xs text-muted-foreground">{b.infantGuests} infant</div>}
+                                <div>{b.guests || 0} adult{(b.guests || 0) !== 1 ? 's' : ''}</div>
+                                {(b.childGuests || 0) > 0 && <div className="text-xs text-muted-foreground">{b.childGuests} child</div>}
+                                {(b.infantGuests || 0) > 0 && <div className="text-xs text-muted-foreground">{b.infantGuests} infant</div>}
                               </div>
                             </TableCell>
                             <TableCell>
                               <Badge className={
                                 b.status === "confirmed" ? "bg-green-100 text-green-800" :
-                                b.status === "pending" ? "bg-yellow-100 text-yellow-800" :
-                                "bg-blue-100 text-blue-800"
+                                  b.status === "pending" ? "bg-yellow-100 text-yellow-800" :
+                                    "bg-blue-100 text-blue-800"
                               }>{b.status}</Badge>
                             </TableCell>
                             <TableCell className="font-medium text-sm">{b.amount}</TableCell>
@@ -391,7 +405,7 @@ export default function AdminReports() {
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3 text-sm">
                 {[
-                  ["Booking ID", `ACT-${(selectedBooking.id||"").replace(/^book_/i,"").replace(/-/g,"").slice(0,8).toUpperCase()}`],
+                  ["Booking ID", `ACT-${(selectedBooking.id || "").replace(/^book_/i, "").replace(/-/g, "").slice(0, 8).toUpperCase()}`],
                   ["Status", selectedBooking.status],
                   ["Customer", selectedBooking.customerName],
                   ["Email", selectedBooking.customerEmail || "—"],

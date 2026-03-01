@@ -116,6 +116,7 @@ export const bookings = pgTable("bookings", {
   pickupLocation: text("pickup_location"), // Phase 4 readiness: stores customer pickup details
   confirmedAt: timestamp("confirmed_at"),  // Phase 4 readiness: tracked for production reporting
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  archivedAt: timestamp("archived_at"),    // Used for soft deletion of bookings
   notes: text("notes"),
   // Fraud detection fields (added in migration 0005)
   fraudScore: integer("fraud_score"),                 // 0–100 risk score
@@ -596,7 +597,7 @@ export const GenericLocalBankCredentialsSchema = z.object({
   accountName: z.string(),
   accountNumber: z.string(),
   swiftCode: z.string().optional(),
-}).partial(); // Keep this one partial as it's generic
+});
 
 
 // NEW: WanTok Credentials Schema

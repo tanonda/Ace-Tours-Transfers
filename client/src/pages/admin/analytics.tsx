@@ -41,12 +41,12 @@ export default function AdminAnalytics() {
     queryFn: () => fetch(`/api/analytics/revenue/daily?days=${period}`).then(res => res.json()),
   });
   const { data: topProducts = [] } = useQuery({
-    queryKey: ["top-products"],
-    queryFn: () => fetch("/api/analytics/top-products").then(res => res.json()),
+    queryKey: ["top-products", period],
+    queryFn: () => fetch(`/api/analytics/top-products?days=${period}`).then(res => res.json()),
   });
   const { data: revenueByCategory = [] } = useQuery({
-    queryKey: ["revenue-by-category"],
-    queryFn: () => fetch("/api/analytics/revenue-by-category").then(res => res.json()),
+    queryKey: ["revenue-by-category", period],
+    queryFn: () => fetch(`/api/analytics/revenue-by-category?days=${period}`).then(res => res.json()),
   });
 
   const totalRevenue = revenueDaily.reduce((s: number, d: any) => s + (d.amount || 0), 0);
@@ -233,31 +233,32 @@ export default function AdminAnalytics() {
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Revenue by Category</CardTitle>
-              <CardDescription>Tours vs Transfers vs Bus Hire breakdown</CardDescription>
+              <CardDescription>Tours vs Transfers vs Vehicle Hire breakdown</CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="h-[260px]">
-                {revenueByCategory.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={revenueByCategory}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                      <XAxis dataKey="category" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
-                      <YAxis tickFormatter={v => `${Math.round(v / 100000)}k`} tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-                      <ReTooltip
-                        formatter={(val: number) => [`${Math.round(val / 100).toLocaleString()} VT`, "Revenue"]}
-                        contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid hsl(var(--border))", background: "hsl(var(--card))" }}
-                      />
-                      <Bar dataKey="revenueCents" radius={[4, 4, 0, 0]}>
-                        {revenueByCategory.map((_: any, i: number) => (
-                          <Cell key={i} fill={["#3b82f6", "#ef4444", "#22c55e"][i % 3]} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="flex items-center justify-center h-full text-muted-foreground text-sm">No category data yet</div>
-                )}
-              </div>
+            <CardContent className="h-[260px]">
+              {revenueByCategory.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={revenueByCategory}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                    <XAxis dataKey="category" tick={{ fontSize: 12 }} axisLine={false} tickLine={false}
+                      tickFormatter={(val) => val === 'vehicle' ? 'Vehicle Hire' : val.charAt(0).toUpperCase() + val.slice(1)}
+                    />
+                    <YAxis tickFormatter={v => `${Math.round(v / 100000)}k`} tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                    <ReTooltip
+                      formatter={(val: number) => [`${Math.round(val / 100).toLocaleString()} VT`, "Revenue"]}
+                      labelFormatter={(label) => label === 'vehicle' ? 'Vehicle Hire' : String(label).charAt(0).toUpperCase() + String(label).slice(1)}
+                      contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid hsl(var(--border))", background: "hsl(var(--card))" }}
+                    />
+                    <Bar dataKey="revenueCents" radius={[4, 4, 0, 0]}>
+                      {revenueByCategory.map((_: any, i: number) => (
+                        <Cell key={i} fill={["#3b82f6", "#ef4444", "#22c55e"][i % 3]} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-full text-muted-foreground text-sm">No category data yet</div>
+              )}
             </CardContent>
           </Card>
         </div>

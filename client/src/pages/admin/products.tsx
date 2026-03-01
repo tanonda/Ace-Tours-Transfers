@@ -44,6 +44,8 @@ export default function AdminProducts() {
   }>({ open: false, id: null, title: "" });
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<"all" | "tour" | "transfer" | "vehicle">("all");
+  const [selectedItems, setSelectedItems] = useState<string[]>([]);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   const { data: tours = [], isLoading } = useQuery({ queryKey: ["tours"], queryFn: fetchTours });
   const { data: bookings = [] } = useQuery({ queryKey: ["admin", "bookings"], queryFn: fetchBookings });
@@ -97,6 +99,44 @@ export default function AdminProducts() {
     }
   };
 
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+
+  const handleBulkDelete = async () => {
+    if (selectedItems.length === 0) return;
+    setIsBulkDeleting(true);
+
+    let successCount = 0;
+    let softDeletedCount = 0;
+
+    try {
+      for (const id of selectedItems) {
+        const result = await deleteTourAdvanced(id, false);
+        if (result.softDeleted) {
+          softDeletedCount++;
+        } else {
+          successCount++;
+        }
+      }
+
+      queryClient.invalidateQueries({ queryKey: ["tours"] });
+      setSelectedItems([]);
+
+      if (softDeletedCount > 0) {
+        toast({
+          title: "Bulk Delete Completed",
+          description: `Deleted ${successCount} products. ${softDeletedCount} products had linked data and were hidden from the storefront instead.`,
+          variant: "default",
+        });
+      } else {
+        toast({ title: "Bulk Delete Completed", description: `Successfully deleted ${successCount} products.` });
+      }
+    } catch (err: any) {
+      toast({ title: t("common.error"), description: "Bulk delete failed — check server logs.", variant: "destructive" });
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  };
+
   const confirmDelete = (id: string, title: string) => {
     setDeleteState({ open: true, id, title, result: undefined });
   };
@@ -137,7 +177,7 @@ export default function AdminProducts() {
           </Button>
         </div>
 
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
+        <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v as any); setSelectedItems([]); }} className="w-full">
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="all"><Package className="h-4 w-4 mr-1.5" /> All ({tours.length})</TabsTrigger>
             <TabsTrigger value="tour"><Map className="h-4 w-4 mr-1.5" /> Tours ({tourStats.totalTours})</TabsTrigger>
@@ -154,52 +194,104 @@ export default function AdminProducts() {
           <Card><CardContent className="p-4 flex items-center gap-3"><DollarSign className="h-5 w-5 text-yellow-500" /><div><p className="text-xs text-muted-foreground">Revenue</p><p className="text-xl font-bold">{formatPrice(tourStats.totalRevenueCents)}</p></div></CardContent></Card>
         </div>
 
-        <div className="flex items-center gap-4 bg-card p-4 rounded-xl border border-border">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder={t("common.searchPlaceholder")} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-card p-4 rounded-xl border border-border">
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <div className="relative flex-1 sm:w-80">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input placeholder={t("common.searchPlaceholder")} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
+            </div>
+          </div>
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            {selectedItems.length > 0 && (
+              <Button variant="destructive" size="sm" onClick={handleBulkDelete} disabled={isBulkDeleting}>
+                {isBulkDeleting ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : <Trash className="h-4 w-4 mr-2" />}
+                Delete Selected ({selectedItems.length})
+              </Button>
+            )}
+            <div className="flex items-center gap-1 bg-muted p-1 rounded-md">
+              <Button variant={viewMode === 'list' ? 'secondary' : 'ghost'} size="icon" className="h-8 w-8" onClick={() => setViewMode('list')}>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+              </Button>
+              <Button variant={viewMode === 'grid' ? 'secondary' : 'ghost'} size="icon" className="h-8 w-8" onClick={() => setViewMode('grid')}>
+                <LayoutGrid className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className={viewMode === 'grid' ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "flex flex-col gap-4"}>
           {isLoading ? (
             <div className="col-span-full py-10 text-center">{t("common.loading")}</div>
           ) : filteredTours.length > 0 ? (
             filteredTours.map((tour: any) => (
-              <div key={tour.id} className={`group relative bg-card rounded-xl border overflow-hidden hover:shadow-lg transition-shadow ${!tour.isActive ? "border-orange-500/40 opacity-75" : "border-border"}`}>
-                <div className="aspect-video relative">
+              <div key={tour.id} className={`group relative bg-card rounded-xl border overflow-hidden hover:shadow-primary/20 transition-all ${!tour.isActive ? "border-orange-500/40 opacity-75" :
+                selectedItems.includes(tour.id) ? "border-primary ring-1 ring-primary" : "border-border"
+                } ${viewMode === 'list' ? 'flex flex-row items-center p-3 gap-4 h-32' : 'flex flex-col'}`}>
+
+                <div className="absolute top-3 left-3 z-10">
+                  <div className={`w-5 h-5 rounded flex items-center justify-center cursor-pointer border ${selectedItems.includes(tour.id) ? "bg-primary border-primary text-primary-foreground" : "bg-white/80 border-gray-300 backdrop-blur-sm"
+                    }`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedItems(prev => prev.includes(tour.id) ? prev.filter(id => id !== tour.id) : [...prev, tour.id]);
+                    }}
+                  >
+                    {selectedItems.includes(tour.id) && <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>}
+                  </div>
+                </div>
+
+                <div className={`relative ${viewMode === 'list' ? 'w-40 h-full rounded-md overflow-hidden shrink-0' : 'aspect-video w-full'}`}>
                   <img src={tour.image} alt={tour.title} className="w-full h-full object-cover" />
-                  <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-sm text-white px-2 py-1 rounded text-xs font-medium uppercase tracking-wider flex items-center gap-1">
+                  <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-sm text-white px-2 py-1 rounded text-[10px] font-medium uppercase tracking-wider flex items-center gap-1">
                     {tour.category === "transfer" ? <Car className="h-3 w-3" /> : tour.category === "vehicle" ? <LayoutGrid className="h-3 w-3" /> : <Map className="h-3 w-3" />}
                     {tour.category}
                   </div>
                   {!tour.isActive && (
-                    <div className="absolute top-2 left-2">
-                      <Badge variant="secondary" className="text-xs bg-orange-500/90 text-white border-0">
+                    <div className="absolute bottom-2 left-2">
+                      <Badge variant="secondary" className="text-[10px] bg-orange-500/90 text-white border-0 py-0.5">
                         <EyeOff className="h-3 w-3 mr-1" /> Hidden
                       </Badge>
                     </div>
                   )}
                 </div>
-                <div className="p-4">
-                  <h3 className="font-bold text-lg mb-1 line-clamp-1">{tour.title}</h3>
-                  <div className="flex items-center justify-between text-muted-foreground text-sm mb-2">
-                    <span className="font-bold text-foreground">{formatPrice(tour.adultPriceCents)}</span>
-                    <span>{tour.duration}</span>
+
+                <div className={`p-4 flex flex-col flex-1 ${viewMode === 'list' ? 'py-2 px-0 h-full justify-center' : ''}`}>
+                  <div className="flex justify-between items-start mb-1">
+                    <h3 className="font-bold text-lg leading-tight line-clamp-1 group-hover:text-primary transition-colors cursor-pointer" onClick={() => { setSelectedTour(tour); setIsDialogOpen(true); }}>
+                      {tour.title}
+                    </h3>
                   </div>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground mb-4">
-                    <Users className="h-3 w-3" />
-                    <span>Capacity: <span className="font-semibold text-foreground">{tour.defaultCapacity || "Not set"}</span> {tour.category === "vehicle" ? "vehicles" : "pax"}</span>
+
+                  <div className="flex items-center gap-4 text-muted-foreground text-sm mb-3">
+                    <span className="font-bold text-foreground bg-primary/10 text-primary px-2 py-0.5 rounded-md">{formatPrice(tour.adultPriceCents)}</span>
+                    <span className="flex items-center gap-1"><Map className="h-3.5 w-3.5" />{tour.duration}</span>
                   </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" className="flex-1" onClick={() => { setSelectedTour(tour); setIsDialogOpen(true); }}>
-                      <Pencil className="mr-2 h-3 w-3" /> {t("common.edit")}
+
+                  <div className={`flex items-center gap-2 text-xs text-muted-foreground ${viewMode === 'list' ? 'mb-0' : 'mb-4'}`}>
+                    <Users className="h-3.5 w-3.5" />
+                    <span>Capacity: <span className="font-medium text-foreground">{tour.defaultCapacity || "Not set"}</span> {tour.category === "vehicle" ? "vehicles" : "pax"}</span>
+                  </div>
+
+                  <div className={`flex gap-2 mt-auto ${viewMode === 'list' ? 'hidden' : ''}`}>
+                    <Button variant="outline" size="sm" className="flex-1 bg-white hover:bg-gray-50" onClick={() => { setSelectedTour(tour); setIsDialogOpen(true); }}>
+                      <Pencil className="mr-2 h-3.5 w-3.5" /> {t("common.edit")}
                     </Button>
-                    <Button variant="destructive" size="sm" className="flex-1" onClick={() => confirmDelete(tour.id, tour.title)}>
-                      <Trash className="mr-2 h-3 w-3" /> {t("common.delete")}
+                    <Button variant="outline" size="sm" className="flex-1 text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/20" onClick={() => confirmDelete(tour.id, tour.title)}>
+                      <Trash className="mr-2 h-3.5 w-3.5" /> {t("common.delete")}
                     </Button>
                   </div>
                 </div>
+
+                {viewMode === 'list' && (
+                  <div className="flex flex-col gap-2 shrink-0 ml-auto pr-2">
+                    <Button variant="outline" size="icon" className="h-8 w-8 hover:bg-primary/10 hover:text-primary" onClick={() => { setSelectedTour(tour); setIsDialogOpen(true); }}>
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button variant="outline" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive border-transparent hover:border-destructive/20" onClick={() => confirmDelete(tour.id, tour.title)}>
+                      <Trash className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                )}
               </div>
             ))
           ) : (
