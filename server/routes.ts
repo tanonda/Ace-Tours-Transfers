@@ -2190,6 +2190,58 @@ ${allPages.map(p => `  <url>
   // Expose broadcaster for use in booking creation routes
   (app as any)._sseClients = sseClients;
 
+  // GET all notifications (admin only — includes read ones, for message board history)
+  app.get("/api/notifications/all", requireAdmin, async (_req, res) => {
+    try {
+      const all = await storage.getAllNotifications(200);
+      res.json(all);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch notifications" });
+    }
+  });
+
+  // POST broadcast a message to all staff / specific user
+  app.post("/api/notifications/broadcast", requireAdmin, async (req, res) => {
+    try {
+      const { title, message, type = "info", link, userId } = req.body;
+      if (!title?.trim() || !message?.trim()) {
+        return res.status(400).json({ error: "Title and message are required" });
+      }
+
+      const notification = await storage.createNotification({
+        title: title.trim(),
+        message: message.trim(),
+        type,
+        link: link?.trim() || null,
+        userId: userId || null, // null = broadcast to all staff
+        read: false,
+      });
+
+      // Push over SSE to connected clients
+      const payload = JSON.stringify(notification);
+      sseClients.forEach(client => {
+        if (!userId || client.userId === userId || client.role === "admin" || client.role === "field_service") {
+          try { client.res.write(`event: new_notification\ndata: ${payload}\n\n`); } catch {}
+        }
+      });
+
+      res.status(201).json(notification);
+    } catch (error) {
+      console.error("Failed to broadcast notification:", error);
+      res.status(500).json({ error: "Failed to broadcast notification" });
+    }
+  });
+
+  // DELETE a notification (admin only)
+  app.delete("/api/notifications/:id", requireAdmin, async (req, res) => {
+    try {
+      await storage.deleteNotification(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete notification" });
+    }
+  });
+
 
 
   // Analytics API

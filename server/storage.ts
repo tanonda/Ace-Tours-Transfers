@@ -152,6 +152,8 @@ export interface IStorage {
   markNotificationAsRead(id: string): Promise<void>;
   createNotification(notification: InsertNotification): Promise<Notification>;
   getUnreadNotifications(userId?: string): Promise<Notification[]>;
+  getAllNotifications(limit?: number): Promise<Notification[]>;
+  deleteNotification(id: string): Promise<void>;
 
   // Reviews
   createReview(review: InsertReview): Promise<Review>;
@@ -911,6 +913,18 @@ export class DatabaseStorage implements IStorage {
       .update(notifications)
       .set({ read: true })
       .where(eq(notifications.id, id));
+  }
+
+  async getAllNotifications(limit = 200): Promise<Notification[]> {
+    return await db
+      .select()
+      .from(notifications)
+      .orderBy(desc(notifications.createdAt))
+      .limit(limit);
+  }
+
+  async deleteNotification(id: string): Promise<void> {
+    await db.delete(notifications).where(eq(notifications.id, id));
   }
 
   // Reviews
