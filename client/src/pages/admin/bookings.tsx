@@ -23,9 +23,11 @@ import type { Booking } from "@shared/schema";
 export default function AdminBookings() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [includeArchived, setIncludeArchived] = useState(false);
+
   const { data: bookings = [], isLoading, refetch } = useQuery({
-    queryKey: ["bookings"],
-    queryFn: fetchBookings,
+    queryKey: ["bookings", includeArchived],
+    queryFn: () => fetchBookings(includeArchived),
   });
 
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
@@ -158,6 +160,12 @@ export default function AdminBookings() {
                   <SelectItem value="cancelled">Cancelled</SelectItem>
                 </SelectContent>
               </Select>
+              <div className="flex items-center space-x-2 mr-2">
+                <Checkbox id="show-deleted" checked={includeArchived} onCheckedChange={(c) => setIncludeArchived(!!c)} />
+                <label htmlFor="show-deleted" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                  Show Deleted
+                </label>
+              </div>
               <Button variant="outline" size="icon" onClick={() => setDateSort(d => d === "desc" ? "asc" : "desc")} title="Toggle date sort">
                 <Filter className="h-4 w-4" />
               </Button>
@@ -204,9 +212,14 @@ export default function AdminBookings() {
                     <TableCell className="max-w-[180px] truncate">{booking.tourName}</TableCell>
                     <TableCell>{new Date(booking.date).toLocaleDateString()}</TableCell>
                     <TableCell>
-                      <Badge className={getStatusColor(booking.status)} variant="outline">
-                        {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
-                      </Badge>
+                      <div className="flex flex-col gap-1">
+                        <Badge className={getStatusColor(booking.status)} variant="outline">
+                          {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+                        </Badge>
+                        {(booking as any).archivedAt && (
+                          <Badge variant="secondary" className="bg-gray-200 text-gray-700 w-fit">Deleted</Badge>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="text-right font-medium">{booking.amount}</TableCell>
                     <TableCell className="text-right pr-4">

@@ -6,8 +6,16 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, RefreshCw, AlertCircle, Info, Landmark } from "lucide-react";
+import { Loader2, RefreshCw, AlertCircle, Info, Landmark, Check, X, ShieldAlert, ChevronDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 type StalePayment = {
     id: string;
@@ -97,6 +105,18 @@ export default function AdminReconciliation() {
     const handleSync = (paymentId: string) => {
         setSyncingPaymentId(paymentId);
         syncMutation.mutate({ id: paymentId, note: "Admin manual sync trigger" });
+    };
+
+    const handleForceComplete = (paymentId: string) => {
+        if (!confirm("Are you sure you want to FORCE complete this payment? This will confirm the booking and send tickets.")) return;
+        setSyncingPaymentId(paymentId);
+        syncMutation.mutate({ id: paymentId, note: "Admin forced completion", forceStatus: "completed" });
+    };
+
+    const handleForceFail = (paymentId: string) => {
+        if (!confirm("Are you sure you want to Mark this payment as FAILED? This will cancel the booking.")) return;
+        setSyncingPaymentId(paymentId);
+        syncMutation.mutate({ id: paymentId, note: "Admin forced failure", forceStatus: "failed" });
     };
 
     const handleBatchSync = () => {
@@ -193,18 +213,35 @@ export default function AdminReconciliation() {
                                                     </Badge>
                                                 </TableCell>
                                                 <TableCell className="text-right">
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        disabled={syncingPaymentId === payment.id || isBatchSyncing}
-                                                        onClick={() => handleSync(payment.id)}
-                                                    >
-                                                        {syncingPaymentId === payment.id ? (
-                                                            <Loader2 className="h-4 w-4 animate-spin" />
-                                                        ) : (
-                                                            "Sync Now"
-                                                        )}
-                                                    </Button>
+                                                    <DropdownMenu>
+                                                        <DropdownMenuTrigger asChild>
+                                                            <Button
+                                                                variant="outline"
+                                                                size="sm"
+                                                                disabled={syncingPaymentId === payment.id || isBatchSyncing}
+                                                            >
+                                                                {syncingPaymentId === payment.id ? (
+                                                                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                                                ) : (
+                                                                    <RefreshCw className="h-4 w-4 mr-2" />
+                                                                )}
+                                                                Actions <ChevronDown className="h-4 w-4 ml-2 opacity-50" />
+                                                            </Button>
+                                                        </DropdownMenuTrigger>
+                                                        <DropdownMenuContent align="end" className="w-48">
+                                                            <DropdownMenuLabel>Reconcile Payment</DropdownMenuLabel>
+                                                            <DropdownMenuSeparator />
+                                                            <DropdownMenuItem onClick={() => handleSync(payment.id)}>
+                                                                <RefreshCw className="h-4 w-4 mr-2" /> Auto Sync
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem onClick={() => handleForceComplete(payment.id)} className="text-green-600 focus:text-green-600 focus:bg-green-50">
+                                                                <Check className="h-4 w-4 mr-2" /> Force Complete
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem onClick={() => handleForceFail(payment.id)} className="text-destructive focus:text-destructive focus:bg-destructive/10">
+                                                                <X className="h-4 w-4 mr-2" /> Force Fail
+                                                            </DropdownMenuItem>
+                                                        </DropdownMenuContent>
+                                                    </DropdownMenu>
                                                 </TableCell>
                                             </TableRow>
                                         ))}

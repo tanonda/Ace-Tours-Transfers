@@ -443,8 +443,6 @@ app.use((req, res, next) => {
   try {
     const { storage: flagStorage } = await import('./storage.js');
     const defaultFlags = [
-      { slug: 'payment-stripe', enabled: true, displayName: 'Stripe Payments', description: 'Enable online credit card payments via Stripe' },
-      { slug: 'payment-bank-transfer', enabled: true, displayName: 'Bank Transfer', description: 'Enable manual bank transfer payment method' },
       { slug: 'vehicle-hire', enabled: true, displayName: 'Vehicle Hire', description: 'Enable vehicle and bus hire services' },
       { slug: 'client-dashboard', enabled: false, displayName: 'Client Dashboard', description: 'Enable user-facing booking history and profile' },
       { slug: 'reviews-system', enabled: false, displayName: 'Reviews System', description: 'Enable customer reviews and moderation' },

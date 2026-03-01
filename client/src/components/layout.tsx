@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/navigation-menu";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
-import { fetchTours, fetchVehicles } from "@/lib/api";
+import { fetchTours, fetchVehicles, fetchSiteSettings } from "@/lib/api";
 import { useCart } from "@/lib/cart-context";
 import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -70,6 +70,23 @@ export function Layout({ children }: { children: React.ReactNode }) {
     queryKey: ["vehicles"],
     queryFn: fetchVehicles,
   });
+
+  const { data: settings = [] } = useQuery({
+    queryKey: ["settings"],
+    queryFn: fetchSiteSettings,
+  });
+
+  const getSetting = (key: string, fallback: string = "") => {
+    const setting = settings.find((s) => s.key === key);
+    return setting && setting.value ? String(setting.value) : fallback;
+  };
+
+  const contactEmail = getSetting("contact_email", "acetoursvanuatu@outlook.com");
+  const contactPhone = getSetting("contact_phone", "7114045");
+  const whatsappNumber = getSetting("whatsapp_number", "7342389");
+  const facebookUrl = getSetting("social_facebook", "https://www.facebook.com/share/16xVyw7m7m/");
+  const instagramUrl = getSetting("social_instagram", "https://www.instagram.com/acetoursvanuatu/");
+  const contactAddress = getSetting("contact_address", "Port Vila, Vanuatu");
 
   // Deduplicate tours by normalized title to handle DB duplicates and naming variations
   const uniqueTours = allTours.reduce<typeof allTours>((acc, current) => {
@@ -142,14 +159,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
               "{t("app.tagline")}"
             </p>
             <div className="flex items-center gap-4 mt-1 md:mt-0">
-              <a href="tel:+6787114045" className={`flex items-center gap-1.5 hover:text-primary transition-colors ${isTransparent ? "hover:text-white" : ""}`}>
+              <a href={`tel:+678${contactPhone.replace(/\D/g, '')}`} className={`flex items-center gap-1.5 hover:text-primary transition-colors ${isTransparent ? "hover:text-white" : ""}`}>
                 <Phone className="h-3.5 w-3.5" />
-                <span>7114045</span>
+                <span>{contactPhone}</span>
               </a>
               <span className={isTransparent ? "text-white/50" : "text-muted-foreground/50"}>|</span>
-              <a href="mailto:acetoursvanuatu@outlook.com" className={`flex items-center gap-1.5 hover:text-primary transition-colors ${isTransparent ? "hover:text-white" : ""}`}>
+              <a href={`mailto:${contactEmail}`} className={`flex items-center gap-1.5 hover:text-primary transition-colors ${isTransparent ? "hover:text-white" : ""}`}>
                 <Mail className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">acetoursvanuatu@outlook.com</span>
+                <span className="hidden sm:inline">{contactEmail}</span>
                 <span className="sm:hidden">{t("nav.emailUs", "Email Us")}</span>
               </a>
             </div>
@@ -581,21 +598,20 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     {t("footer.contactUs")}
                   </p>
                   <div className="space-y-2 text-sm text-muted-foreground">
-                    <a href="tel:+6787114045" className="flex items-center gap-2 hover:text-primary transition-colors">
+                    <a href={`tel:+678${contactPhone.replace(/\D/g, '')}`} className="flex items-center gap-2 hover:text-primary transition-colors">
                       <Phone className="h-4 w-4" />
-                      <span>7114045</span>
+                      <span>{contactPhone}</span>
                     </a>
-                    <a href="mailto:acetoursvanuatu@outlook.com" className="flex items-center gap-2 hover:text-primary transition-colors">
+                    <a href={`mailto:${contactEmail}`} className="flex items-center gap-2 hover:text-primary transition-colors">
                       <Mail className="h-4 w-4" />
-                      <span className="truncate">acetoursvanuatu@outlook.com</span>
+                      <span className="truncate">{contactEmail}</span>
                     </a>
                   </div>
                   <div className="flex gap-3 mt-4">
-                    <a href="https://www.facebook.com/share/16xVyw7m7m/" target="_blank" rel="noopener noreferrer" className="bg-muted p-2 rounded-full hover:bg-primary hover:text-white transition-colors">
+                    <a href={facebookUrl} target="_blank" rel="noopener noreferrer" className="bg-muted p-2 rounded-full hover:bg-primary hover:text-white transition-colors">
                       <Facebook className="h-4 w-4" />
                     </a>
-                    {/* Fix #17: Instagram link — replace href with the real account URL, or remove until one exists */}
-                    <a href="https://www.instagram.com/acetoursvanuatu/" target="_blank" rel="noopener noreferrer" aria-label="Follow us on Instagram" className="bg-muted p-2 rounded-full hover:bg-primary hover:text-white transition-colors">
+                    <a href={instagramUrl} target="_blank" rel="noopener noreferrer" aria-label="Follow us on Instagram" className="bg-muted p-2 rounded-full hover:bg-primary hover:text-white transition-colors">
                       <Instagram className="h-4 w-4" />
                     </a>
                   </div>
@@ -622,11 +638,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 {footerCms.text("description", t("footer.description"))}
               </p>
               <div className="flex gap-4">
-                <a href="https://www.facebook.com/share/16xVyw7m7m/" target="_blank" rel="noopener noreferrer" className="bg-white/10 p-2 rounded-full hover:bg-primary transition-colors">
+                <a href={facebookUrl} target="_blank" rel="noopener noreferrer" className="bg-white/10 p-2 rounded-full hover:bg-primary transition-colors">
                   <Facebook className="h-5 w-5" />
                 </a>
-                {/* Fix #17: Replace with real Instagram URL when available */}
-                <a href="https://www.instagram.com/acetoursvanuatu/" target="_blank" rel="noopener noreferrer" aria-label="Follow us on Instagram" className="bg-white/10 p-2 rounded-full hover:bg-primary transition-colors">
+                <a href={instagramUrl} target="_blank" rel="noopener noreferrer" aria-label="Follow us on Instagram" className="bg-white/10 p-2 rounded-full hover:bg-primary transition-colors">
                   <Instagram className="h-5 w-5" />
                 </a>
               </div>
@@ -640,6 +655,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 <li><Link href="/transfers" className="text-white/70 hover:text-white transition-colors">{t("nav.transfers")}</Link></li>
                 <li><Link href="/about" className="text-white/70 hover:text-white transition-colors">{t("nav.about")}</Link></li>
                 <li><Link href="/contact" className="text-white/70 hover:text-white transition-colors">{t("nav.contact")}</Link></li>
+                <li><Link href="/faq" className="text-white/70 hover:text-white transition-colors">FAQ</Link></li>
+                <li><a href="https://www.vanuatu.travel/" target="_blank" rel="noopener noreferrer" className="text-white/70 hover:text-white transition-colors">Vanuatu Tourism Office (VTO)</a></li>
               </ul>
             </div>
 
@@ -650,22 +667,22 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   <Phone className="h-5 w-5 text-primary shrink-0 mt-0.5" />
                   <div className="text-white/70">
                     <p>
-                      <a href="tel:+6787114045" className="hover:text-white transition-colors">7114045</a>
+                      <a href={`tel:+678${contactPhone.replace(/\D/g, '')}`} className="hover:text-white transition-colors">{contactPhone}</a>
                       {" / "}
-                      <a href="tel:+6787342389" className="hover:text-white transition-colors">7342389</a>
+                      <a href={`tel:+678${whatsappNumber.replace(/\D/g, '')}`} className="hover:text-white transition-colors">{whatsappNumber}</a>
                     </p>
                     <p className="text-sm opacity-60">{t("footer.available247", "Available 24/7")}</p>
                   </div>
                 </li>
                 <li className="flex items-start gap-3">
                   <Mail className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                  <a href="mailto:acetoursvanuatu@outlook.com" className="text-white/70 hover:text-white">
-                    acetoursvanuatu@outlook.com
+                  <a href={`mailto:${contactEmail}`} className="text-white/70 hover:text-white">
+                    {contactEmail}
                   </a>
                 </li>
                 <li className="text-white/70">
                   <p className="font-medium text-white mb-1">{t("footer.address", "Address")}:</p>
-                  Port Vila, Vanuatu
+                  {contactAddress}
                 </li>
               </ul>
             </div>

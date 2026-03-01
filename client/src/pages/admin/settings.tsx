@@ -255,7 +255,6 @@ export default function AdminSettings() {
           <TabsList className="flex-wrap h-auto gap-1">
             <TabsTrigger value="contact">{t("footer.contactInfo")}</TabsTrigger>
             <TabsTrigger value="social">Social Media</TabsTrigger>
-            <TabsTrigger value="banking">Bank Transfer</TabsTrigger>
             <TabsTrigger value="email">Email Config</TabsTrigger>
             {/* Newsletter moved to its own dedicated page: /admin/newsletter */}
             <TabsTrigger value="seo">SEO / GEO</TabsTrigger>
@@ -322,30 +321,6 @@ export default function AdminSettings() {
                     }}
                   />
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="banking" className="mt-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Bank Transfer Details</CardTitle>
-                <CardDescription>
-                  These details are displayed on the payment confirmation page and emailed to customers who choose bank transfer. Keep them accurate.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {SETTING_GROUPS.banking.map((item) => (
-                  <SettingItem
-                    key={item.key}
-                    itemKey={item.key}
-                    label={item.label}
-                    value={formData[item.key] || ""}
-                    placeholder={item.placeholder}
-                    onChange={(val) => handleChange(item.key, val)}
-                    onSave={() => updateMutation.mutateAsync({ key: item.key, value: formData[item.key] || "" })}
-                  />
-                ))}
               </CardContent>
             </Card>
           </TabsContent>

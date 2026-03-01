@@ -220,7 +220,7 @@ export default function AdminCalendar() {
                 <SelectValue placeholder="Filter by tour" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Tours</SelectItem>
+                <SelectItem value="all">All Products</SelectItem>
                 {tours.map(tour => (
                   <SelectItem key={tour.id} value={tour.id}>{tour.title}</SelectItem>
                 ))}

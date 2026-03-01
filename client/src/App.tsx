@@ -36,6 +36,7 @@ const TransferDetail = lazy(() => import("@/pages/transfer-detail"));
 const Vehicles = lazy(() => import("@/pages/vehicles"));
 const VehicleDetail = lazy(() => import("@/pages/vehicle-detail"));
 const Confirmation = lazy(() => import("@/pages/confirmation"));
+const FAQ = lazy(() => import("@/pages/faq"));
 
 // Admin pages
 const AdminDashboard = lazy(() => import("@/pages/admin/dashboard"));
@@ -60,6 +61,7 @@ const AdminAuditLogs = lazy(() => import("@/pages/admin/audit-logs"));
 const AdminReviews = lazy(() => import("@/pages/admin/reviews"));
 const AdminFraud = lazy(() => import("@/pages/admin/fraud"));
 const AdminNewsletter = lazy(() => import("@/pages/admin/newsletter"));
+const AdminNotifications = lazy(() => import("@/pages/admin/notifications"));
 
 // Customer pages
 const CustomerDashboard = lazy(() => import("@/pages/customer/dashboard"));
@@ -142,6 +144,7 @@ function Router() {
         <Route path="/login" component={Login} />
         <Route path="/register" component={Register} />
         <Route path="/privacy-policy" component={PrivacyPolicy} />
+        <Route path="/faq" component={FAQ} />
 
         {/* Admin Routes - Protected */}
         <Route path="/admin/dashboard">
@@ -207,6 +210,9 @@ function Router() {
         </Route>
         <Route path="/admin/newsletter">
           <ProtectedRoute requireAdmin><AdminNewsletter /></ProtectedRoute>
+        </Route>
+        <Route path="/admin/notifications">
+          <ProtectedRoute requireAdmin><AdminNotifications /></ProtectedRoute>
         </Route>
 
         {/* Customer Routes - Protected */}

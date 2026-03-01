@@ -95,74 +95,74 @@ function RichEditor({
         <ToolbarButton onClick={() => editor.chain().focus().undo().run()} title="Undo"><Undo className="h-3.5 w-3.5" /></ToolbarButton>
         <ToolbarButton onClick={() => editor.chain().focus().redo().run()} title="Redo"><Redo className="h-3.5 w-3.5" /></ToolbarButton>
         <div className="w-px h-5 bg-border mx-1" />
-        <ToolbarButton 
-          onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} 
+        <ToolbarButton
+          onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
           title="Heading 1"
           active={editor.isActive('heading', { level: 1 })}
         >
           <Heading1 className="h-3.5 w-3.5" />
         </ToolbarButton>
-        <ToolbarButton 
-          onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} 
+        <ToolbarButton
+          onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
           title="Heading 2"
           active={editor.isActive('heading', { level: 2 })}
         >
           <Heading2 className="h-3.5 w-3.5" />
         </ToolbarButton>
-        <ToolbarButton 
-          onClick={() => editor.chain().focus().setParagraph().run()} 
+        <ToolbarButton
+          onClick={() => editor.chain().focus().setParagraph().run()}
           title="Paragraph"
           active={editor.isActive('paragraph') && !editor.isActive('heading')}
         >
           <AlignLeft className="h-3.5 w-3.5" />
         </ToolbarButton>
         <div className="w-px h-5 bg-border mx-1" />
-        <ToolbarButton 
-          onClick={() => editor.chain().focus().toggleBold().run()} 
+        <ToolbarButton
+          onClick={() => editor.chain().focus().toggleBold().run()}
           title="Bold"
           active={editor.isActive('bold')}
         >
           <Bold className="h-3.5 w-3.5" />
         </ToolbarButton>
-        <ToolbarButton 
-          onClick={() => editor.chain().focus().toggleItalic().run()} 
+        <ToolbarButton
+          onClick={() => editor.chain().focus().toggleItalic().run()}
           title="Italic"
           active={editor.isActive('italic')}
         >
           <Italic className="h-3.5 w-3.5" />
         </ToolbarButton>
-        <ToolbarButton 
-          onClick={() => editor.chain().focus().setTextAlign('center').run()} 
+        <ToolbarButton
+          onClick={() => editor.chain().focus().setTextAlign('center').run()}
           title="Center"
           active={editor.isActive({ textAlign: 'center' })}
         >
           <AlignCenter className="h-3.5 w-3.5" />
         </ToolbarButton>
         <div className="w-px h-5 bg-border mx-1" />
-        <ToolbarButton 
-          onClick={() => editor.chain().focus().toggleBulletList().run()} 
+        <ToolbarButton
+          onClick={() => editor.chain().focus().toggleBulletList().run()}
           title="Bullet List"
           active={editor.isActive('bulletList')}
         >
           <List className="h-3.5 w-3.5" />
         </ToolbarButton>
-        <ToolbarButton 
-          onClick={() => editor.chain().focus().toggleBlockquote().run()} 
+        <ToolbarButton
+          onClick={() => editor.chain().focus().toggleBlockquote().run()}
           title="Quote"
           active={editor.isActive('blockquote')}
         >
           <Quote className="h-3.5 w-3.5" />
         </ToolbarButton>
-        <ToolbarButton 
-          onClick={() => editor.chain().focus().toggleCodeBlock().run()} 
+        <ToolbarButton
+          onClick={() => editor.chain().focus().toggleCodeBlock().run()}
           title="Code Block"
           active={editor.isActive('codeBlock')}
         >
           <Code className="h-3.5 w-3.5" />
         </ToolbarButton>
         <ToolbarButton onClick={() => editor.chain().focus().setHorizontalRule().run()} title="Divider"><Minus className="h-3.5 w-3.5" /></ToolbarButton>
-        <ToolbarButton 
-          onClick={addLink} 
+        <ToolbarButton
+          onClick={addLink}
           title="Insert Link"
           active={editor.isActive('link')}
         >
@@ -266,86 +266,105 @@ export default function AdminCMS() {
       label: "Home Page",
       fields: [
         // Hero
-        { key: "hero_title_part1",    label: "Hero Title — Line 1",       type: "text",  description: "White text: e.g. \"Time for your\"" },
-        { key: "hero_title_part2",    label: "Hero Title — Line 2",       type: "text",  description: "Orange italic text: e.g. \"next adventure\"" },
-        { key: "hero_subtitle",       label: "Hero Subtitle",              type: "text",  description: "Sentence below the headline in the hero" },
-        { key: "hero_image",          label: "Hero Background Image",      type: "image", description: "1920×1080 recommended" },
+        { key: "hero_title_part1", label: "Hero Title — Line 1", type: "text", description: "White text: e.g. \"Time for your\"" },
+        { key: "hero_title_part2", label: "Hero Title — Line 2", type: "text", description: "Orange italic text: e.g. \"next adventure\"" },
+        { key: "hero_subtitle", label: "Hero Subtitle", type: "text", description: "Sentence below the headline in the hero" },
+        { key: "hero_image", label: "Hero Background Image", type: "image", description: "1920×1080 recommended" },
         // About
-        { key: "about_label",         label: "About Label",                type: "text",  description: "Small uppercase label above the about heading" },
-        { key: "about_title",         label: "About Heading",              type: "text",  description: "Main about section heading" },
-        { key: "about_desc1",         label: "About Body — Paragraph 1",  type: "rich",  description: "First paragraph in the about section" },
-        { key: "about_desc2",         label: "About Body — Paragraph 2",  type: "rich",  description: "Second paragraph in the about section" },
-        { key: "about_quote",         label: "About Pull Quote",           type: "text",  description: "Italic quote card overlaid on the photo" },
-        { key: "about_badge1",        label: "Trust Badge 1",              type: "text",  description: "e.g. Fully Insured" },
-        { key: "about_badge2",        label: "Trust Badge 2",              type: "text",  description: "e.g. Experienced Drivers" },
-        { key: "about_badge3",        label: "Trust Badge 3",              type: "text",  description: "e.g. Custom Itineraries" },
-        { key: "about_badge4",        label: "Trust Badge 4",              type: "text",  description: "e.g. Safety First" },
+        { key: "about_label", label: "About Label", type: "text", description: "Small uppercase label above the about heading" },
+        { key: "about_title", label: "About Heading", type: "text", description: "Main about section heading" },
+        { key: "about_desc1", label: "About Body — Paragraph 1", type: "rich", description: "First paragraph in the about section" },
+        { key: "about_desc2", label: "About Body — Paragraph 2", type: "rich", description: "Second paragraph in the about section" },
+        { key: "about_quote", label: "About Pull Quote", type: "text", description: "Italic quote card overlaid on the photo" },
+        { key: "about_badge1", label: "Trust Badge 1", type: "text", description: "e.g. Fully Insured" },
+        { key: "about_badge2", label: "Trust Badge 2", type: "text", description: "e.g. Experienced Drivers" },
+        { key: "about_badge3", label: "Trust Badge 3", type: "text", description: "e.g. Custom Itineraries" },
+        { key: "about_badge4", label: "Trust Badge 4", type: "text", description: "e.g. Safety First" },
         // Tours section
-        { key: "tours_label",         label: "Tours Section Label",        type: "text",  description: "Small label above the tours heading" },
-        { key: "tours_title",         label: "Tours Section Heading",      type: "text",  description: "e.g. Unforgettable Tours" },
-        { key: "tours_desc",          label: "Tours Section Description",  type: "rich",  description: "Subheading under the tours title" },
+        { key: "tours_label", label: "Tours Section Label", type: "text", description: "Small label above the tours heading" },
+        { key: "tours_title", label: "Tours Section Heading", type: "text", description: "e.g. Unforgettable Tours" },
+        { key: "tours_desc", label: "Tours Section Description", type: "rich", description: "Subheading under the tours title" },
         // Transfers section
-        { key: "transfers_label",     label: "Transfers Section Label",    type: "text",  description: "" },
-        { key: "transfers_title",     label: "Transfers Section Heading",  type: "text",  description: "" },
-        { key: "transfers_desc",      label: "Transfers Description",      type: "rich",  description: "" },
+        { key: "transfers_label", label: "Transfers Section Label", type: "text", description: "" },
+        { key: "transfers_title", label: "Transfers Section Heading", type: "text", description: "" },
+        { key: "transfers_desc", label: "Transfers Description", type: "rich", description: "" },
         // Vehicles section
-        { key: "vehicles_label",      label: "Vehicles Section Label",     type: "text",  description: "" },
-        { key: "vehicles_title",      label: "Vehicles Section Heading",   type: "text",  description: "" },
-        { key: "vehicles_desc",       label: "Vehicles Description",       type: "rich",  description: "" },
+        { key: "vehicles_label", label: "Vehicles Section Label", type: "text", description: "" },
+        { key: "vehicles_title", label: "Vehicles Section Heading", type: "text", description: "" },
+        { key: "vehicles_desc", label: "Vehicles Description", type: "rich", description: "" },
         // CTA
-        { key: "cta_title",           label: "CTA Banner Heading",         type: "text",  description: "Large text in the orange CTA banner" },
-        { key: "cta_desc",            label: "CTA Banner Subtext",         type: "text",  description: "" },
-        { key: "cta_button",          label: "CTA Button Text",            type: "text",  description: "" },
+        { key: "cta_title", label: "CTA Banner Heading", type: "text", description: "Large text in the orange CTA banner" },
+        { key: "cta_desc", label: "CTA Banner Subtext", type: "text", description: "" },
+        { key: "cta_button", label: "CTA Button Text", type: "text", description: "" },
         // Trust indicators
-        { key: "trust_licensed",      label: "Trust: Licensed Title",      type: "text",  description: "" },
-        { key: "trust_licensed_desc", label: "Trust: Licensed Description",type: "text",  description: "" },
-        { key: "trust_rated",         label: "Trust: Top Rated Title",     type: "text",  description: "" },
-        { key: "trust_rated_desc",    label: "Trust: Top Rated Description",type: "text", description: "" },
-        { key: "trust_secure",        label: "Trust: Secure Title",        type: "text",  description: "" },
-        { key: "trust_secure_desc",   label: "Trust: Secure Description",  type: "text",  description: "" },
+        { key: "trust_licensed", label: "Trust: Licensed Title", type: "text", description: "" },
+        { key: "trust_licensed_desc", label: "Trust: Licensed Description", type: "text", description: "" },
+        { key: "trust_rated", label: "Trust: Top Rated Title", type: "text", description: "" },
+        { key: "trust_rated_desc", label: "Trust: Top Rated Description", type: "text", description: "" },
+        { key: "trust_secure", label: "Trust: Secure Title", type: "text", description: "" },
+        { key: "trust_secure_desc", label: "Trust: Secure Description", type: "text", description: "" },
       ]
     },
     about: {
       label: "About Us",
       fields: [
-        { key: "page_title",       label: "Page Title",              type: "text", description: "H1 at top of the about page" },
-        { key: "page_subtitle",    label: "Page Subtitle",           type: "text", description: "Subheading under the page title" },
-        { key: "story_title",      label: "Our Story — Heading",     type: "text", description: "" },
-        { key: "story_image",      label: "Our Story — Image",       type: "image", description: "Image displayed alongside our story" },
-        { key: "story_desc1",      label: "Our Story — Paragraph 1", type: "rich", description: "" },
-        { key: "story_desc2",      label: "Our Story — Paragraph 2", type: "rich", description: "" },
-        { key: "badge1",           label: "Credential Badge 1",      type: "text", description: "e.g. Locally Owned & Operated" },
-        { key: "badge2",           label: "Credential Badge 2",      type: "text", description: "" },
-        { key: "badge3",           label: "Credential Badge 3",      type: "text", description: "" },
-        { key: "badge4",           label: "Credential Badge 4",      type: "text", description: "" },
-        { key: "badge5",           label: "Credential Badge 5",      type: "text", description: "" },
-        { key: "badge6",           label: "Credential Badge 6",      type: "text", description: "" },
-        { key: "why_choose_us",    label: "Why Choose Us — Heading", type: "text", description: "" },
-        { key: "feature1_title",   label: "Feature 1 Title",         type: "text", description: "e.g. Local Expertise" },
-        { key: "feature1_desc",    label: "Feature 1 Description",   type: "rich", description: "" },
-        { key: "feature2_title",   label: "Feature 2 Title",         type: "text", description: "" },
-        { key: "feature2_desc",    label: "Feature 2 Description",   type: "rich", description: "" },
-        { key: "feature3_title",   label: "Feature 3 Title",         type: "text", description: "" },
-        { key: "feature3_desc",    label: "Feature 3 Description",   type: "rich", description: "" },
+        { key: "page_title", label: "Page Title", type: "text", description: "H1 at top of the about page" },
+        { key: "page_subtitle", label: "Page Subtitle", type: "text", description: "Subheading under the page title" },
+        { key: "story_title", label: "Our Story — Heading", type: "text", description: "" },
+        { key: "story_image", label: "Our Story — Image", type: "image", description: "Image displayed alongside our story" },
+        { key: "story_desc1", label: "Our Story — Paragraph 1", type: "rich", description: "" },
+        { key: "story_desc2", label: "Our Story — Paragraph 2", type: "rich", description: "" },
+        { key: "badge1", label: "Credential Badge 1", type: "text", description: "e.g. Locally Owned & Operated" },
+        { key: "badge2", label: "Credential Badge 2", type: "text", description: "" },
+        { key: "badge3", label: "Credential Badge 3", type: "text", description: "" },
+        { key: "badge4", label: "Credential Badge 4", type: "text", description: "" },
+        { key: "badge5", label: "Credential Badge 5", type: "text", description: "" },
+        { key: "badge6", label: "Credential Badge 6", type: "text", description: "" },
+        { key: "why_choose_us", label: "Why Choose Us — Heading", type: "text", description: "" },
+        { key: "feature1_title", label: "Feature 1 Title", type: "text", description: "e.g. Local Expertise" },
+        { key: "feature1_desc", label: "Feature 1 Description", type: "rich", description: "" },
+        { key: "feature2_title", label: "Feature 2 Title", type: "text", description: "" },
+        { key: "feature2_desc", label: "Feature 2 Description", type: "rich", description: "" },
+        { key: "feature3_title", label: "Feature 3 Title", type: "text", description: "" },
+        { key: "feature3_desc", label: "Feature 3 Description", type: "rich", description: "" },
       ]
     },
     contact: {
       label: "Contact",
       fields: [
-        { key: "page_title",          label: "Page Title",              type: "text", description: "H1 at top of the contact page" },
-        { key: "page_subtitle",       label: "Page Subtitle",           type: "text", description: "" },
-        { key: "get_in_touch_desc",   label: "Intro Paragraph",         type: "rich", description: "Opening paragraph below the title" },
-        { key: "phone_availability",  label: "Phone Availability Note", type: "text", description: "e.g. Available 24/7 for emergencies" },
-        { key: "email_reply_time",    label: "Email Reply Time Note",   type: "text", description: "e.g. We usually reply within 24 hours" },
-        { key: "office_hours",        label: "Office Hours Note",       type: "rich", description: "" },
-        { key: "whatsapp_desc",       label: "WhatsApp CTA Description",type: "text", description: "Text under the WhatsApp chat button" },
+        { key: "page_title", label: "Page Title", type: "text", description: "H1 at top of the contact page" },
+        { key: "page_subtitle", label: "Page Subtitle", type: "text", description: "" },
+        { key: "get_in_touch_desc", label: "Intro Paragraph", type: "rich", description: "Opening paragraph below the title" },
+        { key: "phone_availability", label: "Phone Availability Note", type: "text", description: "e.g. Available 24/7 for emergencies" },
+        { key: "email_reply_time", label: "Email Reply Time Note", type: "text", description: "e.g. We usually reply within 24 hours" },
+        { key: "office_hours", label: "Office Hours Note", type: "rich", description: "" },
+        { key: "whatsapp_desc", label: "WhatsApp CTA Description", type: "text", description: "Text under the WhatsApp chat button" },
       ]
     },
     footer: {
       label: "Footer",
       fields: [
         { key: "description", label: "Footer Description", type: "text", description: "2–3 sentences shown below the logo in the footer" },
-        { key: "copyright",   label: "Copyright Text",     type: "text", description: "Text after the year and company name, e.g. All rights reserved." },
+        { key: "copyright", label: "Copyright Text", type: "text", description: "Text after the year and company name, e.g. All rights reserved." },
+      ]
+    },
+    faq: {
+      label: "FAQ",
+      fields: [
+        { key: "faq1_q", label: "Question 1", type: "text" },
+        { key: "faq1_a", label: "Answer 1", type: "rich" },
+        { key: "faq2_q", label: "Question 2", type: "text" },
+        { key: "faq2_a", label: "Answer 2", type: "rich" },
+        { key: "faq3_q", label: "Question 3", type: "text" },
+        { key: "faq3_a", label: "Answer 3", type: "rich" },
+        { key: "faq4_q", label: "Question 4", type: "text" },
+        { key: "faq4_a", label: "Answer 4", type: "rich" },
+        { key: "faq5_q", label: "Question 5", type: "text" },
+        { key: "faq5_a", label: "Answer 5", type: "rich" },
+        { key: "faq6_q", label: "Question 6", type: "text" },
+        { key: "faq6_a", label: "Answer 6", type: "rich" },
+        { key: "faq7_q", label: "Question 7", type: "text" },
+        { key: "faq7_a", label: "Answer 7", type: "rich" },
       ]
     }
   };
@@ -395,8 +414,8 @@ export default function AdminCMS() {
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <CardTitle className="text-base">{field.label}</CardTitle>
-                          {field.description && (
-                            <CardDescription className="mt-0.5">{field.description}</CardDescription>
+                          {(field as any).description && (
+                            <CardDescription className="mt-0.5">{(field as any).description}</CardDescription>
                           )}
                         </div>
                         {field.type !== 'image' && (

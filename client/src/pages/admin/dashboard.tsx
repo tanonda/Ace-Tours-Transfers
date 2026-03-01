@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchBookings, fetchBookingStats, fetchTours, updateBooking, exportBookingsCSV } from "@/lib/api";
+import { fetchBookings, fetchBookingStats, fetchTours, updateBooking, exportBookingsCSV, fetchNotifications } from "@/lib/api";
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth-context";
@@ -22,7 +22,7 @@ function BookingModal({ booking, onClose, onUpdate, t }: { booking: any; onClose
         </div>
         <div className="grid grid-cols-2 gap-3 text-sm mb-5">
           {[
-            [t("booking.id"), `ACT-${(booking.id||'').replace(/^book_/i,'').replace(/-/g,'').slice(0,8).toUpperCase()}`],
+            [t("booking.id"), `ACT-${(booking.id || '').replace(/^book_/i, '').replace(/-/g, '').slice(0, 8).toUpperCase()}`],
             [t("booking.customer"), booking.customerName],
             [t("booking.tour"), booking.tourName],
             [t("booking.date"), booking.date],
@@ -66,7 +66,7 @@ function BookingsTable({ rows, onOpenBooking, t }: { rows: any[]; onOpenBooking:
       <tbody>
         {rows.map(r => (
           <tr key={r.id} data-testid={`row-booking-${r.id}`} className="border-b border-border/30 hover:bg-muted/20 transition-colors">
-            <td className="py-3 px-2 text-foreground text-sm font-mono text-xs">#{(r.id||'').slice(0,6)}</td>
+            <td className="py-3 px-2 text-foreground text-sm font-mono text-xs">#{(r.id || '').slice(0, 6)}</td>
             <td className="py-3 px-2">
               <div className="text-sm font-medium text-foreground">{r.customerName}</div>
               {r.customerEmail && <div className="text-xs text-muted-foreground">{r.customerEmail}</div>}
@@ -75,11 +75,10 @@ function BookingsTable({ rows, onOpenBooking, t }: { rows: any[]; onOpenBooking:
             <td className="py-3 px-2 text-muted-foreground text-sm">{r.date}</td>
             <td className="py-3 px-2 text-foreground text-sm font-semibold">{r.amount}</td>
             <td className="py-3 px-2">
-              <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
-                r.status === 'confirmed' || r.status === 'paid' ? 'bg-green-500/15 text-green-600' :
+              <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${r.status === 'confirmed' || r.status === 'paid' ? 'bg-green-500/15 text-green-600' :
                 r.status === 'pending' ? 'bg-yellow-500/15 text-yellow-600' :
-                r.status === 'completed' ? 'bg-blue-500/15 text-blue-600' :
-                'bg-red-500/15 text-red-500'}`}>
+                  r.status === 'completed' ? 'bg-blue-500/15 text-blue-600' :
+                    'bg-red-500/15 text-red-500'}`}>
                 {getTranslatedStatus(r.status)}
               </span>
             </td>
@@ -138,9 +137,10 @@ export default function AdminDashboard() {
     return `${n.toLocaleString(locale)} ${t("dashboard.currencySuffix")}`;
   };
 
-  const { data: bookings = [] } = useQuery({ queryKey: ["bookings"], queryFn: fetchBookings });
+  const { data: bookings = [] } = useQuery<any[]>({ queryKey: ["bookings"], queryFn: () => fetchBookings() });
   const { data: stats } = useQuery({ queryKey: ["stats"], queryFn: fetchBookingStats });
   const { data: tours = [] } = useQuery({ queryKey: ["tours"], queryFn: fetchTours });
+  const { data: notifications = [] } = useQuery({ queryKey: ["notifications"], queryFn: fetchNotifications });
 
   const { data: uptimeData } = useQuery({
     queryKey: ["uptime"],
@@ -185,7 +185,20 @@ export default function AdminDashboard() {
 
   const filteredBookings = bookings.filter(b => {
     const statusMatch = statusFilter === 'all' || b.status.toLowerCase() === statusFilter.toLowerCase();
-    if (!searchQuery.trim()) return statusMatch;
+
+    // Default: only show very recent bookings from the last 30 days if no explicit search text is provided
+    let dateMatch = true;
+    if (!searchQuery.trim() && b.createdAt) {
+      const bookingDate = new Date(b.createdAt);
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      if (bookingDate < thirtyDaysAgo) {
+        dateMatch = false;
+      }
+    }
+
+    if (!searchQuery.trim()) return statusMatch && dateMatch;
+
     const q = searchQuery.toLowerCase();
     const matches = b.customerName?.toLowerCase().includes(q) || b.tourName?.toLowerCase().includes(q) ||
       b.id?.toLowerCase().includes(q) || b.amount?.toLowerCase().includes(q) ||
@@ -200,7 +213,7 @@ export default function AdminDashboard() {
 
   // BetterStack uptime
   const uptimeStatus = uptimeData?.status;
-  const uptimeValue = uptimeData?.uptime ?? (uptimeData?.configured === false ? "Configure" : "N/A");
+  const uptimeValue = uptimeData?.uptime ?? (uptimeData?.configured === false ? "Configure" : "Pending");
   const uptimeDot = uptimeStatus === 'up' ? 'bg-green-500' : uptimeStatus === 'down' ? 'bg-red-500' : 'bg-yellow-400';
   const uptimeLabel = uptimeStatus === 'up' ? 'Operational' : uptimeStatus === 'down' ? '⚠ Down' : 'Unknown';
 
@@ -358,7 +371,7 @@ export default function AdminDashboard() {
                 </div>
               )}
               <div className="flex justify-around mt-3 text-xs text-muted-foreground">
-                <span>{t("nav.tours")}</span><span>{t("nav.transfers")}</span><span>Bus Hire</span>
+                <span>{t("nav.tours")}</span><span>{t("nav.transfers")}</span><span>{t("nav.vehicleHire") || "Vehicle Hire"}</span>
               </div>
             </div>
 
@@ -399,20 +412,23 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* Recent activity */}
+            {/* Recent activity / Notifications */}
             <div className="p-5 rounded-xl bg-gradient-to-br from-primary/10 to-destructive/10 border border-primary/30">
-              <h4 className="text-foreground text-sm font-semibold">{t("dashboard.notifications")}</h4>
-              <ul className="mt-3 space-y-2">
-                {bookings.slice(0, 3).map((b: any) => (
-                  <li key={b.id} className="flex items-center gap-2 text-sm">
-                    <span className={`w-1.5 h-1.5 rounded-full ${b.status === 'confirmed' ? 'bg-green-500' : b.status === 'pending' ? 'bg-yellow-500' : 'bg-red-400'}`} />
-                    <span className={b.status === 'confirmed' ? 'text-green-500' : b.status === 'pending' ? 'text-yellow-500' : 'text-red-400'}>
-                      {b.status === 'confirmed' ? t("booking.confirmed") : b.status === 'pending' ? t("dashboard.newBookingNotif") : t("booking.cancelled")}
-                    </span>
-                    <span className="text-muted-foreground">#{b.id?.slice(0, 6)}</span>
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-foreground text-sm font-semibold">{t("dashboard.notifications")}</h4>
+                <button onClick={() => setLocation('/admin/notifications')} className="text-xs text-primary hover:underline">View All →</button>
+              </div>
+              <ul className="space-y-2">
+                {notifications.slice(0, 4).map((n: any) => (
+                  <li key={n.id} className="flex gap-2 text-sm cursor-pointer hover:bg-muted/50 p-1 rounded transition-colors" onClick={() => n.link && setLocation(n.link)}>
+                    <div className={`mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 ${!n.read ? 'bg-primary' : 'bg-transparent'}`} />
+                    <div>
+                      <div className={`font-semibold ${!n.read ? 'text-foreground' : 'text-muted-foreground'}`}>{n.title}</div>
+                      <div className="text-muted-foreground text-xs line-clamp-1">{n.message}</div>
+                    </div>
                   </li>
                 ))}
-                {bookings.length === 0 && <li className="text-muted-foreground text-sm">{t("dashboard.noRecentActivity")}</li>}
+                {notifications.length === 0 && <li className="text-muted-foreground text-sm">{t("dashboard.noRecentActivity")}</li>}
               </ul>
             </div>
           </div>
