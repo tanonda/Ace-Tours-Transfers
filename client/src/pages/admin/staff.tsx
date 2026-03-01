@@ -85,7 +85,12 @@ export default function AdminStaff() {
   });
 
   const createMutation = useMutation({
-    mutationFn: createUser,
+    mutationFn: (data: typeof newStaff) => {
+      // Auto-generate username from email if not provided
+      const username = data.username.trim() || 
+        data.email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '') + '_' + Math.random().toString(36).substring(2, 6);
+      return createUser({ ...data, username } as any);
+    },
     onSuccess: (user: User) => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
       toast({
@@ -100,7 +105,16 @@ export default function AdminStaff() {
       setCreateDialogOpen(false);
       setNewStaff({ name: "", email: "", password: "", role: "field_service", username: "" });
     },
-    onError: () => toast({ title: "Failed to create staff account", variant: "destructive" }),
+    onError: (error: any) => {
+      // apiRequest throws Error with message like "409: {"error":"..."}"
+      let message = "Failed to create staff account";
+      try {
+        const jsonStr = error?.message?.replace(/^\d+:\s*/, "");
+        const parsed = JSON.parse(jsonStr);
+        if (parsed?.error) message = parsed.error;
+      } catch {}
+      toast({ title: "Could not create account", description: message, variant: "destructive" });
+    },
   });
 
   const resetPasswordMutation = useMutation({
@@ -479,6 +493,7 @@ export default function AdminStaff() {
             <DialogTitle className="flex items-center gap-2"><Plus className="h-5 w-5" /> Add Staff Member</DialogTitle>
             <DialogDescription>Create a new staff account with appropriate access level</DialogDescription>
           </DialogHeader>
+          <form onSubmit={e => { e.preventDefault(); createMutation.mutate(newStaff); }}>
           <div className="space-y-4 py-2">
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
@@ -486,8 +501,9 @@ export default function AdminStaff() {
                 <Input placeholder="Jane Smith" value={newStaff.name} onChange={e => setNewStaff(s => ({ ...s, name: e.target.value }))} />
               </div>
               <div className="space-y-1.5">
-                <Label>Username *</Label>
-                <Input placeholder="jsmith" value={newStaff.username} onChange={e => setNewStaff(s => ({ ...s, username: e.target.value }))} />
+                <Label>Username <span className="text-muted-foreground font-normal">(optional)</span></Label>
+                <Input placeholder="Auto-generated from email" value={newStaff.username} onChange={e => setNewStaff(s => ({ ...s, username: e.target.value }))} />
+                <p className="text-[10px] text-muted-foreground">Leave blank to auto-generate from email address.</p>
               </div>
             </div>
             <div className="space-y-1.5">
@@ -529,16 +545,17 @@ export default function AdminStaff() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>Cancel</Button>
+            <Button type="button" variant="outline" onClick={() => setCreateDialogOpen(false)}>Cancel</Button>
             <Button
-              onClick={() => createMutation.mutate(newStaff)}
-              disabled={createMutation.isPending || !newStaff.name || !newStaff.email || !newStaff.username || (!!newStaff.password && newStaff.password.length < 6)}
+              type="submit"
+              disabled={createMutation.isPending || !newStaff.name || !newStaff.email || (!!newStaff.password && newStaff.password.length < 6)}
               className="bg-[#004165] hover:bg-[#004165]/90"
             >
               {createMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Create Staff Account
             </Button>
           </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </DashboardLayout>

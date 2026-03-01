@@ -41,8 +41,10 @@ export function registerUserRoutes(app: Express) {
       console.error("User creation error:", error);
       if (error instanceof ZodError) {
         res.status(400).json({ error: "Invalid user data", details: error.flatten() });
-      } else if (error instanceof Error && error.message.includes("User with this email already exists")) {
-        res.status(409).json({ error: error.message });
+      } else if (error instanceof Error && error.message.includes("email already exists")) {
+        res.status(409).json({ error: "A user with this email address already exists." });
+      } else if (error instanceof Error && error.message.includes("username already exists")) {
+        res.status(409).json({ error: "That username is already taken. Please choose a different username." });
       } else {
         res.status(500).json({ error: "Failed to create user" });
       }
