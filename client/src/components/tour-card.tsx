@@ -49,7 +49,7 @@ export function TourCard({ tour, index }: { tour: TourProps; index: number }) {
               <img
                 src={cloudinaryOpt(tour.image, 600)}
                 alt={tour.title}
-                className="w-full h-full object-contain transition-transform duration-700 group-hover:scale-110"
+                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                 loading="lazy"
                 decoding="async"
                 onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}

@@ -183,7 +183,7 @@ export default function TransferDetail() {
 
         {/* HERO */}
         <div className="relative h-[340px] overflow-hidden bg-[#0f0d09]">
-          <img src={cloudinaryOpt(transfer.image, 1200)} className="w-full h-full object-contain filter brightness-[0.5] object-center" alt={`${transfer.title} - Vanuatu transfer`} loading="eager" fetchPriority="high" />
+          <img src={cloudinaryOpt(transfer.image, 1200)} className="w-full h-full object-cover filter brightness-[0.5] object-center" alt={`${transfer.title} - Vanuatu transfer`} loading="eager" fetchPriority="high" />
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0f0d09]" />
           <div className="absolute bottom-8 left-0 right-0 max-w-[1280px] mx-auto px-8">
             <div className="flex items-center gap-2 text-[0.8rem] text-[#8a826e] mb-3">
@@ -210,7 +210,7 @@ export default function TransferDetail() {
 
             {/* Photo — matching tour/vehicle detail: fill container with cover */}
             <div className="rounded-[14px] overflow-hidden bg-[#211e18]" style={{ height: '480px' }}>
-              <img src={cloudinaryOpt(transfer.image, 900)} className="w-full h-full object-contain object-center block" alt={`${transfer.title} - photo`} loading="lazy" />
+              <img src={cloudinaryOpt(transfer.image, 900)} className="w-full h-full object-cover object-center block" alt={`${transfer.title} - photo`} loading="lazy" />
             </div>
 
             {/* Description */}

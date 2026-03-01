@@ -476,7 +476,7 @@ export default function VehicleDetail() {
 
         {/* Hero */}
         <div className="relative h-[340px] overflow-hidden bg-[#0f0d09]">
-          <img src={cloudinaryOpt(vehicle.image, 1200)} className="w-full h-full object-contain brightness-[0.42] object-center" alt={`${vehicle.title} - vehicle hire Vanuatu`} loading="eager" fetchPriority="high" />
+          <img src={cloudinaryOpt(vehicle.image, 1200)} className="w-full h-full object-cover brightness-[0.42] object-center" alt={`${vehicle.title} - vehicle hire Vanuatu`} loading="eager" fetchPriority="high" />
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#0f0d09]/20 to-[#0f0d09]" />
           <div className="absolute inset-0 opacity-[0.025]"
             style={{ backgroundImage: "linear-gradient(#f4a830 1px,transparent 1px),linear-gradient(90deg,#f4a830 1px,transparent 1px)", backgroundSize: "44px 44px" }} />
@@ -514,7 +514,7 @@ export default function VehicleDetail() {
           <div className="flex flex-col gap-7">
 
             <div className="rounded-[14px] overflow-hidden bg-[#211e18] aspect-[16/9]">
-              <img src={cloudinaryOpt(vehicle.image, 900)} className="w-full h-full object-contain" alt={`${vehicle.title} - photo`} loading="lazy" />
+              <img src={cloudinaryOpt(vehicle.image, 900)} className="w-full h-full object-cover object-center" alt={`${vehicle.title} - photo`} loading="lazy" />
             </div>
 
             {/* Specs */}
