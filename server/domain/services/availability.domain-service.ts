@@ -11,6 +11,10 @@ export interface AvailabilityResult {
   remainingCapacity: number;
   totalCapacity: number;
   message: string;
+  /** Set to true when the booking window has closed (cutoff time has passed) */
+  bookingClosed?: boolean;
+  /** ISO timestamp at which the booking window closed */
+  bookingClosedAt?: string;
   pricing?: {
     subtotalCents: number;
     breakdown: {
@@ -95,6 +99,40 @@ export class AvailabilityDomainService {
         message: "Product not found.",
       };
     }
+
+    // ── Booking-window cutoff enforcement ─────────────────────────────────────
+    // Tours carry a bookingCutoffHours value (default: 24 h). Once now() is past
+    // departureTime − cutoffHours the booking window is closed, even if seats are
+    // technically available. This mirrors the client-side countdown but is the
+    // authoritative server-side gate.
+    const cutoffHours: number = (product as any).bookingCutoffHours ?? 24;
+    if (cutoffHours > 0) {
+      // Resolve the departure time for this date. Prefer the explicit startTime
+      // param, then the first scheduled instance start time, then default 08:30.
+      let departureTimeStr = startTime;
+      if (!departureTimeStr) {
+        const instances = await this.storage.getTourInstances(productId, date);
+        const times = instances.map(i => i.startTime).filter(Boolean).sort() as string[];
+        departureTimeStr = times[0] ?? "08:30";
+      }
+      const [depHour, depMin] = departureTimeStr.split(":").map(Number);
+      const [year, month, day] = date.split("-").map(Number);
+      const departureMs = new Date(year, month - 1, day, depHour, depMin).getTime();
+      const cutoffMs    = departureMs - cutoffHours * 60 * 60 * 1000;
+
+      if (Date.now() >= cutoffMs) {
+        const closedAt = new Date(cutoffMs).toISOString();
+        return {
+          isAvailable: false,
+          remainingCapacity: 0,
+          totalCapacity: 0,
+          message: `Booking window has closed. Online bookings for this date closed ${cutoffHours}h before departure.`,
+          bookingClosed: true,
+          bookingClosedAt: closedAt,
+        };
+      }
+    }
+    // ── End booking-window cutoff ─────────────────────────────────────────────
 
     // Calculate remaining capacity using tour_instances and holds
     const { remainingCapacity, totalCapacity } = await this.calculateRemainingCapacity(

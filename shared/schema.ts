@@ -4,6 +4,15 @@ import { relations } from "drizzle-orm";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// ── Tour detail page structured types (added migration 0016) ──────────────────
+export interface ItineraryStop {
+  id: string;
+  name: string;
+  duration?: string;
+  description: string;         // rich HTML from TipTap editor
+  admissionIncluded?: boolean;
+}
+
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   username: text("username").notNull().unique(),
@@ -46,6 +55,22 @@ export const tours = pgTable("tours", {
   seoDescription: text("seo_description"), // custom meta description — falls back to description[0]
   seoKeywords: text("seo_keywords"),    // comma-separated keywords appended to auto-generated list
   imageAlt: text("image_alt"),             // alt text for the product image — falls back to title if null
+  // ── Tour detail page fields (added in migration 0016) ───────────────────────
+  itineraryStops:      jsonb("itinerary_stops").$type<ItineraryStop[]>(),
+  itineraryIntro:      text("itinerary_intro"),
+  meetingPoint:        text("meeting_point"),
+  meetingPointMapUrl:  text("meeting_point_map_url"),
+  pickupInstructions:  text("pickup_instructions"),
+  operatingHours:      text("operating_hours"),
+  includedItems:       jsonb("included_items").$type<string[]>(),
+  excludedItems:       jsonb("excluded_items").$type<string[]>(),
+  cancellationPolicy:  text("cancellation_policy"),
+  bookingCutoffHours:  integer("booking_cutoff_hours").default(24),
+  additionalInfo:      jsonb("additional_info").$type<string[]>(),
+  supportEmail:        text("support_email"),
+  supportPhone:        text("support_phone"),
+  productCode:         text("product_code"),
+  travelerPhotos:      jsonb("traveler_photos").$type<string[]>(),
 });
 
 export const tourInstances = pgTable("tour_instances", {
@@ -902,6 +927,7 @@ export const reviews = pgTable("reviews", {
   guestName: varchar("guest_name", { length: 200 }),
   guestEmail: varchar("guest_email", { length: 300 }),
   isGuest: boolean("is_guest").notNull().default(false),
+  photoUrl: text("photo_url"),           // optional reviewer photo (Cloudinary URL)
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -938,6 +964,7 @@ export const insertReviewSchema = createInsertSchema(reviews).omit({
   guestName: true,
   guestEmail: true,
   isGuest: true,
+  photoUrl: true,
 });
 
 export type InsertReview = z.infer<typeof insertReviewSchema>;

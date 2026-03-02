@@ -635,6 +635,22 @@ export default function TourDetail() {
                     </div>
                   </div>
 
+                  {/* Google Maps embed — uses meetingPoint text as the place query.
+                      Falls back gracefully if the Maps Embed API is unavailable. */}
+                  {tour.meetingPoint && (
+                    <div className="rounded-[10px] overflow-hidden border border-[rgba(244,168,48,0.12)] mb-4 bg-[#1a1710]" style={{ height: 180 }}>
+                      <iframe
+                        title="Meeting point map"
+                        width="100%"
+                        height="180"
+                        style={{ border: 0, display: 'block' }}
+                        loading="lazy"
+                        referrerPolicy="no-referrer-when-downgrade"
+                        src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyD-9tSrke72PouQMnMX-a7eZSW0jkFMBWY&q=${encodeURIComponent(tour.meetingPoint + ', Vanuatu')}`}
+                      />
+                    </div>
+                  )}
+
                   {tour.pickupInstructions && (
                     <div className="border-t border-[rgba(244,168,48,0.1)] pt-4">
                       <div className="text-[0.7rem] text-[#8a826e] uppercase tracking-wider font-semibold mb-2">Pickup Details</div>
@@ -659,9 +675,9 @@ export default function TourDetail() {
             {itineraryStops.length > 0 && (
               <section className="bg-[#1a1710] border border-[rgba(244,168,48,0.18)] rounded-[14px] p-6 md:p-7">
                 <SectionHeading>Itinerary</SectionHeading>
-                {(tour.itineraryIntro || tour.description) && (
+                {tour.itineraryIntro && (
                   <p className="text-[0.9rem] text-[#8a826e] leading-[1.7] mb-6">
-                    {tour.itineraryIntro || "Your day-by-day experience broken down stop by stop."}
+                    {tour.itineraryIntro}
                   </p>
                 )}
                 <ItineraryTrack stops={itineraryStops} />
@@ -791,27 +807,42 @@ export default function TourDetail() {
                 </div>
               </div>
 
-              {/* Trustpilot badge placeholder */}
-              <div className="mb-5 p-3 bg-[#00b67a]/10 border border-[#00b67a]/25 rounded-[10px] flex items-center gap-3">
-                <div className="flex items-center gap-1">
-                  {[...Array(5)].map((_, i) => (
-                    <div key={i} className="w-6 h-6 bg-[#00b67a] rounded flex items-center justify-center">
-                      <Star className="w-3.5 h-3.5 text-white fill-white" />
-                    </div>
-                  ))}
-                </div>
-                <div>
-                  <div className="text-[0.8rem] font-semibold text-[#00b67a]">Trustpilot</div>
-                  <div className="text-[0.7rem] text-[#6a8c78]">Rated Excellent · See all reviews</div>
-                </div>
-                <a
-                  href="https://www.trustpilot.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="ml-auto text-[#00b67a] text-[0.75rem] hover:underline"
+              {/* Trustpilot TrustBox widget
+                  Requires the bootstrap script in index.html:
+                  <script src="//widget.trustpilot.com/bootstrap/v5/tp.widget.bootstrap.min.js" async></script>
+                  Replace data-businessunit-id with your actual Trustpilot Business Unit ID
+                  from business.trustpilot.com → Integrations → TrustBox widgets */}
+              <div className="mb-5">
+                <div
+                  className="trustpilot-widget"
+                  data-locale="en-US"
+                  data-template-id="5419b637fa0340045cd0c936"
+                  data-businessunit-id="YOUR_BUSINESS_UNIT_ID"
+                  data-style-height="24px"
+                  data-style-width="100%"
+                  data-theme="dark"
                 >
-                  Verify →
-                </a>
+                  {/* Fallback shown until TrustBox script loads */}
+                  <a
+                    href="https://www.trustpilot.com/review/acetours.vu"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-3 p-3 bg-[#00b67a]/10 border border-[#00b67a]/25 rounded-[10px] hover:bg-[#00b67a]/15 transition-colors"
+                  >
+                    <div className="flex items-center gap-1">
+                      {[...Array(5)].map((_, i) => (
+                        <div key={i} className="w-6 h-6 bg-[#00b67a] rounded flex items-center justify-center">
+                          <Star className="w-3.5 h-3.5 text-white fill-white" />
+                        </div>
+                      ))}
+                    </div>
+                    <div>
+                      <div className="text-[0.8rem] font-semibold text-[#00b67a]">Trustpilot</div>
+                      <div className="text-[0.7rem] text-[#6a8c78]">Rated Excellent · See all reviews</div>
+                    </div>
+                    <div className="ml-auto text-[#00b67a] text-[0.75rem]">Verify →</div>
+                  </a>
+                </div>
               </div>
 
               {/* Individual reviews */}

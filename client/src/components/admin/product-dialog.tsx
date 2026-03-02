@@ -42,6 +42,7 @@ import {
   Info, User, ImageIcon, Settings, Car, MapPin, List, Bold, Italic,
   Heading1, Heading2, Link as LinkIcon, Undo, Redo, AlignLeft,
   AlignCenter, Code, Quote, Minus, ListOrdered, Search, Tag,
+  Plus, Trash2, GripVertical, Clock, Shield, Phone, Mail, CheckCircle, XCircle, Navigation,
 } from 'lucide-react';
 import { uploadImage } from '@/lib/api';
 import { CURRENCIES, formatInCurrency } from '@/lib/currency-context';
@@ -203,6 +204,14 @@ function SectionHeading({ icon, title, color = 'text-foreground' }: { icon: Reac
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
+const itineraryStopSchema = z.object({
+  id: z.string(),
+  name: z.string().min(1, 'Stop name is required'),
+  duration: z.string().optional(),
+  description: z.string().optional(),
+  admissionIncluded: z.boolean().optional(),
+});
+
 const schema = z.object({
   title: z.string().min(3, 'Title is required'),
   isActive: z.boolean().default(true),
@@ -238,6 +247,34 @@ const schema = z.object({
     transmission: z.string().optional(),
     features: z.array(z.string()).optional(),
   }).nullable().optional(),
+
+  // ── New tour detail fields ──────────────────────────────────────────────
+  // Itinerary stops
+  itineraryStops: z.array(itineraryStopSchema).optional(),
+  itineraryIntro: z.string().optional(),
+
+  // Structured inclusions / exclusions
+  includedItems: z.array(z.string()).optional(),
+  excludedItems: z.array(z.string()).optional(),
+
+  // Meeting point / pickup
+  meetingPoint: z.string().optional(),
+  meetingPointMapUrl: z.string().optional(),
+  pickupInstructions: z.string().optional(),
+  operatingHours: z.string().optional(),
+
+  // Cancellation policy
+  cancellationPolicy: z.string().optional(),
+  bookingCutoffHours: z.number().optional(),
+
+  // Additional info items
+  additionalInfo: z.array(z.string()).optional(),
+
+  // Support / contact
+  supportEmail: z.string().optional(),
+  supportPhone: z.string().optional(),
+  productCode: z.string().optional(),
+  travelerPhotos: z.array(z.string()).optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -302,6 +339,14 @@ export function ProductDialog({ tour, open, onOpenChange, onSave }: ProductDialo
       image: '', pricingType: 'per_person',
       adultPriceInput: '', childPriceInput: '', groupPriceInput: '', groupMaxPax: '',
       vehicleDetails: null,
+      // New fields
+      itineraryStops: [], itineraryIntro: '',
+      includedItems: [], excludedItems: [],
+      meetingPoint: '', meetingPointMapUrl: '', pickupInstructions: '', operatingHours: '',
+      cancellationPolicy: '', bookingCutoffHours: 24,
+      additionalInfo: [],
+      supportEmail: '', supportPhone: '', productCode: '',
+      travelerPhotos: [],
     },
   });
 
@@ -328,6 +373,22 @@ export function ProductDialog({ tour, open, onOpenChange, onSave }: ProductDialo
         groupPriceInput: vuvToStr(tour.groupPriceCents ?? 0, adminCurrency),
         groupMaxPax: tour.groupMaxPax?.toString() || '',
         vehicleDetails: tour.vehicleDetails || null,
+        // New fields
+        itineraryStops: tour.itineraryStops || [],
+        itineraryIntro: tour.itineraryIntro || '',
+        includedItems: tour.includedItems || [],
+        excludedItems: tour.excludedItems || [],
+        meetingPoint: tour.meetingPoint || '',
+        meetingPointMapUrl: tour.meetingPointMapUrl || '',
+        pickupInstructions: tour.pickupInstructions || '',
+        operatingHours: tour.operatingHours || '',
+        cancellationPolicy: tour.cancellationPolicy || '',
+        bookingCutoffHours: tour.bookingCutoffHours ?? 24,
+        additionalInfo: tour.additionalInfo || [],
+        supportEmail: tour.supportEmail || '',
+        supportPhone: tour.supportPhone || '',
+        productCode: tour.productCode || '',
+        travelerPhotos: tour.travelerPhotos || [],
       });
     } else {
       form.reset({
@@ -337,9 +398,14 @@ export function ProductDialog({ tour, open, onOpenChange, onSave }: ProductDialo
         image: '', pricingType: 'per_person',
         adultPriceInput: '', childPriceInput: '', groupPriceInput: '', groupMaxPax: '',
         vehicleDetails: null,
+        itineraryStops: [], itineraryIntro: '',
+        includedItems: [], excludedItems: [],
+        meetingPoint: '', meetingPointMapUrl: '', pickupInstructions: '', operatingHours: '',
+        cancellationPolicy: '', bookingCutoffHours: 24,
+        additionalInfo: [],
+        supportEmail: '', supportPhone: '', productCode: '',
+        travelerPhotos: [],
       });
-    }
-    setUploadError(null);
   }, [tour, open]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleCurrencyChange = (c: CurrencyCode) => {
@@ -369,6 +435,22 @@ export function ProductDialog({ tour, open, onOpenChange, onSave }: ProductDialo
       infantPriceCents: 0, petPriceCents: 0,
       price: `${adultPriceCents} VUV`,
       childPrice: `${childPriceCents} VUV`,
+      // New fields
+      itineraryStops: values.itineraryStops || [],
+      itineraryIntro: values.itineraryIntro || null,
+      includedItems: values.includedItems || [],
+      excludedItems: values.excludedItems || [],
+      meetingPoint: values.meetingPoint || null,
+      meetingPointMapUrl: values.meetingPointMapUrl || null,
+      pickupInstructions: values.pickupInstructions || null,
+      operatingHours: values.operatingHours || null,
+      cancellationPolicy: values.cancellationPolicy || null,
+      bookingCutoffHours: values.bookingCutoffHours ?? 24,
+      additionalInfo: values.additionalInfo || [],
+      supportEmail: values.supportEmail || null,
+      supportPhone: values.supportPhone || null,
+      productCode: values.productCode || null,
+      travelerPhotos: values.travelerPhotos || [],
     });
     onOpenChange(false);
   };
@@ -537,6 +619,385 @@ export function ProductDialog({ tour, open, onOpenChange, onSave }: ProductDialo
                         </FormItem>
                       )} />
                     </div>
+
+                    {/* ── Structured Inclusions / Exclusions ── */}
+                    <div className="bg-muted/30 rounded-lg p-4 border border-border space-y-4">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+                        <CheckCircle className="h-3.5 w-3.5 text-green-500" />
+                        Structured Inclusions / Exclusions
+                        <Badge variant="outline" className="text-[0.6rem] py-0">What's Included card</Badge>
+                      </p>
+                      <FormField control={form.control} name="includedItems" render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs flex items-center gap-1.5"><CheckCircle className="h-3 w-3 text-green-500" /> Included Items</FormLabel>
+                          <div className="space-y-2">
+                            {(field.value || []).map((item: string, i: number) => (
+                              <div key={i} className="flex gap-2">
+                                <Input
+                                  value={item}
+                                  placeholder={`e.g. Buffet lunch`}
+                                  className="text-xs flex-1"
+                                  onChange={e => {
+                                    const arr = [...(field.value || [])];
+                                    arr[i] = e.target.value;
+                                    field.onChange(arr);
+                                  }}
+                                />
+                                <button type="button" onClick={() => field.onChange((field.value || []).filter((_: string, idx: number) => idx !== i))} className="text-muted-foreground hover:text-destructive transition-colors">
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
+                            ))}
+                            <button type="button" onClick={() => field.onChange([...(field.value || []), ''])} className="text-xs text-primary hover:underline flex items-center gap-1">
+                              <Plus className="h-3 w-3" /> Add included item
+                            </button>
+                          </div>
+                        </FormItem>
+                      )} />
+                      <FormField control={form.control} name="excludedItems" render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs flex items-center gap-1.5"><XCircle className="h-3 w-3 text-red-400" /> Excluded Items</FormLabel>
+                          <div className="space-y-2">
+                            {(field.value || []).map((item: string, i: number) => (
+                              <div key={i} className="flex gap-2">
+                                <Input
+                                  value={item}
+                                  placeholder={`e.g. Alcoholic beverages`}
+                                  className="text-xs flex-1"
+                                  onChange={e => {
+                                    const arr = [...(field.value || [])];
+                                    arr[i] = e.target.value;
+                                    field.onChange(arr);
+                                  }}
+                                />
+                                <button type="button" onClick={() => field.onChange((field.value || []).filter((_: string, idx: number) => idx !== i))} className="text-muted-foreground hover:text-destructive transition-colors">
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
+                            ))}
+                            <button type="button" onClick={() => field.onChange([...(field.value || []), ''])} className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
+                              <Plus className="h-3 w-3" /> Add excluded item
+                            </button>
+                          </div>
+                        </FormItem>
+                      )} />
+                    </div>
+
+                    {/* ── Meeting & Pickup ── */}
+                    <div className="bg-muted/30 rounded-lg p-4 border border-border space-y-3">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+                        <MapPin className="h-3.5 w-3.5 text-amber-500" />
+                        Meeting & Pickup
+                        <Badge variant="outline" className="text-[0.6rem] py-0">Meeting & Pickup section</Badge>
+                      </p>
+                      <FormField control={form.control} name="meetingPoint" render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs">Pickup / Meeting Point</FormLabel>
+                          <FormControl><Input placeholder="e.g. Lapetasi International Wharf, Port Vila" className="text-xs" {...field} value={field.value || ''} /></FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )} />
+                      <FormField control={form.control} name="meetingPointMapUrl" render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs flex items-center gap-1"><Navigation className="h-3 w-3" /> Google Maps Link <span className="font-normal text-muted-foreground">(optional)</span></FormLabel>
+                          <FormControl><Input placeholder="https://maps.google.com/?q=..." className="text-xs" {...field} value={field.value || ''} /></FormControl>
+                          <p className="text-[0.65rem] text-muted-foreground">Paste a Google Maps share link to enable the "Open in Maps" button on the product page.</p>
+                        </FormItem>
+                      )} />
+                      <FormField control={form.control} name="pickupInstructions" render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs">Pickup Instructions</FormLabel>
+                          <FormControl>
+                            <textarea rows={3} placeholder="e.g. Departure from your accommodation in Port Vila. Return to the Wharf Road Pier if arriving by cruise ship." className="w-full rounded-md border border-input bg-background px-3 py-2 text-xs shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none" {...field} value={field.value || ''} />
+                          </FormControl>
+                        </FormItem>
+                      )} />
+                      <FormField control={form.control} name="operatingHours" render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs flex items-center gap-1"><Clock className="h-3 w-3" /> Operating Hours</FormLabel>
+                          <FormControl><Input placeholder="e.g. 8:30 AM – 5:00 PM daily" className="text-xs" {...field} value={field.value || ''} /></FormControl>
+                        </FormItem>
+                      )} />
+                    </div>
+
+                    {/* ── Itinerary Stops ── */}
+                    <div className="bg-muted/30 rounded-lg p-4 border border-border space-y-3">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+                        <List className="h-3.5 w-3.5 text-blue-500" />
+                        Itinerary Stop Points
+                        <Badge variant="outline" className="text-[0.6rem] py-0">Itinerary timeline on tour page</Badge>
+                      </p>
+                      <FormField control={form.control} name="itineraryIntro" render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs">Itinerary Introduction <span className="font-normal text-muted-foreground">(optional)</span></FormLabel>
+                          <FormControl>
+                            <textarea
+                              rows={3}
+                              placeholder="e.g. Start your day with pickup from your accommodation, then head out for a full day of adventure…"
+                              className="w-full rounded-md border border-input bg-background px-3 py-2 text-xs ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none"
+                              {...field}
+                              value={field.value || ''}
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )} />
+                      <FormField control={form.control} name="itineraryStops" render={({ field }) => {
+                        const stops = field.value || [];
+                        const addStop = () => {
+                          field.onChange([...stops, { id: `stop_${Date.now()}`, name: '', duration: '', description: '', admissionIncluded: false }]);
+                        };
+                        const removeStop = (idx: number) => field.onChange(stops.filter((_: any, i: number) => i !== idx));
+                        const updateStop = (idx: number, key: string, val: any) => {
+                          const next = [...stops];
+                          next[idx] = { ...next[idx], [key]: val };
+                          field.onChange(next);
+                        };
+                        return (
+                          <FormItem>
+                            <div className="space-y-3">
+                              {stops.map((stop: any, idx: number) => (
+                                <div key={stop.id || idx} className="border border-border rounded-lg overflow-hidden bg-background">
+                                  <div className="flex items-center gap-2 px-3 py-2 bg-muted/50 border-b border-border">
+                                    <GripVertical className="h-3.5 w-3.5 text-muted-foreground cursor-grab shrink-0" />
+                                    <div className="flex items-center justify-center w-5 h-5 rounded-full bg-primary text-primary-foreground text-[0.65rem] font-bold shrink-0">
+                                      {idx + 1}
+                                    </div>
+                                    <Input
+                                      value={stop.name}
+                                      placeholder="Stop name (e.g. Blue Lagoon)"
+                                      className="text-xs border-0 bg-transparent focus-visible:ring-0 px-0 flex-1"
+                                      onChange={e => updateStop(idx, 'name', e.target.value)}
+                                    />
+                                    <button type="button" onClick={() => removeStop(idx)} className="text-muted-foreground hover:text-destructive transition-colors shrink-0">
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                    </button>
+                                  </div>
+                                  <div className="p-3 space-y-2.5">
+                                    <div className="flex gap-2">
+                                      <div className="flex-1">
+                                        <label className="text-[0.65rem] text-muted-foreground uppercase tracking-wide font-semibold">Duration</label>
+                                        <Input
+                                          value={stop.duration || ''}
+                                          placeholder="e.g. 45 minutes"
+                                          className="text-xs mt-0.5"
+                                          onChange={e => updateStop(idx, 'duration', e.target.value)}
+                                        />
+                                      </div>
+                                      <div className="flex items-end pb-1">
+                                        <label className="flex items-center gap-1.5 cursor-pointer">
+                                          <input
+                                            type="checkbox"
+                                            checked={!!stop.admissionIncluded}
+                                            onChange={e => updateStop(idx, 'admissionIncluded', e.target.checked)}
+                                            className="rounded"
+                                          />
+                                          <span className="text-xs text-muted-foreground whitespace-nowrap">Admission included</span>
+                                        </label>
+                                      </div>
+                                    </div>
+                                    <div>
+                                      <label className="text-[0.65rem] text-muted-foreground uppercase tracking-wide font-semibold">Activity Description</label>
+                                      <div className="mt-0.5">
+                                        <RichEditor
+                                          value={stop.description || ''}
+                                          onChange={val => updateStop(idx, 'description', val)}
+                                          placeholder="Describe this stop — what guests will see, do, or experience…"
+                                          minHeight="80px"
+                                        />
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                              <button
+                                type="button"
+                                onClick={addStop}
+                                className="w-full py-2.5 border border-dashed border-border rounded-lg text-xs text-muted-foreground hover:text-foreground hover:border-primary/50 hover:bg-muted/30 transition-all flex items-center justify-center gap-2"
+                              >
+                                <Plus className="h-3.5 w-3.5" />
+                                Add Stop Point
+                              </button>
+                            </div>
+                            <FormMessage />
+                          </FormItem>
+                        );
+                      }} />
+                    </div>
+
+                    {/* ── Cancellation Policy ── */}
+                    <div className="bg-muted/30 rounded-lg p-4 border border-border space-y-3">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+                        <Shield className="h-3.5 w-3.5 text-amber-500" />
+                        Cancellation Policy
+                        <Badge variant="outline" className="text-[0.6rem] py-0">Policy card + modal</Badge>
+                      </p>
+                      <FormField control={form.control} name="bookingCutoffHours" render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs">Booking closes N hours before tour start</FormLabel>
+                          <FormControl>
+                            <div className="flex items-center gap-2">
+                              <Input type="number" min="1" max="168" className="text-xs w-24" {...field} onChange={e => field.onChange(parseInt(e.target.value) || 24)} value={field.value ?? 24} />
+                              <span className="text-xs text-muted-foreground">hours before departure</span>
+                            </div>
+                          </FormControl>
+                          <p className="text-[0.65rem] text-muted-foreground">This also drives the booking countdown timer on the product page.</p>
+                        </FormItem>
+                      )} />
+                      <FormField control={form.control} name="cancellationPolicy" render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs">Full Cancellation Policy <span className="font-normal text-muted-foreground">(HTML — shown in modal)</span></FormLabel>
+                          <FormControl>
+                            <RichEditor
+                              value={field.value || ''}
+                              onChange={field.onChange}
+                              placeholder="Full cancellation policy details shown when guests click 'Show full policy'…"
+                              minHeight="120px"
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )} />
+                    </div>
+
+                    {/* ── Additional Information ── */}
+                    <div className="bg-muted/30 rounded-lg p-4 border border-border space-y-3">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+                        <Info className="h-3.5 w-3.5 text-blue-400" />
+                        Additional Information
+                        <Badge variant="outline" className="text-[0.6rem] py-0">Additional Info section</Badge>
+                      </p>
+                      <p className="text-[0.7rem] text-muted-foreground">Guest requirements and notes not covered in Overview (e.g. accessibility, confirmation details, group size).</p>
+                      <FormField control={form.control} name="additionalInfo" render={({ field }) => (
+                        <FormItem>
+                          <div className="space-y-2">
+                            {(field.value || []).map((item: string, i: number) => (
+                              <div key={i} className="flex gap-2">
+                                <Input
+                                  value={item}
+                                  placeholder={`e.g. Not wheelchair accessible`}
+                                  className="text-xs flex-1"
+                                  onChange={e => {
+                                    const arr = [...(field.value || [])];
+                                    arr[i] = e.target.value;
+                                    field.onChange(arr);
+                                  }}
+                                />
+                                <button type="button" onClick={() => field.onChange((field.value || []).filter((_: string, idx: number) => idx !== i))} className="text-muted-foreground hover:text-destructive transition-colors">
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
+                            ))}
+                            <button type="button" onClick={() => field.onChange([...(field.value || []), ''])} className="text-xs text-primary hover:underline flex items-center gap-1">
+                              <Plus className="h-3 w-3" /> Add info item
+                            </button>
+                          </div>
+                        </FormItem>
+                      )} />
+                    </div>
+
+                    {/* ── Support / Contact Details ── */}
+                    <div className="bg-muted/30 rounded-lg p-4 border border-border space-y-3">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+                        <Mail className="h-3.5 w-3.5 text-blue-400" />
+                        Support & Contact
+                        <Badge variant="outline" className="text-[0.6rem] py-0">Questions card</Badge>
+                      </p>
+                      <div className="grid grid-cols-2 gap-3">
+                        <FormField control={form.control} name="supportEmail" render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs flex items-center gap-1"><Mail className="h-3 w-3" /> Support Email</FormLabel>
+                            <FormControl><Input placeholder="info@acetours.vu" className="text-xs" {...field} value={field.value || ''} /></FormControl>
+                          </FormItem>
+                        )} />
+                        <FormField control={form.control} name="supportPhone" render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs flex items-center gap-1"><Phone className="h-3 w-3" /> Support Phone</FormLabel>
+                            <FormControl><Input placeholder="+678 711 4045" className="text-xs" {...field} value={field.value || ''} /></FormControl>
+                          </FormItem>
+                        )} />
+                      </div>
+                      <FormField control={form.control} name="productCode" render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs">Product Code <span className="font-normal text-muted-foreground">(e.g. Viator product code)</span></FormLabel>
+                          <FormControl><Input placeholder="e.g. 38727P1" className="text-xs" {...field} value={field.value || ''} /></FormControl>
+                        </FormItem>
+                      )} />
+                    </div>
+
+                    {/* ── Traveler Photos ── */}
+                    <div className="bg-muted/30 rounded-lg p-4 border border-border space-y-3">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+                        <ImageIcon className="h-3.5 w-3.5 text-purple-400" />
+                        Traveler Photos
+                        <Badge variant="outline" className="text-[0.6rem] py-0">Gallery on detail page</Badge>
+                      </p>
+                      <p className="text-[0.7rem] text-muted-foreground">
+                        Upload photos taken during the tour. These appear in the Traveler Photos gallery below the reviews section.
+                      </p>
+                      <FormField control={form.control} name="travelerPhotos" render={({ field }) => {
+                        const photos: string[] = field.value || [];
+                        const [uploading, setUploading] = useState(false);
+                        const [photoError, setPhotoError] = useState<string | null>(null);
+
+                        const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+                          const files = Array.from(e.target.files || []);
+                          if (!files.length) return;
+                          setUploading(true);
+                          setPhotoError(null);
+                          try {
+                            const urls = await Promise.all(files.map(f => uploadImage(f).then(r => r.url)));
+                            field.onChange([...photos, ...urls]);
+                          } catch (err: any) {
+                            setPhotoError(err.message || 'Upload failed');
+                          } finally {
+                            setUploading(false);
+                            e.target.value = '';
+                          }
+                        };
+
+                        return (
+                          <FormItem>
+                            {photos.length > 0 && (
+                              <div className="grid grid-cols-3 gap-2 mb-2">
+                                {photos.map((url, i) => (
+                                  <div key={i} className="relative group rounded-md overflow-hidden border border-border aspect-[4/3]">
+                                    <img
+                                      src={url}
+                                      alt={`Traveler photo ${i + 1}`}
+                                      className="w-full h-full object-cover"
+                                      onError={(e) => { (e.target as HTMLImageElement).src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect fill="%23333" width="100" height="100"/><text fill="%23888" x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-size="12">Error</text></svg>'; }}
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => field.onChange(photos.filter((_, j) => j !== i))}
+                                      className="absolute top-1 right-1 bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-xs font-bold hover:bg-red-700"
+                                      title="Remove photo"
+                                    >
+                                      ×
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            <label className={`flex items-center justify-center gap-2 cursor-pointer px-3 py-2 rounded-md border border-dashed transition-colors text-xs w-full ${
+                              uploading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-muted/60 hover:border-primary/50 text-muted-foreground'
+                            }`}>
+                              {uploading
+                                ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Uploading…</>
+                                : <><Upload className="h-3.5 w-3.5" /> Upload photos (select multiple)</>
+                              }
+                              <input type="file" accept="image/*" multiple onChange={handlePhotoUpload} disabled={uploading} className="hidden" />
+                            </label>
+                            {photoError && (
+                              <div className="rounded-md bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 px-2.5 py-2 text-xs text-red-700 dark:text-red-400 flex gap-1.5">
+                                <Info className="h-3.5 w-3.5 shrink-0 mt-0.5" />{photoError}
+                              </div>
+                            )}
+                            <FormMessage />
+                          </FormItem>
+                        );
+                      }} />
+                    </div>
+
                   </div>
                 )}
 

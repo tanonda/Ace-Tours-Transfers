@@ -50,12 +50,32 @@ export const AvailabilityStatus: React.FC<AvailabilityStatusProps> = ({
 
   if (!data && !loading) return null;
 
-  const { isAvailable, remainingCapacity, totalCapacity, message } = data || {
+  const { isAvailable, remainingCapacity, totalCapacity, message, bookingClosed } = data || {
     isAvailable: false,
     remainingCapacity: 0,
     totalCapacity: 0,
-    message: ''
+    message: '',
+    bookingClosed: false,
   };
+
+  // Booking window has closed — show a distinct state so users know it's not
+  // a capacity issue but a cutoff issue, and can call to book instead.
+  if (bookingClosed) {
+    return (
+      <div className="availability-status full">
+        <div className="availability-header">
+          <h3>Availability</h3>
+          <div className="status-badge full">
+            <div className="badge-dot" />
+            Booking Closed
+          </div>
+        </div>
+        <div className="status-message">
+          <p>🔒 Online booking for this date has closed. Please call or WhatsApp us to check if we can still accommodate you.</p>
+        </div>
+      </div>
+    );
+  }
 
   const currentBookings = totalCapacity - remainingCapacity;
   const capacityPercent = totalCapacity > 0 ? Math.round((currentBookings / totalCapacity) * 100) : 0;

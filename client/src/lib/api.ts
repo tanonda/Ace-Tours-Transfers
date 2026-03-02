@@ -395,6 +395,10 @@ export interface AvailabilityCheckResponse {
   remainingCapacity: number;
   totalCapacity: number;
   message: string;
+  /** True when the booking cutoff window has passed for the selected date */
+  bookingClosed?: boolean;
+  /** ISO timestamp when the booking window closed */
+  bookingClosedAt?: string;
   pricing?: any;
 }
 

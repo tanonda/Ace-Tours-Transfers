@@ -817,7 +817,19 @@ ${allPages.map(p => `  <url>
 
   app.put("/api/tours/:id", requireAdmin, async (req, res) => {
     try {
-      const { id, ...updateData } = req.body;
+      const { id, ...rawData } = req.body;
+
+      // Strip form-only fields that live in the ProductDialog state but are NOT
+      // database columns. Passing them to Drizzle .set() throws a runtime error.
+      const FORM_HELPER_FIELDS = new Set([
+        "adultPriceInput", "childPriceInput", "groupPriceInput",
+        "tourOverview", "inclusions", "transferDetail", "vehicleAbout",
+        "addons",           // joined at read time, never written back
+      ]);
+      const updateData: Record<string, unknown> = Object.fromEntries(
+        Object.entries(rawData).filter(([k]) => !FORM_HELPER_FIELDS.has(k))
+      );
+
       // Ensure priceCents fields are set if missing
       if (updateData.adultPriceCents === undefined && updateData.price) {
         const match = String(updateData.price).match(/[\d,]+(\.\d+)?/);
