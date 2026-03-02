@@ -11,7 +11,7 @@ function sanitizeHtml(html: string): string {
   return html;
 }
 import { useQuery } from "@tanstack/react-query";
-import { fetchTour } from "@/lib/api";
+import { fetchTour, fetchProductAddons } from "@/lib/api";
 import { apiRequest } from "@/lib/queryClient";
 import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
@@ -21,10 +21,12 @@ import { useState, useEffect, useCallback } from "react";
 import { useCart } from "@/lib/cart-context";
 import { useBookingDraft } from "@/lib/booking-state-context";
 import { formatPriceDisplay, estimateBookingTotal, type ProductCategory } from "@/lib/product.types";
+import type { ProductAddonWithDetails } from "@shared/schema";
 import { useCurrency } from "@/lib/currency-context";
 import { AvailabilityCalendar } from "@/components/AvailabilityCalendar";
 import { SEO, cloudinaryOpt } from "@/components/seo";
 import { GuestReviewForm } from "@/components/GuestReviewForm";
+import { AddonsPanel, calcAddonTotal, type AddonSelections, type ProductAddonEntry } from "@/components/addons-panel";
 import { useRealtimeAvailability } from "@/hooks/useRealtimeAvailability";
 
 const WHATSAPP_NUMBER = "6787114045";
@@ -40,6 +42,7 @@ export default function TransferDetail() {
   const [childPax, setChildPax] = useState(0);
   const [infantPax, setInfantPax] = useState(0);
   const [petPax, setPetPax] = useState(0);
+  const [addonSelections, setAddonSelections] = useState<AddonSelections>({});
   const [date, setDate] = useState<string>("");
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [urlInitialTime, setUrlInitialTime] = useState<string | null>(null);
@@ -159,6 +162,8 @@ export default function TransferDetail() {
   const isGroupPricing = transfer.pricingType === "group";
   const baseTotal = estimateBookingTotal(transfer, adultPax, childPax);
   const instantTotal = isGroupPricing ? baseTotal : (adultPax >= 7 ? Math.round(baseTotal * 0.9) : baseTotal);
+  const addonTotal = transfer.addons ? calcAddonTotal(transfer.addons as ProductAddonEntry[], addonSelections) : 0;
+  const grandTotal = instantTotal + addonTotal;
 
   const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
     `Hi! I have a question about "${transfer.title}". `
@@ -366,7 +371,8 @@ export default function TransferDetail() {
 
             <div className="px-6 py-5 flex flex-col gap-5">
 
-              {/* Guest counters */}
+              {/* Guest counters — hidden for group/package pricing */}
+              {!isGroupPricing && (
               <div>
                 <label className="text-[0.75rem] font-semibold text-[#8a826e] tracking-[0.07em] uppercase mb-2 block">Passengers</label>
                 <div className="flex flex-col gap-2">
@@ -421,6 +427,17 @@ export default function TransferDetail() {
                   </div>
                 </div>
               </div>
+              )} {/* end !isGroupPricing guest counters */}
+
+              {/* Add-ons */}
+              {transfer.addons && transfer.addons.length > 0 && (
+                <AddonsPanel
+                  addons={transfer.addons as ProductAddonEntry[]}
+                  selected={addonSelections}
+                  onChange={setAddonSelections}
+                  currency={currency}
+                />
+              )}
 
               {/* INSTANT PRICING BREAKDOWN — always visible, recalculates on every +/- tap */}
               <div className="bg-[#211e18] border border-[rgba(244,168,48,0.18)] rounded-[12px] overflow-hidden">
@@ -490,7 +507,12 @@ export default function TransferDetail() {
                   <div className="border-t border-[rgba(244,168,48,0.18)] pt-2 mt-1 flex items-center justify-between">
                     <span className="text-[0.8rem] font-bold text-[#8a826e] uppercase tracking-wider">{date ? "Total" : "Est. Total"}</span>
                     <div className="text-right">
-                      <span className="text-[1.15rem] font-black text-[#f4a830] block leading-none">{formatPriceDisplay(instantTotal, currency)}</span>
+                      {addonTotal > 0 && (
+                        <span className="text-[0.75rem] text-[#8a826e] block">
+                          {formatPriceDisplay(instantTotal, currency)} + {formatPriceDisplay(addonTotal, currency)} add-ons
+                        </span>
+                      )}
+                      <span className="text-[1.15rem] font-black text-[#f4a830] block leading-none">{formatPriceDisplay(grandTotal, currency)}</span>
                       <span className="text-[0.62rem] text-[#8a826e] uppercase font-bold tracking-tighter">Includes 15% VAT</span>
                     </div>
                   </div>

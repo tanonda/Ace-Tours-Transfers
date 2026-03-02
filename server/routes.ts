@@ -698,7 +698,9 @@ ${allPages.map(p => `  <url>
     try {
       const tour = await storage.getTour(req.params.id);
       if (!tour) return res.status(404).json({ error: "Tour not found" });
-      res.json(tour);
+      // Include product-specific addons so detail pages can display them
+      const productAddons = await storage.getProductAddons(req.params.id);
+      res.json({ ...tour, addons: productAddons });
     } catch (error: any) {
       console.error("[ROUTE] GET /api/tours/:id failed:", error?.message, error?.code);
       res.status(500).json({ error: "Failed to fetch tour" });
@@ -981,6 +983,57 @@ ${allPages.map(p => `  <url>
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch addons" });
     }
+  });
+
+  // Admin: full addon CRUD
+  app.get("/api/admin/addons", requireAdmin, async (_req, res) => {
+    try { res.json(await storage.getAddons()); }
+    catch { res.status(500).json({ error: "Failed to fetch addons" }); }
+  });
+
+  app.post("/api/admin/addons", requireAdmin, async (req, res) => {
+    try { res.json(await storage.createAddon(req.body)); }
+    catch { res.status(500).json({ error: "Failed to create addon" }); }
+  });
+
+  app.patch("/api/admin/addons/:id", requireAdmin, async (req, res) => {
+    try { res.json(await storage.updateAddon(req.params.id, req.body)); }
+    catch { res.status(500).json({ error: "Failed to update addon" }); }
+  });
+
+  app.delete("/api/admin/addons/:id", requireAdmin, async (req, res) => {
+    try { await storage.deleteAddon(req.params.id); res.json({ success: true }); }
+    catch { res.status(500).json({ error: "Failed to delete addon" }); }
+  });
+
+  // Product-specific addons
+  app.get("/api/products/:productId/addons", async (req, res) => {
+    try { res.json(await storage.getProductAddons(req.params.productId)); }
+    catch { res.status(500).json({ error: "Failed to fetch product addons" }); }
+  });
+
+  app.post("/api/products/:productId/addons", requireAdmin, async (req, res) => {
+    try {
+      const row = await storage.addProductAddon({
+        productId: req.params.productId,
+        addonId: req.body.addonId,
+        isRequired: req.body.isRequired ?? false,
+        sortOrder: req.body.sortOrder ?? 0,
+      });
+      res.json(row);
+    } catch { res.status(500).json({ error: "Failed to add product addon" }); }
+  });
+
+  app.patch("/api/products/:productId/addons/:id", requireAdmin, async (req, res) => {
+    try { res.json(await storage.updateProductAddon(req.params.id, req.body)); }
+    catch { res.status(500).json({ error: "Failed to update product addon" }); }
+  });
+
+  app.delete("/api/products/:productId/addons/:addonId", requireAdmin, async (req, res) => {
+    try {
+      await storage.removeProductAddon(req.params.productId, req.params.addonId);
+      res.json({ success: true });
+    } catch { res.status(500).json({ error: "Failed to remove product addon" }); }
   });
 
   // Vehicles API

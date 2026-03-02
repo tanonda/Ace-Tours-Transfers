@@ -11,7 +11,7 @@ function sanitizeHtml(html: string): string {
   return html;
 }
 import { useQuery } from "@tanstack/react-query";
-import { fetchTour } from "@/lib/api";
+import { fetchTour, fetchProductAddons } from "@/lib/api";
 import { apiRequest } from "@/lib/queryClient";
 import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
@@ -22,11 +22,13 @@ import { useCart } from "@/lib/cart-context";
 import { useBookingDraft } from "@/lib/booking-state-context";
 import { useRealtimeAvailability } from "@/hooks/useRealtimeAvailability";
 import { formatPriceDisplay, estimateBookingTotal, type ProductCategory } from "@/lib/product.types";
+import type { ProductAddonWithDetails } from "@shared/schema";
 import { useCurrency } from "@/lib/currency-context";
 import { AvailabilityCalendar } from "@/components/AvailabilityCalendar";
 import { AvailabilityStatus } from "@/components/AvailabilityStatus";
 import { SEO, cloudinaryOpt } from "@/components/seo";
 import { GuestReviewForm } from "@/components/GuestReviewForm";
+import { AddonsPanel, calcAddonTotal, type AddonSelections, type ProductAddonEntry } from "@/components/addons-panel";
 
 export default function TourDetail() {
   const { id } = useParams<{ id: string }>();
@@ -39,6 +41,7 @@ export default function TourDetail() {
   const [childPax, setChildPax] = useState(0);
   const [infantPax, setInfantPax] = useState(0);
   const [petPax, setPetPax] = useState(0);
+  const [addonSelections, setAddonSelections] = useState<AddonSelections>({});
   const [date, setDate] = useState<string>("");
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   // Store the time from URL params as stable "initial" so time slot picker can pre-select it
@@ -406,7 +409,8 @@ export default function TourDetail() {
 
             <div className="px-6 py-5 flex flex-col gap-5">
 
-              {/* Guest counters */}
+              {/* Guest counters — hidden for group/package pricing */}
+              {tour.pricingType !== "group" && (
               <div>
                 <label className="text-[0.75rem] font-semibold text-[#8a826e] tracking-[0.07em] uppercase mb-2 block">
                   {t("booking.guests", "Guests")}
@@ -489,6 +493,17 @@ export default function TourDetail() {
                   </div>
                 </div>
               </div>
+              )} {/* end !isGroupPricing guest counters */}
+
+              {/* Add-ons */}
+              {tour.addons && tour.addons.length > 0 && (
+                <AddonsPanel
+                  addons={tour.addons as ProductAddonEntry[]}
+                  selected={addonSelections}
+                  onChange={setAddonSelections}
+                  currency={currency}
+                />
+              )}
 
               {/* ── INSTANT PRICING BREAKDOWN — always visible, recalculates live ── */}
               <div className="bg-[#211e18] border border-[rgba(244,168,48,0.18)] rounded-[12px] overflow-hidden">
@@ -565,6 +580,16 @@ export default function TourDetail() {
                     </>
                   )}
 
+                  {/* Add-ons subtotal line */}
+                  {tour.addons && calcAddonTotal(tour.addons as ProductAddonEntry[], addonSelections) > 0 && (
+                    <div className="flex items-center justify-between text-[#ccc6b8]">
+                      <span className="text-[0.82rem]">Add-ons</span>
+                      <span className="text-[0.9rem] font-semibold">
+                        +{formatPriceDisplay(calcAddonTotal(tour.addons as ProductAddonEntry[], addonSelections), currency)}
+                      </span>
+                    </div>
+                  )}
+
                   {/* Divider + Total */}
                   <div className="border-t border-[rgba(244,168,48,0.18)] pt-2 mt-1 flex items-center justify-between">
                     <span className="text-[0.8rem] font-bold text-[#8a826e] uppercase tracking-wider">
@@ -575,7 +600,9 @@ export default function TourDetail() {
                         {formatPriceDisplay(
                           (() => {
                             const base = estimateBookingTotal(tour, adultPax, childPax);
-                            return tour.pricingType === "group" ? base : (adultPax >= 7 ? Math.round(base * 0.9) : base);
+                            const productTotal = tour.pricingType === "group" ? base : (adultPax >= 7 ? Math.round(base * 0.9) : base);
+                            const addonTotal = tour.addons ? calcAddonTotal(tour.addons as ProductAddonEntry[], addonSelections) : 0;
+                            return productTotal + addonTotal;
                           })(),
                           currency
                         )}

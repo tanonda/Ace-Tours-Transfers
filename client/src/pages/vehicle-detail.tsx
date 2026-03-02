@@ -10,7 +10,7 @@ function sanitizeHtml(html: string): string {
   }
   return html;
 }
-import { fetchVehicle } from "@/lib/api";
+import { fetchVehicle, fetchProductAddons } from "@/lib/api";
 import { apiRequest } from "@/lib/queryClient";
 import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { SEO, cloudinaryOpt } from "@/components/seo";
 import { GuestReviewForm } from "@/components/GuestReviewForm";
+import { AddonsPanel, calcAddonTotal, type AddonSelections, type ProductAddonEntry } from "@/components/addons-panel";
 import { useCart } from "@/lib/cart-context";
 import { useBookingDraft } from "@/lib/booking-state-context";
 import { formatPriceDisplay, estimateBookingTotal } from "@/lib/product.types";
@@ -416,6 +417,9 @@ export default function VehicleDetail() {
   const isGroupPricing = vehicle?.pricingType === "group";
   const dayRateCents = vehicle ? (isGroupPricing ? (vehicle.groupPriceCents || vehicle.adultPriceCents) : vehicle.adultPriceCents) : 0;
   const totalPriceCents = dayRateCents * Math.max(1, hireDays);
+  const [addonSelections, setAddonSelections] = useState<AddonSelections>({});
+  const addonTotal = vehicle?.addons ? calcAddonTotal(vehicle.addons as ProductAddonEntry[], addonSelections) : 0;
+  const grandTotal = totalPriceCents + addonTotal;
   const canBook = !!(pickupDate && returnDate && hireDays >= 1 && availabilityStatus !== "unavailable");
 
   const handleAddToCart = () => {
@@ -729,9 +733,15 @@ export default function VehicleDetail() {
                       <span className="text-[#3a342c]">{formatPriceDisplay(dayRateCents, currency)} × {hireDays}d</span>
                       <span className="font-semibold">{formatPriceDisplay(totalPriceCents, currency)}</span>
                     </div>
+                    {addonTotal > 0 && (
+                      <div className="flex justify-between text-[0.83rem]">
+                        <span className="text-[#3a342c]">Add-ons</span>
+                        <span className="font-semibold">+{formatPriceDisplay(addonTotal, currency)}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between pt-2 border-t border-[rgba(244,168,48,0.12)] font-black text-[1rem]">
                       <span>Total</span>
-                      <span className="text-[#f4a830]">{formatPriceDisplay(totalPriceCents, currency)}</span>
+                      <span className="text-[#f4a830]">{formatPriceDisplay(grandTotal, currency)}</span>
                     </div>
                   </div>
                 </div>
@@ -754,6 +764,16 @@ export default function VehicleDetail() {
                 </div>
               )}
 
+              {/* Add-ons */}
+              {vehicle.addons && vehicle.addons.length > 0 && (
+                <AddonsPanel
+                  addons={vehicle.addons as ProductAddonEntry[]}
+                  selected={addonSelections}
+                  onChange={setAddonSelections}
+                  currency={currency}
+                />
+              )}
+
               {/* CTA */}
               <Button
                 disabled={!canBook}
@@ -768,7 +788,7 @@ export default function VehicleDetail() {
                 {availabilityStatus === "unavailable"
                   ? "Fully Booked — Choose Different Dates"
                   : canBook
-                    ? `Hire for ${hireDays} ${hireDays === 1 ? "Day" : "Days"} — ${formatPriceDisplay(totalPriceCents, currency)}`
+                    ? `Hire for ${hireDays} ${hireDays === 1 ? "Day" : "Days"} — ${formatPriceDisplay(grandTotal, currency)}`
                     : "Select pickup & return dates"
                 }
               </Button>
