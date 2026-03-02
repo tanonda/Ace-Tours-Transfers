@@ -27,8 +27,9 @@ export class PriceCartService {
         throw new Error(`Rates for product ${item.productId} not found`);
       }
 
-      // Use PricingEngine for complete pricing calculation with breakdown
-      // This consolidates: base pricing + add-ons + group discounts + seasonal surcharges
+      // Use PricingEngine for complete pricing calculation with breakdown.
+      // Handles: base pricing + add-ons + group discounts + seasonal surcharges.
+      // For group-priced products, PricingEngine uses the flat groupPriceCents as base.
       const pricing = await this.pricingEngine.calculateLineItem(
         item.adultPax,
         item.childPax,
@@ -40,12 +41,24 @@ export class PriceCartService {
       // Get subtotal with all rules applied
       let subtotalCents = pricing.breakdown.finalTotalCents;
 
-      // If it's a vehicle (or any duration-based product), multiply by quantity (days)
+      // For vehicles (duration-based), multiply by quantity (days hired)
       const duration = (product.category === 'vehicle') ? (item.quantity || 1) : 1;
       subtotalCents *= duration;
 
+      const isGroupPriced = rates.pricingType === 'group';
       const totalQuantityCount = item.adultPax + item.childPax;
-      const unitPriceCents = totalQuantityCount > 0 ? Math.round(subtotalCents / totalQuantityCount) : 0;
+
+      // unitPriceCents semantics differ by pricing model:
+      //   per_person — price per individual guest (subtotal ÷ pax)
+      //   group      — the flat rate IS the unit price (not divided by pax count)
+      //                A group booking is 1 unit regardless of how many guests attend.
+      const unitPriceCents = isGroupPriced
+        ? subtotalCents
+        : (totalQuantityCount > 0 ? Math.round(subtotalCents / totalQuantityCount) : 0);
+
+      const quantity = isGroupPriced
+        ? 1               // 1 booking unit (the group/package itself)
+        : totalQuantityCount;
 
       return {
         unitPriceCents,
@@ -53,9 +66,8 @@ export class PriceCartService {
         childPax: item.childPax,
         productId: product.id,
         name: product.title,
-        quantity: totalQuantityCount,
-        // Store pricing breakdown for audit trail
-        pricingBreakdown: pricing.breakdown
+        quantity,
+        pricingBreakdown: pricing.breakdown,
       };
     }));
 

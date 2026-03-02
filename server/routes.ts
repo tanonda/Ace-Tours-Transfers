@@ -466,9 +466,21 @@ ${allPages.map(p => `  <url>
 
   app.post("/api/admin/pricing", requireAdmin, async (req, res) => {
     try {
-      const { productId, effectiveFrom, adultPriceCents, childPriceCents, ruleMetadata } = req.body;
-      if (!productId || !effectiveFrom || adultPriceCents === undefined) return res.status(400).json({ error: "Missing required pricing fields" });
-      const created = await storage.createPricingVersion({ productId, effectiveFrom, adultPriceCents, childPriceCents: childPriceCents || 0, ruleMetadata, createdBy: req.session.userId });
+      const { productId, effectiveFrom, ruleMetadata, adultPriceCents, childPriceCents, infantPriceCents, petPriceCents, groupPriceCents, pricingType } = req.body;
+      const isGroup = pricingType === 'group';
+      if (!productId || !effectiveFrom) return res.status(400).json({ error: "Missing required pricing fields" });
+      if (isGroup && !groupPriceCents) return res.status(400).json({ error: "Group price is required for group pricing type" });
+      if (!isGroup && adultPriceCents === undefined) return res.status(400).json({ error: "Adult price is required for per-person pricing type" });
+      const created = await storage.createPricingVersion({
+        productId, effectiveFrom, ruleMetadata,
+        adultPriceCents:  adultPriceCents  || 0,
+        childPriceCents:  childPriceCents  || 0,
+        infantPriceCents: infantPriceCents || 0,
+        petPriceCents:    petPriceCents    || 0,
+        groupPriceCents:  groupPriceCents  || 0,
+        pricingType:      pricingType      || 'per_person',
+        createdBy: req.session.userId,
+      });
       res.status(201).json(created);
     } catch (error: any) {
       res.status(400).json({ error: error.message });

@@ -26,9 +26,10 @@ export const tours = pgTable("tours", {
   childPrice: text("child_price"), // DEPRECATED: use childPriceCents
   adultPriceCents: integer("adult_price_cents").notNull().default(0),
   childPriceCents: integer("child_price_cents").notNull().default(0),
+  // Group / package pricing (added in migration 0013)
   pricingType: text("pricing_type").notNull().default("per_person"), // 'per_person' | 'group'
-  groupPriceCents: integer("group_price_cents").notNull().default(0), // Flat rate for entire booking (VUV units). Used when pricingType === 'group'.
-  groupMaxPax: integer("group_max_pax"), // Optional display hint: "up to N guests". Does not enforce a limit.
+  groupPriceCents: integer("group_price_cents").notNull().default(0), // flat rate for group bookings
+  groupMaxPax: integer("group_max_pax"), // optional display hint — max guests included in package
   duration: text("duration").notNull(),
   minPax: text("min_pax"),
   image: text("image").notNull(),
@@ -320,8 +321,13 @@ export const pricingVersions = pgTable("pricing_versions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   productId: varchar("product_id").notNull().references(() => tours.id),
   effectiveFrom: text("effective_from").notNull(), // YYYY-MM-DD
-  adultPriceCents: integer("adult_price_cents").notNull(),
-  childPriceCents: integer("child_price_cents").notNull().default(0), // 0 for transfers/vehicles
+  adultPriceCents:  integer("adult_price_cents").notNull().default(0),
+  childPriceCents:  integer("child_price_cents").notNull().default(0),
+  // Extended pricing fields (added in migration 0013)
+  infantPriceCents: integer("infant_price_cents").notNull().default(0),
+  petPriceCents:    integer("pet_price_cents").notNull().default(0),
+  pricingType:      text("pricing_type").notNull().default("per_person"), // 'per_person' | 'group'
+  groupPriceCents:  integer("group_price_cents").notNull().default(0),
   ruleMetadata: jsonb("rule_metadata"), // { groupDiscountThreshold, seasonalRules, etc. }
   createdAt: timestamp("created_at").notNull().defaultNow(),
   createdBy: varchar("created_by").references(() => users.id),
@@ -445,7 +451,7 @@ export const availabilityHoldsRelations = relations(availabilityHolds, ({ one })
     fields: [availabilityHolds.resourceId],
     references: [resources.id],
   }),
-  booking: one(bookings), // This might need a field if it's 1:1, but many bookings could technically exist for a hold if we failed something? Usually 1:1.
+  booking: one(bookings),
 }));
 
 export const productBlackoutDatesRelations = relations(productBlackoutDates, ({ one }) => ({

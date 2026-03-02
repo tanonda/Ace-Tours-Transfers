@@ -119,7 +119,10 @@ export default function Reservations() {
       .map(s => ({
         id: s.id,
         title: s.title,
-        category: s.category
+        category: s.category,
+        pricingType:     (s as any).pricingType     ?? 'per_person',
+        groupPriceCents: (s as any).groupPriceCents ?? 0,
+        groupMaxPax:     (s as any).groupMaxPax     ?? null,
       }));
   }, [allServices]);
 
