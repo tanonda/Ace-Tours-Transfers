@@ -48,7 +48,7 @@ export function TourCard({ tour, index }: { tour: TourProps; index: number }) {
             {tour.image && (
               <img
                 src={cloudinaryOpt(tour.image, 600)}
-                alt={tour.title}
+                alt={tour.imageAlt || tour.title}
                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                 loading="lazy"
                 decoding="async"

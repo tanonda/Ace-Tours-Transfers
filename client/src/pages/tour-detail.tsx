@@ -203,7 +203,7 @@ export default function TourDetail() {
           <img
             src={cloudinaryOpt(tour.image, 1200)}
             className="w-full h-full object-cover filter brightness-[0.5] object-center"
-            alt={`${tour.title} - Vanuatu tour`}
+            alt={tour.imageAlt || `${tour.title} - Vanuatu tour`}
             loading="eager"
             fetchPriority="high"
           />
@@ -253,7 +253,7 @@ export default function TourDetail() {
               <img
                 src={cloudinaryOpt(tour.image, 900)}
                 className="w-full h-full object-cover object-center block"
-                alt={`${tour.title} - tour photo`}
+                alt={tour.imageAlt || `${tour.title} - tour photo`}
                 loading="lazy"
               />
             </div>

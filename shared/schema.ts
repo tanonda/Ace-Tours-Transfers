@@ -45,6 +45,7 @@ export const tours = pgTable("tours", {
   seoTitle: text("seo_title"),          // custom <title> tag — falls back to product title
   seoDescription: text("seo_description"), // custom meta description — falls back to description[0]
   seoKeywords: text("seo_keywords"),    // comma-separated keywords appended to auto-generated list
+  imageAlt: text("image_alt"),             // alt text for the product image — falls back to title if null
 });
 
 export const tourInstances = pgTable("tour_instances", {

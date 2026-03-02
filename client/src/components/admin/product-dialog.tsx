@@ -223,6 +223,7 @@ const schema = z.object({
   seoKeywords: z.string().optional(),
 
   image: z.string().optional(),
+  imageAlt: z.string().optional(),
 
   pricingType: z.enum(['per_person', 'group']).default('per_person'),
   adultPriceInput: z.string().min(1, 'Adult price is required'),
@@ -743,6 +744,28 @@ export function ProductDialog({ tour, open, onOpenChange, onSave }: ProductDialo
                           </div>
                         )}
                       </div>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+
+                  {/* Alt text */}
+                  <FormField control={form.control} name="imageAlt" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs flex items-center gap-1.5">
+                        Image Alt Text
+                        <Badge variant="outline" className="text-[0.6rem] py-0 px-1.5 font-normal">accessibility + SEO</Badge>
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder={`e.g. "Snorkelling at Blue Lagoon, Efate Island Vanuatu"`}
+                          className="text-xs"
+                          {...field}
+                          value={field.value || ''}
+                        />
+                      </FormControl>
+                      <p className="text-[0.65rem] text-muted-foreground">
+                        Describes the image for screen readers and search engines. Defaults to the product title if left blank.
+                      </p>
                       <FormMessage />
                     </FormItem>
                   )} />
