@@ -698,8 +698,13 @@ ${allPages.map(p => `  <url>
     try {
       const tour = await storage.getTour(req.params.id);
       if (!tour) return res.status(404).json({ error: "Tour not found" });
-      // Include product-specific addons so detail pages can display them
-      const productAddons = await storage.getProductAddons(req.params.id);
+      // Include product-specific addons — failure must not break the whole endpoint
+      let productAddons: any[] = [];
+      try {
+        productAddons = await storage.getProductAddons(req.params.id);
+      } catch (addonErr: any) {
+        console.warn("[ROUTE] getProductAddons failed (non-fatal):", addonErr?.message);
+      }
       res.json({ ...tour, addons: productAddons });
     } catch (error: any) {
       console.error("[ROUTE] GET /api/tours/:id failed:", error?.message, error?.code);
