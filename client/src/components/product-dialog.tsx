@@ -1,406 +1,851 @@
+/**
+ * ProductDialog — Wide, single-page admin form for creating/editing products.
+ *
+ * Layout: full-width sheet with a two-column grid (content left, pricing+media right).
+ * Rich text via TipTap for all descriptive fields.
+ *
+ * Content ↔ detail-page mapping:
+ *
+ * TOUR:
+ *   tourOverview (HTML) → description[0] → "Overview" card
+ *   inclusions   (HTML) → description[1] → "What's Included" card
+ *
+ * TRANSFER:
+ *   transferDetail (HTML) → description[0] → "Transfer Details" card
+ *   inclusions     (HTML) → description[1] → "What's Included" card
+ *
+ * VEHICLE:
+ *   vehicleAbout (HTML) → description[0] → "About This Vehicle" card
+ *   vehicleDetails.features[] → "What's Included" card (checkboxes)
+ *   vehicleDetails.{make,model,seats,transmission} → "Vehicle Specs" card
+ */
 
 import {
-    Dialog,
-    DialogContent,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Badge } from "@/components/ui/badge";
-import { useState, useEffect } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { useTranslation } from "react-i18next";
-import { Loader2, Info } from "lucide-react";
-import { uploadImage } from "@/lib/api";
+  Dialog, DialogContent, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Separator } from '@/components/ui/separator';
+import { useState, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { useTranslation } from 'react-i18next';
+import {
+  Loader2, Upload, Baby, PawPrint, Users, Package, DollarSign,
+  Info, User, ImageIcon, Settings, Car, MapPin, List, Bold, Italic,
+  Heading1, Heading2, Link as LinkIcon, Undo, Redo, AlignLeft,
+  AlignCenter, Code, Quote, Minus, ListOrdered,
+} from 'lucide-react';
+import { uploadImage } from '@/lib/api';
+import { CURRENCIES, formatInCurrency } from '@/lib/currency-context';
+import type { CurrencyCode } from '@/lib/currency-context';
+import type { PricingType } from '@/lib/product.types';
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import Link from '@tiptap/extension-link';
+import TextAlign from '@tiptap/extension-text-align';
+
+// ─── Constants ────────────────────────────────────────────────────────────────
 
 const VEHICLE_FEATURES = [
-    "Air Conditioning", "Bluetooth", "USB Charging", "Leather Seats",
-    "4WD/AWD", "Child Seat Available", "Rear View Camera", "GPS Navigation",
-    "Free Wi-Fi", "Wheelchair Accessible"
+  'Air Conditioning', 'Bluetooth', 'USB Charging', 'Leather Seats',
+  '4WD/AWD', 'Child Seat Available', 'Rear View Camera', 'GPS Navigation',
+  'Free Wi-Fi', 'Wheelchair Accessible', 'Professional Driver', 'Fuel Included',
+  'Complimentary Water', 'Airport Pickup',
 ];
 
-const CURRENCIES = [
-    { code: "VUV", label: "VUV – Vanuatu Vatu", symbol: "VT", hint: "Enter whole vatu (e.g. 15000)" },
-    { code: "USD", label: "USD – US Dollar", symbol: "$", hint: "Enter dollars (e.g. 120.00)" },
-    { code: "AUD", label: "AUD – Australian Dollar", symbol: "A$", hint: "Enter dollars (e.g. 150.00)" },
-    { code: "NZD", label: "NZD – New Zealand Dollar", symbol: "NZ$", hint: "Enter dollars (e.g. 175.00)" },
-    { code: "EUR", label: "EUR – Euro", symbol: "€", hint: "Enter euros (e.g. 100.00)" },
-];
+// ─── TipTap Rich Editor ───────────────────────────────────────────────────────
 
-// Approximate VUV equivalents per 1 unit of foreign currency
-const RATE_TO_VUV: Record<string, number> = {
-    VUV: 1,
-    USD: 1 / 0.0084,
-    AUD: 1 / 0.013,
-    NZD: 1 / 0.011,
-    EUR: 1 / 0.0078,
-};
-
-function parseToCents(raw: string | undefined, currency: string): number {
-    if (!raw) return 0;
-    const match = raw.replace(/,/g, "").match(/[\d]+(\.\d+)?/);
-    if (!match) return 0;
-    const num = parseFloat(match[0]);
-    if (currency === "VUV") return Math.round(num * 100);
-    return Math.round(num * RATE_TO_VUV[currency] * 100);
+function ToolbarBtn({
+  onClick, title, active, children,
+}: { onClick: () => void; title: string; active?: boolean; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      title={title}
+      onClick={onClick}
+      className={`p-1.5 rounded text-xs hover:bg-muted transition-colors ${
+        active ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+      }`}
+    >
+      {children}
+    </button>
+  );
 }
 
-function centsToDisplay(cents: number, currency: string): string {
-    if (!cents) return "";
-    if (currency === "VUV") return String(Math.round(cents / 100));
-    const foreignAmount = (cents / 100) / RATE_TO_VUV[currency];
-    return foreignAmount.toFixed(2);
+function RichEditor({
+  value,
+  onChange,
+  placeholder = 'Start typing…',
+  minHeight = '120px',
+}: {
+  value: string;
+  onChange: (html: string) => void;
+  placeholder?: string;
+  minHeight?: string;
+}) {
+  const editor = useEditor({
+    extensions: [
+      StarterKit,
+      Link.configure({ openOnClick: false, HTMLAttributes: { class: 'text-primary underline cursor-pointer' } }),
+      TextAlign.configure({ types: ['heading', 'paragraph'] }),
+    ],
+    content: value,
+    onUpdate: ({ editor }) => onChange(editor.getHTML()),
+    editorProps: {
+      attributes: {
+        class: 'p-3 text-sm focus:outline-none prose prose-sm max-w-none',
+        style: `min-height:${minHeight}; line-height:1.65`,
+      },
+    },
+  });
+
+  useEffect(() => {
+    if (editor && value !== editor.getHTML()) editor.commands.setContent(value || '');
+  }, [value]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (!editor) return null;
+
+  const addLink = () => {
+    const prev = editor.getAttributes('link').href;
+    const url = window.prompt('URL', prev);
+    if (url === null) return;
+    if (url === '') { editor.chain().focus().extendMarkRange('link').unsetLink().run(); return; }
+    editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
+  };
+
+  return (
+    <div className="border border-border rounded-lg overflow-hidden">
+      {/* Toolbar */}
+      <div className="flex flex-wrap items-center gap-0.5 px-2 py-1.5 border-b border-border bg-muted/40">
+        <ToolbarBtn onClick={() => editor.chain().focus().undo().run()} title="Undo"><Undo className="h-3 w-3" /></ToolbarBtn>
+        <ToolbarBtn onClick={() => editor.chain().focus().redo().run()} title="Redo"><Redo className="h-3 w-3" /></ToolbarBtn>
+        <div className="w-px h-4 bg-border mx-1" />
+        <ToolbarBtn onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} title="Heading 1" active={editor.isActive('heading', { level: 1 })}><Heading1 className="h-3 w-3" /></ToolbarBtn>
+        <ToolbarBtn onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} title="Heading 2" active={editor.isActive('heading', { level: 2 })}><Heading2 className="h-3 w-3" /></ToolbarBtn>
+        <ToolbarBtn onClick={() => editor.chain().focus().setParagraph().run()} title="Paragraph" active={editor.isActive('paragraph') && !editor.isActive('heading')}><AlignLeft className="h-3 w-3" /></ToolbarBtn>
+        <div className="w-px h-4 bg-border mx-1" />
+        <ToolbarBtn onClick={() => editor.chain().focus().toggleBold().run()} title="Bold" active={editor.isActive('bold')}><Bold className="h-3 w-3" /></ToolbarBtn>
+        <ToolbarBtn onClick={() => editor.chain().focus().toggleItalic().run()} title="Italic" active={editor.isActive('italic')}><Italic className="h-3 w-3" /></ToolbarBtn>
+        <ToolbarBtn onClick={() => editor.chain().focus().setTextAlign('center').run()} title="Centre" active={editor.isActive({ textAlign: 'center' })}><AlignCenter className="h-3 w-3" /></ToolbarBtn>
+        <div className="w-px h-4 bg-border mx-1" />
+        <ToolbarBtn onClick={() => editor.chain().focus().toggleBulletList().run()} title="Bullet List" active={editor.isActive('bulletList')}><List className="h-3 w-3" /></ToolbarBtn>
+        <ToolbarBtn onClick={() => editor.chain().focus().toggleOrderedList().run()} title="Numbered List" active={editor.isActive('orderedList')}><ListOrdered className="h-3 w-3" /></ToolbarBtn>
+        <ToolbarBtn onClick={() => editor.chain().focus().toggleBlockquote().run()} title="Quote" active={editor.isActive('blockquote')}><Quote className="h-3 w-3" /></ToolbarBtn>
+        <ToolbarBtn onClick={() => editor.chain().focus().setHorizontalRule().run()} title="Divider"><Minus className="h-3 w-3" /></ToolbarBtn>
+        <ToolbarBtn onClick={addLink} title="Insert Link" active={editor.isActive('link')}><LinkIcon className="h-3 w-3" /></ToolbarBtn>
+      </div>
+      <EditorContent editor={editor} />
+      <style>{`
+        .ProseMirror { outline: none; }
+        .ProseMirror p.is-editor-empty:first-child::before { content: attr(data-placeholder); float: left; color: hsl(var(--muted-foreground)); pointer-events: none; height: 0; }
+        .ProseMirror h1 { font-size: 1.3rem; font-weight: 700; margin: 0.4rem 0; }
+        .ProseMirror h2 { font-size: 1.1rem; font-weight: 600; margin: 0.3rem 0; }
+        .ProseMirror blockquote { border-left: 3px solid hsl(var(--primary)); padding-left: 1rem; color: hsl(var(--muted-foreground)); margin: 0.4rem 0; font-style: italic; }
+        .ProseMirror pre { background: hsl(var(--muted)); padding: 0.6rem; border-radius: 5px; font-family: monospace; font-size: 0.78rem; }
+        .ProseMirror ul { list-style: disc; padding-left: 1.4rem; }
+        .ProseMirror ol { list-style: decimal; padding-left: 1.4rem; }
+        .ProseMirror a { color: hsl(var(--primary)); text-decoration: underline; }
+        .ProseMirror hr { border: none; border-top: 1px solid hsl(var(--border)); margin: 0.6rem 0; }
+      `}</style>
+    </div>
+  );
 }
 
-const tourSchema = z.object({
-    title: z.string().min(3, "Title is required"),
-    isActive: z.boolean().default(true),
-    displayCurrency: z.string().default("VUV"),
-    price: z.string().min(1, "Adult price is required"),
-    childPrice: z.string().optional(),
-    duration: z.string().min(1, "Duration is required"),
-    minPax: z.string().optional(),
-    category: z.string(),
-    defaultCapacity: z.number().min(1).max(10000),
-    description: z.string().min(10, "Description is required"),
-    image: z.string().optional(),
-    vehicleDetails: z.object({
-        make: z.string().min(1, "Make is required"),
-        model: z.string().min(1, "Model is required"),
-        seats: z.number().min(1),
-        transmission: z.string(),
-        features: z.array(z.string()).optional(),
-    }).nullable().optional(),
+// ─── Field Label with page-badge ─────────────────────────────────────────────
+
+function FieldLabel({ children, badge }: { children: React.ReactNode; badge: string }) {
+  return (
+    <div className="flex items-center gap-1.5 mb-1.5">
+      <span className="text-sm font-medium">{children}</span>
+      <Badge variant="outline" className="text-[0.6rem] py-0 px-1.5 font-normal text-muted-foreground">{badge}</Badge>
+    </div>
+  );
+}
+
+// ─── Section heading ──────────────────────────────────────────────────────────
+
+function SectionHeading({ icon, title, color = 'text-foreground' }: { icon: React.ReactNode; title: string; color?: string }) {
+  return (
+    <div className={`flex items-center gap-2 mb-3 ${color}`}>
+      {icon}
+      <span className="text-sm font-semibold">{title}</span>
+    </div>
+  );
+}
+
+// ─── Schema ───────────────────────────────────────────────────────────────────
+
+const schema = z.object({
+  title: z.string().min(3, 'Title is required'),
+  isActive: z.boolean().default(true),
+  category: z.string(),
+  duration: z.string().min(1, 'Duration is required'),
+  minPax: z.string().optional(),
+  defaultCapacity: z.number().min(1).max(10000),
+
+  // Rich-text content (HTML strings from TipTap)
+  tourOverview: z.string().optional(),
+  inclusions: z.string().optional(),
+  transferDetail: z.string().optional(),
+  vehicleAbout: z.string().optional(),
+
+  image: z.string().optional(),
+
+  pricingType: z.enum(['per_person', 'group']).default('per_person'),
+  adultPriceInput: z.string().min(1, 'Adult price is required'),
+  childPriceInput: z.string().optional(),
+  groupPriceInput: z.string().optional(),
+  groupMaxPax: z.string().optional(),
+
+  vehicleDetails: z.object({
+    make: z.string().optional(),
+    model: z.string().optional(),
+    seats: z.number().min(1).optional(),
+    transmission: z.string().optional(),
+    features: z.array(z.string()).optional(),
+  }).nullable().optional(),
 });
 
-type TourFormValues = z.infer<typeof tourSchema>;
+type FormValues = z.infer<typeof schema>;
 
-interface TourDialogProps {
-    tour: any | null;
-    open: boolean;
-    onOpenChange: (open: boolean) => void;
-    onSave: (tour: any) => void;
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function parseInputToVUV(raw: string, currency: CurrencyCode): number {
+  if (!raw) return 0;
+  const n = parseFloat(raw.replace(/[^\d.]/g, ''));
+  if (isNaN(n)) return 0;
+  return Math.round(n / CURRENCIES[currency].rateFromVUV);
 }
 
-export function ProductDialog({ tour, open, onOpenChange, onSave }: TourDialogProps) {
-    const { t } = useTranslation();
-    const [isUploading, setIsUploading] = useState(false);
+function vuvToStr(cents: number, currency: CurrencyCode): string {
+  if (!cents) return '';
+  const def = CURRENCIES[currency];
+  const n = cents * def.rateFromVUV;
+  return def.isWholeUnit ? Math.round(n).toString() : n.toFixed(2);
+}
 
-    const form = useForm<TourFormValues>({
-        resolver: zodResolver(tourSchema),
-        defaultValues: {
-            title: "", isActive: true, displayCurrency: "VUV",
-            price: "", childPrice: "", duration: "", minPax: "",
-            category: "tour", defaultCapacity: 20, description: "", image: "",
-            vehicleDetails: null,
-        },
+function descToFields(desc: string | string[] | null | undefined, cat: string) {
+  if (!desc) return { tourOverview: '', transferDetail: '', vehicleAbout: '', inclusions: '' };
+  const lines = Array.isArray(desc) ? desc : [desc];
+  if (cat === 'vehicle') return { tourOverview: '', transferDetail: '', vehicleAbout: lines[0] || '', inclusions: '' };
+  if (cat === 'transfer') return { tourOverview: '', transferDetail: lines[0] || '', vehicleAbout: '', inclusions: lines[1] || '' };
+  return { tourOverview: lines[0] || '', transferDetail: '', vehicleAbout: '', inclusions: lines[1] || '' };
+}
+
+function buildDescription(values: FormValues): string[] {
+  const cat = values.category;
+  if (cat === 'vehicle') return [values.vehicleAbout || ''].filter(Boolean);
+  if (cat === 'transfer') {
+    return [values.transferDetail || '', values.inclusions || ''].filter(Boolean);
+  }
+  return [values.tourOverview || '', values.inclusions || ''].filter(Boolean);
+}
+
+// ─── Props ────────────────────────────────────────────────────────────────────
+
+interface ProductDialogProps {
+  tour: any | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSave: (data: any) => void;
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+
+export function ProductDialog({ tour, open, onOpenChange, onSave }: ProductDialogProps) {
+  const { t } = useTranslation();
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [adminCurrency, setAdminCurrency] = useState<CurrencyCode>('VUV');
+
+  const form = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: {
+      title: '', isActive: true, category: 'tour', duration: '', minPax: '',
+      defaultCapacity: 20,
+      tourOverview: '', inclusions: '', transferDetail: '', vehicleAbout: '',
+      image: '', pricingType: 'per_person',
+      adultPriceInput: '', childPriceInput: '', groupPriceInput: '', groupMaxPax: '',
+      vehicleDetails: null,
+    },
+  });
+
+  useEffect(() => {
+    if (!open) return;
+    if (tour) {
+      const cat = tour.category || 'tour';
+      const fields = descToFields(tour.description, cat);
+      form.reset({
+        title: tour.title,
+        isActive: tour.isActive ?? true,
+        category: cat,
+        duration: tour.duration,
+        minPax: tour.minPax || '',
+        defaultCapacity: tour.defaultCapacity || 20,
+        ...fields,
+        image: tour.image || '',
+        pricingType: (tour.pricingType as PricingType) || 'per_person',
+        adultPriceInput: vuvToStr(tour.adultPriceCents ?? 0, adminCurrency),
+        childPriceInput: vuvToStr(tour.childPriceCents ?? 0, adminCurrency),
+        groupPriceInput: vuvToStr(tour.groupPriceCents ?? 0, adminCurrency),
+        groupMaxPax: tour.groupMaxPax?.toString() || '',
+        vehicleDetails: tour.vehicleDetails || null,
+      });
+    } else {
+      form.reset({
+        title: '', isActive: true, category: 'tour', duration: '', minPax: '',
+        defaultCapacity: 20,
+        tourOverview: '', inclusions: '', transferDetail: '', vehicleAbout: '',
+        image: '', pricingType: 'per_person',
+        adultPriceInput: '', childPriceInput: '', groupPriceInput: '', groupMaxPax: '',
+        vehicleDetails: null,
+      });
+    }
+    setUploadError(null);
+  }, [tour, open]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleCurrencyChange = (c: CurrencyCode) => {
+    (['adultPriceInput', 'childPriceInput', 'groupPriceInput'] as const).forEach((f) => {
+      const raw = form.getValues(f) as string;
+      if (!raw) return;
+      form.setValue(f, vuvToStr(parseInputToVUV(raw, adminCurrency), c));
     });
+    setAdminCurrency(c);
+  };
 
-    useEffect(() => {
-        if (open) {
-            if (tour) {
-                const currency = tour.displayCurrency || "VUV";
-                form.reset({
-                    title: tour.title,
-                    isActive: tour.isActive ?? true,
-                    displayCurrency: currency,
-                    price: tour.adultPriceCents ? centsToDisplay(tour.adultPriceCents, currency) : (tour.price || ""),
-                    childPrice: tour.childPriceCents ? centsToDisplay(tour.childPriceCents, currency) : (tour.childPrice || ""),
-                    duration: tour.duration,
-                    minPax: tour.minPax || "",
-                    category: tour.category || "tour",
-                    defaultCapacity: tour.defaultCapacity || 20,
-                    description: Array.isArray(tour.description) ? tour.description.join("\n") : tour.description,
-                    image: tour.image,
-                    vehicleDetails: tour.vehicleDetails || null,
-                });
-            } else {
-                form.reset({
-                    title: "", isActive: true, displayCurrency: "VUV",
-                    price: "", childPrice: "", duration: "", minPax: "",
-                    category: "tour", defaultCapacity: 20, description: "", image: "",
-                    vehicleDetails: null,
-                });
-            }
-        }
-    }, [tour, open]);
+  const onSubmit = (values: FormValues) => {
+    const adultPriceCents = parseInputToVUV(values.adultPriceInput, adminCurrency);
+    const childPriceCents = parseInputToVUV(values.childPriceInput || '0', adminCurrency);
+    const groupPriceCents = parseInputToVUV(values.groupPriceInput || '0', adminCurrency);
+    onSave({
+      ...values,
+      description: buildDescription(values),
+      image: values.image || '',
+      id: tour?.id,
+      pricingType: values.pricingType,
+      adultPriceCents, childPriceCents, groupPriceCents,
+      groupMaxPax: values.groupMaxPax ? parseInt(values.groupMaxPax) : null,
+      infantPriceCents: 0, petPriceCents: 0,
+      price: `${adultPriceCents} VUV`,
+      childPrice: `${childPriceCents} VUV`,
+    });
+    onOpenChange(false);
+  };
 
-    const displayCurrency = form.watch("displayCurrency");
-    const category = form.watch("category");
-    const currencyMeta = CURRENCIES.find(c => c.code === displayCurrency) || CURRENCIES[0];
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploading(true);
+    setUploadError(null);
+    try {
+      const result = await uploadImage(file);
+      form.setValue('image', result.url);
+    } catch (err: any) {
+      setUploadError(err.message || 'Upload failed. Please check Cloudinary credentials.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
-    const onSubmit = (values: TourFormValues) => {
-        const currency = values.displayCurrency || "VUV";
-        const adultPriceCents = parseToCents(values.price, currency);
-        const childPriceCents = parseToCents(values.childPrice, currency);
-        onSave({
-            ...values,
-            description: values.description.split("\n").filter(line => line.trim() !== ""),
-            image: values.image || "",
-            id: tour?.id,
-            adultPriceCents,
-            childPriceCents,
-            price: `${currencyMeta.symbol}${values.price}`,
-            childPrice: values.childPrice ? `${currencyMeta.symbol}${values.childPrice}` : "",
-        });
-        onOpenChange(false);
-    };
+  const category = form.watch('category');
+  const pricingType = form.watch('pricingType');
+  const imageValue = form.watch('image');
 
-    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-        setIsUploading(true);
-        try {
-            const result = await uploadImage(file);
-            form.setValue("image", result.url);
-        } catch (error) {
-            console.error("Upload failed:", error);
-        } finally {
-            setIsUploading(false);
-        }
-    };
+  const catLabel = category === 'vehicle' ? 'Vehicle Hire'
+    : category === 'transfer' ? 'Transfer' : 'Tour';
 
-    return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[620px] max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                    <DialogTitle>{tour ? t("admin.editTour") : t("admin.addTour")}</DialogTitle>
-                </DialogHeader>
+  const currDef = CURRENCIES[adminCurrency];
 
-                <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                            <FormField control={form.control} name="title" render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>{t("admin.tourTitle")}</FormLabel>
-                                    <FormControl><Input placeholder="Efate Scenic Tour" {...field} /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )} />
-                            <FormField control={form.control} name="isActive" render={({ field }) => (
-                                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                                    <div className="space-y-0.5">
-                                        <FormLabel className="text-base">Visibility</FormLabel>
-                                        <div className="text-sm text-muted-foreground">Display on Storefront</div>
-                                    </div>
-                                    <FormControl>
-                                        <Switch checked={field.value} onCheckedChange={field.onChange} />
-                                    </FormControl>
-                                </FormItem>
-                            )} />
-                        </div>
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      {/* Extra-wide dialog — full viewport on small screens, capped at 1100px */}
+      <DialogContent className="w-[95vw] max-w-[1100px] max-h-[94vh] overflow-y-auto p-0">
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-full">
 
-                        <FormField control={form.control} name="category" render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>{t("admin.category")}</FormLabel>
-                                <Select
-                                    onValueChange={(v) => {
-                                        field.onChange(v);
-                                        if ((v === "vehicle" || v === "transfer") && !form.getValues("vehicleDetails")) {
-                                            form.setValue("vehicleDetails", { make: "", model: "", seats: 5, transmission: "Automatic", features: [] });
-                                        } else if (v !== "vehicle" && v !== "transfer") {
-                                            form.setValue("vehicleDetails", null);
-                                        }
-                                    }}
-                                    value={field.value}
-                                >
-                                    <FormControl><SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger></FormControl>
-                                    <SelectContent>
-                                        <SelectItem value="tour">Tour</SelectItem>
-                                        <SelectItem value="transfer">Transfer</SelectItem>
-                                        <SelectItem value="vehicle">Vehicle Hire</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                <FormMessage />
-                            </FormItem>
+            {/* ── STICKY HEADER ───────────────────────────── */}
+            <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 border-b border-border bg-background">
+              <div>
+                <DialogTitle className="text-base font-semibold">
+                  {tour ? `Edit ${catLabel}` : `New ${catLabel}`}
+                </DialogTitle>
+                <p className="text-xs text-muted-foreground mt-0.5">Fill in the details below — content maps directly to the public detail page.</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <FormField control={form.control} name="isActive" render={({ field }) => (
+                  <div className="flex items-center gap-2 mr-2">
+                    <Switch checked={field.value} onCheckedChange={field.onChange} id="isActive" />
+                    <Label htmlFor="isActive" className="text-xs cursor-pointer">
+                      {field.value ? 'Live' : 'Hidden'}
+                    </Label>
+                  </div>
+                )} />
+                <Button type="button" variant="outline" size="sm" onClick={() => onOpenChange(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" size="sm" disabled={isUploading}>
+                  {isUploading && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
+                  {tour ? 'Save Changes' : 'Create'}
+                </Button>
+              </div>
+            </div>
+
+            {/* ── MAIN BODY: two-column grid ───────────────── */}
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-0 flex-1">
+
+              {/* ══ LEFT: Content ══════════════════════════════ */}
+              <div className="p-6 border-r border-border space-y-6">
+
+                {/* Basics row */}
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="col-span-2">
+                    <FormField control={form.control} name="title" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('admin.tourTitle')}</FormLabel>
+                        <FormControl><Input placeholder="Efate Scenic Tour" className="text-base" {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                  </div>
+                  <FormField control={form.control} name="category" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('admin.category')}</FormLabel>
+                      <Select
+                        onValueChange={(v) => {
+                          field.onChange(v);
+                          if (v === 'vehicle') {
+                            if (!form.getValues('vehicleDetails')) form.setValue('vehicleDetails', { make: '', model: '', seats: 5, transmission: 'Automatic', features: [] });
+                            form.setValue('pricingType', 'group');
+                          } else if (v === 'transfer') {
+                            if (!form.getValues('vehicleDetails')) form.setValue('vehicleDetails', { make: '', model: '', seats: 5, transmission: 'Automatic', features: [] });
+                          } else {
+                            form.setValue('vehicleDetails', null);
+                            form.setValue('pricingType', 'per_person');
+                          }
+                        }}
+                        value={field.value}
+                      >
+                        <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                        <SelectContent>
+                          <SelectItem value="tour">Tour</SelectItem>
+                          <SelectItem value="transfer">Transfer</SelectItem>
+                          <SelectItem value="vehicle">Vehicle Hire</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                </div>
+
+                <div className="grid grid-cols-3 gap-4">
+                  <FormField control={form.control} name="duration" render={({ field }) => (
+                    <FormItem><FormLabel>{t('admin.duration')}</FormLabel><FormControl><Input placeholder="8am – 3pm" {...field} /></FormControl><FormMessage /></FormItem>
+                  )} />
+                  <FormField control={form.control} name="minPax" render={({ field }) => (
+                    <FormItem><FormLabel>{t('admin.minPax')}</FormLabel><FormControl><Input placeholder="Min 2 pax" {...field} /></FormControl><FormMessage /></FormItem>
+                  )} />
+                  <FormField control={form.control} name="defaultCapacity" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Capacity</FormLabel>
+                      <FormControl>
+                        <Input type="number" min="1" max="10000" placeholder="20" {...field} onChange={e => field.onChange(parseInt(e.target.value) || 0)} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                </div>
+
+                <Separator />
+
+                {/* ── TOUR CONTENT ── */}
+                {category === 'tour' && (
+                  <div className="space-y-5">
+                    <SectionHeading icon={<MapPin className="h-4 w-4 text-blue-500" />} title="Tour Page Content" color="text-blue-600 dark:text-blue-400" />
+
+                    <div>
+                      <FieldLabel badge='"Overview" card on tour page'>Overview</FieldLabel>
+                      <FormField control={form.control} name="tourOverview" render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <RichEditor
+                              value={field.value || ''}
+                              onChange={field.onChange}
+                              placeholder="Describe the tour experience, highlights, and what guests can expect…"
+                              minHeight="130px"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )} />
+                    </div>
+
+                    <div>
+                      <FieldLabel badge="Inclusions card on tour page">What's Included</FieldLabel>
+                      <FormField control={form.control} name="inclusions" render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <RichEditor
+                              value={field.value || ''}
+                              onChange={field.onChange}
+                              placeholder="Use the bullet list button to add inclusions, e.g. Hotel pickup, Lunch, Local guide…"
+                              minHeight="120px"
+                            />
+                          </FormControl>
+                          <p className="text-xs text-muted-foreground mt-1">Tip: use the bullet list (•) button for the best display on the tour page.</p>
+                          <FormMessage />
+                        </FormItem>
+                      )} />
+                    </div>
+                  </div>
+                )}
+
+                {/* ── TRANSFER CONTENT ── */}
+                {category === 'transfer' && (
+                  <div className="space-y-5">
+                    <SectionHeading icon={<Car className="h-4 w-4 text-green-600" />} title="Transfer Page Content" color="text-green-700 dark:text-green-400" />
+
+                    <div>
+                      <FieldLabel badge='"Transfer Details" card on transfer page'>Transfer Details</FieldLabel>
+                      <FormField control={form.control} name="transferDetail" render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <RichEditor
+                              value={field.value || ''}
+                              onChange={field.onChange}
+                              placeholder="Describe the transfer route, pickup/drop-off points, vehicle type, and service details…"
+                              minHeight="130px"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )} />
+                    </div>
+
+                    <div>
+                      <FieldLabel badge="Inclusions card on transfer page">What's Included</FieldLabel>
+                      <FormField control={form.control} name="inclusions" render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <RichEditor
+                              value={field.value || ''}
+                              onChange={field.onChange}
+                              placeholder="Air-conditioned vehicle, Professional driver, Door-to-door service…"
+                              minHeight="120px"
+                            />
+                          </FormControl>
+                          <p className="text-xs text-muted-foreground mt-1">Tip: use the bullet list (•) button for the best display on the transfer page.</p>
+                          <FormMessage />
+                        </FormItem>
+                      )} />
+                    </div>
+
+                    {/* Transfer vehicle specs */}
+                    <div className="bg-muted/30 rounded-lg p-4 space-y-3 border border-border">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Vehicle Info (optional)</p>
+                      <div className="grid grid-cols-2 gap-3">
+                        <FormField control={form.control} name="vehicleDetails.make" render={({ field }) => (
+                          <FormItem><FormLabel>Make</FormLabel><FormControl><Input placeholder="Toyota" {...field} value={field.value ?? ''} /></FormControl></FormItem>
                         )} />
+                        <FormField control={form.control} name="vehicleDetails.model" render={({ field }) => (
+                          <FormItem><FormLabel>Model</FormLabel><FormControl><Input placeholder="Hiace" {...field} value={field.value ?? ''} /></FormControl></FormItem>
+                        )} />
+                        <FormField control={form.control} name="vehicleDetails.seats" render={({ field }) => (
+                          <FormItem><FormLabel>Seats</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(parseInt(e.target.value))} /></FormControl></FormItem>
+                        )} />
+                        <FormField control={form.control} name="vehicleDetails.transmission" render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Transmission</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value ?? 'Automatic'}>
+                              <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                              <SelectContent>
+                                <SelectItem value="Automatic">Automatic</SelectItem>
+                                <SelectItem value="Manual">Manual</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </FormItem>
+                        )} />
+                      </div>
+                    </div>
+                  </div>
+                )}
 
-                        {(category === "vehicle" || category === "transfer") && (
-                            <div className="p-4 bg-muted/50 rounded-lg space-y-4 border border-border">
-                                <h4 className="font-semibold text-sm">Vehicle Specifications</h4>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <FormField control={form.control} name="vehicleDetails.make" render={({ field }) => (
-                                        <FormItem><FormLabel>Make</FormLabel><FormControl><Input placeholder="Toyota" {...field} /></FormControl><FormMessage /></FormItem>
-                                    )} />
-                                    <FormField control={form.control} name="vehicleDetails.model" render={({ field }) => (
-                                        <FormItem><FormLabel>Model</FormLabel><FormControl><Input placeholder="Hilux" {...field} /></FormControl><FormMessage /></FormItem>
-                                    )} />
-                                    <FormField control={form.control} name="vehicleDetails.seats" render={({ field }) => (
-                                        <FormItem><FormLabel>Seats</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value))} /></FormControl><FormMessage /></FormItem>
-                                    )} />
-                                    <FormField control={form.control} name="vehicleDetails.transmission" render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Transmission</FormLabel>
-                                            <Select onValueChange={field.onChange} value={field.value}>
-                                                <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                                                <SelectContent>
-                                                    <SelectItem value="Automatic">Automatic</SelectItem>
-                                                    <SelectItem value="Manual">Manual</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )} />
-                                    <FormField control={form.control} name="vehicleDetails.features" render={() => (
-                                        <FormItem className="col-span-2">
-                                            <div className="mb-2"><FormLabel className="text-sm font-medium">Features</FormLabel></div>
-                                            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-                                                {VEHICLE_FEATURES.map((item) => (
-                                                    <FormField key={item} control={form.control} name="vehicleDetails.features" render={({ field }) => (
-                                                        <FormItem key={item} className="flex flex-row items-center space-x-2 space-y-0">
-                                                            <FormControl>
-                                                                <Checkbox
-                                                                    checked={field.value?.includes(item)}
-                                                                    onCheckedChange={(checked) => {
-                                                                        const cur = field.value || [];
-                                                                        field.onChange(checked ? [...cur, item] : cur.filter(v => v !== item));
-                                                                    }}
-                                                                />
-                                                            </FormControl>
-                                                            <FormLabel className="font-normal text-sm cursor-pointer">{item}</FormLabel>
-                                                        </FormItem>
-                                                    )} />
-                                                ))}
-                                            </div>
-                                        </FormItem>
-                                    )} />
-                                </div>
-                            </div>
+                {/* ── VEHICLE CONTENT ── */}
+                {category === 'vehicle' && (
+                  <div className="space-y-5">
+                    <SectionHeading icon={<Car className="h-4 w-4 text-amber-600" />} title="Vehicle Hire Page Content" color="text-amber-700 dark:text-amber-400" />
+
+                    {/* Specs */}
+                    <div className="bg-muted/30 rounded-lg p-4 space-y-3 border border-border">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+                        🔧 Vehicle Specs
+                        <Badge variant="outline" className="text-[0.6rem] py-0">Vehicle Specs card</Badge>
+                      </p>
+                      <div className="grid grid-cols-2 gap-3">
+                        <FormField control={form.control} name="vehicleDetails.make" render={({ field }) => (
+                          <FormItem><FormLabel>Make</FormLabel><FormControl><Input placeholder="Toyota" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                        )} />
+                        <FormField control={form.control} name="vehicleDetails.model" render={({ field }) => (
+                          <FormItem><FormLabel>Model</FormLabel><FormControl><Input placeholder="Hilux" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                        )} />
+                        <FormField control={form.control} name="vehicleDetails.seats" render={({ field }) => (
+                          <FormItem><FormLabel>Seats</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(parseInt(e.target.value))} /></FormControl><FormMessage /></FormItem>
+                        )} />
+                        <FormField control={form.control} name="vehicleDetails.transmission" render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Transmission</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value ?? 'Automatic'}>
+                              <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                              <SelectContent>
+                                <SelectItem value="Automatic">Automatic</SelectItem>
+                                <SelectItem value="Manual">Manual</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )} />
+                      </div>
+                    </div>
+
+                    {/* About */}
+                    <div>
+                      <FieldLabel badge='"About This Vehicle" card on vehicle page'>About This Vehicle</FieldLabel>
+                      <FormField control={form.control} name="vehicleAbout" render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <RichEditor
+                              value={field.value || ''}
+                              onChange={field.onChange}
+                              placeholder="Describe the vehicle, its features, ideal use cases, coverage area…"
+                              minHeight="120px"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )} />
+                    </div>
+
+                    {/* Features */}
+                    <div className="bg-muted/30 rounded-lg p-4 border border-border space-y-2">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5 mb-3">
+                        <List className="h-3.5 w-3.5" />
+                        What's Included
+                        <Badge variant="outline" className="text-[0.6rem] py-0">Inclusions card on vehicle page</Badge>
+                      </p>
+                      <FormField control={form.control} name="vehicleDetails.features" render={() => (
+                        <FormItem>
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                            {VEHICLE_FEATURES.map((item) => (
+                              <FormField key={item} control={form.control} name="vehicleDetails.features" render={({ field }) => (
+                                <FormItem key={item} className="flex flex-row items-center space-x-2 space-y-0">
+                                  <FormControl>
+                                    <Checkbox
+                                      checked={field.value?.includes(item)}
+                                      onCheckedChange={(checked) => {
+                                        const cur = field.value || [];
+                                        field.onChange(checked ? [...cur, item] : cur.filter(v => v !== item));
+                                      }}
+                                    />
+                                  </FormControl>
+                                  <FormLabel className="font-normal text-sm cursor-pointer">{item}</FormLabel>
+                                </FormItem>
+                              )} />
+                            ))}
+                          </div>
+                        </FormItem>
+                      )} />
+                    </div>
+                  </div>
+                )}
+
+              </div>
+
+              {/* ══ RIGHT: Pricing + Media ══════════════════════ */}
+              <div className="p-6 space-y-6 bg-muted/10">
+
+                {/* ── IMAGE ── */}
+                <div>
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <ImageIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span className="text-sm font-semibold">Image</span>
+                  </div>
+                  <FormField control={form.control} name="image" render={({ field }) => (
+                    <FormItem>
+                      <div className="space-y-2">
+                        {field.value && (
+                          <div className="relative rounded-lg overflow-hidden border border-border">
+                            <img
+                              src={field.value}
+                              alt="Preview"
+                              className="w-full h-36 object-cover"
+                              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                            />
+                            <Badge className="absolute top-2 right-2 bg-green-600/90 text-white text-[0.65rem]">✓ Set</Badge>
+                          </div>
                         )}
+                        <Input
+                          placeholder="Paste image URL…"
+                          value={field.value || ''}
+                          onChange={e => field.onChange(e.target.value)}
+                          className="text-xs"
+                        />
+                        <label className={`flex items-center justify-center gap-2 cursor-pointer px-3 py-2 rounded-md border border-dashed transition-colors text-xs w-full ${
+                          isUploading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-muted/60 hover:border-primary/50 text-muted-foreground'
+                        }`}>
+                          {isUploading
+                            ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Uploading…</>
+                            : <><Upload className="h-3.5 w-3.5" /> Upload image</>
+                          }
+                          <input type="file" accept="image/*" onChange={handleImageUpload} disabled={isUploading} className="hidden" />
+                        </label>
+                        {uploadError && (
+                          <div className="rounded-md bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 px-2.5 py-2 text-xs text-red-700 dark:text-red-400 flex gap-1.5">
+                            <Info className="h-3.5 w-3.5 shrink-0 mt-0.5" />{uploadError}
+                          </div>
+                        )}
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                </div>
 
-                        {/* ── PRICING ── */}
-                        <div className="rounded-lg border border-border p-4 space-y-4 bg-muted/20">
-                            <div className="flex items-center justify-between">
-                                <h4 className="font-semibold text-sm">Pricing</h4>
-                                <Badge variant="outline" className="text-xs font-normal text-muted-foreground">
-                                    Always stored in VUV
-                                </Badge>
-                            </div>
+                <Separator />
 
-                            <FormField control={form.control} name="displayCurrency" render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Enter prices in</FormLabel>
-                                    <Select onValueChange={field.onChange} value={field.value}>
-                                        <FormControl><SelectTrigger><SelectValue placeholder="Select currency" /></SelectTrigger></FormControl>
-                                        <SelectContent>
-                                            {CURRENCIES.map(c => (
-                                                <SelectItem key={c.code} value={c.code}>{c.label}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    {displayCurrency !== "VUV" && (
-                                        <p className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1 mt-1">
-                                            <Info className="h-3 w-3 shrink-0" />
-                                            {displayCurrency} amounts will be converted to VUV (~{Math.round(RATE_TO_VUV[displayCurrency])} VUV per {displayCurrency === "EUR" ? "€1" : "$1"}) and stored in VUV.
-                                        </p>
-                                    )}
-                                    <FormMessage />
-                                </FormItem>
-                            )} />
+                {/* ── PRICING ── */}
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-1.5">
+                      <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span className="text-sm font-semibold">Pricing</span>
+                    </div>
+                    {/* Currency picker */}
+                    <Select value={adminCurrency} onValueChange={(v) => handleCurrencyChange(v as CurrencyCode)}>
+                      <SelectTrigger className="h-7 w-24 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {Object.values(CURRENCIES).map(c => (
+                          <SelectItem key={c.code} value={c.code} className="text-xs">{c.symbol} {c.code}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                            <div className="grid grid-cols-2 gap-4">
-                                <FormField control={form.control} name="price" render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Adult Price ({currencyMeta.symbol})</FormLabel>
-                                        <FormControl>
-                                            <div className="relative">
-                                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">{currencyMeta.symbol}</span>
-                                                <Input className="pl-8" placeholder={displayCurrency === "VUV" ? "15000" : "120"} {...field} />
-                                            </div>
-                                        </FormControl>
-                                        <p className="text-xs text-muted-foreground">{currencyMeta.hint}</p>
-                                        <FormMessage />
-                                    </FormItem>
-                                )} />
-                                <FormField control={form.control} name="childPrice" render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Child Price ({currencyMeta.symbol}) <span className="text-muted-foreground font-normal">— optional</span></FormLabel>
-                                        <FormControl>
-                                            <div className="relative">
-                                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">{currencyMeta.symbol}</span>
-                                                <Input className="pl-8" placeholder={displayCurrency === "VUV" ? "7500" : "60"} {...field} />
-                                            </div>
-                                        </FormControl>
-                                        <p className="text-xs text-muted-foreground">Leave blank if no child rate</p>
-                                        <FormMessage />
-                                    </FormItem>
-                                )} />
-                            </div>
+                  {/* Pricing model toggle */}
+                  <FormField control={form.control} name="pricingType" render={({ field }) => (
+                    <FormItem className="mb-4">
+                      <FormControl>
+                        <RadioGroup value={field.value} onValueChange={field.onChange} className="grid grid-cols-2 gap-2">
+                          <label htmlFor="pp" className={`flex flex-col gap-0.5 rounded-lg border-2 p-3 cursor-pointer transition-colors ${field.value === 'per_person' ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/50'}`}>
+                            <RadioGroupItem value="per_person" id="pp" className="sr-only" />
+                            <div className="flex items-center gap-1.5"><User className="h-3.5 w-3.5 text-blue-500" /><span className="text-xs font-semibold">Per Person</span></div>
+                            <p className="text-[0.65rem] text-muted-foreground">Adult/child rates</p>
+                          </label>
+                          <label htmlFor="grp" className={`flex flex-col gap-0.5 rounded-lg border-2 p-3 cursor-pointer transition-colors ${field.value === 'group' ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/50'}`}>
+                            <RadioGroupItem value="group" id="grp" className="sr-only" />
+                            <div className="flex items-center gap-1.5"><Package className="h-3.5 w-3.5 text-amber-500" /><span className="text-xs font-semibold">Group / Flat</span></div>
+                            <p className="text-[0.65rem] text-muted-foreground">One price for booking</p>
+                          </label>
+                        </RadioGroup>
+                      </FormControl>
+                    </FormItem>
+                  )} />
+
+                  {pricingType === 'per_person' && (
+                    <div className="space-y-3">
+                      {/* Adult price */}
+                      <FormField control={form.control} name="adultPriceInput" render={({ field }) => {
+                        const vuv = parseInputToVUV(field.value as string, adminCurrency);
+                        return (
+                          <FormItem>
+                            <FormLabel className="flex items-center gap-1.5 text-xs"><User className="h-3 w-3 text-blue-500" />Adult price</FormLabel>
+                            <FormControl>
+                              <div className="relative">
+                                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">{currDef.symbol}</span>
+                                <Input className="pl-7 text-sm" placeholder="3500" {...field} value={field.value as string} />
+                              </div>
+                            </FormControl>
+                            {adminCurrency !== 'VUV' && vuv > 0 && <p className="text-[0.65rem] text-muted-foreground">≈ {formatInCurrency(vuv, 'VUV')} stored</p>}
+                            <FormMessage />
+                          </FormItem>
+                        );
+                      }} />
+                      {/* Child price */}
+                      <FormField control={form.control} name="childPriceInput" render={({ field }) => {
+                        const vuv = parseInputToVUV(field.value as string, adminCurrency);
+                        return (
+                          <FormItem>
+                            <FormLabel className="flex items-center gap-1.5 text-xs"><Users className="h-3 w-3 text-green-500" />Child price <span className="font-normal text-muted-foreground">(2–12 yrs)</span></FormLabel>
+                            <FormControl>
+                              <div className="relative">
+                                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">{currDef.symbol}</span>
+                                <Input className="pl-7 text-sm" placeholder="1750" {...field} value={field.value as string} />
+                              </div>
+                            </FormControl>
+                            {adminCurrency !== 'VUV' && vuv > 0 && <p className="text-[0.65rem] text-muted-foreground">≈ {formatInCurrency(vuv, 'VUV')} stored</p>}
+                            <FormMessage />
+                          </FormItem>
+                        );
+                      }} />
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="rounded-md border border-border bg-muted/40 px-2.5 py-2 flex items-center justify-between">
+                          <span className="text-xs flex items-center gap-1"><Baby className="h-3 w-3 text-pink-400" /> Infant</span>
+                          <Badge variant="outline" className="text-[0.6rem] bg-green-500/10 text-green-600 border-green-500/20">FREE</Badge>
                         </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                            <FormField control={form.control} name="duration" render={({ field }) => (
-                                <FormItem><FormLabel>{t("admin.duration")}</FormLabel><FormControl><Input placeholder="8am to 3pm" {...field} /></FormControl><FormMessage /></FormItem>
-                            )} />
-                            <FormField control={form.control} name="minPax" render={({ field }) => (
-                                <FormItem><FormLabel>{t("admin.minPax")}</FormLabel><FormControl><Input placeholder="Min 2 pax" {...field} /></FormControl><FormMessage /></FormItem>
-                            )} />
+                        <div className="rounded-md border border-border bg-muted/40 px-2.5 py-2 flex items-center justify-between">
+                          <span className="text-xs flex items-center gap-1"><PawPrint className="h-3 w-3 text-amber-400" /> Pet</span>
+                          <Badge variant="outline" className="text-[0.6rem] bg-amber-500/10 text-amber-600 border-amber-500/20">FREE</Badge>
                         </div>
+                      </div>
+                      <p className="text-[0.65rem] text-muted-foreground flex gap-1">
+                        <Info className="h-3 w-3 shrink-0 mt-0.5" />
+                        7+ adults get 10% group discount automatically at checkout.
+                      </p>
+                    </div>
+                  )}
 
-                        <FormField control={form.control} name="defaultCapacity" render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Default Capacity *</FormLabel>
-                                <FormControl>
-                                    <Input type="number" min="1" max="10000" placeholder="20" {...field} onChange={(e) => field.onChange(parseInt(e.target.value) || 0)} />
-                                </FormControl>
-                                <p className="text-xs text-muted-foreground">
-                                    Maximum {category === "vehicle" ? "vehicles" : "guests"} per day. Can be overridden for specific dates.
-                                </p>
-                                <FormMessage />
-                            </FormItem>
-                        )} />
+                  {pricingType === 'group' && (
+                    <div className="space-y-3">
+                      <FormField control={form.control} name="groupPriceInput" render={({ field }) => {
+                        const vuv = parseInputToVUV(field.value as string, adminCurrency);
+                        return (
+                          <FormItem>
+                            <FormLabel className="flex items-center gap-1.5 text-xs"><Package className="h-3 w-3 text-amber-500" />Package price (flat rate)</FormLabel>
+                            <FormControl>
+                              <div className="relative">
+                                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">{currDef.symbol}</span>
+                                <Input className="pl-7 text-sm" placeholder="25000" {...field} value={field.value as string} />
+                              </div>
+                            </FormControl>
+                            {adminCurrency !== 'VUV' && vuv > 0 && <p className="text-[0.65rem] text-muted-foreground">≈ {formatInCurrency(vuv, 'VUV')} stored</p>}
+                            <p className="text-[0.65rem] text-muted-foreground">Flat rate regardless of pax count.</p>
+                            <FormMessage />
+                          </FormItem>
+                        );
+                      }} />
+                      <FormField control={form.control} name="groupMaxPax" render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs">Included pax <span className="font-normal text-muted-foreground">(display hint)</span></FormLabel>
+                          <FormControl><Input type="number" min="1" placeholder="4" {...field} className="text-sm" /></FormControl>
+                          <p className="text-[0.65rem] text-muted-foreground">Shown as "up to N people". Soft limit only.</p>
+                        </FormItem>
+                      )} />
+                    </div>
+                  )}
+                </div>
 
-                        <FormField control={form.control} name="description" render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>{t("admin.description")}</FormLabel>
-                                <FormControl><Textarea placeholder="Tour highlights, one per line..." className="min-h-[100px]" {...field} /></FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )} />
+              </div>
+            </div>
 
-                        <FormField control={form.control} name="image" render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>{t("admin.image")}</FormLabel>
-                                <div className="space-y-3">
-                                    {field.value && (
-                                        <img src={field.value} alt="Preview" className="w-full h-32 object-cover rounded-md border border-border" />
-                                    )}
-                                    <div className="space-y-2">
-                                        <FormControl>
-                                            <Input placeholder="Paste Cloudinary or image URL..." value={field.value || ""} onChange={(e) => field.onChange(e.target.value)} />
-                                        </FormControl>
-                                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                            <span className="flex-1 border-t border-border" /><span>or upload</span><span className="flex-1 border-t border-border" />
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <Input type="file" accept="image/*" onChange={handleImageUpload} disabled={isUploading} className="cursor-pointer" />
-                                            {isUploading && <Loader2 className="animate-spin h-4 w-4" />}
-                                        </div>
-                                    </div>
-                                </div>
-                                <FormMessage />
-                            </FormItem>
-                        )} />
-
-                        <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>{t("common.cancel")}</Button>
-                            <Button type="submit" disabled={isUploading}>
-                                {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                                {tour ? t("common.saveChanges") : t("common.create")}
-                            </Button>
-                        </DialogFooter>
-                    </form>
-                </Form>
-            </DialogContent>
-        </Dialog>
-    );
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
 }

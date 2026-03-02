@@ -1,5 +1,15 @@
 
 import { Link, useParams } from "wouter";
+import DOMPurify from 'dompurify';
+
+// Sanitise HTML from TipTap before rendering. DOMPurify must be installed:
+//   npm install dompurify @types/dompurify
+function sanitizeHtml(html: string): string {
+  if (typeof window !== 'undefined' && DOMPurify) {
+    return DOMPurify.sanitize(html, { USE_PROFILES: { html: true } });
+  }
+  return html;
+}
 import { useQuery } from "@tanstack/react-query";
 import { fetchTour } from "@/lib/api";
 import { apiRequest } from "@/lib/queryClient";
@@ -253,13 +263,15 @@ export default function TourDetail() {
               <div className="font-serif text-[1.2rem] font-bold mb-5 flex items-center gap-3 after:content-[''] after:flex-1 after:h-[1px] after:bg-[rgba(244,168,48,0.18)]">
                 {t("quickView.overview", "Overview")}
               </div>
-              <p className="text-[0.92rem] leading-[1.75] text-[#ccc6b8]">
-                {typeof tour.description === "string"
-                  ? tour.description
-                  : Array.isArray(tour.description) && tour.description[0]
-                    ? tour.description[0]
-                    : t("quickView.defaultDesc", "Experience the best of Vanuatu with this curated tour package.")}
-              </p>
+              <div
+                className="text-[0.92rem] leading-[1.75] text-[#ccc6b8] prose prose-invert prose-sm max-w-none [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_a]:text-[#f4a830] [&_a]:underline [&_blockquote]:border-l-2 [&_blockquote]:border-[#f4a830] [&_blockquote]:pl-3 [&_blockquote]:italic"
+                dangerouslySetInnerHTML={{
+                  __html: sanitizeHtml(typeof tour.description === "string"
+                    ? tour.description
+                    : Array.isArray(tour.description) && tour.description[0]
+                      ? tour.description[0]
+                      : t("quickView.defaultDesc", "Experience the best of Vanuatu with this curated tour package."))}}
+              />
             </div>
 
             {/* What's included */}
@@ -270,10 +282,14 @@ export default function TourDetail() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {tour.description.slice(1).map((item, i) => (
-                    <div key={i} className="flex items-center gap-3 text-[0.88rem] text-[#8a826e]">
-                      <div className="w-[22px] h-[22px] rounded-full bg-[#4caf7d]/15 border border-[#4caf7d] flex items-center justify-center text-[0.65rem] text-[#4caf7d] shrink-0">✓</div>
-                      <span>{item}</span>
-                    </div>
+                    item.startsWith('<') ? (
+                      <div key={i} className="col-span-2 text-[0.88rem] text-[#8a826e] prose prose-invert prose-sm max-w-none [&_ul]:list-disc [&_ul]:pl-5 [&_li]:text-[#8a826e] [&_p]:my-1" dangerouslySetInnerHTML={{ __html: sanitizeHtml(item)}} />
+                    ) : (
+                      <div key={i} className="flex items-center gap-3 text-[0.88rem] text-[#8a826e]">
+                        <div className="w-[22px] h-[22px] rounded-full bg-[#4caf7d]/15 border border-[#4caf7d] flex items-center justify-center text-[0.65rem] text-[#4caf7d] shrink-0">✓</div>
+                        <span>{item}</span>
+                      </div>
+                    )
                   ))}
                 </div>
               </div>

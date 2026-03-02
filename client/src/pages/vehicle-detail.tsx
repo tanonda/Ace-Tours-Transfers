@@ -1,5 +1,15 @@
 import { useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import DOMPurify from 'dompurify';
+
+// Sanitise HTML from TipTap before rendering. DOMPurify must be installed:
+//   npm install dompurify @types/dompurify
+function sanitizeHtml(html: string): string {
+  if (typeof window !== 'undefined' && DOMPurify) {
+    return DOMPurify.sanitize(html, { USE_PROFILES: { html: true } });
+  }
+  return html;
+}
 import { fetchVehicle } from "@/lib/api";
 import { apiRequest } from "@/lib/queryClient";
 import { Layout } from "@/components/layout";
@@ -539,7 +549,13 @@ export default function VehicleDetail() {
             <section className="bg-[#1a1710] border border-[rgba(244,168,48,0.18)] rounded-[14px] p-7">
               <SectionTitle>About This Vehicle</SectionTitle>
               <div className="space-y-3 text-[0.9rem] leading-[1.8] text-[#ccc6b8]">
-                {vehicle.description.map((p: string, i: number) => <p key={i}>{p}</p>)}
+                {vehicle.description.map((p: string, i: number) =>
+                  p.startsWith('<') ? (
+                    <div key={i} className="prose prose-invert prose-sm max-w-none [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_a]:text-[#f4a830] [&_a]:underline [&_blockquote]:border-l-2 [&_blockquote]:border-[#f4a830] [&_blockquote]:pl-3 [&_blockquote]:italic" dangerouslySetInnerHTML={{ __html: sanitizeHtml(p)}} />
+                  ) : (
+                    <p key={i}>{p}</p>
+                  )
+                )}
               </div>
             </section>
 
