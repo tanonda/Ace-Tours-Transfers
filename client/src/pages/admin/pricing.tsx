@@ -60,6 +60,8 @@ export default function AdminPricing() {
   const [adultPrice, setAdultPrice] = useState<string>("");
   const [childPrice, setChildPrice] = useState<string>("");
   const [groupPrice, setGroupPrice] = useState<string>("");
+  const [infantPrice, setInfantPrice] = useState<string>("");
+  const [petPrice, setPetPrice] = useState<string>("");
   const [isCreating, setIsCreating] = useState(false);
 
   const { data: tours = [] } = useQuery({ queryKey: ["/api/tours"], queryFn: fetchTours });
@@ -116,6 +118,8 @@ export default function AdminPricing() {
         effectiveFrom,
         adultPriceCents,
         childPriceCents,
+        infantPriceCents: parseToVUV(infantPrice || "0", entryCurrency),
+        petPriceCents: parseToVUV(petPrice || "0", entryCurrency),
         // Pass group pricing fields — the API will store them if the column exists
         ...(isGroup && { groupPriceCents, pricingType: "group" }),
         ...(!isGroup && { pricingType: "per_person" }),
@@ -125,6 +129,8 @@ export default function AdminPricing() {
       setAdultPrice("");
       setChildPrice("");
       setGroupPrice("");
+      setInfantPrice("");
+      setPetPrice("");
       setViewProductId(productId);
     } catch {
       toast({ title: "Error", description: "Failed to create pricing version.", variant: "destructive" });
@@ -315,6 +321,42 @@ export default function AdminPricing() {
                       />
                     </div>
                   </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="infant-price">Infant Price <span className="text-xs text-muted-foreground font-normal">(under 2)</span></Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-2.5 text-muted-foreground text-sm select-none">
+                        {entryCurrencySymbol}
+                      </span>
+                      <Input
+                        id="infant-price"
+                        className="pl-8"
+                        placeholder="0"
+                        value={infantPrice}
+                        onChange={e => setInfantPrice(e.target.value)}
+                        type="number"
+                        min="0"
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground">Leave blank or 0 if free</p>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="pet-price">Pet Price</Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-2.5 text-muted-foreground text-sm select-none">
+                        {entryCurrencySymbol}
+                      </span>
+                      <Input
+                        id="pet-price"
+                        className="pl-8"
+                        placeholder="0"
+                        value={petPrice}
+                        onChange={e => setPetPrice(e.target.value)}
+                        type="number"
+                        min="0"
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground">Leave blank if not applicable</p>
+                  </div>
                 </div>
               )}
 
@@ -362,6 +404,16 @@ export default function AdminPricing() {
                     {pricingType === "per_person" && previewChild > 0 && (
                       <span className="text-green-800">
                         Child: <strong>{displayAmount(previewChild, "VUV")}</strong>
+                      </span>
+                    )}
+                    {pricingType === "per_person" && infantPrice && parseToVUV(infantPrice, entryCurrency) > 0 && (
+                      <span className="text-green-800">
+                        Infant: <strong>{displayAmount(parseToVUV(infantPrice, entryCurrency), "VUV")}</strong>
+                      </span>
+                    )}
+                    {pricingType === "per_person" && petPrice && parseToVUV(petPrice, entryCurrency) > 0 && (
+                      <span className="text-green-800">
+                        Pet: <strong>{displayAmount(parseToVUV(petPrice, entryCurrency), "VUV")}</strong>
                       </span>
                     )}
                     {pricingType === "group" && previewGroup > 0 && (
@@ -492,6 +544,8 @@ export default function AdminPricing() {
                   <TableHead>Model</TableHead>
                   <TableHead>Adult / Package</TableHead>
                   <TableHead>Child</TableHead>
+                  <TableHead>Infant</TableHead>
+                  <TableHead>Pet</TableHead>
                   <TableHead>Status</TableHead>
                 </TableRow>
               </TableHeader>
@@ -536,6 +590,16 @@ export default function AdminPricing() {
                           <TableCell className="text-sm text-muted-foreground">
                             {!isGroupVersion && v.childPriceCents > 0
                               ? displayAmount(v.childPriceCents, displayCurrency)
+                              : "—"}
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {!isGroupVersion && v.infantPriceCents > 0
+                              ? displayAmount(v.infantPriceCents, displayCurrency)
+                              : "—"}
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {!isGroupVersion && v.petPriceCents > 0
+                              ? displayAmount(v.petPriceCents, displayCurrency)
                               : "—"}
                           </TableCell>
                           <TableCell>
