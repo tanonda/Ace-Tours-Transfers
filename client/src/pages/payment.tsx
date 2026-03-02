@@ -68,8 +68,9 @@ type BookingItem = {
   date?: string;
   startTime?: string;
   endTime?: string;
-  adultPriceCents?: number;
-  childPriceCents?: number;
+  unitPriceCents?: number;
+  subtotalCents?: number;    // authoritative line-item total from DB
+  /** @deprecated use subtotalCents — kept for any legacy cached sessionStorage data */
   totalCents?: number;
 };
 
@@ -422,11 +423,11 @@ export default function Payment() {
                                 </span>
                               </div>
                             </div>
-                            {item.totalCents && (
+                            {(item.subtotalCents ?? item.totalCents) ? (
                               <span className="font-bold text-sm whitespace-nowrap">
-                                {formatPriceDisplay(item.totalCents, displayCurrency)}
+                                {formatPriceDisplay((item.subtotalCents ?? item.totalCents)!, displayCurrency)}
                               </span>
-                            )}
+                            ) : null}
                           </div>
                         </div>
                       ))}

@@ -12,6 +12,8 @@ import {
 import { Layout } from "@/components/layout";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import { useCurrency } from "@/lib/currency-context";
+import { formatPriceDisplay } from "@/lib/product.types";
 import { useToast } from "@/hooks/use-toast";
 import { useCMS } from "@/lib/cms-context";
 import { format } from "date-fns";
@@ -40,6 +42,7 @@ export default function PaymentSuccess() {
   const paymentMethod = params.get("method") || "manual_transfer";
   const isCash = paymentMethod === "cash";
 
+  const { currency } = useCurrency();
   const [copiedRef, setCopiedRef] = useState(false);
 
   // Get bank details from individual site settings
@@ -244,7 +247,7 @@ export default function PaymentSuccess() {
                     {booking.totalAmountCents && (
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Total Amount</span>
-                        <span className="font-bold text-base">VT {booking.totalAmountCents.toLocaleString()}</span>
+                        <span className="font-bold text-base">{formatPriceDisplay(booking.totalAmountCents, currency)}</span>
                       </div>
                     )}
                     <div className="flex justify-between">

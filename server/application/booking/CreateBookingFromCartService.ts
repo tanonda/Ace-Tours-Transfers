@@ -143,14 +143,23 @@ export class CreateBookingFromCartService {
           serverPricedTotalCents *= priceDuration;
 
           const subtotalCents = serverPricedTotalCents;
-          const unitPriceCents =
-            totalPricedPax > 0 ? Math.round(subtotalCents / totalPricedPax) : 0;
+          const isGroupPriced = (rates as any).pricingType === 'group';
+
+          // unitPriceCents semantics differ by pricing model:
+          //   per_person — price per individual guest (subtotal ÷ pax)
+          //   group      — the flat rate IS the unit price (not divided by pax count)
+          const unitPriceCents = isGroupPriced
+            ? subtotalCents
+            : (totalPricedPax > 0 ? Math.round(subtotalCents / totalPricedPax) : 0);
+
+          // Group bookings are 1 unit; per-person bookings are counted by pax
+          const cartQuantity = isGroupPriced ? 1 : totalPricedPax;
 
           cart.addItem({
             productId: product.id,
             name: product.title,
             unitPriceCents,
-            quantity: totalPricedPax,
+            quantity: cartQuantity,
             adultPax: item.adultPax,
             childPax: item.childPax,
             date: item.date,
