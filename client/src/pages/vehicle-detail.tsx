@@ -470,11 +470,11 @@ export default function VehicleDetail() {
   return (
     <Layout>
       <SEO
-        title={`${vehicle.title} - Vehicle Hire`}
-        description={`Hire the ${vehicle.title} in Port Vila, Vanuatu. ${vd.seats ? `Seats up to ${vd.seats} passengers.` : ""} Self-drive or with driver. Book with Ace Tours & Transfers.`}
+        title={vehicle.seoTitle || `${vehicle.title} - Vehicle Hire`}
+        description={vehicle.seoDescription || `Hire the ${vehicle.title} in Port Vila, Vanuatu. ${vd.seats ? `Seats up to ${vd.seats} passengers.` : ""} Self-drive or with driver. Book with Ace Tours & Transfers.`}
         image={vehicle.image}
         type="product"
-        keywords={[vehicle.title, "car hire Vanuatu", "vehicle hire Port Vila", "self drive Vanuatu", vd.make || "", vd.model || ""]}
+        keywords={[...(vehicle.seoKeywords ? vehicle.seoKeywords.split(',').map((k: string) => k.trim()) : []), vehicle.title, "car hire Vanuatu", "vehicle hire Port Vila", "self drive Vanuatu", vd.make || "", vd.model || ""]}
         structuredType="Product"
         productName={vehicle.title}
         offer={vehicle.adultPriceCents ? { price: vehicle.adultPriceCents, currency: "VUV", availability: "InStock" } : undefined}

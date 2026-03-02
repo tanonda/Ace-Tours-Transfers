@@ -41,6 +41,10 @@ export const tours = pgTable("tours", {
   capacity: integer("capacity").notNull().default(999),
   defaultCapacity: integer("default_capacity").notNull().default(20),
   vehicleDetails: jsonb("vehicle_details"), // { make, model, seats, transmission, features[] }
+  // SEO fields (added in migration 0014)
+  seoTitle: text("seo_title"),          // custom <title> tag — falls back to product title
+  seoDescription: text("seo_description"), // custom meta description — falls back to description[0]
+  seoKeywords: text("seo_keywords"),    // comma-separated keywords appended to auto-generated list
 });
 
 export const tourInstances = pgTable("tour_instances", {

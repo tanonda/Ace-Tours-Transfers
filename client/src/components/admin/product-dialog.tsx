@@ -1,35 +1,37 @@
 /**
- * ProductDialog — Admin dialog for creating/editing products (tours, transfers, vehicles).
+ * ProductDialog — Wide, single-page admin form for creating/editing products.
  *
- * Content fields are dynamically shown per category to match what displays on each detail page:
+ * Layout: full-width sheet with a two-column grid (content left, pricing+media right).
+ * Rich text via TipTap for all descriptive fields.
  *
- * TOUR detail page:
- *   ├── "Overview" card  →  description[0]  (tourOverview)
- *   └── "What's Included" card  →  description[1..n]  (inclusions, one per line)
+ * Content ↔ detail-page mapping:
  *
- * TRANSFER detail page:
- *   ├── "Transfer Details" card  →  description[0]  (transferDetail)
- *   └── "What's Included" card  →  description[1..n]  (inclusions, one per line)
+ * TOUR:
+ *   tourOverview (HTML) → description[0] → "Overview" card
+ *   inclusions   (HTML) → description[1] → "What's Included" card
  *
- * VEHICLE detail page:
- *   ├── "About This Vehicle" card  →  description[0..n]  (vehicleAbout, one paragraph per line)
- *   ├── "Vehicle Specs" card  →  vehicleDetails.{make,model,seats,transmission}
- *   └── "What's Included" card  →  vehicleDetails.features[]
+ * TRANSFER:
+ *   transferDetail (HTML) → description[0] → "Transfer Details" card
+ *   inclusions     (HTML) → description[1] → "What's Included" card
+ *
+ * VEHICLE:
+ *   vehicleAbout (HTML) → description[0] → "About This Vehicle" card
+ *   vehicleDetails.features[] → "What's Included" card (checkboxes)
+ *   vehicleDetails.{make,model,seats,transmission} → "Vehicle Specs" card
  */
 
 import {
-  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
+  Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Separator } from '@/components/ui/separator';
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -37,13 +39,19 @@ import { z } from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useTranslation } from 'react-i18next';
 import {
-  Loader2, Upload, Baby, PawPrint, Users, Package,
-  DollarSign, Info, User, ImageIcon, Settings, Car, MapPin, List,
+  Loader2, Upload, Baby, PawPrint, Users, Package, DollarSign,
+  Info, User, ImageIcon, Settings, Car, MapPin, List, Bold, Italic,
+  Heading1, Heading2, Link as LinkIcon, Undo, Redo, AlignLeft,
+  AlignCenter, Code, Quote, Minus, ListOrdered, Search, Tag,
 } from 'lucide-react';
 import { uploadImage } from '@/lib/api';
 import { CURRENCIES, formatInCurrency } from '@/lib/currency-context';
 import type { CurrencyCode } from '@/lib/currency-context';
 import type { PricingType } from '@/lib/product.types';
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import Link from '@tiptap/extension-link';
+import TextAlign from '@tiptap/extension-text-align';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -54,9 +62,129 @@ const VEHICLE_FEATURES = [
   'Complimentary Water', 'Airport Pickup',
 ];
 
+// ─── TipTap Rich Editor ───────────────────────────────────────────────────────
+
+function ToolbarBtn({
+  onClick, title, active, children,
+}: { onClick: () => void; title: string; active?: boolean; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      title={title}
+      onClick={onClick}
+      className={`p-1.5 rounded text-xs hover:bg-muted transition-colors ${
+        active ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function RichEditor({
+  value,
+  onChange,
+  placeholder = 'Start typing…',
+  minHeight = '120px',
+}: {
+  value: string;
+  onChange: (html: string) => void;
+  placeholder?: string;
+  minHeight?: string;
+}) {
+  const editor = useEditor({
+    extensions: [
+      StarterKit,
+      Link.configure({ openOnClick: false, HTMLAttributes: { class: 'text-primary underline cursor-pointer' } }),
+      TextAlign.configure({ types: ['heading', 'paragraph'] }),
+    ],
+    content: value,
+    onUpdate: ({ editor }) => onChange(editor.getHTML()),
+    editorProps: {
+      attributes: {
+        class: 'p-3 text-sm focus:outline-none prose prose-sm max-w-none',
+        style: `min-height:${minHeight}; line-height:1.65`,
+      },
+    },
+  });
+
+  useEffect(() => {
+    if (editor && value !== editor.getHTML()) editor.commands.setContent(value || '');
+  }, [value]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (!editor) return null;
+
+  const addLink = () => {
+    const prev = editor.getAttributes('link').href;
+    const url = window.prompt('URL', prev);
+    if (url === null) return;
+    if (url === '') { editor.chain().focus().extendMarkRange('link').unsetLink().run(); return; }
+    editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
+  };
+
+  return (
+    <div className="border border-border rounded-lg overflow-hidden">
+      {/* Toolbar */}
+      <div className="flex flex-wrap items-center gap-0.5 px-2 py-1.5 border-b border-border bg-muted/40">
+        <ToolbarBtn onClick={() => editor.chain().focus().undo().run()} title="Undo"><Undo className="h-3 w-3" /></ToolbarBtn>
+        <ToolbarBtn onClick={() => editor.chain().focus().redo().run()} title="Redo"><Redo className="h-3 w-3" /></ToolbarBtn>
+        <div className="w-px h-4 bg-border mx-1" />
+        <ToolbarBtn onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} title="Heading 1" active={editor.isActive('heading', { level: 1 })}><Heading1 className="h-3 w-3" /></ToolbarBtn>
+        <ToolbarBtn onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} title="Heading 2" active={editor.isActive('heading', { level: 2 })}><Heading2 className="h-3 w-3" /></ToolbarBtn>
+        <ToolbarBtn onClick={() => editor.chain().focus().setParagraph().run()} title="Paragraph" active={editor.isActive('paragraph') && !editor.isActive('heading')}><AlignLeft className="h-3 w-3" /></ToolbarBtn>
+        <div className="w-px h-4 bg-border mx-1" />
+        <ToolbarBtn onClick={() => editor.chain().focus().toggleBold().run()} title="Bold" active={editor.isActive('bold')}><Bold className="h-3 w-3" /></ToolbarBtn>
+        <ToolbarBtn onClick={() => editor.chain().focus().toggleItalic().run()} title="Italic" active={editor.isActive('italic')}><Italic className="h-3 w-3" /></ToolbarBtn>
+        <ToolbarBtn onClick={() => editor.chain().focus().setTextAlign('center').run()} title="Centre" active={editor.isActive({ textAlign: 'center' })}><AlignCenter className="h-3 w-3" /></ToolbarBtn>
+        <div className="w-px h-4 bg-border mx-1" />
+        <ToolbarBtn onClick={() => editor.chain().focus().toggleBulletList().run()} title="Bullet List" active={editor.isActive('bulletList')}><List className="h-3 w-3" /></ToolbarBtn>
+        <ToolbarBtn onClick={() => editor.chain().focus().toggleOrderedList().run()} title="Numbered List" active={editor.isActive('orderedList')}><ListOrdered className="h-3 w-3" /></ToolbarBtn>
+        <ToolbarBtn onClick={() => editor.chain().focus().toggleBlockquote().run()} title="Quote" active={editor.isActive('blockquote')}><Quote className="h-3 w-3" /></ToolbarBtn>
+        <ToolbarBtn onClick={() => editor.chain().focus().setHorizontalRule().run()} title="Divider"><Minus className="h-3 w-3" /></ToolbarBtn>
+        <ToolbarBtn onClick={addLink} title="Insert Link" active={editor.isActive('link')}><LinkIcon className="h-3 w-3" /></ToolbarBtn>
+      </div>
+      <EditorContent editor={editor} />
+      <style>{`
+        .ProseMirror { outline: none; }
+        .ProseMirror p.is-editor-empty:first-child::before { content: attr(data-placeholder); float: left; color: hsl(var(--muted-foreground)); pointer-events: none; height: 0; }
+        .ProseMirror h1 { font-size: 1.3rem; font-weight: 700; margin: 0.4rem 0; }
+        .ProseMirror h2 { font-size: 1.1rem; font-weight: 600; margin: 0.3rem 0; }
+        .ProseMirror blockquote { border-left: 3px solid hsl(var(--primary)); padding-left: 1rem; color: hsl(var(--muted-foreground)); margin: 0.4rem 0; font-style: italic; }
+        .ProseMirror pre { background: hsl(var(--muted)); padding: 0.6rem; border-radius: 5px; font-family: monospace; font-size: 0.78rem; }
+        .ProseMirror ul { list-style: disc; padding-left: 1.4rem; }
+        .ProseMirror ol { list-style: decimal; padding-left: 1.4rem; }
+        .ProseMirror a { color: hsl(var(--primary)); text-decoration: underline; }
+        .ProseMirror hr { border: none; border-top: 1px solid hsl(var(--border)); margin: 0.6rem 0; }
+      `}</style>
+    </div>
+  );
+}
+
+// ─── Field Label with page-badge ─────────────────────────────────────────────
+
+function FieldLabel({ children, badge }: { children: React.ReactNode; badge: string }) {
+  return (
+    <div className="flex items-center gap-1.5 mb-1.5">
+      <span className="text-sm font-medium">{children}</span>
+      <Badge variant="outline" className="text-[0.6rem] py-0 px-1.5 font-normal text-muted-foreground">{badge}</Badge>
+    </div>
+  );
+}
+
+// ─── Section heading ──────────────────────────────────────────────────────────
+
+function SectionHeading({ icon, title, color = 'text-foreground' }: { icon: React.ReactNode; title: string; color?: string }) {
+  return (
+    <div className={`flex items-center gap-2 mb-3 ${color}`}>
+      {icon}
+      <span className="text-sm font-semibold">{title}</span>
+    </div>
+  );
+}
+
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
-const tourSchema = z.object({
+const schema = z.object({
   title: z.string().min(3, 'Title is required'),
   isActive: z.boolean().default(true),
   category: z.string(),
@@ -64,15 +192,16 @@ const tourSchema = z.object({
   minPax: z.string().optional(),
   defaultCapacity: z.number().min(1).max(10000),
 
-  // Tour content fields
+  // Rich-text content (HTML strings from TipTap)
   tourOverview: z.string().optional(),
   inclusions: z.string().optional(),
-
-  // Transfer content fields
   transferDetail: z.string().optional(),
-
-  // Vehicle content fields
   vehicleAbout: z.string().optional(),
+
+  // SEO fields
+  seoTitle: z.string().optional(),
+  seoDescription: z.string().max(160, 'Keep under 160 chars for best results').optional(),
+  seoKeywords: z.string().optional(),
 
   image: z.string().optional(),
 
@@ -91,110 +220,76 @@ const tourSchema = z.object({
   }).nullable().optional(),
 });
 
-type TourFormValues = z.infer<typeof tourSchema>;
-
-interface TourDialogProps {
-  tour: any | null;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onSave: (tour: any) => void;
-}
+type FormValues = z.infer<typeof schema>;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function parseInputToVUV(raw: string, inputCurrency: CurrencyCode): number {
+function parseInputToVUV(raw: string, currency: CurrencyCode): number {
   if (!raw) return 0;
-  const cleaned = raw.replace(/[^\d.]/g, '');
-  const amount = parseFloat(cleaned);
-  if (isNaN(amount)) return 0;
-  const def = CURRENCIES[inputCurrency];
-  return Math.round(amount / def.rateFromVUV);
+  const n = parseFloat(raw.replace(/[^\d.]/g, ''));
+  if (isNaN(n)) return 0;
+  return Math.round(n / CURRENCIES[currency].rateFromVUV);
 }
 
-function vuvToInputString(vuvAmount: number, outputCurrency: CurrencyCode): string {
-  if (!vuvAmount) return '';
-  const def = CURRENCIES[outputCurrency];
-  const amount = vuvAmount * def.rateFromVUV;
-  return def.isWholeUnit ? Math.round(amount).toString() : amount.toFixed(2);
+function vuvToStr(cents: number, currency: CurrencyCode): string {
+  if (!cents) return '';
+  const def = CURRENCIES[currency];
+  const n = cents * def.rateFromVUV;
+  return def.isWholeUnit ? Math.round(n).toString() : n.toFixed(2);
 }
 
-function AdminCurrencyPicker({ value, onChange }: { value: CurrencyCode; onChange: (c: CurrencyCode) => void }) {
-  return (
-    <Select value={value} onValueChange={(v) => onChange(v as CurrencyCode)}>
-      <SelectTrigger className="h-8 w-28 text-xs"><SelectValue /></SelectTrigger>
-      <SelectContent>
-        {Object.values(CURRENCIES).map((c) => (
-          <SelectItem key={c.code} value={c.code} className="text-xs">{c.symbol} {c.code}</SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  );
+function descToFields(desc: string | string[] | null | undefined, cat: string) {
+  if (!desc) return { tourOverview: '', transferDetail: '', vehicleAbout: '', inclusions: '' };
+  const lines = Array.isArray(desc) ? desc : [desc];
+  if (cat === 'vehicle') return { tourOverview: '', transferDetail: '', vehicleAbout: lines[0] || '', inclusions: '' };
+  if (cat === 'transfer') return { tourOverview: '', transferDetail: lines[0] || '', vehicleAbout: '', inclusions: lines[1] || '' };
+  return { tourOverview: lines[0] || '', transferDetail: '', vehicleAbout: '', inclusions: lines[1] || '' };
 }
 
-function PriceInputRow({ label, icon, fieldName, placeholder, hint, control, inputCurrency }: {
-  label: React.ReactNode; icon: React.ReactNode; fieldName: keyof TourFormValues;
-  placeholder?: string; hint?: string; control: any; inputCurrency: CurrencyCode;
-}) {
-  const def = CURRENCIES[inputCurrency];
-  return (
-    <FormField control={control} name={fieldName} render={({ field }) => {
-      const vuvEquiv = parseInputToVUV(field.value as string, inputCurrency);
-      const showVUVHint = inputCurrency !== 'VUV' && vuvEquiv > 0;
-      return (
-        <FormItem>
-          <FormLabel className="flex items-center gap-1.5">{icon}{label}</FormLabel>
-          <FormControl>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground font-medium select-none">{def.symbol}</span>
-              <Input className="pl-8" placeholder={placeholder} {...field} value={field.value as string} />
-            </div>
-          </FormControl>
-          {showVUVHint && <p className="text-xs text-muted-foreground flex items-center gap-1"><Info className="h-3 w-3" />≈ {formatInCurrency(vuvEquiv, 'VUV')} stored</p>}
-          {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
-          <FormMessage />
-        </FormItem>
-      );
-    }} />
-  );
+function buildDescription(values: FormValues): string[] {
+  const cat = values.category;
+  if (cat === 'vehicle') return [values.vehicleAbout || ''].filter(Boolean);
+  if (cat === 'transfer') {
+    return [values.transferDetail || '', values.inclusions || ''].filter(Boolean);
+  }
+  return [values.tourOverview || '', values.inclusions || ''].filter(Boolean);
 }
 
-function ContentBadge({ label }: { label: string }) {
-  return <Badge variant="outline" className="ml-1 text-[0.62rem] py-0 px-1.5 font-normal">{label}</Badge>;
+// ─── Props ────────────────────────────────────────────────────────────────────
+
+interface ProductDialogProps {
+  tour: any | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSave: (data: any) => void;
 }
 
-// ─── Main Dialog ──────────────────────────────────────────────────────────────
+// ─── Main Component ───────────────────────────────────────────────────────────
 
-export function ProductDialog({ tour, open, onOpenChange, onSave }: TourDialogProps) {
+export function ProductDialog({ tour, open, onOpenChange, onSave }: ProductDialogProps) {
   const { t } = useTranslation();
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState('details');
-  const [adminInputCurrency, setAdminInputCurrency] = useState<CurrencyCode>('VUV');
+  const [adminCurrency, setAdminCurrency] = useState<CurrencyCode>('VUV');
 
-  const form = useForm<TourFormValues>({
-    resolver: zodResolver(tourSchema),
+  const form = useForm<FormValues>({
+    resolver: zodResolver(schema),
     defaultValues: {
       title: '', isActive: true, category: 'tour', duration: '', minPax: '',
       defaultCapacity: 20,
       tourOverview: '', inclusions: '', transferDetail: '', vehicleAbout: '',
+      seoTitle: '', seoDescription: '', seoKeywords: '',
       image: '', pricingType: 'per_person',
       adultPriceInput: '', childPriceInput: '', groupPriceInput: '', groupMaxPax: '',
       vehicleDetails: null,
     },
   });
 
-  function descriptionToFields(desc: string | string[] | null | undefined, cat: string) {
-    if (!desc) return { tourOverview: '', transferDetail: '', vehicleAbout: '', inclusions: '' };
-    const lines = Array.isArray(desc) ? desc : [desc];
-    if (cat === 'vehicle') return { tourOverview: '', transferDetail: '', vehicleAbout: lines.join('\n'), inclusions: '' };
-    if (cat === 'transfer') return { tourOverview: '', transferDetail: lines[0] || '', vehicleAbout: '', inclusions: lines.slice(1).join('\n') };
-    return { tourOverview: lines[0] || '', transferDetail: '', vehicleAbout: '', inclusions: lines.slice(1).join('\n') };
-  }
-
   useEffect(() => {
+    if (!open) return;
     if (tour) {
       const cat = tour.category || 'tour';
-      const fields = descriptionToFields(tour.description, cat);
+      const fields = descToFields(tour.description, cat);
       form.reset({
         title: tour.title,
         isActive: tour.isActive ?? true,
@@ -203,11 +298,14 @@ export function ProductDialog({ tour, open, onOpenChange, onSave }: TourDialogPr
         minPax: tour.minPax || '',
         defaultCapacity: tour.defaultCapacity || 20,
         ...fields,
+        seoTitle: tour.seoTitle || '',
+        seoDescription: tour.seoDescription || '',
+        seoKeywords: tour.seoKeywords || '',
         image: tour.image || '',
         pricingType: (tour.pricingType as PricingType) || 'per_person',
-        adultPriceInput: vuvToInputString(tour.adultPriceCents ?? 0, adminInputCurrency),
-        childPriceInput: vuvToInputString(tour.childPriceCents ?? 0, adminInputCurrency),
-        groupPriceInput: vuvToInputString(tour.groupPriceCents ?? 0, adminInputCurrency),
+        adultPriceInput: vuvToStr(tour.adultPriceCents ?? 0, adminCurrency),
+        childPriceInput: vuvToStr(tour.childPriceCents ?? 0, adminCurrency),
+        groupPriceInput: vuvToStr(tour.groupPriceCents ?? 0, adminCurrency),
         groupMaxPax: tour.groupMaxPax?.toString() || '',
         vehicleDetails: tour.vehicleDetails || null,
       });
@@ -221,42 +319,29 @@ export function ProductDialog({ tour, open, onOpenChange, onSave }: TourDialogPr
         vehicleDetails: null,
       });
     }
-    setActiveTab('details');
     setUploadError(null);
   }, [tour, open]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleInputCurrencyChange = (newCurrency: CurrencyCode) => {
+  const handleCurrencyChange = (c: CurrencyCode) => {
     (['adultPriceInput', 'childPriceInput', 'groupPriceInput'] as const).forEach((f) => {
       const raw = form.getValues(f) as string;
       if (!raw) return;
-      form.setValue(f, vuvToInputString(parseInputToVUV(raw, adminInputCurrency), newCurrency));
+      form.setValue(f, vuvToStr(parseInputToVUV(raw, adminCurrency), c));
     });
-    setAdminInputCurrency(newCurrency);
+    setAdminCurrency(c);
   };
 
-  function buildDescription(values: TourFormValues): string[] {
-    const cat = values.category;
-    if (cat === 'vehicle') {
-      return (values.vehicleAbout || '').split('\n').map(l => l.trim()).filter(Boolean);
-    }
-    if (cat === 'transfer') {
-      const detail = values.transferDetail?.trim() || '';
-      const items = (values.inclusions || '').split('\n').map(l => l.trim()).filter(Boolean);
-      return detail ? [detail, ...items] : items;
-    }
-    const overview = values.tourOverview?.trim() || '';
-    const items = (values.inclusions || '').split('\n').map(l => l.trim()).filter(Boolean);
-    return overview ? [overview, ...items] : items;
-  }
-
-  const onSubmit = (values: TourFormValues) => {
-    const adultPriceCents = parseInputToVUV(values.adultPriceInput, adminInputCurrency);
-    const childPriceCents = parseInputToVUV(values.childPriceInput || '0', adminInputCurrency);
-    const groupPriceCents = parseInputToVUV(values.groupPriceInput || '0', adminInputCurrency);
+  const onSubmit = (values: FormValues) => {
+    const adultPriceCents = parseInputToVUV(values.adultPriceInput, adminCurrency);
+    const childPriceCents = parseInputToVUV(values.childPriceInput || '0', adminCurrency);
+    const groupPriceCents = parseInputToVUV(values.groupPriceInput || '0', adminCurrency);
     onSave({
       ...values,
       description: buildDescription(values),
       image: values.image || '',
+      seoTitle: values.seoTitle || null,
+      seoDescription: values.seoDescription || null,
+      seoKeywords: values.seoKeywords || null,
       id: tour?.id,
       pricingType: values.pricingType,
       adultPriceCents, childPriceCents, groupPriceCents,
@@ -285,205 +370,208 @@ export function ProductDialog({ tour, open, onOpenChange, onSave }: TourDialogPr
 
   const category = form.watch('category');
   const pricingType = form.watch('pricingType');
-  const categoryLabel = category === 'vehicle' ? 'Vehicle Hire' : category === 'transfer' ? 'Transfer' : 'Tour';
+  const imageValue = form.watch('image');
+
+  const catLabel = category === 'vehicle' ? 'Vehicle Hire'
+    : category === 'transfer' ? 'Transfer' : 'Tour';
+
+  const currDef = CURRENCIES[adminCurrency];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[720px] max-h-[92vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{tour ? `Edit ${categoryLabel}` : `New ${categoryLabel}`}</DialogTitle>
-        </DialogHeader>
-
+      {/* Extra-wide dialog — full viewport on small screens, capped at 1100px */}
+      <DialogContent className="w-[95vw] max-w-[1100px] max-h-[94vh] overflow-y-auto p-0">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)}>
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-3 mb-5">
-                <TabsTrigger value="details" className="flex items-center gap-1.5">
-                  <Settings className="h-3.5 w-3.5" />Details
-                </TabsTrigger>
-                <TabsTrigger value="pricing" className="flex items-center gap-1.5">
-                  <DollarSign className="h-3.5 w-3.5" />Pricing
-                </TabsTrigger>
-                <TabsTrigger value="media" className="flex items-center gap-1.5">
-                  <ImageIcon className="h-3.5 w-3.5" />Media
-                </TabsTrigger>
-              </TabsList>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-full">
 
-              {/* ── DETAILS TAB ─────────────────────────────────────────── */}
-              <TabsContent value="details" className="space-y-5 mt-0">
-
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField control={form.control} name="title" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('admin.tourTitle')}</FormLabel>
-                      <FormControl><Input placeholder="Efate Scenic Tour" {...field} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                  <FormField control={form.control} name="isActive" render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-                      <div className="space-y-0.5">
-                        <FormLabel className="text-sm">Visibility</FormLabel>
-                        <div className="text-xs text-muted-foreground">Show on storefront</div>
-                      </div>
-                      <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                    </FormItem>
-                  )} />
-                </div>
-
-                <FormField control={form.control} name="category" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('admin.category')}</FormLabel>
-                    <Select
-                      onValueChange={(v) => {
-                        field.onChange(v);
-                        if (v === 'vehicle') {
-                          if (!form.getValues('vehicleDetails')) form.setValue('vehicleDetails', { make: '', model: '', seats: 5, transmission: 'Automatic', features: [] });
-                          form.setValue('pricingType', 'group');
-                        } else if (v === 'transfer') {
-                          if (!form.getValues('vehicleDetails')) form.setValue('vehicleDetails', { make: '', model: '', seats: 5, transmission: 'Automatic', features: [] });
-                          form.setValue('pricingType', 'per_person');
-                        } else {
-                          form.setValue('vehicleDetails', null);
-                          form.setValue('pricingType', 'per_person');
-                        }
-                      }}
-                      value={field.value}
-                    >
-                      <FormControl><SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger></FormControl>
-                      <SelectContent>
-                        <SelectItem value="tour">Tour</SelectItem>
-                        <SelectItem value="transfer">Transfer</SelectItem>
-                        <SelectItem value="vehicle">Vehicle Hire</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
+            {/* ── STICKY HEADER ───────────────────────────── */}
+            <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 border-b border-border bg-background">
+              <div>
+                <DialogTitle className="text-base font-semibold">
+                  {tour ? `Edit ${catLabel}` : `New ${catLabel}`}
+                </DialogTitle>
+                <p className="text-xs text-muted-foreground mt-0.5">Fill in the details below — content maps directly to the public detail page.</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <FormField control={form.control} name="isActive" render={({ field }) => (
+                  <div className="flex items-center gap-2 mr-2">
+                    <Switch checked={field.value} onCheckedChange={field.onChange} id="isActive" />
+                    <Label htmlFor="isActive" className="text-xs cursor-pointer">
+                      {field.value ? 'Live' : 'Hidden'}
+                    </Label>
+                  </div>
                 )} />
+                <Button type="button" variant="outline" size="sm" onClick={() => onOpenChange(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" size="sm" disabled={isUploading}>
+                  {isUploading && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
+                  {tour ? 'Save Changes' : 'Create'}
+                </Button>
+              </div>
+            </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField control={form.control} name="duration" render={({ field }) => (
-                    <FormItem><FormLabel>{t('admin.duration')}</FormLabel><FormControl><Input placeholder="8am to 3pm" {...field} /></FormControl><FormMessage /></FormItem>
-                  )} />
-                  <FormField control={form.control} name="minPax" render={({ field }) => (
-                    <FormItem><FormLabel>{t('admin.minPax')}</FormLabel><FormControl><Input placeholder="Min 2 pax" {...field} /></FormControl><FormMessage /></FormItem>
-                  )} />
-                </div>
+            {/* ── MAIN BODY: two-column grid ───────────────── */}
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-0 flex-1">
 
-                <FormField control={form.control} name="defaultCapacity" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Default Capacity</FormLabel>
-                    <FormControl>
-                      <Input type="number" min="1" max="10000" placeholder="20" {...field} onChange={e => field.onChange(parseInt(e.target.value) || 0)} />
-                    </FormControl>
-                    <p className="text-xs text-muted-foreground">Maximum {category === 'vehicle' ? 'vehicles' : 'guests'} per day. Override per date in Calendar.</p>
-                    <FormMessage />
-                  </FormItem>
-                )} />
+              {/* ══ LEFT: Content ══════════════════════════════ */}
+              <div className="p-6 border-r border-border space-y-6">
 
-                {/* ─── TOUR CONTENT ─── */}
-                {category === 'tour' && (
-                  <div className="space-y-4 rounded-lg border border-border bg-blue-500/5 p-4">
-                    <div className="flex items-center gap-2 mb-1">
-                      <MapPin className="h-4 w-4 text-blue-500" />
-                      <p className="text-sm font-semibold">Tour Page Content</p>
-                    </div>
-                    <p className="text-xs text-muted-foreground -mt-3">These fields populate the cards on the Tour detail page.</p>
-
-                    <FormField control={form.control} name="tourOverview" render={({ field }) => (
+                {/* Basics row */}
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="col-span-2">
+                    <FormField control={form.control} name="title" render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="flex items-center gap-1">
-                          Overview text
-                          <ContentBadge label='"Overview" card' />
-                        </FormLabel>
-                        <FormControl>
-                          <Textarea
-                            placeholder="Describe the tour experience, highlights, and what guests can expect..."
-                            className="min-h-[100px]"
-                            {...field}
-                          />
-                        </FormControl>
-                        <p className="text-xs text-muted-foreground">Displayed in the "Overview" card on the tour detail page.</p>
-                        <FormMessage />
-                      </FormItem>
-                    )} />
-
-                    <FormField control={form.control} name="inclusions" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="flex items-center gap-1">
-                          <List className="h-3.5 w-3.5" /> What's Included items
-                          <ContentBadge label="Whats Included card" />
-                        </FormLabel>
-                        <FormControl>
-                          <Textarea
-                            placeholder={"Hotel pickup & drop-off\nLunch included\nLocal guide\nSnorkelling equipment"}
-                            className="min-h-[100px] font-mono text-sm"
-                            {...field}
-                          />
-                        </FormControl>
-                        <p className="text-xs text-muted-foreground">One item per line → each becomes a ✓ checkmark in the "What's Included" card.</p>
+                        <FormLabel>{t('admin.tourTitle')}</FormLabel>
+                        <FormControl><Input placeholder="Efate Scenic Tour" className="text-base" {...field} /></FormControl>
                         <FormMessage />
                       </FormItem>
                     )} />
                   </div>
+                  <FormField control={form.control} name="category" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('admin.category')}</FormLabel>
+                      <Select
+                        onValueChange={(v) => {
+                          field.onChange(v);
+                          if (v === 'vehicle') {
+                            if (!form.getValues('vehicleDetails')) form.setValue('vehicleDetails', { make: '', model: '', seats: 5, transmission: 'Automatic', features: [] });
+                            form.setValue('pricingType', 'group');
+                          } else if (v === 'transfer') {
+                            if (!form.getValues('vehicleDetails')) form.setValue('vehicleDetails', { make: '', model: '', seats: 5, transmission: 'Automatic', features: [] });
+                          } else {
+                            form.setValue('vehicleDetails', null);
+                            form.setValue('pricingType', 'per_person');
+                          }
+                        }}
+                        value={field.value}
+                      >
+                        <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                        <SelectContent>
+                          <SelectItem value="tour">Tour</SelectItem>
+                          <SelectItem value="transfer">Transfer</SelectItem>
+                          <SelectItem value="vehicle">Vehicle Hire</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                </div>
+
+                <div className="grid grid-cols-3 gap-4">
+                  <FormField control={form.control} name="duration" render={({ field }) => (
+                    <FormItem><FormLabel>{t('admin.duration')}</FormLabel><FormControl><Input placeholder="8am – 3pm" {...field} /></FormControl><FormMessage /></FormItem>
+                  )} />
+                  <FormField control={form.control} name="minPax" render={({ field }) => (
+                    <FormItem><FormLabel>{t('admin.minPax')}</FormLabel><FormControl><Input placeholder="Min 2 pax" {...field} /></FormControl><FormMessage /></FormItem>
+                  )} />
+                  <FormField control={form.control} name="defaultCapacity" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Capacity</FormLabel>
+                      <FormControl>
+                        <Input type="number" min="1" max="10000" placeholder="20" {...field} onChange={e => field.onChange(parseInt(e.target.value) || 0)} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                </div>
+
+                <Separator />
+
+                {/* ── TOUR CONTENT ── */}
+                {category === 'tour' && (
+                  <div className="space-y-5">
+                    <SectionHeading icon={<MapPin className="h-4 w-4 text-blue-500" />} title="Tour Page Content" color="text-blue-600 dark:text-blue-400" />
+
+                    <div>
+                      <FieldLabel badge='"Overview" card on tour page'>Overview</FieldLabel>
+                      <FormField control={form.control} name="tourOverview" render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <RichEditor
+                              value={field.value || ''}
+                              onChange={field.onChange}
+                              placeholder="Describe the tour experience, highlights, and what guests can expect…"
+                              minHeight="130px"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )} />
+                    </div>
+
+                    <div>
+                      <FieldLabel badge="Inclusions card on tour page">What's Included</FieldLabel>
+                      <FormField control={form.control} name="inclusions" render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <RichEditor
+                              value={field.value || ''}
+                              onChange={field.onChange}
+                              placeholder="Use the bullet list button to add inclusions, e.g. Hotel pickup, Lunch, Local guide…"
+                              minHeight="120px"
+                            />
+                          </FormControl>
+                          <p className="text-xs text-muted-foreground mt-1">Tip: use the bullet list (•) button for the best display on the tour page.</p>
+                          <FormMessage />
+                        </FormItem>
+                      )} />
+                    </div>
+                  </div>
                 )}
 
-                {/* ─── TRANSFER CONTENT ─── */}
+                {/* ── TRANSFER CONTENT ── */}
                 {category === 'transfer' && (
-                  <div className="space-y-4 rounded-lg border border-border bg-green-500/5 p-4">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Car className="h-4 w-4 text-green-600" />
-                      <p className="text-sm font-semibold">Transfer Page Content</p>
+                  <div className="space-y-5">
+                    <SectionHeading icon={<Car className="h-4 w-4 text-green-600" />} title="Transfer Page Content" color="text-green-700 dark:text-green-400" />
+
+                    <div>
+                      <FieldLabel badge='"Transfer Details" card on transfer page'>Transfer Details</FieldLabel>
+                      <FormField control={form.control} name="transferDetail" render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <RichEditor
+                              value={field.value || ''}
+                              onChange={field.onChange}
+                              placeholder="Describe the transfer route, pickup/drop-off points, vehicle type, and service details…"
+                              minHeight="130px"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )} />
                     </div>
-                    <p className="text-xs text-muted-foreground -mt-3">These fields populate the cards on the Transfer detail page.</p>
 
-                    <FormField control={form.control} name="transferDetail" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="flex items-center gap-1">
-                          Transfer Details text
-                          <ContentBadge label='"Transfer Details" card' />
-                        </FormLabel>
-                        <FormControl>
-                          <Textarea
-                            placeholder="Describe the transfer route, pickup/drop-off points, vehicle type, and service details..."
-                            className="min-h-[100px]"
-                            {...field}
-                          />
-                        </FormControl>
-                        <p className="text-xs text-muted-foreground">Displayed in the "Transfer Details" card on the transfer detail page.</p>
-                        <FormMessage />
-                      </FormItem>
-                    )} />
+                    <div>
+                      <FieldLabel badge="Inclusions card on transfer page">What's Included</FieldLabel>
+                      <FormField control={form.control} name="inclusions" render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <RichEditor
+                              value={field.value || ''}
+                              onChange={field.onChange}
+                              placeholder="Air-conditioned vehicle, Professional driver, Door-to-door service…"
+                              minHeight="120px"
+                            />
+                          </FormControl>
+                          <p className="text-xs text-muted-foreground mt-1">Tip: use the bullet list (•) button for the best display on the transfer page.</p>
+                          <FormMessage />
+                        </FormItem>
+                      )} />
+                    </div>
 
-                    <FormField control={form.control} name="inclusions" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="flex items-center gap-1">
-                          <List className="h-3.5 w-3.5" /> What's Included items
-                          <ContentBadge label="Whats Included card" />
-                        </FormLabel>
-                        <FormControl>
-                          <Textarea
-                            placeholder={"Air-conditioned vehicle\nProfessional driver\nDoor-to-door service\nChild seats available"}
-                            className="min-h-[100px] font-mono text-sm"
-                            {...field}
-                          />
-                        </FormControl>
-                        <p className="text-xs text-muted-foreground">One item per line → each becomes a ✓ checkmark in the "What's Included" card.</p>
-                        <FormMessage />
-                      </FormItem>
-                    )} />
-
-                    <div className="pt-3 border-t border-border space-y-3">
+                    {/* Transfer vehicle specs */}
+                    <div className="bg-muted/30 rounded-lg p-4 space-y-3 border border-border">
                       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Vehicle Info (optional)</p>
                       <div className="grid grid-cols-2 gap-3">
                         <FormField control={form.control} name="vehicleDetails.make" render={({ field }) => (
-                          <FormItem><FormLabel>Make</FormLabel><FormControl><Input placeholder="Toyota" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                          <FormItem><FormLabel>Make</FormLabel><FormControl><Input placeholder="Toyota" {...field} value={field.value ?? ''} /></FormControl></FormItem>
                         )} />
                         <FormField control={form.control} name="vehicleDetails.model" render={({ field }) => (
-                          <FormItem><FormLabel>Model</FormLabel><FormControl><Input placeholder="Hiace" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
+                          <FormItem><FormLabel>Model</FormLabel><FormControl><Input placeholder="Hiace" {...field} value={field.value ?? ''} /></FormControl></FormItem>
                         )} />
                         <FormField control={form.control} name="vehicleDetails.seats" render={({ field }) => (
-                          <FormItem><FormLabel>Seats</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(parseInt(e.target.value))} /></FormControl><FormMessage /></FormItem>
+                          <FormItem><FormLabel>Seats</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(parseInt(e.target.value))} /></FormControl></FormItem>
                         )} />
                         <FormField control={form.control} name="vehicleDetails.transmission" render={({ field }) => (
                           <FormItem>
@@ -495,7 +583,6 @@ export function ProductDialog({ tour, open, onOpenChange, onSave }: TourDialogPr
                                 <SelectItem value="Manual">Manual</SelectItem>
                               </SelectContent>
                             </Select>
-                            <FormMessage />
                           </FormItem>
                         )} />
                       </div>
@@ -503,20 +590,16 @@ export function ProductDialog({ tour, open, onOpenChange, onSave }: TourDialogPr
                   </div>
                 )}
 
-                {/* ─── VEHICLE CONTENT ─── */}
+                {/* ── VEHICLE CONTENT ── */}
                 {category === 'vehicle' && (
-                  <div className="space-y-4 rounded-lg border border-border bg-amber-500/5 p-4">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Car className="h-4 w-4 text-amber-600" />
-                      <p className="text-sm font-semibold">Vehicle Hire Page Content</p>
-                    </div>
-                    <p className="text-xs text-muted-foreground -mt-3">These fields populate the cards on the Vehicle Hire detail page.</p>
+                  <div className="space-y-5">
+                    <SectionHeading icon={<Car className="h-4 w-4 text-amber-600" />} title="Vehicle Hire Page Content" color="text-amber-700 dark:text-amber-400" />
 
                     {/* Specs */}
-                    <div className="space-y-3">
+                    <div className="bg-muted/30 rounded-lg p-4 space-y-3 border border-border">
                       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
                         🔧 Vehicle Specs
-                        <ContentBadge label='"Vehicle Specs" card' />
+                        <Badge variant="outline" className="text-[0.6rem] py-0">Vehicle Specs card</Badge>
                       </p>
                       <div className="grid grid-cols-2 gap-3">
                         <FormField control={form.control} name="vehicleDetails.make" render={({ field }) => (
@@ -545,36 +628,33 @@ export function ProductDialog({ tour, open, onOpenChange, onSave }: TourDialogPr
                     </div>
 
                     {/* About */}
-                    <div className="border-t border-border pt-3">
+                    <div>
+                      <FieldLabel badge='"About This Vehicle" card on vehicle page'>About This Vehicle</FieldLabel>
                       <FormField control={form.control} name="vehicleAbout" render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="flex items-center gap-1">
-                            About this vehicle
-                            <ContentBadge label='"About This Vehicle" card' />
-                          </FormLabel>
                           <FormControl>
-                            <Textarea
-                              placeholder={"The Toyota Hilux is Vanuatu's most popular 4WD hire vehicle.\nPerfect for exploring Efate Island's rugged terrain.\nFull tank of fuel included with every hire."}
-                              className="min-h-[110px]"
-                              {...field}
+                            <RichEditor
+                              value={field.value || ''}
+                              onChange={field.onChange}
+                              placeholder="Describe the vehicle, its features, ideal use cases, coverage area…"
+                              minHeight="120px"
                             />
                           </FormControl>
-                          <p className="text-xs text-muted-foreground">One paragraph per line. Each line becomes a paragraph in the "About This Vehicle" card.</p>
                           <FormMessage />
                         </FormItem>
                       )} />
                     </div>
 
-                    {/* Features / Included */}
-                    <div className="border-t border-border pt-3 space-y-2">
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+                    {/* Features */}
+                    <div className="bg-muted/30 rounded-lg p-4 border border-border space-y-2">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5 mb-3">
                         <List className="h-3.5 w-3.5" />
                         What's Included
-                        <ContentBadge label="Whats Included card" />
+                        <Badge variant="outline" className="text-[0.6rem] py-0">Inclusions card on vehicle page</Badge>
                       </p>
                       <FormField control={form.control} name="vehicleDetails.features" render={() => (
                         <FormItem>
-                          <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 mt-1">
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                             {VEHICLE_FEATURES.map((item) => (
                               <FormField key={item} control={form.control} name="vehicleDetails.features" render={({ field }) => (
                                 <FormItem key={item} className="flex flex-row items-center space-x-2 space-y-0">
@@ -582,8 +662,8 @@ export function ProductDialog({ tour, open, onOpenChange, onSave }: TourDialogPr
                                     <Checkbox
                                       checked={field.value?.includes(item)}
                                       onCheckedChange={(checked) => {
-                                        const current = field.value || [];
-                                        field.onChange(checked ? [...current, item] : current.filter(v => v !== item));
+                                        const cur = field.value || [];
+                                        field.onChange(checked ? [...cur, item] : cur.filter(v => v !== item));
                                       }}
                                     />
                                   </FormControl>
@@ -598,130 +678,253 @@ export function ProductDialog({ tour, open, onOpenChange, onSave }: TourDialogPr
                   </div>
                 )}
 
-              </TabsContent>
+              </div>
 
-              {/* ── PRICING TAB ─────────────────────────────────────────── */}
-              <TabsContent value="pricing" className="space-y-6 mt-0">
+              {/* ══ RIGHT: Pricing + Media ══════════════════════ */}
+              <div className="p-6 space-y-6 bg-muted/10">
 
-                <div className="flex items-center justify-between rounded-lg border border-border bg-muted/30 px-4 py-3">
-                  <div>
-                    <p className="text-sm font-medium">Price Entry Currency</p>
-                    <p className="text-xs text-muted-foreground">All amounts stored in VUV. Changing this converts displayed values.</p>
+                {/* ── IMAGE ── */}
+                <div>
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <ImageIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span className="text-sm font-semibold">Image</span>
                   </div>
-                  <AdminCurrencyPicker value={adminInputCurrency} onChange={handleInputCurrencyChange} />
-                </div>
-
-                <div className="space-y-3">
-                  <Label className="text-sm font-semibold">Pricing Model</Label>
-                  <FormField control={form.control} name="pricingType" render={({ field }) => (
+                  <FormField control={form.control} name="image" render={({ field }) => (
                     <FormItem>
-                      <FormControl>
-                        <RadioGroup value={field.value} onValueChange={field.onChange} className="grid grid-cols-2 gap-3">
-                          <label htmlFor="pricing-per-person" className={`flex flex-col gap-1 rounded-lg border-2 p-4 cursor-pointer transition-colors ${field.value === 'per_person' ? 'border-primary bg-primary/5' : 'border-border bg-background hover:bg-muted/50'}`}>
-                            <RadioGroupItem value="per_person" id="pricing-per-person" className="sr-only" />
-                            <div className="flex items-center gap-2"><User className="h-4 w-4 text-blue-500" /><span className="font-semibold text-sm">Per Person</span></div>
-                            <p className="text-xs text-muted-foreground">Adult + child rates × number of guests. Standard for tours &amp; transfers.</p>
-                          </label>
-                          <label htmlFor="pricing-group" className={`flex flex-col gap-1 rounded-lg border-2 p-4 cursor-pointer transition-colors ${field.value === 'group' ? 'border-primary bg-primary/5' : 'border-border bg-background hover:bg-muted/50'}`}>
-                            <RadioGroupItem value="group" id="pricing-group" className="sr-only" />
-                            <div className="flex items-center gap-2"><Package className="h-4 w-4 text-amber-500" /><span className="font-semibold text-sm">Group / Package</span></div>
-                            <p className="text-xs text-muted-foreground">Flat rate for the whole booking. Ideal for vehicle hire &amp; private charters.</p>
-                          </label>
-                        </RadioGroup>
-                      </FormControl>
+                      <div className="space-y-2">
+                        {field.value && (
+                          <div className="relative rounded-lg overflow-hidden border border-border">
+                            <img
+                              src={field.value}
+                              alt="Preview"
+                              className="w-full h-36 object-cover"
+                              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                            />
+                            <Badge className="absolute top-2 right-2 bg-green-600/90 text-white text-[0.65rem]">✓ Set</Badge>
+                          </div>
+                        )}
+                        <Input
+                          placeholder="Paste image URL…"
+                          value={field.value || ''}
+                          onChange={e => field.onChange(e.target.value)}
+                          className="text-xs"
+                        />
+                        <label className={`flex items-center justify-center gap-2 cursor-pointer px-3 py-2 rounded-md border border-dashed transition-colors text-xs w-full ${
+                          isUploading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-muted/60 hover:border-primary/50 text-muted-foreground'
+                        }`}>
+                          {isUploading
+                            ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Uploading…</>
+                            : <><Upload className="h-3.5 w-3.5" /> Upload image</>
+                          }
+                          <input type="file" accept="image/*" onChange={handleImageUpload} disabled={isUploading} className="hidden" />
+                        </label>
+                        {uploadError && (
+                          <div className="rounded-md bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 px-2.5 py-2 text-xs text-red-700 dark:text-red-400 flex gap-1.5">
+                            <Info className="h-3.5 w-3.5 shrink-0 mt-0.5" />{uploadError}
+                          </div>
+                        )}
+                      </div>
                       <FormMessage />
                     </FormItem>
                   )} />
                 </div>
 
-                {pricingType === 'per_person' && (
-                  <div className="rounded-lg border border-border p-4 space-y-4 bg-blue-500/5">
-                    <h4 className="font-semibold text-sm flex items-center gap-2"><User className="h-4 w-4 text-blue-500" />Per-Person Rates</h4>
-                    <div className="grid grid-cols-2 gap-4">
-                      <PriceInputRow label={<>{t('admin.price')} <span className="text-xs text-muted-foreground font-normal">(adult)</span></>} icon={<User className="h-3.5 w-3.5 text-blue-500" />} fieldName="adultPriceInput" placeholder={adminInputCurrency === 'VUV' ? '3500' : '30.00'} control={form.control} inputCurrency={adminInputCurrency} />
-                      <PriceInputRow label={<>{t('admin.childPrice')} <span className="text-xs text-muted-foreground font-normal">(2–12 yrs)</span></>} icon={<Users className="h-3.5 w-3.5 text-green-500" />} fieldName="childPriceInput" placeholder={adminInputCurrency === 'VUV' ? '1750' : '15.00'} control={form.control} inputCurrency={adminInputCurrency} />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-1.5">
-                        <Label className="flex items-center gap-1.5 text-sm font-medium"><Baby className="h-3.5 w-3.5 text-pink-500" />Infant <span className="text-xs text-muted-foreground font-normal">(under 2)</span></Label>
-                        <div className="flex items-center gap-2 h-10 px-3 rounded-md border border-border bg-muted/50"><span className="text-sm text-muted-foreground">Always free</span><Badge variant="outline" className="ml-auto text-xs bg-green-500/10 text-green-600 border-green-500/20">FREE</Badge></div>
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label className="flex items-center gap-1.5 text-sm font-medium"><PawPrint className="h-3.5 w-3.5 text-amber-500" />Pet</Label>
-                        <div className="flex items-center gap-2 h-10 px-3 rounded-md border border-border bg-muted/50"><span className="text-sm text-muted-foreground">Always free</span><Badge variant="outline" className="ml-auto text-xs bg-amber-500/10 text-amber-600 border-amber-500/20">FREE</Badge></div>
-                      </div>
-                    </div>
-                    <div className="rounded-md bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900 px-3 py-2 text-xs text-blue-700 dark:text-blue-400 flex items-start gap-2">
-                      <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-                      Group discounts (7+ adults, 10% off) and peak season surcharges are applied automatically by the pricing engine at checkout.
-                    </div>
-                  </div>
-                )}
+                <Separator />
 
-                {pricingType === 'group' && (
-                  <div className="rounded-lg border border-border p-4 space-y-4 bg-amber-500/5">
-                    <h4 className="font-semibold text-sm flex items-center gap-2"><Package className="h-4 w-4 text-amber-500" />Group / Package Rate</h4>
-                    <PriceInputRow label="Package Price (flat rate)" icon={<Package className="h-3.5 w-3.5 text-amber-500" />} fieldName="groupPriceInput" placeholder={adminInputCurrency === 'VUV' ? '25000' : '210.00'} hint="This flat rate covers the entire booking regardless of pax count." control={form.control} inputCurrency={adminInputCurrency} />
-                    <FormField control={form.control} name="groupMaxPax" render={({ field }) => (
+                {/* ── SEO ── */}
+                <div>
+                  <div className="flex items-center gap-1.5 mb-3">
+                    <Search className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span className="text-sm font-semibold">SEO / Search Rankings</span>
+                  </div>
+                  <div className="space-y-3">
+                    <FormField control={form.control} name="seoTitle" render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="flex items-center gap-1.5"><Users className="h-3.5 w-3.5 text-muted-foreground" />Included Pax <span className="text-xs text-muted-foreground font-normal">(display hint, optional)</span></FormLabel>
-                        <FormControl><Input type="number" min="1" placeholder="e.g. 4 (up to 4 people)" {...field} /></FormControl>
-                        <p className="text-xs text-muted-foreground">Shown to customers as "up to N people included". Does not enforce a hard limit — use Capacity for enforcement.</p>
+                        <FormLabel className="text-xs">Page title <span className="font-normal text-muted-foreground">(optional)</span></FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder={`e.g. ${form.watch('title') || 'Airport Transfer Vanuatu'} | Ace Tours`}
+                            className="text-xs"
+                            {...field}
+                            value={field.value ?? ''}
+                          />
+                        </FormControl>
+                        <p className="text-[0.65rem] text-muted-foreground">Overrides the default title tag. Leave blank to use the product title.</p>
                         <FormMessage />
                       </FormItem>
                     )} />
-                    <div className="rounded-md bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 px-3 py-2 text-xs text-amber-700 dark:text-amber-400 flex items-start gap-2">
-                      <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-                      Group/package pricing skips per-person calculations. Group discount and seasonal surcharge rules still apply.
-                    </div>
-                  </div>
-                )}
-              </TabsContent>
 
-              {/* ── MEDIA TAB ───────────────────────────────────────────── */}
-              <TabsContent value="media" className="space-y-5 mt-0">
-                <FormField control={form.control} name="image" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('admin.image')}</FormLabel>
-                    <div className="space-y-3">
-                      {field.value && (
-                        <div className="relative">
-                          <img src={field.value} alt="Preview" className="w-full h-48 object-cover rounded-md border border-border" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-                          <div className="absolute top-2 right-2"><Badge className="bg-green-500/90 text-white text-xs">✓ Image set</Badge></div>
-                        </div>
-                      )}
-                      <div className="space-y-2">
+                    <FormField control={form.control} name="seoDescription" render={({ field }) => {
+                      const len = (field.value || '').length;
+                      const color = len === 0 ? 'text-muted-foreground' : len <= 160 ? 'text-green-600' : 'text-red-500';
+                      return (
+                        <FormItem>
+                          <FormLabel className="flex items-center justify-between text-xs">
+                            <span>Meta description <span className="font-normal text-muted-foreground">(optional)</span></span>
+                            <span className={`text-[0.6rem] font-mono ${color}`}>{len}/160</span>
+                          </FormLabel>
+                          <FormControl>
+                            <textarea
+                              rows={3}
+                              placeholder="A compelling 1–2 sentence summary shown in Google search results…"
+                              className="w-full rounded-md border border-input bg-background px-3 py-2 text-xs shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
+                              {...field}
+                              value={field.value ?? ''}
+                            />
+                          </FormControl>
+                          <p className="text-[0.65rem] text-muted-foreground">Aim for 120–155 characters. This appears directly under your title in Google.</p>
+                          <FormMessage />
+                        </FormItem>
+                      );
+                    }} />
+
+                    <FormField control={form.control} name="seoKeywords" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="flex items-center gap-1.5 text-xs">
+                          <Tag className="h-3 w-3" />
+                          Keywords <span className="font-normal text-muted-foreground">(optional)</span>
+                        </FormLabel>
                         <FormControl>
-                          <Input placeholder="Paste Cloudinary or image URL..." value={field.value || ''} onChange={e => field.onChange(e.target.value)} />
+                          <Input
+                            placeholder="airport transfer, Port Vila, Vanuatu taxi…"
+                            className="text-xs"
+                            {...field}
+                            value={field.value ?? ''}
+                          />
                         </FormControl>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <span className="flex-1 border-t border-border" /><span>or upload a file</span><span className="flex-1 border-t border-border" />
-                        </div>
-                        <label className={`flex items-center gap-2 cursor-pointer px-4 py-2.5 rounded-md border border-dashed transition-colors text-sm w-full justify-center ${isUploading ? 'border-border text-muted-foreground cursor-not-allowed' : 'border-border hover:bg-muted/50 hover:border-primary/50 text-muted-foreground'}`}>
-                          {isUploading ? <><Loader2 className="h-4 w-4 animate-spin" /> Uploading to Cloudinary…</> : <><Upload className="h-4 w-4" /> Choose file to upload</>}
-                          <input type="file" accept="image/*" onChange={handleImageUpload} disabled={isUploading} className="hidden" />
-                        </label>
-                        {uploadError && (
-                          <div className="rounded-md bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 px-3 py-2 text-xs text-red-700 dark:text-red-400 flex items-start gap-2">
-                            <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" /><span>{uploadError}</span>
-                          </div>
-                        )}
-                        <p className="text-xs text-muted-foreground">JPEG, PNG, WebP or GIF · Max 5MB · Uploaded to Cloudinary CDN</p>
-                      </div>
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-              </TabsContent>
-            </Tabs>
+                        <p className="text-[0.65rem] text-muted-foreground">Comma-separated. Added to the auto-generated keyword list for this page.</p>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                  </div>
+                </div>
 
-            <DialogFooter className="mt-6 pt-4 border-t border-border">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>{t('common.cancel')}</Button>
-              <Button type="submit" disabled={isUploading}>
-                {isUploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {tour ? t('common.saveChanges') : t('common.create')}
-              </Button>
-            </DialogFooter>
+                <Separator />
+
+                {/* ── PRICING ── */}
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-1.5">
+                      <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span className="text-sm font-semibold">Pricing</span>
+                    </div>
+                    {/* Currency picker */}
+                    <Select value={adminCurrency} onValueChange={(v) => handleCurrencyChange(v as CurrencyCode)}>
+                      <SelectTrigger className="h-7 w-24 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {Object.values(CURRENCIES).map(c => (
+                          <SelectItem key={c.code} value={c.code} className="text-xs">{c.symbol} {c.code}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Pricing model toggle */}
+                  <FormField control={form.control} name="pricingType" render={({ field }) => (
+                    <FormItem className="mb-4">
+                      <FormControl>
+                        <RadioGroup value={field.value} onValueChange={field.onChange} className="grid grid-cols-2 gap-2">
+                          <label htmlFor="pp" className={`flex flex-col gap-0.5 rounded-lg border-2 p-3 cursor-pointer transition-colors ${field.value === 'per_person' ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/50'}`}>
+                            <RadioGroupItem value="per_person" id="pp" className="sr-only" />
+                            <div className="flex items-center gap-1.5"><User className="h-3.5 w-3.5 text-blue-500" /><span className="text-xs font-semibold">Per Person</span></div>
+                            <p className="text-[0.65rem] text-muted-foreground">Adult/child rates</p>
+                          </label>
+                          <label htmlFor="grp" className={`flex flex-col gap-0.5 rounded-lg border-2 p-3 cursor-pointer transition-colors ${field.value === 'group' ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/50'}`}>
+                            <RadioGroupItem value="group" id="grp" className="sr-only" />
+                            <div className="flex items-center gap-1.5"><Package className="h-3.5 w-3.5 text-amber-500" /><span className="text-xs font-semibold">Group / Flat</span></div>
+                            <p className="text-[0.65rem] text-muted-foreground">One price for booking</p>
+                          </label>
+                        </RadioGroup>
+                      </FormControl>
+                    </FormItem>
+                  )} />
+
+                  {pricingType === 'per_person' && (
+                    <div className="space-y-3">
+                      {/* Adult price */}
+                      <FormField control={form.control} name="adultPriceInput" render={({ field }) => {
+                        const vuv = parseInputToVUV(field.value as string, adminCurrency);
+                        return (
+                          <FormItem>
+                            <FormLabel className="flex items-center gap-1.5 text-xs"><User className="h-3 w-3 text-blue-500" />Adult price</FormLabel>
+                            <FormControl>
+                              <div className="relative">
+                                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">{currDef.symbol}</span>
+                                <Input className="pl-7 text-sm" placeholder="3500" {...field} value={field.value as string} />
+                              </div>
+                            </FormControl>
+                            {adminCurrency !== 'VUV' && vuv > 0 && <p className="text-[0.65rem] text-muted-foreground">≈ {formatInCurrency(vuv, 'VUV')} stored</p>}
+                            <FormMessage />
+                          </FormItem>
+                        );
+                      }} />
+                      {/* Child price */}
+                      <FormField control={form.control} name="childPriceInput" render={({ field }) => {
+                        const vuv = parseInputToVUV(field.value as string, adminCurrency);
+                        return (
+                          <FormItem>
+                            <FormLabel className="flex items-center gap-1.5 text-xs"><Users className="h-3 w-3 text-green-500" />Child price <span className="font-normal text-muted-foreground">(2–12 yrs)</span></FormLabel>
+                            <FormControl>
+                              <div className="relative">
+                                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">{currDef.symbol}</span>
+                                <Input className="pl-7 text-sm" placeholder="1750" {...field} value={field.value as string} />
+                              </div>
+                            </FormControl>
+                            {adminCurrency !== 'VUV' && vuv > 0 && <p className="text-[0.65rem] text-muted-foreground">≈ {formatInCurrency(vuv, 'VUV')} stored</p>}
+                            <FormMessage />
+                          </FormItem>
+                        );
+                      }} />
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="rounded-md border border-border bg-muted/40 px-2.5 py-2 flex items-center justify-between">
+                          <span className="text-xs flex items-center gap-1"><Baby className="h-3 w-3 text-pink-400" /> Infant</span>
+                          <Badge variant="outline" className="text-[0.6rem] bg-green-500/10 text-green-600 border-green-500/20">FREE</Badge>
+                        </div>
+                        <div className="rounded-md border border-border bg-muted/40 px-2.5 py-2 flex items-center justify-between">
+                          <span className="text-xs flex items-center gap-1"><PawPrint className="h-3 w-3 text-amber-400" /> Pet</span>
+                          <Badge variant="outline" className="text-[0.6rem] bg-amber-500/10 text-amber-600 border-amber-500/20">FREE</Badge>
+                        </div>
+                      </div>
+                      <p className="text-[0.65rem] text-muted-foreground flex gap-1">
+                        <Info className="h-3 w-3 shrink-0 mt-0.5" />
+                        7+ adults get 10% group discount automatically at checkout.
+                      </p>
+                    </div>
+                  )}
+
+                  {pricingType === 'group' && (
+                    <div className="space-y-3">
+                      <FormField control={form.control} name="groupPriceInput" render={({ field }) => {
+                        const vuv = parseInputToVUV(field.value as string, adminCurrency);
+                        return (
+                          <FormItem>
+                            <FormLabel className="flex items-center gap-1.5 text-xs"><Package className="h-3 w-3 text-amber-500" />Package price (flat rate)</FormLabel>
+                            <FormControl>
+                              <div className="relative">
+                                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">{currDef.symbol}</span>
+                                <Input className="pl-7 text-sm" placeholder="25000" {...field} value={field.value as string} />
+                              </div>
+                            </FormControl>
+                            {adminCurrency !== 'VUV' && vuv > 0 && <p className="text-[0.65rem] text-muted-foreground">≈ {formatInCurrency(vuv, 'VUV')} stored</p>}
+                            <p className="text-[0.65rem] text-muted-foreground">Flat rate regardless of pax count.</p>
+                            <FormMessage />
+                          </FormItem>
+                        );
+                      }} />
+                      <FormField control={form.control} name="groupMaxPax" render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs">Included pax <span className="font-normal text-muted-foreground">(display hint)</span></FormLabel>
+                          <FormControl><Input type="number" min="1" placeholder="4" {...field} className="text-sm" /></FormControl>
+                          <p className="text-[0.65rem] text-muted-foreground">Shown as "up to N people". Soft limit only.</p>
+                        </FormItem>
+                      )} />
+                    </div>
+                  )}
+                </div>
+
+              </div>
+            </div>
+
           </form>
         </Form>
       </DialogContent>

@@ -1,0 +1,76 @@
+Connecting with pg (TCP) + ipv4first + 30s timeout...
+❌ Connection failed!
+AggregateError [ETIMEDOUT]: 
+    at /home/bandit/Documents/Ace-Tours-Transfers/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async testConnection (/home/bandit/Documents/Ace-Tours-Transfers/scripts/test-pg-long.ts:22:17) {
+  code: 'ETIMEDOUT',
+  [errors]: [
+    Error: connect ETIMEDOUT 54.206.85.193:5432
+        at createConnectionError (node:net:1678:14)
+        at Timeout.internalConnectMultipleTimeout (node:net:1737:38)
+        at listOnTimeout (node:internal/timers:607:11)
+        at process.processTimers (node:internal/timers:541:7) {
+      errno: -110,
+      code: 'ETIMEDOUT',
+      syscall: 'connect',
+      address: '54.206.85.193',
+      port: 5432
+    },
+    Error: connect ENETUNREACH 2406:da1c:b7c:d11:b952:e163:87c0:5972:5432 - Local (:::0)
+        at internalConnectMultiple (node:net:1206:16)
+        at Timeout.internalConnectMultipleTimeout (node:net:1742:5)
+        at listOnTimeout (node:internal/timers:607:11)
+        at process.processTimers (node:internal/timers:541:7) {
+      errno: -101,
+      code: 'ENETUNREACH',
+      syscall: 'connect',
+      address: '2406:da1c:b7c:d11:b952:e163:87c0:5972',
+      port: 5432
+    },
+    Error: connect ETIMEDOUT 3.106.69.51:5432
+        at createConnectionError (node:net:1678:14)
+        at Timeout.internalConnectMultipleTimeout (node:net:1737:38)
+        at listOnTimeout (node:internal/timers:607:11)
+        at process.processTimers (node:internal/timers:541:7) {
+      errno: -110,
+      code: 'ETIMEDOUT',
+      syscall: 'connect',
+      address: '3.106.69.51',
+      port: 5432
+    },
+    Error: connect ENETUNREACH 2406:da1c:b7c:d20:2c57:4c4d:e935:9480:5432 - Local (:::0)
+        at internalConnectMultiple (node:net:1206:16)
+        at Timeout.internalConnectMultipleTimeout (node:net:1742:5)
+        at listOnTimeout (node:internal/timers:607:11)
+        at process.processTimers (node:internal/timers:541:7) {
+      errno: -101,
+      code: 'ENETUNREACH',
+      syscall: 'connect',
+      address: '2406:da1c:b7c:d20:2c57:4c4d:e935:9480',
+      port: 5432
+    },
+    Error: connect ETIMEDOUT 54.153.234.207:5432
+        at createConnectionError (node:net:1678:14)
+        at Timeout.internalConnectMultipleTimeout (node:net:1737:38)
+        at listOnTimeout (node:internal/timers:607:11)
+        at process.processTimers (node:internal/timers:541:7) {
+      errno: -110,
+      code: 'ETIMEDOUT',
+      syscall: 'connect',
+      address: '54.153.234.207',
+      port: 5432
+    },
+    Error: connect ENETUNREACH 2406:da1c:b7c:d0e:9858:9714:c422:b17b:5432 - Local (:::0)
+        at internalConnectMultiple (node:net:1206:16)
+        at Timeout.internalConnectMultipleTimeout (node:net:1742:5)
+        at listOnTimeout (node:internal/timers:607:11)
+        at process.processTimers (node:internal/timers:541:7) {
+      errno: -101,
+      code: 'ENETUNREACH',
+      syscall: 'connect',
+      address: '2406:da1c:b7c:d0e:9858:9714:c422:b17b',
+      port: 5432
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+Connecting with pg (TCP) + ipv4first + 30s timeout...
+✅ Connection successful!
+Latency: 864 ms
+Time: 2026-03-02T08:33:59.666Z

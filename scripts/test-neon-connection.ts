@@ -10,22 +10,30 @@ async function testConnection() {
     process.exit(1);
   }
 
-  console.log("Connecting to Neon...");
+  console.log("Connecting to Neon (IP + SNI)...");
   const pool = new Pool({
-    connectionString,
-    connectionTimeoutMillis: 5000,
+    host: "54.206.85.193",
+    port: 5432,
+    user: "neondb_owner",
+    password: process.env.DB_PASSWORD,
+    database: "neondb",
+    ssl: {
+      servername: "ep-bitter-frog-a7zxak3x-pooler.ap-southeast-2.aws.neon.tech",
+      rejectUnauthorized: false
+    },
+    connectionTimeoutMillis: 10000,
   });
 
   try {
     const start = Date.now();
     const res = await pool.query('SELECT NOW(), VERSION()');
     const end = Date.now();
-    
+
     console.log("✅ Connection successful!");
     console.log(`⏱️ Latency: ${end - start}ms`);
     console.log(`📅 Server Time: ${res.rows[0].now}`);
     console.log(`📦 Postgres Version: ${res.rows[0].version}`);
-    
+
     await pool.end();
     process.exit(0);
   } catch (err: any) {

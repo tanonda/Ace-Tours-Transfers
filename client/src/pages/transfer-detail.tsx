@@ -176,11 +176,11 @@ export default function TransferDetail() {
   return (
     <Layout>
       <SEO
-        title={transfer.title}
-        description={(Array.isArray(transfer.description) ? transfer.description[0] : transfer.description)?.slice(0, 155) || `Book ${transfer.title} in Port Vila, Vanuatu. Reliable transfer service with Ace Tours & Transfers.`}
+        title={transfer.seoTitle || transfer.title}
+        description={transfer.seoDescription || (Array.isArray(transfer.description) ? transfer.description[0] : transfer.description)?.replace(/<[^>]+>/g, '').slice(0, 155) || `Book ${transfer.title} in Port Vila, Vanuatu. Reliable transfer service with Ace Tours & Transfers.`}
         image={transfer.image}
         type="product"
-        keywords={[transfer.title, "Vanuatu transfer", "Port Vila transport", "airport transfer Vanuatu"]}
+        keywords={[...(transfer.seoKeywords ? transfer.seoKeywords.split(',').map((k: string) => k.trim()) : []), transfer.title, "Vanuatu transfer", "Port Vila transport", "airport transfer Vanuatu"]}
         structuredType="TouristAttraction"
         productName={transfer.title}
         productDescription={Array.isArray(transfer.description) ? transfer.description[0] : transfer.description}

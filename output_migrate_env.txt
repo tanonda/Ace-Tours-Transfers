@@ -1,0 +1,70 @@
+Running migrations...
+DATABASE_URL used for migration: Configured
+ErrorEvent {
+  Symbol(kTarget): WebSocket {
+    _events: [Object: null prototype] {
+      error: [Function],
+      message: [Function],
+      close: [Function],
+      open: [Function]
+    },
+    _eventsCount: 4,
+    _maxListeners: undefined,
+    _binaryType: 'arraybuffer',
+    _closeCode: 1006,
+    _closeFrameReceived: false,
+    _closeFrameSent: false,
+    _closeMessage: <Buffer >,
+    _closeTimer: null,
+    _errorEmitted: true,
+    _extensions: {},
+    _paused: false,
+    _protocol: '',
+    _readyState: 3,
+    _receiver: null,
+    _sender: null,
+    _socket: null,
+    _bufferedAmount: 0,
+    _isServer: false,
+    _redirects: 0,
+    _autoPong: true,
+    _url: 'wss://54.206.85.193/v2',
+    _req: null,
+    Symbol(shapeMode): false,
+    Symbol(kCapture): false
+  },
+  Symbol(kType): 'error',
+  Symbol(kError): Error [ERR_TLS_CERT_ALTNAME_INVALID]: Hostname/IP does not match certificate's altnames: IP: 54.206.85.193 is not in the cert's list: 
+      at Object.checkServerIdentity (node:tls:455:12)
+      at TLSSocket.onConnectSecure (node:_tls_wrap:1659:27)
+      at TLSSocket.emit (node:events:508:28)
+      at TLSSocket._finishInit (node:_tls_wrap:1094:8)
+      at ssl.onhandshakedone (node:_tls_wrap:880:12) {
+    code: 'ERR_TLS_CERT_ALTNAME_INVALID',
+    reason: "IP: 54.206.85.193 is not in the cert's list: ",
+    host: '54.206.85.193',
+    cert: {
+      subject: [Object: null prototype],
+      issuer: [Object: null prototype],
+      subjectaltname: 'DNS:*.ap-southeast-2.aws.neon.tech',
+      infoAccess: [Object: null prototype],
+      ca: false,
+      modulus: 'C97139BF6CDC75B97974F2B18E734FCF28E07C85339C6D6673A420689F5C0B142D101572886B25D008189347D3F6E09FD83C891DA1F27386BAB3E7ACA811D638036C7079CF40B0E0C35D2DC05A223AFBFA6BDFC1C74D42A623A8FA798B53F6FB42130AEE83AE217C4C4DE95330C332B44A05564E9F216D29AF719460A709E287DDB4D2029606E6F99F334C9349D27F30AFC55B92E193CBC5C805765A948E4B27E6FB5809ABC5EF10AAD0C2E8467A7FE0747FF3A06DFBE5FA58E210ADD313CB3D0386AF8D4B3906D4CA843FF8562ED35373DDD5B6BA1DA1059E14505A4081F0E75EBAFA00CF8871D13A01AF369EE4978200CFAFBB65F474B9C05F57A84BFF1507',
+      exponent: '0x10001',
+      pubkey: <Buffer 30 82 01 22 30 0d 06 09 2a 86 48 86 f7 0d 01 01 01 05 00 03 82 01 0f 00 30 82 01 0a 02 82 01 01 00 c9 71 39 bf 6c dc 75 b9 79 74 f2 b1 8e 73 4f cf 28 ... 244 more bytes>,
+      bits: 2048,
+      valid_from: 'Jan  6 03:42:50 2026 GMT',
+      valid_to: 'Apr  6 03:42:49 2026 GMT',
+      fingerprint: '1B:46:86:E8:A7:45:EF:07:85:BE:C5:1E:32:C8:62:89:3A:52:D9:E8',
+      fingerprint256: '8C:FB:8D:CC:55:CB:7E:C5:E9:D8:04:78:F4:FF:E9:27:F2:67:E5:D2:27:10:EF:CF:E4:FE:6A:2E:E5:02:98:B6',
+      fingerprint512: 'B0:25:C1:FA:2F:97:B4:52:2C:BA:D1:71:E4:D6:1E:CB:0C:4B:5F:B1:4A:40:96:12:37:E8:D8:C3:86:84:75:80:C6:39:EC:9A:E7:73:C9:F3:6F:30:37:18:D0:0B:E1:7E:F0:35:12:E7:CA:5F:85:98:37:F4:5B:26:72:E3:91:D0',
+      ext_key_usage: [Array],
+      serialNumber: '06ED74FF79A0B989D5A415686749E4191099',
+      raw: <Buffer 30 82 05 1a 30 82 04 02 a0 03 02 01 02 02 12 06 ed 74 ff 79 a0 b9 89 d5 a4 15 68 67 49 e4 19 10 99 30 0d 06 09 2a 86 48 86 f7 0d 01 01 0b 05 00 30 33 ... 1260 more bytes>,
+      asn1Curve: undefined,
+      nistCurve: undefined,
+      issuerCertificate: [Object]
+    }
+  },
+  Symbol(kMessage): "Hostname/IP does not match certificate's altnames: IP: 54.206.85.193 is not in the cert's list: "
+}

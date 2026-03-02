@@ -183,11 +183,11 @@ export default function TourDetail() {
   return (
     <Layout>
       <SEO
-        title={tour.title}
-        description={(Array.isArray(tour.description) ? tour.description[0] : tour.description)?.slice(0, 155) || `Book ${tour.title} in Port Vila, Vanuatu. ${tour.duration || ""} tour with Ace Tours & Transfers.`}
+        title={tour.seoTitle || tour.title}
+        description={tour.seoDescription || (Array.isArray(tour.description) ? tour.description[0] : tour.description)?.replace(/<[^>]+>/g, '').slice(0, 155) || `Book ${tour.title} in Port Vila, Vanuatu. ${tour.duration || ""} tour with Ace Tours & Transfers.`}
         image={tour.image}
         type="product"
-        keywords={[tour.title, "Vanuatu tour", "Port Vila tour", tour.category || ""]}
+        keywords={[...(tour.seoKeywords ? tour.seoKeywords.split(',').map((k: string) => k.trim()) : []), tour.title, "Vanuatu tour", "Port Vila tour", tour.category || ""]}
         structuredType="TouristAttraction"
         productName={tour.title}
         productDescription={Array.isArray(tour.description) ? tour.description[0] : tour.description}

@@ -17,14 +17,15 @@
  */
 
 import "dotenv/config";
-import { Pool, neonConfig } from "@neondatabase/serverless";
-import ws from "ws";
+import pkg from "pg";
+const { Pool } = pkg;
 import fs from "fs";
 import path from "path";
-import crypto from "crypto";
-import { fileURLToPath } from "url";
+import dns from "node:dns";
 
-neonConfig.webSocketConstructor = ws;
+if (dns.setDefaultResultOrder) {
+  dns.setDefaultResultOrder("ipv4first");
+}
 
 if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL must be set.");
@@ -52,13 +53,24 @@ function splitStatements(sql: string): string[] {
 }
 
 /**
- * Core migration logic. Accepts an optional existing Pool (e.g. the shared
- * neonPool from db.ts) to avoid spinning up a competing WebSocket connection
- * at startup. If no pool is provided, a new one is created and cleaned up.
+ * Core migration logic. Uses standard TCP with IP + SNI for resilience and
+ * multi-statement support.
  */
-export async function runIdempotentMigrations(existingPool?: any): Promise<void> {
-  let ownPool: any = null;
-  const pool = existingPool ?? (ownPool = new Pool({ connectionString: process.env.DATABASE_URL }));
+export async function runIdempotentMigrations(): Promise<void> {
+  // Use standard TCP (not WebSockets) to ensure SNI/servername works correctly
+  const pool = new Pool({
+    host: "54.206.85.193",
+    port: 5432,
+    user: "neondb_owner",
+    password: process.env.DB_PASSWORD,
+    database: "neondb",
+    ssl: {
+      servername: "ep-bitter-frog-a7zxak3x-pooler.ap-southeast-2.aws.neon.tech",
+      rejectUnauthorized: false
+    },
+    connectionTimeoutMillis: 10000,
+  });
+
   const client = await pool.connect();
 
   try {
@@ -121,9 +133,7 @@ export async function runIdempotentMigrations(existingPool?: any): Promise<void>
     console.log("Migrations complete!");
   } finally {
     client.release();
-    if (ownPool) {
-      await ownPool.end();
-    }
+    await pool.end();
   }
 }
 
