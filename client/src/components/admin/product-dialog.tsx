@@ -32,7 +32,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Separator } from '@/components/ui/separator';
-import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -52,6 +51,7 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
 import TextAlign from '@tiptap/extension-text-align';
+import { useState, useEffect, useRef } from 'react';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -92,6 +92,11 @@ function RichEditor({
   placeholder?: string;
   minHeight?: string;
 }) {
+  // Track whether the last content change came from the editor itself (user typing)
+  // vs from an external value update (e.g. dialog opening with saved data).
+  // This prevents the sync useEffect from overwriting what the user just typed.
+  const internalChange = useRef(false);
+
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -99,7 +104,10 @@ function RichEditor({
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
     ],
     content: value,
-    onUpdate: ({ editor }) => onChange(editor.getHTML()),
+    onUpdate: ({ editor }) => {
+      internalChange.current = true;
+      onChange(editor.getHTML());
+    },
     editorProps: {
       attributes: {
         class: 'p-3 text-sm focus:outline-none prose prose-sm max-w-none',
@@ -108,9 +116,20 @@ function RichEditor({
     },
   });
 
+  // Only push value into editor when the change came from outside
+  // (e.g. form reset when dialog opens), never when the user is typing.
   useEffect(() => {
-    if (editor && value !== editor.getHTML()) editor.commands.setContent(value || '');
-  }, [value]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (!editor) return;
+    if (internalChange.current) {
+      internalChange.current = false;
+      return;
+    }
+    // External value change — sync into editor only if content actually differs
+    const current = editor.getHTML();
+    if (value !== current) {
+      editor.commands.setContent(value || '');
+    }
+  }, [value, editor]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!editor) return null;
 
