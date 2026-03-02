@@ -22,7 +22,7 @@ import { SEO, cloudinaryOpt } from "@/components/seo";
 import { GuestReviewForm } from "@/components/GuestReviewForm";
 import { useCart } from "@/lib/cart-context";
 import { useBookingDraft } from "@/lib/booking-state-context";
-import { formatPriceDisplay } from "@/lib/product.types";
+import { formatPriceDisplay, estimateBookingTotal } from "@/lib/product.types";
 import { useCurrency } from "@/lib/currency-context";
 import {
   addDays, format, differenceInCalendarDays,
@@ -412,7 +412,10 @@ export default function VehicleDetail() {
     }
   }, [toast]);
 
-  const totalPriceCents = vehicle ? vehicle.adultPriceCents * Math.max(1, hireDays) : 0;
+  // Use groupPriceCents as the day rate for group/flat-rate vehicles, adultPriceCents for per-person
+  const isGroupPricing = vehicle?.pricingType === "group";
+  const dayRateCents = vehicle ? (isGroupPricing ? (vehicle.groupPriceCents || vehicle.adultPriceCents) : vehicle.adultPriceCents) : 0;
+  const totalPriceCents = dayRateCents * Math.max(1, hireDays);
   const canBook = !!(pickupDate && returnDate && hireDays >= 1 && availabilityStatus !== "unavailable");
 
   const handleAddToCart = () => {
@@ -646,11 +649,13 @@ export default function VehicleDetail() {
             {/* Price header */}
             <div className="bg-[#211e18] px-6 py-5 border-b border-[rgba(244,168,48,0.12)]">
               <div className="flex items-baseline gap-2 mb-1">
-                <span className="text-[0.72rem] text-[#3a342c]">From</span>
-                <span className="font-serif text-[2rem] font-bold text-[#f4a830]">{formatPriceDisplay(vehicle.adultPriceCents, currency)}</span>
+                <span className="text-[0.72rem] text-[#3a342c]">{isGroupPricing ? "Package rate" : "From"}</span>
+                <span className="font-serif text-[2rem] font-bold text-[#f4a830]">{formatPriceDisplay(dayRateCents, currency)}</span>
                 <span className="text-[0.78rem] text-[#3a342c]">/ day</span>
               </div>
-              <div className="text-[0.72rem] text-[#3a342c]">Total price based on hire duration</div>
+              <div className="text-[0.72rem] text-[#3a342c]">
+                {isGroupPricing ? `Flat rate${vehicle.groupMaxPax ? ` — up to ${vehicle.groupMaxPax} people` : ""}` : "Total price based on hire duration"}
+              </div>
             </div>
 
             <div className="bg-[#1a1710] p-5 flex flex-col gap-5">
@@ -721,7 +726,7 @@ export default function VehicleDetail() {
                       <span className="font-black text-[#f4a830] text-[0.9rem]">{hireDays} {hireDays === 1 ? "day" : "days"}</span>
                     </div>
                     <div className="flex justify-between text-[0.83rem]">
-                      <span className="text-[#3a342c]">{formatPriceDisplay(vehicle.adultPriceCents, currency)} × {hireDays}d</span>
+                      <span className="text-[#3a342c]">{formatPriceDisplay(dayRateCents, currency)} × {hireDays}d</span>
                       <span className="font-semibold">{formatPriceDisplay(totalPriceCents, currency)}</span>
                     </div>
                     <div className="flex justify-between pt-2 border-t border-[rgba(244,168,48,0.12)] font-black text-[1rem]">

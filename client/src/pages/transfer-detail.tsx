@@ -20,7 +20,7 @@ import { useTranslation } from "react-i18next";
 import { useState, useEffect, useCallback } from "react";
 import { useCart } from "@/lib/cart-context";
 import { useBookingDraft } from "@/lib/booking-state-context";
-import { formatPriceDisplay, type ProductCategory } from "@/lib/product.types";
+import { formatPriceDisplay, estimateBookingTotal, type ProductCategory } from "@/lib/product.types";
 import { useCurrency } from "@/lib/currency-context";
 import { AvailabilityCalendar } from "@/components/AvailabilityCalendar";
 import { SEO, cloudinaryOpt } from "@/components/seo";
@@ -153,11 +153,12 @@ export default function TransferDetail() {
     );
   }
 
-  // Instant total — zero network latency, recalculates on every render
+  // Instant total — respects pricingType (per_person or group)
   const adultSubtotal = transfer.adultPriceCents * adultPax;
   const childSubtotal = transfer.childPriceCents * childPax;
-  const rawTotal = adultSubtotal + childSubtotal;
-  const instantTotal = adultPax >= 7 ? Math.round(rawTotal * 0.9) : rawTotal;
+  const isGroupPricing = transfer.pricingType === "group";
+  const baseTotal = estimateBookingTotal(transfer, adultPax, childPax);
+  const instantTotal = isGroupPricing ? baseTotal : (adultPax >= 7 ? Math.round(baseTotal * 0.9) : baseTotal);
 
   const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
     `Hi! I have a question about "${transfer.title}". `
@@ -259,14 +260,28 @@ export default function TransferDetail() {
             {/* Rates */}
             <div className="bg-[#1a1710] border border-[rgba(244,168,48,0.18)] rounded-[14px] p-7">
               <div className="font-serif text-[1.2rem] font-bold mb-5 flex items-center gap-3 after:content-[''] after:flex-1 after:h-[1px] after:bg-[rgba(244,168,48,0.18)]">Rates & Options</div>
-              <div className="flex justify-between items-center text-[1rem] mb-3 pb-3 border-b border-[rgba(244,168,48,0.1)]">
-                <span className="text-[#8a826e]">Per Adult</span>
-                <span className="font-bold text-[#f0ece4]">{formatPriceDisplay(transfer.adultPriceCents, currency)}</span>
-              </div>
-              {transfer.childPriceCents > 0 && (
-                <div className="flex justify-between items-center text-[1rem]">
-                  <span className="text-[#8a826e]">Per Child</span>
-                  <span className="font-bold text-[#f0ece4]">{formatPriceDisplay(transfer.childPriceCents, currency)}</span>
+              {isGroupPricing ? (
+                <div>
+                  <div className="flex justify-between items-center text-[1rem] mb-3 pb-3 border-b border-[rgba(244,168,48,0.1)]">
+                    <span className="text-[#8a826e]">Group / Package Rate</span>
+                    <span className="font-bold text-[#f0ece4]">{formatPriceDisplay(transfer.groupPriceCents, currency)}</span>
+                  </div>
+                  {transfer.groupMaxPax && (
+                    <p className="text-[0.8rem] text-[#8a826e]">Flat rate — up to {transfer.groupMaxPax} people included</p>
+                  )}
+                </div>
+              ) : (
+                <div>
+                  <div className="flex justify-between items-center text-[1rem] mb-3 pb-3 border-b border-[rgba(244,168,48,0.1)]">
+                    <span className="text-[#8a826e]">Per Adult</span>
+                    <span className="font-bold text-[#f0ece4]">{formatPriceDisplay(transfer.adultPriceCents, currency)}</span>
+                  </div>
+                  {transfer.childPriceCents > 0 && (
+                    <div className="flex justify-between items-center text-[1rem]">
+                      <span className="text-[#8a826e]">Per Child</span>
+                      <span className="font-bold text-[#f0ece4]">{formatPriceDisplay(transfer.childPriceCents, currency)}</span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -323,14 +338,28 @@ export default function TransferDetail() {
 
             {/* Price header */}
             <div className="bg-[#211e18] px-6 py-5 border-b border-[rgba(244,168,48,0.18)]">
-              <div className="flex items-baseline gap-2 mb-1">
-                <span className="text-[0.78rem] text-[#8a826e]">From</span>
-                <span className="font-serif text-[2rem] font-bold text-[#f4a830]">{formatPriceDisplay(transfer.adultPriceCents, currency)}</span>
-                <span className="text-[0.8rem] text-[#8a826e]">/ person</span>
-              </div>
-              {transfer.childPriceCents > 0 && (
-                <div className="text-[0.78rem] text-[#8a826e]">
-                  Child: {formatPriceDisplay(transfer.childPriceCents, currency)} · Children pricing available
+              {isGroupPricing ? (
+                <div>
+                  <div className="flex items-baseline gap-2 mb-1">
+                    <span className="text-[0.78rem] text-[#8a826e]">Package rate</span>
+                    <span className="font-serif text-[2rem] font-bold text-[#f4a830]">{formatPriceDisplay(transfer.groupPriceCents, currency)}</span>
+                  </div>
+                  {transfer.groupMaxPax && (
+                    <div className="text-[0.78rem] text-[#8a826e]">Flat rate — up to {transfer.groupMaxPax} people</div>
+                  )}
+                </div>
+              ) : (
+                <div>
+                  <div className="flex items-baseline gap-2 mb-1">
+                    <span className="text-[0.78rem] text-[#8a826e]">From</span>
+                    <span className="font-serif text-[2rem] font-bold text-[#f4a830]">{formatPriceDisplay(transfer.adultPriceCents, currency)}</span>
+                    <span className="text-[0.8rem] text-[#8a826e]">/ person</span>
+                  </div>
+                  {transfer.childPriceCents > 0 && (
+                    <div className="text-[0.78rem] text-[#8a826e]">
+                      Child: {formatPriceDisplay(transfer.childPriceCents, currency)} · Children pricing available
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -399,58 +428,65 @@ export default function TransferDetail() {
                   <span className="text-[0.7rem] font-black uppercase tracking-[0.1em] text-[#8a826e]">Price Breakdown</span>
                 </div>
                 <div className="px-4 py-3 space-y-2">
-                  {/* Adults */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[0.82rem] text-[#ccc6b8]">{adultPax} × Adult</span>
-                      <span className="text-[0.72rem] text-[#8a826e]">@ {formatPriceDisplay(transfer.adultPriceCents, currency)}</span>
-                    </div>
-                    <span className="text-[0.9rem] font-semibold text-[#f0ece4]">{formatPriceDisplay(adultSubtotal, currency)}</span>
-                  </div>
-                  {/* Children — only shown when > 0 */}
-                  {childPax > 0 && (
+                  {isGroupPricing ? (
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className="text-[0.82rem] text-[#ccc6b8]">{childPax} × Child</span>
-                        {transfer.childPriceCents > 0
-                          ? <span className="text-[0.72rem] text-[#8a826e]">@ {formatPriceDisplay(transfer.childPriceCents, currency)}</span>
-                          : <span className="text-[0.72rem] text-[#4caf7d]">Free</span>
-                        }
+                        <span className="text-[0.82rem] text-[#ccc6b8]">Package rate</span>
+                        {transfer.groupMaxPax && (
+                          <span className="text-[0.72rem] text-[#8a826e]">up to {transfer.groupMaxPax} people</span>
+                        )}
                       </div>
-                      <span className="text-[0.9rem] font-semibold text-[#f0ece4]">
-                        {transfer.childPriceCents > 0 ? formatPriceDisplay(childSubtotal, currency) : <span className="text-[#4caf7d]">VT 0</span>}
-                      </span>
+                      <span className="text-[0.9rem] font-semibold text-[#f0ece4]">{formatPriceDisplay(transfer.groupPriceCents, currency)}</span>
                     </div>
-                  )}
-                  {/* Infants line */}
-                  {infantPax > 0 && (
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[0.82rem] text-[#ccc6b8]">{infantPax} × Infant</span>
-                        <span className="text-[0.72rem] text-[#4caf7d]">Free</span>
+                  ) : (
+                    <>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[0.82rem] text-[#ccc6b8]">{adultPax} × Adult</span>
+                          <span className="text-[0.72rem] text-[#8a826e]">@ {formatPriceDisplay(transfer.adultPriceCents, currency)}</span>
+                        </div>
+                        <span className="text-[0.9rem] font-semibold text-[#f0ece4]">{formatPriceDisplay(adultSubtotal, currency)}</span>
                       </div>
-                      <span className="text-[0.9rem] font-semibold text-[#4caf7d]">VT 0</span>
-                    </div>
+                      {childPax > 0 && (
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[0.82rem] text-[#ccc6b8]">{childPax} × Child</span>
+                            {transfer.childPriceCents > 0
+                              ? <span className="text-[0.72rem] text-[#8a826e]">@ {formatPriceDisplay(transfer.childPriceCents, currency)}</span>
+                              : <span className="text-[0.72rem] text-[#4caf7d]">Free</span>
+                            }
+                          </div>
+                          <span className="text-[0.9rem] font-semibold text-[#f0ece4]">
+                            {transfer.childPriceCents > 0 ? formatPriceDisplay(childSubtotal, currency) : <span className="text-[#4caf7d]">VT 0</span>}
+                          </span>
+                        </div>
+                      )}
+                      {infantPax > 0 && (
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[0.82rem] text-[#ccc6b8]">{infantPax} × Infant</span>
+                            <span className="text-[0.72rem] text-[#4caf7d]">Free</span>
+                          </div>
+                          <span className="text-[0.9rem] font-semibold text-[#4caf7d]">VT 0</span>
+                        </div>
+                      )}
+                      {petPax > 0 && (
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[0.82rem] text-[#ccc6b8]">{petPax} × Pet</span>
+                            <span className="text-[0.72rem] text-[#4caf7d]">Free</span>
+                          </div>
+                          <span className="text-[0.9rem] font-semibold text-[#4caf7d]">VT 0</span>
+                        </div>
+                      )}
+                      {adultPax >= 7 && (
+                        <div className="flex items-center justify-between text-[#4caf7d]">
+                          <span className="text-[0.78rem]">🎉 Group discount (10%)</span>
+                          <span className="text-[0.82rem] font-semibold">−applied</span>
+                        </div>
+                      )}
+                    </>
                   )}
-
-                  {/* Pets line */}
-                  {petPax > 0 && (
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[0.82rem] text-[#ccc6b8]">{petPax} × Pet</span>
-                        <span className="text-[0.72rem] text-[#4caf7d]">Free</span>
-                      </div>
-                      <span className="text-[0.9rem] font-semibold text-[#4caf7d]">VT 0</span>
-                    </div>
-                  )}
-                  {/* Group discount */}
-                  {adultPax >= 7 && (
-                    <div className="flex items-center justify-between text-[#4caf7d]">
-                      <span className="text-[0.78rem]">🎉 Group discount (10%)</span>
-                      <span className="text-[0.82rem] font-semibold">−applied</span>
-                    </div>
-                  )}
-                  {/* Total */}
                   <div className="border-t border-[rgba(244,168,48,0.18)] pt-2 mt-1 flex items-center justify-between">
                     <span className="text-[0.8rem] font-bold text-[#8a826e] uppercase tracking-wider">{date ? "Total" : "Est. Total"}</span>
                     <div className="text-right">

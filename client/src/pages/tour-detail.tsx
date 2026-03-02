@@ -21,7 +21,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useCart } from "@/lib/cart-context";
 import { useBookingDraft } from "@/lib/booking-state-context";
 import { useRealtimeAvailability } from "@/hooks/useRealtimeAvailability";
-import { formatPriceDisplay, type ProductCategory } from "@/lib/product.types";
+import { formatPriceDisplay, estimateBookingTotal, type ProductCategory } from "@/lib/product.types";
 import { useCurrency } from "@/lib/currency-context";
 import { AvailabilityCalendar } from "@/components/AvailabilityCalendar";
 import { AvailabilityStatus } from "@/components/AvailabilityStatus";
@@ -300,14 +300,28 @@ export default function TourDetail() {
               <div className="font-serif text-[1.2rem] font-bold mb-5 flex items-center gap-3 after:content-[''] after:flex-1 after:h-[1px] after:bg-[rgba(244,168,48,0.18)]">
                 {t("quickView.ratesOptions", "Rates & Options")}
               </div>
-              <div className="flex justify-between items-center text-[1rem] mb-3 pb-3 border-b border-[rgba(244,168,48,0.1)]">
-                <span className="text-[#8a826e]">{t("quickView.adult", "Adult")}</span>
-                <span className="font-bold text-[#f0ece4]">{formatPriceDisplay(tour.adultPriceCents, currency)}</span>
-              </div>
-              {tour.childPriceCents > 0 && (
-                <div className="flex justify-between items-center text-[1rem]">
-                  <span className="text-[#8a826e]">{t("quickView.child", "Child")}</span>
-                  <span className="font-bold text-[#f0ece4]">{formatPriceDisplay(tour.childPriceCents, currency)}</span>
+              {tour.pricingType === "group" ? (
+                <div>
+                  <div className="flex justify-between items-center text-[1rem] mb-3 pb-3 border-b border-[rgba(244,168,48,0.1)]">
+                    <span className="text-[#8a826e]">Group / Package Rate</span>
+                    <span className="font-bold text-[#f0ece4]">{formatPriceDisplay(tour.groupPriceCents, currency)}</span>
+                  </div>
+                  {tour.groupMaxPax && (
+                    <p className="text-[0.8rem] text-[#8a826e]">Flat rate — up to {tour.groupMaxPax} people included</p>
+                  )}
+                </div>
+              ) : (
+                <div>
+                  <div className="flex justify-between items-center text-[1rem] mb-3 pb-3 border-b border-[rgba(244,168,48,0.1)]">
+                    <span className="text-[#8a826e]">{t("quickView.adult", "Adult")}</span>
+                    <span className="font-bold text-[#f0ece4]">{formatPriceDisplay(tour.adultPriceCents, currency)}</span>
+                  </div>
+                  {tour.childPriceCents > 0 && (
+                    <div className="flex justify-between items-center text-[1rem]">
+                      <span className="text-[#8a826e]">{t("quickView.child", "Child")}</span>
+                      <span className="font-bold text-[#f0ece4]">{formatPriceDisplay(tour.childPriceCents, currency)}</span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -360,16 +374,32 @@ export default function TourDetail() {
 
             {/* Price header */}
             <div className="bg-[#211e18] px-6 py-5 border-b border-[rgba(244,168,48,0.18)]">
-              <div className="flex items-baseline gap-2 mb-1">
-                <span className="text-[0.78rem] text-[#8a826e]">{t("tour.from", "From")}</span>
-                <span className="font-serif text-[2rem] font-bold text-[#f4a830]">
-                  {formatPriceDisplay(tour.adultPriceCents, currency)}
-                </span>
-                <span className="text-[0.8rem] text-[#8a826e]">/ {t("quickView.adult", "adult")}</span>
-              </div>
-              {tour.childPriceCents > 0 && (
-                <div className="text-[0.78rem] text-[#8a826e]">
-                  {t("quickView.child", "Child")}: {formatPriceDisplay(tour.childPriceCents, currency)} · {t("tour.childrenPriceNote", "Children pricing available")}
+              {tour.pricingType === "group" ? (
+                <div>
+                  <div className="flex items-baseline gap-2 mb-1">
+                    <span className="text-[0.78rem] text-[#8a826e]">Package rate</span>
+                    <span className="font-serif text-[2rem] font-bold text-[#f4a830]">
+                      {formatPriceDisplay(tour.groupPriceCents, currency)}
+                    </span>
+                  </div>
+                  {tour.groupMaxPax && (
+                    <div className="text-[0.78rem] text-[#8a826e]">Flat rate — up to {tour.groupMaxPax} people</div>
+                  )}
+                </div>
+              ) : (
+                <div>
+                  <div className="flex items-baseline gap-2 mb-1">
+                    <span className="text-[0.78rem] text-[#8a826e]">{t("tour.from", "From")}</span>
+                    <span className="font-serif text-[2rem] font-bold text-[#f4a830]">
+                      {formatPriceDisplay(tour.adultPriceCents, currency)}
+                    </span>
+                    <span className="text-[0.8rem] text-[#8a826e]">/ {t("quickView.adult", "adult")}</span>
+                  </div>
+                  {tour.childPriceCents > 0 && (
+                    <div className="text-[0.78rem] text-[#8a826e]">
+                      {t("quickView.child", "Child")}: {formatPriceDisplay(tour.childPriceCents, currency)} · {t("tour.childrenPriceNote", "Children pricing available")}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -466,64 +496,73 @@ export default function TourDetail() {
                   <span className="text-[0.7rem] font-black uppercase tracking-[0.1em] text-[#8a826e]">Price Breakdown</span>
                 </div>
                 <div className="px-4 py-3 space-y-2">
-                  {/* Adults line */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[0.82rem] text-[#ccc6b8]">{adultPax} × Adult</span>
-                      <span className="text-[0.72rem] text-[#8a826e]">@ {formatPriceDisplay(tour.adultPriceCents, currency)}</span>
-                    </div>
-                    <span className="text-[0.9rem] font-semibold text-[#f0ece4]">
-                      {formatPriceDisplay(tour.adultPriceCents * adultPax, currency)}
-                    </span>
-                  </div>
-
-                  {/* Children line — always rendered, shows 0 clearly or hides if 0 pax */}
-                  {childPax > 0 && (
+                  {tour.pricingType === "group" ? (
+                    /* Group / flat rate */
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className="text-[0.82rem] text-[#ccc6b8]">{childPax} × Child</span>
-                        {tour.childPriceCents > 0
-                          ? <span className="text-[0.72rem] text-[#8a826e]">@ {formatPriceDisplay(tour.childPriceCents, currency)}</span>
-                          : <span className="text-[0.72rem] text-[#4caf7d]">Free</span>
-                        }
+                        <span className="text-[0.82rem] text-[#ccc6b8]">Package rate</span>
+                        {tour.groupMaxPax && (
+                          <span className="text-[0.72rem] text-[#8a826e]">up to {tour.groupMaxPax} people</span>
+                        )}
                       </div>
                       <span className="text-[0.9rem] font-semibold text-[#f0ece4]">
-                        {tour.childPriceCents > 0
-                          ? formatPriceDisplay(tour.childPriceCents * childPax, currency)
-                          : <span className="text-[#4caf7d]">VT 0</span>
-                        }
+                        {formatPriceDisplay(tour.groupPriceCents, currency)}
                       </span>
                     </div>
-                  )}
-
-                  {/* Infants line */}
-                  {infantPax > 0 && (
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[0.82rem] text-[#ccc6b8]">{infantPax} × Infant</span>
-                        <span className="text-[0.72rem] text-[#4caf7d]">Free</span>
+                  ) : (
+                    /* Per-person breakdown */
+                    <>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[0.82rem] text-[#ccc6b8]">{adultPax} × Adult</span>
+                          <span className="text-[0.72rem] text-[#8a826e]">@ {formatPriceDisplay(tour.adultPriceCents, currency)}</span>
+                        </div>
+                        <span className="text-[0.9rem] font-semibold text-[#f0ece4]">
+                          {formatPriceDisplay(tour.adultPriceCents * adultPax, currency)}
+                        </span>
                       </div>
-                      <span className="text-[0.9rem] font-semibold text-[#4caf7d]">VT 0</span>
-                    </div>
-                  )}
-
-                  {/* Pets line */}
-                  {petPax > 0 && (
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[0.82rem] text-[#ccc6b8]">{petPax} × Pet</span>
-                        <span className="text-[0.72rem] text-[#4caf7d]">Free</span>
-                      </div>
-                      <span className="text-[0.9rem] font-semibold text-[#4caf7d]">VT 0</span>
-                    </div>
-                  )}
-
-                  {/* Group discount notice */}
-                  {adultPax >= 7 && (
-                    <div className="flex items-center justify-between text-[#4caf7d]">
-                      <span className="text-[0.78rem]">🎉 Group discount (10%)</span>
-                      <span className="text-[0.82rem] font-semibold">−applied</span>
-                    </div>
+                      {childPax > 0 && (
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[0.82rem] text-[#ccc6b8]">{childPax} × Child</span>
+                            {tour.childPriceCents > 0
+                              ? <span className="text-[0.72rem] text-[#8a826e]">@ {formatPriceDisplay(tour.childPriceCents, currency)}</span>
+                              : <span className="text-[0.72rem] text-[#4caf7d]">Free</span>
+                            }
+                          </div>
+                          <span className="text-[0.9rem] font-semibold text-[#f0ece4]">
+                            {tour.childPriceCents > 0
+                              ? formatPriceDisplay(tour.childPriceCents * childPax, currency)
+                              : <span className="text-[#4caf7d]">VT 0</span>
+                            }
+                          </span>
+                        </div>
+                      )}
+                      {infantPax > 0 && (
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[0.82rem] text-[#ccc6b8]">{infantPax} × Infant</span>
+                            <span className="text-[0.72rem] text-[#4caf7d]">Free</span>
+                          </div>
+                          <span className="text-[0.9rem] font-semibold text-[#4caf7d]">VT 0</span>
+                        </div>
+                      )}
+                      {petPax > 0 && (
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[0.82rem] text-[#ccc6b8]">{petPax} × Pet</span>
+                            <span className="text-[0.72rem] text-[#4caf7d]">Free</span>
+                          </div>
+                          <span className="text-[0.9rem] font-semibold text-[#4caf7d]">VT 0</span>
+                        </div>
+                      )}
+                      {adultPax >= 7 && (
+                        <div className="flex items-center justify-between text-[#4caf7d]">
+                          <span className="text-[0.78rem]">🎉 Group discount (10%)</span>
+                          <span className="text-[0.82rem] font-semibold">−applied</span>
+                        </div>
+                      )}
+                    </>
                   )}
 
                   {/* Divider + Total */}
@@ -535,9 +574,8 @@ export default function TourDetail() {
                       <span className="text-[1.15rem] font-black text-[#f4a830] block leading-none">
                         {formatPriceDisplay(
                           (() => {
-                            let total = (tour.adultPriceCents * adultPax) + (tour.childPriceCents * childPax);
-                            if (adultPax >= 7) total = Math.round(total * 0.9);
-                            return total;
+                            const base = estimateBookingTotal(tour, adultPax, childPax);
+                            return tour.pricingType === "group" ? base : (adultPax >= 7 ? Math.round(base * 0.9) : base);
                           })(),
                           currency
                         )}
