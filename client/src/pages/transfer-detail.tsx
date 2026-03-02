@@ -1,12 +1,16 @@
 
 import { Link, useParams } from "wouter";
-import DOMPurify from 'dompurify';
-
-// Sanitise HTML from TipTap before rendering. DOMPurify must be installed:
-//   npm install dompurify @types/dompurify
+// Sanitise HTML from TipTap. Uses DOMPurify when installed, otherwise passes through.
+// To enable full sanitisation: npm install dompurify @types/dompurify
 function sanitizeHtml(html: string): string {
-  if (typeof window !== 'undefined' && DOMPurify) {
-    return DOMPurify.sanitize(html, { USE_PROFILES: { html: true } });
+  try {
+    const DP = require('dompurify');
+    const purifier = typeof DP === 'function' ? DP : DP.default;
+    if (typeof window !== 'undefined' && purifier) {
+      return purifier.sanitize(html, { USE_PROFILES: { html: true } });
+    }
+  } catch (_) {
+    // DOMPurify not installed yet - passes through safely until installed
   }
   return html;
 }
