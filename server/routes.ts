@@ -1598,6 +1598,18 @@ ${allPages.map(p => `  <url>
 
   app.get("/api/bookings/:id/items", async (req, res) => {
     try {
+      const booking = await storage.getBooking(req.params.id);
+      if (!booking) return res.status(404).json({ error: "Booking not found" });
+
+      // Mirror the same ownership checks as GET /api/bookings/:id
+      const isAdmin = req.session.userRole === 'admin';
+      const isOwner = booking.userId === req.session.userId || booking.bookingSessionId === req.sessionID;
+      const isRecentBooking = (req.session as any).recentBookingIds?.includes(req.params.id);
+
+      if (!isAdmin && !isOwner && !isRecentBooking) {
+        return res.status(401).json({ error: "Unauthorized access to booking items" });
+      }
+
       const items = await storage.getBookingItems(req.params.id);
       res.json(items);
     } catch (error) {
