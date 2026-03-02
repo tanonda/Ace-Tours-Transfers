@@ -12,13 +12,13 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSepa
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Loader2, User, Mail, MapPin, Users, Sparkles, Clock, CreditCard, Info, CheckCircle, ArrowRight } from "lucide-react";
+import { CalendarIcon, Loader2, User, Mail, MapPin, Users, Sparkles, Clock, CreditCard, Info, CheckCircle, ArrowRight, Package } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/lib/auth-context";
-import { formatPrice, formatPriceDisplay, Addon } from "@/lib/product.types";
+import { formatPriceDisplay, Addon } from "@/lib/product.types";
 import { useCurrency } from "@/lib/currency-context";
 import { useQuery } from "@tanstack/react-query";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -57,6 +57,9 @@ export interface BookingService {
   id: string;
   title: string;
   category?: string;
+  pricingType?: "per_person" | "group";
+  groupPriceCents?: number;
+  groupMaxPax?: number | null;
 }
 
 interface BookingFormProps {
@@ -65,17 +68,20 @@ interface BookingFormProps {
   isLoading: boolean;
   submitButtonText?: string;
   showPrice?: boolean;
-  adultPriceCents?: number;  // Price per adult in cents (base rate for initial display)
-  childPriceCents?: number;  // Price per child in cents (base rate for initial display)
-  // Fix #8: Server-confirmed pricing total in cents. When provided (after a successful
-  // availability check), this overrides the client-side estimate so the displayed total
-  // always matches what the server will actually charge.
+  adultPriceCents?: number;
+  childPriceCents?: number;
+  // Server-confirmed pricing total. When provided (after availability check),
+  // this overrides the client-side estimate.
   serverPricingCents?: number | null;
   onAvailabilityCheck?: (serviceTitle: string, date: Date, adultPax: number, childPax: number, startTime?: string, endTime?: string) => void;
-  isAvailable?: boolean | null; // null for not yet checked, true/false for result
+  isAvailable?: boolean | null;
   availabilityMessage?: string;
   isCheckingAvailability?: boolean;
-  services?: BookingService[]; // API-driven services list
+  services?: BookingService[];
+  // Group / package pricing
+  pricingType?: "per_person" | "group";
+  groupPriceCents?: number;
+  groupMaxPax?: number | null;
 }
 
 export function BookingForm({
@@ -92,6 +98,9 @@ export function BookingForm({
   availabilityMessage,
   isCheckingAvailability = false,
   services = [],
+  pricingType = "per_person",
+  groupPriceCents = 0,
+  groupMaxPax = null,
 }: BookingFormProps) {
   const { t } = useTranslation();
   const { user } = useAuth();
@@ -121,7 +130,7 @@ export function BookingForm({
   // Promo code state
   const [promoInput, setPromoInput] = useState("");
   const [promoStatus, setPromoStatus] = useState<"idle" | "checking" | "valid" | "invalid">("idle");
-  const [promoDiscount, setPromoDiscount] = useState<number>(0); // discountCents
+  const [promoDiscount, setPromoDiscount] = useState<number>(0);
   const [promoMessage, setPromoMessage] = useState<string>("");
 
   // Track if initial values have been applied to prevent resetting on re-renders
@@ -131,21 +140,32 @@ export function BookingForm({
   const watchedService = form.watch("service");
   const watchedAdultPax = form.watch("adultPax");
   const watchedChildPax = form.watch("childPax");
-  const watchedDate = form.watch("date"); // Watch date field
+  const watchedDate = form.watch("date");
   const watchedAddonIds = form.watch("addonIds");
   const watchedStartTime = form.watch("startTime");
   const watchedEndTime = form.watch("endTime");
   const watchedNotes = form.watch("notes");
+
+  // Resolve the pricing type from the selected service (overrides prop if service changes)
+  const selectedService = useMemo(
+    () => services.find(s => s.title === watchedService),
+    [services, watchedService]
+  );
+  const effectivePricingType = selectedService?.pricingType ?? pricingType;
+  const effectiveGroupPriceCents = selectedService?.groupPriceCents ?? groupPriceCents;
+  const effectiveGroupMaxPax = selectedService?.groupMaxPax ?? groupMaxPax;
+  const isGroupPricing = effectivePricingType === "group";
 
   // Validate a promo code against the server
   const validatePromoCode = async (code: string) => {
     if (!code.trim()) return;
     setPromoStatus("checking");
     try {
-      // Calculate current total for min-purchase check
       const adults = parseInt(form.getValues("adultPax") || "0");
       const children = parseInt(form.getValues("childPax") || "0");
-      const estimatedCents = (adults * adultPriceCents) + (children * childPriceCents);
+      const estimatedCents = isGroupPricing
+        ? effectiveGroupPriceCents
+        : (adults * adultPriceCents) + (children * childPriceCents);
       const res = await fetch("/api/promotions/validate", {
         method: "POST", credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -178,30 +198,25 @@ export function BookingForm({
   };
 
   const isTransfer = useMemo(
-    () => services.find(s => s.title === watchedService)?.category === 'transfer',
-    [services, watchedService]
+    () => selectedService?.category === 'transfer',
+    [selectedService]
   );
 
   const isVehicle = useMemo(
-    () => services.find(s => s.title === watchedService)?.category === 'vehicle',
-    [services, watchedService]
+    () => selectedService?.category === 'vehicle',
+    [selectedService]
   );
 
   const isTour = useMemo(
-    () => services.find(s => s.title === watchedService)?.category === 'tour' || (!isTransfer && !isVehicle),
-    [isTransfer, isVehicle, services, watchedService]
+    () => selectedService?.category === 'tour' || (!isTransfer && !isVehicle),
+    [isTransfer, isVehicle, selectedService]
   );
-
-  // Fix #9: Improved localStorage persistence with:
-  //   - Service ID (not title) as key so renames don't leave orphaned drafts
-  //   - 7-day expiry so stale drafts don't silently pre-fill the form
-  //   - Zod validation on load so schema changes don't cause unexpected form state
 
   const DRAFT_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
   const selectedServiceId = useMemo(
-    () => services.find(s => s.title === watchedService)?.id || null,
-    [services, watchedService]
+    () => selectedService?.id || null,
+    [selectedService]
   );
 
   // Save to localStorage
@@ -222,14 +237,10 @@ export function BookingForm({
       if (saved) {
         try {
           const parsed = JSON.parse(saved);
-
-          // Reject stale drafts
           if (parsed.savedAt && Date.now() - parsed.savedAt > DRAFT_TTL_MS) {
             localStorage.removeItem(`booking_draft_${selectedServiceId}`);
             return;
           }
-
-          // Validate the draft against the schema before applying (partial is fine)
           const { savedAt, date: _date, ...rest } = parsed;
           const result = bookingFormBaseSchema.partial().safeParse(rest as any);
           if (result.success) {
@@ -246,7 +257,6 @@ export function BookingForm({
     }
   }, [selectedServiceId, form]);
 
-  // Update form defaults when initialValues prop changes
   useEffect(() => {
     if (user && !form.getValues("name")) {
       form.setValue("name", user.name);
@@ -270,35 +280,33 @@ export function BookingForm({
     }
   }, [initialValues, form]);
 
-
-
-  // Fix #8: Use server-returned pricing when available (after availability check) so the
-  // receipt always matches what the server will charge. Fall back to a client-side estimate
-  // only when the server hasn't yet confirmed pricing (i.e. before the first check).
+  // Estimated total — prefers server price, then group flat rate, then per-person calculation
   const estimatedTotal = useMemo(() => {
-    // Prefer the authoritative server price
+    // Always prefer authoritative server price after availability check
     if (serverPricingCents !== null && serverPricingCents !== undefined) {
       return formatPriceDisplay(serverPricingCents, currency);
     }
 
-    // Client-side estimate — used only before the first availability check.
-    // NOTE: This is a rough estimate for display only. The server is the source of truth
-    // for actual pricing rules. Do not sync these manually when rules change server-side.
-    const adults = parseInt(watchedAdultPax || "0");
-    const children = parseInt(watchedChildPax || "0");
-
-    let totalCents = (adults * adultPriceCents) + (children * childPriceCents);
-
-    // Add-ons only (group/seasonal rules deliberately omitted — server handles these)
     const selectedAddonsPrice = watchedAddonIds.reduce((sum, id) => {
       const addon = availableAddons.find(a => a.id === id);
       return sum + (addon?.priceCents || 0);
     }, 0);
 
-    totalCents += selectedAddonsPrice;
+    if (isGroupPricing) {
+      // Group/package: flat rate — pax count does not change the base price
+      return formatPriceDisplay(effectiveGroupPriceCents + selectedAddonsPrice, currency);
+    }
 
+    // Per-person estimate (group discounts / seasonal surcharges applied server-side only)
+    const adults = parseInt(watchedAdultPax || "0");
+    const children = parseInt(watchedChildPax || "0");
+    const totalCents = (adults * adultPriceCents) + (children * childPriceCents) + selectedAddonsPrice;
     return formatPriceDisplay(totalCents, currency);
-  }, [serverPricingCents, watchedAdultPax, watchedChildPax, adultPriceCents, childPriceCents, watchedAddonIds, availableAddons, currency]);
+  }, [
+    serverPricingCents, isGroupPricing, effectiveGroupPriceCents,
+    watchedAdultPax, watchedChildPax, adultPriceCents, childPriceCents,
+    watchedAddonIds, availableAddons, currency,
+  ]);
 
   // Debounced availability check
   useEffect(() => {
@@ -321,7 +329,6 @@ export function BookingForm({
     }
   }, [watchedService, watchedDate, watchedAdultPax, watchedChildPax, watchedStartTime, watchedEndTime, onAvailabilityCheck]);
 
-  // Determine if the submit button should be disabled
   const isSubmitDisabled = isLoading || isCheckingAvailability || !isAvailable;
 
   return (
@@ -618,6 +625,17 @@ export function BookingForm({
                 </div>
               </div>
 
+              {/* Group pricing notice */}
+              {isGroupPricing && (
+                <div className="flex items-start gap-2.5 rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800">
+                  <Package className="h-4 w-4 mt-0.5 shrink-0 text-amber-600" />
+                  <span>
+                    This is a <strong>group/package booking</strong> — the price covers your whole party.
+                    {effectiveGroupMaxPax ? ` Up to ${effectiveGroupMaxPax} guests included.` : ""}
+                  </span>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 px-2">
                 <FormField
                   control={form.control}
@@ -841,7 +859,7 @@ export function BookingForm({
         </Form>
       </div>
 
-      {/* Mobile Summary Fixed Bottom - only visible on small screens */}
+      {/* Mobile Summary Fixed Bottom */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 p-4 bg-white/90 backdrop-blur-xl border-t border-slate-100 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] flex items-center justify-between gap-4 animate-in slide-in-from-bottom duration-500">
         <div className="flex flex-col">
           <span className="text-[10px] uppercase font-black text-slate-400 tracking-wider mb-1 leading-none">Total Amount</span>
@@ -897,6 +915,11 @@ export function BookingForm({
                 <p className="font-bold text-slate-900 leading-tight text-base">
                   {watchedService || <span className="text-slate-200 italic font-normal">No service selected</span>}
                 </p>
+                {isGroupPricing && watchedService && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">
+                    <Package className="h-2.5 w-2.5" /> Group / Package Rate
+                  </span>
+                )}
               </div>
 
               {/* Date & Time */}
@@ -981,8 +1004,24 @@ export function BookingForm({
                 <div className="border-t-2 border-dashed border-slate-100 pt-5 space-y-3">
                   <span className="text-[10px] uppercase font-black text-slate-400 tracking-wider block">Price Breakdown</span>
 
-                  {/* Adults line */}
-                  {parseInt(watchedAdultPax) > 0 && adultPriceCents > 0 && (
+                  {/* Group rate line */}
+                  {isGroupPricing && (
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-slate-500 font-medium flex items-center gap-1.5">
+                        <Package className="h-3.5 w-3.5 text-amber-500" />
+                        Package Rate
+                        {effectiveGroupMaxPax && (
+                          <span className="text-[10px] text-slate-300 ml-1">(up to {effectiveGroupMaxPax} guests)</span>
+                        )}
+                      </span>
+                      <span className="font-bold text-slate-900 font-mono">
+                        {formatPriceDisplay(effectiveGroupPriceCents, currency)}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Per-person lines */}
+                  {!isGroupPricing && parseInt(watchedAdultPax) > 0 && adultPriceCents > 0 && (
                     <div className="flex justify-between items-center text-sm">
                       <span className="text-slate-500 font-medium">
                         {watchedAdultPax} × Adult
@@ -996,8 +1035,7 @@ export function BookingForm({
                     </div>
                   )}
 
-                  {/* Children line */}
-                  {parseInt(watchedChildPax) > 0 && childPriceCents > 0 && (
+                  {!isGroupPricing && parseInt(watchedChildPax) > 0 && childPriceCents > 0 && (
                     <div className="flex justify-between items-center text-sm">
                       <span className="text-slate-500 font-medium">
                         {watchedChildPax} × Child
@@ -1049,7 +1087,7 @@ export function BookingForm({
                 </div>
               )}
 
-              {/* No price state — show cost per person */}
+              {/* No price state */}
               {!(showPrice || serverPricingCents) && (
                 <div className="border-t border-dashed border-slate-100 pt-4">
                   <p className="text-[10px] text-slate-300 text-center font-bold uppercase tracking-widest">

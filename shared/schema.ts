@@ -26,6 +26,9 @@ export const tours = pgTable("tours", {
   childPrice: text("child_price"), // DEPRECATED: use childPriceCents
   adultPriceCents: integer("adult_price_cents").notNull().default(0),
   childPriceCents: integer("child_price_cents").notNull().default(0),
+  pricingType: text("pricing_type").notNull().default("per_person"), // 'per_person' | 'group'
+  groupPriceCents: integer("group_price_cents").notNull().default(0), // Flat rate for entire booking (VUV units). Used when pricingType === 'group'.
+  groupMaxPax: integer("group_max_pax"), // Optional display hint: "up to N guests". Does not enforce a limit.
   duration: text("duration").notNull(),
   minPax: text("min_pax"),
   image: text("image").notNull(),

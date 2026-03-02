@@ -1,73 +1,101 @@
 /**
- * PricingEngine: Unified, single source of truth for ALL pricing calculations
- * 
- * **CRITICAL:** This is the ONLY place where pricing logic lives. All pricing
- * calculations across the entire application (frontend, backend, availability,
- * checkout, invoicing) funnel through this service.
- * 
- * This solves the "4 different calculators" problem from Phase 1 audit.
- * 
- * All prices handled in CENTS (e.g., 12000 = VUV 120.00) for precision.
+ * PricingEngine — Unified, single source of truth for ALL pricing calculations.
+ *
+ * CHANGES vs. original:
+ *  - Added `pricingType` support: 'per_person' | 'group'
+ *  - Group pricing: flat groupPriceCents regardless of pax count
+ *  - Rules (group discount, seasonal surcharge) still apply to group price
+ *  - Currency conversion helpers added (view-layer only, DB always VUV)
  */
 
 import { IStorage } from '../../storage.js';
 import { Tour } from '../../../shared/schema.js';
 
-/**
- * Base rates for a product at a point in time
- */
+// ─── Rate and Pricing Type ────────────────────────────────────────────────────
+
+export type PricingType = 'per_person' | 'group';
+
+/** Base rates for a product at a point in time */
 export interface TourRate {
+  pricingType: PricingType;
+  /** Used when pricingType === 'per_person' */
   adultPriceCents: number;
   childPriceCents: number;
+  /** Used when pricingType === 'group' — flat rate for entire booking */
+  groupPriceCents: number;
+  /** Optional display hint: "up to N people included" */
+  groupMaxPax?: number | null;
 }
 
-/**
- * Detailed breakdown of a price calculation
- */
+/** Detailed breakdown of a price calculation */
 export interface PriceBreakdown {
-  baseTotalCents: number;           // (adultPax * adultRate) + (childPax * childRate)
-  adultSubtotalCents: number;       // adultPax * adultRate (before rules)
-  childSubtotalCents: number;       // childPax * childRate (before rules)
-  addonsSubtotalCents: number;      // Sum of all add-on prices
-  discountsCents: number;           // Negative value (e.g., -5000 = 5000 VUV discount)
-  surchargesCents: number;          // Positive value (e.g., 2400 = 2400 VUV surcharge)
-  finalTotalCents: number;          // After all rules applied
-  appliedRules: string[];           // Human-readable rule descriptions
+  pricingType: PricingType;
+  baseTotalCents: number;           // Pre-rules total
+  adultSubtotalCents: number;       // per_person: adultPax × adultRate; group: 0
+  childSubtotalCents: number;       // per_person: childPax × childRate; group: 0
+  groupSubtotalCents: number;       // group: groupPriceCents; per_person: 0
+  addonsSubtotalCents: number;
+  discountsCents: number;           // Negative value
+  surchargesCents: number;          // Positive value
+  finalTotalCents: number;
+  appliedRules: string[];
 }
 
-/**
- * Result of a complete pricing calculation
- */
 export interface PricingResult {
   breakdown: PriceBreakdown;
-  /**
-   * For display/audit purposes only - NOT for calculations
-   * e.g., ["10% group discount (7+ adults)", "20% peak surcharge (Dec/Jan)"]
-   */
   appliedDiscounts?: string[];
 }
 
-/**
- * Configuration for pricing calculation
- */
-interface PricingRulesConfig {
-  groupDiscountThreshold: number;    // 7+ adults
-  groupDiscountPercent: number;      // 10%
-  peakSeasonMonths: number[];        // [0, 11] = Jan, Dec
-  peakSeasonSurchargePercent: number; // 20%
-  vatRate: number;                   // 15%
+// ─── Currency (view-layer) ────────────────────────────────────────────────────
+
+export interface CurrencyRate {
+  code: string;
+  symbol: string;
+  /** Multiply VUV amount by this rate to get display amount */
+  rateFromVUV: number;
+  isWholeUnit: boolean;
 }
 
-/**
- * PricingEngine: Single source of truth for pricing
- * 
- * Consolidates logic from:
- * - PriceResolver.calculateItemTotal()
- * - calculateLineTotal() (frontend)
- * - AvailabilityDomainService.calculatePricing()
- * - PricingService snapshot creation
- * - Inline calculations in various services
- */
+export const CURRENCY_RATES: Record<string, CurrencyRate> = {
+  VUV: { code: 'VUV', symbol: 'VT',   rateFromVUV: 1,        isWholeUnit: true  },
+  USD: { code: 'USD', symbol: '$',    rateFromVUV: 0.0084,   isWholeUnit: false },
+  AUD: { code: 'AUD', symbol: 'A$',   rateFromVUV: 0.013,    isWholeUnit: false },
+  NZD: { code: 'NZD', symbol: 'NZ$',  rateFromVUV: 0.0141,   isWholeUnit: false },
+  EUR: { code: 'EUR', symbol: '€',    rateFromVUV: 0.0078,   isWholeUnit: false },
+  GBP: { code: 'GBP', symbol: '£',    rateFromVUV: 0.0066,   isWholeUnit: false },
+  JPY: { code: 'JPY', symbol: '¥',    rateFromVUV: 1.26,     isWholeUnit: true  },
+  FJD: { code: 'FJD', symbol: 'FJ$',  rateFromVUV: 0.019,    isWholeUnit: false },
+  XPF: { code: 'XPF', symbol: 'CFP',  rateFromVUV: 0.93,     isWholeUnit: true  },
+};
+
+/** Convert VUV integer units to display amount in target currency */
+export function convertVUVToDisplay(vuvAmount: number, targetCurrency: string): number {
+  const rate = CURRENCY_RATES[targetCurrency.toUpperCase()]?.rateFromVUV ?? 1;
+  return vuvAmount * rate;
+}
+
+/** Format VUV integer units as a display string in target currency */
+export function formatVUVInCurrency(vuvAmount: number, targetCurrency: string): string {
+  const def = CURRENCY_RATES[targetCurrency.toUpperCase()] ?? CURRENCY_RATES.VUV;
+  const amount = vuvAmount * def.rateFromVUV;
+  if (def.isWholeUnit) {
+    return `${def.symbol} ${Math.round(amount).toLocaleString('en-US')}`;
+  }
+  return `${def.symbol}${amount.toFixed(2)}`;
+}
+
+// ─── Configuration ────────────────────────────────────────────────────────────
+
+interface PricingRulesConfig {
+  groupDiscountThreshold: number;
+  groupDiscountPercent: number;
+  peakSeasonMonths: number[];
+  peakSeasonSurchargePercent: number;
+  vatRate: number;
+}
+
+// ─── PricingEngine ────────────────────────────────────────────────────────────
+
 export class PricingEngine {
   private storage: IStorage;
   private config: PricingRulesConfig;
@@ -77,7 +105,7 @@ export class PricingEngine {
     this.config = {
       groupDiscountThreshold: 7,
       groupDiscountPercent: 10,
-      peakSeasonMonths: [0, 11],      // Jan (0), Dec (11)
+      peakSeasonMonths: [0, 11],
       peakSeasonSurchargePercent: 20,
       vatRate: 0.15,
       ...config,
@@ -85,59 +113,41 @@ export class PricingEngine {
   }
 
   /**
-   * Fetch the effective rates for a product at a point in time
-   * 
-   * First checks pricing_versions for a versioned rate,
-   * then falls back to the product's current price columns.
+   * Fetch effective rates for a product, respecting pricing versions.
    */
   async getTourRate(tourId: string, date?: string): Promise<TourRate | null> {
     const tour = await this.storage.getTour(tourId);
     if (!tour) return null;
 
-    // Try versioned pricing first (Phase 5)
+    let adultPriceCents = tour.adultPriceCents || 0;
+    let childPriceCents = tour.childPriceCents || 0;
+    const groupPriceCents = (tour as any).groupPriceCents || 0;
+    const pricingType: PricingType = (tour as any).pricingType || 'per_person';
+
     if (date) {
       const version = await this.storage.getEffectivePricingVersion(tourId, date);
       if (version) {
-        return {
-          adultPriceCents: version.adultPriceCents,
-          childPriceCents: version.childPriceCents,
-        };
+        adultPriceCents = version.adultPriceCents;
+        childPriceCents = version.childPriceCents;
       }
     }
 
-    // Fallback: Use product's current price
-    let adultPriceCents = tour.adultPriceCents;
-    let childPriceCents = tour.childPriceCents;
-
-    if (!adultPriceCents || adultPriceCents === 0) {
-      adultPriceCents = this.parseAmountTextToCents(tour.price);
-    }
-
-    if (!childPriceCents || childPriceCents === 0) {
-      childPriceCents = this.parseAmountTextToCents(tour.childPrice);
-    }
+    // Legacy fallback
+    if (!adultPriceCents) adultPriceCents = this.parseAmountTextToCents(tour.price);
+    if (!childPriceCents) childPriceCents = this.parseAmountTextToCents(tour.childPrice);
 
     return {
-      adultPriceCents: adultPriceCents || 0,
-      childPriceCents: childPriceCents || 0,
+      pricingType,
+      adultPriceCents,
+      childPriceCents,
+      groupPriceCents,
+      groupMaxPax: (tour as any).groupMaxPax ?? null,
     };
   }
 
   /**
-   * Calculate final price for a booking line item
-   * 
-   * Comprehensive calculation that handles:
-   * - Base pricing (adult + child)
-   * - Add-ons
-   * - Group discounts
-   * - Seasonal surcharges
-   * 
-   * @param adultPax Number of adults
-   * @param childPax Number of children
-   * @param rates Base rates
-   * @param date Optional booking date (for seasonal rules)
-   * @param addonIds Optional add-on IDs
-   * @returns PricingResult with breakdown
+   * Full pricing calculation for a booking line item.
+   * Supports both per_person and group pricing modes.
    */
   async calculateLineItem(
     adultPax: number,
@@ -146,44 +156,55 @@ export class PricingEngine {
     date?: string,
     addonIds?: string[]
   ): Promise<PricingResult> {
-    // 1. Calculate base subtotals
-    const adultSubtotalCents = adultPax * rates.adultPriceCents;
-    const childSubtotalCents = childPax * rates.childPriceCents;
-    const baseTotalCents = adultSubtotalCents + childSubtotalCents;
 
-    // 2. Calculate add-ons
-    let addonsSubtotalCents = 0;
-    if (addonIds && addonIds.length > 0) {
-      const addons = await Promise.all(
-        addonIds.map((id) => this.storage.getAddon(id))
-      );
-      addonsSubtotalCents = addons.reduce(
-        (sum, addon) => sum + (addon?.priceCents || 0),
-        0
-      );
+    // ── 1. Base subtotal ────────────────────────────────────────────────────
+    let adultSubtotalCents = 0;
+    let childSubtotalCents = 0;
+    let groupSubtotalCents = 0;
+
+    if (rates.pricingType === 'group') {
+      groupSubtotalCents = rates.groupPriceCents;
+    } else {
+      adultSubtotalCents = adultPax * rates.adultPriceCents;
+      childSubtotalCents = childPax * rates.childPriceCents;
     }
 
-    // 3. Start with base + addons, then apply rules
+    const baseTotalCents = adultSubtotalCents + childSubtotalCents + groupSubtotalCents;
+
+    // ── 2. Add-ons ──────────────────────────────────────────────────────────
+    let addonsSubtotalCents = 0;
+    if (addonIds && addonIds.length > 0) {
+      const addons = await Promise.all(addonIds.map((id) => this.storage.getAddon(id)));
+      addonsSubtotalCents = addons.reduce((sum, addon) => sum + (addon?.priceCents || 0), 0);
+    }
+
     let totalCents = baseTotalCents + addonsSubtotalCents;
     let discountsCents = 0;
     let surchargesCents = 0;
     const appliedRules: string[] = [];
 
-    // 4. Apply group discount (10% off for 7+ adults)
-    if (adultPax >= this.config.groupDiscountThreshold) {
+    // ── 3. Group discount (7+ adults for per_person; always for group pricing) ─
+    const paxForDiscount = rates.pricingType === 'group' ? adultPax + childPax : adultPax;
+    const discountThreshold = rates.pricingType === 'group'
+      ? this.config.groupDiscountThreshold
+      : this.config.groupDiscountThreshold;
+
+    if (paxForDiscount >= discountThreshold) {
       const discountAmount = Math.round(totalCents * (this.config.groupDiscountPercent / 100));
       totalCents -= discountAmount;
       discountsCents -= discountAmount;
-      appliedRules.push(`${this.config.groupDiscountPercent}% group discount (${this.config.groupDiscountThreshold}+ adults)`);
+      appliedRules.push(
+        `${this.config.groupDiscountPercent}% group discount (${this.config.groupDiscountThreshold}+ ${rates.pricingType === 'group' ? 'guests' : 'adults'})`
+      );
     }
 
-    // 5. Apply seasonal surcharge (20% in Dec/Jan)
+    // ── 4. Seasonal surcharge ───────────────────────────────────────────────
     if (date) {
-      const bookingDate = new Date(date);
-      const month = bookingDate.getMonth();
+      const month = new Date(date).getMonth();
       if (this.config.peakSeasonMonths.includes(month)) {
         const surchargeAmount = Math.round(
-          (baseTotalCents + addonsSubtotalCents + discountsCents) * (this.config.peakSeasonSurchargePercent / 100)
+          (baseTotalCents + addonsSubtotalCents + discountsCents) *
+          (this.config.peakSeasonSurchargePercent / 100)
         );
         totalCents += surchargeAmount;
         surchargesCents += surchargeAmount;
@@ -192,9 +213,11 @@ export class PricingEngine {
     }
 
     const breakdown: PriceBreakdown = {
+      pricingType: rates.pricingType,
       baseTotalCents,
       adultSubtotalCents,
       childSubtotalCents,
+      groupSubtotalCents,
       addonsSubtotalCents,
       discountsCents,
       surchargesCents,
@@ -209,8 +232,7 @@ export class PricingEngine {
   }
 
   /**
-   * Simple calculation for a booking item without add-ons
-   * Used by legacy code paths and quick calculations
+   * Quick calculation without add-ons (for legacy/simple paths).
    */
   calculateSimple(
     adultPax: number,
@@ -218,19 +240,21 @@ export class PricingEngine {
     rates: TourRate,
     date?: string
   ): number {
-    const adultSubtotal = adultPax * rates.adultPriceCents;
-    const childSubtotal = childPax * rates.childPriceCents;
-    let total = adultSubtotal + childSubtotal;
+    let total: number;
 
-    // Apply group discount
-    if (adultPax >= this.config.groupDiscountThreshold) {
+    if (rates.pricingType === 'group') {
+      total = rates.groupPriceCents;
+    } else {
+      total = adultPax * rates.adultPriceCents + childPax * rates.childPriceCents;
+    }
+
+    const paxForDiscount = rates.pricingType === 'group' ? adultPax + childPax : adultPax;
+    if (paxForDiscount >= this.config.groupDiscountThreshold) {
       total = Math.round(total * (1 - this.config.groupDiscountPercent / 100));
     }
 
-    // Apply seasonal surcharge
     if (date) {
-      const bookingDate = new Date(date);
-      const month = bookingDate.getMonth();
+      const month = new Date(date).getMonth();
       if (this.config.peakSeasonMonths.includes(month)) {
         total = Math.round(total * (1 + this.config.peakSeasonSurchargePercent / 100));
       }
@@ -239,73 +263,20 @@ export class PricingEngine {
     return total;
   }
 
-  /**
-   * Calculate VAT for an amount
-   */
   calculateVAT(amountCents: number): number {
     return Math.round(amountCents * this.config.vatRate);
   }
 
-  /**
-   * Calculate total including VAT
-   */
-  calculateWithVAT(amountCents: number): number {
+  calculateTotalWithVAT(amountCents: number): number {
     return amountCents + this.calculateVAT(amountCents);
   }
 
-  /**
-   * Calculate cart total from multiple items
-   */
-  calculateCartTotal(items: Array<{ finalTotalCents: number }>): number {
-    return items.reduce((sum, item) => sum + item.finalTotalCents, 0);
-  }
+  // ─── Internal ───────────────────────────────────────────────────────────────
 
-  /**
-   * Format cents as currency string for display
-   */
-  static formatCentsAsVUV(cents: number): string {
-    // C1 Fix: VUV is a zero-decimal currency. Division by 100 was a bug from Phase 1.
-    return `VUV ${Math.round(cents).toLocaleString()}`;
-  }
-
-  /**
-   * Helper to parse legacy text prices stored as plain strings.
-   * Convert "VUV 15,000" or "15000" → stored cents value.
-   *
-   * FIX (HIGH-5): VUV is a ZERO-DECIMAL currency — there are no subunits.
-   * "VUV 15,000" means 15000 vatu, which we store as 15000 "cents" (i.e. the
-   * integer value itself).  We must NOT multiply by 100.
-   *
-   * For foreign-currency tours priced in USD/AUD (e.g. "$120") the value is
-   * already stored as-is from the text, and the x100 conversion was incorrect
-   * there too since our internal unit is already cents-equivalent.
-   *
-   * The correct approach: treat parsed numbers as the cent-value directly.
-   * If a tour was incorrectly priced as "VUV 120" (meaning VT 120) and the
-   * admin intends VT 12,000, they should update adultPriceCents in the DB.
-   */
-  private parseAmountTextToCents(text: string | null | undefined): number {
+  private parseAmountTextToCents(text?: string | null): number {
     if (!text) return 0;
-
-    const cleaned = text
-      .replace(/VUV/gi, '')  // strip currency symbol
-      .replace(/\$/, '')
-      .replace(/\/.*/, '')   // remove " / adult" etc.
-      .replace(/,/g, '')     // remove thousands separators
-      .trim();
-
-    const parsed = parseFloat(cleaned);
-    if (isNaN(parsed)) return 0;
-
-    // VUV has no subunits — the parsed integer IS the cent value.
-    // (For USD/AUD text prices these would also already be in whole units.)
-    return Math.round(parsed);
+    const match = text.match(/[\d,]+(\.\d+)?/);
+    if (!match) return 0;
+    return Math.round(parseFloat(match[0].replace(/,/g, '')));
   }
-}
-
-/**
- * Export singleton instance factory
- */
-export function createPricingEngine(storage: IStorage, config?: Partial<PricingRulesConfig>): PricingEngine {
-  return new PricingEngine(storage, config);
 }
