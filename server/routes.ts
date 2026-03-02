@@ -667,11 +667,19 @@ ${allPages.map(p => `  <url>
   app.post("/api/admin/upload", requireAdmin, upload.single("image"), async (req, res) => {
     try {
       if (!req.file) return res.status(400).json({ error: "No image file provided" });
-      const folder = (req.query.folder as string) || "ace-tours";
-      const imageUrl = await cloudinaryService.uploadImage(req.file.buffer, folder);
+      const folder = (req.query.folder as string) || "ace-tours-uploads";
+      let imageUrl: string;
+      // Try CloudinaryService first (uses CLOUDINARY_URL), fall back to legacy config
+      try {
+        imageUrl = await cloudinaryService.uploadImage(req.file.buffer, folder);
+      } catch (serviceErr: any) {
+        console.warn('[UPLOAD] CloudinaryService failed, trying legacy config:', serviceErr.message);
+        imageUrl = await uploadToCloudinaryLegacy(req.file.buffer, req.file.originalname || 'upload');
+      }
       res.json({ url: imageUrl });
     } catch (error: any) {
-      res.status(500).json({ error: error.message || "Failed to upload image" });
+      console.error('[UPLOAD] All Cloudinary upload attempts failed:', error.message);
+      res.status(500).json({ error: error.message || "Failed to upload image. Check Cloudinary credentials." });
     }
   });
 
