@@ -406,6 +406,7 @@ export function ProductDialog({ tour, open, onOpenChange, onSave }: ProductDialo
         supportEmail: '', supportPhone: '', productCode: '',
         travelerPhotos: [],
       });
+    }
   }, [tour, open]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleCurrencyChange = (c: CurrencyCode) => {
