@@ -1,21 +1,13 @@
 
 import { Link, useParams } from "wouter";
-// Sanitise HTML from TipTap. Uses DOMPurify when installed, otherwise passes through.
-// To enable full sanitisation: npm install dompurify @types/dompurify
+// HTML passthrough — install dompurify later for sanitisation:
+//   npm install dompurify @types/dompurify
+// Then replace this function with the DOMPurify version.
 function sanitizeHtml(html: string): string {
-  try {
-    const DP = require('dompurify');
-    const purifier = typeof DP === 'function' ? DP : DP.default;
-    if (typeof window !== 'undefined' && purifier) {
-      return purifier.sanitize(html, { USE_PROFILES: { html: true } });
-    }
-  } catch (_) {
-    // DOMPurify not installed yet - passes through safely until installed
-  }
   return html;
 }
 import { useQuery } from "@tanstack/react-query";
-import { fetchTour, fetchProductAddons } from "@/lib/api";
+import { fetchTour } from "@/lib/api";
 import { apiRequest } from "@/lib/queryClient";
 import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
@@ -25,7 +17,6 @@ import { useState, useEffect, useCallback } from "react";
 import { useCart } from "@/lib/cart-context";
 import { useBookingDraft } from "@/lib/booking-state-context";
 import { formatPriceDisplay, estimateBookingTotal, type ProductCategory } from "@/lib/product.types";
-import type { ProductAddonWithDetails } from "@shared/schema";
 import { useCurrency } from "@/lib/currency-context";
 import { AvailabilityCalendar } from "@/components/AvailabilityCalendar";
 import { SEO, cloudinaryOpt } from "@/components/seo";
