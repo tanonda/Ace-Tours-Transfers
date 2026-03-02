@@ -673,7 +673,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 <li><Link href="/contact" className="text-white/70 hover:text-white transition-colors">{t("nav.contact")}</Link></li>
                 <li><Link href="/faq" className="text-white/70 hover:text-white transition-colors">FAQ</Link></li>
                 <li><a href="https://www.vanuatu.travel/" target="_blank" rel="noopener noreferrer" className="text-white/70 hover:text-white transition-colors">Vanuatu Tourism Office (VTO)</a></li>
-                <li><a href="https://www.vto.vu/" target="_blank" rel="noopener noreferrer" className="text-white/70 hover:text-white transition-colors">VTO Official Portal</a></li>
                 <li><a href="https://www.acetoursvanuatu.com/" target="_blank" rel="noopener noreferrer" className="text-white/70 hover:text-white transition-colors">Ace Tours (Primary Site)</a></li>
               </ul>
             </div>
