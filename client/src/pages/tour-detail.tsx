@@ -158,13 +158,12 @@ function ItineraryTrack({ stops }: { stops: Array<{ id: string; name: string; du
           return (
             <div key={stop.id} className="relative pl-12">
               {/* Circle marker */}
-              <div className={`absolute left-[14px] top-[18px] w-[22px] h-[22px] rounded-full border-2 flex items-center justify-center text-[0.7rem] font-bold z-10 ${
-                i === 0
+              <div className={`absolute left-[14px] top-[18px] w-[22px] h-[22px] rounded-full border-2 flex items-center justify-center text-[0.7rem] font-bold z-10 ${i === 0
                   ? "bg-[#f4a830] border-[#f4a830] text-[#0f0d09]"
                   : isLast
-                  ? "bg-[#4caf7d] border-[#4caf7d] text-[#0f0d09]"
-                  : "bg-[#1a1710] border-[rgba(244,168,48,0.5)] text-[#f4a830]"
-              }`}>
+                    ? "bg-[#4caf7d] border-[#4caf7d] text-[#0f0d09]"
+                    : "bg-[#1a1710] border-[rgba(244,168,48,0.5)] text-[#f4a830]"
+                }`}>
                 {i + 1}
               </div>
 
@@ -491,7 +490,7 @@ export default function TourDetail() {
         t={t}
       />
 
-      <div className="min-h-screen bg-[#0f0d09] text-[#f0ece4] font-sans pt-16">
+      <div className="min-h-screen bg-[#0f0d09] text-[#f0ece4] font-sans pt-28 md:pt-32">
 
         {/* ── HERO ── */}
         <div className="relative h-[280px] overflow-hidden bg-[#0f0d09]">
@@ -577,22 +576,22 @@ export default function TourDetail() {
                   {/* New structured included items */}
                   {includedItems.length > 0
                     ? includedItems.map((item, i) => (
+                      <div key={i} className="flex items-start gap-3 text-[0.88rem] text-[#ccc6b8]">
+                        <CheckCircle2 className="w-[18px] h-[18px] text-[#4caf7d] shrink-0 mt-0.5" />
+                        <span>{item}</span>
+                      </div>
+                    ))
+                    : /* Fallback: old description[1] approach */
+                    Array.isArray(tour.description) && tour.description.slice(1).map((item: string, i: number) => (
+                      item.startsWith('<') ? (
+                        <div key={i} className="col-span-2 text-[0.88rem] text-[#8a826e] prose prose-invert prose-sm max-w-none [&_ul]:list-disc [&_ul]:pl-5 [&_li]:text-[#8a826e]" dangerouslySetInnerHTML={{ __html: sanitizeHtml(item) }} />
+                      ) : (
                         <div key={i} className="flex items-start gap-3 text-[0.88rem] text-[#ccc6b8]">
                           <CheckCircle2 className="w-[18px] h-[18px] text-[#4caf7d] shrink-0 mt-0.5" />
                           <span>{item}</span>
                         </div>
-                      ))
-                    : /* Fallback: old description[1] approach */
-                      Array.isArray(tour.description) && tour.description.slice(1).map((item: string, i: number) => (
-                        item.startsWith('<') ? (
-                          <div key={i} className="col-span-2 text-[0.88rem] text-[#8a826e] prose prose-invert prose-sm max-w-none [&_ul]:list-disc [&_ul]:pl-5 [&_li]:text-[#8a826e]" dangerouslySetInnerHTML={{ __html: sanitizeHtml(item) }} />
-                        ) : (
-                          <div key={i} className="flex items-start gap-3 text-[0.88rem] text-[#ccc6b8]">
-                            <CheckCircle2 className="w-[18px] h-[18px] text-[#4caf7d] shrink-0 mt-0.5" />
-                            <span>{item}</span>
-                          </div>
-                        )
-                      ))
+                      )
+                    ))
                   }
                   {/* Excluded items */}
                   {excludedItems.map((item, i) => (

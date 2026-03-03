@@ -87,9 +87,9 @@ function DateCell({
             "relative flex flex-col justify-center px-4 py-3 text-left h-full w-full",
             "transition-colors duration-150 hover:bg-gray-50 focus-visible:outline-none focus-visible:bg-gray-50",
             open && "bg-blue-50/50",
-            // Right divider — thin vertical line like Skyscanner
+            // Right divider on desktop, bottom divider on mobile
             divider &&
-            "after:absolute after:right-0 after:top-[20%] after:bottom-[20%] after:w-px after:bg-gray-200",
+            "md:after:absolute md:after:right-0 md:after:top-[20%] md:after:bottom-[20%] md:after:w-px md:after:h-auto md:after:bg-gray-200 after:absolute after:bottom-0 after:left-[5%] after:right-[5%] after:h-px after:w-auto after:bg-gray-200 md:after:left-auto md:after:right-0",
             className
           )}
         >
@@ -246,7 +246,7 @@ function GuestsCell({
             "transition-colors duration-150 hover:bg-gray-50 focus-visible:outline-none focus-visible:bg-gray-50",
             open && "bg-blue-50/50",
             divider &&
-            "after:absolute after:right-0 after:top-[20%] after:bottom-[20%] after:w-px after:bg-gray-200",
+            "md:after:absolute md:after:right-0 md:after:top-[20%] md:after:bottom-[20%] md:after:w-px md:after:h-auto md:after:bg-gray-200 after:absolute after:bottom-0 after:left-[5%] after:right-[5%] after:h-px after:w-auto after:bg-gray-200 md:after:left-auto md:after:right-0",
             className
           )}
         >
@@ -345,7 +345,7 @@ function BarInput({
         "relative flex flex-col justify-center px-4 py-3 h-full",
         "transition-colors duration-150 hover:bg-gray-50 focus-within:bg-gray-50",
         divider &&
-        "after:absolute after:right-0 after:top-[20%] after:bottom-[20%] after:w-px after:bg-gray-200",
+        "md:after:absolute md:after:right-0 md:after:top-[20%] md:after:bottom-[20%] md:after:w-px md:after:h-auto md:after:bg-gray-200 after:absolute after:bottom-0 after:left-[5%] after:right-[5%] after:h-px after:w-auto after:bg-gray-200 md:after:left-auto md:after:right-0",
         className
       )}
     >
@@ -384,7 +384,7 @@ function TimeCell({
         "relative flex flex-col justify-center px-4 py-3 h-full",
         "transition-colors duration-150 hover:bg-gray-50 focus-within:bg-gray-50",
         divider &&
-        "after:absolute after:right-0 after:top-[20%] after:bottom-[20%] after:w-px after:bg-gray-200",
+        "md:after:absolute md:after:right-0 md:after:top-[20%] md:after:bottom-[20%] md:after:w-px md:after:h-auto md:after:bg-gray-200 after:absolute after:bottom-0 after:left-[5%] after:right-[5%] after:h-px after:w-auto after:bg-gray-200 md:after:left-auto md:after:right-0",
         className
       )}
     >
@@ -430,7 +430,7 @@ function ProductCell({
       className={cn(
         "relative flex-1 min-w-0",
         divider &&
-        "after:absolute after:right-0 after:top-[20%] after:bottom-[20%] after:w-px after:bg-gray-200 after:z-10",
+        "md:after:absolute md:after:right-0 md:after:top-[20%] md:after:bottom-[20%] md:after:w-px md:after:h-auto md:after:bg-gray-200 md:after:z-10 after:absolute after:bottom-0 after:left-[5%] after:right-[5%] after:h-px after:w-auto after:bg-gray-200 md:after:left-auto md:after:right-0",
         className
       )}
     >
@@ -545,9 +545,9 @@ function SearchBar({ search, showVehicleHire }: SearchBarProps) {
         role="search"
         aria-label="Availability search"
         className={cn(
-          "flex items-stretch bg-white rounded-xl overflow-hidden",
+          "flex flex-col md:flex-row md:items-stretch bg-white rounded-xl overflow-hidden",
           "shadow-[0_2px_24px_rgba(0,0,0,0.22)]",
-          BAR_H
+          "md:h-16"
         )}
       >
         {/* Animated field panel */}
@@ -558,7 +558,7 @@ function SearchBar({ search, showVehicleHire }: SearchBarProps) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.12 }}
-            className="flex flex-1 items-stretch min-w-0 overflow-hidden"
+            className="flex flex-col md:flex-row flex-1 md:items-stretch min-w-0 overflow-hidden"
           >
 
             {/* ── Tours ── */}
@@ -571,7 +571,7 @@ function SearchBar({ search, showVehicleHire }: SearchBarProps) {
                   products={search.tours}
                   placeholder="All tours"
                   divider
-                  className="flex-[1.8] min-w-[200px]"
+                  className="flex-[1.8] min-w-0 md:min-w-[200px]"
                 />
                 <DateCell
                   label="Date"
@@ -579,14 +579,14 @@ function SearchBar({ search, showVehicleHire }: SearchBarProps) {
                   onChange={search.setTourDate}
                   placeholder="Add date"
                   divider
-                  className="flex-1 min-w-[140px]"
+                  className="flex-1 min-w-0 md:min-w-[140px]"
                 />
                 <TimeCell
                   label="Pickup time"
                   value={search.tour.time}
                   onChange={search.setTourTime}
                   divider
-                  className="flex-1 min-w-[110px]"
+                  className="flex-1 min-w-0 md:min-w-[110px]"
                 />
                 <GuestsCell
                   label="Guests"
@@ -599,7 +599,7 @@ function SearchBar({ search, showVehicleHire }: SearchBarProps) {
                   onChildrenChange={search.setTourChildren}
                   onInfantsChange={search.setTourInfants}
                   onPetsChange={search.setTourPets}
-                  className="flex-1 min-w-[160px]"
+                  className="flex-1 min-w-0 md:min-w-[160px]"
                 />
               </>
             )}
@@ -614,7 +614,7 @@ function SearchBar({ search, showVehicleHire }: SearchBarProps) {
                   products={search.transfers}
                   placeholder="All transfers"
                   divider
-                  className="flex-[1.5] min-w-[180px]"
+                  className="flex-[1.5] min-w-0 md:min-w-[180px]"
                 />
                 <BarInput
                   label="To"
@@ -622,7 +622,7 @@ function SearchBar({ search, showVehicleHire }: SearchBarProps) {
                   onChange={search.setTransferTo}
                   placeholder="Drop-off point"
                   divider
-                  className="flex-[1.5] min-w-[180px]"
+                  className="flex-[1.5] min-w-0 md:min-w-[180px]"
                 />
                 <DateCell
                   label="Transfer date"
@@ -630,14 +630,14 @@ function SearchBar({ search, showVehicleHire }: SearchBarProps) {
                   onChange={search.setTransferDate}
                   placeholder="Add date"
                   divider
-                  className="flex-1 min-w-[140px]"
+                  className="flex-1 min-w-0 md:min-w-[140px]"
                 />
                 <TimeCell
                   label="Pickup time"
                   value={search.transfer.time}
                   onChange={search.setTransferTime}
                   divider
-                  className="flex-1 min-w-[110px]"
+                  className="flex-1 min-w-0 md:min-w-[110px]"
                 />
                 <GuestsCell
                   label="Passengers"
@@ -650,7 +650,7 @@ function SearchBar({ search, showVehicleHire }: SearchBarProps) {
                   onChildrenChange={search.setTransferChildren}
                   onInfantsChange={search.setTransferInfants}
                   onPetsChange={search.setTransferPets}
-                  className="flex-1 min-w-[160px]"
+                  className="flex-1 min-w-0 md:min-w-[160px]"
                 />
               </>
             )}
@@ -665,7 +665,7 @@ function SearchBar({ search, showVehicleHire }: SearchBarProps) {
                   products={search.vehicles}
                   placeholder="Any vehicle"
                   divider
-                  className="flex-[1.5] min-w-[180px]"
+                  className="flex-[1.5] min-w-0 md:min-w-[180px]"
                 />
                 <DateCell
                   label="Pick-up date"
@@ -673,14 +673,14 @@ function SearchBar({ search, showVehicleHire }: SearchBarProps) {
                   onChange={search.setPickupDate}
                   placeholder="Add date"
                   divider
-                  className="flex-1 min-w-[130px]"
+                  className="flex-1 min-w-0 md:min-w-[130px]"
                 />
                 <TimeCell
                   label="Time"
                   value={search.vehicle.pickupTime}
                   onChange={search.setPickupTime}
                   divider
-                  className="flex-1 min-w-[100px]"
+                  className="flex-1 min-w-0 md:min-w-[100px]"
                 />
                 <DateCell
                   label="Drop-off date"
@@ -693,14 +693,14 @@ function SearchBar({ search, showVehicleHire }: SearchBarProps) {
                   }
                   placeholder="Add date"
                   divider
-                  className="flex-1 min-w-[130px]"
+                  className="flex-1 min-w-0 md:min-w-[130px]"
                 />
                 <TimeCell
                   label="Time"
                   value={search.vehicle.returnTime}
                   onChange={search.setReturnTime}
                   divider={search.hireDays > 0}
-                  className="flex-1 min-w-[100px]"
+                  className="flex-1 min-w-0 md:min-w-[100px]"
                 />
                 {/* Duration badge — appears inline when both dates set */}
                 <AnimatePresence>
@@ -742,8 +742,8 @@ function SearchBar({ search, showVehicleHire }: SearchBarProps) {
             "flex items-center justify-center gap-2 px-7 shrink-0",
             "font-bold text-[15px] text-white",
             "transition-colors duration-150",
-            // No border-radius on button itself — the bar's overflow:hidden handles corners
-            "rounded-none",
+            // Full width on mobile, flush-right on desktop
+            "rounded-none w-full md:w-auto py-4 md:py-0",
             search.isValid
               ? "bg-[#f2800d] hover:bg-[#e07008] cursor-pointer"
               : "bg-gray-200 text-gray-400 cursor-not-allowed"

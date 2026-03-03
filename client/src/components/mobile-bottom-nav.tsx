@@ -3,7 +3,7 @@ import { Home, Compass, Car, ShoppingCart, Menu } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCart } from "@/lib/cart-context";
 import { Badge } from "@/components/ui/badge";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useTranslation } from "react-i18next";
 
 interface MobileNavProps {
@@ -81,7 +81,10 @@ export function MobileBottomNav({ menuContent }: MobileNavProps) {
                             <span className="text-[10px] mt-1 font-medium">{t("nav.menu", "Menu")}</span>
                         </button>
                     </SheetTrigger>
-                    <SheetContent side="right" className="w-[300px]">
+                    <SheetContent side="right" className="w-[300px]" style={{ paddingBottom: "var(--safe-area-inset-bottom)" }}>
+                        <SheetHeader className="sr-only">
+                            <SheetTitle>{t("nav.menu", "Menu")}</SheetTitle>
+                        </SheetHeader>
                         {menuContent}
                     </SheetContent>
                 </Sheet>

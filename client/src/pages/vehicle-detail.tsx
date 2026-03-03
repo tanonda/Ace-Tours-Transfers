@@ -496,7 +496,7 @@ export default function VehicleDetail() {
         policy={vehicle.cancellationPolicy || undefined}
       />
 
-      <div className="min-h-screen bg-[#0f0d09] text-[#f0ece4] font-sans pt-16">
+      <div className="min-h-screen bg-[#0f0d09] text-[#f0ece4] font-sans pt-28 md:pt-32">
 
         {/* Hero */}
         <div className="relative h-[340px] overflow-hidden bg-[#0f0d09]">

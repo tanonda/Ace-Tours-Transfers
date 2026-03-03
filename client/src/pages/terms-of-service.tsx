@@ -14,7 +14,7 @@ export default function TermsOfService() {
       />
 
       {/* Page Header */}
-      <div className="bg-primary/5 border-b border-primary/10 pt-32 pb-12">
+      <div className="bg-primary/5 border-b border-primary/10 pt-36 md:pt-40 pb-12">
         <div className="container mx-auto px-4">
           <div>
             <div className="flex items-center gap-2 mb-4">

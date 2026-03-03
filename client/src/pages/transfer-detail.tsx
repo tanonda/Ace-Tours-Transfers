@@ -210,7 +210,7 @@ export default function TransferDetail() {
         policy={transfer.cancellationPolicy}
       />
 
-      <div className="min-h-screen bg-[#0f0d09] text-[#f0ece4] font-sans pt-16">
+      <div className="min-h-screen bg-[#0f0d09] text-[#f0ece4] font-sans pt-28 md:pt-32">
 
         {/* ── HERO ── */}
         <div className="relative h-[280px] overflow-hidden bg-[#0f0d09]">

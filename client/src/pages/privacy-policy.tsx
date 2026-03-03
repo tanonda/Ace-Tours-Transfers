@@ -11,7 +11,7 @@ export default function PrivacyPolicy() {
       />
 
       {/* Page Header */}
-      <div className="bg-primary/5 border-b border-primary/10 pt-32 pb-12">
+      <div className="bg-primary/5 border-b border-primary/10 pt-36 md:pt-40 pb-12">
         <div className="container mx-auto px-4">
           <motion.div
             initial={{ opacity: 0, y: 16 }}

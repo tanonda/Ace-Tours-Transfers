@@ -78,7 +78,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
   const getSetting = (key: string, fallback: string = "") => {
     const setting = settings.find((s) => s.key === key);
-    return setting && setting.value ? String(setting.value) : fallback;
+    if (!setting || setting.value == null) return fallback;
+    // CMS values may be stored as JSON strings, plain strings, or objects.
+    // Only return a string; objects would render as [object Object].
+    const v = setting.value;
+    if (typeof v === "string") return v;
+    if (typeof v === "number" || typeof v === "boolean") return String(v);
+    return fallback;
   };
 
   const contactEmail = getSetting("contact_email", "acetoursvanuatu@outlook.com");
@@ -177,172 +183,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </div>
         </div>
 
-        <div className={`container mx-auto px-4 flex justify-center transition-all duration-300 ${isScrolled ? "py-1" : "pt-1 pb-1"}`}>
-          <Link href="/" className="flex items-center gap-3">
-            <img
-              src={logo}
-              alt="Ace Tours Logo"
-              className={`rounded-full shadow-lg border-2 transition-all duration-300 ${isTransparent ? "border-white/30" : "border-primary/30"
-                } ${isScrolled ? "h-10 w-10" : "h-14 w-14 md:h-16 md:w-16"}`}
-            />
-            <span className={`font-serif font-bold tracking-tight transition-all duration-300 ${logoTextColor} ${isScrolled ? "text-base" : "text-lg md:text-xl"
-              }`}>
-              Ace Tours & Transfers
-            </span>
-          </Link>
-        </div>
-
-        <div className={`container mx-auto px-4 flex items-center justify-center transition-all duration-300 ${isScrolled ? "pb-1" : "pb-2"}`}>
-          <nav className="hidden md:flex items-center gap-6" aria-label="Main navigation">
-            <NavigationMenu className="relative z-50">
-              <NavigationMenuList>
-                <NavigationMenuItem>
-                  <Link href="/" className={cn(
-                    "group inline-flex h-9 w-max items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors focus:outline-none disabled:pointer-events-none disabled:opacity-50",
-                    navTextColor
-                  )}>
-                    {t("nav.home")}
-                  </Link>
-                </NavigationMenuItem>
-              </NavigationMenuList>
-            </NavigationMenu>
-
-            <NavigationMenu className="relative z-50">
-              <NavigationMenuList>
-                <NavigationMenuItem>
-                  <NavigationMenuTrigger className={cn("bg-transparent hover:bg-transparent focus:bg-transparent data-[state=open]:bg-transparent", navTextColor)}>
-                    {t("nav.tours")}
-                  </NavigationMenuTrigger>
-                  <NavigationMenuContent>
-                    <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
-                      {tours.map((tour) => (
-                        <ListItem
-                          key={tour.id}
-                          title={tour.title}
-                          href={`/tours/${tour.id}`}
-                        >
-                          {tour.description[0]}
-                        </ListItem>
-                      ))}
-                      <ListItem href="/tours" title={t("nav.viewAllTours")} className="bg-muted/50">
-                        {t("nav.seeAllTours")}
-                      </ListItem>
-                    </ul>
-                  </NavigationMenuContent>
-                </NavigationMenuItem>
-              </NavigationMenuList>
-            </NavigationMenu>
-
-            <NavigationMenu className="relative z-50">
-              <NavigationMenuList>
-                <NavigationMenuItem>
-                  <NavigationMenuTrigger className={cn("bg-transparent hover:bg-transparent focus:bg-transparent data-[state=open]:bg-transparent", navTextColor)}>
-                    {t("nav.transfers")}
-                  </NavigationMenuTrigger>
-                  <NavigationMenuContent>
-                    <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
-                      {transfers.map((transfer) => (
-                        <ListItem
-                          key={transfer.id}
-                          title={transfer.title}
-                          href={`/transfers/${transfer.id}`}
-                        >
-                          {transfer.description}
-                        </ListItem>
-                      ))}
-                      <ListItem href="/transfers" title={t("nav.viewAllTransfers")} className="bg-muted/50">
-                        {t("nav.seeAllTransfers")}
-                      </ListItem>
-                    </ul>
-                  </NavigationMenuContent>
-                </NavigationMenuItem>
-              </NavigationMenuList>
-            </NavigationMenu>
-
-            {showVehicleHire && (
-              <NavigationMenu className="relative z-50">
-                <NavigationMenuList>
-                  <NavigationMenuItem>
-                    <NavigationMenuTrigger className={cn("bg-transparent hover:bg-transparent focus:bg-transparent data-[state=open]:bg-transparent", navTextColor)}>
-                      {t("nav.vehicleHire", "Vehicle Hire")}
-                    </NavigationMenuTrigger>
-                    <NavigationMenuContent>
-                      <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
-                        {allVehicles.filter(v => v.isActive !== false).map((vehicle) => (
-                          <ListItem
-                            key={vehicle.id}
-                            title={vehicle.title}
-                            href={`/vehicles/${vehicle.id}`}
-                          >
-                            {Array.isArray(vehicle.description) ? vehicle.description[0] : vehicle.description}
-                          </ListItem>
-                        ))}
-                        <ListItem href="/vehicles" title={t("nav.viewAllVehicles", "View All Vehicles")} className="bg-muted/50">
-                          {t("nav.seeAllVehicles", "Browse our full fleet")}
-                        </ListItem>
-                      </ul>
-                    </NavigationMenuContent>
-                  </NavigationMenuItem>
-                </NavigationMenuList>
-              </NavigationMenu>
-            )}
-
-            <NavigationMenu className="relative z-50">
-              <NavigationMenuList>
-                <NavigationMenuItem>
-                  <Link href="/about" className={cn(
-                    "group inline-flex h-9 w-max items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors focus:outline-none disabled:pointer-events-none disabled:opacity-50",
-                    navTextColor
-                  )}>
-                    {t("nav.about")}
-                  </Link>
-                </NavigationMenuItem>
-              </NavigationMenuList>
-            </NavigationMenu>
-
-            <NavigationMenu className="relative z-50">
-              <NavigationMenuList>
-                <NavigationMenuItem>
-                  <Link href="/contact" className={cn(
-                    "group inline-flex h-9 w-max items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors focus:outline-none disabled:pointer-events-none disabled:opacity-50",
-                    navTextColor
-                  )}>
-                    {t("nav.contact")}
-                  </Link>
-                </NavigationMenuItem>
-              </NavigationMenuList>
-            </NavigationMenu>
-
-            <NavigationMenu className="relative z-50">
-              <NavigationMenuList>
-                <NavigationMenuItem>
-                  <NavigationMenuTrigger className={cn("bg-transparent hover:bg-transparent focus:bg-transparent data-[state=open]:bg-transparent", navTextColor)}>
-                    {t("nav.myBookings")}
-                  </NavigationMenuTrigger>
-                  <NavigationMenuContent>
-                    <ul className="grid w-[200px] gap-2 p-4">
-                      <ListItem href="/manage-booking" title={t("nav.editTrip")}>
-                        {t("nav.manageBookings", "Manage or cancel existing bookings")}
-                      </ListItem>
-                      <ListItem href="/reservations" title={t("nav.bookRide")}>
-                        {t("nav.startNewBooking", "Start a new booking")}
-                      </ListItem>
-                    </ul>
-                  </NavigationMenuContent>
-                </NavigationMenuItem>
-              </NavigationMenuList>
-            </NavigationMenu>
-
-            <div className="ml-2 flex items-center gap-4">
-              <CurrencySelector />
-              <LanguageSelector />
-              <ThemeToggle size="sm" />
-              <Link href="/reservations?tab=book-new">
-                <Button size="lg" className="font-semibold shadow-lg">{t("tour.bookNow")}</Button>
-              </Link>
-            </div>
-          </nav>
-
+        <div className={`container mx-auto px-4 flex items-center justify-between transition-all duration-300 ${isScrolled ? "py-1" : "pt-1 pb-1"}`}>
+          {/* Mobile hamburger - left side */}
           <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
             <SheetTrigger asChild className="md:hidden">
               <Button
@@ -635,6 +477,174 @@ export function Layout({ children }: { children: React.ReactNode }) {
               </div>
             </SheetContent>
           </Sheet>
+
+          <Link href="/" className="flex items-center gap-3">
+            <img
+              src={logo}
+              alt="Ace Tours Logo"
+              className={`rounded-full shadow-lg border-2 transition-all duration-300 ${isTransparent ? "border-white/30" : "border-primary/30"
+                } ${isScrolled ? "h-10 w-10" : "h-14 w-14 md:h-16 md:w-16"}`}
+            />
+            <span className={`font-serif font-bold tracking-tight transition-all duration-300 ${logoTextColor} ${isScrolled ? "text-base" : "text-lg md:text-xl"
+              }`}>
+              Ace Tours & Transfers
+            </span>
+          </Link>
+
+          {/* Spacer for mobile to balance hamburger on the left */}
+          <div className="w-10 md:hidden" />
+        </div>
+
+        <div className={`container mx-auto px-4 flex items-center justify-center transition-all duration-300 ${isScrolled ? "pb-1" : "pb-2"}`}>
+          <nav className="hidden md:flex items-center gap-6" aria-label="Main navigation">
+            <NavigationMenu className="relative z-50">
+              <NavigationMenuList>
+                <NavigationMenuItem>
+                  <Link href="/" className={cn(
+                    "group inline-flex h-9 w-max items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors focus:outline-none disabled:pointer-events-none disabled:opacity-50",
+                    navTextColor
+                  )}>
+                    {t("nav.home")}
+                  </Link>
+                </NavigationMenuItem>
+              </NavigationMenuList>
+            </NavigationMenu>
+
+            <NavigationMenu className="relative z-50">
+              <NavigationMenuList>
+                <NavigationMenuItem>
+                  <NavigationMenuTrigger className={cn("bg-transparent hover:bg-transparent focus:bg-transparent data-[state=open]:bg-transparent", navTextColor)}>
+                    {t("nav.tours")}
+                  </NavigationMenuTrigger>
+                  <NavigationMenuContent>
+                    <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
+                      {tours.map((tour) => (
+                        <ListItem
+                          key={tour.id}
+                          title={tour.title}
+                          href={`/tours/${tour.id}`}
+                        >
+                          {tour.description[0]}
+                        </ListItem>
+                      ))}
+                      <ListItem href="/tours" title={t("nav.viewAllTours")} className="bg-muted/50">
+                        {t("nav.seeAllTours")}
+                      </ListItem>
+                    </ul>
+                  </NavigationMenuContent>
+                </NavigationMenuItem>
+              </NavigationMenuList>
+            </NavigationMenu>
+
+            <NavigationMenu className="relative z-50">
+              <NavigationMenuList>
+                <NavigationMenuItem>
+                  <NavigationMenuTrigger className={cn("bg-transparent hover:bg-transparent focus:bg-transparent data-[state=open]:bg-transparent", navTextColor)}>
+                    {t("nav.transfers")}
+                  </NavigationMenuTrigger>
+                  <NavigationMenuContent>
+                    <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
+                      {transfers.map((transfer) => (
+                        <ListItem
+                          key={transfer.id}
+                          title={transfer.title}
+                          href={`/transfers/${transfer.id}`}
+                        >
+                          {transfer.description}
+                        </ListItem>
+                      ))}
+                      <ListItem href="/transfers" title={t("nav.viewAllTransfers")} className="bg-muted/50">
+                        {t("nav.seeAllTransfers")}
+                      </ListItem>
+                    </ul>
+                  </NavigationMenuContent>
+                </NavigationMenuItem>
+              </NavigationMenuList>
+            </NavigationMenu>
+
+            {showVehicleHire && (
+              <NavigationMenu className="relative z-50">
+                <NavigationMenuList>
+                  <NavigationMenuItem>
+                    <NavigationMenuTrigger className={cn("bg-transparent hover:bg-transparent focus:bg-transparent data-[state=open]:bg-transparent", navTextColor)}>
+                      {t("nav.vehicleHire", "Vehicle Hire")}
+                    </NavigationMenuTrigger>
+                    <NavigationMenuContent>
+                      <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
+                        {allVehicles.filter(v => v.isActive !== false).map((vehicle) => (
+                          <ListItem
+                            key={vehicle.id}
+                            title={vehicle.title}
+                            href={`/vehicles/${vehicle.id}`}
+                          >
+                            {Array.isArray(vehicle.description) ? vehicle.description[0] : vehicle.description}
+                          </ListItem>
+                        ))}
+                        <ListItem href="/vehicles" title={t("nav.viewAllVehicles", "View All Vehicles")} className="bg-muted/50">
+                          {t("nav.seeAllVehicles", "Browse our full fleet")}
+                        </ListItem>
+                      </ul>
+                    </NavigationMenuContent>
+                  </NavigationMenuItem>
+                </NavigationMenuList>
+              </NavigationMenu>
+            )}
+
+            <NavigationMenu className="relative z-50">
+              <NavigationMenuList>
+                <NavigationMenuItem>
+                  <Link href="/about" className={cn(
+                    "group inline-flex h-9 w-max items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors focus:outline-none disabled:pointer-events-none disabled:opacity-50",
+                    navTextColor
+                  )}>
+                    {t("nav.about")}
+                  </Link>
+                </NavigationMenuItem>
+              </NavigationMenuList>
+            </NavigationMenu>
+
+            <NavigationMenu className="relative z-50">
+              <NavigationMenuList>
+                <NavigationMenuItem>
+                  <Link href="/contact" className={cn(
+                    "group inline-flex h-9 w-max items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors focus:outline-none disabled:pointer-events-none disabled:opacity-50",
+                    navTextColor
+                  )}>
+                    {t("nav.contact")}
+                  </Link>
+                </NavigationMenuItem>
+              </NavigationMenuList>
+            </NavigationMenu>
+
+            <NavigationMenu className="relative z-50">
+              <NavigationMenuList>
+                <NavigationMenuItem>
+                  <NavigationMenuTrigger className={cn("bg-transparent hover:bg-transparent focus:bg-transparent data-[state=open]:bg-transparent", navTextColor)}>
+                    {t("nav.myBookings")}
+                  </NavigationMenuTrigger>
+                  <NavigationMenuContent>
+                    <ul className="grid w-[200px] gap-2 p-4">
+                      <ListItem href="/manage-booking" title={t("nav.editTrip")}>
+                        {t("nav.manageBookings", "Manage or cancel existing bookings")}
+                      </ListItem>
+                      <ListItem href="/reservations" title={t("nav.bookRide")}>
+                        {t("nav.startNewBooking", "Start a new booking")}
+                      </ListItem>
+                    </ul>
+                  </NavigationMenuContent>
+                </NavigationMenuItem>
+              </NavigationMenuList>
+            </NavigationMenu>
+
+            <div className="ml-2 flex items-center gap-4">
+              <CurrencySelector />
+              <LanguageSelector />
+              <ThemeToggle size="sm" />
+              <Link href="/reservations?tab=book-new">
+                <Button size="lg" className="font-semibold shadow-lg">{t("tour.bookNow")}</Button>
+              </Link>
+            </div>
+          </nav>
         </div>
       </header>
 
@@ -642,7 +652,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         {children}
       </main>
 
-      <footer role="contentinfo" className="bg-[#291B12] text-white pt-16 pb-8">
+      <footer role="contentinfo" className="bg-[#291B12] text-white pt-16 pb-24 md:pb-8">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
             <div>
