@@ -53,21 +53,15 @@ function splitStatements(sql: string): string[] {
 }
 
 /**
- * Core migration logic. Uses standard TCP with IP + SNI for resilience and
- * multi-statement support.
+ * Core migration logic. Accepts an optional external pool (e.g. the app's
+ * shared Neon pool) so callers can reuse an existing connection. When run
+ * from the CLI it falls back to a new Pool using DATABASE_URL.
  */
-export async function runIdempotentMigrations(): Promise<void> {
-  // Use standard TCP (not WebSockets) to ensure SNI/servername works correctly
-  const pool = new Pool({
-    host: "54.206.85.193",
-    port: 5432,
-    user: "neondb_owner",
-    password: process.env.DB_PASSWORD,
-    database: "neondb",
-    ssl: {
-      servername: "ep-bitter-frog-a7zxak3x-pooler.ap-southeast-2.aws.neon.tech",
-      rejectUnauthorized: false
-    },
+export async function runIdempotentMigrations(externalPool?: InstanceType<typeof Pool>): Promise<void> {
+  const ownsPool = !externalPool;
+  const pool = externalPool ?? new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: { rejectUnauthorized: false },
     connectionTimeoutMillis: 10000,
   });
 
@@ -133,7 +127,7 @@ export async function runIdempotentMigrations(): Promise<void> {
     console.log("Migrations complete!");
   } finally {
     client.release();
-    await pool.end();
+    if (ownsPool) await pool.end();
   }
 }
 
