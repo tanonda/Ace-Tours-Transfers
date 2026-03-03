@@ -23,13 +23,11 @@ import {
     AnzEGateCredentialsSchema,
     BredBankCredentialsSchema,
     BspBankCredentialsSchema,
-    GenericLocalBankCredentialsSchema,
     StripeCredentialsSchema,
     StripeConfigSchema,
     GooglePayCredentialsSchema,
     ApplePayCredentialsSchema,
     PayPalCredentialsSchema,
-    EWalletCredentialsSchema,
     MastercardGatewayCredentialsSchema,
     WanTokCredentialsSchema,
     DigicelMobileMoneyCredentialsSchema,
@@ -54,19 +52,17 @@ const gatewaySchemas: Record<string, { credentials?: z.ZodObject<any>, config?: 
     'bred-bank': { credentials: BredBankCredentialsSchema, config: LocalBankConfigSchema },
     'bred': { credentials: BredBankCredentialsSchema, config: LocalBankConfigSchema },
     'mastercard-gateway': { credentials: MastercardGatewayCredentialsSchema, config: LocalBankConfigSchema },
-    'generic-local-bank': { credentials: GenericLocalBankCredentialsSchema, config: LocalBankConfigSchema },
     'stripe': { credentials: StripeCredentialsSchema, config: StripeConfigSchema },
     'google-pay': { credentials: GooglePayCredentialsSchema, config: DigitalWalletConfigSchema },
     'apple-pay': { credentials: ApplePayCredentialsSchema, config: DigitalWalletConfigSchema },
     'paypal': { credentials: PayPalCredentialsSchema, config: InternationalFallbackConfigSchema },
-    'e-wallet': { credentials: EWalletCredentialsSchema, config: LocalEWalletConfigSchema },
     'wantok-money': { credentials: WanTokCredentialsSchema, config: LocalEWalletConfigSchema },
     'digicel-mobile-money': { credentials: DigicelMobileMoneyCredentialsSchema, config: LocalEWalletConfigSchema },
     'kwikpay': { credentials: KwikPayCredentialsSchema, config: LocalEWalletConfigSchema },
-    'manual_transfer': { credentials: GenericLocalBankCredentialsSchema, config: undefined },
-    'bank-transfer': { credentials: GenericLocalBankCredentialsSchema, config: undefined },
-    'bank_transfer': { credentials: GenericLocalBankCredentialsSchema, config: undefined },
-    'bank': { credentials: GenericLocalBankCredentialsSchema, config: undefined },
+    'manual_transfer': { credentials: undefined, config: undefined },
+    'bank-transfer': { credentials: undefined, config: undefined },
+    'bank_transfer': { credentials: undefined, config: undefined },
+    'bank': { credentials: undefined, config: undefined },
     'cash': { credentials: undefined, config: undefined },
 };
 
@@ -74,10 +70,10 @@ const gatewaySchemas: Record<string, { credentials?: z.ZodObject<any>, config?: 
 const GATEWAY_CATEGORIES = {
     'online': [
         'anz-egate', 'anz', 'bsp-bank', 'bsp', 'bred-bank', 'bred',
-        'mastercard-gateway', 'generic-local-bank', 'stripe', 'paypal'
+        'mastercard-gateway', 'stripe', 'paypal'
     ],
     'ewallet': [
-        'wantok-money', 'digicel-mobile-money', 'kwikpay', 'e-wallet', 'apple-pay', 'google-pay'
+        'wantok-money', 'digicel-mobile-money', 'kwikpay', 'apple-pay', 'google-pay'
     ],
     'offline': [
         'manual_transfer', 'bank-transfer', 'bank_transfer', 'bank', 'cash'

@@ -11,7 +11,7 @@ async function main() {
   // 1. Seed Admin User
   const adminEmail = "admin@acetours.vu";
   const existingAdmin = await db.select().from(usersTable).where(eq(usersTable.email, adminEmail)).limit(1);
-  
+
   if (existingAdmin.length === 0) {
     const hashedPassword = await bcrypt.hash("adminpassword", 12);
     await db.insert(usersTable).values({
@@ -114,7 +114,12 @@ async function main() {
         "Door-to-door service"
       ],
       category: "transfer",
-      defaultCapacity: 50
+      defaultCapacity: 50,
+      cancellationPolicy: "Free cancellation up to 24 hours before pickup. 50% fee applies for late cancellations.",
+      supportEmail: "transfers@acetoursvanuatu.com",
+      supportPhone: "+678 7777777",
+      includedItems: ["Air-conditioned vehicle", "Meet & greet at terminal", "Luggage assistance"],
+      excludedItems: ["Waiting time beyond 30 min"]
     },
     {
       title: "Wharf / Cruise Ship Transfer",
@@ -129,7 +134,12 @@ async function main() {
         "Air-conditioned buses"
       ],
       category: "transfer",
-      defaultCapacity: 100
+      defaultCapacity: 100,
+      cancellationPolicy: "Free cancellation up to 24 hours before pickup.",
+      supportEmail: "transfers@acetoursvanuatu.com",
+      supportPhone: "+678 7777777",
+      includedItems: ["Air-conditioned bus", "Luggage assistance"],
+      excludedItems: []
     },
     {
       title: "Dinner Transfer (Round Trip)",
@@ -144,7 +154,12 @@ async function main() {
         "Enjoy your evening worry-free"
       ],
       category: "transfer",
-      defaultCapacity: 20
+      defaultCapacity: 20,
+      cancellationPolicy: "Free cancellation up to 12 hours before pickup.",
+      supportEmail: "transfers@acetoursvanuatu.com",
+      supportPhone: "+678 7777777",
+      includedItems: ["Round trip transfer", "Professional driver"],
+      excludedItems: ["Restaurant reservations"]
     },
     {
       title: "VIP Executive Transfer",
@@ -159,7 +174,12 @@ async function main() {
         "Cold towels and water provided"
       ],
       category: "transfer",
-      defaultCapacity: 3
+      defaultCapacity: 3,
+      cancellationPolicy: "Free cancellation up to 48 hours before. Non-refundable within 48 hours.",
+      supportEmail: "vip@acetoursvanuatu.com",
+      supportPhone: "+678 7777777",
+      includedItems: ["Private luxury vehicle", "Meet & greet", "Cold towels & water", "Wi-Fi"],
+      excludedItems: ["Gratuity"]
     },
 
     // Vehicles
@@ -177,6 +197,11 @@ async function main() {
       ],
       category: "vehicle",
       defaultCapacity: 1,
+      cancellationPolicy: "Free cancellation up to 48 hours before pickup. 50% fee within 48 hours.",
+      supportEmail: "vehicles@acetoursvanuatu.com",
+      supportPhone: "+678 7777777",
+      includedItems: ["Full insurance", "Unlimited mileage", "Roadside assistance"],
+      excludedItems: ["Fuel", "Traffic fines"],
       vehicleDetails: {
         make: "Toyota",
         model: "Hilux",

@@ -73,9 +73,8 @@ function ToolbarBtn({
       type="button"
       title={title}
       onClick={onClick}
-      className={`p-1.5 rounded text-xs hover:bg-muted transition-colors ${
-        active ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
-      }`}
+      className={`p-1.5 rounded text-xs hover:bg-muted transition-colors ${active ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+        }`}
     >
       {children}
     </button>
@@ -979,9 +978,8 @@ export function ProductDialog({ tour, open, onOpenChange, onSave }: ProductDialo
                                 ))}
                               </div>
                             )}
-                            <label className={`flex items-center justify-center gap-2 cursor-pointer px-3 py-2 rounded-md border border-dashed transition-colors text-xs w-full ${
-                              uploading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-muted/60 hover:border-primary/50 text-muted-foreground'
-                            }`}>
+                            <label className={`flex items-center justify-center gap-2 cursor-pointer px-3 py-2 rounded-md border border-dashed transition-colors text-xs w-full ${uploading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-muted/60 hover:border-primary/50 text-muted-foreground'
+                              }`}>
                               {uploading
                                 ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Uploading…</>
                                 : <><Upload className="h-3.5 w-3.5" /> Upload photos (select multiple)</>
@@ -1038,6 +1036,69 @@ export function ProductDialog({ tour, open, onOpenChange, onSave }: ProductDialo
                           </FormControl>
                           <p className="text-xs text-muted-foreground mt-1">Tip: use the bullet list (•) button for the best display on the transfer page.</p>
                           <FormMessage />
+                        </FormItem>
+                      )} />
+                    </div>
+
+                    {/* ── Structured Inclusions / Exclusions ── */}
+                    <div className="bg-muted/30 rounded-lg p-4 border border-border space-y-4">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+                        <CheckCircle className="h-3.5 w-3.5 text-green-500" />
+                        Structured Inclusions / Exclusions
+                        <Badge variant="outline" className="text-[0.6rem] py-0">What's Included card</Badge>
+                      </p>
+                      <FormField control={form.control} name="includedItems" render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs flex items-center gap-1.5"><CheckCircle className="h-3 w-3 text-green-500" /> Included Items</FormLabel>
+                          <div className="space-y-2">
+                            {(field.value || []).map((item: string, i: number) => (
+                              <div key={i} className="flex gap-2">
+                                <Input
+                                  value={item}
+                                  placeholder={`e.g. Airport pickup`}
+                                  className="text-xs flex-1"
+                                  onChange={e => {
+                                    const arr = [...(field.value || [])];
+                                    arr[i] = e.target.value;
+                                    field.onChange(arr);
+                                  }}
+                                />
+                                <button type="button" onClick={() => field.onChange((field.value || []).filter((_: string, idx: number) => idx !== i))} className="text-muted-foreground hover:text-destructive transition-colors">
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
+                            ))}
+                            <button type="button" onClick={() => field.onChange([...(field.value || []), ''])} className="text-xs text-primary hover:underline flex items-center gap-1">
+                              <Plus className="h-3 w-3" /> Add included item
+                            </button>
+                          </div>
+                        </FormItem>
+                      )} />
+                      <FormField control={form.control} name="excludedItems" render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs flex items-center gap-1.5"><XCircle className="h-3 w-3 text-red-400" /> Excluded Items</FormLabel>
+                          <div className="space-y-2">
+                            {(field.value || []).map((item: string, i: number) => (
+                              <div key={i} className="flex gap-2">
+                                <Input
+                                  value={item}
+                                  placeholder={`e.g. Airport departure taxes`}
+                                  className="text-xs flex-1"
+                                  onChange={e => {
+                                    const arr = [...(field.value || [])];
+                                    arr[i] = e.target.value;
+                                    field.onChange(arr);
+                                  }}
+                                />
+                                <button type="button" onClick={() => field.onChange((field.value || []).filter((_: string, idx: number) => idx !== i))} className="text-muted-foreground hover:text-destructive transition-colors">
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
+                            ))}
+                            <button type="button" onClick={() => field.onChange([...(field.value || []), ''])} className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
+                              <Plus className="h-3 w-3" /> Add excluded item
+                            </button>
+                          </div>
                         </FormItem>
                       )} />
                     </div>
@@ -1191,9 +1252,8 @@ export function ProductDialog({ tour, open, onOpenChange, onSave }: ProductDialo
                           onChange={e => field.onChange(e.target.value)}
                           className="text-xs"
                         />
-                        <label className={`flex items-center justify-center gap-2 cursor-pointer px-3 py-2 rounded-md border border-dashed transition-colors text-xs w-full ${
-                          isUploading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-muted/60 hover:border-primary/50 text-muted-foreground'
-                        }`}>
+                        <label className={`flex items-center justify-center gap-2 cursor-pointer px-3 py-2 rounded-md border border-dashed transition-colors text-xs w-full ${isUploading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-muted/60 hover:border-primary/50 text-muted-foreground'
+                          }`}>
                           {isUploading
                             ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Uploading…</>
                             : <><Upload className="h-3.5 w-3.5" /> Upload image</>

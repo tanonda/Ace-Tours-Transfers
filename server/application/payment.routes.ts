@@ -273,6 +273,45 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
     }
   });
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // GUEST-FACING: Payment Methods (grouped by category)
+  //
+  // Returns guest-friendly payment method options (Card, PayPal, Mobile Money,
+  // etc.) instead of raw gateway slugs. The admin's gateway configuration
+  // (priority, isDefault) determines which gateway is auto-selected per category.
+  // ─────────────────────────────────────────────────────────────────────────
+  app.get("/api/payment-methods", async (req, res) => {
+    try {
+      const { PaymentMethodClassifier } = await import("../domain/payments/payment-method-classifier.js");
+      const gateways = await storage.getPaymentGateways();
+      const flags = await storage.getFeatureFlags();
+      const isFlagEnabled = (slug: string) => flags.find(f => f.slug === slug)?.enabled ?? false;
+      const stripeExplicitlyEnabled = process.env.STRIPE_ENABLED === 'true';
+
+      // Reuse the same feature-flag filtering as /api/payment-gateways
+      const visibleGateways = gateways.filter((g: any) => {
+        if (!g.active) return false;
+        const slug = g.slug.toLowerCase();
+
+        if (slug === 'stripe') return stripeExplicitlyEnabled && isFlagEnabled('payment-stripe');
+        if (slug === 'bank-transfer' || slug === 'manual' || slug === 'manual_transfer' || slug === 'bank') {
+          return isFlagEnabled('payment-bank-transfer');
+        }
+        if (slug === 'cash') {
+          return isFlagEnabled('payment-cash-on-delivery');
+        }
+
+        return true;
+      });
+
+      const methods = PaymentMethodClassifier.groupByMethod(visibleGateways);
+      res.json(methods);
+    } catch (error) {
+      console.error("Payment methods error:", error);
+      res.status(500).json({ error: "Failed to fetch payment methods" });
+    }
+  });
+
   // Additional Payment Routes for parity
   app.get("/api/payment-gateways/active", async (req, res) => {
     try {

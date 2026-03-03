@@ -1,4 +1,13 @@
-// server/infrastructure/payments/paypal.adapter.ts
+/**
+ * PayPal REST API v2 Payment Gateway Adapter
+ *
+ * Production integration using PayPal Orders API v2.
+ * - OAuth2 client_credentials token with auto-refresh
+ * - Create Order → redirect to PayPal approval → Capture on webhook/return
+ * - Webhook signature verification via PayPal Notifications API
+ * - Status polling via Orders API
+ * - Refunds via Payments API v2
+ */
 
 import { PaymentGateway, PayPalCredentialsSchema, InternationalFallbackConfigSchema } from '../../../shared/schema.js';
 import {
@@ -13,29 +22,31 @@ import {
 } from '../../domain/payments/interfaces.js';
 import { Payment } from '../../../shared/schema.js';
 import { z } from 'zod';
+import crypto from 'crypto';
 
 export type PayPalCredentials = z.infer<typeof PayPalCredentialsSchema>;
 export type InternationalFallbackConfig = z.infer<typeof InternationalFallbackConfigSchema>;
 
-/**
- * PayPal Payment Gateway Adapter.
- * This class implements the PaymentGatewayService interface for PayPal.
- * It simulates interaction with the PayPal API for payment initiation, webhooks, and status queries.
- */
+// ── Internal token cache ────────────────────────────────────────────────────
+interface TokenCache {
+  accessToken: string;
+  expiresAt: number; // Unix timestamp ms
+}
+
 export class PayPalAdapter implements PaymentGatewayService {
   private credentials: PayPalCredentials;
   private config: InternationalFallbackConfig;
   private gatewayConfig: PaymentGateway;
+  private tokenCache: TokenCache | null = null;
 
   constructor(gatewayConfig: PaymentGateway) {
     if (!gatewayConfig.credentials) {
       throw new Error('PayPal credentials are not provided.');
     }
     if (!gatewayConfig.config) {
-        throw new Error('PayPal configuration is not provided.');
+      throw new Error('PayPal configuration is not provided.');
     }
 
-    // Validate credentials and config using Zod schemas
     const parsedCredentials = PayPalCredentialsSchema.safeParse(gatewayConfig.credentials);
     if (!parsedCredentials.success) {
       throw new Error(`Invalid PayPal credentials: ${parsedCredentials.error.errors.map((e: z.ZodIssue) => e.message).join(', ')}`);
@@ -49,123 +60,331 @@ export class PayPalAdapter implements PaymentGatewayService {
     this.config = parsedConfig.data;
     this.gatewayConfig = gatewayConfig;
 
-    console.log(`PayPal Adapter initialized for ${this.credentials.clientId} in ${this.credentials.mode} mode.`);
+    console.log(`[PAYPAL] Adapter initialized (${this.credentials.mode} mode)`);
+  }
+
+  // ── Helpers ──────────────────────────────────────────────────────────────
+
+  private get baseUrl(): string {
+    return this.credentials.mode === 'live'
+      ? 'https://api-m.paypal.com'
+      : 'https://api-m.sandbox.paypal.com';
   }
 
   /**
-   * Initiates a payment process with PayPal.
-   * This typically involves creating an order (payment) and then redirecting the user to PayPal for approval.
-   * For now, this is a mock implementation.
+   * Obtain and cache an OAuth2 access token using client_credentials grant.
+   * Automatically refreshes when token is expired or about to expire (60s buffer).
    */
+  private async getAccessToken(): Promise<string> {
+    if (this.tokenCache && Date.now() < this.tokenCache.expiresAt - 60_000) {
+      return this.tokenCache.accessToken;
+    }
+
+    const auth = Buffer.from(`${this.credentials.clientId}:${this.credentials.clientSecret}`).toString('base64');
+
+    const response = await fetch(`${this.baseUrl}/v1/oauth2/token`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${auth}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: 'grant_type=client_credentials',
+      signal: AbortSignal.timeout(15_000),
+    });
+
+    if (!response.ok) {
+      const body = await response.text();
+      throw new Error(`PayPal OAuth failed (${response.status}): ${body}`);
+    }
+
+    const data = await response.json() as { access_token: string; expires_in: number };
+    this.tokenCache = {
+      accessToken: data.access_token,
+      expiresAt: Date.now() + data.expires_in * 1000,
+    };
+
+    return this.tokenCache.accessToken;
+  }
+
+  private async apiRequest(method: string, path: string, body?: any): Promise<any> {
+    const token = await this.getAccessToken();
+    const headers: Record<string, string> = {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    };
+
+    // PayPal requires a unique idempotency key for certain POST requests
+    if (method === 'POST') {
+      headers['PayPal-Request-Id'] = crypto.randomUUID();
+    }
+
+    const response = await fetch(`${this.baseUrl}${path}`, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+      signal: AbortSignal.timeout(30_000),
+    });
+
+    const responseBody = response.headers.get('content-type')?.includes('application/json')
+      ? await response.json()
+      : await response.text();
+
+    if (!response.ok) {
+      const errMsg = typeof responseBody === 'object'
+        ? JSON.stringify(responseBody)
+        : responseBody;
+      throw new Error(`PayPal API ${method} ${path} failed (${response.status}): ${errMsg}`);
+    }
+
+    return responseBody;
+  }
+
+  // ── PaymentGatewayService ────────────────────────────────────────────────
+
   async initiatePayment(request: PaymentInitiationRequest): Promise<PaymentInitiationResponse> {
-    console.log(`Mock PayPal: Initiating payment for booking ${request.bookingId} with amount ${request.amount} ${request.currency}`);
+    console.log(`[PAYPAL] Initiating payment for booking ${request.bookingId}, amount ${request.amount} ${request.currency}`);
 
-    // In a real scenario, you would make an API call to PayPal to create an order.
-    // The response would contain a 'approve' link to which the user needs to be redirected.
+    try {
+      // PayPal expects amount as a decimal string (e.g., "150.00"), NOT cents.
+      // Our system stores amounts in cents/smallest unit, so divide by 100 for most currencies.
+      const currencyUpper = (request.currency || 'VUV').toUpperCase();
+      // VUV has no decimal places; most others have 2
+      const isZeroDecimal = ['VUV', 'JPY', 'KRW', 'HUF'].includes(currencyUpper);
+      const amountStr = isZeroDecimal
+        ? request.amount.toString()
+        : (request.amount / 100).toFixed(2);
 
-    const mockOrderId = `PAYPAL-${Date.now()}-${request.bookingId.substring(0, 8)}`;
-    const apiEndpoint = this.credentials.mode === 'sandbox'
-        ? 'https://api-m.sandbox.paypal.com'
-        : 'https://api-m.paypal.com';
+      const orderPayload = {
+        intent: 'CAPTURE',
+        purchase_units: [{
+          reference_id: request.bookingId,
+          description: request.customerName
+            ? `Booking for ${request.customerName}`
+            : `Booking ${request.bookingId}`,
+          amount: {
+            currency_code: currencyUpper,
+            value: amountStr,
+          },
+          custom_id: request.bookingId,
+        }],
+        payment_source: {
+          paypal: {
+            experience_context: {
+              return_url: request.successUrl,
+              cancel_url: request.cancelUrl,
+              brand_name: 'Ace Tours & Transfers',
+              landing_page: this.credentials.checkoutExperience === 'PAY_WITH_CARD_OR_PAYPAL'
+                ? 'NO_PREFERENCE'
+                : 'LOGIN',
+              user_action: 'PAY_NOW',
+              shipping_preference: 'NO_SHIPPING',
+            },
+          },
+        },
+        application_context: {
+          ...(request.customerEmail && { payer_email: request.customerEmail }),
+        },
+      };
 
-    // Simplified mock redirect using PayPal's checkout experience preference
-    let mockRedirectUrl = `${apiEndpoint}/checkout?orderId=${mockOrderId}&amount=${request.amount}&currency=${request.currency}&returnUrl=${encodeURIComponent(request.successUrl)}`;
+      const order = await this.apiRequest('POST', '/v2/checkout/orders', orderPayload);
 
-    if (this.credentials.checkoutExperience === 'PAY_WITH_CARD_OR_PAYPAL') {
-        mockRedirectUrl += '&enableGuestCheckout=true';
+      // Find the approval link from the HATEOAS links
+      const approveLink = order.links?.find((l: any) => l.rel === 'payer-action' || l.rel === 'approve');
+      if (!approveLink?.href) {
+        return {
+          success: false,
+          message: 'PayPal did not return an approval URL.',
+          failureReason: 'no_approval_link',
+        };
+      }
+
+      return {
+        success: true,
+        message: 'PayPal order created.',
+        redirectUrl: approveLink.href,
+        transactionId: order.id,
+      };
+    } catch (error: any) {
+      console.error('[PAYPAL] Initiation error:', error.message);
+      return {
+        success: false,
+        message: error.message,
+        failureReason: 'system_error',
+      };
     }
-
-
-    return {
-      success: true,
-      message: 'Payment initiation successful (mock PayPal).',
-      redirectUrl: mockRedirectUrl,
-      transactionId: mockOrderId, // Using orderId as transactionId for simplicity in mock
-    };
   }
 
-  /**
-   * Handles webhook events from PayPal.
-   * This method would verify the webhook signature and process the event data.
-   * For now, this is a mock implementation.
-   */
   async handleWebhook(event: WebhookEvent): Promise<WebhookResponse> {
-    console.log('Mock PayPal: Handling webhook event.', event.rawEvent);
+    console.log(`[PAYPAL] Processing webhook event`);
 
-    // In a real scenario, you would:
-    // 1. Verify the authenticity of the webhook (e.g., using a webhook-id header and event data).
-    // 2. Parse the event data (e.g., payment.capture.completed, checkout.order.approved).
-    // 3. Find the corresponding payment record in your database using the order/transaction ID.
-    // 4. Update the payment and booking status based on the event.
+    try {
+      // 1. Verify webhook signature via PayPal Notifications API
+      if (this.credentials.ipnWebhookUrl && event.headers) {
+        const verificationPayload = {
+          auth_algo: event.headers['paypal-auth-algo'],
+          cert_url: event.headers['paypal-cert-url'],
+          transmission_id: event.headers['paypal-transmission-id'],
+          transmission_sig: event.headers['paypal-transmission-sig'],
+          transmission_time: event.headers['paypal-transmission-time'],
+          webhook_id: this.credentials.ipnWebhookUrl, // Webhook ID from PayPal dashboard
+          webhook_event: event.rawEvent,
+        };
 
-    if (this.credentials.ipnWebhookUrl && event.signature !== 'mock_valid_signature') {
-        console.warn('PayPal Webhook: Invalid signature.');
-        return { success: false, message: 'Invalid webhook signature.' };
+        const verification = await this.apiRequest('POST', '/v1/notifications/verify-webhook-signature', verificationPayload);
+
+        if (verification.verification_status !== 'SUCCESS') {
+          console.error('[PAYPAL] Webhook signature verification failed');
+          return { success: false, message: 'Webhook signature verification failed.' };
+        }
+      }
+
+      // 2. Process the event
+      const eventType = event.rawEvent?.event_type;
+      const resource = event.rawEvent?.resource;
+
+      let newStatus: PaymentStatus | undefined;
+      let bookingId: string | undefined;
+
+      switch (eventType) {
+        case 'CHECKOUT.ORDER.APPROVED': {
+          // Auto-capture the approved order
+          const orderId = resource?.id;
+          if (orderId) {
+            try {
+              const capture = await this.apiRequest('POST', `/v2/checkout/orders/${orderId}/capture`, {});
+              const captureStatus = capture.status;
+              newStatus = captureStatus === 'COMPLETED' ? PaymentStatus.Completed : PaymentStatus.Processing;
+              bookingId = capture.purchase_units?.[0]?.custom_id || capture.purchase_units?.[0]?.reference_id;
+            } catch (captureError: any) {
+              console.error('[PAYPAL] Auto-capture failed:', captureError.message);
+              newStatus = PaymentStatus.Failed;
+            }
+          }
+          break;
+        }
+        case 'PAYMENT.CAPTURE.COMPLETED':
+          newStatus = PaymentStatus.Completed;
+          bookingId = resource?.custom_id || resource?.supplementary_data?.related_ids?.order_id;
+          break;
+        case 'PAYMENT.CAPTURE.DENIED':
+        case 'PAYMENT.CAPTURE.DECLINED':
+          newStatus = PaymentStatus.Failed;
+          bookingId = resource?.custom_id;
+          break;
+        case 'PAYMENT.CAPTURE.PENDING':
+          newStatus = PaymentStatus.Processing;
+          bookingId = resource?.custom_id;
+          break;
+        case 'PAYMENT.CAPTURE.REFUNDED':
+          newStatus = PaymentStatus.Refunded;
+          bookingId = resource?.custom_id;
+          break;
+        default:
+          console.log(`[PAYPAL] Unhandled event type: ${eventType}`);
+          return { success: true, message: `Unhandled event type: ${eventType}` };
+      }
+
+      return {
+        success: true,
+        message: `PayPal webhook '${eventType}' processed.`,
+        bookingId,
+        newPaymentStatus: newStatus,
+        gatewayReference: resource?.id,
+      };
+    } catch (error: any) {
+      console.error('[PAYPAL] Webhook error:', error.message);
+      return { success: false, message: error.message };
     }
-
-    const rawEvent = event.rawEvent;
-    const eventType = rawEvent.event_type; // e.g., 'CHECKOUT.ORDER.COMPLETED'
-    const resource = rawEvent.resource; // Contains details about the transaction
-    const transactionReference = resource?.id || 'unknown'; // Order ID or Capture ID
-
-    let newStatus: PaymentStatus = PaymentStatus.Failed;
-    if (eventType === 'CHECKOUT.ORDER.COMPLETED' || eventType === 'PAYMENT.CAPTURE.COMPLETED') {
-      newStatus = PaymentStatus.Completed;
-    } else if (eventType === 'PAYMENT.CAPTURE.PENDING') {
-      newStatus = PaymentStatus.Pending;
-    } else if (eventType === 'REFUND.COMPLETED') {
-        newStatus = PaymentStatus.Refunded;
-    }
-
-    const mockPaymentId = rawEvent.paymentId || 'mock-payment-id';
-    const mockBookingId = rawEvent.bookingId || 'mock-booking-id';
-
-    return {
-      success: true,
-      message: `PayPal webhook event '${eventType}' processed successfully (mock).`,
-      paymentId: mockPaymentId,
-      bookingId: mockBookingId,
-      newPaymentStatus: newStatus,
-    };
   }
 
-  /**
-   * Queries the current status of a PayPal payment.
-   * For now, this is a mock implementation.
-   */
   async queryPaymentStatus(request: PaymentStatusRequest): Promise<PaymentStatusResponse> {
-    console.log(`Mock PayPal: Querying status for payment ${request.paymentId} / ${request.gatewayReference}`);
+    const orderId = request.gatewayReference;
+    if (!orderId) {
+      return { status: PaymentStatus.Pending, message: 'No PayPal order ID available.' };
+    }
 
-    // In a real scenario, you would make an API call to PayPal to get order or capture details.
+    console.log(`[PAYPAL] Querying status for order ${orderId}`);
 
-    const mockStatus = request.gatewayReference ? PaymentStatus.Completed : PaymentStatus.Pending;
+    try {
+      const order = await this.apiRequest('GET', `/v2/checkout/orders/${orderId}`);
 
-    return {
-      status: mockStatus,
-      gatewayReference: request.gatewayReference || `mock-paypal-ref-${Date.now()}`,
-      amount: 25000, // Mock amount in cents
-      currency: this.credentials.settlementCurrency || 'VUV', // Use configured settlement currency
-      message: 'Status retrieved (mock PayPal).',
-    };
+      let status: PaymentStatus;
+      switch (order.status) {
+        case 'COMPLETED':
+          status = PaymentStatus.Completed;
+          break;
+        case 'APPROVED':
+          status = PaymentStatus.Processing;
+          break;
+        case 'VOIDED':
+          status = PaymentStatus.Cancelled;
+          break;
+        case 'CREATED':
+        case 'SAVED':
+          status = PaymentStatus.Pending;
+          break;
+        case 'PAYER_ACTION_REQUIRED':
+          status = PaymentStatus.Pending;
+          break;
+        default:
+          status = PaymentStatus.Pending;
+      }
+
+      const capture = order.purchase_units?.[0]?.payments?.captures?.[0];
+      return {
+        status,
+        gatewayReference: order.id,
+        amount: capture ? parseInt(capture.amount?.value || '0', 10) : undefined,
+        currency: capture?.amount?.currency_code || this.credentials.settlementCurrency || 'VUV',
+        message: `PayPal order status: ${order.status}`,
+      };
+    } catch (error: any) {
+      console.error('[PAYPAL] Status query error:', error.message);
+      return { status: PaymentStatus.Pending, message: error.message };
+    }
   }
 
-  /**
-   * Initiates a refund for a completed PayPal payment.
-   * For now, this is a mock implementation.
-   */
   async refundPayment(payment: Payment, amount?: number, reason?: string): Promise<PaymentStatusResponse> {
-    console.log(`Mock PayPal: Refunding payment ${payment.id} for amount ${amount || 'full'} with reason: ${reason}`);
+    console.log(`[PAYPAL] Refunding payment ${payment.id}, amount: ${amount || 'full'}`);
 
-    // In a real scenario, this would involve an API call to PayPal for refund.
+    const captureId = payment.gatewayReference;
+    if (!captureId) {
+      return { status: PaymentStatus.Failed, message: 'No capture ID available for refund.' };
+    }
 
-    return {
-      status: PaymentStatus.Refunded,
-      gatewayReference: payment.gatewayReference || `mock-paypal-refund-ref-${Date.now()}`,
-      amount: amount || payment.amount,
-      currency: payment.currency,
-      message: 'Payment refunded (mock PayPal).',
-    };
+    try {
+      // First, get the order to find the capture ID
+      const order = await this.apiRequest('GET', `/v2/checkout/orders/${captureId}`);
+      const actualCaptureId = order.purchase_units?.[0]?.payments?.captures?.[0]?.id || captureId;
+
+      const refundPayload: any = {};
+      if (amount) {
+        const isZeroDecimal = ['VUV', 'JPY', 'KRW', 'HUF'].includes(payment.currency.toUpperCase());
+        refundPayload.amount = {
+          value: isZeroDecimal ? amount.toString() : (amount / 100).toFixed(2),
+          currency_code: payment.currency.toUpperCase(),
+        };
+      }
+      if (reason) {
+        refundPayload.note_to_payer = reason;
+      }
+
+      const refund = await this.apiRequest(
+        'POST',
+        `/v2/payments/captures/${actualCaptureId}/refund`,
+        Object.keys(refundPayload).length > 0 ? refundPayload : undefined,
+      );
+
+      return {
+        status: refund.status === 'COMPLETED' ? PaymentStatus.Refunded : PaymentStatus.Processing,
+        gatewayReference: refund.id,
+        amount: amount || payment.amount,
+        currency: payment.currency,
+        message: `Refund ${refund.status}: ${refund.id}`,
+      };
+    } catch (error: any) {
+      console.error('[PAYPAL] Refund error:', error.message);
+      return { status: PaymentStatus.Failed, message: error.message };
+    }
   }
 }
-
-

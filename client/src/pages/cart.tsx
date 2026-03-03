@@ -3,7 +3,7 @@ import { useCart } from "@/lib/cart-context";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Trash2, ArrowRight, ShoppingBag, Clock, AlertTriangle, CheckCircle2, Loader2 } from "lucide-react";
+import { Trash2, ArrowRight, ShoppingBag, Clock, AlertTriangle, CheckCircle2, Loader2, Users, MapPin, Car, Calendar, Shield } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { format } from "date-fns";
 import { useTranslation } from "react-i18next";
@@ -16,6 +16,12 @@ import type { Addon } from "@shared/schema";
 import { useQuery } from "@tanstack/react-query";
 import { fetchAddons } from "@/lib/api";
 import { PricingBreakdown } from "@/components";
+
+const CATEGORY_LABELS: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
+  tour: { label: "Tour", color: "bg-blue-500/15 text-blue-400 border-blue-500/30", icon: <MapPin className="h-3 w-3" /> },
+  transfer: { label: "Transfer", color: "bg-green-500/15 text-green-400 border-green-500/30", icon: <Car className="h-3 w-3" /> },
+  vehicle: { label: "Vehicle Hire", color: "bg-amber-500/15 text-amber-400 border-amber-500/30", icon: <Car className="h-3 w-3" /> },
+};
 
 export default function Cart() {
   const { t } = useTranslation();
@@ -90,7 +96,15 @@ export default function Cart() {
     <Layout>
       <div className="pt-40 pb-12 bg-muted/30 min-h-screen">
         <div className="container mx-auto px-4">
-          <h1 className="text-3xl md:text-4xl font-serif font-bold mb-4">{t("cart.title")}</h1>
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h1 className="text-3xl md:text-4xl font-serif font-bold">{t("cart.title")}</h1>
+              <p className="text-muted-foreground text-sm mt-1">{items.length} item{items.length !== 1 ? "s" : ""} in your cart</p>
+            </div>
+            <Button variant="outline" onClick={clearCart} size="sm" className="text-muted-foreground">
+              Clear Cart
+            </Button>
+          </div>
 
           {/* Cart Expiry Warning Banner */}
           {isExpiringSoon && (
@@ -118,7 +132,7 @@ export default function Cart() {
               )}
               <div className="space-y-4">
                 {items.map((item, index) => {
-                  // Phase 2C: Use backend pricing if available, fallback to deprecated client estimation
+                  // Use backend pricing if available, fallback to client estimation
                   let finalItemSubtotal = 0;
                   let appliedRules: string[] = [];
 
@@ -127,8 +141,6 @@ export default function Cart() {
                     finalItemSubtotal = pricedItem.breakdown.finalTotalCents;
                     appliedRules = pricedItem.breakdown.appliedRules;
                   } else {
-                    // Client-side estimation (deprecated - for fallback only)
-                    // Manual calculation to avoid [DEPRECATED] calculateLineTotal warning
                     finalItemSubtotal = (item.price * item.adultPax) + (item.childPrice * item.childPax) + (item.addonTotal || 0);
                     if (item.adultPax >= 7) {
                       appliedRules.push('10% group discount (7+ adults)');
@@ -144,45 +156,96 @@ export default function Cart() {
                   }
 
                   const dateKey = item.date ? (item.date instanceof Date ? item.date.getTime() : new Date(item.date).getTime()) : 'no-date';
+                  const cat = CATEGORY_LABELS[item.type] || CATEGORY_LABELS.tour;
+                  const isVehicle = item.type === "vehicle";
+                  const anyItem = item as any;
+
                   return (
                     <Card key={`${item.id}-${index}-${dateKey}`} className="overflow-hidden border-none shadow-sm">
                       <CardContent className="p-0">
                         <div className="flex flex-col sm:flex-row">
-                          <div className="w-full sm:w-40 h-40 sm:h-auto relative">
+                          <div className="w-full sm:w-48 h-40 sm:h-auto relative">
                             <img
                               src={item.image}
                               alt={item.title}
                               className="w-full h-full object-cover absolute inset-0"
                             />
+                            {/* Category badge overlay */}
+                            <span className={`absolute top-3 left-3 px-2.5 py-1 rounded-full border text-[0.7rem] font-bold flex items-center gap-1.5 backdrop-blur-sm ${cat.color}`}>
+                              {cat.icon} {cat.label}
+                            </span>
                           </div>
-                          <div className="p-6 flex-grow flex flex-col justify-between">
-                            <div className="flex justify-between items-start mb-2">
-                              <div>
-                                <h3 className="font-bold text-lg">{item.title}</h3>
-                                <div className="text-sm text-muted-foreground mt-1 space-y-1">
-                                  {item.date && <p>{t("cart.date")}: {format(new Date(item.date), "PPP")}</p>}
-                                  <div className="flex gap-4">
-                                    <p>{t("booking.adults")}: {item.adultPax}</p>
-                                    <p>{t("booking.children")}: {item.childPax}</p>
-                                  </div>
-                                  {item.slot && <p>Slot: {item.slot}</p>}
-                                  {item.addonIds && item.addonIds.length > 0 && (
-                                    <div className="pt-1">
-                                      <p className="font-medium text-foreground text-xs uppercase tracking-wider">{t("booking.addons", "Add-ons")}:</p>
-                                      <div className="flex flex-wrap gap-1 mt-1">
-                                        {item.addonIds.map(id => (
-                                          <span key={id} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary">
-                                            <CheckCircle2 className="h-3 w-3 mr-1" />
-                                            {getAddonName(id)}
-                                          </span>
-                                        ))}
-                                      </div>
-                                    </div>
+                          <div className="p-5 flex-grow flex flex-col justify-between">
+                            <div className="flex justify-between items-start mb-3">
+                              <div className="flex-1 mr-4">
+                                <h3 className="font-bold text-lg leading-tight mb-2">{item.title}</h3>
+
+                                {/* Date & Time */}
+                                <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
+                                  {item.date && (
+                                    <span className="flex items-center gap-1.5">
+                                      <Calendar className="h-3.5 w-3.5 text-primary/60" />
+                                      {format(new Date(item.date), "EEE, d MMM yyyy")}
+                                    </span>
+                                  )}
+                                  {item.startTime && (
+                                    <span className="flex items-center gap-1.5">
+                                      <Clock className="h-3.5 w-3.5 text-primary/60" />
+                                      {item.startTime}{item.endTime ? ` – ${item.endTime}` : ""}
+                                    </span>
+                                  )}
+                                  {isVehicle && anyItem.hireDays > 0 && (
+                                    <span className="flex items-center gap-1.5 font-medium text-foreground">
+                                      {anyItem.hireDays} day{anyItem.hireDays !== 1 ? "s" : ""} hire
+                                    </span>
                                   )}
                                 </div>
+
+                                {/* Pax Breakdown */}
+                                {!isVehicle && (
+                                  <div className="flex flex-wrap gap-3 mt-2">
+                                    <span className="flex items-center gap-1.5 text-sm">
+                                      <Users className="h-3.5 w-3.5 text-primary/60" />
+                                      {item.adultPax} adult{item.adultPax !== 1 ? "s" : ""}
+                                      {item.childPax > 0 && `, ${item.childPax} child${item.childPax !== 1 ? "ren" : ""}`}
+                                      {item.infantPax > 0 && `, ${item.infantPax} infant${item.infantPax !== 1 ? "s" : ""}`}
+                                      {item.petPax > 0 && `, ${item.petPax} pet${item.petPax !== 1 ? "s" : ""}`}
+                                    </span>
+                                  </div>
+                                )}
+
+                                {/* Per-tier pricing */}
+                                {!isVehicle && (
+                                  <div className="flex flex-wrap gap-3 mt-1.5 text-xs text-muted-foreground">
+                                    <span>{item.adultPax} × {formatPriceDisplay(item.price, currency)}/adult</span>
+                                    {item.childPax > 0 && item.childPrice > 0 && (
+                                      <span>{item.childPax} × {formatPriceDisplay(item.childPrice, currency)}/child</span>
+                                    )}
+                                    {item.childPax > 0 && item.childPrice === 0 && (
+                                      <span className="text-green-500">Children: Free</span>
+                                    )}
+                                  </div>
+                                )}
+
+                                {/* Add-ons */}
+                                {item.addonIds && item.addonIds.length > 0 && (
+                                  <div className="pt-2">
+                                    <div className="flex flex-wrap gap-1">
+                                      {item.addonIds.map(id => (
+                                        <span key={id} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary">
+                                          <CheckCircle2 className="h-3 w-3 mr-1" />
+                                          {getAddonName(id)}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
                               </div>
-                              <div className="text-right">
+
+                              {/* Price column */}
+                              <div className="text-right shrink-0">
                                 <p className="font-bold text-lg">{formatPriceDisplay(finalItemSubtotal * item.quantity, currency)}</p>
+                                <p className="text-[0.65rem] text-muted-foreground uppercase tracking-tight">Incl. 15% VAT</p>
                                 {appliedRules.length > 0 && (
                                   <div className="text-xs space-y-0.5 mt-1">
                                     {appliedRules.map((rule, i) => (
@@ -195,9 +258,14 @@ export default function Cart() {
                               </div>
                             </div>
 
-                            <div className="flex justify-between items-end mt-4">
-                              <div className="text-sm text-muted-foreground">
-                                {item.type === 'vehicle' ? `Days: ${item.quantity}` : `Total PAX: ${item.adultPax + item.childPax}`}
+                            {/* Bottom row */}
+                            <div className="flex justify-between items-end mt-3 pt-3 border-t border-border/40">
+                              <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                                <span className="flex items-center gap-1">
+                                  <Shield className="h-3 w-3" />
+                                  Free cancellation
+                                </span>
+                                <span className="flex items-center gap-1">🔒 Instant confirm</span>
                               </div>
                               <Button
                                 variant="ghost"
@@ -216,11 +284,6 @@ export default function Cart() {
                   );
                 })}
               </div>
-              <div className="mt-6 text-right">
-                <Button variant="outline" onClick={clearCart} size="sm" className="text-muted-foreground">
-                  Clear Cart
-                </Button>
-              </div>
             </div>
 
             {/* Order Summary */}
@@ -230,7 +293,7 @@ export default function Cart() {
                   <CardTitle>{t("payment.orderSummary")}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {/* Phase 3: Show detailed pricing breakdown from PricingEngine */}
+                  {/* Show detailed pricing breakdown from PricingEngine */}
                   {isLoadingPricing && (
                     <div className="flex flex-col items-center justify-center py-12 space-y-4">
                       <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -250,7 +313,7 @@ export default function Cart() {
                     </div>
                   )}
 
-                  {/* If no loading and no snapshot, wait for backend */}
+                  {/* If no loading and no snapshot, show client-side estimate */}
                   {!isLoadingPricing && !pricingSnapshot && (
                     <div className="space-y-4">
                       <div className="flex justify-between font-bold text-lg pt-2 border-t mt-2">
@@ -268,7 +331,7 @@ export default function Cart() {
                     onClick={handleCheckout}
                     disabled={isProcessing || isLoadingPricing}
                   >
-                    {isProcessing ? "Processing..." : (isLoadingPricing ? "Pricing..." : t("cart.checkout"))}
+                    {isProcessing ? "Processing..." : (isLoadingPricing ? "Pricing..." : "Proceed to Checkout")}
                     {!isLoadingPricing && <ArrowRight className="ml-2 h-4 w-4" />}
                     {isLoadingPricing && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
                   </Button>

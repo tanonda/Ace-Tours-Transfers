@@ -463,6 +463,10 @@ app.use((req, res, next) => {
     const adminNotificationHandler = new AdminNotificationHandler(storage, (app as any)._sseClients || []);
     adminNotificationHandler.register();
 
+    const { GuestNotificationHandler } = await import('./application/events/GuestNotificationHandler.js');
+    const guestNotificationHandler = new GuestNotificationHandler(storage);
+    guestNotificationHandler.register();
+
     // Initialize Projections
     const { projectionEngine } = await import('./infrastructure/projections/projection-engine.js');
     const { BookingSummaryHandler } = await import('./application/projections/BookingSummaryHandler.js');

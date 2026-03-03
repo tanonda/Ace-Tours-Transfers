@@ -56,21 +56,21 @@ export const tours = pgTable("tours", {
   seoKeywords: text("seo_keywords"),    // comma-separated keywords appended to auto-generated list
   imageAlt: text("image_alt"),             // alt text for the product image — falls back to title if null
   // ── Tour detail page fields (added in migration 0016) ───────────────────────
-  itineraryStops:      jsonb("itinerary_stops").$type<ItineraryStop[]>(),
-  itineraryIntro:      text("itinerary_intro"),
-  meetingPoint:        text("meeting_point"),
-  meetingPointMapUrl:  text("meeting_point_map_url"),
-  pickupInstructions:  text("pickup_instructions"),
-  operatingHours:      text("operating_hours"),
-  includedItems:       jsonb("included_items").$type<string[]>(),
-  excludedItems:       jsonb("excluded_items").$type<string[]>(),
-  cancellationPolicy:  text("cancellation_policy"),
-  bookingCutoffHours:  integer("booking_cutoff_hours").default(24),
-  additionalInfo:      jsonb("additional_info").$type<string[]>(),
-  supportEmail:        text("support_email"),
-  supportPhone:        text("support_phone"),
-  productCode:         text("product_code"),
-  travelerPhotos:      jsonb("traveler_photos").$type<string[]>(),
+  itineraryStops: jsonb("itinerary_stops").$type<ItineraryStop[]>(),
+  itineraryIntro: text("itinerary_intro"),
+  meetingPoint: text("meeting_point"),
+  meetingPointMapUrl: text("meeting_point_map_url"),
+  pickupInstructions: text("pickup_instructions"),
+  operatingHours: text("operating_hours"),
+  includedItems: jsonb("included_items").$type<string[]>(),
+  excludedItems: jsonb("excluded_items").$type<string[]>(),
+  cancellationPolicy: text("cancellation_policy"),
+  bookingCutoffHours: integer("booking_cutoff_hours").default(24),
+  additionalInfo: jsonb("additional_info").$type<string[]>(),
+  supportEmail: text("support_email"),
+  supportPhone: text("support_phone"),
+  productCode: text("product_code"),
+  travelerPhotos: jsonb("traveler_photos").$type<string[]>(),
 });
 
 export const tourInstances = pgTable("tour_instances", {
@@ -351,13 +351,13 @@ export const pricingVersions = pgTable("pricing_versions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   productId: varchar("product_id").notNull().references(() => tours.id),
   effectiveFrom: text("effective_from").notNull(), // YYYY-MM-DD
-  adultPriceCents:  integer("adult_price_cents").notNull().default(0),
-  childPriceCents:  integer("child_price_cents").notNull().default(0),
+  adultPriceCents: integer("adult_price_cents").notNull().default(0),
+  childPriceCents: integer("child_price_cents").notNull().default(0),
   // Extended pricing fields (added in migration 0013)
   infantPriceCents: integer("infant_price_cents").notNull().default(0),
-  petPriceCents:    integer("pet_price_cents").notNull().default(0),
-  pricingType:      text("pricing_type").notNull().default("per_person"), // 'per_person' | 'group'
-  groupPriceCents:  integer("group_price_cents").notNull().default(0),
+  petPriceCents: integer("pet_price_cents").notNull().default(0),
+  pricingType: text("pricing_type").notNull().default("per_person"), // 'per_person' | 'group'
+  groupPriceCents: integer("group_price_cents").notNull().default(0),
   ruleMetadata: jsonb("rule_metadata"), // { groupDiscountThreshold, seasonalRules, etc. }
   createdAt: timestamp("created_at").notNull().defaultNow(),
   createdBy: varchar("created_by").references(() => users.id),
@@ -605,19 +605,21 @@ export const StripeCredentialsSchema = z.object({
   webhookSecret: z.string(),
 });
 
-// Refined: Google Pay Credentials Schema
+// Google Pay Credentials Schema
 export const GooglePayCredentialsSchema = z.object({
   merchantId: z.string(),
-  gateway: z.string(), // e.g., "paypal" or "bred"
+  merchantName: z.string(),
   gatewayMerchantId: z.string().optional(),
+  environment: z.enum(["TEST", "PRODUCTION"]).default("TEST"),
 });
 
-// Refined: Apple Pay Credentials Schema
+// Apple Pay Credentials Schema
 export const ApplePayCredentialsSchema = z.object({
-  merchantIdentifier: z.string(),
-  domainName: z.string().url(),
-  paymentProcessingCertificateUrl: z.string().url().optional(), // URL to uploaded cert
-  gateway: z.string(), // e.g., "paypal" or "bred"
+  merchantId: z.string(),
+  merchantName: z.string(),
+  domainName: z.string(),
+  gatewayMerchantId: z.string().optional(),
+  environment: z.enum(["sandbox", "production"]).default("sandbox"),
 });
 
 // Refined: PayPal Credentials Schema
@@ -631,20 +633,6 @@ export const PayPalCredentialsSchema = z.object({
   checkoutExperience: z.enum(["PAY_WITH_PAYPAL", "PAY_WITH_CARD_OR_PAYPAL"]).optional(),
 });
 
-// Placeholder for E-Wallet Credentials Schema (generic)
-export const EWalletCredentialsSchema = z.object({
-  apiKey: z.string(),
-  apiSecret: z.string(),
-}).partial();
-
-// Placeholder for Generic Local Bank Credentials Schema
-export const GenericLocalBankCredentialsSchema = z.object({
-  bankName: z.string(),
-  accountName: z.string(),
-  accountNumber: z.string(),
-  swiftCode: z.string().optional(),
-  instructions: z.string().optional(),
-});
 
 
 // NEW: WanTok Credentials Schema
@@ -726,9 +714,12 @@ export const BspBankCredentialsSchema = z.object({
 
 // NEW: Digital Wallet Common Config Schema (for Apple Pay/Google Pay specifically)
 export const DigitalWalletConfigSchema = z.object({
-  paymentProcessorSelector: z.enum(["PAYPAL", "BRED", "BSP"]).optional(), // The underlying processor
+  /** Which underlying payment processor handles the tokenized card data.
+   *  Local banks (ANZ/BSP/BRED) use MCPGS VPC; Stripe handles tokens natively.
+   *  If omitted, the adapter will attempt local bank first, then Stripe fallback. */
+  processorSlug: z.enum(["anz", "bsp", "bred", "stripe"]).optional(),
   applePayMerchantId: z.string().optional(),
-  applePayCertificate: z.string().url().optional(), // URL or identifier for the certificate
+  applePayCertificate: z.string().url().optional(),
   googlePayMerchantId: z.string().optional(),
 });
 
@@ -756,14 +747,12 @@ export const insertPaymentGatewaySchema = createInsertSchema(paymentGateways, {
     GooglePayCredentialsSchema,
     ApplePayCredentialsSchema,
     PayPalCredentialsSchema,
-    EWalletCredentialsSchema,
     AnzEGateCredentialsSchema,
     BredBankCredentialsSchema,
     BspBankCredentialsSchema,
-    GenericLocalBankCredentialsSchema,
-    WanTokCredentialsSchema,       // NEW
-    DigicelMobileMoneyCredentialsSchema, // NEW
-    KwikPayCredentialsSchema,       // NEW
+    WanTokCredentialsSchema,
+    DigicelMobileMoneyCredentialsSchema,
+    KwikPayCredentialsSchema,
     z.record(z.any()), // Fallback for truly unknown credentials
   ]).optional(),
   config: z.union([

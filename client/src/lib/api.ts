@@ -205,6 +205,22 @@ export async function fetchPaymentGateways(): Promise<PaymentGateway[]> {
   return res.json();
 }
 
+// Guest-facing payment methods (grouped by category)
+export interface PaymentMethodOption {
+  method: string;
+  label: string;
+  description: string;
+  icon: string;
+  gatewaySlug?: string;
+  gatewayId?: string;
+  subOptions?: Array<{ slug: string; label: string; id?: string }>;
+}
+
+export async function fetchPaymentMethods(): Promise<PaymentMethodOption[]> {
+  const res = await apiRequest("GET", "/api/payment-methods");
+  return res.json();
+}
+
 export async function fetchAdminPaymentGateways(): Promise<PaymentGateway[]> {
   const res = await apiRequest("GET", "/api/admin/payment-gateways");
   return res.json();

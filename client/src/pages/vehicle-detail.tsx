@@ -1,16 +1,10 @@
 import { useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-// HTML passthrough — install dompurify later for sanitisation:
-//   npm install dompurify @types/dompurify
-// Then replace this function with the DOMPurify version.
-function sanitizeHtml(html: string): string {
-  return html;
-}
 import { fetchVehicle } from "@/lib/api";
 import { apiRequest } from "@/lib/queryClient";
 import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Clock, ChevronLeft, ChevronRight, Calendar, Fuel, Users, Settings, Wind, Shield, Wifi, Baby, Zap, CheckCircle2, AlertTriangle, XCircle } from "lucide-react";
+import { ArrowLeft, Clock, ChevronLeft, ChevronRight, Calendar, Fuel, Users, Settings, Wind, Shield, Wifi, Baby, Zap, CheckCircle2, AlertTriangle, XCircle, ShoppingCart } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -26,6 +20,13 @@ import {
   startOfMonth, endOfMonth, eachDayOfInterval,
   getDay, isBefore, isAfter, isSameDay, parseISO, startOfDay
 } from "date-fns";
+import {
+  BookingCountdownTimer,
+  CancellationModal,
+  CancellationCard,
+  ContactCard,
+  sanitizeHtml,
+} from "@/components/shared-detail-components";
 
 // ─── Slot fetcher ─────────────────────────────────────────────────────────────
 async function fetchSlots(productId: string, date: string) {
@@ -221,8 +222,8 @@ function TimePicker({ label, productId, date, selected, onSelect, onAvailability
         <span className="flex items-center gap-2"><Clock size={10} className="text-[#f4a830]" />{label}</span>
         {hasRealSlots && (
           <span className={`text-[0.62rem] font-bold px-2 py-0.5 rounded-full ${allUnavail ? "bg-[rgba(224,85,85,0.12)] text-[#e05555] border border-[rgba(224,85,85,0.25)]" :
-              availCount! <= 2 ? "bg-[rgba(244,168,48,0.12)] text-[#f4a830] border border-[rgba(244,168,48,0.25)]" :
-                "bg-[rgba(76,175,125,0.12)] text-[#4caf7d] border border-[rgba(76,175,125,0.25)]"
+            availCount! <= 2 ? "bg-[rgba(244,168,48,0.12)] text-[#f4a830] border border-[rgba(244,168,48,0.25)]" :
+              "bg-[rgba(76,175,125,0.12)] text-[#4caf7d] border border-[rgba(76,175,125,0.25)]"
             }`}>
             {allUnavail ? "Fully booked" : `${availCount} of ${totalCount} open`}
           </span>
@@ -329,6 +330,7 @@ export default function VehicleDetail() {
   const [pickupTime, setPickupTime] = useState<string | null>(null);
   const [dropoffTime, setDropoffTime] = useState<string | null>(null);
   const [availabilityStatus, setAvailabilityStatus] = useState<"unknown" | "available" | "limited" | "unavailable">("unknown");
+  const [cancellationModalOpen, setCancellationModalOpen] = useState(false);
 
   const hireDays = pickupDate && returnDate
     ? Math.max(1, differenceInCalendarDays(parseISO(returnDate), parseISO(pickupDate)))
@@ -414,7 +416,7 @@ export default function VehicleDetail() {
   const dayRateCents = vehicle ? (isGroupPricing ? (vehicle.groupPriceCents || vehicle.adultPriceCents) : vehicle.adultPriceCents) : 0;
   const totalPriceCents = dayRateCents * Math.max(1, hireDays);
   const [addonSelections, setAddonSelections] = useState<AddonSelections>({});
-  const addonTotal = vehicle?.addons ? calcAddonTotal(vehicle.addons as ProductAddonEntry[], addonSelections) : 0;
+  const addonTotal = (vehicle as any)?.addons ? calcAddonTotal((vehicle as any).addons as ProductAddonEntry[], addonSelections) : 0;
   const grandTotal = totalPriceCents + addonTotal;
   const canBook = !!(pickupDate && returnDate && hireDays >= 1 && availabilityStatus !== "unavailable");
 
@@ -470,6 +472,8 @@ export default function VehicleDetail() {
     { question: "Can I hire the vehicle with a driver?", answer: "Yes, a professional local driver can be arranged for your convenience. Please ask us via WhatsApp." },
   ];
 
+  const cutoffHours = vehicle.bookingCutoffHours ?? 24;
+
   return (
     <Layout>
       <SEO
@@ -485,6 +489,13 @@ export default function VehicleDetail() {
         reviews={reviews.slice(0, 5).map((r: any) => ({ author: r.userName || "Guest", rating: r.rating, body: r.comment, datePublished: r.createdAt?.slice(0, 10) }))}
         faqs={vehicleFaqs}
       />
+
+      <CancellationModal
+        isOpen={cancellationModalOpen}
+        onClose={() => setCancellationModalOpen(false)}
+        policy={vehicle.cancellationPolicy || undefined}
+      />
+
       <div className="min-h-screen bg-[#0f0d09] text-[#f0ece4] font-sans pt-16">
 
         {/* Hero */}
@@ -502,9 +513,9 @@ export default function VehicleDetail() {
             <h1 className="font-serif text-[2.5rem] md:text-5xl font-bold leading-tight mb-3">{vehicle.title}</h1>
             <div className="flex flex-wrap gap-2">
               <span className={`px-3 py-1 rounded-full border text-[0.72rem] font-semibold ${availabilityStatus === "unavailable" ? "border-[#e05555]/40 bg-[#e05555]/10 text-[#e05555]" :
-                  availabilityStatus === "limited" ? "border-[#f4a830]/40 bg-[#f4a830]/10 text-[#f4a830]" :
-                    availabilityStatus === "available" ? "border-[#4caf7d]/40 bg-[#4caf7d]/10 text-[#4caf7d]" :
-                      "border-[#4caf7d]/40 bg-[#4caf7d]/10 text-[#4caf7d]"
+                availabilityStatus === "limited" ? "border-[#f4a830]/40 bg-[#f4a830]/10 text-[#f4a830]" :
+                  availabilityStatus === "available" ? "border-[#4caf7d]/40 bg-[#4caf7d]/10 text-[#4caf7d]" :
+                    "border-[#4caf7d]/40 bg-[#4caf7d]/10 text-[#4caf7d]"
                 }`}>
                 {availabilityStatus === "unavailable" ? "✗ Fully Booked" :
                   availabilityStatus === "limited" ? "⚡ Limited Availability" :
@@ -554,7 +565,7 @@ export default function VehicleDetail() {
               <div className="space-y-3 text-[0.9rem] leading-[1.8] text-[#ccc6b8]">
                 {vehicle.description.map((p: string, i: number) =>
                   p.startsWith('<') ? (
-                    <div key={i} className="prose prose-invert prose-sm max-w-none [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_a]:text-[#f4a830] [&_a]:underline [&_blockquote]:border-l-2 [&_blockquote]:border-[#f4a830] [&_blockquote]:pl-3 [&_blockquote]:italic" dangerouslySetInnerHTML={{ __html: sanitizeHtml(p)}} />
+                    <div key={i} className="prose prose-invert prose-sm max-w-none [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_a]:text-[#f4a830] [&_a]:underline [&_blockquote]:border-l-2 [&_blockquote]:border-[#f4a830] [&_blockquote]:pl-3 [&_blockquote]:italic" dangerouslySetInnerHTML={{ __html: sanitizeHtml(p) }} />
                   ) : (
                     <p key={i}>{p}</p>
                   )
@@ -588,7 +599,7 @@ export default function VehicleDetail() {
                 {[
                   { icon: "📅", label: "Minimum hire", value: vehicle.duration || "1 day" },
                   { icon: "⛽", label: "Fuel policy", value: "Full-to-full" },
-                  { icon: "🛡️", label: "Cancellation", value: "Free up to 24hrs" },
+                  { icon: "🛡️", label: "Cancellation", value: `Free up to ${cutoffHours}hrs` },
                 ].map((item, i) => (
                   <div key={i} className="bg-[#211e18] rounded-[10px] p-4 flex flex-col gap-1">
                     <div className="text-lg mb-1">{item.icon}</div>
@@ -597,6 +608,20 @@ export default function VehicleDetail() {
                   </div>
                 ))}
               </div>
+            </section>
+
+            {/* Cancellation Policy + Questions — side by side */}
+            <section className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <CancellationCard
+                cutoffHours={cutoffHours}
+                onShowFullPolicy={() => setCancellationModalOpen(true)}
+              />
+              <ContactCard
+                productTitle={vehicle.title}
+                productCode={vehicle.productCode || undefined}
+                supportEmail={vehicle.supportEmail || undefined}
+                supportPhone={vehicle.supportPhone || undefined}
+              />
             </section>
 
             {/* Reviews */}
@@ -659,6 +684,18 @@ export default function VehicleDetail() {
             </div>
 
             <div className="bg-[#1a1710] p-5 flex flex-col gap-5">
+
+              {/* Countdown + cancellation link */}
+              <div className="flex flex-col gap-2">
+                <BookingCountdownTimer cutoffHours={cutoffHours} serviceDate={pickupDate} serviceTime={pickupTime} />
+                <button
+                  onClick={() => setCancellationModalOpen(true)}
+                  className="text-[0.75rem] text-[#8a826e] hover:text-[#f4a830] flex items-center gap-1.5 transition-colors self-start"
+                >
+                  <Shield className="w-3.5 h-3.5" />
+                  Free cancellation · {cutoffHours}h before start
+                </button>
+              </div>
 
               {/* Range calendar */}
               <div>
@@ -746,8 +783,8 @@ export default function VehicleDetail() {
               {/* Availability status banner */}
               {availabilityStatus !== "unknown" && (
                 <div className={`flex items-start gap-2.5 p-3 rounded-[10px] border text-[0.78rem] ${availabilityStatus === "unavailable" ? "bg-[rgba(224,85,85,0.07)] border-[rgba(224,85,85,0.2)] text-[#e05555]" :
-                    availabilityStatus === "limited" ? "bg-[rgba(244,168,48,0.07)] border-[rgba(244,168,48,0.2)] text-[#f4a830]" :
-                      "bg-[rgba(76,175,125,0.07)] border-[rgba(76,175,125,0.2)] text-[#4caf7d]"
+                  availabilityStatus === "limited" ? "bg-[rgba(244,168,48,0.07)] border-[rgba(244,168,48,0.2)] text-[#f4a830]" :
+                    "bg-[rgba(76,175,125,0.07)] border-[rgba(76,175,125,0.2)] text-[#4caf7d]"
                   }`}>
                   {availabilityStatus === "unavailable" ? <XCircle size={15} className="shrink-0 mt-0.5" /> :
                     availabilityStatus === "limited" ? <AlertTriangle size={15} className="shrink-0 mt-0.5" /> :
@@ -761,9 +798,9 @@ export default function VehicleDetail() {
               )}
 
               {/* Add-ons */}
-              {vehicle.addons && vehicle.addons.length > 0 && (
+              {(vehicle as any).addons && (vehicle as any).addons.length > 0 && (
                 <AddonsPanel
-                  addons={vehicle.addons as ProductAddonEntry[]}
+                  addons={(vehicle as any).addons as ProductAddonEntry[]}
                   selected={addonSelections}
                   onChange={setAddonSelections}
                   currency={currency}
@@ -781,10 +818,11 @@ export default function VehicleDetail() {
                     : "bg-[#211e18] text-[#2a2620] cursor-not-allowed border border-[rgba(244,168,48,0.1)] hover:bg-[#211e18]"
                 ].join(" ")}
               >
+                <ShoppingCart className="mr-2 h-5 w-5" />
                 {availabilityStatus === "unavailable"
                   ? "Fully Booked — Choose Different Dates"
                   : canBook
-                    ? `Hire for ${hireDays} ${hireDays === 1 ? "Day" : "Days"} — ${formatPriceDisplay(grandTotal, currency)}`
+                    ? "Add to Cart"
                     : "Select pickup & return dates"
                 }
               </Button>
@@ -808,9 +846,12 @@ export default function VehicleDetail() {
                 💬 Ask a Question via WhatsApp
               </a>
 
-              <div className="flex gap-4 pt-2 border-t border-[rgba(244,168,48,0.1)] text-[0.7rem] text-[#3a342c]">
-                <div className="flex-1 flex items-center gap-1.5">🛡️ Free cancellation</div>
-                <div className="flex-1 flex items-center gap-1.5">🔒 Instant booking</div>
+              <div className="flex gap-4 pt-3 border-t border-[rgba(244,168,48,0.12)] text-[0.72rem] text-[#8a826e]">
+                <div className="flex items-center gap-1.5">
+                  <Shield className="w-3.5 h-3.5" />
+                  Free cancellation {cutoffHours}h before
+                </div>
+                <div className="flex items-center gap-1.5">🔒 Instant confirmation</div>
               </div>
             </div>
           </div>

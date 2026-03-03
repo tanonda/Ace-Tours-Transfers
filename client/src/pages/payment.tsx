@@ -21,40 +21,29 @@ import { LanguageSelector } from "@/components/language-selector";
 import { useTranslation } from "react-i18next";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { fetchPaymentGateways } from "@/lib/api";
+import { fetchPaymentMethods, type PaymentMethodOption } from "@/lib/api";
 import { apiRequest } from "@/lib/queryClient";
-import { PaymentGateway } from "@shared/schema";
 import { format } from "date-fns";
 import { formatPriceDisplay } from "@/lib/product.types";
 import { useCurrency } from "@/lib/currency-context";
 import { Badge } from "@/components/ui/badge";
 
-const gatewayIcons: Record<string, React.ElementType> = {
-  'anz-egate': Landmark,
-  'bred-bank': Landmark,
-  'bsp-bank': Store,
-  'generic-local-bank': Banknote,
-  'stripe': CreditCard,
-  'google-pay': Smartphone,
-  'apple-pay': Smartphone,
+const methodIcons: Record<string, React.ElementType> = {
+  'card': CreditCard,
   'paypal': Globe,
-  'e-wallet': Wallet,
+  'mobile-money': Smartphone,
+  'digital-wallet': Wallet,
+  'bank-transfer': Building,
   'cash': DollarSign,
-  'manual_transfer': Building,
 };
 
-const gatewayThemeColors: Record<string, string> = {
-  'anz-egate': 'peer-data-[state=checked]:border-[#004165] peer-data-[state=checked]:text-[#004165]',
-  'bred-bank': 'peer-data-[state=checked]:border-blue-700 peer-data-[state=checked]:text-blue-700',
-  'bsp-bank': 'peer-data-[state=checked]:border-red-700 peer-data-[state=checked]:text-red-700',
-  'generic-local-bank': 'peer-data-[state=checked]:border-gray-700 peer-data-[state=checked]:text-gray-700',
-  'stripe': 'peer-data-[state=checked]:border-purple-600 peer-data-[state=checked]:text-purple-600',
-  'google-pay': 'peer-data-[state=checked]:border-black peer-data-[state=checked]:text-black dark:peer-data-[state=checked]:border-white dark:peer-data-[state=checked]:text-white',
-  'apple-pay': 'peer-data-[state=checked]:border-black peer-data-[state=checked]:text-black dark:peer-data-[state=checked]:border-white dark:peer-data-[state=checked]:text-white',
+const methodThemeColors: Record<string, string> = {
+  'card': 'peer-data-[state=checked]:border-[#004165] peer-data-[state=checked]:text-[#004165]',
   'paypal': 'peer-data-[state=checked]:border-blue-500 peer-data-[state=checked]:text-blue-500',
-  'e-wallet': 'peer-data-[state=checked]:border-purple-600 peer-data-[state=checked]:text-purple-600',
+  'mobile-money': 'peer-data-[state=checked]:border-purple-600 peer-data-[state=checked]:text-purple-600',
+  'digital-wallet': 'peer-data-[state=checked]:border-black peer-data-[state=checked]:text-black dark:peer-data-[state=checked]:border-white dark:peer-data-[state=checked]:text-white',
+  'bank-transfer': 'peer-data-[state=checked]:border-primary peer-data-[state=checked]:text-primary',
   'cash': 'peer-data-[state=checked]:border-green-600 peer-data-[state=checked]:text-green-600',
-  'manual_transfer': 'peer-data-[state=checked]:border-primary peer-data-[state=checked]:text-primary',
 };
 
 type BookingItem = {
@@ -104,7 +93,8 @@ export default function Payment() {
   const [guestName, setGuestName] = useState("");
   const [guestEmail, setGuestEmail] = useState("");
   const [bookingId, setBookingId] = useState<string | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState<string>("");
+  const [selectedMethod, setSelectedMethod] = useState<string>("");
+  const [selectedSubOption, setSelectedSubOption] = useState<string>("");
   const [dddConfig, setDddConfig] = useState<any>(null);
   const [cachedBooking, setCachedBooking] = useState<BookingDetails | null>(null);
   // FIX (audit section 3.5): Generate a stable idempotency key once per page load.
@@ -116,9 +106,9 @@ export default function Payment() {
       .then(data => setDddConfig(data.ddd));
   }, []);
 
-  const { data: gateways = [], isLoading: isLoadingGateways } = useQuery<PaymentGateway[]>({
-    queryKey: ["payment-gateways"],
-    queryFn: fetchPaymentGateways,
+  const { data: methods = [], isLoading: isLoadingMethods } = useQuery<PaymentMethodOption[]>({
+    queryKey: ["payment-methods"],
+    queryFn: fetchPaymentMethods,
   });
 
   useEffect(() => {
@@ -168,11 +158,29 @@ export default function Payment() {
   });
 
   useEffect(() => {
-    if (!isLoadingGateways && gateways.length > 0 && !paymentMethod) {
-      const defaultGateway = gateways.find(g => g.isDefault && g.active) || gateways.find(g => g.active);
-      if (defaultGateway) setPaymentMethod(defaultGateway.slug);
+    if (!isLoadingMethods && methods.length > 0 && !selectedMethod) {
+      // Auto-select card if available, otherwise first method
+      const cardMethod = methods.find(m => m.method === 'card');
+      const firstMethod = cardMethod || methods[0];
+      if (firstMethod) {
+        setSelectedMethod(firstMethod.method);
+        // Auto-select first sub-option if it's a multi-provider method
+        if (firstMethod.subOptions?.length) {
+          setSelectedSubOption(firstMethod.subOptions[0].slug);
+        }
+      }
     }
-  }, [isLoadingGateways, gateways, paymentMethod]);
+  }, [isLoadingMethods, methods, selectedMethod]);
+
+  // Resolve the actual gateway slug to send to the checkout API
+  const resolveGatewaySlug = (): string => {
+    const method = methods.find(m => m.method === selectedMethod);
+    if (!method) return '';
+    if (method.subOptions?.length) {
+      return selectedSubOption || method.subOptions[0]?.slug || '';
+    }
+    return method.gatewaySlug || '';
+  };
 
   const createBookingMutation = useMutation({
     mutationFn: async () => {
@@ -205,10 +213,8 @@ export default function Payment() {
     },
   });
 
-  const MANUAL_PAYMENT_SLUGS = ['manual_transfer', 'cash', 'manual', 'bank-transfer', 'bank'];
-  const isManualPaymentMethod = (slug: string) =>
-    MANUAL_PAYMENT_SLUGS.some(s => slug.toLowerCase().includes(s));
-
+  const MANUAL_METHODS = ['bank-transfer', 'cash'];
+  const isManualMethod = (method: string) => MANUAL_METHODS.includes(method);
   const initiatePaymentMutation = useMutation({
     mutationFn: async (data: { bookingId: string; provider: string; successUrl: string; cancelUrl: string; }) => {
       const res = await apiRequest("POST", "/api/payments/checkout", data);
@@ -248,8 +254,14 @@ export default function Payment() {
       return;
     }
 
-    if (!paymentMethod) {
+    if (!selectedMethod) {
       toast({ title: t("common.error"), description: t("payment.noMethodSelected"), variant: "destructive" });
+      return;
+    }
+
+    const gatewaySlug = resolveGatewaySlug();
+    if (!gatewaySlug) {
+      toast({ title: t("common.error"), description: "No payment provider available for this method.", variant: "destructive" });
       return;
     }
 
@@ -304,7 +316,7 @@ export default function Payment() {
 
       initiatePaymentMutation.mutate({
         bookingId: currentBookingId!,
-        provider: paymentMethod,
+        provider: gatewaySlug,
         successUrl,
         cancelUrl,
       });
@@ -313,9 +325,8 @@ export default function Payment() {
     }
   };
 
-  const selectedGateway = gateways.find(g => g.slug === paymentMethod);
-  const CurrentIcon = selectedGateway ? (gatewayIcons[selectedGateway.slug] || CreditCard) : CreditCard;
-  const currentThemeColor = selectedGateway ? (gatewayThemeColors[selectedGateway.slug] || 'bg-[#004165]') : 'bg-[#004165]';
+  const activeMethod = methods.find(m => m.method === selectedMethod);
+  const CurrentIcon = activeMethod ? (methodIcons[activeMethod.method] || CreditCard) : CreditCard;
 
   // Determine the display total: use booking total if available, otherwise cart total
   const displayTotal = bookingDetails?.totalAmountCents ?? total;
@@ -324,7 +335,7 @@ export default function Payment() {
   // Has a pre-created booking (from booking form flow)
   const hasBooking = !!bookingId && !!bookingDetails;
 
-  if (isLoadingGateways || (bookingId && isLoadingBooking)) {
+  if (isLoadingMethods || (bookingId && isLoadingBooking)) {
     return (
       <Layout>
         <div className="min-h-screen flex flex-col items-center justify-center p-4 pt-40">
@@ -505,23 +516,52 @@ export default function Payment() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {items.map((item) => (
-                    <div key={item.cartItemId} className="flex items-center justify-between py-2">
-                      <div className="min-w-0 flex-1">
-                        <p className="font-medium text-sm truncate">{item.title}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {item.adultPax} adult{item.adultPax > 1 ? 's' : ''}
-                          {item.childPax > 0 && `, ${item.childPax} child${item.childPax > 1 ? 'ren' : ''}`}
-                        </p>
+                  {items.map((item) => {
+                    const isVehicle = item.type === "vehicle";
+                    const anyItem = item as any;
+                    return (
+                      <div key={item.cartItemId} className="p-3 rounded-xl border border-border/30 bg-background/50">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                            <p className="font-semibold text-sm">{item.title}</p>
+                            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs text-muted-foreground">
+                              {item.date && (
+                                <span className="flex items-center gap-1">
+                                  <CalendarIcon className="h-3 w-3" />
+                                  {format(new Date(item.date), "EEE, d MMM yyyy")}
+                                </span>
+                              )}
+                              {item.startTime && (
+                                <span className="flex items-center gap-1">
+                                  <Clock className="h-3 w-3" />
+                                  {item.startTime}{item.endTime ? ` – ${item.endTime}` : ""}
+                                </span>
+                              )}
+                              {isVehicle && anyItem.hireDays > 0 && (
+                                <span className="font-medium text-foreground">{anyItem.hireDays} day{anyItem.hireDays !== 1 ? "s" : ""} hire</span>
+                              )}
+                            </div>
+                            {!isVehicle && (
+                              <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
+                                <Users className="h-3 w-3" />
+                                {item.adultPax} adult{item.adultPax > 1 ? 's' : ''}
+                                {item.childPax > 0 && `, ${item.childPax} child${item.childPax > 1 ? 'ren' : ''}`}
+                                {item.infantPax > 0 && `, ${item.infantPax} infant${item.infantPax > 1 ? 's' : ''}`}
+                                {item.petPax > 0 && `, ${item.petPax} pet${item.petPax > 1 ? 's' : ''}`}
+                              </div>
+                            )}
+                          </div>
+                          <span className="font-bold text-sm whitespace-nowrap">{formatPriceDisplay(item.price * item.adultPax + item.childPrice * item.childPax + (item.addonTotal || 0), currency)}</span>
+                        </div>
                       </div>
-                      <span className="font-bold text-sm">{item.price.toLocaleString()} VT</span>
-                    </div>
-                  ))}
+                    );
+                  })}
                   <Separator />
                   <div className="flex justify-between items-center">
                     <span className="font-semibold">Total</span>
-                    <span className="text-xl font-bold">{formatPriceDisplay(total, currency)}</span>
+                    <span className="text-xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">{formatPriceDisplay(total, currency)}</span>
                   </div>
+                  <p className="text-[0.65rem] text-muted-foreground text-center">All prices include 15% VAT</p>
                 </CardContent>
               </Card>
             )}
@@ -560,26 +600,60 @@ export default function Payment() {
               </CardHeader>
               <CardContent>
                 <form onSubmit={handlePayment} className="space-y-5">
-                  <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="grid grid-cols-2 gap-4">
-                    {gateways.filter(g => g.active).map(gateway => {
-                      const Icon = gatewayIcons[gateway.slug] || CreditCard;
-                      const theme = gatewayThemeColors[gateway.slug] || 'peer-data-[state=checked]:border-primary peer-data-[state=checked]:text-primary';
-                      const isDisabled = dddConfig?.cardPaymentsDisabled && (gateway.slug === 'stripe' || gateway.slug.includes('pay'));
+                  <RadioGroup value={selectedMethod} onValueChange={(val) => {
+                    setSelectedMethod(val);
+                    // Reset sub-option when switching methods
+                    const method = methods.find(m => m.method === val);
+                    if (method?.subOptions?.length) {
+                      setSelectedSubOption(method.subOptions[0].slug);
+                    } else {
+                      setSelectedSubOption('');
+                    }
+                  }} className="grid grid-cols-2 gap-4">
+                    {methods.map(method => {
+                      const Icon = methodIcons[method.method] || CreditCard;
+                      const theme = methodThemeColors[method.method] || 'peer-data-[state=checked]:border-primary peer-data-[state=checked]:text-primary';
+                      const isDisabled = dddConfig?.cardPaymentsDisabled && method.method === 'card';
 
                       return (
-                        <div key={gateway.slug} className={isDisabled ? "opacity-50 grayscale cursor-not-allowed" : ""}>
-                          <RadioGroupItem value={gateway.slug} id={gateway.slug} className="peer sr-only" disabled={isDisabled} />
-                          <Label htmlFor={gateway.slug} className={`flex flex-col items-center justify-between rounded-xl border-2 border-muted bg-popover p-4 hover:bg-accent ${theme} cursor-pointer transition-all duration-200`}>
+                        <div key={method.method} className={isDisabled ? "opacity-50 grayscale cursor-not-allowed" : ""}>
+                          <RadioGroupItem value={method.method} id={`method-${method.method}`} className="peer sr-only" disabled={isDisabled} />
+                          <Label htmlFor={`method-${method.method}`} className={`flex flex-col items-center justify-between rounded-xl border-2 border-muted bg-popover p-4 hover:bg-accent ${theme} cursor-pointer transition-all duration-200`}>
                             <Icon className="mb-1 h-6 w-6" />
-                            <span className="font-bold text-sm mb-1">{gateway.displayName}</span>
-                            {isDisabled && <span className="text-[10px] text-red-500 font-bold uppercase">Disabled</span>}
+                            <span className="font-bold text-sm mb-0.5">{method.label}</span>
+                            <span className="text-[10px] text-muted-foreground text-center leading-tight">{method.description}</span>
+                            {isDisabled && <span className="text-[10px] text-red-500 font-bold uppercase mt-1">Disabled</span>}
                           </Label>
                         </div>
                       );
                     })}
                   </RadioGroup>
 
-                  {selectedGateway?.slug === 'manual_transfer' && (
+                  {/* Sub-options for multi-provider methods (Mobile Money, Digital Wallet) */}
+                  {activeMethod?.subOptions && activeMethod.subOptions.length > 0 && (
+                    <div className="rounded-xl border border-border/50 bg-muted/20 p-4 space-y-3">
+                      <p className="text-sm font-medium text-muted-foreground">Select your provider:</p>
+                      <RadioGroup
+                        value={selectedSubOption}
+                        onValueChange={setSelectedSubOption}
+                        className="grid gap-2"
+                      >
+                        {activeMethod.subOptions.map(sub => (
+                          <div key={sub.slug} className="flex items-center">
+                            <RadioGroupItem value={sub.slug} id={`sub-${sub.slug}`} className="peer" />
+                            <Label
+                              htmlFor={`sub-${sub.slug}`}
+                              className="flex-1 ml-3 py-2 px-3 rounded-lg cursor-pointer transition-colors peer-data-[state=checked]:bg-primary/10 peer-data-[state=checked]:font-semibold hover:bg-accent text-sm"
+                            >
+                              {sub.label}
+                            </Label>
+                          </div>
+                        ))}
+                      </RadioGroup>
+                    </div>
+                  )}
+
+                  {selectedMethod === 'bank-transfer' && (
                     <div className="rounded-xl bg-blue-50 dark:bg-blue-950/30 p-4 border border-blue-200 dark:border-blue-800 flex flex-col items-center">
                       <Landmark className="h-8 w-8 text-blue-600 mb-2" />
                       <h3 className="font-semibold text-blue-900 dark:text-blue-200 mb-2">Bank Transfer</h3>
@@ -589,7 +663,7 @@ export default function Payment() {
                     </div>
                   )}
 
-                  {selectedGateway?.slug === 'cash' && (
+                  {selectedMethod === 'cash' && (
                     <div className="rounded-xl bg-green-50 dark:bg-green-950/30 p-4 border border-green-200 dark:border-green-800 flex flex-col items-center">
                       <Banknote className="h-8 w-8 text-green-600 mb-2" />
                       <h3 className="font-semibold text-green-900 dark:text-green-200 mb-2">Cash on Delivery</h3>
@@ -607,9 +681,9 @@ export default function Payment() {
                     {(initiatePaymentMutation.isPending || createBookingMutation.isPending) ? (
                       <>
                         <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                        {isManualPaymentMethod(paymentMethod) ? "Confirming…" : "Processing…"}
+                        {isManualMethod(selectedMethod) ? "Confirming…" : "Processing…"}
                       </>
-                    ) : isManualPaymentMethod(paymentMethod) ? (
+                    ) : isManualMethod(selectedMethod) ? (
                       <>
                         <ShieldCheck className="mr-2 h-4 w-4" />
                         Confirm Booking
