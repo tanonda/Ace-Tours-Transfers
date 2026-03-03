@@ -473,12 +473,12 @@ ${allPages.map(p => `  <url>
       if (!isGroup && adultPriceCents === undefined) return res.status(400).json({ error: "Adult price is required for per-person pricing type" });
       const created = await storage.createPricingVersion({
         productId, effectiveFrom, ruleMetadata,
-        adultPriceCents:  adultPriceCents  || 0,
-        childPriceCents:  childPriceCents  || 0,
+        adultPriceCents: adultPriceCents || 0,
+        childPriceCents: childPriceCents || 0,
         infantPriceCents: infantPriceCents || 0,
-        petPriceCents:    petPriceCents    || 0,
-        groupPriceCents:  groupPriceCents  || 0,
-        pricingType:      pricingType      || 'per_person',
+        petPriceCents: petPriceCents || 0,
+        groupPriceCents: groupPriceCents || 0,
+        pricingType: pricingType || 'per_person',
         createdBy: req.session.userId,
       });
       res.status(201).json(created);
@@ -712,6 +712,71 @@ ${allPages.map(p => `  <url>
     }
   });
 
+  // Google Places Reviews — server-side proxy (keeps API key secret)
+  // Reads GOOGLE_PLACES_API_KEY + GOOGLE_PLACE_ID from env.
+  // Returns { configured: false } when either env var is missing.
+  // Cached in-process for 1 hour to stay inside the Places API free tier.
+  const _googleReviewsCache = new Map<string, { data: any; expiresAt: number }>();
+  app.get("/api/google-reviews", async (_req, res) => {
+    try {
+      const apiKey = process.env.GOOGLE_PLACES_API_KEY;
+      const placeId = process.env.GOOGLE_PLACE_ID;
+
+      if (!apiKey || !placeId) {
+        return res.json({ configured: false });
+      }
+
+      // Serve from cache if still fresh
+      const cached = _googleReviewsCache.get(placeId);
+      if (cached && Date.now() < cached.expiresAt) {
+        return res.json(cached.data);
+      }
+
+      // Fetch from Google Places Details API
+      const url =
+        `https://maps.googleapis.com/maps/api/place/details/json` +
+        `?place_id=${encodeURIComponent(placeId)}` +
+        `&fields=name,rating,user_ratings_total,reviews,url` +
+        `&language=en` +
+        `&key=${apiKey}`;
+
+      const response = await fetch(url);
+      if (!response.ok) {
+        console.error("[GOOGLE-REVIEWS] Places API HTTP error:", response.status);
+        return res.status(502).json({ configured: true, error: "Places API unavailable" });
+      }
+
+      const json = await response.json() as any;
+      if (json.status !== "OK") {
+        console.error("[GOOGLE-REVIEWS] Places API error status:", json.status, json.error_message);
+        return res.status(502).json({ configured: true, error: json.status });
+      }
+
+      const place = json.result;
+      const payload = {
+        configured: true,
+        rating: place.rating ?? null,
+        totalReviews: place.user_ratings_total ?? 0,
+        placeUrl: place.url ?? `https://search.google.com/local/reviews?placeid=${placeId}`,
+        reviews: (place.reviews ?? []).map((r: any) => ({
+          author: r.author_name,
+          rating: r.rating,
+          text: r.text,
+          time: r.time,
+          relativeTime: r.relative_time_description,
+          profilePhoto: r.profile_photo_url ?? null,
+        })),
+      };
+
+      // Cache for 1 hour
+      _googleReviewsCache.set(placeId, { data: payload, expiresAt: Date.now() + 60 * 60 * 1000 });
+      return res.json(payload);
+    } catch (error: any) {
+      console.error("[GOOGLE-REVIEWS] Unexpected error:", error?.message);
+      res.status(500).json({ configured: true, error: "Internal error fetching Google reviews" });
+    }
+  });
+
   // Reviews — works for tours, transfers AND vehicles (all share the tours table)
   app.get("/api/tours/:id/reviews", async (req, res) => {
     try {
@@ -733,6 +798,8 @@ ${allPages.map(p => `  <url>
       res.status(500).json({ error: "Failed to fetch reviews." });
     }
   });
+
+
 
   // Guest review submission (no auth required, requires moderation)
   app.post("/api/reviews/guest", reviewsLimiter, async (req, res) => {
@@ -2323,7 +2390,7 @@ ${allPages.map(p => `  <url>
       const payload = JSON.stringify(notification);
       sseClients.forEach(client => {
         if (!userId || client.userId === userId || client.role === "admin" || client.role === "field_service") {
-          try { client.res.write(`event: new_notification\ndata: ${payload}\n\n`); } catch {}
+          try { client.res.write(`event: new_notification\ndata: ${payload}\n\n`); } catch { }
         }
       });
 

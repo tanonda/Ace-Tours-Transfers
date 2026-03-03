@@ -25,7 +25,8 @@ import {
   ContactCard,
   CancellationCard,
   WhatsIncludedSection,
-  TrustpilotWidget,
+  ExternalReviewBadge,
+  GoogleReviewsSection,
   sanitizeHtml,
 } from "@/components/shared-detail-components";
 
@@ -601,8 +602,8 @@ export default function TransferDetail() {
                   />
                 )}
 
-                {/* Trustpilot trust signal — above the CTA for maximum conversion impact */}
-                <TrustpilotWidget />
+                {/* Review provider badge (Trustpilot or Google, controlled by admin review_provider setting) */}
+                <ExternalReviewBadge />
 
                 {/* CTA */}
                 <div className="flex flex-col gap-3">

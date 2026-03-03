@@ -25,7 +25,8 @@ import {
   CancellationModal,
   CancellationCard,
   ContactCard,
-  TrustpilotWidget,
+  ExternalReviewBadge,
+  GoogleReviewsSection,
   sanitizeHtml,
 } from "@/components/shared-detail-components";
 
@@ -808,8 +809,8 @@ export default function VehicleDetail() {
                 />
               )}
 
-              {/* Trustpilot trust signal — above the CTA for maximum conversion impact */}
-              <TrustpilotWidget />
+              {/* Review provider badge (Trustpilot or Google, controlled by admin review_provider setting) */}
+              <ExternalReviewBadge />
 
               {/* CTA */}
               <Button

@@ -25,7 +25,8 @@ import {
   ContactCard,
   CancellationCard,
   WhatsIncludedSection,
-  TrustpilotWidget,
+  ExternalReviewBadge,
+  GoogleReviewsSection,
   sanitizeHtml,
 } from "@/components/shared-detail-components";
 
@@ -800,12 +801,8 @@ export default function TourDetail() {
                 </div>
               </div>
 
-              {/* Trustpilot TrustBox widget — Business Unit ID is read from
-                  VITE_TRUSTPILOT_BU_ID env var. Set it in .env (local) or
-                  Render Dashboard → Environment (production).
-                  Template: 5419b637fa0340045cd0c936 = "Mini" horizontal bar.
-                  More templates: business.trustpilot.com → Integrations → TrustBox widgets */}
-              <TrustpilotWidget />
+              {/* External review badge (Trustpilot or Google depending on review_provider site setting) */}
+              <ExternalReviewBadge />
 
               {/* Individual reviews */}
               <div className="space-y-3">
@@ -841,6 +838,9 @@ export default function TourDetail() {
                 </button>
               )}
 
+              {/* Google Reviews — shown below internal reviews when review_provider = "google" */}
+              <GoogleReviewsSection />
+
               {/* Review submission form */}
               <div className="mt-6 pt-6 border-t border-[rgba(244,168,48,0.12)]">
                 <GuestReviewForm
@@ -850,6 +850,7 @@ export default function TourDetail() {
                 />
               </div>
             </section>
+
 
           </div>{/* end left column */}
 
@@ -1045,7 +1046,7 @@ export default function TourDetail() {
 
                 {/* CTAs */}
                 {/* Trustpilot trust signal — sits above the Book Now button for maximum conversion impact */}
-                <TrustpilotWidget />
+                <ExternalReviewBadge />
 
                 <div className="flex flex-col gap-3">
                   <Button
@@ -1097,7 +1098,7 @@ export default function TourDetail() {
           </div>{/* end right column */}
 
         </div>
-      </div>
-    </Layout>
+      </div >
+    </Layout >
   );
 }

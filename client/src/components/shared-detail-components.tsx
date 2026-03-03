@@ -6,6 +6,8 @@
  */
 
 import { useState, useEffect, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import {
   Shield, X, XCircle, Clock, Phone, Mail, MessageSquare, ExternalLink,
   CheckCircle2, Star,
@@ -349,6 +351,202 @@ export function TrustpilotWidget() {
     </div>
   );
 }
+
+// ─── External Review Badge (above CTA) ──────────────────────────────────────
+// Reads the `review_provider` site setting ("trustpilot" | "google" | "none").
+// When "trustpilot" → renders the TrustpilotWidget above the booking CTA.
+// When "google"     → renders a compact Google rating badge fetched from /api/google-reviews.
+// When "none"       → renders nothing.
+// Falls back to TrustpilotWidget if the setting fetch fails.
+
+type GoogleReviewsPayload = {
+  configured: boolean;
+  rating?: number;
+  totalReviews?: number;
+  placeUrl?: string;
+  reviews?: Array<{
+    author: string;
+    rating: number;
+    text: string;
+    time: number;
+    relativeTime: string;
+    profilePhoto: string | null;
+  }>;
+};
+
+function useReviewProvider() {
+  const { data: settings } = useQuery<any[]>({
+    queryKey: ["/api/settings"],
+    queryFn: () => apiRequest("GET", "/api/settings").then(r => r.json()),
+    staleTime: 5 * 60 * 1000,
+  });
+  const setting = settings?.find((s: any) => s.key === "review_provider");
+  return (setting?.value as string | undefined) ?? "trustpilot";
+}
+
+function useGoogleReviews() {
+  return useQuery<GoogleReviewsPayload>({
+    queryKey: ["/api/google-reviews"],
+    queryFn: () => fetch("/api/google-reviews").then(r => r.json()),
+    staleTime: 60 * 60 * 1000, // mirror server-side 1-hour cache
+  });
+}
+
+export function ExternalReviewBadge() {
+  const provider = useReviewProvider();
+  const { data: google } = useGoogleReviews();
+
+  if (provider === "trustpilot") {
+    return <TrustpilotWidget />;
+  }
+
+  if (provider === "google") {
+    if (!google || !google.configured || !google.rating) {
+      // Not configured yet — show static placeholder
+      return (
+        <a
+          href="https://www.google.com/maps"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-3 p-3 bg-[#4285f4]/10 border border-[#4285f4]/25 rounded-[10px] hover:bg-[#4285f4]/15 transition-colors"
+        >
+          {/* Google G logo */}
+          <svg viewBox="0 0 24 24" className="w-6 h-6 shrink-0">
+            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" />
+            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+          </svg>
+          <div>
+            <div className="text-[0.78rem] font-semibold text-[#f0ece4]">Google Reviews</div>
+            <div className="text-[0.68rem] text-[#8a826e]">See all reviews</div>
+          </div>
+          <div className="ml-auto text-[#4285f4] text-[0.72rem]">View →</div>
+        </a>
+      );
+    }
+
+    const stars = Math.round(google.rating);
+    return (
+      <a
+        href={google.placeUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center gap-3 p-3 bg-[#1a1f2e] border border-[#4285f4]/25 rounded-[10px] hover:bg-[#1e2435] transition-colors"
+      >
+        <svg viewBox="0 0 24 24" className="w-6 h-6 shrink-0">
+          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" />
+          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+        </svg>
+        <div className="flex flex-col gap-0.5">
+          <div className="flex items-center gap-1">
+            {[...Array(5)].map((_, i) => (
+              <Star
+                key={i}
+                className={`w-3 h-3 ${i < stars ? "text-[#fbbc05] fill-[#fbbc05]" : "text-[#3a3830]"}`}
+              />
+            ))}
+            <span className="text-[0.82rem] font-bold text-[#f0ece4] ml-1">{google.rating.toFixed(1)}</span>
+          </div>
+          <div className="text-[0.68rem] text-[#8a826e]">{google.totalReviews?.toLocaleString()} reviews on Google</div>
+        </div>
+        <div className="ml-auto text-[#4285f4] text-[0.72rem]">View →</div>
+      </a>
+    );
+  }
+
+  return null; // provider === "none"
+}
+
+// ─── Google Reviews Section (below internal reviews) ─────────────────────────
+// Shows only when review_provider === "google" AND credentials are configured.
+// Renders up to 5 individual Google review cards with required attribution.
+
+export function GoogleReviewsSection() {
+  const provider = useReviewProvider();
+  const { data: google, isLoading } = useGoogleReviews();
+
+  if (provider !== "google") return null;
+  if (isLoading) return (
+    <div className="mt-8 animate-pulse space-y-3">
+      {[1, 2, 3].map(i => <div key={i} className="h-20 rounded-[12px] bg-[#1a1710]" />)}
+    </div>
+  );
+  if (!google?.configured || !google.reviews?.length) return null;
+
+  return (
+    <div className="mt-8">
+      {/* Divider + heading */}
+      <div className="flex items-center gap-3 mb-5">
+        <svg viewBox="0 0 24 24" className="w-5 h-5 shrink-0">
+          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" />
+          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+        </svg>
+        <span className="font-serif text-[1.1rem] font-bold">Google Reviews</span>
+        <div className="flex-1 h-[1px] bg-[rgba(244,168,48,0.18)]" />
+      </div>
+
+      <div className="space-y-3">
+        {google.reviews.map((review, i) => (
+          <div key={i} className="bg-[#1a1710] border border-[rgba(244,168,48,0.12)] rounded-[12px] p-4">
+            <div className="flex items-start gap-3">
+              {/* Avatar */}
+              {review.profilePhoto ? (
+                <img
+                  src={review.profilePhoto}
+                  alt={review.author}
+                  className="w-9 h-9 rounded-full shrink-0 object-cover"
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                <div className="w-9 h-9 rounded-full bg-[#4285f4]/20 flex items-center justify-center shrink-0">
+                  <span className="text-[#4285f4] font-bold text-sm">
+                    {review.author.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <span className="font-semibold text-[0.9rem] text-[#f0ece4]">{review.author}</span>
+                  <span className="text-[0.72rem] text-[#6a6055]">{review.relativeTime}</span>
+                </div>
+                <div className="flex items-center gap-0.5 mt-0.5 mb-2">
+                  {[...Array(5)].map((_, s) => (
+                    <Star
+                      key={s}
+                      className={`w-3 h-3 ${s < review.rating ? "text-[#fbbc05] fill-[#fbbc05]" : "text-[#3a3830]"}`}
+                    />
+                  ))}
+                </div>
+                {review.text && (
+                  <p className="text-[0.85rem] text-[#b8b0a0] leading-[1.65] line-clamp-4">{review.text}</p>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Required Google attribution + link to see all */}
+      <div className="mt-4 flex items-center justify-between">
+        <span className="text-[0.7rem] text-[#6a6055]">Powered by Google</span>
+        <a
+          href={google.placeUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[0.75rem] text-[#4285f4] hover:underline flex items-center gap-1"
+        >
+          See all {google.totalReviews?.toLocaleString()} reviews on Google →
+        </a>
+      </div>
+    </div>
+  );
+}
+
 
 export function WhatsIncludedSection({
   includedItems,
