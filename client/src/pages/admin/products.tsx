@@ -6,7 +6,7 @@ import { DashboardLayout } from "@/components/dashboard-layout";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Pencil, Trash, Search, Map, Car, LayoutGrid, DollarSign, Users, Image as ImageIcon, Loader2, Package, EyeOff, AlertTriangle } from "lucide-react";
+import { Plus, Pencil, Trash, Search, Map, Car, LayoutGrid, DollarSign, Users, Image as ImageIcon, Loader2, Package, EyeOff, AlertTriangle, User } from "lucide-react";
 import { ProductDialog } from "@/components/admin/product-dialog";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -323,9 +323,18 @@ export default function AdminProducts() {
                       </td>
                       <td className="p-4">
                         <div className="flex flex-col">
-                          <span className="font-bold text-foreground">{formatPrice(tour.adultPriceCents)}</span>
+                          <span className="font-bold text-foreground flex items-center gap-1.5">
+                            {tour.pricingType === 'group'
+                              ? <>{formatPrice(tour.groupPriceCents)} <Badge variant="secondary" className="text-[8px] py-0 px-1 bg-amber-500/10 text-amber-600 border-0 font-bold uppercase">Group</Badge></>
+                              : formatPrice(tour.adultPriceCents)
+                            }
+                          </span>
                           <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                            <Users className="h-2.5 w-2.5" /> Cap: {tour.defaultCapacity}
+                            {tour.pricingType === 'group'
+                              ? <><Package className="h-2.5 w-2.5" /> Flat rate</>
+                              : <><Users className="h-2.5 w-2.5" /> Per person</>
+                            }
+                            {' · '} Cap: {tour.defaultCapacity}
                           </span>
                         </div>
                       </td>
@@ -389,7 +398,12 @@ export default function AdminProducts() {
                   </div>
 
                   <div className={`flex items-center gap-4 text-muted-foreground text-sm ${viewMode === 'list' ? 'w-1/4 mb-0' : 'mb-3'}`}>
-                    <span className="font-bold text-foreground bg-primary/10 text-primary px-2 py-0.5 rounded-md">{formatPrice(tour.adultPriceCents)}</span>
+                    <span className="font-bold text-foreground bg-primary/10 text-primary px-2 py-0.5 rounded-md flex items-center gap-1.5">
+                      {tour.pricingType === 'group'
+                        ? <>{formatPrice(tour.groupPriceCents)} <Badge variant="secondary" className="text-[7px] py-0 px-1 bg-amber-500/10 text-amber-600 border-0 font-bold uppercase">Group</Badge></>
+                        : formatPrice(tour.adultPriceCents)
+                      }
+                    </span>
                     <span className="flex items-center gap-1"><Map className="h-3.5 w-3.5" />{tour.duration}</span>
                   </div>
 
