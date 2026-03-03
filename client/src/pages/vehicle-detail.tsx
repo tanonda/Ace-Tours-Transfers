@@ -25,6 +25,7 @@ import {
   CancellationModal,
   CancellationCard,
   ContactCard,
+  TrustpilotWidget,
   sanitizeHtml,
 } from "@/components/shared-detail-components";
 
@@ -806,6 +807,9 @@ export default function VehicleDetail() {
                   currency={currency}
                 />
               )}
+
+              {/* Trustpilot trust signal — above the CTA for maximum conversion impact */}
+              <TrustpilotWidget />
 
               {/* CTA */}
               <Button

@@ -8,7 +8,7 @@
 import { useState, useEffect, useRef } from "react";
 import {
   Shield, X, XCircle, Clock, Phone, Mail, MessageSquare, ExternalLink,
-  CheckCircle2,
+  CheckCircle2, Star,
 } from "lucide-react";
 
 const WHATSAPP_NUMBER = "6787114045";
@@ -97,9 +97,8 @@ export function BookingCountdownTimer({
     <div className={`flex items-center gap-3 ${color} border rounded-[10px] px-4 py-3`}>
       <div className="flex items-center gap-1.5">
         <div
-          className={`w-2 h-2 rounded-full ${
-            isUrgent ? "bg-red-400 animate-pulse" : "bg-[#f4a830] animate-pulse"
-          }`}
+          className={`w-2 h-2 rounded-full ${isUrgent ? "bg-red-400 animate-pulse" : "bg-[#f4a830] animate-pulse"
+            }`}
         />
         <span className="text-[0.78rem] font-semibold uppercase tracking-wider">
           Booking closes in
@@ -290,6 +289,67 @@ interface WhatsIncludedProps {
   descriptionFallback?: string[];
 }
 
+// ─── Trustpilot TrustBox Widget ─────────────────────────────────────────────
+// Single source of truth for all detail pages (tour / transfer / vehicle).
+// Business Unit ID  → VITE_TRUSTPILOT_BU_ID  (build-time env var)
+// Review page URL   → VITE_TRUSTPILOT_URL     (optional, defaults to acetours.vu)
+// Set in .env (local) or Render Dashboard → Environment (production), then redeploy.
+
+const TP_BU_ID = import.meta.env.VITE_TRUSTPILOT_BU_ID as string | undefined;
+const TP_URL = (import.meta.env.VITE_TRUSTPILOT_URL as string | undefined)
+  ?? "https://www.trustpilot.com/review/acetours.vu";
+
+export function TrustpilotWidget() {
+  const ref = useRef<HTMLDivElement>(null);
+
+  // The bootstrap script may have already fired before React rendered this div,
+  // so we call loadFromElement() on mount to activate the widget in SPA context.
+  useEffect(() => {
+    if (ref.current && typeof (window as any).Trustpilot !== "undefined") {
+      (window as any).Trustpilot.loadFromElement(ref.current, true);
+    }
+  }, []);
+
+  if (!TP_BU_ID) {
+    return (
+      <a
+        href={TP_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center gap-3 p-3 bg-[#00b67a]/10 border border-[#00b67a]/25 rounded-[10px] hover:bg-[#00b67a]/15 transition-colors"
+      >
+        <div className="flex items-center gap-1">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="w-5 h-5 bg-[#00b67a] rounded flex items-center justify-center">
+              <Star className="w-3 h-3 text-white fill-white" />
+            </div>
+          ))}
+        </div>
+        <div>
+          <div className="text-[0.78rem] font-semibold text-[#00b67a]">Trustpilot</div>
+          <div className="text-[0.68rem] text-[#6a8c78]">Rated Excellent · See all reviews</div>
+        </div>
+        <div className="ml-auto text-[#00b67a] text-[0.72rem]">Verify →</div>
+      </a>
+    );
+  }
+
+  return (
+    <div
+      ref={ref}
+      className="trustpilot-widget"
+      data-locale="en-US"
+      data-template-id="5419b637fa0340045cd0c936"
+      data-businessunit-id={TP_BU_ID}
+      data-style-height="24px"
+      data-style-width="100%"
+      data-theme="dark"
+    >
+      <a href={TP_URL} target="_blank" rel="noopener noreferrer">Trustpilot</a>
+    </div>
+  );
+}
+
 export function WhatsIncludedSection({
   includedItems,
   excludedItems,
@@ -309,6 +369,23 @@ export function WhatsIncludedSection({
         {/* Structured included items */}
         {includedItems.length > 0
           ? includedItems.map((item, i) => (
+            <div
+              key={i}
+              className="flex items-start gap-3 text-[0.88rem] text-[#ccc6b8]"
+            >
+              <CheckCircle2 className="w-[18px] h-[18px] text-[#4caf7d] shrink-0 mt-0.5" />
+              <span>{item}</span>
+            </div>
+          ))
+          : /* Fallback: old description elements */
+          descriptionFallback.map((item, i) =>
+            item.startsWith("<") ? (
+              <div
+                key={i}
+                className="col-span-2 text-[0.88rem] text-[#8a826e] prose prose-invert prose-sm max-w-none [&_ul]:list-disc [&_ul]:pl-5 [&_li]:text-[#8a826e] [&_p]:my-1"
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(item) }}
+              />
+            ) : (
               <div
                 key={i}
                 className="flex items-start gap-3 text-[0.88rem] text-[#ccc6b8]"
@@ -316,25 +393,8 @@ export function WhatsIncludedSection({
                 <CheckCircle2 className="w-[18px] h-[18px] text-[#4caf7d] shrink-0 mt-0.5" />
                 <span>{item}</span>
               </div>
-            ))
-          : /* Fallback: old description elements */
-            descriptionFallback.map((item, i) =>
-              item.startsWith("<") ? (
-                <div
-                  key={i}
-                  className="col-span-2 text-[0.88rem] text-[#8a826e] prose prose-invert prose-sm max-w-none [&_ul]:list-disc [&_ul]:pl-5 [&_li]:text-[#8a826e] [&_p]:my-1"
-                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(item) }}
-                />
-              ) : (
-                <div
-                  key={i}
-                  className="flex items-start gap-3 text-[0.88rem] text-[#ccc6b8]"
-                >
-                  <CheckCircle2 className="w-[18px] h-[18px] text-[#4caf7d] shrink-0 mt-0.5" />
-                  <span>{item}</span>
-                </div>
-              )
-            )}
+            )
+          )}
         {/* Excluded items */}
         {excludedItems.map((item, i) => (
           <div

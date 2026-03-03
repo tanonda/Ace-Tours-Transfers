@@ -25,6 +25,7 @@ import {
   ContactCard,
   CancellationCard,
   WhatsIncludedSection,
+  TrustpilotWidget,
   sanitizeHtml,
 } from "@/components/shared-detail-components";
 
@@ -599,6 +600,9 @@ export default function TransferDetail() {
                     childPax={childPax}
                   />
                 )}
+
+                {/* Trustpilot trust signal — above the CTA for maximum conversion impact */}
+                <TrustpilotWidget />
 
                 {/* CTA */}
                 <div className="flex flex-col gap-3">

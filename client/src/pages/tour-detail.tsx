@@ -1,17 +1,11 @@
 
 import { Link, useParams } from "wouter";
-// HTML passthrough — install dompurify later for sanitisation:
-//   npm install dompurify @types/dompurify
-// Then replace this function with the DOMPurify version.
-function sanitizeHtml(html: string): string {
-  return html;
-}
 import { useQuery } from "@tanstack/react-query";
 import { fetchTour } from "@/lib/api";
 import { apiRequest } from "@/lib/queryClient";
 import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ShoppingCart, MapPin, Clock, CheckCircle2, XCircle, ChevronDown, ChevronUp, Phone, Mail, MessageSquare, Shield, Star, Image as ImageIcon, X, ExternalLink } from "lucide-react";
+import { ArrowLeft, ShoppingCart, MapPin, Clock, CheckCircle2, XCircle, ChevronDown, ChevronUp, Shield, Star, Image as ImageIcon, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useCart } from "@/lib/cart-context";
@@ -24,6 +18,17 @@ import { AvailabilityStatus } from "@/components/AvailabilityStatus";
 import { SEO, cloudinaryOpt } from "@/components/seo";
 import { GuestReviewForm } from "@/components/GuestReviewForm";
 import { AddonsPanel, calcAddonTotal, type AddonSelections, type ProductAddonEntry } from "@/components/addons-panel";
+import {
+  BookingCountdownTimer,
+  CancellationModal,
+  SectionHeading,
+  ContactCard,
+  CancellationCard,
+  WhatsIncludedSection,
+  TrustpilotWidget,
+  sanitizeHtml,
+} from "@/components/shared-detail-components";
+
 
 // ─── Countdown Timer Component ─────────────────────────────────────────────────
 
@@ -159,10 +164,10 @@ function ItineraryTrack({ stops }: { stops: Array<{ id: string; name: string; du
             <div key={stop.id} className="relative pl-12">
               {/* Circle marker */}
               <div className={`absolute left-[14px] top-[18px] w-[22px] h-[22px] rounded-full border-2 flex items-center justify-center text-[0.7rem] font-bold z-10 ${i === 0
-                  ? "bg-[#f4a830] border-[#f4a830] text-[#0f0d09]"
-                  : isLast
-                    ? "bg-[#4caf7d] border-[#4caf7d] text-[#0f0d09]"
-                    : "bg-[#1a1710] border-[rgba(244,168,48,0.5)] text-[#f4a830]"
+                ? "bg-[#f4a830] border-[#f4a830] text-[#0f0d09]"
+                : isLast
+                  ? "bg-[#4caf7d] border-[#4caf7d] text-[#0f0d09]"
+                  : "bg-[#1a1710] border-[rgba(244,168,48,0.5)] text-[#f4a830]"
                 }`}>
                 {i + 1}
               </div>
@@ -311,16 +316,6 @@ function StarRating({ value, max = 5, size = "sm" }: { value: number; max?: numb
         );
       })}
     </span>
-  );
-}
-
-// ─── Section heading ────────────────────────────────────────────────────────────
-
-function SectionHeading({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="font-serif text-[1.2rem] font-bold mb-5 flex items-center gap-3 after:content-[''] after:flex-1 after:h-[1px] after:bg-[rgba(244,168,48,0.18)]">
-      {children}
-    </div>
   );
 }
 
@@ -487,7 +482,6 @@ export default function TourDetail() {
         isOpen={cancellationModalOpen}
         onClose={() => setCancellationModalOpen(false)}
         policy={tour.cancellationPolicy}
-        t={t}
       />
 
       <div className="min-h-screen bg-[#0f0d09] text-[#f0ece4] font-sans pt-28 md:pt-32">
@@ -806,43 +800,12 @@ export default function TourDetail() {
                 </div>
               </div>
 
-              {/* Trustpilot TrustBox widget
-                  Requires the bootstrap script in index.html:
-                  <script src="//widget.trustpilot.com/bootstrap/v5/tp.widget.bootstrap.min.js" async></script>
-                  Replace data-businessunit-id with your actual Trustpilot Business Unit ID
-                  from business.trustpilot.com → Integrations → TrustBox widgets */}
-              <div className="mb-5">
-                <div
-                  className="trustpilot-widget"
-                  data-locale="en-US"
-                  data-template-id="5419b637fa0340045cd0c936"
-                  data-businessunit-id="YOUR_BUSINESS_UNIT_ID"
-                  data-style-height="24px"
-                  data-style-width="100%"
-                  data-theme="dark"
-                >
-                  {/* Fallback shown until TrustBox script loads */}
-                  <a
-                    href="https://www.trustpilot.com/review/acetours.vu"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-3 p-3 bg-[#00b67a]/10 border border-[#00b67a]/25 rounded-[10px] hover:bg-[#00b67a]/15 transition-colors"
-                  >
-                    <div className="flex items-center gap-1">
-                      {[...Array(5)].map((_, i) => (
-                        <div key={i} className="w-6 h-6 bg-[#00b67a] rounded flex items-center justify-center">
-                          <Star className="w-3.5 h-3.5 text-white fill-white" />
-                        </div>
-                      ))}
-                    </div>
-                    <div>
-                      <div className="text-[0.8rem] font-semibold text-[#00b67a]">Trustpilot</div>
-                      <div className="text-[0.7rem] text-[#6a8c78]">Rated Excellent · See all reviews</div>
-                    </div>
-                    <div className="ml-auto text-[#00b67a] text-[0.75rem]">Verify →</div>
-                  </a>
-                </div>
-              </div>
+              {/* Trustpilot TrustBox widget — Business Unit ID is read from
+                  VITE_TRUSTPILOT_BU_ID env var. Set it in .env (local) or
+                  Render Dashboard → Environment (production).
+                  Template: 5419b637fa0340045cd0c936 = "Mini" horizontal bar.
+                  More templates: business.trustpilot.com → Integrations → TrustBox widgets */}
+              <TrustpilotWidget />
 
               {/* Individual reviews */}
               <div className="space-y-3">
@@ -1081,6 +1044,9 @@ export default function TourDetail() {
                 )}
 
                 {/* CTAs */}
+                {/* Trustpilot trust signal — sits above the Book Now button for maximum conversion impact */}
+                <TrustpilotWidget />
+
                 <div className="flex flex-col gap-3">
                   <Button
                     disabled={!date || isBooked || availLoading}

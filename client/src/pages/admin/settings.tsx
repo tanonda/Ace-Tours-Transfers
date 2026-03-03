@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Save, Flag, Mail, Users, Download, Trash2, CheckCircle, Clock, Globe, CreditCard } from "lucide-react";
+import { Loader2, Save, Flag, Mail, Users, Download, Trash2, CheckCircle, Clock, Globe, CreditCard, Star, ExternalLink, CheckCircle2, AlertCircle } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Switch } from "@/components/ui/switch";
 
@@ -253,6 +253,7 @@ export default function AdminSettings() {
             <TabsTrigger value="payments">Payment Instructions</TabsTrigger>
             <TabsTrigger value="seo">SEO / GEO</TabsTrigger>
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
+            <TabsTrigger value="integrations">Integrations</TabsTrigger>
             <TabsTrigger value="flags">Feature Flags</TabsTrigger>
           </TabsList>
 
@@ -722,6 +723,108 @@ export default function AdminSettings() {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* ── Integrations Tab ────────────────────────────────────────────── */}
+          <TabsContent value="integrations" className="mt-4 space-y-4">
+
+            {/* Trustpilot */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  {/* Trustpilot green star */}
+                  <div className="w-6 h-6 rounded bg-[#00b67a] flex items-center justify-center">
+                    <Star className="h-3.5 w-3.5 text-white fill-white" />
+                  </div>
+                  Trustpilot TrustBox Widget
+                </CardTitle>
+                <CardDescription>
+                  Displays a live Trustpilot rating bar on every tour detail page.
+                  Configured via environment variables — no database storage needed.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-5">
+
+                {/* Status badge */}
+                {(() => {
+                  const buId = import.meta.env.VITE_TRUSTPILOT_BU_ID;
+                  return buId ? (
+                    <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-green-500/30 bg-green-500/10">
+                      <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
+                      <div>
+                        <p className="text-sm font-semibold text-green-700 dark:text-green-400">Widget Active</p>
+                        <p className="text-xs text-muted-foreground">Business Unit ID: <code className="bg-muted px-1 rounded text-xs">{buId}</code></p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-amber-400/30 bg-amber-50 dark:bg-amber-900/20">
+                      <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
+                      <div>
+                        <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">Widget Inactive — Business Unit ID not set</p>
+                        <p className="text-xs text-muted-foreground">The fallback static link is shown to guests until you add the env var.</p>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Setup instructions */}
+                <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-3 text-sm">
+                  <p className="font-semibold">Setup Steps</p>
+                  <ol className="list-decimal list-inside space-y-2 text-muted-foreground text-sm">
+                    <li>
+                      Go to{" "}
+                      <a
+                        href="https://business.trustpilot.com"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary underline inline-flex items-center gap-1"
+                      >
+                        business.trustpilot.com <ExternalLink className="h-3 w-3" />
+                      </a>
+                      {" "}and sign in / create a free account.
+                    </li>
+                    <li>Navigate to <strong>Integrations → TrustBox Library</strong> to find your Business Unit ID.</li>
+                    <li>
+                      Add the following to your{" "}
+                      <code className="bg-muted px-1 rounded text-xs">.env</code> file (local) or{" "}
+                      <strong>Render Dashboard → Environment</strong> (production):
+                    </li>
+                  </ol>
+                  <div className="font-mono text-xs bg-background border border-border rounded p-3 space-y-1">
+                    <p><span className="text-blue-500">VITE_TRUSTPILOT_BU_ID</span>=<span className="text-green-600">your_business_unit_id</span></p>
+                    <p className="text-muted-foreground"># Optional — defaults to https://www.trustpilot.com/review/acetours.vu</p>
+                    <p><span className="text-blue-500">VITE_TRUSTPILOT_URL</span>=<span className="text-green-600">https://www.trustpilot.com/review/yourdomain.com</span></p>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    After adding env vars, <strong>redeploy the app</strong> — these are build-time variables baked into the client bundle.
+                  </p>
+                </div>
+
+                {/* Widget template note */}
+                <div className="rounded-lg border border-border p-4 space-y-2 text-sm">
+                  <p className="font-semibold">Current Widget Template</p>
+                  <div className="flex items-center gap-3">
+                    <code className="bg-muted px-2 py-0.5 rounded text-xs">5419b637fa0340045cd0c936</code>
+                    <span className="text-muted-foreground text-xs">Mini horizontal rating bar (24 px height, dark theme)</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    To change the widget style, update <code className="bg-muted px-1 rounded text-xs">data-template-id</code> in{" "}
+                    <code className="bg-muted px-1 rounded text-xs">client/src/pages/tour-detail.tsx</code> → <code className="bg-muted px-1 rounded text-xs">TrustpilotWidget</code>.
+                    Find all template IDs at{" "}
+                    <a
+                      href="https://business.trustpilot.com/trustbox-library"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary underline inline-flex items-center gap-1"
+                    >
+                      TrustBox Library <ExternalLink className="h-3 w-3" />
+                    </a>.
+                  </p>
+                </div>
+
+              </CardContent>
+            </Card>
+
           </TabsContent>
 
           <TabsContent value="flags" className="mt-4">
