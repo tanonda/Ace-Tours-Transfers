@@ -28,13 +28,15 @@ export const users = pgTable("users", {
   passwordResetTokenExpiry: timestamp("password_reset_token_expiry", { withTimezone: true }),
 });
 
-export const tours = pgTable("tours", {
+export const tours = pgTable("products", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   title: text("title").notNull(),
   price: text("price").notNull(), // DEPRECATED: use adultPriceCents
   childPrice: text("child_price"), // DEPRECATED: use childPriceCents
   adultPriceCents: integer("adult_price_cents").notNull().default(0),
   childPriceCents: integer("child_price_cents").notNull().default(0),
+  infantPriceCents: integer("infant_price_cents").notNull().default(0),
+  petPriceCents: integer("pet_price_cents").notNull().default(0),
   // Group / package pricing (added in migration 0013)
   pricingType: text("pricing_type").notNull().default("per_person"), // 'per_person' | 'group'
   groupPriceCents: integer("group_price_cents").notNull().default(0), // flat rate for group bookings
