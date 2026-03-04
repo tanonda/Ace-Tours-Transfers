@@ -829,179 +829,6 @@ export function ProductDialog({ tour, open, onOpenChange, onSave }: ProductDialo
                       }} />
                     </div>
 
-                    {/* ── Cancellation Policy ── */}
-                    <div className="bg-muted/30 rounded-lg p-4 border border-border space-y-3">
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
-                        <Shield className="h-3.5 w-3.5 text-amber-500" />
-                        Cancellation Policy
-                        <Badge variant="outline" className="text-[0.6rem] py-0">Policy card + modal</Badge>
-                      </p>
-                      <FormField control={form.control} name="bookingCutoffHours" render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-xs">Booking closes N hours before tour start</FormLabel>
-                          <FormControl>
-                            <div className="flex items-center gap-2">
-                              <Input type="number" min="1" max="168" className="text-xs w-24" {...field} onChange={e => field.onChange(parseInt(e.target.value) || 24)} value={field.value ?? 24} />
-                              <span className="text-xs text-muted-foreground">hours before departure</span>
-                            </div>
-                          </FormControl>
-                          <p className="text-[0.65rem] text-muted-foreground">This also drives the booking countdown timer on the product page.</p>
-                        </FormItem>
-                      )} />
-                      <FormField control={form.control} name="cancellationPolicy" render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-xs">Full Cancellation Policy <span className="font-normal text-muted-foreground">(HTML — shown in modal)</span></FormLabel>
-                          <FormControl>
-                            <RichEditor
-                              value={field.value || ''}
-                              onChange={field.onChange}
-                              placeholder="Full cancellation policy details shown when guests click 'Show full policy'…"
-                              minHeight="120px"
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )} />
-                    </div>
-
-                    {/* ── Additional Information ── */}
-                    <div className="bg-muted/30 rounded-lg p-4 border border-border space-y-3">
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
-                        <Info className="h-3.5 w-3.5 text-blue-400" />
-                        Additional Information
-                        <Badge variant="outline" className="text-[0.6rem] py-0">Additional Info section</Badge>
-                      </p>
-                      <p className="text-[0.7rem] text-muted-foreground">Guest requirements and notes not covered in Overview (e.g. accessibility, confirmation details, group size).</p>
-                      <FormField control={form.control} name="additionalInfo" render={({ field }) => (
-                        <FormItem>
-                          <div className="space-y-2">
-                            {(field.value || []).map((item: string, i: number) => (
-                              <div key={i} className="flex gap-2">
-                                <Input
-                                  value={item}
-                                  placeholder={`e.g. Not wheelchair accessible`}
-                                  className="text-xs flex-1"
-                                  onChange={e => {
-                                    const arr = [...(field.value || [])];
-                                    arr[i] = e.target.value;
-                                    field.onChange(arr);
-                                  }}
-                                />
-                                <button type="button" onClick={() => field.onChange((field.value || []).filter((_: string, idx: number) => idx !== i))} className="text-muted-foreground hover:text-destructive transition-colors">
-                                  <Trash2 className="h-4 w-4" />
-                                </button>
-                              </div>
-                            ))}
-                            <button type="button" onClick={() => field.onChange([...(field.value || []), ''])} className="text-xs text-primary hover:underline flex items-center gap-1">
-                              <Plus className="h-3 w-3" /> Add info item
-                            </button>
-                          </div>
-                        </FormItem>
-                      )} />
-                    </div>
-
-                    {/* ── Support / Contact Details ── */}
-                    <div className="bg-muted/30 rounded-lg p-4 border border-border space-y-3">
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
-                        <Mail className="h-3.5 w-3.5 text-blue-400" />
-                        Support & Contact
-                        <Badge variant="outline" className="text-[0.6rem] py-0">Questions card</Badge>
-                      </p>
-                      <div className="grid grid-cols-2 gap-3">
-                        <FormField control={form.control} name="supportEmail" render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-xs flex items-center gap-1"><Mail className="h-3 w-3" /> Support Email</FormLabel>
-                            <FormControl><Input placeholder="info@acetours.vu" className="text-xs" {...field} value={field.value || ''} /></FormControl>
-                          </FormItem>
-                        )} />
-                        <FormField control={form.control} name="supportPhone" render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-xs flex items-center gap-1"><Phone className="h-3 w-3" /> Support Phone</FormLabel>
-                            <FormControl><Input placeholder="+678 711 4045" className="text-xs" {...field} value={field.value || ''} /></FormControl>
-                          </FormItem>
-                        )} />
-                      </div>
-                      <FormField control={form.control} name="productCode" render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-xs">Product Code <span className="font-normal text-muted-foreground">(e.g. Viator product code)</span></FormLabel>
-                          <FormControl><Input placeholder="e.g. 38727P1" className="text-xs" {...field} value={field.value || ''} /></FormControl>
-                        </FormItem>
-                      )} />
-                    </div>
-
-                    {/* ── Traveler Photos ── */}
-                    <div className="bg-muted/30 rounded-lg p-4 border border-border space-y-3">
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
-                        <ImageIcon className="h-3.5 w-3.5 text-purple-400" />
-                        Traveler Photos
-                        <Badge variant="outline" className="text-[0.6rem] py-0">Gallery on detail page</Badge>
-                      </p>
-                      <p className="text-[0.7rem] text-muted-foreground">
-                        Upload photos taken during the tour. These appear in the Traveler Photos gallery below the reviews section.
-                      </p>
-                      <FormField control={form.control} name="travelerPhotos" render={({ field }) => {
-                        const photos: string[] = field.value || [];
-                        const [uploading, setUploading] = useState(false);
-                        const [photoError, setPhotoError] = useState<string | null>(null);
-
-                        const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-                          const files = Array.from(e.target.files || []);
-                          if (!files.length) return;
-                          setUploading(true);
-                          setPhotoError(null);
-                          try {
-                            const urls = await Promise.all(files.map(f => uploadImage(f).then(r => r.url)));
-                            field.onChange([...photos, ...urls]);
-                          } catch (err: any) {
-                            setPhotoError(err.message || 'Upload failed');
-                          } finally {
-                            setUploading(false);
-                            e.target.value = '';
-                          }
-                        };
-
-                        return (
-                          <FormItem>
-                            {photos.length > 0 && (
-                              <div className="grid grid-cols-3 gap-2 mb-2">
-                                {photos.map((url, i) => (
-                                  <div key={i} className="relative group rounded-md overflow-hidden border border-border aspect-[4/3]">
-                                    <img
-                                      src={url}
-                                      alt={`Traveler photo ${i + 1}`}
-                                      className="w-full h-full object-cover"
-                                      onError={(e) => { (e.target as HTMLImageElement).src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect fill="%23333" width="100" height="100"/><text fill="%23888" x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-size="12">Error</text></svg>'; }}
-                                    />
-                                    <button
-                                      type="button"
-                                      onClick={() => field.onChange(photos.filter((_, j) => j !== i))}
-                                      className="absolute top-1 right-1 bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-xs font-bold hover:bg-red-700"
-                                      title="Remove photo"
-                                    >
-                                      ×
-                                    </button>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                            <label className={`flex items-center justify-center gap-2 cursor-pointer px-3 py-2 rounded-md border border-dashed transition-colors text-xs w-full ${uploading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-muted/60 hover:border-primary/50 text-muted-foreground'
-                              }`}>
-                              {uploading
-                                ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Uploading…</>
-                                : <><Upload className="h-3.5 w-3.5" /> Upload photos (select multiple)</>
-                              }
-                              <input type="file" accept="image/*" multiple onChange={handlePhotoUpload} disabled={uploading} className="hidden" />
-                            </label>
-                            {photoError && (
-                              <div className="rounded-md bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 px-2.5 py-2 text-xs text-red-700 dark:text-red-400 flex gap-1.5">
-                                <Info className="h-3.5 w-3.5 shrink-0 mt-0.5" />{photoError}
-                              </div>
-                            )}
-                            <FormMessage />
-                          </FormItem>
-                        );
-                      }} />
-                    </div>
-
                   </div>
                 )}
 
@@ -1242,6 +1069,179 @@ export function ProductDialog({ tour, open, onOpenChange, onSave }: ProductDialo
                     </div>
                   </div>
                 )}
+
+                    {/* ── Cancellation Policy ── */}
+                    <div className="bg-muted/30 rounded-lg p-4 border border-border space-y-3">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+                        <Shield className="h-3.5 w-3.5 text-amber-500" />
+                        Cancellation Policy
+                        <Badge variant="outline" className="text-[0.6rem] py-0">Policy card + modal</Badge>
+                      </p>
+                      <FormField control={form.control} name="bookingCutoffHours" render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs">Booking closes N hours before tour start</FormLabel>
+                          <FormControl>
+                            <div className="flex items-center gap-2">
+                              <Input type="number" min="1" max="168" className="text-xs w-24" {...field} onChange={e => field.onChange(parseInt(e.target.value) || 24)} value={field.value ?? 24} />
+                              <span className="text-xs text-muted-foreground">hours before departure</span>
+                            </div>
+                          </FormControl>
+                          <p className="text-[0.65rem] text-muted-foreground">This also drives the booking countdown timer on the product page.</p>
+                        </FormItem>
+                      )} />
+                      <FormField control={form.control} name="cancellationPolicy" render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs">Full Cancellation Policy <span className="font-normal text-muted-foreground">(HTML — shown in modal)</span></FormLabel>
+                          <FormControl>
+                            <RichEditor
+                              value={field.value || ''}
+                              onChange={field.onChange}
+                              placeholder="Full cancellation policy details shown when guests click 'Show full policy'…"
+                              minHeight="120px"
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )} />
+                    </div>
+
+                    {/* ── Additional Information ── */}
+                    <div className="bg-muted/30 rounded-lg p-4 border border-border space-y-3">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+                        <Info className="h-3.5 w-3.5 text-blue-400" />
+                        Additional Information
+                        <Badge variant="outline" className="text-[0.6rem] py-0">Additional Info section</Badge>
+                      </p>
+                      <p className="text-[0.7rem] text-muted-foreground">Guest requirements and notes not covered in Overview (e.g. accessibility, confirmation details, group size).</p>
+                      <FormField control={form.control} name="additionalInfo" render={({ field }) => (
+                        <FormItem>
+                          <div className="space-y-2">
+                            {(field.value || []).map((item: string, i: number) => (
+                              <div key={i} className="flex gap-2">
+                                <Input
+                                  value={item}
+                                  placeholder={`e.g. Not wheelchair accessible`}
+                                  className="text-xs flex-1"
+                                  onChange={e => {
+                                    const arr = [...(field.value || [])];
+                                    arr[i] = e.target.value;
+                                    field.onChange(arr);
+                                  }}
+                                />
+                                <button type="button" onClick={() => field.onChange((field.value || []).filter((_: string, idx: number) => idx !== i))} className="text-muted-foreground hover:text-destructive transition-colors">
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
+                            ))}
+                            <button type="button" onClick={() => field.onChange([...(field.value || []), ''])} className="text-xs text-primary hover:underline flex items-center gap-1">
+                              <Plus className="h-3 w-3" /> Add info item
+                            </button>
+                          </div>
+                        </FormItem>
+                      )} />
+                    </div>
+
+                    {/* ── Support / Contact Details ── */}
+                    <div className="bg-muted/30 rounded-lg p-4 border border-border space-y-3">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+                        <Mail className="h-3.5 w-3.5 text-blue-400" />
+                        Support & Contact
+                        <Badge variant="outline" className="text-[0.6rem] py-0">Questions card</Badge>
+                      </p>
+                      <div className="grid grid-cols-2 gap-3">
+                        <FormField control={form.control} name="supportEmail" render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs flex items-center gap-1"><Mail className="h-3 w-3" /> Support Email</FormLabel>
+                            <FormControl><Input placeholder="info@acetours.vu" className="text-xs" {...field} value={field.value || ''} /></FormControl>
+                          </FormItem>
+                        )} />
+                        <FormField control={form.control} name="supportPhone" render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs flex items-center gap-1"><Phone className="h-3 w-3" /> Support Phone</FormLabel>
+                            <FormControl><Input placeholder="+678 711 4045" className="text-xs" {...field} value={field.value || ''} /></FormControl>
+                          </FormItem>
+                        )} />
+                      </div>
+                      <FormField control={form.control} name="productCode" render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs">Product Code <span className="font-normal text-muted-foreground">(e.g. Viator product code)</span></FormLabel>
+                          <FormControl><Input placeholder="e.g. 38727P1" className="text-xs" {...field} value={field.value || ''} /></FormControl>
+                        </FormItem>
+                      )} />
+                    </div>
+
+                    {/* ── Traveler Photos ── */}
+                    <div className="bg-muted/30 rounded-lg p-4 border border-border space-y-3">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+                        <ImageIcon className="h-3.5 w-3.5 text-purple-400" />
+                        Traveler Photos
+                        <Badge variant="outline" className="text-[0.6rem] py-0">Gallery on detail page</Badge>
+                      </p>
+                      <p className="text-[0.7rem] text-muted-foreground">
+                        Upload photos taken during the tour. These appear in the Traveler Photos gallery below the reviews section.
+                      </p>
+                      <FormField control={form.control} name="travelerPhotos" render={({ field }) => {
+                        const photos: string[] = field.value || [];
+                        const [uploading, setUploading] = useState(false);
+                        const [photoError, setPhotoError] = useState<string | null>(null);
+
+                        const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+                          const files = Array.from(e.target.files || []);
+                          if (!files.length) return;
+                          setUploading(true);
+                          setPhotoError(null);
+                          try {
+                            const urls = await Promise.all(files.map(f => uploadImage(f).then(r => r.url)));
+                            field.onChange([...photos, ...urls]);
+                          } catch (err: any) {
+                            setPhotoError(err.message || 'Upload failed');
+                          } finally {
+                            setUploading(false);
+                            e.target.value = '';
+                          }
+                        };
+
+                        return (
+                          <FormItem>
+                            {photos.length > 0 && (
+                              <div className="grid grid-cols-3 gap-2 mb-2">
+                                {photos.map((url, i) => (
+                                  <div key={i} className="relative group rounded-md overflow-hidden border border-border aspect-[4/3]">
+                                    <img
+                                      src={url}
+                                      alt={`Traveler photo ${i + 1}`}
+                                      className="w-full h-full object-cover"
+                                      onError={(e) => { (e.target as HTMLImageElement).src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect fill="%23333" width="100" height="100"/><text fill="%23888" x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-size="12">Error</text></svg>'; }}
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => field.onChange(photos.filter((_, j) => j !== i))}
+                                      className="absolute top-1 right-1 bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-xs font-bold hover:bg-red-700"
+                                      title="Remove photo"
+                                    >
+                                      ×
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            <label className={`flex items-center justify-center gap-2 cursor-pointer px-3 py-2 rounded-md border border-dashed transition-colors text-xs w-full ${uploading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-muted/60 hover:border-primary/50 text-muted-foreground'
+                              }`}>
+                              {uploading
+                                ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Uploading…</>
+                                : <><Upload className="h-3.5 w-3.5" /> Upload photos (select multiple)</>
+                              }
+                              <input type="file" accept="image/*" multiple onChange={handlePhotoUpload} disabled={uploading} className="hidden" />
+                            </label>
+                            {photoError && (
+                              <div className="rounded-md bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 px-2.5 py-2 text-xs text-red-700 dark:text-red-400 flex gap-1.5">
+                                <Info className="h-3.5 w-3.5 shrink-0 mt-0.5" />{photoError}
+                              </div>
+                            )}
+                            <FormMessage />
+                          </FormItem>
+                        );
+                      }} />
+                    </div>
 
               </div>
 
