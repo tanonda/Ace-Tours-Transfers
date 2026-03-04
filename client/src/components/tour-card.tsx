@@ -24,6 +24,7 @@ interface TourProps {
   description: string[];
   image: string;
   category?: ProductCategory;
+  contactForPrice?: boolean;
 }
 
 export function TourCard({ tour, index }: { tour: TourProps; index: number }) {
@@ -60,7 +61,7 @@ export function TourCard({ tour, index }: { tour: TourProps; index: number }) {
             </div>
             <div className="absolute top-4 right-4 z-20">
               <Badge className="bg-background/90 text-foreground hover:bg-background text-sm font-bold px-3 py-1 shadow-sm backdrop-blur-sm border border-border/50">
-                {formatPriceDisplay(tour.adultPriceCents, currency as any)}
+                {tour.contactForPrice ? t("tour.contactForPrice", "Contact for Price") : formatPriceDisplay(tour.adultPriceCents, currency as any)}
               </Badge>
             </div>
             <div className="absolute inset-0 flex items-center justify-center z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -109,12 +110,21 @@ export function TourCard({ tour, index }: { tour: TourProps; index: number }) {
           <CardFooter className="pt-4 border-t border-border/50 bg-muted/30" onClick={(e) => e.stopPropagation()}>
             <div className="w-full space-y-2">
               <div className="flex justify-between items-center text-sm text-muted-foreground mb-2">
-                <span>{t("tour.startingFrom", "Starting from")}</span>
-                <span className="font-bold text-foreground">{formatPriceDisplay(tour.adultPriceCents || 0, currency as any)}</span>
+                <span>{tour.contactForPrice ? '' : t("tour.startingFrom", "Starting from")}</span>
+                <span className="font-bold text-foreground">
+                  {tour.contactForPrice ? '' : formatPriceDisplay(tour.adultPriceCents || 0, currency as any)}
+                </span>
               </div>
-              <Link href={`/reservations?tab=book-new&service=${encodeURIComponent(tour.title)}`}>
-                <Button className="w-full font-semibold touch-target touch-feedback" size="lg">{t("tour.bookNow", "Book Now")}</Button>
-              </Link>
+
+              {tour.contactForPrice ? (
+                <Link href={`/vehicles/${tour.id}`}>
+                  <Button className="w-full font-semibold touch-target touch-feedback" size="lg">{t("tour.inquireNow", "View Details & Contact")}</Button>
+                </Link>
+              ) : (
+                <Link href={`/reservations?tab=book-new&service=${encodeURIComponent(tour.title)}`}>
+                  <Button className="w-full font-semibold touch-target touch-feedback" size="lg">{t("tour.bookNow", "Book Now")}</Button>
+                </Link>
+              )}
             </div>
           </CardFooter>
         </Card>

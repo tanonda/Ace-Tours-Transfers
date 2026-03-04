@@ -58,6 +58,7 @@ export const tours = pgTable("tours", {
   // ── Tour detail page fields (added in migration 0016) ───────────────────────
   itineraryStops: jsonb("itinerary_stops").$type<ItineraryStop[]>(),
   itineraryIntro: text("itinerary_intro"),
+  contactForPrice: boolean("contact_for_price").notNull().default(false),
   meetingPoint: text("meeting_point"),
   meetingPointMapUrl: text("meeting_point_map_url"),
   pickupInstructions: text("pickup_instructions"),

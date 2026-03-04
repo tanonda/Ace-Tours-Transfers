@@ -245,6 +245,7 @@ const schema = z.object({
     seats: z.number().min(1).optional(),
     transmission: z.string().optional(),
     features: z.array(z.string()).optional(),
+    contactForPrice: z.boolean().default(false),
   }).nullable().optional(),
 
   // ── New tour detail fields ──────────────────────────────────────────────
@@ -346,6 +347,7 @@ export function ProductDialog({ tour, open, onOpenChange, onSave }: ProductDialo
       additionalInfo: [],
       supportEmail: '', supportPhone: '', productCode: '',
       travelerPhotos: [],
+      contactForPrice: false,
     },
   });
 
@@ -388,6 +390,7 @@ export function ProductDialog({ tour, open, onOpenChange, onSave }: ProductDialo
         supportPhone: tour.supportPhone || '',
         productCode: tour.productCode || '',
         travelerPhotos: tour.travelerPhotos || [],
+        contactForPrice: tour.contactForPrice || false,
       });
     } else {
       form.reset({
@@ -404,6 +407,7 @@ export function ProductDialog({ tour, open, onOpenChange, onSave }: ProductDialo
         additionalInfo: [],
         supportEmail: '', supportPhone: '', productCode: '',
         travelerPhotos: [],
+        contactForPrice: false,
       });
     }
   }, [tour, open]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -451,6 +455,7 @@ export function ProductDialog({ tour, open, onOpenChange, onSave }: ProductDialo
       supportPhone: values.supportPhone || null,
       productCode: values.productCode || null,
       travelerPhotos: values.travelerPhotos || [],
+      contactForPrice: values.vehicleDetails?.contactForPrice || false,
     });
     onOpenChange(false);
   };

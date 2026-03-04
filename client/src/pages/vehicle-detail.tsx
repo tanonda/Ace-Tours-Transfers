@@ -688,14 +688,27 @@ export default function VehicleDetail() {
 
             {/* Price header */}
             <div className="bg-[#211e18] px-6 py-5 border-b border-[rgba(244,168,48,0.12)]">
-              <div className="flex items-baseline gap-2 mb-1">
-                <span className="text-[0.72rem] text-[#3a342c]">{isGroupPricing ? "Package rate" : "From"}</span>
-                <span className="font-serif text-[2rem] font-bold text-[#f4a830]">{formatPriceDisplay(dayRateCents, currency)}</span>
-                <span className="text-[0.78rem] text-[#3a342c]">/ day</span>
-              </div>
-              <div className="text-[0.72rem] text-[#3a342c]">
-                {isGroupPricing ? `Flat rate${vehicle.groupMaxPax ? ` — up to ${vehicle.groupMaxPax} people` : ""}` : "Total price based on hire duration"}
-              </div>
+              {vehicle.contactForPrice ? (
+                <>
+                  <div className="flex items-baseline gap-2 mb-1">
+                    <span className="font-serif text-[2rem] font-bold text-[#f4a830]">Contact for Price</span>
+                  </div>
+                  <div className="text-[0.72rem] text-[#3a342c]">
+                    Enquire directly to receive a custom quote for this vehicle.
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="flex items-baseline gap-2 mb-1">
+                    <span className="text-[0.72rem] text-[#3a342c]">{isGroupPricing ? "Package rate" : "From"}</span>
+                    <span className="font-serif text-[2rem] font-bold text-[#f4a830]">{formatPriceDisplay(dayRateCents, currency)}</span>
+                    <span className="text-[0.78rem] text-[#3a342c]">/ day</span>
+                  </div>
+                  <div className="text-[0.72rem] text-[#3a342c]">
+                    {isGroupPricing ? `Flat rate${vehicle.groupMaxPax ? ` — up to ${vehicle.groupMaxPax} people` : ""}` : "Total price based on hire duration"}
+                  </div>
+                </>
+              )}
             </div>
 
             <div className="bg-[#1a1710] p-5 flex flex-col gap-5">
@@ -713,19 +726,21 @@ export default function VehicleDetail() {
               </div>
 
               {/* Range calendar */}
-              <div>
-                <div className="text-[0.65rem] font-bold uppercase tracking-widest text-[#8a826e] mb-2 flex items-center gap-2">
-                  <Calendar size={9} className="text-[#f4a830]" /> Select Hire Period
+              {!vehicle.contactForPrice && (
+                <div>
+                  <div className="text-[0.65rem] font-bold uppercase tracking-widest text-[#8a826e] mb-2 flex items-center gap-2">
+                    <Calendar size={9} className="text-[#f4a830]" /> Select Hire Period
+                  </div>
+                  <RangeCalendar
+                    pickupDate={pickupDate || null}
+                    returnDate={returnDate || null}
+                    onRangeChange={handleRangeChange}
+                  />
                 </div>
-                <RangeCalendar
-                  pickupDate={pickupDate || null}
-                  returnDate={returnDate || null}
-                  onRangeChange={handleRangeChange}
-                />
-              </div>
+              )}
 
               {/* Pickup time slot picker */}
-              {pickupDate && (
+              {pickupDate && !vehicle.contactForPrice && (
                 <div className="border-t border-[rgba(244,168,48,0.1)] pt-4">
                   <TimePicker
                     label={`Pick-up time · ${format(parseISO(pickupDate), "EEE d MMM")}`}
@@ -744,7 +759,7 @@ export default function VehicleDetail() {
               )}
 
               {/* Drop-off time slot picker */}
-              {returnDate && (
+              {returnDate && !vehicle.contactForPrice && (
                 <div className="border-t border-[rgba(244,168,48,0.1)] pt-4">
                   <TimePicker
                     label={`Drop-off time · ${format(parseISO(returnDate), "EEE d MMM")}`}
@@ -757,7 +772,7 @@ export default function VehicleDetail() {
               )}
 
               {/* Summary card */}
-              {hireDays > 0 && (
+              {hireDays > 0 && !vehicle.contactForPrice && (
                 <div className="bg-[#211e18] border border-[rgba(244,168,48,0.2)] rounded-[12px] p-4">
                   <div className="text-[0.62rem] font-bold uppercase tracking-widest text-[#f4a830] mb-3">Hire Summary</div>
                   <div className="space-y-2">
@@ -826,29 +841,59 @@ export default function VehicleDetail() {
               <ExternalReviewBadge />
 
               {/* CTA */}
-              <Button
-                disabled={!canBook}
-                onClick={handleAddToCart}
-                className={[
-                  "w-full h-14 rounded-[10px] text-[0.95rem] font-black tracking-[0.02em] transition-all",
-                  canBook
-                    ? "bg-[#f4a830] text-[#0f0d09] hover:bg-[#fdc96a] shadow-[0_8px_28px_rgba(244,168,48,0.35)]"
-                    : "bg-[#211e18] text-[#2a2620] cursor-not-allowed border border-[rgba(244,168,48,0.1)] hover:bg-[#211e18]"
-                ].join(" ")}
-              >
-                <ShoppingCart className="mr-2 h-5 w-5" />
-                {availabilityStatus === "unavailable"
-                  ? "Fully Booked — Choose Different Dates"
-                  : canBook
-                    ? "Add to Cart"
-                    : "Select pickup & return dates"
-                }
-              </Button>
+              {vehicle.contactForPrice ? (
+                <div className="space-y-4">
+                  {vehicle.supportPhone && (
+                    <a
+                      href={`tel:${vehicle.supportPhone.replace(/\\s/g, '')}`}
+                      className="w-full flex justify-center items-center h-14 rounded-[10px] text-[0.95rem] font-black tracking-[0.02em] transition-all bg-[#4caf7d] hover:bg-[#5dbd8f] text-[#0f0d09]"
+                    >
+                      <Phone className="mr-2 h-5 w-5" />
+                      Call {vehicle.supportPhone}
+                    </a>
+                  )}
+                  {vehicle.supportEmail && (
+                    <a
+                      href={`mailto:${vehicle.supportEmail}`}
+                      className="w-full flex justify-center items-center h-14 rounded-[10px] text-[0.95rem] font-black tracking-[0.02em] transition-all border border-[#f4a830]/30 hover:border-[#f4a830] text-[#f4a830]"
+                    >
+                      <Mail className="mr-2 h-5 w-5" />
+                      Email Inquiry
+                    </a>
+                  )}
+                  {!vehicle.supportPhone && !vehicle.supportEmail && (
+                    <div className="text-center text-[#f4a830] text-sm p-4 border border-[#f4a830]/20 rounded-lg">
+                      Please use the contact details provided in the description to inquire.
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <>
+                  <Button
+                    disabled={!canBook}
+                    onClick={handleAddToCart}
+                    className={[
+                      "w-full h-14 rounded-[10px] text-[0.95rem] font-black tracking-[0.02em] transition-all",
+                      canBook
+                        ? "bg-[#f4a830] text-[#0f0d09] hover:bg-[#fdc96a] shadow-[0_8px_28px_rgba(244,168,48,0.35)]"
+                        : "bg-[#211e18] text-[#2a2620] cursor-not-allowed border border-[rgba(244,168,48,0.1)] hover:bg-[#211e18]"
+                    ].join(" ")}
+                  >
+                    <ShoppingCart className="mr-2 h-5 w-5" />
+                    {availabilityStatus === "unavailable"
+                      ? "Fully Booked — Choose Different Dates"
+                      : canBook
+                        ? "Add to Cart"
+                        : "Select pickup & return dates"
+                    }
+                  </Button>
 
-              {canBook && !(pickupTime && dropoffTime) && (
-                <p className="text-[0.7rem] text-[#4a4438] text-center -mt-3">
-                  Select pick-up and drop-off times above to complete your booking
-                </p>
+                  {canBook && !(pickupTime && dropoffTime) && (
+                    <p className="text-[0.7rem] text-[#4a4438] text-center -mt-3">
+                      Select pick-up and drop-off times above to complete your booking
+                    </p>
+                  )}
+                </>
               )}
 
               {/* WhatsApp */}
