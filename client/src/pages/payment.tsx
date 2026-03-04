@@ -232,7 +232,7 @@ export default function Payment() {
       } else {
         // Manual payment (bank transfer / cash) - redirect to success page with manual params
         const bId = data.bookingId || bookingId;
-        const provider = data.provider || paymentMethod;
+        const provider = data.provider || selectedMethod;
         setLocation(`/payment/success?booking=${bId}&manual=true&method=${provider}`);
       }
     },

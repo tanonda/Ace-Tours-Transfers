@@ -10,6 +10,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { SEO, cloudinaryOpt } from "@/components/seo";
 import { GuestReviewForm } from "@/components/GuestReviewForm";
+import { useCmsText } from "@/hooks/use-cms-text";
 import { AddonsPanel, calcAddonTotal, type AddonSelections, type ProductAddonEntry } from "@/components/addons-panel";
 import { useCart } from "@/lib/cart-context";
 import { useBookingDraft } from "@/lib/booking-state-context";
@@ -321,6 +322,7 @@ function SummaryRow({ label, value, sub }: { label: string; value: string; sub?:
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 export default function VehicleDetail() {
+  const cms = useCmsText("faq");
   const { id } = useParams<{ id: string }>();
   const { addToCart } = useCart();
   const { updateDraft } = useBookingDraft();
@@ -467,12 +469,23 @@ export default function VehicleDetail() {
     { icon: "🧭", label: "Coverage", value: "Efate Island" },
   ].filter(Boolean) as { icon: any; label: string; value: string }[];
 
-  const vehicleFaqs = [
-    { question: `What is included in hiring the ${vehicle.title}?`, answer: `The ${vehicle.title} hire includes fuel, insurance, and GPS navigation for Efate Island. Driver is optional.` },
-    { question: "Do I need an international driver's licence?", answer: "Yes, an international driving permit is required for self-drive hire in Vanuatu." },
-    { question: "What is the cancellation policy?", answer: "Free cancellation up to 24 hours before your hire start time." },
-    { question: "Can I hire the vehicle with a driver?", answer: "Yes, a professional local driver can be arranged for your convenience. Please ask us via WhatsApp." },
-  ];
+  const vehicleFaqs = [];
+  for (let i = 1; i <= 20; i++) {
+    const defaultQ = i === 1 ? `What is included in hiring the ${vehicle.title}?` :
+      i === 2 ? "Do I need an international driver's licence?" :
+        i === 3 ? "What is the cancellation policy?" :
+          i === 4 ? "Can I hire the vehicle with a driver?" : "";
+    const defaultA = i === 1 ? `The ${vehicle.title} hire includes fuel, insurance, and GPS navigation for Efate Island. Driver is optional.` :
+      i === 2 ? "Yes, an international driving permit is required for self-drive hire in Vanuatu." :
+        i === 3 ? "Free cancellation up to 24 hours before your hire start time." :
+          i === 4 ? "Yes, a professional local driver can be arranged for your convenience. Please ask us via WhatsApp." : "";
+
+    const q = cms.text(`faq${i}_q`, defaultQ);
+    const a = cms.text(`faq${i}_a`, defaultA);
+    if (q && a) {
+      vehicleFaqs.push({ question: q, answer: a.replace(/<[^>]+>/g, '') });
+    }
+  }
 
   const cutoffHours = vehicle.bookingCutoffHours ?? 24;
 

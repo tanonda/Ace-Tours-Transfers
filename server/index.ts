@@ -372,7 +372,7 @@ app.use((req, res, next) => {
     try {
       console.log('[MIGRATIONS] Running migrations...');
       const { runIdempotentMigrations } = await import('./migrate.js');
-      await runIdempotentMigrations(neonPool);
+      await runIdempotentMigrations(neonPool as any);
       console.log('[MIGRATIONS] Migrations completed successfully');
     } catch (migrationError: any) {
       // Don't fail startup if migrations fail - they might already be applied.
@@ -397,6 +397,12 @@ app.use((req, res, next) => {
   }
 
   await initStripe();
+  try {
+    const { fetchLiveExchangeRates } = await import('./domain/pricing/PricingEngine.js');
+    await fetchLiveExchangeRates();
+  } catch (err) {
+    console.warn("Could not fetch initial exchange rates", err);
+  }
   await registerRoutes(httpServer, app);
 
   // ── Gateway Auto-Seed Guard ────────────────────────────────────────────────

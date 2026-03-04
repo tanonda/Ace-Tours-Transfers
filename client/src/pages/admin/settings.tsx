@@ -255,6 +255,7 @@ export default function AdminSettings() {
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
             <TabsTrigger value="integrations">Integrations</TabsTrigger>
             <TabsTrigger value="flags">Feature Flags</TabsTrigger>
+            <TabsTrigger value="backlinks">Backlinks</TabsTrigger>
           </TabsList>
 
           <TabsContent value="contact" className="mt-4">
@@ -909,6 +910,81 @@ export default function AdminSettings() {
               </CardContent>
             </Card>
 
+            {/* Render Dashboard */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded bg-black flex items-center justify-center">
+                    <span className="text-white font-bold text-xs">R</span>
+                  </div>
+                  Render Hosting
+                </CardTitle>
+                <CardDescription>
+                  Access your server logs, redeploy the application, and manage environment variables.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-lg border border-border p-4 space-y-3">
+                  <p className="text-sm">Log in to the Render dashboard to monitor your web service performance, view deployment logs, or update environment variables (like adding API keys).</p>
+                  <Button variant="outline" asChild size="sm">
+                    <a href="https://dashboard.render.com" target="_blank" rel="noopener noreferrer">
+                      Open Render Dashboard <ExternalLink className="h-3 w-3 ml-2" />
+                    </a>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Neon Database */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded bg-[#00e599] flex items-center justify-center">
+                    <span className="text-black font-bold text-xs text-[10px]">Neon</span>
+                  </div>
+                  Neon Database
+                </CardTitle>
+                <CardDescription>
+                  Manage your PostgreSQL database, view branches, and execute raw SQL queries.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-lg border border-border p-4 space-y-3">
+                  <p className="text-sm">Neon hosts your application data. Use the Neon console to manage backups, view storage limits, or check database connection string credentials.</p>
+                  <Button variant="outline" asChild size="sm">
+                    <a href="https://console.neon.tech" target="_blank" rel="noopener noreferrer">
+                      Open Neon Console <ExternalLink className="h-3 w-3 ml-2" />
+                    </a>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Sentry Error Tracking */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded bg-[#362d59] flex items-center justify-center">
+                    <span className="text-white font-bold text-xs text-[10px]">S</span>
+                  </div>
+                  Sentry Error Tracking
+                </CardTitle>
+                <CardDescription>
+                  Monitor application health, track exceptions, and debug production errors.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-lg border border-border p-4 space-y-3">
+                  <p className="text-sm">Sentry automatically captures runtime errors and crashes. Use the Sentry dashboard to view stack traces and alert rules.</p>
+                  <Button variant="outline" asChild size="sm">
+                    <a href="https://sentry.io" target="_blank" rel="noopener noreferrer">
+                      Open Sentry Dashboard <ExternalLink className="h-3 w-3 ml-2" />
+                    </a>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
           </TabsContent>
 
           <TabsContent value="flags" className="mt-4">
@@ -943,6 +1019,33 @@ export default function AdminSettings() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* ── Backlinks Tab ──────────────────────────────────────────────── */}
+          <TabsContent value="backlinks" className="mt-4 space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Footer Backlinks & Partners</CardTitle>
+                <CardDescription>
+                  Manage the external links displayed in the website footer.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <SettingList
+                  itemKey="footer_backlinks"
+                  label="Footer Backlinks"
+                  description="Enter links as 'Label | URL'. Example: 'Vanuatu Tourism | https://www.vanuatu.travel/'"
+                  values={(formData["footer_backlinks"] || "").split("\n").filter(Boolean)}
+                  onSave={async (newValues) => {
+                    const str = newValues.join("\n");
+                    setFormData(prev => ({ ...prev, footer_backlinks: str }));
+                    await updateMutation.mutateAsync({ key: "footer_backlinks", value: str });
+                  }}
+                  placeholder="Label | URL"
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
         </Tabs>
       </div>
     </DashboardLayout>

@@ -2,7 +2,7 @@
 
 import { IStorage } from '../../storage.js';
 import { Tour } from '../../../shared/schema.js';
-import { PricingEngine, TourRate } from './PricingEngine.js';
+import { PricingEngine, TourRate, formatVUVInCurrency } from './PricingEngine.js';
 
 /**
  * PriceResolver: PHASE 2B - NOW DELEGATES TO PRICINGENGINE
@@ -68,7 +68,7 @@ export class PriceResolver {
    */
   static formatCentsAsVUV(cents: number): string {
     // C1 Fix: Delegate to engine which now correctly handles VUV as zero-decimal
-    return PricingEngine.formatCentsAsVUV(cents);
+    return formatVUVInCurrency(cents, 'VUV');
   }
 
   /**

@@ -57,16 +57,35 @@ export interface CurrencyRate {
 }
 
 export const CURRENCY_RATES: Record<string, CurrencyRate> = {
-  VUV: { code: 'VUV', symbol: 'VT',   rateFromVUV: 1,        isWholeUnit: true  },
-  USD: { code: 'USD', symbol: '$',    rateFromVUV: 0.0084,   isWholeUnit: false },
-  AUD: { code: 'AUD', symbol: 'A$',   rateFromVUV: 0.013,    isWholeUnit: false },
-  NZD: { code: 'NZD', symbol: 'NZ$',  rateFromVUV: 0.0141,   isWholeUnit: false },
-  EUR: { code: 'EUR', symbol: '€',    rateFromVUV: 0.0078,   isWholeUnit: false },
-  GBP: { code: 'GBP', symbol: '£',    rateFromVUV: 0.0066,   isWholeUnit: false },
-  JPY: { code: 'JPY', symbol: '¥',    rateFromVUV: 1.26,     isWholeUnit: true  },
-  FJD: { code: 'FJD', symbol: 'FJ$',  rateFromVUV: 0.019,    isWholeUnit: false },
-  XPF: { code: 'XPF', symbol: 'CFP',  rateFromVUV: 0.93,     isWholeUnit: true  },
+  VUV: { code: 'VUV', symbol: 'VT', rateFromVUV: 1, isWholeUnit: true },
+  USD: { code: 'USD', symbol: '$', rateFromVUV: 0.0084, isWholeUnit: false },
+  AUD: { code: 'AUD', symbol: 'A$', rateFromVUV: 0.013, isWholeUnit: false },
+  NZD: { code: 'NZD', symbol: 'NZ$', rateFromVUV: 0.0141, isWholeUnit: false },
+  EUR: { code: 'EUR', symbol: '€', rateFromVUV: 0.0078, isWholeUnit: false },
+  GBP: { code: 'GBP', symbol: '£', rateFromVUV: 0.0066, isWholeUnit: false },
+  JPY: { code: 'JPY', symbol: '¥', rateFromVUV: 1.26, isWholeUnit: true },
+  FJD: { code: 'FJD', symbol: 'FJ$', rateFromVUV: 0.019, isWholeUnit: false },
+  XPF: { code: 'XPF', symbol: 'CFP', rateFromVUV: 0.93, isWholeUnit: true },
 };
+
+export async function fetchLiveExchangeRates() {
+  try {
+    const req = await fetch('https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/vuv.json');
+    if (!req.ok) return;
+    const data: any = await req.json();
+    if (data?.vuv) {
+      for (const [code, def] of Object.entries(CURRENCY_RATES)) {
+        const lowerCode = code.toLowerCase();
+        if (data.vuv[lowerCode]) {
+          def.rateFromVUV = data.vuv[lowerCode];
+        }
+      }
+      console.log("[PRICING] Live exchange rates updated from CDN");
+    }
+  } catch (err) {
+    console.error("[PRICING] Failed to fetch live exchange rates", err);
+  }
+}
 
 /** Convert VUV integer units to display amount in target currency */
 export function convertVUVToDisplay(vuvAmount: number, targetCurrency: string): number {

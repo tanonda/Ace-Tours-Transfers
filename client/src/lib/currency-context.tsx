@@ -27,27 +27,21 @@ export interface CurrencyDef {
 }
 
 export const CURRENCIES: Record<string, CurrencyDef> = {
-  VUV: { code: 'VUV', symbol: 'VT',   name: 'Vanuatu Vatu',       rateFromVUV: 1,        locale: 'en-VU', isWholeUnit: true  },
-  USD: { code: 'USD', symbol: '$',    name: 'US Dollar',           rateFromVUV: 0.0084,   locale: 'en-US', isWholeUnit: false },
-  AUD: { code: 'AUD', symbol: 'A$',   name: 'Australian Dollar',   rateFromVUV: 0.013,    locale: 'en-AU', isWholeUnit: false },
-  NZD: { code: 'NZD', symbol: 'NZ$',  name: 'New Zealand Dollar',  rateFromVUV: 0.0141,   locale: 'en-NZ', isWholeUnit: false },
-  EUR: { code: 'EUR', symbol: '€',    name: 'Euro',                rateFromVUV: 0.0078,   locale: 'fr-FR', isWholeUnit: false },
-  GBP: { code: 'GBP', symbol: '£',    name: 'British Pound',       rateFromVUV: 0.0066,   locale: 'en-GB', isWholeUnit: false },
-  JPY: { code: 'JPY', symbol: '¥',    name: 'Japanese Yen',        rateFromVUV: 1.26,     locale: 'ja-JP', isWholeUnit: true  },
-  FJD: { code: 'FJD', symbol: 'FJ$',  name: 'Fijian Dollar',       rateFromVUV: 0.019,    locale: 'en-FJ', isWholeUnit: false },
-  XPF: { code: 'XPF', symbol: 'CFP',  name: 'CFP Franc (New Cal)', rateFromVUV: 0.93,     locale: 'fr-FR', isWholeUnit: true  },
+  VUV: { code: 'VUV', symbol: 'VT', name: 'Vanuatu Vatu', rateFromVUV: 1, locale: 'en-VU', isWholeUnit: true },
+  USD: { code: 'USD', symbol: '$', name: 'US Dollar', rateFromVUV: 0.0084, locale: 'en-US', isWholeUnit: false },
+  AUD: { code: 'AUD', symbol: 'A$', name: 'Australian Dollar', rateFromVUV: 0.013, locale: 'en-AU', isWholeUnit: false },
+  NZD: { code: 'NZD', symbol: 'NZ$', name: 'New Zealand Dollar', rateFromVUV: 0.0141, locale: 'en-NZ', isWholeUnit: false },
+  EUR: { code: 'EUR', symbol: '€', name: 'Euro', rateFromVUV: 0.0078, locale: 'fr-FR', isWholeUnit: false },
+  GBP: { code: 'GBP', symbol: '£', name: 'British Pound', rateFromVUV: 0.0066, locale: 'en-GB', isWholeUnit: false },
+  JPY: { code: 'JPY', symbol: '¥', name: 'Japanese Yen', rateFromVUV: 1.26, locale: 'ja-JP', isWholeUnit: true },
+  FJD: { code: 'FJD', symbol: 'FJ$', name: 'Fijian Dollar', rateFromVUV: 0.019, locale: 'en-FJ', isWholeUnit: false },
+  XPF: { code: 'XPF', symbol: 'CFP', name: 'CFP Franc (New Cal)', rateFromVUV: 0.93, locale: 'fr-FR', isWholeUnit: true },
 };
 
 export type CurrencyCode = keyof typeof CURRENCIES;
 
 // ─── Formatting Utility ──────────────────────────────────────────────────────
 
-/**
- * Format a VUV amount (integer units) into the display currency.
- *
- * @param vuvAmount  - Amount in VUV integer units (1 unit = 1 VUV)
- * @param currency   - Target display currency code
- */
 export function formatInCurrency(vuvAmount: number, currency: CurrencyCode | string = 'VUV'): string {
   const def = CURRENCIES[currency.toUpperCase()] ?? CURRENCIES.VUV;
   const displayAmount = vuvAmount * def.rateFromVUV;
@@ -63,6 +57,30 @@ export function formatInCurrency(vuvAmount: number, currency: CurrencyCode | str
     const fixed = def.isWholeUnit ? Math.round(displayAmount).toString() : displayAmount.toFixed(2);
     return `${def.symbol} ${fixed}`;
   }
+}
+
+// ─── Fetch Live Rates API ────────────────────────────────────────────────────
+
+export async function fetchLatestExchangeRates() {
+  try {
+    // Use the free, open-source currency API CDN which updates daily
+    const res = await fetch('https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/vuv.json');
+    if (!res.ok) throw new Error("Network response was not ok");
+    const data: any = await res.json();
+    if (data?.vuv) {
+      for (const [code, def] of Object.entries(CURRENCIES)) {
+        const lowerCode = code.toLowerCase();
+        if (data.vuv[lowerCode]) {
+          // Update in-place so all synchronous formatters get the new rate
+          def.rateFromVUV = data.vuv[lowerCode];
+        }
+      }
+      return true;
+    }
+  } catch (err) {
+    console.error("Failed to fetch live exchange rates, falling back to static rates", err);
+  }
+  return false;
 }
 
 /**
@@ -90,12 +108,18 @@ const STORAGE_KEY = 'ace-tours-currency';
 
 export function CurrencyProvider({ children }: { children: React.ReactNode }) {
   const [currency, setCurrencyState] = useState<CurrencyCode>('VUV');
+  const [ratesLoaded, setRatesLoaded] = useState(false);
 
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored && CURRENCIES[stored]) {
       setCurrencyState(stored as CurrencyCode);
     }
+
+    // Fetch live rates on mount
+    fetchLatestExchangeRates().then((success) => {
+      if (success) setRatesLoaded(true); // Triggers re-render with new rates
+    });
   }, []);
 
   const setCurrency = useCallback((code: CurrencyCode) => {

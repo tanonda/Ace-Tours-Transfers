@@ -139,6 +139,42 @@ export function registerUserRoutes(app: Express) {
     }
   });
 
+  app.post("/api/users/:id/send-welcome", requireAdmin, async (req, res) => {
+    try {
+      const user = await userProfileDomainService.getUserById(req.params.id);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const { sendEmail } = await import("../lib/mail.js");
+      const token = await userProfileDomainService.generatePasswordResetToken(user.id);
+      const appUrl = process.env.APP_URL || "https://acetours.vu";
+      const resetLink = `${appUrl}/reset-password?token=${token}`;
+
+      await sendEmail({
+        to: user.email,
+        subject: "Welcome to Ace Tours & Transfers",
+        html: `<div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px;">
+<h2 style="color: #004165;">Welcome, ${user.name ?? "Staff Member"}! 👋</h2>
+<p>You have been invited to join the Ace Tours & Transfers platform.</p>
+<p>Your role is: <strong>${user.role}</strong></p>
+<p>To get started, please set your password by clicking the link below:</p>
+<div style="text-align: center; margin: 30px 0;">
+  <a href="${resetLink}" style="background-color: #004165; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Set Your Password</a>
+</div>
+<p style="color: #6b7280; font-size: 14px;">This link will expire in 24 hours.</p>
+<hr style="border: 0; border-top: 1px solid #e5e7eb; margin: 20px 0;" />
+<p style="font-size: 12px; color: #9ca3af;">Ace Tours & Transfers · Port Vila, Vanuatu</p>
+</div>`,
+      });
+
+      res.json({ success: true, message: "Welcome email sent successfully" });
+    } catch (error) {
+      console.error("Failed to send welcome email:", error);
+      res.status(500).json({ error: "Failed to send welcome email" });
+    }
+  });
+
   app.get("/api/customers", requireAdmin, async (req, res) => {
     try {
       const customers = await userProfileDomainService.getCustomers();
@@ -222,7 +258,7 @@ export function registerUserRoutes(app: Express) {
       // Verify current password
       const user = await storage.getUser(req.params.id);
       if (!user) return res.status(404).json({ error: "User not found" });
-      const bcrypt = await import("bcrypt");
+      const bcrypt = await import("bcryptjs");
       const valid = await bcrypt.compare(currentPassword, user.password);
       if (!valid) return res.status(400).json({ error: "Current password is incorrect" });
       const hashed = await bcrypt.hash(newPassword, 10);

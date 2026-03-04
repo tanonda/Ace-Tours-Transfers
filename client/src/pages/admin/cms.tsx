@@ -350,22 +350,10 @@ export default function AdminCMS() {
     },
     faq: {
       label: "FAQ",
-      fields: [
-        { key: "faq1_q", label: "Question 1", type: "text" },
-        { key: "faq1_a", label: "Answer 1", type: "rich" },
-        { key: "faq2_q", label: "Question 2", type: "text" },
-        { key: "faq2_a", label: "Answer 2", type: "rich" },
-        { key: "faq3_q", label: "Question 3", type: "text" },
-        { key: "faq3_a", label: "Answer 3", type: "rich" },
-        { key: "faq4_q", label: "Question 4", type: "text" },
-        { key: "faq4_a", label: "Answer 4", type: "rich" },
-        { key: "faq5_q", label: "Question 5", type: "text" },
-        { key: "faq5_a", label: "Answer 5", type: "rich" },
-        { key: "faq6_q", label: "Question 6", type: "text" },
-        { key: "faq6_a", label: "Answer 6", type: "rich" },
-        { key: "faq7_q", label: "Question 7", type: "text" },
-        { key: "faq7_a", label: "Answer 7", type: "rich" },
-      ]
+      fields: Array.from({ length: 20 }, (_, i) => [
+        { key: `faq${i + 1}_q`, label: `Question ${i + 1}`, type: "text" },
+        { key: `faq${i + 1}_a`, label: `Answer ${i + 1}`, type: "rich" }
+      ]).flat()
     }
   };
 

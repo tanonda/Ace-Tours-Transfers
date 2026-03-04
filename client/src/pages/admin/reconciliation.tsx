@@ -10,6 +10,7 @@ import { Loader2, RefreshCw, AlertCircle, Info, Landmark, Check, X, ShieldAlert,
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { fetchBookings, updateBooking } from "@/lib/api";
+import { Input } from "@/components/ui/input";
 import { format } from "date-fns";
 import {
     DropdownMenu,
@@ -38,7 +39,7 @@ export default function AdminReconciliation() {
     const { toast } = useToast();
     const queryClient = useQueryClient();
     const [syncingPaymentId, setSyncingPaymentId] = useState<string | null>(null);
-    const [isBatchSyncing, setIsBatchSyncing] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
 
     const { data: payments = [], isLoading: isStaleLoading } = useQuery<StalePayment[]>({
         queryKey: ["stale-payments"],
@@ -123,6 +124,44 @@ export default function AdminReconciliation() {
         return date.toLocaleString();
     };
 
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setIsUploading(true);
+        const formData = new FormData();
+        formData.append("statement", file);
+
+        try {
+            const res = await fetch("/api/admin/reconciliation/statement", {
+                method: "POST",
+                body: formData,
+            });
+
+            if (!res.ok) throw new Error(await res.text());
+
+            const result = await res.json();
+
+            toast({
+                title: "Statement Processed",
+                description: `Successfully matched ${result.matched} bookings. Flagged ${result.flagged} for amount mismatch.`,
+            });
+
+            queryClient.invalidateQueries({ queryKey: ["admin-bookings"] });
+
+            // Reset input
+            e.target.value = '';
+        } catch (error: any) {
+            toast({
+                title: "Upload Failed",
+                description: error.message || "Failed to process statement CSV",
+                variant: "destructive",
+            });
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
     // Offline payment methods detection
     const OFFLINE_METHODS = [
         'manual_transfer', 'bank-transfer', 'bank_transfer', 'bank', 'cash',
@@ -203,6 +242,23 @@ export default function AdminReconciliation() {
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>
+                                <div className="mb-6 rounded-md bg-muted/30 p-4 border flex items-center justify-between">
+                                    <div>
+                                        <h4 className="font-medium text-sm">Automated Reconciliation</h4>
+                                        <p className="text-xs text-muted-foreground">Upload a CSV bank statement to automatically match and confirm offline payments via reference IDs (e.g. BKG-1234).</p>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Input
+                                            type="file"
+                                            accept=".csv"
+                                            onChange={handleFileUpload}
+                                            disabled={isUploading}
+                                            className="w-auto h-8 text-xs cursor-pointer file:cursor-pointer"
+                                        />
+                                        {isUploading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground inline" />}
+                                    </div>
+                                </div>
+
                                 {isBookingsLoading ? (
                                     <div className="flex justify-center p-8"><Loader2 className="animate-spin h-6 w-6 text-muted-foreground" /></div>
                                 ) : pendingOfflineBookings.length === 0 ? (

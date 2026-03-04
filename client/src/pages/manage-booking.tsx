@@ -1,4 +1,4 @@
-import { useState, lazy, Suspense } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -66,6 +66,30 @@ export default function ManageBooking() {
     const [showItinerary, setShowItinerary] = useState(false);
     const [qrCodeData, setQrCodeData] = useState<string | undefined>();
     const [qrDataUrl, setQrDataUrl] = useState<string | undefined>();
+
+    // Session Countdown Timer state
+    const [timeLeft, setTimeLeft] = useState<{ minutes: number; seconds: number; expired: boolean } | null>(null);
+
+    // Effect for the countdown timer
+    useEffect(() => {
+        if (!session || !session.sessionExpiresAt) return;
+
+        const interval = setInterval(() => {
+            const now = Date.now();
+            const diff = session.sessionExpiresAt - now;
+
+            if (diff <= 0) {
+                setTimeLeft({ minutes: 0, seconds: 0, expired: true });
+                clearInterval(interval);
+            } else {
+                const minutes = Math.floor(diff / (1000 * 60));
+                const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+                setTimeLeft({ minutes, seconds, expired: false });
+            }
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, [session]);
 
     const handleOpenItinerary = async () => {
         if (!session) return;
@@ -312,6 +336,21 @@ export default function ManageBooking() {
             <div className="bg-muted/30 min-h-screen pt-40 md:pt-44 pb-20">
                 <div className="container mx-auto px-4 max-w-3xl">
 
+                    {/* Session Expiry Banner */}
+                    {timeLeft && (
+                        <div className={`mb-6 p-4 rounded-lg flex items-center justify-between border ${timeLeft.expired ? 'bg-red-500/10 border-red-500 text-red-600' : 'bg-orange-500/10 border-orange-500 text-orange-600'}`}>
+                            <div className="flex items-center gap-2">
+                                <AlertCircle className="h-5 w-5" />
+                                <span className="font-semibold">
+                                    {timeLeft.expired ? "Session Expired" : "Session active for"}
+                                </span>
+                            </div>
+                            <div className="font-mono text-lg font-bold">
+                                {timeLeft.expired ? "00:00" : `${String(timeLeft.minutes).padStart(2, '0')}:${String(timeLeft.seconds).padStart(2, '0')}`}
+                            </div>
+                        </div>
+                    )}
+
                     {/* Header */}
                     <div className="flex items-center justify-between mb-6">
                         <div>
@@ -433,7 +472,7 @@ export default function ManageBooking() {
                                         <Edit3 className="h-5 w-5" /> Contact & Details
                                     </CardTitle>
                                     {!isEditing && (
-                                        <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
+                                        <Button variant="outline" size="sm" onClick={() => setIsEditing(true)} disabled={timeLeft?.expired}>
                                             Edit
                                         </Button>
                                     )}
@@ -514,7 +553,7 @@ export default function ManageBooking() {
                                                 childPax: booking.childPaxTotal,
                                             });
                                             setIsModifying(true);
-                                        }}>
+                                        }} disabled={timeLeft?.expired}>
                                             Modify
                                         </Button>
                                     )}
@@ -578,7 +617,7 @@ export default function ManageBooking() {
                                     <p className="font-medium flex items-center gap-2"><Ban className="h-4 w-4" /> Cancel Booking</p>
                                     <p className="text-sm text-muted-foreground">This action cannot be undone.</p>
                                 </div>
-                                <Button variant="destructive" size="sm" onClick={() => setCancelDialogOpen(true)}>
+                                <Button variant="destructive" size="sm" onClick={() => setCancelDialogOpen(true)} disabled={timeLeft?.expired}>
                                     Cancel Booking
                                 </Button>
                             </CardContent>

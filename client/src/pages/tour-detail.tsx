@@ -5,7 +5,7 @@ import { fetchTour } from "@/lib/api";
 import { apiRequest } from "@/lib/queryClient";
 import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ShoppingCart, MapPin, Clock, CheckCircle2, XCircle, ChevronDown, ChevronUp, Shield, Star, Image as ImageIcon, X } from "lucide-react";
+import { ArrowLeft, ShoppingCart, MapPin, Clock, CheckCircle2, XCircle, ChevronDown, ChevronUp, Shield, Star, Image as ImageIcon, X, ExternalLink, MessageSquare, Mail, Phone } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useCart } from "@/lib/cart-context";
@@ -17,10 +17,9 @@ import { AvailabilityCalendar } from "@/components/AvailabilityCalendar";
 import { AvailabilityStatus } from "@/components/AvailabilityStatus";
 import { SEO, cloudinaryOpt } from "@/components/seo";
 import { GuestReviewForm } from "@/components/GuestReviewForm";
+import { useCmsText } from "@/hooks/use-cms-text";
 import { AddonsPanel, calcAddonTotal, type AddonSelections, type ProductAddonEntry } from "@/components/addons-panel";
 import {
-  BookingCountdownTimer,
-  CancellationModal,
   SectionHeading,
   ContactCard,
   CancellationCard,
@@ -323,6 +322,7 @@ function StarRating({ value, max = 5, size = "sm" }: { value: number; max?: numb
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function TourDetail() {
+  const cms = useCmsText("faq");
   const { id } = useParams<{ id: string }>();
   const { t } = useTranslation();
   const { addToCart } = useCart();
@@ -453,12 +453,24 @@ export default function TourDetail() {
   const isBooked = !availability?.isAvailable && !!date;
 
   const avgRating = reviews.length > 0 ? reviews.reduce((a: number, r: any) => a + r.rating, 0) / reviews.length : 0;
-  const tourFaqs = [
-    { question: `What is included in the ${tour.title}?`, answer: (Array.isArray(tour.description) ? tour.description[0] : tour.description)?.slice(0, 300) || "Please contact us for full inclusions." },
-    { question: "Is this tour suitable for children?", answer: "Yes, this tour accommodates children. Child pricing is available at checkout." },
-    { question: "What is the cancellation policy?", answer: "Free cancellation up to 24 hours before your scheduled tour. Contact us for late cancellations." },
-    { question: "Where does the tour depart from?", answer: tour.meetingPoint || "Pick-up is available from most Port Vila hotels. Please confirm your location at booking." },
-  ];
+  const tourFaqs = [];
+  for (let i = 1; i <= 20; i++) {
+    // We only have 4 defaults here
+    const defaultQ = i === 1 ? `What is included in the ${tour.title}?` :
+      i === 2 ? "Is this tour suitable for children?" :
+        i === 3 ? "What is the cancellation policy?" :
+          i === 4 ? "Where does the tour depart from?" : "";
+    const defaultA = i === 1 ? (Array.isArray(tour.description) ? tour.description[0] : tour.description)?.slice(0, 300) || "Please contact us for full inclusions." :
+      i === 2 ? "Yes, this tour accommodates children. Child pricing is available at checkout." :
+        i === 3 ? "Free cancellation up to 24 hours before your scheduled tour. Contact us for late cancellations." :
+          i === 4 ? (tour.meetingPoint || "Pick-up is available from most Port Vila hotels. Please confirm your location at booking.") : "";
+
+    const q = cms.text(`faq${i}_q`, defaultQ);
+    const a = cms.text(`faq${i}_a`, defaultA); // Note we use .text here since seo takes plain text
+    if (q && a) {
+      tourFaqs.push({ question: q, answer: a.replace(/<[^>]+>/g, '') });
+    }
+  }
 
   const cutoffHours = tour.bookingCutoffHours ?? 24;
 
@@ -482,7 +494,8 @@ export default function TourDetail() {
       <CancellationModal
         isOpen={cancellationModalOpen}
         onClose={() => setCancellationModalOpen(false)}
-        policy={tour.cancellationPolicy}
+        policy={tour.cancellationPolicy ?? undefined}
+        t={t}
       />
 
       <div className="min-h-screen bg-[#0f0d09] text-[#f0ece4] font-sans pt-28 md:pt-32">
@@ -945,9 +958,9 @@ export default function TourDetail() {
                 )}
 
                 {/* Add-ons */}
-                {tour.addons && tour.addons.length > 0 && (
+                {(tour as any).addons && (tour as any).addons.length > 0 && (
                   <AddonsPanel
-                    addons={tour.addons as ProductAddonEntry[]}
+                    addons={(tour as any).addons as ProductAddonEntry[]}
                     selected={addonSelections}
                     onChange={setAddonSelections}
                     currency={currency}
@@ -985,10 +998,10 @@ export default function TourDetail() {
                         )}
                       </>
                     )}
-                    {tour.addons && calcAddonTotal(tour.addons as ProductAddonEntry[], addonSelections) > 0 && (
+                    {(tour as any).addons && calcAddonTotal((tour as any).addons as ProductAddonEntry[], addonSelections) > 0 && (
                       <div className="flex items-center justify-between text-[#ccc6b8]">
                         <span className="text-[0.82rem]">Add-ons</span>
-                        <span className="text-[0.9rem] font-semibold">+{formatPriceDisplay(calcAddonTotal(tour.addons as ProductAddonEntry[], addonSelections), currency)}</span>
+                        <span className="text-[0.9rem] font-semibold">+{formatPriceDisplay(calcAddonTotal((tour as any).addons as ProductAddonEntry[], addonSelections), currency)}</span>
                       </div>
                     )}
                     <div className="border-t border-[rgba(244,168,48,0.15)] pt-2 flex items-center justify-between">
@@ -996,9 +1009,9 @@ export default function TourDetail() {
                       <div className="text-right">
                         <span className="text-[1.1rem] font-black text-[#f4a830]">
                           {formatPriceDisplay((() => {
-                            const base = estimateBookingTotal(tour, adultPax, childPax);
+                            const base = estimateBookingTotal(tour as any, adultPax, childPax);
                             const productTotal = tour.pricingType === "group" ? base : (adultPax >= 7 ? Math.round(base * 0.9) : base);
-                            return productTotal + (tour.addons ? calcAddonTotal(tour.addons as ProductAddonEntry[], addonSelections) : 0);
+                            return productTotal + ((tour as any).addons ? calcAddonTotal((tour as any).addons as ProductAddonEntry[], addonSelections) : 0);
                           })(), currency)}
                         </span>
                         <span className="block text-[0.6rem] text-[#8a826e] uppercase font-bold tracking-tight">Incl. 15% VAT</span>

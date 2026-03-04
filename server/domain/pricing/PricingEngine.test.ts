@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { PricingEngine } from './PricingEngine.js';
+import { PricingEngine, formatVUVInCurrency, TourRate } from './PricingEngine.js';
 
 // Create an engine with a mock storage (pure calculation tests don't use storage)
 const mockStorage = {} as any;
@@ -9,19 +9,19 @@ describe('PricingEngine', () => {
         const engine = new PricingEngine(mockStorage);
 
         it('calculates basic adult + child price', () => {
-            const rates = { adultPriceCents: 10000, childPriceCents: 5000 };
+            const rates: TourRate = { pricingType: 'per_person', groupPriceCents: 0, adultPriceCents: 10000, childPriceCents: 5000 };
             const result = engine.calculateSimple(2, 1, rates);
             // 2 * 10000 + 1 * 5000 = 25000
             expect(result).toBe(25000);
         });
 
         it('returns 0 when no pax', () => {
-            const rates = { adultPriceCents: 10000, childPriceCents: 5000 };
+            const rates: TourRate = { pricingType: 'per_person', groupPriceCents: 0, adultPriceCents: 10000, childPriceCents: 5000 };
             expect(engine.calculateSimple(0, 0, rates)).toBe(0);
         });
 
         it('handles child-only booking', () => {
-            const rates = { adultPriceCents: 10000, childPriceCents: 5000 };
+            const rates: TourRate = { pricingType: 'per_person', groupPriceCents: 0, adultPriceCents: 10000, childPriceCents: 5000 };
             expect(engine.calculateSimple(0, 3, rates)).toBe(15000);
         });
     });
@@ -29,7 +29,7 @@ describe('PricingEngine', () => {
     describe('calculateSimple with group discount', () => {
         // Default groupDiscountThreshold is 7, groupDiscountPercent is 10
         const engine = new PricingEngine(mockStorage);
-        const rates = { adultPriceCents: 1000, childPriceCents: 500 };
+        const rates: TourRate = { pricingType: 'per_person', groupPriceCents: 0, adultPriceCents: 1000, childPriceCents: 500 };
 
         it('does not apply discount below threshold', () => {
             const result = engine.calculateSimple(6, 0, rates);
@@ -71,17 +71,18 @@ describe('PricingEngine', () => {
         });
     });
 
-    describe('formatCentsAsVUV', () => {
+    describe('formatVUVInCurrency', () => {
         it('formats simple amount', () => {
-            expect(PricingEngine.formatCentsAsVUV(15000)).toBe('VUV 15,000');
+            expect(formatVUVInCurrency(15000, 'VUV')).toBe('VT 15,000');
         });
 
         it('formats zero', () => {
-            expect(PricingEngine.formatCentsAsVUV(0)).toBe('VUV 0');
+            expect(formatVUVInCurrency(0, 'VUV')).toBe('VT 0');
         });
 
         it('formats small value', () => {
-            expect(PricingEngine.formatCentsAsVUV(500)).toBe('VUV 500');
+            expect(formatVUVInCurrency(500, 'VUV')).toBe('VT 500');
         });
     });
 });
+

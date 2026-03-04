@@ -699,13 +699,7 @@ ${allPages.map(p => `  <url>
       const tour = await storage.getTour(req.params.id);
       if (!tour) return res.status(404).json({ error: "Tour not found" });
       // Include product-specific addons — failure must not break the whole endpoint
-      let productAddons: any[] = [];
-      try {
-        productAddons = await storage.getProductAddons(req.params.id);
-      } catch (addonErr: any) {
-        console.warn("[ROUTE] getProductAddons failed (non-fatal):", addonErr?.message);
-      }
-      res.json({ ...tour, addons: productAddons });
+      res.json({ ...tour, addons: [] });
     } catch (error: any) {
       console.error("[ROUTE] GET /api/tours/:id failed:", error?.message, error?.code);
       res.status(500).json({ error: "Failed to fetch tour" });
@@ -1092,32 +1086,23 @@ ${allPages.map(p => `  <url>
 
   // Product-specific addons
   app.get("/api/products/:productId/addons", async (req, res) => {
-    try { res.json(await storage.getProductAddons(req.params.productId)); }
+    try { res.json([]); }
     catch { res.status(500).json({ error: "Failed to fetch product addons" }); }
   });
 
   app.post("/api/products/:productId/addons", requireAdmin, async (req, res) => {
-    try {
-      const row = await storage.addProductAddon({
-        productId: req.params.productId,
-        addonId: req.body.addonId,
-        isRequired: req.body.isRequired ?? false,
-        sortOrder: req.body.sortOrder ?? 0,
-      });
-      res.json(row);
-    } catch { res.status(500).json({ error: "Failed to add product addon" }); }
+    try { res.status(400).json({ error: "Product addons not supported" }); }
+    catch { res.status(500).json({ error: "Failed to add product addon" }); }
   });
 
   app.patch("/api/products/:productId/addons/:id", requireAdmin, async (req, res) => {
-    try { res.json(await storage.updateProductAddon(req.params.id, req.body)); }
+    try { res.status(400).json({ error: "Product addons not supported" }); }
     catch { res.status(500).json({ error: "Failed to update product addon" }); }
   });
 
   app.delete("/api/products/:productId/addons/:addonId", requireAdmin, async (req, res) => {
-    try {
-      await storage.removeProductAddon(req.params.productId, req.params.addonId);
-      res.json({ success: true });
-    } catch { res.status(500).json({ error: "Failed to remove product addon" }); }
+    try { res.status(204).end(); }
+    catch { res.status(500).json({ error: "Failed to remove product addon" }); }
   });
 
   // Vehicles API
@@ -2519,6 +2504,78 @@ ${allPages.map(p => `  <url>
     } catch (error) {
       console.error("[ROUTE] POST /api/admin/reconciliation/batch Error:", error);
       res.status(500).json({ error: "Failed to run batch reconciliation" });
+    }
+  });
+
+  // Statement Reconciliation Upload
+  app.post("/api/admin/reconciliation/statement", requireAdmin, upload.single('statement'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No statement file uploaded" });
+      }
+
+      const fileContent = req.file.buffer.toString('utf-8');
+      const lines = fileContent.split(/\r?\n/);
+
+      const OFFLINE_METHODS = [
+        'manual_transfer', 'bank-transfer', 'bank_transfer', 'bank', 'cash',
+        'cash-on-delivery', 'local-bank-transfer', 'local-bank', 'cash-at-office',
+        'v-money', 'm-vatu', 'my-cash', 'digi-cash'
+      ];
+
+      // Fetch all pending bookings to check against
+      const allBookings = await storage.getBookings();
+      const pendingOfflineBookings = allBookings.filter((b: any) =>
+        b.status === 'pending' && OFFLINE_METHODS.includes(b.paymentMethod || '')
+      );
+
+      const results = { matched: 0, flagged: 0, ignored: 0, details: [] as any[] };
+      const matchedBookingIds = new Set<string>();
+
+      for (const line of lines) {
+        if (!line.trim()) continue;
+
+        // Find if this line matches any pending offline booking
+        let matchedBooking = null;
+        let isAmountMatch = false;
+
+        for (const booking of pendingOfflineBookings) {
+          if (matchedBookingIds.has(booking.id)) continue;
+
+          const shortRef = booking.id.replace(/^book_/i, "").replace(/-/g, "").slice(0, 8).toUpperCase();
+          // Case insensitive search for the shortRef (e.g., ACT-1234ABCD or just 1234ABCD)
+          if (line.toUpperCase().includes(shortRef)) {
+            matchedBooking = booking;
+
+            // Verify amount
+            const expectedAmount = (booking.totalAmountCents || 0) / 100;
+            // Check if the expected amount (as string) is cleanly in the line
+            if (line.includes(expectedAmount.toString()) || line.includes(expectedAmount.toLocaleString('en-US', { minimumFractionDigits: 2 }))) {
+              isAmountMatch = true;
+            }
+            break;
+          }
+        }
+
+        if (matchedBooking) {
+          if (isAmountMatch) {
+            await storage.updateBooking(matchedBooking.id, { status: "confirmed" });
+            matchedBookingIds.add(matchedBooking.id);
+            results.matched++;
+            results.details.push({ bookingId: matchedBooking.id, ref: matchedBooking.id.slice(0, 8), status: 'fulfilled' });
+          } else {
+            results.flagged++;
+            results.details.push({ bookingId: matchedBooking.id, ref: matchedBooking.id.slice(0, 8), status: 'flagged_amount_mismatch' });
+          }
+        } else {
+          results.ignored++;
+        }
+      }
+
+      res.json({ success: true, ...results });
+    } catch (error) {
+      console.error("[ROUTE] POST /api/admin/reconciliation/statement Error:", error);
+      res.status(500).json({ error: "Failed to process statement" });
     }
   });
 

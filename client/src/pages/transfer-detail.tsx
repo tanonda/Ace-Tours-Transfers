@@ -16,6 +16,7 @@ import { AvailabilityCalendar } from "@/components/AvailabilityCalendar";
 import { AvailabilityStatus } from "@/components/AvailabilityStatus";
 import { SEO, cloudinaryOpt } from "@/components/seo";
 import { GuestReviewForm } from "@/components/GuestReviewForm";
+import { useCmsText } from "@/hooks/use-cms-text";
 import { AddonsPanel, calcAddonTotal, type AddonSelections, type ProductAddonEntry } from "@/components/addons-panel";
 import { useRealtimeAvailability } from "@/hooks/useRealtimeAvailability";
 import {
@@ -49,6 +50,7 @@ function StarRating({ value, max = 5, size = "sm" }: { value: number; max?: numb
 // ─── Main Page ──────────────────────────────────────────────────────────────
 
 export default function TransferDetail() {
+  const cms = useCmsText("faq");
   const { id } = useParams<{ id: string }>();
   const { t } = useTranslation();
   const { addToCart } = useCart();
@@ -172,9 +174,9 @@ export default function TransferDetail() {
   const totalPax = adultPax + childPax;
   const isBooked = !availability?.isAvailable && !!date;
   const isGroupPricing = transfer.pricingType === "group";
-  const baseTotal = estimateBookingTotal(transfer, adultPax, childPax);
+  const baseTotal = estimateBookingTotal(transfer as any, adultPax, childPax);
   const instantTotal = isGroupPricing ? baseTotal : (adultPax >= 7 ? Math.round(baseTotal * 0.9) : baseTotal);
-  const addonTotal = transfer.addons ? calcAddonTotal(transfer.addons as ProductAddonEntry[], addonSelections) : 0;
+  const addonTotal = (transfer as any).addons ? calcAddonTotal((transfer as any).addons as ProductAddonEntry[], addonSelections) : 0;
   const grandTotal = instantTotal + addonTotal;
 
   const includedItems: string[] = transfer?.includedItems ?? [];
@@ -182,12 +184,23 @@ export default function TransferDetail() {
   const cutoffHours = transfer.bookingCutoffHours ?? 24;
   const displayedReviews = showAllReviews ? reviews : reviews.slice(0, 5);
 
-  const transferFaqs = [
-    { question: `What is included in the ${transfer.title}?`, answer: (Array.isArray(transfer.description) ? transfer.description[0] : transfer.description)?.slice(0, 300) || "Please contact us for full inclusions." },
-    { question: "Where does the transfer pick me up?", answer: transfer.meetingPoint || "We pick up from your hotel, cruise terminal, or the airport. Please provide your location at booking." },
-    { question: "What is the cancellation policy?", answer: `Free cancellation up to ${cutoffHours} hours before your scheduled transfer time.` },
-    { question: "Can I book a private transfer?", answer: "Yes, all our transfers can be arranged as private service. Contact us via WhatsApp for private transfer pricing." },
-  ];
+  const transferFaqs = [];
+  for (let i = 1; i <= 20; i++) {
+    const defaultQ = i === 1 ? `What is included in the ${transfer.title}?` :
+      i === 2 ? "Where does the transfer pick me up?" :
+        i === 3 ? "What is the cancellation policy?" :
+          i === 4 ? "Can I book a private transfer?" : "";
+    const defaultA = i === 1 ? (Array.isArray(transfer.description) ? transfer.description[0] : transfer.description)?.slice(0, 300) || "Please contact us for full inclusions." :
+      i === 2 ? (transfer.meetingPoint || "We pick up from your hotel, cruise terminal, or the airport. Please provide your location at booking.") :
+        i === 3 ? `Free cancellation up to ${cutoffHours} hours before your scheduled transfer time.` :
+          i === 4 ? "Yes, all our transfers can be arranged as private service. Contact us via WhatsApp for private transfer pricing." : "";
+
+    const q = cms.text(`faq${i}_q`, defaultQ);
+    const a = cms.text(`faq${i}_a`, defaultA);
+    if (q && a) {
+      transferFaqs.push({ question: q, answer: a.replace(/<[^>]+>/g, '') });
+    }
+  }
 
   return (
     <Layout>
@@ -209,7 +222,7 @@ export default function TransferDetail() {
       <CancellationModal
         isOpen={cancellationModalOpen}
         onClose={() => setCancellationModalOpen(false)}
-        policy={transfer.cancellationPolicy}
+        policy={transfer.cancellationPolicy ?? undefined}
       />
 
       <div className="min-h-screen bg-[#0f0d09] text-[#f0ece4] font-sans pt-28 md:pt-32">
@@ -360,9 +373,9 @@ export default function TransferDetail() {
               />
               <ContactCard
                 productTitle={transfer.title}
-                productCode={transfer.productCode}
-                supportEmail={transfer.supportEmail}
-                supportPhone={transfer.supportPhone}
+                productCode={transfer.productCode ?? undefined}
+                supportEmail={transfer.supportEmail ?? undefined}
+                supportPhone={transfer.supportPhone ?? undefined}
               />
             </section>
 
@@ -509,9 +522,9 @@ export default function TransferDetail() {
                 )}
 
                 {/* Add-ons */}
-                {transfer.addons && transfer.addons.length > 0 && (
+                {(transfer as any).addons && (transfer as any).addons.length > 0 && (
                   <AddonsPanel
-                    addons={transfer.addons as ProductAddonEntry[]}
+                    addons={(transfer as any).addons as ProductAddonEntry[]}
                     selected={addonSelections}
                     onChange={setAddonSelections}
                     currency={currency}

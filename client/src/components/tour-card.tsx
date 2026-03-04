@@ -48,7 +48,7 @@ export function TourCard({ tour, index }: { tour: TourProps; index: number }) {
             {tour.image && (
               <img
                 src={cloudinaryOpt(tour.image, 600)}
-                alt={tour.imageAlt || tour.title}
+                alt={(tour as any).imageAlt || tour.title}
                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                 loading="lazy"
                 decoding="async"
@@ -90,12 +90,19 @@ export function TourCard({ tour, index }: { tour: TourProps; index: number }) {
 
           <CardContent className="flex-grow">
             <ul className="space-y-2 mt-2">
-              {tour.description.map((item, i) => (
+              {Array.isArray(tour.description) ? tour.description.map((item, i) => (
                 <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
                   <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                   <span>{item}</span>
                 </li>
-              ))}
+              )) : (
+                typeof tour.description === "string" ? (
+                  <li className="flex items-start gap-2 text-sm text-muted-foreground">
+                    <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                    <span>{tour.description}</span>
+                  </li>
+                ) : null
+              )}
             </ul>
           </CardContent>
 
@@ -103,7 +110,7 @@ export function TourCard({ tour, index }: { tour: TourProps; index: number }) {
             <div className="w-full space-y-2">
               <div className="flex justify-between items-center text-sm text-muted-foreground mb-2">
                 <span>{t("tour.startingFrom", "Starting from")}</span>
-                <span className="font-bold text-foreground">{formatPriceDisplay(tour.adultPriceCents, currency as any)}</span>
+                <span className="font-bold text-foreground">{formatPriceDisplay(tour.adultPriceCents || 0, currency as any)}</span>
               </div>
               <Link href={`/reservations?tab=book-new&service=${encodeURIComponent(tour.title)}`}>
                 <Button className="w-full font-semibold touch-target touch-feedback" size="lg">{t("tour.bookNow", "Book Now")}</Button>

@@ -94,6 +94,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const instagramUrl = getSetting("social_instagram", "https://www.instagram.com/acetoursvanuatu/");
   const contactAddress = getSetting("contact_address", "Port Vila, Vanuatu");
 
+  const footerBacklinksRaw = getSetting("footer_backlinks", "Vanuatu Tourism Office (VTO) | https://www.vanuatu.travel/\nAce Tours (Primary Site) | https://www.acetoursvanuatu.com/");
+  const footerBacklinks = footerBacklinksRaw.split("\n").filter(Boolean).map(line => {
+    const [label, url] = line.split("|").map(s => s.trim());
+    return { label, url };
+  });
+
   // Deduplicate tours by normalized title to handle DB duplicates and naming variations
   const uniqueTours = allTours.reduce<typeof allTours>((acc, current) => {
     const normalize = (t: string) => t.replace(/\s+Package$/i, "").trim();
@@ -241,18 +247,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   </div>
                 ) : (
                   <div className="flex gap-2">
-                    <Link href="/login" onClick={closeMobileMenu} className="flex-1">
-                      <Button variant="outline" size="sm" className="w-full" data-testid="button-mobile-login">
-                        <LogIn className="h-4 w-4 mr-2" />
-                        {t("nav.login")}
-                      </Button>
-                    </Link>
-                    <Link href="/register" onClick={closeMobileMenu} className="flex-1">
-                      <Button size="sm" className="w-full" data-testid="button-mobile-register">
-                        <UserPlus className="h-4 w-4 mr-2" />
-                        {t("nav.register")}
-                      </Button>
-                    </Link>
+                    {/* Guest accounts are disabled. Guests access via reference ID in Manage Bookings. */}
                   </div>
                 )}
               </div>
@@ -682,8 +677,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 <li><Link href="/about" className="text-white/70 hover:text-white transition-colors">{t("nav.about")}</Link></li>
                 <li><Link href="/contact" className="text-white/70 hover:text-white transition-colors">{t("nav.contact")}</Link></li>
                 <li><Link href="/faq" className="text-white/70 hover:text-white transition-colors">FAQ</Link></li>
-                <li><a href="https://www.vanuatu.travel/" target="_blank" rel="noopener noreferrer" className="text-white/70 hover:text-white transition-colors">Vanuatu Tourism Office (VTO)</a></li>
-                <li><a href="https://www.acetoursvanuatu.com/" target="_blank" rel="noopener noreferrer" className="text-white/70 hover:text-white transition-colors">Ace Tours (Primary Site)</a></li>
+                {footerBacklinks.map((link, i) => (
+                  <li key={i}><a href={link.url} target="_blank" rel="noopener noreferrer" className="text-white/70 hover:text-white transition-colors">{link.label}</a></li>
+                ))}
               </ul>
             </div>
 

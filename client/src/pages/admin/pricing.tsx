@@ -113,7 +113,7 @@ export default function AdminPricing() {
 
     setIsCreating(true);
     try {
-      await createPricingVersion({
+      const payload: any = {
         productId,
         effectiveFrom,
         adultPriceCents,
@@ -123,7 +123,8 @@ export default function AdminPricing() {
         // Pass group pricing fields — the API will store them if the column exists
         ...(isGroup && { groupPriceCents, pricingType: "group" }),
         ...(!isGroup && { pricingType: "per_person" }),
-      });
+      };
+      await createPricingVersion(payload);
       queryClient.invalidateQueries({ queryKey: ["pricingVersions"] });
       toast({ title: "Pricing version created", description: `Effective from ${effectiveFrom}.` });
       setAdultPrice("");
@@ -259,11 +260,10 @@ export default function AdminPricing() {
                 >
                   <label
                     htmlFor="type-per-person"
-                    className={`flex items-center gap-2 rounded-lg border-2 px-3 py-2.5 cursor-pointer text-sm transition-colors ${
-                      pricingType === "per_person"
+                    className={`flex items-center gap-2 rounded-lg border-2 px-3 py-2.5 cursor-pointer text-sm transition-colors ${pricingType === "per_person"
                         ? "border-primary bg-primary/5"
                         : "border-border hover:bg-muted/40"
-                    }`}
+                      }`}
                   >
                     <RadioGroupItem value="per_person" id="type-per-person" className="sr-only" />
                     <User className="h-3.5 w-3.5 text-blue-500 shrink-0" />
@@ -271,11 +271,10 @@ export default function AdminPricing() {
                   </label>
                   <label
                     htmlFor="type-group"
-                    className={`flex items-center gap-2 rounded-lg border-2 px-3 py-2.5 cursor-pointer text-sm transition-colors ${
-                      pricingType === "group"
+                    className={`flex items-center gap-2 rounded-lg border-2 px-3 py-2.5 cursor-pointer text-sm transition-colors ${pricingType === "group"
                         ? "border-primary bg-primary/5"
                         : "border-border hover:bg-muted/40"
-                    }`}
+                      }`}
                   >
                     <RadioGroupItem value="group" id="type-group" className="sr-only" />
                     <Package className="h-3.5 w-3.5 text-amber-500 shrink-0" />

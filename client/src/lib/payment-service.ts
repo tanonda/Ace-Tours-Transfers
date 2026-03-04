@@ -1,4 +1,4 @@
-import { formatPriceShort } from "./product.types";
+import { formatPriceDisplay } from "./product.types";
 
 export interface PaymentRequest {
   bookingId: string;
@@ -81,7 +81,7 @@ export async function checkPaymentStatus(paymentId: string): Promise<{
  */
 export function formatCurrency(amount: number, currency: string = 'VUV'): string {
   if (currency === 'VUV') {
-    return formatPriceShort(amount);
+    return formatPriceDisplay(amount);
   }
   return new Intl.NumberFormat('en-US', {
     style: 'currency',

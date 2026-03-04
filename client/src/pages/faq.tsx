@@ -40,9 +40,13 @@ export default function FAQ() {
     ];
 
     const faqs = [];
-    for (let i = 1; i <= 7; i++) {
-        const q = cms.text(`faq${i}_q`, defaultFaqs[i - 1].question);
-        const a = cms.html(`faq${i}_a`, defaultFaqs[i - 1].answer);
+    for (let i = 1; i <= 20; i++) {
+        // Find default or fallback to empty
+        const defaultQ = i <= defaultFaqs.length ? defaultFaqs[i - 1].question : "";
+        const defaultA = i <= defaultFaqs.length ? defaultFaqs[i - 1].answer : "";
+
+        const q = cms.text(`faq${i}_q`, defaultQ);
+        const a = cms.html(`faq${i}_a`, defaultA);
         if (q && a) {
             faqs.push({ question: q, answer: a });
         }
