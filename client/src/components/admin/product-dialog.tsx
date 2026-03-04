@@ -245,10 +245,10 @@ const schema = z.object({
     seats: z.number().min(1).optional(),
     transmission: z.string().optional(),
     features: z.array(z.string()).optional(),
-    contactForPrice: z.boolean().default(false),
   }).nullable().optional(),
 
   // ── New tour detail fields ──────────────────────────────────────────────
+  contactForPrice: z.boolean().default(false),
   // Itinerary stops
   itineraryStops: z.array(itineraryStopSchema).optional(),
   itineraryIntro: z.string().optional(),
@@ -455,7 +455,7 @@ export function ProductDialog({ tour, open, onOpenChange, onSave }: ProductDialo
       supportPhone: values.supportPhone || null,
       productCode: values.productCode || null,
       travelerPhotos: values.travelerPhotos || [],
-      contactForPrice: values.vehicleDetails?.contactForPrice || false,
+      contactForPrice: values.contactForPrice || false,
     });
     onOpenChange(false);
   };
@@ -1170,6 +1170,23 @@ export function ProductDialog({ tour, open, onOpenChange, onSave }: ProductDialo
                               </SelectContent>
                             </Select>
                             <FormMessage />
+                          </FormItem>
+                        )} />
+                        {/* Contact for Price Toggle */}
+                        <FormField control={form.control} name="contactForPrice" render={({ field }) => (
+                          <FormItem className="flex flex-row items-center justify-between rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 shadow-sm col-span-2 mt-2">
+                            <div className="space-y-1">
+                              <FormLabel className="text-amber-700 dark:text-amber-400 font-bold">Contact for Price Mode</FormLabel>
+                              <p className="text-[0.7rem] text-muted-foreground">
+                                Disable automated pricing & online booking. Guests will be prompted to contact you directly.
+                              </p>
+                            </div>
+                            <FormControl>
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
                           </FormItem>
                         )} />
                       </div>
