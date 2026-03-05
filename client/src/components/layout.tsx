@@ -95,7 +95,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const instagramUrl = getSetting("social_instagram", "https://www.instagram.com/acetoursvanuatu/");
   const contactAddress = getSetting("contact_address", "Port Vila, Vanuatu");
 
-  const footerBacklinksRaw = getSetting("footer_backlinks", "Vanuatu Tourism Office (VTO) | https://www.vanuatu.travel/\nAce Tours (Primary Site) | https://www.acetoursvanuatu.com/");
+  const footerBacklinksRaw = getSetting("footer_backlinks", "Vanuatu Tourism Office (VTO)|https://www.vanuatu.travel/\nTripAdvisor|https://www.tripadvisor.com/Attraction_Review-g294130-d13824040-Reviews-Ace_Tours_Transfers-Port_Vila_Efate.html\nViator|https://www.viator.com/Vanuatu-tours/Airport-and-Hotel-Transfers/d4474-g15");
   const footerBacklinks = footerBacklinksRaw.split("\n").filter(Boolean).map(line => {
     const [label, url] = line.split("|").map(s => s.trim());
     return { label, url };
