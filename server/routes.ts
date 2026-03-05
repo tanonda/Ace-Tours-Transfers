@@ -1847,6 +1847,11 @@ ${allPages.map(p => `  <url>
         (req.session as any).recentBookingIds = (req.session as any).recentBookingIds.slice(-5);
       }
 
+      // Save session immediately so recentBookingIds is available for the checkout request
+      await new Promise<void>((resolve, reject) => {
+        req.session.save((err) => { if (err) reject(err); else resolve(); });
+      });
+
       // D: Broadcast new booking event to all connected admin SSE clients
       try {
         const sseClients: Array<{ res: any; userId: string; role: string }> = (app as any)._sseClients ?? [];

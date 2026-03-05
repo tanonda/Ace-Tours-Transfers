@@ -268,7 +268,7 @@ export default function PaymentSuccess() {
                     <h3>Bank Transfer Details</h3>
                   </div>
                   <p className="text-sm text-blue-700">
-                    Transfer the exact amount below and use your <strong>Booking Reference {displayRef}</strong> as the payment description/reference.
+                    Transfer the exact amount below and use your <strong>Booking Reference {displayRef}</strong> as the payment description.
                   </p>
                   <div className="bg-white rounded-lg border border-blue-100 divide-y divide-blue-50 text-sm overflow-hidden">
                     {[
@@ -285,8 +285,14 @@ export default function PaymentSuccess() {
                       </div>
                     ))}
                   </div>
+                  <div className="space-y-2 text-xs text-blue-700">
+                    <p className="font-semibold">Transfer options:</p>
+                    <p>🏦 <strong>Local (Vanuatu banks)</strong> — Same-day clearance for local bank-to-bank transfers.</p>
+                    <p>💸 <strong>Direct (online banking)</strong> — Transfer from your online banking portal directly to our account.</p>
+                    <p>🌏 <strong>International SWIFT</strong> — Overseas transfers using the SWIFT/BIC code above. Allow 2–3 business days.</p>
+                  </div>
                   <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-700">
-                    ⚠️ Your booking is held for <strong>24 hours</strong>. If payment is not received within this time, it may be released.
+                    ⏳ Your booking is held for <strong>72 hours</strong>. Please complete the transfer within this time to secure your spot.
                   </div>
                 </div>
               )}

@@ -178,8 +178,8 @@ const GATEWAY_DATA = [
   // ── 3. OFFLINE & MANUAL METHODS (5) ──────────────────────────────────
   {
     slug: "manual_transfer",
-    displayName: "Bank Transfer (Direct)",
-    description: "Direct transfer to Ace Tours bank account. Admin confirms manually.",
+    displayName: "Bank Transfer",
+    description: "Transfer to Ace Tours bank account (local, direct, or international/SWIFT). Admin confirms manually.",
     active: true,
     isDefault: true,
     priority: 17,
@@ -189,8 +189,8 @@ const GATEWAY_DATA = [
   },
   {
     slug: "bank-transfer",
-    displayName: "Bank Transfer (Swift)",
-    description: "International wire transfer for overseas bookings.",
+    displayName: "Bank Transfer (Swift — legacy)",
+    description: "International wire transfer — consolidated into manual_transfer. Kept inactive to avoid duplicate display.",
     active: false,
     priority: 18,
     supportedCurrencies: ["VUV", "AUD", "USD", "NZD"],
@@ -199,8 +199,8 @@ const GATEWAY_DATA = [
   },
   {
     slug: "bank_transfer",
-    displayName: "Local Bank Transfer",
-    description: "Local bank-to-bank transfer within Vanuatu.",
+    displayName: "Local Bank Transfer (legacy)",
+    description: "Local bank-to-bank — consolidated into manual_transfer. Kept inactive to avoid duplicate display.",
     active: false,
     priority: 19,
     supportedCurrencies: ["VUV"],

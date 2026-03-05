@@ -211,51 +211,54 @@ export class PaymentApplicationService {
         // when the admin verifies receipt and changes the status to confirmed.
         // Instead we send the booking request email with payment instructions.
         if (isManual) {
-          try {
-            const bookingItems = await this.storage.getBookingItems(booking.id);
-            const firstItem = bookingItems[0];
-            const tourData = firstItem ? await this.storage.getProduct(firstItem.productId) : null;
-            const tourInfo = tourData || { title: 'Tour/Transfer Booking', id: '' };
+          // Fire-and-forget: don't await email sending to keep response fast
+          (async () => {
+            try {
+              const bookingItems = await this.storage.getBookingItems(booking.id);
+              const firstItem = bookingItems[0];
+              const tourData = firstItem ? await this.storage.getProduct(firstItem.productId) : null;
+              const tourInfo = tourData || { title: 'Tour/Transfer Booking', id: '' };
 
-            function buildGuestString(item: any): string {
-              const parts: string[] = [
-                `${item?.adultPax || 1} Adult(s)`,
-              ];
-              if (item?.childPax) parts.push(`${item.childPax} Child(ren)`);
-              if (item?.infantPax) parts.push(`${item.infantPax} Infant(s)`);
-              if (item?.petPax) parts.push(`${item.petPax} Pet(s)`);
-              return parts.join(", ");
+              function buildGuestString(item: any): string {
+                const parts: string[] = [
+                  `${item?.adultPax || 1} Adult(s)`,
+                ];
+                if (item?.childPax) parts.push(`${item.childPax} Child(ren)`);
+                if (item?.infantPax) parts.push(`${item.infantPax} Infant(s)`);
+                if (item?.petPax) parts.push(`${item.petPax} Pet(s)`);
+                return parts.join(", ");
+              }
+
+              const emailBooking = {
+                ...booking,
+                date: booking.date || new Date().toISOString().split('T')[0],
+                guests: buildGuestString(firstItem),
+                amount: `VT ${(booking.totalAmountCents || 0).toLocaleString()}`,
+              };
+
+              const isCashPayment = gateway.slug === 'cash';
+              const paymentMethodType: 'cash' | 'bank_transfer' = isCashPayment ? 'cash' : 'bank_transfer';
+
+              const subject = isCashPayment
+                ? `Booking Request Received — ACT-${shortBookingRef(booking.id)}`
+                : `Payment Instructions — ACT-${shortBookingRef(booking.id)}`;
+
+              if (customerEmail) {
+                await sendEmail({
+                  to: customerEmail,
+                  subject,
+                  html: await getBookingRequestTemplate(emailBooking, tourInfo, paymentMethodType),
+                });
+              }
+
+              await sendAdminEmail(
+                `💳 Manual Payment Submitted (${PaymentMethodClassifier.displayLabel(gateway.slug)}): ${booking.customerName}`,
+                await getAdminNewBookingTemplate(emailBooking, tourInfo)
+              );
+            } catch (emailErr) {
+              console.error('[PAYMENT] Email notification failed (non-fatal):', emailErr);
             }
-
-            const emailBooking = {
-              ...booking,
-              date: booking.date || new Date().toISOString().split('T')[0],
-              guests: buildGuestString(firstItem),
-              amount: `VT ${(booking.totalAmountCents || 0).toLocaleString()}`,
-            };
-
-            const isCashPayment = gateway.slug === 'cash';
-            const paymentMethodType: 'cash' | 'bank_transfer' = isCashPayment ? 'cash' : 'bank_transfer';
-
-            const subject = isCashPayment
-              ? `Booking Request Received — ACT-${shortBookingRef(booking.id)}`
-              : `Payment Instructions — ACT-${shortBookingRef(booking.id)}`;
-
-            if (customerEmail) {
-              await sendEmail({
-                to: customerEmail,
-                subject,
-                html: await getBookingRequestTemplate(emailBooking, tourInfo, paymentMethodType),
-              });
-            }
-
-            await sendAdminEmail(
-              `💳 Manual Payment Submitted (${PaymentMethodClassifier.displayLabel(gateway.slug)}): ${booking.customerName}`,
-              await getAdminNewBookingTemplate(emailBooking, tourInfo)
-            );
-          } catch (emailErr) {
-            console.error('[PAYMENT] Email notification failed (non-fatal):', emailErr);
-          }
+          })();
         }
 
       } else if (!response.success) {

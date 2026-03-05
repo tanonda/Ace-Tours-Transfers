@@ -90,8 +90,8 @@ export default function Payment() {
   const { currency } = useCurrency();
   const queryClient = useQueryClient();
 
-  const [guestName, setGuestName] = useState("");
-  const [guestEmail, setGuestEmail] = useState("");
+  const [guestName, setGuestName] = useState(user?.name || "");
+  const [guestEmail, setGuestEmail] = useState(user?.email || "");
   const [bookingId, setBookingId] = useState<string | null>(null);
   const [selectedMethod, setSelectedMethod] = useState<string>("");
   const [selectedSubOption, setSelectedSubOption] = useState<string>("");
@@ -144,6 +144,14 @@ export default function Payment() {
 
   // Use cached data (sessionStorage) preferentially, fall back to API
   const bookingDetails = cachedBooking || fetchedBooking || null;
+
+  // Pre-fill guest details from booking if available and fields are still empty
+  useEffect(() => {
+    if (bookingDetails) {
+      if (!guestName && bookingDetails.customerName) setGuestName(bookingDetails.customerName);
+      if (!guestEmail && bookingDetails.customerEmail) setGuestEmail(bookingDetails.customerEmail);
+    }
+  }, [bookingDetails]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Fetch booking items for detailed line items
   const { data: bookingItems = [] } = useQuery<BookingItem[]>({
@@ -226,11 +234,13 @@ export default function Payment() {
       return json;
     },
     onSuccess: (data) => {
+      // Clear cart only after a successful payment initiation (booking created + payment started)
       clearCart();
+      sessionStorage.removeItem('checkout_booking');
       if (data.checkoutUrl) {
         window.location.href = data.checkoutUrl;
       } else {
-        // Manual payment (bank transfer / cash) - redirect to success page with manual params
+        // Manual payment (bank transfer / cash) - redirect to success page
         const bId = data.bookingId || bookingId;
         const provider = data.provider || selectedMethod;
         setLocation(`/payment/success?booking=${bId}&manual=true&method=${provider}`);
@@ -355,8 +365,8 @@ export default function Payment() {
         <div className="container mx-auto px-4 relative z-10">
           {/* Header */}
           <div className="max-w-2xl mx-auto mb-6">
-            <Button variant="ghost" onClick={() => setLocation(bookingId ? "/reservations" : "/cart")} className="mb-4 -ml-2">
-              <ArrowLeft className="mr-2 h-4 w-4" /> Back
+            <Button variant="ghost" onClick={() => setLocation("/cart")} className="mb-4 -ml-2">
+              <ArrowLeft className="mr-2 h-4 w-4" /> Back to Cart
             </Button>
 
             <div className="flex items-center gap-3 mb-2">
@@ -654,12 +664,31 @@ export default function Payment() {
                   )}
 
                   {selectedMethod === 'bank-transfer' && (
-                    <div className="rounded-xl bg-blue-50 dark:bg-blue-950/30 p-4 border border-blue-200 dark:border-blue-800 flex flex-col items-center">
-                      <Landmark className="h-8 w-8 text-blue-600 mb-2" />
-                      <h3 className="font-semibold text-blue-900 dark:text-blue-200 mb-2">Bank Transfer</h3>
-                      <p className="text-sm text-blue-800 dark:text-blue-300 text-center">
-                        Complete your bank transfer after placing the order. Details will be shown on the confirmation page.
+                    <div className="rounded-xl bg-blue-50 dark:bg-blue-950/30 p-5 border border-blue-200 dark:border-blue-800 space-y-4">
+                      <div className="flex items-center gap-2 text-blue-900 dark:text-blue-200">
+                        <Landmark className="h-5 w-5 text-blue-600" />
+                        <h3 className="font-semibold text-base">Bank Transfer Instructions</h3>
+                      </div>
+                      <p className="text-sm text-blue-800 dark:text-blue-300">
+                        After confirming your booking, you'll receive full bank details by email. Use your booking reference as the payment description.
                       </p>
+                      <div className="space-y-3">
+                        <div className="bg-white dark:bg-blue-900/30 rounded-lg p-3 border border-blue-100 dark:border-blue-700">
+                          <p className="text-xs font-bold text-blue-700 dark:text-blue-300 uppercase tracking-wider mb-2">🏦 Local Transfer (Vanuatu banks)</p>
+                          <p className="text-sm text-blue-800 dark:text-blue-200">Bank-to-bank transfer within Vanuatu. Funds clear same day with most local banks.</p>
+                        </div>
+                        <div className="bg-white dark:bg-blue-900/30 rounded-lg p-3 border border-blue-100 dark:border-blue-700">
+                          <p className="text-xs font-bold text-blue-700 dark:text-blue-300 uppercase tracking-wider mb-2">💸 Direct Transfer (Online banking)</p>
+                          <p className="text-sm text-blue-800 dark:text-blue-200">Transfer directly from your online banking portal to our nominated account.</p>
+                        </div>
+                        <div className="bg-white dark:bg-blue-900/30 rounded-lg p-3 border border-blue-100 dark:border-blue-700">
+                          <p className="text-xs font-bold text-blue-700 dark:text-blue-300 uppercase tracking-wider mb-2">🌏 International Wire (SWIFT)</p>
+                          <p className="text-sm text-blue-800 dark:text-blue-200">For overseas customers — use our SWIFT/BIC code. Allow 2–3 business days for clearance.</p>
+                        </div>
+                      </div>
+                      <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-700 rounded-lg p-3 text-xs text-amber-800 dark:text-amber-300">
+                        ⏳ Your booking is held for <strong>72 hours</strong>. Please transfer within this time to secure your spot.
+                      </div>
                     </div>
                   )}
 

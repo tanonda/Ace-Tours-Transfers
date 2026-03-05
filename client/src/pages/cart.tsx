@@ -54,17 +54,8 @@ export default function Cart() {
   };
 
   const handleCheckout = async () => {
-    if (!user) {
-      toast({
-        title: t("common.error"),
-        description: "Please log in to proceed with checkout.",
-        variant: "destructive"
-      });
-      setLocation("/login");
-      return;
-    }
-
-    // Redirect to the unified payment page which now handles multi-item bookings
+    // Guests are fully supported — no login required for checkout
+    // Redirect to payment page which handles both guests and logged-in users
     setLocation("/payment");
   };
 
@@ -329,11 +320,10 @@ export default function Cart() {
                     className="w-full py-6 text-lg"
                     size="lg"
                     onClick={handleCheckout}
-                    disabled={isProcessing || isLoadingPricing}
+                    disabled={isProcessing}
                   >
-                    {isProcessing ? "Processing..." : (isLoadingPricing ? "Pricing..." : "Proceed to Checkout")}
-                    {!isLoadingPricing && <ArrowRight className="ml-2 h-4 w-4" />}
-                    {isLoadingPricing && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+                    {isProcessing ? "Processing..." : "Proceed to Checkout"}
+                    {!isProcessing && <ArrowRight className="ml-2 h-4 w-4" />}
                   </Button>
                 </CardFooter>
               </Card>

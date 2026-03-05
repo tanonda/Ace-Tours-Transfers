@@ -250,7 +250,13 @@ export async function getBookingRequestTemplate(
             <td style="padding: 10px 14px; color: #111827; font-weight: ${label === "Payment Reference" || label === "Amount" ? "700" : "600"}; font-size: 13px; ${i < bankRows.length - 1 ? "border-bottom: 1px solid #e0f2fe;" : ""}">${value}</td>
           </tr>`).join("")}
         </table>
-        <div style="background: #fef9c3; border: 1px solid #fde047; border-radius: 6px; padding: 12px; margin-top: 16px;">
+        <div style="margin-top: 14px; padding: 12px 14px; background: #f0f9ff; border-radius: 6px; border: 1px solid #bae6fd;">
+          <p style="color: #0369a1; font-size: 12px; font-weight: 700; margin: 0 0 6px 0; text-transform: uppercase; letter-spacing: 0.5px;">Transfer options — use whichever is most convenient:</p>
+          <p style="color: #0369a1; font-size: 12px; margin: 3px 0;">🏦 <strong>Local</strong> — Bank-to-bank within Vanuatu (same-day clearance with most local banks)</p>
+          <p style="color: #0369a1; font-size: 12px; margin: 3px 0;">💸 <strong>Direct</strong> — Online banking transfer directly to our nominated account</p>
+          <p style="color: #0369a1; font-size: 12px; margin: 3px 0;">🌏 <strong>International SWIFT</strong> — Use the SWIFT/BIC code above for overseas transfers (allow 2–3 business days)</p>
+        </div>
+        <div style="background: #fef9c3; border: 1px solid #fde047; border-radius: 6px; padding: 12px; margin-top: 12px;">
           <p style="color: #854d0e; font-size: 13px; margin: 0;">
             ⏳ <strong>Your booking is held for 72 hours.</strong> Please complete the transfer within this time to secure your spot.
           </p>
