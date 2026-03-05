@@ -789,45 +789,67 @@ export default function AdminSettings() {
                   Google Reviews API
                 </CardTitle>
                 <CardDescription>
-                  Fetches your latest reviews directly from Google Places. Server-side cached to stay within the free tier.
+                  Fetches your latest ratings directly from Google Places.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-3 text-sm">
-                  <p className="font-semibold text-xs uppercase tracking-wider text-muted-foreground">Required Environment Variables</p>
+                  <p className="font-semibold text-xs tracking-wider text-muted-foreground uppercase">Configure Environment</p>
                   <div className="font-mono text-xs bg-background border border-border rounded p-3 space-y-1">
                     <p><span className="text-blue-500">GOOGLE_PLACES_API_KEY</span>=<span className="text-green-600">AIzaSy...</span></p>
                     <p><span className="text-blue-500">GOOGLE_PLACE_ID</span>=<span className="text-green-600">ChIJ...</span></p>
                   </div>
                   <p className="text-xs text-muted-foreground pt-1">
-                    Find your Place ID using <a href="https://developers.google.com/maps/documentation/places/web-service/place-id" target="_blank" rel="noopener noreferrer" className="text-primary underline">Google's finder tool</a>.
+                    Get your key from Google Cloud Console (Places API) and find your ID with Google's <a href="https://developers.google.com/maps/documentation/places/web-service/place-id" target="_blank" rel="noopener noreferrer" className="text-primary underline">Finder</a>.
                   </p>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Trustpilot */}
+            {/* Trustpilot TrustBox Widget */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <div className="w-6 h-6 rounded bg-[#00b67a] flex items-center justify-center">
                     <Star className="h-3.5 w-3.5 text-white fill-white" />
                   </div>
-                  Trustpilot Integration
+                  Trustpilot TrustBox Widget
                 </CardTitle>
                 <CardDescription>
-                  Displays a live Trustpilot rating bar and widget on tour pages.
+                  Displays a live Trustpilot rating bar on every tour detail page.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-5">
+                {/* Status badge */}
+                {(() => {
+                  const buId = import.meta.env.VITE_TRUSTPILOT_BU_ID;
+                  return buId ? (
+                    <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-green-500/30 bg-green-500/10">
+                      <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
+                      <div>
+                        <p className="text-sm font-semibold text-green-700 dark:text-green-400">Widget Active</p>
+                        <p className="text-xs text-muted-foreground">Business Unit ID: <code className="bg-muted px-1 rounded text-xs">{buId}</code></p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-amber-400/30 bg-amber-50 dark:bg-amber-900/20">
+                      <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
+                      <div>
+                        <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">Widget Inactive — Business Unit ID not set</p>
+                        <p className="text-xs text-muted-foreground">The fallback static link is shown to guests until you add the env var.</p>
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-3 text-sm">
-                  <p className="font-semibold text-xs uppercase tracking-wider text-muted-foreground">Required Environment Variables</p>
+                  <p className="font-semibold text-xs tracking-wider text-muted-foreground uppercase">Required Environment Variables</p>
                   <div className="font-mono text-xs bg-background border border-border rounded p-3 space-y-1">
-                    <p><span className="text-blue-500">VITE_TRUSTPILOT_BU_ID</span>=<span className="text-green-600">bu_id_from_trustpilot</span></p>
+                    <p><span className="text-blue-500">VITE_TRUSTPILOT_BU_ID</span>=<span className="text-green-600">bu_id</span></p>
                     <p><span className="text-blue-500">VITE_TRUSTPILOT_URL</span>=<span className="text-green-600">https://www.trustpilot.com/review/acetours.vu</span></p>
                   </div>
-                  <p className="text-xs text-muted-foreground pt-1">
-                    Navigate to <strong>Integrations → TrustBox Library</strong> in your Trustpilot Business dashboard to find your BU ID.
+                  <p className="text-xs text-muted-foreground">
+                    Obtain your Business Unit ID from <strong>Integrations → TrustBox Library</strong> in your Trustpilot Business account.
                   </p>
                 </div>
               </CardContent>
@@ -995,53 +1017,81 @@ export default function AdminSettings() {
               </Card>
             </div>
 
-            {/* Hosting Section */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Render Dashboard */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Render Hosting</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <p className="text-xs text-muted-foreground leading-relaxed">View server logs, redeploy, and manage environment variables.</p>
-                  <Button variant="outline" asChild size="sm" className="w-full">
+            {/* Render Dashboard */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded bg-black flex items-center justify-center">
+                    <span className="text-white font-bold text-xs">R</span>
+                  </div>
+                  Render Hosting
+                </CardTitle>
+                <CardDescription>
+                  Access your server logs, redeploy the application, and manage environment variables.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-lg border border-border p-4 space-y-3">
+                  <p className="text-sm">Log in to the Render dashboard to monitor your web service performance, view deployment logs, or update environment variables (like adding API keys).</p>
+                  <Button variant="outline" asChild size="sm">
                     <a href="https://dashboard.render.com" target="_blank" rel="noopener noreferrer">
-                      Dashboard <ExternalLink className="h-3 w-3 ml-2" />
+                      Open Render Dashboard <ExternalLink className="h-3 w-3 ml-2" />
                     </a>
                   </Button>
-                </CardContent>
-              </Card>
+                </div>
+              </CardContent>
+            </Card>
 
-              {/* Neon Database */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Neon DB</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <p className="text-xs text-muted-foreground leading-relaxed">Manage your PostgreSQL instance, backups, and SQL console.</p>
-                  <Button variant="outline" asChild size="sm" className="w-full">
+            {/* Neon Database */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded bg-[#00e599] flex items-center justify-center">
+                    <span className="text-black font-bold text-xs text-[10px]">Neon</span>
+                  </div>
+                  Neon Database
+                </CardTitle>
+                <CardDescription>
+                  Manage your PostgreSQL database, view branches, and execute raw SQL queries.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-lg border border-border p-4 space-y-3">
+                  <p className="text-sm">Neon hosts your application data. Use the Neon console to manage backups, view storage limits, or check database connection string credentials.</p>
+                  <Button variant="outline" asChild size="sm">
                     <a href="https://console.neon.tech" target="_blank" rel="noopener noreferrer">
-                      Neon Console <ExternalLink className="h-3 w-3 ml-2" />
+                      Open Neon Console <ExternalLink className="h-3 w-3 ml-2" />
                     </a>
                   </Button>
-                </CardContent>
-              </Card>
+                </div>
+              </CardContent>
+            </Card>
 
-              {/* BetterStack */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">BetterStack</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <p className="text-xs text-muted-foreground leading-relaxed">24/7 uptime monitoring and incident alerting.</p>
+            {/* BetterStack */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Globe className="h-5 w-5 text-blue-500" />
+                  BetterStack Monitoring
+                </CardTitle>
+                <CardDescription>
+                  24/7 uptime monitoring and incident alerting.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="rounded-lg border border-border p-4 space-y-3 text-sm">
+                  <p className="text-muted-foreground leading-relaxed italic">
+                    Configure environment variables <code className="bg-muted px-1 rounded text-xs">BETTERSTACK_API_KEY</code> and <code className="bg-muted px-1 rounded text-xs">BETTERSTACK_MONITOR_ID</code> in Render to enable.
+                  </p>
                   <Button variant="outline" asChild size="sm" className="w-full">
                     <a href="https://betterstack.com" target="_blank" rel="noopener noreferrer">
-                      Open Log Snare <ExternalLink className="h-3 w-3 ml-2" />
+                      Open BetterStack <ExternalLink className="h-3 w-3 ml-2" />
                     </a>
                   </Button>
-                </CardContent>
-              </Card>
-            </div>
+                </div>
+              </CardContent>
+            </Card>
+
 
             {/* Banks Payment Gateways */}
             <Card>
