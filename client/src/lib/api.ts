@@ -97,7 +97,6 @@ export async function deleteProduct(id: string): Promise<void> {
 }
 
 // Backward-compatibility aliases (deprecated — use fetchProducts/createProduct/etc.)
-export const fetchProducts = fetchProducts;
 export const fetchTour = fetchProduct;
 export const createTour = createProduct;
 export const updateTour = updateProduct;
