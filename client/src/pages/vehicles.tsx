@@ -7,7 +7,7 @@ import { fetchVehicles } from "@/lib/api";
 import { useTranslation } from "react-i18next";
 import { Car } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import type { Tour } from "@shared/schema";
+import type { Product } from "@shared/schema";
 
 export default function Vehicles() {
   const { t } = useTranslation();
@@ -18,7 +18,7 @@ export default function Vehicles() {
 
   // Filter out test data
   const vehicles = useMemo(() => {
-    return rawVehicles.filter(current => {
+    return rawVehicles.filter((current: any) => {
       if (current.isActive === false) return false;
       const titleLower = current.title.toLowerCase();
       return !(titleLower.includes("verification") ||
@@ -58,7 +58,7 @@ export default function Vehicles() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {vehicles.map((vehicle: Tour, index: number) => (
+              {vehicles.map((vehicle: Product, index: number) => (
                 <TourCard key={vehicle.id} tour={vehicle as any} index={index} />
               ))}
             </div>

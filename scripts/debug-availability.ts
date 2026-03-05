@@ -5,7 +5,7 @@ async function check() {
     try {
         // 1. Fetch all tours
         console.log("Fetching all tours...");
-        const toursRes = await fetch("http://localhost:5001/api/tours");
+        const toursRes = await fetch("http://localhost:5001/api/products");
         if (toursRes.status !== 200) {
             console.error("Failed to fetch tours:", toursRes.status);
             return;

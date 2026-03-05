@@ -1,6 +1,6 @@
 import { apiRequest } from "./queryClient";
 import type {
-  Tour,
+  Product,
   Booking,
   InsertBooking,
   User,
@@ -71,30 +71,37 @@ export async function updateUserStatus(id: string, isActive: boolean): Promise<U
   return res.json();
 }
 
-// Tours
-export async function fetchTours(): Promise<Tour[]> {
-  const res = await apiRequest("GET", "/api/tours");
+// Products (covers tours, transfers, and vehicle hire)
+export async function fetchProducts(): Promise<Product[]> {
+  const res = await apiRequest("GET", "/api/products");
   return res.json();
 }
 
-export async function fetchTour(id: string): Promise<Tour> {
-  const res = await apiRequest("GET", `/api/tours/${id}`);
+export async function fetchProduct(id: string): Promise<Product> {
+  const res = await apiRequest("GET", `/api/products/${id}`);
   return res.json();
 }
 
-export async function createTour(tour: any): Promise<Tour> {
-  const res = await apiRequest("POST", "/api/tours", tour);
+export async function createProduct(product: any): Promise<Product> {
+  const res = await apiRequest("POST", "/api/products", product);
   return res.json();
 }
 
-export async function updateTour(id: string, tour: any): Promise<Tour> {
-  const res = await apiRequest("PUT", `/api/tours/${id}`, tour);
+export async function updateProduct(id: string, product: any): Promise<Product> {
+  const res = await apiRequest("PUT", `/api/products/${id}`, product);
   return res.json();
 }
 
-export async function deleteTour(id: string): Promise<void> {
-  await apiRequest("DELETE", `/api/tours/${id}`);
+export async function deleteProduct(id: string): Promise<void> {
+  await apiRequest("DELETE", `/api/products/${id}`);
 }
+
+// Backward-compatibility aliases (deprecated — use fetchProducts/createProduct/etc.)
+export const fetchProducts = fetchProducts;
+export const fetchTour = fetchProduct;
+export const createTour = createProduct;
+export const updateTour = updateProduct;
+export const deleteTour = deleteProduct;
 
 // Addons
 export async function fetchAddons(): Promise<Addon[]> {
@@ -102,14 +109,14 @@ export async function fetchAddons(): Promise<Addon[]> {
   return res.json();
 }
 
-// Vehicles API (Vehicle Hire feature) - using the common tours endpoint since they share schema
-export async function fetchVehicles(): Promise<Tour[]> {
-  const tours = await fetchTours();
-  return tours.filter(t => t.category === 'vehicle');
+// Vehicles API (Vehicle Hire feature) - using the common products endpoint since they share schema
+export async function fetchVehicles(): Promise<Product[]> {
+  const products = await fetchProducts();
+  return products.filter((t: Product) => t.category === 'vehicle');
 }
 
-export async function fetchVehicle(id: string): Promise<Tour> {
-  return fetchTour(id);
+export async function fetchVehicle(id: string): Promise<Product> {
+  return fetchProduct(id);
 }
 
 // Bookings

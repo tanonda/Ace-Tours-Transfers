@@ -1,7 +1,7 @@
 import { storage } from "../storage.ts";
 import { AvailabilityService } from "../domain/availability/availability.service.ts";
 import { db } from "../db.ts";
-import { tours, resources, tourInstances, availabilityHolds } from "../../shared/schema.ts";
+import { products, resources, tourInstances, availabilityHolds } from "../../shared/schema.ts";
 import { eq } from "drizzle-orm";
 
 async function verifyVehicleOverlap() {
@@ -10,7 +10,7 @@ async function verifyVehicleOverlap() {
     const service = new AvailabilityService(storage);
 
     // 1. Setup a test vehicle product
-    const [vehicle] = await db.insert(tours).values({
+    const [vehicle] = await db.insert(products).values({
         title: "Test Rental Car",
         price: "5000",
         duration: "24h",
@@ -69,7 +69,7 @@ async function verifyVehicleOverlap() {
         await db.delete(availabilityHolds).where(eq(availabilityHolds.bookingSessionId, "session-3"));
         await db.delete(tourInstances).where(eq(tourInstances.tourId, vehicle.id));
         await db.delete(resources).where(eq(resources.id, resource.id));
-        await db.delete(tours).where(eq(tours.id, vehicle.id));
+        await db.delete(products).where(eq(products.id, vehicle.id));
     }
 }
 

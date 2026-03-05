@@ -53,10 +53,10 @@ async function runConcurrentBookingTest(): Promise<TestResult> {
   try {
     // Step 1: Create test tour with capacity
     console.log(`🔧 Setting up test tour...`);
-    let testTour = await storage.getTourByTitle("CONCURRENT_TEST_TOUR");
+    let testTour = await storage.getProductByTitle("CONCURRENT_TEST_TOUR");
 
     if (!testTour) {
-      testTour = await storage.createTour({
+      testTour = await storage.createProduct({
         title: "CONCURRENT_TEST_TOUR",
         price: "5000",
         adultPriceCents: 500000,

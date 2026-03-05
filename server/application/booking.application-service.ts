@@ -1,4 +1,4 @@
-import { Tour, Booking } from "../../shared/schema.js";
+import { Product, Booking } from "../../shared/schema.js";
 import { AvailabilityDomainService, AvailabilityResult } from "../domain/services/availability.domain-service.js";
 import { storage, IStorage } from "../storage.js";
 

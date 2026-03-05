@@ -6,7 +6,7 @@ import {
 import {
   type User,
   type InsertUser,
-  tours,
+  products,
   bookings,
   users
 } from "../../../shared/schema.js";

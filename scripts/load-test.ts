@@ -1,7 +1,7 @@
 import { db } from "../server/db";
 import { storage } from "../server/storage";
 import {
-  tours,
+  products,
   tourInstances,
   availabilityHolds,
   bookings,
@@ -107,13 +107,13 @@ export class LoadTester {
     try {
       // Setup test data
       console.log("📋 Setting up test data...");
-      const testProducts = await this.setupTestProducts(testConfig.productCount);
+      const testProductsList = await this.setupTestProducts(testConfig.productCount);
       const testDates = this.generateTestDates(testConfig.daysAhead);
-      console.log(`✅ Created ${testProducts.length} test products and ${testDates.length} dates\n`);
+      console.log(`✅ Created ${testProductsList.length} test products and ${testDates.length} dates\n`);
 
       // Warm up cache
       console.log("🔥 Warming up cache...");
-      for (const product of testProducts.slice(0, 3)) {
+      for (const product of testProductsList.slice(0, 3)) {
         await this.availabilityService.checkAvailability(product.id, testDates[0]);
       }
       console.log("✅ Cache warmed up\n");
@@ -122,7 +122,7 @@ export class LoadTester {
       console.log("📝 Generating booking requests...");
       const bookingRequests = this.generateBookingRequests(
         testConfig.concurrentBookings,
-        testProducts,
+        testProductsList,
         testDates,
         testConfig.slotsPerDay
       );
@@ -162,7 +162,7 @@ export class LoadTester {
 
       // Validate final state
       console.log("🔍 Validating final capacity state...");
-      result.finalCapacityCheck = await this.validateFinalCapacityState(testProducts);
+      result.finalCapacityCheck = await this.validateFinalCapacityState(testProductsList);
       if (!result.finalCapacityCheck.isValid) {
         result.overbookingDetected = result.finalCapacityCheck.violations.some(v =>
           v.includes("overbooking")
@@ -188,10 +188,10 @@ export class LoadTester {
   }
 
   private async setupTestProducts(count: number) {
-    const products: any[] = [];
+    const testProductsList: any[] = [];
 
     // Check if test products already exist
-    const existingTours = await db.select().from(tours).limit(count);
+    const existingTours = await db.select().from(products).limit(count);
     if (existingTours.length >= count) {
       console.log(
         `   Using existing ${count} products...`
@@ -205,7 +205,7 @@ export class LoadTester {
     for (let i = 0; i < count; i++) {
       const category = categories[i % categories.length];
       const [product] = await db
-        .insert(tours)
+        .insert(products)
         .values({
           title: `Load Test ${category} ${i + 1}`,
           price: "0",
@@ -218,7 +218,7 @@ export class LoadTester {
           defaultCapacity: 20,
         })
         .returning();
-      products.push(product);
+      testProductsList.push(product);
 
       // Create some resources for vehicles
       if (category === "vehicle") {
@@ -227,13 +227,12 @@ export class LoadTester {
             productId: product.id,
             name: `Test Vehicle ${i}-${j}`,
             seatCapacity: 6,
-            status: "active",
           });
         }
       }
     }
 
-    return products;
+    return testProductsList;
   }
 
   private generateTestDates(daysAhead: number): string[] {

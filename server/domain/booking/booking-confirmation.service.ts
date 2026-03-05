@@ -6,7 +6,7 @@ import {
   bookings,
   availabilityHolds,
   payments,
-  tours,
+  products,
   pricingVersions,
   tourInstances,
 } from "../../../shared/schema.js";
@@ -151,7 +151,7 @@ export class BookingConfirmationService {
         return {
           bookingId: request.bookingId,
           confirmed: false,
-          reason: "Tour instance not found",
+          reason: "Product instance not found",
         };
       }
 

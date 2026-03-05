@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { VerificationDialog } from "@/components/ui/verification-dialog";
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { fetchTours } from "@/lib/api";
+import { fetchProducts } from "@/lib/api";
 import { Loader2 } from "lucide-react";
 
 interface Booking {
@@ -40,8 +40,8 @@ export function EditBookingDialog({ booking, open, onOpenChange, onSave }: EditB
   // Fix #5: Fetch the real services list from the API instead of using a
   // hardcoded list of tour names that goes stale whenever the lineup changes.
   const { data: allTours = [], isLoading: isLoadingTours } = useQuery({
-    queryKey: ["tours"],
-    queryFn: fetchTours,
+    queryKey: ["products"],
+    queryFn: fetchProducts,
     enabled: open, // Only fetch when dialog is open
   });
 
@@ -123,7 +123,7 @@ export function EditBookingDialog({ booking, open, onOpenChange, onSave }: EditB
                   <SelectValue placeholder="Select tour or transfer" />
                 </SelectTrigger>
                 <SelectContent>
-                  {allTours.map((service) => (
+                  {allTours.map((service: any) => (
                     <SelectItem key={service.id} value={service.title}>
                       {service.title}
                     </SelectItem>

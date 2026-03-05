@@ -15,7 +15,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useQuery } from "@tanstack/react-query";
-import { fetchAuditLogs, fetchAdminActionLog, fetchTours } from "@/lib/api";
+import { fetchAuditLogs, fetchAdminActionLog, fetchProducts } from "@/lib/api";
 import { ScrollText, RefreshCw, Download, Search, Filter, Clock, User, Package, Hash, Info, ChevronRight, Shield } from "lucide-react";
 
 // ── Colour maps ───────────────────────────────────────────────────────────────
@@ -229,7 +229,7 @@ export default function AdminAuditLogs() {
   const [adminSelectedEntry, setAdminSelectedEntry] = useState<any>(null);
   const [adminDetailOpen, setAdminDetailOpen] = useState(false);
 
-  const { data: tours = [] } = useQuery({ queryKey: ["/api/tours"], queryFn: fetchTours });
+  const { data: products = [] } = useQuery({ queryKey: ["/api/products"], queryFn: fetchProducts });
 
   const { data: entries = [], isLoading: inventoryLoading, refetch: refetchInventory } = useQuery({
     queryKey: ["/api/admin/audit-log", productId, action, limit],
@@ -252,7 +252,7 @@ export default function AdminAuditLogs() {
     const matchSearch = !search || (
       e.action?.toLowerCase().includes(s) ||
       e.performedBy?.toLowerCase().includes(s) ||
-      tours.find((t: any) => t.id === e.productId)?.title?.toLowerCase().includes(s)
+      products.find((t: any) => t.id === e.productId)?.title?.toLowerCase().includes(s)
     );
     const entryDate = new Date(e.createdAt);
     const matchDateFrom = !dateFrom || entryDate >= new Date(dateFrom);
@@ -282,7 +282,7 @@ export default function AdminAuditLogs() {
       ...filtered.map((e: any) => [
         new Date(e.createdAt).toLocaleString(),
         e.action,
-        tours.find((t: any) => t.id === e.productId)?.title || e.productId,
+        products.find((t: any) => t.id === e.productId)?.title || e.productId,
         e.quantity ?? "",
         e.performedBy,
         e.metadata ? JSON.stringify(e.metadata) : "",
@@ -319,7 +319,7 @@ export default function AdminAuditLogs() {
   const today = () => new Date().toISOString().split("T")[0];
 
   const selectedTourTitle = selectedEntry
-    ? tours.find((t: any) => t.id === selectedEntry.productId)?.title || selectedEntry.productId || "—"
+    ? products.find((t: any) => t.id === selectedEntry.productId)?.title || selectedEntry.productId || "—"
     : "";
 
   return (
@@ -376,7 +376,7 @@ export default function AdminAuditLogs() {
                       <SelectTrigger><SelectValue placeholder="All products" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">All products</SelectItem>
-                        {tours.map((t: any) => <SelectItem key={t.id} value={t.id}>{t.title || t.name || t.id}</SelectItem>)}
+                        {products.map((t: any) => <SelectItem key={t.id} value={t.id}>{t.title || t.name || t.id}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
@@ -469,7 +469,7 @@ export default function AdminAuditLogs() {
                           <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{new Date(e.createdAt).toLocaleString()}</TableCell>
                           <TableCell><Badge variant="outline" className={`text-xs font-medium ${INVENTORY_COLORS[e.action] || "bg-gray-100 text-gray-700"}`}>{e.action}</Badge></TableCell>
                           <TableCell className="text-sm font-medium">
-                            {tours.find((t: any) => t.id === e.productId)?.title || <span className="text-muted-foreground text-xs">{e.productId?.slice(0, 8) || "—"}</span>}
+                            {products.find((t: any) => t.id === e.productId)?.title || <span className="text-muted-foreground text-xs">{e.productId?.slice(0, 8) || "—"}</span>}
                           </TableCell>
                           <TableCell className="text-sm">
                             {e.quantity != null ? <span className="font-mono font-bold">{e.quantity > 0 ? `+${e.quantity}` : e.quantity}</span> : "—"}

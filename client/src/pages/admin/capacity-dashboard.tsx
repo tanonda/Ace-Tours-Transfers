@@ -8,9 +8,10 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { upsertAvailability, fetchTours } from "@/lib/api";
+import { upsertAvailability, fetchProducts } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import type { Product } from "@shared/schema";
 import {
   RefreshCw, Edit2, AlertCircle, Users, TrendingUp, Plus, Calendar,
   ChevronLeft, ChevronRight, BarChart2, Settings2, Lock, Unlock
@@ -234,7 +235,7 @@ function AddAvailabilityDialog({
                   <div className="px-3 py-2 text-sm text-muted-foreground">No products available</div>
                 )}
                 {/* Group by category */}
-                {["tour","transfer","vehicle"].map(cat => {
+                {["tour", "transfer", "vehicle"].map(cat => {
                   const group = tours.filter((t: any) => {
                     const c = (t.category || "tour").toLowerCase();
                     if (cat === "tour") return !c.includes("transfer") && !c.includes("vehicle");
@@ -395,9 +396,9 @@ function CalendarView({
                 ${items.length > 0 ? "cursor-pointer hover:scale-105" : "cursor-default"}
                 ${status === "sold-out" ? "bg-red-100 text-red-800" :
                   status === "critical" ? "bg-orange-100 text-orange-800" :
-                  status === "limited" ? "bg-yellow-100 text-yellow-800" :
-                  status === "available" ? "bg-green-100 text-green-800" :
-                  "bg-muted/30 text-muted-foreground"}
+                    status === "limited" ? "bg-yellow-100 text-yellow-800" :
+                      status === "available" ? "bg-green-100 text-green-800" :
+                        "bg-muted/30 text-muted-foreground"}
               `}
               title={items.length > 0 ? `${items.length} tour(s) — ${status}` : "No availability set"}
             >
@@ -447,7 +448,7 @@ export default function CapacityDashboard() {
 
   // ── Data fetching ──────────────────────────────────────────────────────────
 
-  const { data: overview = [], isLoading: loadingOverview, refetch: refetchOverview } = useQuery<TourCapacity[]>({
+  const { data: overview = [], isLoading: loadingOverview, refetch: refetchOverview } = useQuery<any[]>({
     queryKey: ["/api/admin/capacity-overview", dateRange],
     queryFn: async () => {
       const res = await apiRequest("GET", `/api/admin/capacity-overview?start=${dateRange.start}&end=${dateRange.end}`);
@@ -465,9 +466,9 @@ export default function CapacityDashboard() {
     refetchInterval: 30000,
   });
 
-  const { data: tours = [] } = useQuery({
-    queryKey: ["tours"],
-    queryFn: fetchTours,
+  const { data: products = [] } = useQuery({
+    queryKey: ["products"],
+    queryFn: fetchProducts,
   });
 
   // ── Filtering ──────────────────────────────────────────────────────────────
@@ -479,9 +480,9 @@ export default function CapacityDashboard() {
     return true;
   });
 
-  const activeTours = tours.filter((t: any) => t.isActive !== false && !t.title.toLowerCase().includes("test"));
+  const activeTours = (products as Product[]).filter((t: Product) => t.isActive !== false && !t.title.toLowerCase().includes("test"));
   const uniqueTourIds = [...new Set(overview.map(o => o.tourId))];
-  const toursWithAvailability = activeTours.filter((t: any) => uniqueTourIds.includes(t.id));
+  const toursWithAvailability = activeTours.filter((t: Product) => uniqueTourIds.includes(t.id));
 
   // ── Handlers ──────────────────────────────────────────────────────────────
 

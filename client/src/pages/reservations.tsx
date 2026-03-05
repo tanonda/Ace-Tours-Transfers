@@ -23,11 +23,11 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { useCMS } from "@/lib/cms-context";
 import { BookingForm, bookingFormSchema } from "@/components/booking-form";
 import { z } from "zod";
-import { fetchTours } from "@/lib/api";
+import { fetchProducts } from "@/lib/api";
+import type { Product } from "@shared/schema";
 
 type Booking = {
   id: string;
@@ -85,8 +85,8 @@ export default function Reservations() {
   const [searchQuery, setSearchQuery] = useState("");
 
   const { data: allServices = [], isLoading: servicesLoading } = useQuery({
-    queryKey: ["tours"],
-    queryFn: fetchTours,
+    queryKey: ["products"],
+    queryFn: fetchProducts,
   });
 
   const { data: bookings = [], isLoading: bookingsLoading } = useQuery<Booking[]>({
@@ -102,7 +102,7 @@ export default function Reservations() {
 
   const bookingServices = useMemo(() => {
     return allServices
-      .filter(s => {
+      .filter((s: Product) => {
         const titleLower = (s.title || "").toLowerCase();
         if (s.isActive === false) return false;
         const isTest = titleLower.includes("verification") ||
@@ -116,19 +116,19 @@ export default function Reservations() {
         if (s.category === 'vehicle' && !showVehicleHire) return false;
         return true;
       })
-      .map(s => ({
+      .map((s: Product) => ({
         id: s.id,
         title: s.title,
         category: s.category,
-        pricingType:     (s as any).pricingType     ?? 'per_person',
+        pricingType: (s as any).pricingType ?? 'per_person',
         groupPriceCents: (s as any).groupPriceCents ?? 0,
-        groupMaxPax:     (s as any).groupMaxPax     ?? null,
+        groupMaxPax: (s as any).groupMaxPax ?? null,
       }));
   }, [allServices]);
 
 
   const getServiceIdFromTitle = useCallback((title: string) => {
-    const service = allServices.find(s => s.title === title);
+    const service = allServices.find((s: Product) => s.title === title);
     return service?.id;
   }, [allServices]);
 
@@ -215,7 +215,7 @@ export default function Reservations() {
 
     setIsBookingLoading(true);
     try {
-      const selectedTour = allServices.find(t => t.title === values.service);
+      const selectedTour = allServices.find((t: Product) => t.title === values.service);
 
       let holdId = null;
       if (selectedTour) {

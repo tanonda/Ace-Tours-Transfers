@@ -1,6 +1,6 @@
 import "dotenv/config";
 import { db } from "../server/db.js";
-import { tours, tourInstances, availabilityHolds, bookings, bookingItems, resources, capacityAuditLog } from "../shared/schema.js";
+import { products, tourInstances, availabilityHolds, bookings, bookingItems, resources, capacityAuditLog } from "../shared/schema.js";
 import { eq, or, like, sql } from "drizzle-orm";
 
 async function main() {
@@ -8,14 +8,14 @@ async function main() {
 
     try {
         // Identify test tours based on title or image
-        const testTours = await db.select().from(tours).where(
+        const testTours = await db.select().from(products).where(
             or(
-                like(tours.title, "%Verification%"),
-                like(tours.title, "%Test%"),
-                like(tours.title, "%concurrent%"),
-                like(tours.title, "%phase4%"),
-                eq(tours.image, "test.jpg"),
-                eq(tours.image, "/test.jpg")
+                like(products.title, "%Verification%"),
+                like(products.title, "%Test%"),
+                like(products.title, "%concurrent%"),
+                like(products.title, "%phase4%"),
+                eq(products.image, "test.jpg"),
+                eq(products.image, "/test.jpg")
             )
         );
 
@@ -58,7 +58,7 @@ async function main() {
             console.log(`   Deleted instances for tour: ${tour.id}`);
 
             // 7. Finally delete the tour
-            await db.delete(tours).where(eq(tours.id, tour.id));
+            await db.delete(products).where(eq(products.id, tour.id));
             console.log(`✅ Deleted tour: ${tour.title}`);
         }
 

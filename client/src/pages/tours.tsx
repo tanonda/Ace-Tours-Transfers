@@ -3,18 +3,18 @@ import { Layout } from "@/components/layout";
 import { SEO } from "@/components/seo";
 import { TourCard } from "@/components/tour-card";
 import { useQuery } from "@tanstack/react-query";
-import { fetchTours } from "@/lib/api";
+import { fetchProducts } from "@/lib/api";
 import { useTranslation } from "react-i18next";
 
 export default function Tours() {
   const { t } = useTranslation();
   const { data: allTours = [], isLoading } = useQuery({
-    queryKey: ["tours"],
-    queryFn: fetchTours,
+    queryKey: ["products"],
+    queryFn: fetchProducts,
   });
 
   // Deduplicate by normalized title and filter out test data
-  const uniqueTours = allTours.reduce<typeof allTours>((acc, current) => {
+  const uniqueTours = allTours.reduce<typeof allTours>((acc: any[], current: any) => {
     // Skip test data
     const titleLower = current.title.toLowerCase();
     if (titleLower.includes("verification") ||
@@ -38,7 +38,7 @@ export default function Tours() {
     return acc;
   }, []);
 
-  const toursList = uniqueTours.filter(t => t.category === "tour" && t.isActive !== false);
+  const toursList = uniqueTours.filter((t: any) => t.category === "tour" && t.isActive !== false);
 
   return (
     <Layout>
@@ -56,7 +56,7 @@ export default function Tours() {
             <div className="text-center py-12">{t("common.loading")}</div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {toursList.map((tour, index) => (
+              {toursList.map((tour: any, index: number) => (
                 <TourCard key={tour.id} tour={{ ...tour, category: tour.category as any }} index={index} />
               ))}
             </div>

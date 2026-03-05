@@ -1,7 +1,7 @@
 import "dotenv/config";
 import { v2 as cloudinary } from "cloudinary";
 import { db } from "../server/db.js";
-import { tours as toursTable } from "../shared/schema.js";
+import { products as toursTable } from "../shared/schema.js";
 import { eq, like } from "drizzle-orm";
 import * as fs from "fs";
 import * as path from "path";

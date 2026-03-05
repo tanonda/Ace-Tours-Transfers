@@ -77,10 +77,10 @@ class Phase4ConcurrencyTestSuite {
       console.log(`\n🧪 Test: ${testName}`);
 
       // Setup: Create tour and booking
-      const testTours = await this.storage.getTours();
+      const testTours = await this.storage.getProducts();
       let testTour = testTours.find(t => t.title === "PHASE4_TEST_TOUR");
       if (!testTour) {
-        testTour = await this.storage.createTour({
+        testTour = await this.storage.createProduct({
           title: "PHASE4_TEST_TOUR",
           price: "5000",
           adultPriceCents: 500000,
@@ -186,10 +186,10 @@ class Phase4ConcurrencyTestSuite {
       console.log(`\n🧪 Test: ${testName}`);
 
       // Setup: Create tour and multiple bookings
-      const testTours = await this.storage.getTours();
+      const testTours = await this.storage.getProducts();
       let testTour = testTours.find(t => t.title === "PHASE4_RETRY_TOUR");
       if (!testTour) {
-        testTour = await this.storage.createTour({
+        testTour = await this.storage.createProduct({
           title: "PHASE4_RETRY_TOUR",
           price: "5000",
           adultPriceCents: 500000,
@@ -374,10 +374,10 @@ class Phase4ConcurrencyTestSuite {
       console.log(`\n🧪 Test: ${testName}`);
 
       // Setup: Create booking and confirm it once
-      const testTours = await this.storage.getTours();
+      const testTours = await this.storage.getProducts();
       let testTour = testTours.find(t => t.title === "PHASE4_IDEMPOTENT_TOUR");
       if (!testTour) {
-        testTour = await this.storage.createTour({
+        testTour = await this.storage.createProduct({
           title: "PHASE4_IDEMPOTENT_TOUR",
           price: "5000",
           adultPriceCents: 500000,

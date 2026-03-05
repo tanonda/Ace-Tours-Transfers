@@ -61,7 +61,7 @@ export class CreateBookingFromCartService {
       try {
         // 1. Build Cart items and create holds ATOMICALLY
         for (const item of request.items) {
-          const product = await this.storage.getTour(item.productId);
+          const product = await this.storage.getProduct(item.productId);
           if (!product) throw new Error(`Product ${item.productId} not found`);
 
           const rates = await this.pricingEngine.getTourRate(item.productId, item.date);

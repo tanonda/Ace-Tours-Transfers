@@ -15,8 +15,8 @@ import {
     bookings,
     availabilityHolds,
     tourInstances,
-    tours,
-    InsertTour,
+    products,
+    InsertProduct,
     InsertBooking,
     InsertAvailabilityHold,
     capacityAuditLog
@@ -37,12 +37,12 @@ async function setup(): Promise<void> {
     await db.delete(availabilityHolds).where(eq(availabilityHolds.bookingSessionId, TEST_SESSION_ID));
     await db.delete(capacityAuditLog).where(eq(capacityAuditLog.productId, TEST_TOUR_ID));
     await db.delete(tourInstances).where(eq(tourInstances.tourId, TEST_TOUR_ID));
-    await db.delete(tours).where(eq(tours.id, TEST_TOUR_ID));
+    await db.delete(products).where(eq(products.id, TEST_TOUR_ID));
 
-    // 1. Create Tour
-    await db.insert(tours).values({
+    // 1. Create Product
+    await db.insert(products).values({
         id: TEST_TOUR_ID,
-        title: "TEST_Atomic Test Tour",
+        title: "TEST_Atomic Test Product",
         description: ["Test tour for atomicity"],
 
         price: "$100",
@@ -96,7 +96,7 @@ async function setup(): Promise<void> {
         amount: "200.00",
         totalAmountCents: 20000,
         currency: "VUV",
-        tourName: "Atomic Test Tour",
+        tourName: "Atomic Test Product",
         customerName: "Test User 1",
         customerEmail: "test1@example.com",
         date: TEST_DATE,
@@ -112,7 +112,7 @@ async function setup(): Promise<void> {
         amount: "200.00",
         totalAmountCents: 20000,
         currency: "VUV",
-        tourName: "Atomic Test Tour",
+        tourName: "Atomic Test Product",
         customerName: "Test User 2",
         customerEmail: "test2@example.com",
         date: TEST_DATE,
@@ -176,7 +176,7 @@ async function cleanup(): Promise<void> {
     await db.delete(availabilityHolds).where(eq(availabilityHolds.bookingSessionId, TEST_SESSION_ID));
     await db.delete(capacityAuditLog).where(eq(capacityAuditLog.productId, TEST_TOUR_ID));
     await db.delete(tourInstances).where(eq(tourInstances.tourId, TEST_TOUR_ID));
-    await db.delete(tours).where(eq(tours.id, TEST_TOUR_ID));
+    await db.delete(products).where(eq(products.id, TEST_TOUR_ID));
     console.log("✅ Cleanup complete");
 }
 

@@ -77,7 +77,7 @@ export default function TransferDetail() {
   const { data: reviews = [] } = useQuery({
     queryKey: ["product-reviews", id],
     queryFn: async () => {
-      const res = await apiRequest("GET", `/api/tours/${id}/reviews`);
+      const res = await apiRequest("GET", `/api/products/${id}/reviews`);
       return res.json();
     },
     enabled: !!id,

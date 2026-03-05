@@ -7,7 +7,7 @@ import { sql, eq, desc } from "drizzle-orm";
 import * as schema from "../shared/schema.js";
 import {
   insertBookingSchema,
-  insertTourSchema,
+  insertProductSchema,
   insertUserSchema,
   insertContentBlockSchema,
   insertSiteSettingSchema,
@@ -246,7 +246,7 @@ export async function registerRoutes(
   app.get("/sitemap.xml", async (_req, res) => {
     try {
       const SITE_URL = process.env.APP_URL || "https://ace-tours-transfers.onrender.com";
-      const tours = await storage.getTours();
+      const tours = await storage.getProducts();
       const now = new Date().toISOString().split("T")[0];
 
       const staticPages = [
@@ -683,26 +683,26 @@ ${allPages.map(p => `  <url>
     }
   });
 
-  // Tours API
-  app.get("/api/tours", async (_req, res) => {
+  // Products API (covers tours, transfers, and vehicle hire)
+  app.get("/api/products", async (_req, res) => {
     try {
-      const tours = await storage.getTours();
-      res.json(tours);
+      const productsList = await storage.getProducts();
+      res.json(productsList);
     } catch (error: any) {
-      console.error("[ROUTE] GET /api/tours failed:", error?.message, error?.code);
-      res.status(500).json({ error: "Failed to fetch tours" });
+      console.error("[ROUTE] GET /api/products failed:", error?.message, error?.code);
+      res.status(500).json({ error: "Failed to fetch products" });
     }
   });
 
-  app.get("/api/tours/:id", async (req, res) => {
+  app.get("/api/products/:id", async (req, res) => {
     try {
-      const tour = await storage.getTour(req.params.id);
-      if (!tour) return res.status(404).json({ error: "Tour not found" });
+      const product = await storage.getProduct(req.params.id);
+      if (!product) return res.status(404).json({ error: "Product not found" });
       // Include product-specific addons — failure must not break the whole endpoint
-      res.json({ ...tour, addons: [] });
+      res.json({ ...product, addons: [] });
     } catch (error: any) {
-      console.error("[ROUTE] GET /api/tours/:id failed:", error?.message, error?.code);
-      res.status(500).json({ error: "Failed to fetch tour" });
+      console.error("[ROUTE] GET /api/products/:id failed:", error?.message, error?.code);
+      res.status(500).json({ error: "Failed to fetch product" });
     }
   });
 
@@ -771,18 +771,7 @@ ${allPages.map(p => `  <url>
     }
   });
 
-  // Reviews — works for tours, transfers AND vehicles (all share the tours table)
-  app.get("/api/tours/:id/reviews", async (req, res) => {
-    try {
-      const reviews = await storage.getProductReviews(req.params.id);
-      res.json(reviews);
-    } catch (error: any) {
-      console.error("[ROUTE] GET reviews failed:", error?.message);
-      res.status(500).json({ error: "Failed to fetch reviews." });
-    }
-  });
-
-  // Semantic alias — same handler, cleaner URL for transfers/vehicles
+  // Reviews — works for products, transfers AND vehicles (all share the products table)
   app.get("/api/products/:id/reviews", async (req, res) => {
     try {
       const reviews = await storage.getProductReviews(req.params.id);
@@ -853,7 +842,7 @@ ${allPages.map(p => `  <url>
     }
   });
 
-  app.post("/api/tours", requireAdmin, async (req, res) => {
+  app.post("/api/products", requireAdmin, async (req, res) => {
     try {
       const body = req.body;
       // Ensure adultPriceCents is set — derive from price string if missing
@@ -867,16 +856,16 @@ ${allPages.map(p => `  <url>
         const match = childStr.match(/[\d,]+(\.\d+)?/);
         body.childPriceCents = match ? Math.round(parseFloat(match[0].replace(/,/g, "")) * 100) : 0;
       }
-      const validatedData = insertTourSchema.parse(body);
-      const tour = await storage.createTour(validatedData);
-      res.status(201).json(tour);
+      const validatedData = insertProductSchema.parse(body);
+      const product = await storage.createProduct(validatedData);
+      res.status(201).json(product);
     } catch (error) {
-      console.error("[ROUTE] POST /api/tours Error:", error);
-      res.status(400).json({ error: "Invalid tour data" });
+      console.error("[ROUTE] POST /api/products Error:", error);
+      res.status(400).json({ error: "Invalid product data" });
     }
   });
 
-  app.put("/api/tours/:id", requireAdmin, async (req, res) => {
+  app.put("/api/products/:id", requireAdmin, async (req, res) => {
     try {
       const { id, ...rawData } = req.body;
 
@@ -900,21 +889,21 @@ ${allPages.map(p => `  <url>
         const match = String(updateData.childPrice || "0").match(/[\d,]+(\.\d+)?/);
         updateData.childPriceCents = match ? Math.round(parseFloat(match[0].replace(/,/g, "")) * 100) : 0;
       }
-      const tour = await storage.updateTour(req.params.id, updateData);
-      res.json(tour);
+      const product = await storage.updateProduct(req.params.id, updateData);
+      res.json(product);
     } catch (error) {
-      console.error("[ROUTE] PUT /api/tours/:id Error:", error);
-      res.status(400).json({ error: "Failed to update tour" });
+      console.error("[ROUTE] PUT /api/products/:id Error:", error);
+      res.status(400).json({ error: "Failed to update product" });
     }
   });
 
-  app.delete("/api/tours/:id", requireAdmin, async (req, res) => {
+  app.delete("/api/products/:id", requireAdmin, async (req, res) => {
     const id = req.params.id;
     const force = req.query.force === "true";
     try {
-      // Check if tour exists
-      const tour = await storage.getTour(id);
-      if (!tour) return res.status(404).json({ error: "Product not found" });
+      // Check if product exists
+      const product = await storage.getProduct(id);
+      if (!product) return res.status(404).json({ error: "Product not found" });
 
       if (force) {
         // Hard-delete: cascade-wipe all dependents first (pre-launch / test data only)
@@ -931,7 +920,7 @@ ${allPages.map(p => `  <url>
         await db.execute(sql`DELETE FROM booking_items WHERE booking_id IN (SELECT id FROM bookings WHERE tour_id = ${id})`);
         await db.execute(sql`DELETE FROM payments WHERE booking_id IN (SELECT id FROM bookings WHERE tour_id = ${id})`);
         await db.execute(sql`DELETE FROM bookings WHERE tour_id = ${id}`);
-        await storage.deleteTour(id);
+        await storage.deleteProduct(id);
         return res.json({ message: "Product permanently deleted", deleted: true });
       }
 
@@ -943,7 +932,7 @@ ${allPages.map(p => `  <url>
 
       if (instances > 0 || bkgs > 0) {
         // Has live data — soft-delete only (hide from storefront)
-        await storage.updateTour(id, { isActive: false } as any);
+        await storage.updateProduct(id, { isActive: false } as any);
         return res.json({
           message: "Product hidden from storefront (has linked bookings or schedule — use force delete to permanently remove)",
           softDeleted: true,
@@ -956,10 +945,10 @@ ${allPages.map(p => `  <url>
       await db.execute(sql`DELETE FROM pricing_versions WHERE product_id = ${id}`);
       await db.execute(sql`DELETE FROM product_blackout_dates WHERE product_id = ${id}`);
       await db.execute(sql`DELETE FROM resources WHERE product_id = ${id}`);
-      await storage.deleteTour(id);
+      await storage.deleteProduct(id);
       res.json({ message: "Product deleted successfully", deleted: true });
     } catch (error) {
-      console.error("[ROUTE] DELETE /api/tours/:id Error:", error);
+      console.error("[ROUTE] DELETE /api/products/:id Error:", error);
       res.status(500).json({ error: "Failed to delete product" });
     }
   });
@@ -1108,7 +1097,7 @@ ${allPages.map(p => `  <url>
   // Vehicles API
   app.get("/api/vehicles", async (_req, res) => {
     try {
-      const allTours = await storage.getTours();
+      const allTours = await storage.getProducts();
       res.json(allTours.filter(t => t.category === "vehicle"));
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch vehicles" });
@@ -1117,7 +1106,7 @@ ${allPages.map(p => `  <url>
 
   app.get("/api/vehicles/:id", async (req, res) => {
     try {
-      const tour = await storage.getTour(req.params.id);
+      const tour = await storage.getProduct(req.params.id);
       if (!tour || tour.category !== "vehicle") return res.status(404).json({ error: "Vehicle not found" });
       res.json(tour);
     } catch (error) {
@@ -1258,7 +1247,7 @@ ${allPages.map(p => `  <url>
         }
         return str;
       };
-      const csvHeader = "ID,Customer,Tour,Date,Amount,Status,Guests\n";
+      const csvHeader = "ID,Customer,Product,Date,Amount,Status,Guests\n";
       const csvRows = bookings.map((b: Booking) =>
         [b.id, b.customerName, b.tourName, b.date, b.amount, b.status, b.guests].map(escapeCSV).join(',')
       ).join("\n");
@@ -1757,7 +1746,7 @@ ${allPages.map(p => `  <url>
 
       const appUrlSetting = await storage.getSiteSetting("app_url");
       const appUrl = ((typeof appUrlSetting?.value === "string" ? appUrlSetting.value : "") ||
-        process.env.APP_URL || "https://acetours.vu").replace(/\/$/, "");
+        process.env.APP_URL || "https://aceproducts.vu").replace(/\/$/, "");
       const shortRef = booking.id.replace(/^book_/i, "").replace(/-/g, "").slice(0, 8).toUpperCase();
       // QR payload: the manage-booking deep-link — scannable by the tour guide or guest
       const qrData = `${appUrl}/manage-booking?ref=${booking.id}`;
@@ -1970,8 +1959,8 @@ ${allPages.map(p => `  <url>
         try {
           const bookingItems = await storage.getBookingItems(booking.id);
           const firstItem = bookingItems[0];
-          const tourData = firstItem ? await storage.getTour(firstItem.productId) : null;
-          const tourInfo = tourData || { title: 'Tour/Transfer Booking' };
+          const tourData = firstItem ? await storage.getProduct(firstItem.productId) : null;
+          const tourInfo = tourData || { title: 'Product/Transfer Booking' };
 
           const emailBooking = {
             ...booking,

@@ -12,7 +12,7 @@ import { useCurrency } from "@/lib/currency-context";
 import { type ProductCategory, formatPriceDisplay } from "@/lib/product.types";
 import { cloudinaryOpt } from "@/components/seo";
 
-interface TourProps {
+export interface ProductRouteProps {
   id: string;
   title: string;
   price: string;   // Deprecated, for fallback
@@ -27,7 +27,7 @@ interface TourProps {
   contactForPrice?: boolean;
 }
 
-export function TourCard({ tour, index }: { tour: TourProps; index: number }) {
+export function TourCard({ tour, index }: { tour: ProductRouteProps; index: number }) {
   const [showQuickView, setShowQuickView] = useState(false);
   const { t } = useTranslation();
   const { currency } = useCurrency();
@@ -91,7 +91,7 @@ export function TourCard({ tour, index }: { tour: TourProps; index: number }) {
 
           <CardContent className="flex-grow">
             <ul className="space-y-2 mt-2">
-              {Array.isArray(tour.description) ? tour.description.map((item, i) => (
+              {Array.isArray(tour.description) ? tour.description.map((item: string, i: number) => (
                 <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
                   <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                   <span>{item}</span>

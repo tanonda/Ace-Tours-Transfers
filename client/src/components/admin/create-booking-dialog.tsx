@@ -11,10 +11,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState, useEffect } from "react";
-import type { Booking, InsertBooking, Tour } from "@shared/schema";
+import type { Booking, InsertBooking, Product } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
-import { createBooking, fetchTours } from "@/lib/api"; // Import fetchTours
+import { createBooking, fetchProducts } from "@/lib/api"; // Import fetchProducts
 import { Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -51,14 +51,13 @@ export function CreateBookingDialog({ open, onOpenChange, onSuccess }: CreateBoo
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: allPackages, isLoading: isLoadingPackages } = useQuery<Tour[]>({
+  const { data: allPackages, isLoading: isLoadingPackages } = useQuery<Product[]>({
     queryKey: ["allPackages"],
-    queryFn: fetchTours,
+    queryFn: fetchProducts,
   });
 
-  const toursData = allPackages?.filter(p => p.category === "tour") || [];
-  const transfersData = allPackages?.filter(p => p.category === "transfer") || [];
-
+  const toursData = allPackages?.filter((p: Product) => p.category === "tour") || [];
+  const transfersData = allPackages?.filter((p: Product) => p.category === "transfer") || [];
 
   const [formData, setFormData] = useState<CreateBookingFormData>({
     customerName: "",
@@ -113,7 +112,7 @@ export function CreateBookingDialog({ open, onOpenChange, onSuccess }: CreateBoo
 
   const handleSave = () => {
     const selectedTour = allPackages?.find(
-      (item) => item.title === formData.tourName
+      (item: Product) => item.title === formData.tourName
     );
 
     if (!selectedTour) {
@@ -150,7 +149,7 @@ export function CreateBookingDialog({ open, onOpenChange, onSuccess }: CreateBoo
 
   const handleTourNameChange = (value: string) => {
     const selectedPackage = allPackages?.find(
-      (item) => item.title === value
+      (item: Product) => item.title === value
     );
 
     setFormData(prev => {
@@ -167,7 +166,7 @@ export function CreateBookingDialog({ open, onOpenChange, onSuccess }: CreateBoo
   };
 
   const handlePaxChange = (field: 'adultPax' | 'childPax' | 'infantPax' | 'petPax', value: number) => {
-    const selectedPackage = allPackages?.find(item => item.title === formData.tourName);
+    const selectedPackage = allPackages?.find((item: Product) => item.title === formData.tourName);
     const basePrice = selectedPackage?.price || "0.00";
 
     setFormData(prev => {
@@ -226,10 +225,10 @@ export function CreateBookingDialog({ open, onOpenChange, onSuccess }: CreateBoo
                   <SelectItem value="loading" disabled>Loading packages...</SelectItem>
                 ) : (
                   <>
-                    {toursData.map((tour) => (
+                    {toursData.map((tour: Product) => (
                       <SelectItem key={tour.id} value={tour.title}>{tour.title}</SelectItem>
                     ))}
-                    {transfersData.map((transfer) => (
+                    {transfersData.map((transfer: Product) => (
                       <SelectItem key={transfer.id} value={transfer.title}>{transfer.title}</SelectItem>
                     ))}
                   </>

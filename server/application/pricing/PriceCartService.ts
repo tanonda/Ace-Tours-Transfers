@@ -17,7 +17,7 @@ export class PriceCartService {
     items: { productId: string; adultPax: number; childPax: number; date?: string; quantity?: number; addonIds?: string[] }[]
   ): Promise<PriceSnapshot> {
     const pricedItems = await Promise.all(items.map(async item => {
-      const product = await this.storage.getTour(item.productId);
+      const product = await this.storage.getProduct(item.productId);
       if (!product) {
         throw new Error(`Product ${item.productId} not found`);
       }

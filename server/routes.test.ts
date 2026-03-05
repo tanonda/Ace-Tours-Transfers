@@ -13,8 +13,8 @@ let app: Express;
 vi.mock('./storage.js', () => {
     return {
         storage: {
-            getTours: vi.fn(),
-            getTour: vi.fn(),
+            getProducts: vi.fn(),
+            getProduct: vi.fn(),
             getSiteSettings: vi.fn().mockResolvedValue([]),
         },
     };
@@ -59,7 +59,7 @@ describe('API Routes', () => {
 
         it('GET /api/settings should return public site settings from mocked storage', async () => {
             // Arrange
-            const mockSettings = [{ key: 'contact_email', value: 'hello@acetours.vu' }];
+            const mockSettings = [{ key: 'contact_email', value: 'hello@aceproducts.vu' }];
             vi.mocked(storage.getSiteSettings).mockResolvedValue(mockSettings as any);
 
             // Act
@@ -72,43 +72,43 @@ describe('API Routes', () => {
     });
 
     describe('Product Endpoints', () => {
-        it('GET /api/tours should return a list of active tours', async () => {
+        it('GET /api/products should return a list of active tours', async () => {
             // Arrange
             const mockTours = [
                 { id: 't1', title: 'Test Tour', shortDescription: 'Desc', priceCents: 10000 },
             ];
-            vi.mocked(storage.getTours).mockResolvedValue(mockTours as any);
+            vi.mocked(storage.getProducts).mockResolvedValue(mockTours as any);
 
             // Act
-            const res = await request(app).get('/api/tours');
+            const res = await request(app).get('/api/products');
 
             // Assert
             expect(res.status).toBe(200);
-            // Because /api/tours maps responses heavily, it might wrap it or return partials
+            // Because /api/products maps responses heavily, it might wrap it or return partials
             expect(Array.isArray(res.body)).toBe(true);
-            expect(storage.getTours).toHaveBeenCalled();
+            expect(storage.getProducts).toHaveBeenCalled();
         });
 
-        it('GET /api/tours/:id should return a specific tour', async () => {
+        it('GET /api/products/:id should return a specific tour', async () => {
             // Arrange
             const mockTour = { id: 't1', title: 'Specific Tour' };
-            vi.mocked(storage.getTour).mockResolvedValue(mockTour as any);
+            vi.mocked(storage.getProduct).mockResolvedValue(mockTour as any);
 
             // Act
-            const res = await request(app).get('/api/tours/t1');
+            const res = await request(app).get('/api/products/t1');
 
             // Assert
             expect(res.status).toBe(200);
             expect(res.body).toEqual(mockTour);
-            expect(storage.getTour).toHaveBeenCalledWith('t1');
+            expect(storage.getProduct).toHaveBeenCalledWith('t1');
         });
 
-        it('GET /api/tours/:id should return 404 for missing tour', async () => {
+        it('GET /api/products/:id should return 404 for missing tour', async () => {
             // Arrange
-            vi.mocked(storage.getTour).mockResolvedValue(undefined as any);
+            vi.mocked(storage.getProduct).mockResolvedValue(undefined as any);
 
             // Act
-            const res = await request(app).get('/api/tours/not-found');
+            const res = await request(app).get('/api/products/not-found');
 
             // Assert
             expect(res.status).toBe(404);

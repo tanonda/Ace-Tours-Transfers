@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { fetchTours, fetchBlackoutDates, createBlackoutDate, deleteBlackoutDate } from "@/lib/api";
+import { fetchProducts, fetchBlackoutDates, createBlackoutDate, deleteBlackoutDate } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { Ban, Plus, Trash2, AlertTriangle, CalendarOff } from "lucide-react";
 
@@ -21,7 +21,7 @@ export default function AdminBlackouts() {
   const [reason, setReason] = useState<string>("");
   const [isCreating, setIsCreating] = useState(false);
 
-  const { data: tours = [] } = useQuery({ queryKey: ["/api/tours"], queryFn: fetchTours });
+  const { data: products = [] } = useQuery({ queryKey: ["/api/products"], queryFn: fetchProducts });
 
   const { data: blackouts = [] } = useQuery({
     queryKey: ["blackouts", selectedProductId],
@@ -58,7 +58,7 @@ export default function AdminBlackouts() {
   };
 
   // Count blackouts per product
-  const productBlackoutCounts = tours.reduce((acc: Record<string, number>, t: any) => {
+  const productBlackoutCounts = products.reduce((acc: Record<string, number>, t: any) => {
     acc[t.id] = 0;
     return acc;
   }, {});
@@ -101,7 +101,7 @@ export default function AdminBlackouts() {
                     <SelectValue placeholder="Select a product…" />
                   </SelectTrigger>
                   <SelectContent>
-                    {tours.map((t: any) => (
+                    {products.map((t: any) => (
                       <SelectItem key={t.id} value={t.id}>{t.title || t.name || t.id}</SelectItem>
                     ))}
                   </SelectContent>
@@ -155,7 +155,7 @@ export default function AdminBlackouts() {
                   <SelectValue placeholder="Select product to view…" />
                 </SelectTrigger>
                 <SelectContent>
-                  {tours.map((t: any) => (
+                  {products.map((t: any) => (
                     <SelectItem key={t.id} value={t.id}>{t.title || t.name || t.id}</SelectItem>
                   ))}
                 </SelectContent>
@@ -228,7 +228,7 @@ export default function AdminBlackouts() {
                   blackouts.map((b: any) => (
                     <TableRow key={b.id}>
                       <TableCell className="font-medium text-sm">
-                        {tours.find((t: any) => t.id === b.productId)?.title || b.productId}
+                        {products.find((t: any) => t.id === b.productId)?.title || b.productId}
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 font-medium">

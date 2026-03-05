@@ -1,6 +1,6 @@
 import "dotenv/config";
 import { storage } from "./storage.js";
-import { Tour } from "../shared/schema.js";
+import { Product } from "../shared/schema.js";
 
 async function updateToursAndTransfers() {
     console.log("Updating Tours and Transfers data...");
@@ -8,7 +8,7 @@ async function updateToursAndTransfers() {
     const updates = [
         // TOURS
         {
-            title: "Efate Scenic Tour",
+            title: "Efate Scenic Product",
             image: "https://res.cloudinary.com/dwro1dh5q/image/upload/v1765064618/ace-tours-assets/tour_scenic_efate.jpg",
             duration: "8am to 3pm",
             minPax: "Min 10-14 pax",
@@ -23,14 +23,14 @@ async function updateToursAndTransfers() {
             ]
         },
         {
-            title: "Roots & Routes Tour",
+            title: "Roots & Routes Product",
             image: "https://res.cloudinary.com/dwro1dh5q/image/upload/v1765064621/ace-tours-assets/tour_cultural_roots.jpg",
             duration: "4-5 Hours",
             minPax: "10-14 pax",
             description: [
                 "A taste for custom & tradition",
-                "Cultural Village Tour & Experience",
-                "Kava Tasting & Endemic Plant Tour (El Manaro Nakamal)",
+                "Cultural Village Product & Experience",
+                "Kava Tasting & Endemic Plant Product (El Manaro Nakamal)",
                 "Cultural Centre Visit",
                 "Light refreshments provided",
                 "Price includes entrance fees"
@@ -106,12 +106,12 @@ async function updateToursAndTransfers() {
         }
     ];
 
-    const existingTours = await storage.getTours();
+    const existingTours = await storage.getProducts();
 
     for (const update of updates) {
         // Find by title (or oldTitle)
         const targetTitle = 'oldTitle' in update ? update.oldTitle : update.title;
-        const tour = existingTours.find((t: Tour) => t.title === targetTitle || t.title === (update as any).newTitle);
+        const tour = existingTours.find((t: Product) => t.title === targetTitle || t.title === (update as any).newTitle);
 
         if (tour) {
             console.log(`Updating ${tour.title}...`);
@@ -129,10 +129,10 @@ async function updateToursAndTransfers() {
                 updateData.childPrice = update.childPrice;
             }
 
-            await storage.updateTour(tour.id, updateData);
+            await storage.updateProduct(tour.id, updateData);
             console.log(`✓ Updated ${updateData.title || tour.title}`);
         } else {
-            console.log(`Tour/Transfer not found: ${targetTitle}. Creating new...`);
+            console.log(`Product/Transfer not found: ${targetTitle}. Creating new...`);
             // If not found, create (using newTitle if available)
             const createData: any = {
                 title: ('newTitle' in update) ? update.newTitle : update.title,
@@ -146,7 +146,7 @@ async function updateToursAndTransfers() {
             // Add defaults if missing in update object
             if (!createData.price) createData.price = "Contact for price";
 
-            await storage.createTour(createData);
+            await storage.createProduct(createData);
             console.log(`✓ Created ${createData.title}`);
         }
     }

@@ -1,7 +1,7 @@
 // server/domain/pricing/PriceResolver.ts
 
 import { IStorage } from '../../storage.js';
-import { Tour } from '../../../shared/schema.js';
+import { Product } from '../../../shared/schema.js';
 import { PricingEngine, TourRate, formatVUVInCurrency } from './PricingEngine.js';
 
 /**

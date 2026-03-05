@@ -8,11 +8,12 @@ import { motion } from "framer-motion";
 import { CheckCircle, MapPin, Shield, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
-import { fetchTours } from "@/lib/api";
+import { fetchProducts } from "@/lib/api";
 import { useTranslation } from "react-i18next";
 import React, { useMemo } from "react";
 import { useCmsText } from "@/hooks/use-cms-text";
 import { useCMS } from "@/lib/cms-context";
+import type { Product } from "@shared/schema";
 
 // Using Cloudinary URL instead of local import
 const aboutImg = "https://res.cloudinary.com/dwro1dh5q/image/upload/v1764939968/ace-tours-stock/1764939966139_vanuatu_rarru_waterf_a12f619f.jpg.jpg";
@@ -23,13 +24,13 @@ export default function Home() {
   const { isBlockEnabled } = useCMS();
   const showVehicleHire = isBlockEnabled('vehicle-hire');
   const { data: allTours = [] } = useQuery({
-    queryKey: ["tours"],
-    queryFn: fetchTours,
+    queryKey: ["products"],
+    queryFn: fetchProducts,
   });
 
   // Deduplicate tours by normalized title
   const uniqueTours = useMemo(() => {
-    return allTours.reduce<typeof allTours>((acc, current) => {
+    return allTours.reduce<Product[]>((acc: Product[], current: Product) => {
       // Skip test data with safety checks
       if (!current?.title) return acc;
       if (current.isActive === false) return acc;
@@ -51,7 +52,7 @@ export default function Home() {
       const normalize = (t: string) => t.replace(/\s+Package$/i, "").trim();
       const normalizedTitle = normalize(current.title);
 
-      const existingIndex = acc.findIndex(item => {
+      const existingIndex = acc.findIndex((item: any) => {
         if (!item?.title) return false;
         return normalize(item.title) === normalizedTitle;
       });
@@ -63,9 +64,9 @@ export default function Home() {
     }, []);
   }, [allTours]);
 
-  const toursList = useMemo(() => uniqueTours.filter(t => t.category === "tour"), [uniqueTours]);
-  const transfers = useMemo(() => uniqueTours.filter(t => t.category === "transfer"), [uniqueTours]);
-  const vehicles = useMemo(() => uniqueTours.filter(t => t.category === "vehicle"), [uniqueTours]);
+  const toursList = useMemo(() => uniqueTours.filter((t: Product) => t.category === "tour"), [uniqueTours]);
+  const transfers = useMemo(() => uniqueTours.filter((t: Product) => t.category === "transfer"), [uniqueTours]);
+  const vehicles = useMemo(() => uniqueTours.filter((t: Product) => t.category === "vehicle"), [uniqueTours]);
 
   return (
     <Layout>
@@ -192,7 +193,7 @@ export default function Home() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {toursList.map((tour, index) => (
+            {toursList.map((tour: any, index: number) => (
               <TourCard key={tour.id} tour={{ ...tour, category: tour.category as any }} index={index} />
             ))}
           </div>
@@ -212,7 +213,7 @@ export default function Home() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {transfers.map((transfer, index) => (
+            {transfers.map((transfer: any, index: number) => (
               <TourCard key={transfer.id} tour={{ ...transfer, category: transfer.category as any }} index={index} />
             ))}
           </div>
@@ -233,7 +234,7 @@ export default function Home() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {vehicles.slice(0, 3).map((vehicle, index) => (
+              {vehicles.slice(0, 3).map((vehicle: any, index: number) => (
                 <TourCard key={vehicle.id} tour={{ ...vehicle, category: vehicle.category as any }} index={index} />
               ))}
             </div>

@@ -1,21 +1,21 @@
 import { storage } from "./storage.js";
-import { Tour } from "../shared/schema.js";
+import { Product } from "../shared/schema.js";
 
 async function seedBookings() {
   console.log("Seeding sample bookings...");
 
   // Get the user and tours first
   const userJames = await storage.getUserByEmail("james@example.com");
-  const tours = await storage.getTours();
+  const toursList = await storage.getProducts();
 
   if (!userJames) {
     console.error("User james@example.com not found");
     return;
   }
 
-  const scenicTour = tours.find((t: Tour) => t.title.includes("Scenic"));
-  const airportTransfer = tours.find((t: Tour) => t.title.includes("Airport"));
-  const rootsTour = tours.find((t: Tour) => t.title.includes("Roots"));
+  const scenicTour = toursList.find((t: Product) => t.title.includes("Scenic"));
+  const airportTransfer = toursList.find((t: Product) => t.title.includes("Airport"));
+  const rootsTour = toursList.find((t: Product) => t.title.includes("Roots"));
 
   if (!scenicTour || !airportTransfer || !rootsTour) {
     console.error("Required tours not found");

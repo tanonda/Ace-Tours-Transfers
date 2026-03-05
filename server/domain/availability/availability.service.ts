@@ -5,7 +5,7 @@ import {
   InsertTourInstance,
   InsertAvailabilityHold,
   tourInstances,
-  tours,
+  products,
   availabilityHolds,
   bookings,
   resources
@@ -39,7 +39,7 @@ export class AvailabilityService {
    * Note: This is ADVISORY and not authoritative.
    */
   async checkAvailability(tourId: string, date: string, slot?: string, startTime?: string, endTime?: string): Promise<number> {
-    const product = await this.storage.getTour(tourId);
+    const product = await this.storage.getProduct(tourId);
     if (!product) return 0;
 
     const requestedInterval = getDefaultInterval(product.category, startTime, endTime);
@@ -84,14 +84,14 @@ export class AvailabilityService {
     pinnedResourceId?: string, // Phase 1: Support pinning a resource for multi-day consistency
     tx?: any // Phase 4: Allow passing transactional context
   ): Promise<AvailabilityHold> {
-    // Phase 4: Check blackout dates (applies to all product types: tours, transfers, vehicles)
+    // Phase 4: Check blackout dates (applies to all product types: products, transfers, vehicles)
     const isBlacked = await this.storage.isBlackedOut(tourId, date);
     if (isBlacked) {
       throw new Error(`This date (${date}) is not available for bookings (blackout period).`);
     }
 
     // Phase 1: Determine if this is a vehicle (asset-allocated) product
-    const product = await this.storage.getTour(tourId);
+    const product = await this.storage.getProduct(tourId);
     if (!product) throw new Error(`Product ${tourId} not found`);
     const isVehicle = product.category === 'vehicle';
 
@@ -537,11 +537,11 @@ export class AvailabilityService {
     // but the unique index on (tour_id, date, slot) will guard us.
     try {
       // Fetch the tour template to get default capacity
-      const [tour] = await tx.select().from(tours).where(eq(tours.id, tourId));
+      const [tour] = await tx.select().from(products).where(eq(products.id, tourId));
 
       // CRITICAL: Capacity must be explicitly configured - no silent defaults
       if (!tour) {
-        throw new Error(`Tour ${tourId} not found - cannot create tour instance`);
+        throw new Error(`Product ${tourId} not found - cannot create tour instance`);
       }
 
       // MED-8 FIX: Throw a descriptive error instead of silently creating capacity=0.
@@ -549,7 +549,7 @@ export class AvailabilityService {
       // with a confusing "Insufficient availability" message.
       if (tour.defaultCapacity === null || tour.defaultCapacity === undefined || tour.defaultCapacity <= 0) {
         throw new Error(
-          `Tour "${tour.title}" (${tourId}) has no default capacity configured. ` +
+          `Product "${tour.title}" (${tourId}) has no default capacity configured. ` +
           `Please set a defaultCapacity > 0 in the admin panel before accepting bookings for this product on ${date}.`
         );
       }

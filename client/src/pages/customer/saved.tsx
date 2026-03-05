@@ -2,12 +2,18 @@ import { DashboardLayout } from "@/components/dashboard-layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Star, Trash2 } from "lucide-react";
-import { tours } from "@/lib/data";
+import { fetchProducts } from "@/lib/api";
 import { Link } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 
 export default function CustomerSaved() {
   const { toast } = useToast();
+  const { data: products = [] } = useQuery({
+    queryKey: ["allProducts"],
+    queryFn: fetchProducts,
+  });
+
   return (
     <DashboardLayout type="customer">
       <div className="space-y-6">
@@ -17,13 +23,13 @@ export default function CustomerSaved() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {tours.map((tour, index) => (
+          {products.map((tour: any, index: number) => (
             <Card key={index} className="overflow-hidden flex flex-col">
               <div className="h-48 relative">
                 <img src={tour.image} alt={tour.title} className="w-full h-full object-cover absolute inset-0" />
-                <Button 
-                  variant="destructive" 
-                  size="icon" 
+                <Button
+                  variant="destructive"
+                  size="icon"
                   className="absolute top-3 right-3 h-8 w-8 rounded-full opacity-90 hover:opacity-100"
                   onClick={() => toast({ title: "Removed from Saved", description: `${tour.title} has been removed from your wishlist.` })}
                 >

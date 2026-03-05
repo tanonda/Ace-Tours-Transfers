@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { fetchTours, fetchPricingVersions, createPricingVersion } from "@/lib/api";
+import { fetchProducts, fetchPricingVersions, createPricingVersion } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { DollarSign, Plus, TrendingUp, Info, Star, Package, User } from "lucide-react";
 import { useCurrency, CURRENCIES, formatInCurrency } from "@/lib/currency-context";
@@ -64,7 +64,7 @@ export default function AdminPricing() {
   const [petPrice, setPetPrice] = useState<string>("");
   const [isCreating, setIsCreating] = useState(false);
 
-  const { data: tours = [] } = useQuery({ queryKey: ["/api/tours"], queryFn: fetchTours });
+  const { data: products = [] } = useQuery({ queryKey: ["/api/products"], queryFn: fetchProducts });
 
   const { data: versions = [] } = useQuery({
     queryKey: ["pricingVersions", viewProductId],
@@ -73,12 +73,12 @@ export default function AdminPricing() {
   });
 
   // Auto-detect pricing type for selected product
-  const selectedTour = tours.find((t: any) => t.id === productId) as any;
+  const selectedTour = products.find((t: any) => t.id === productId) as any;
   const autoDetectedType: PricingType = selectedTour?.pricingType ?? "per_person";
 
   const handleProductChange = (id: string) => {
     setProductId(id);
-    const tour = tours.find((t: any) => t.id === id) as any;
+    const tour = products.find((t: any) => t.id === id) as any;
     if (tour?.pricingType) setPricingType(tour.pricingType);
   };
 
@@ -200,7 +200,7 @@ export default function AdminPricing() {
                     <SelectValue placeholder="Select a product…" />
                   </SelectTrigger>
                   <SelectContent>
-                    {tours.map((t: any) => (
+                    {products.map((t: any) => (
                       <SelectItem key={t.id} value={t.id}>
                         {t.title || t.id}
                         {t.pricingType === "group" && (
@@ -455,7 +455,7 @@ export default function AdminPricing() {
                   <SelectValue placeholder="Select product to view…" />
                 </SelectTrigger>
                 <SelectContent>
-                  {tours.map((t: any) => (
+                  {products.map((t: any) => (
                     <SelectItem key={t.id} value={t.id}>{t.title || t.id}</SelectItem>
                   ))}
                 </SelectContent>
@@ -530,7 +530,7 @@ export default function AdminPricing() {
             <CardTitle>All Pricing Versions</CardTitle>
             {viewProductId && (
               <CardDescription>
-                Showing versions for: <strong>{tours.find((t: any) => t.id === viewProductId)?.title || viewProductId}</strong>
+                Showing versions for: <strong>{products.find((t: any) => t.id === viewProductId)?.title || viewProductId}</strong>
               </CardDescription>
             )}
           </CardHeader>
@@ -571,7 +571,7 @@ export default function AdminPricing() {
                       return (
                         <TableRow key={v.id} className={isActive ? "bg-green-50/50" : ""}>
                           <TableCell className="font-medium text-sm">
-                            {tours.find((t: any) => t.id === v.productId)?.title || v.productId}
+                            {products.find((t: any) => t.id === v.productId)?.title || v.productId}
                           </TableCell>
                           <TableCell className="font-mono text-sm">{v.effectiveFrom}</TableCell>
                           <TableCell>

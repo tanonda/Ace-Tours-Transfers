@@ -251,7 +251,7 @@ class MetricsService {
 
     async getMetrics(): Promise<SystemMetrics> {
         const stats = await storage.getBookingStats();
-        const tours = await storage.getTours();
+        const products = await storage.getProducts();
         const today = new Date().toISOString().split('T')[0];
 
         const utilization: UtilizationMetric[] = [];
@@ -259,7 +259,7 @@ class MetricsService {
         const criticalUtilization: UtilizationMetric[] = [];
 
         // Calculate utilization for each tour
-        for (const tour of tours) {
+        for (const tour of products) {
             try {
                 const instances = await storage.getTourInstances(tour.id, today);
                 if (instances && instances.length > 0) {

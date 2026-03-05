@@ -1,6 +1,6 @@
 import "dotenv/config";
 import { db } from "./db.js";
-import { users as usersTable, tours as toursTable, paymentGateways } from "../shared/schema.js";
+import { users as usersTable, products as toursTable, paymentGateways } from "../shared/schema.js";
 import { storage } from "./storage.js";
 import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
@@ -9,7 +9,7 @@ async function main() {
   console.log("Seeding database...");
 
   // 1. Seed Admin User
-  const adminEmail = "admin@acetours.vu";
+  const adminEmail = "admin@aceproducts.vu";
   const existingAdmin = await db.select().from(usersTable).where(eq(usersTable.email, adminEmail)).limit(1);
 
   if (existingAdmin.length === 0) {
@@ -30,7 +30,7 @@ async function main() {
   const demoServices = [
     // Tours
     {
-      title: "Efate Scenic Tour",
+      title: "Efate Scenic Product",
       price: "$120 / adult",
       childPrice: "$60 / child (<12)",
       duration: "8am to 3pm",
@@ -49,7 +49,7 @@ async function main() {
       defaultCapacity: 20
     },
     {
-      title: "Roots & Routes Tour",
+      title: "Roots & Routes Product",
       price: "$100 / person",
       childPrice: null,
       duration: "4-5 Hours",
@@ -57,8 +57,8 @@ async function main() {
       image: "/attached_assets/stock_images/vanuatu_cultural_v_49e2db39.jpg",
       description: [
         "A taste for custom & tradition",
-        "Cultural Village Tour & Experience",
-        "Kava Tasting & Endemic Plant Tour (El Manaro Nakamal)",
+        "Cultural Village Product & Experience",
+        "Kava Tasting & Endemic Plant Product (El Manaro Nakamal)",
         "Cultural Centre Visit",
         "Light refreshments provided",
         "Price includes entrance fees"
@@ -325,7 +325,7 @@ async function main() {
   for (const service of demoServices) {
     const existing = await db.select().from(toursTable).where(eq(toursTable.title, service.title)).limit(1);
     if (existing.length === 0) {
-      await storage.createTour(service as any);
+      await storage.createProduct(service as any);
       console.log(`Created service: ${service.title}`);
     } else {
       console.log(`Service already exists: ${service.title}`);

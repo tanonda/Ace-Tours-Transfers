@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchTours, createTour, updateTour, fetchBookings } from "@/lib/api";
+import { fetchProducts, createProduct, updateProduct, fetchBookings } from "@/lib/api";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { DashboardLayout } from "@/components/dashboard-layout";
@@ -18,13 +18,13 @@ import { Badge } from "@/components/ui/badge";
 import { formatPrice } from "@/lib/product.types";
 import { apiRequest } from "@/lib/queryClient";
 
-async function deleteTourAdvanced(id: string, force = false): Promise<{
+async function deleteProductAdvanced(id: string, force = false): Promise<{
   deleted?: boolean;
   softDeleted?: boolean;
   dependents?: { tourInstances: number; bookings: number };
   message: string;
 }> {
-  const url = force ? `/api/tours/${id}?force=true` : `/api/tours/${id}`;
+  const url = force ? `/api/products/${id}?force=true` : `/api/products/${id}`;
   const res = await apiRequest("DELETE", url);
   return res.json();
 }
@@ -47,13 +47,13 @@ export default function AdminProducts() {
   const [viewMode, setViewMode] = useState<'grid' | 'list' | 'table'>('table');
   const [showInactive, setShowInactive] = useState(true);
 
-  const { data: tours = [], isLoading } = useQuery({ queryKey: ["tours"], queryFn: fetchTours });
+  const { data: products = [], isLoading } = useQuery({ queryKey: ["products"], queryFn: fetchProducts });
   const { data: bookings = [] } = useQuery({ queryKey: ["admin", "bookings"], queryFn: () => fetchBookings() });
 
   const createMutation = useMutation({
-    mutationFn: createTour,
+    mutationFn: createProduct,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tours"] });
+      queryClient.invalidateQueries({ queryKey: ["products"] });
       toast({ title: t("admin.tourCreated"), description: t("admin.tourCreatedDesc") });
       setIsDialogOpen(false);
     },
@@ -61,9 +61,9 @@ export default function AdminProducts() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) => updateTour(id, data),
+    mutationFn: ({ id, data }: { id: string; data: any }) => updateProduct(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tours"] });
+      queryClient.invalidateQueries({ queryKey: ["products"] });
       toast({ title: t("admin.tourUpdated"), description: t("admin.tourUpdatedDesc") });
       setIsDialogOpen(false);
       setSelectedTour(null);
@@ -77,8 +77,8 @@ export default function AdminProducts() {
     if (!deleteState.id) return;
     setIsDeleting(true);
     try {
-      const result = await deleteTourAdvanced(deleteState.id, force);
-      queryClient.invalidateQueries({ queryKey: ["tours"] });
+      const result = await deleteProductAdvanced(deleteState.id, force);
+      queryClient.invalidateQueries({ queryKey: ["products"] });
 
       if (result.softDeleted) {
         setDeleteState(prev => ({ ...prev, result }));
@@ -107,7 +107,7 @@ export default function AdminProducts() {
       for (const id of selectedItems) {
         await updateMutation.mutateAsync({ id, data: { isActive } });
       }
-      queryClient.invalidateQueries({ queryKey: ["tours"] });
+      queryClient.invalidateQueries({ queryKey: ["products"] });
       setSelectedItems([]);
       toast({ title: `Successfully ${isActive ? 'activated' : 'deactivated'} ${selectedItems.length} products.` });
     } catch (err: any) {
@@ -126,7 +126,7 @@ export default function AdminProducts() {
 
     try {
       for (const id of selectedItems) {
-        const result = await deleteTourAdvanced(id, false);
+        const result = await deleteProductAdvanced(id, false);
         if (result.softDeleted) {
           softDeletedCount++;
         } else {
@@ -134,7 +134,7 @@ export default function AdminProducts() {
         }
       }
 
-      queryClient.invalidateQueries({ queryKey: ["tours"] });
+      queryClient.invalidateQueries({ queryKey: ["products"] });
       setSelectedItems([]);
 
       if (softDeletedCount > 0) {
@@ -165,7 +165,7 @@ export default function AdminProducts() {
     }
   };
 
-  const filteredTours = tours.filter((tour: any) => {
+  const filteredTours = products.filter((tour: any) => {
     const matchesSearch = tour.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       tour.category.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = activeTab === "all" || tour.category === activeTab;
@@ -174,9 +174,9 @@ export default function AdminProducts() {
   });
 
   const tourStats = {
-    totalTours: tours.filter((t: any) => t.category === "tour").length,
-    totalTransfers: tours.filter((t: any) => t.category === "transfer").length,
-    totalVehicles: tours.filter((t: any) => t.category === "vehicle").length,
+    totalTours: products.filter((t: any) => t.category === "tour").length,
+    totalTransfers: products.filter((t: any) => t.category === "transfer").length,
+    totalVehicles: products.filter((t: any) => t.category === "vehicle").length,
     totalBookings: bookings.length,
     totalRevenueCents: bookings.reduce((sum: number, b: any) => sum + (b.totalAmountCents || 0), 0),
   };
@@ -196,7 +196,7 @@ export default function AdminProducts() {
 
         <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v as any); setSelectedItems([]); }} className="w-full">
           <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="all"><Package className="h-4 w-4 mr-1.5" /> All ({tours.length})</TabsTrigger>
+            <TabsTrigger value="all"><Package className="h-4 w-4 mr-1.5" /> All ({products.length})</TabsTrigger>
             <TabsTrigger value="tour"><Map className="h-4 w-4 mr-1.5" /> Tours ({tourStats.totalTours})</TabsTrigger>
             <TabsTrigger value="transfer"><Car className="h-4 w-4 mr-1.5" /> Transfers ({tourStats.totalTransfers})</TabsTrigger>
             <TabsTrigger value="vehicle"><LayoutGrid className="h-4 w-4 mr-1.5" /> Vehicles ({tourStats.totalVehicles})</TabsTrigger>

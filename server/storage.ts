@@ -1,6 +1,6 @@
 import {
   users,
-  tours,
+  products,
   bookings,
   contentBlocks,
   siteSettings,
@@ -21,8 +21,8 @@ import {
   capacityAuditLog,
   type User,
   type InsertUser,
-  type Tour,
-  type InsertTour,
+  type Product,
+  type InsertProduct,
   type Booking,
   type InsertBooking,
   type ContentBlock,
@@ -88,13 +88,13 @@ export interface IStorage {
   getUserByResetToken(token: string): Promise<User | undefined>;
   setUserResetToken(userId: string, token: string | null, expiry: Date | null): Promise<void>;
 
-  // Tour operations
-  getTours(): Promise<Tour[]>;
-  getTour(id: string): Promise<Tour | undefined>;
-  getTourByTitle(title: string): Promise<Tour | undefined>;
-  createTour(tour: InsertTour): Promise<Tour>;
-  updateTour(id: string, tour: Partial<InsertTour>): Promise<Tour>;
-  deleteTour(id: string): Promise<void>;
+  // Product operations
+  getProducts(): Promise<Product[]>;
+  getProduct(id: string): Promise<Product | undefined>;
+  getProductByTitle(title: string): Promise<Product | undefined>;
+  createProduct(tour: InsertProduct): Promise<Product>;
+  updateProduct(id: string, tour: Partial<InsertProduct>): Promise<Product>;
+  deleteProduct(id: string): Promise<void>;
 
   // Booking operations
   getBookings(includeArchived?: boolean): Promise<Booking[]>;
@@ -158,7 +158,7 @@ export interface IStorage {
   // Reviews
   createReview(review: InsertReview): Promise<Review>;
   getProductReviews(productId: string): Promise<any[]>;
-  getTourReviews(tourId: string): Promise<any[]>; // alias for backward compat
+  getProductReviews(tourId: string): Promise<any[]>; // alias for backward compat
   getUserReviews(userId: string): Promise<Review[]>;
   createGuestReview(data: { tourId: string; rating: number; comment?: string | null; guestName: string; guestEmail?: string | null; isGuest: boolean; status: string; }): Promise<any>;
   getAllReviews(): Promise<any[]>;
@@ -231,7 +231,7 @@ export interface IStorage {
   updateResource(id: string, data: Partial<InsertResource>): Promise<Resource>;
   deleteResource(id: string): Promise<void>;
 
-  // Blackout Dates (Phase 4 — tours, transfers, vehicles)
+  // Blackout Dates (Phase 4 — products, transfers, vehicles)
   getBlackoutDates(productId: string): Promise<BlackoutDate[]>;
   isBlackedOut(productId: string, date: string): Promise<boolean>;
   createBlackoutDate(data: InsertBlackoutDate): Promise<BlackoutDate>;
@@ -395,42 +395,42 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
-  // Tour operations
-  async getTours(): Promise<Tour[]> {
-    return this.withRetry(() => db.select().from(tours));
+  // Product operations
+  async getProducts(): Promise<Product[]> {
+    return this.withRetry(() => db.select().from(products));
   }
 
-  async getTour(id: string): Promise<Tour | undefined> {
+  async getProduct(id: string): Promise<Product | undefined> {
     return this.withRetry(async () => {
-      const [tour] = await db.select().from(tours).where(eq(tours.id, id));
+      const [tour] = await db.select().from(products).where(eq(products.id, id));
       return tour || undefined;
     });
   }
 
-  async getTourByTitle(title: string): Promise<Tour | undefined> {
-    const [tour] = await db.select().from(tours).where(eq(tours.title, title));
+  async getProductByTitle(title: string): Promise<Product | undefined> {
+    const [tour] = await db.select().from(products).where(eq(products.title, title));
     return tour || undefined;
   }
 
-  async createTour(insertTour: InsertTour): Promise<Tour> {
+  async createProduct(insertTour: InsertProduct): Promise<Product> {
     const [tour] = await db
-      .insert(tours)
+      .insert(products)
       .values(insertTour as any)
       .returning();
     return tour;
   }
 
-  async updateTour(id: string, updateData: Partial<InsertTour>): Promise<Tour> {
+  async updateProduct(id: string, updateData: Partial<InsertProduct>): Promise<Product> {
     const [tour] = await db
-      .update(tours)
+      .update(products)
       .set(updateData as any)
-      .where(eq(tours.id, id))
+      .where(eq(products.id, id))
       .returning();
     return tour;
   }
 
-  async deleteTour(id: string): Promise<void> {
-    await db.delete(tours).where(eq(tours.id, id));
+  async deleteProduct(id: string): Promise<void> {
+    await db.delete(products).where(eq(products.id, id));
   }
 
   // Booking operations
@@ -933,7 +933,7 @@ export class DatabaseStorage implements IStorage {
     return review;
   }
 
-  // Works for tours, transfers AND vehicles — all product types share the tours table
+  // Works for products, transfers AND vehicles — all product types share the tours table
   async getProductReviews(productId: string): Promise<any[]> {
     return this.withRetry(async () => {
       try {
@@ -1033,14 +1033,14 @@ export class DatabaseStorage implements IStorage {
             guestEmail: reviews.guestEmail,
             createdAt: reviews.createdAt,
             tourId: reviews.tourId,
-            tourTitle: tours.title,
-            tourCategory: tours.category,
+            tourTitle: products.title,
+            tourCategory: products.category,
             userId: reviews.userId,
             userName: users.name,
           })
           .from(reviews)
           .leftJoin(users, eq(reviews.userId, users.id))
-          .leftJoin(tours, eq(reviews.tourId, tours.id))
+          .leftJoin(products, eq(reviews.tourId, products.id))
           .orderBy(desc(reviews.createdAt));
 
         return rows.map(r => ({
@@ -1557,7 +1557,7 @@ export class DatabaseStorage implements IStorage {
     await db.delete(resources).where(eq(resources.id, id));
   }
 
-  // Blackout Dates (Phase 4 — tours, transfers, vehicles)
+  // Blackout Dates (Phase 4 — products, transfers, vehicles)
   async getBlackoutDates(productId: string): Promise<BlackoutDate[]> {
     return this.withRetry(() => db.select().from(productBlackoutDates).where(eq(productBlackoutDates.productId, productId)));
   }

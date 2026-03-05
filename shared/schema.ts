@@ -28,7 +28,7 @@ export const users = pgTable("users", {
   passwordResetTokenExpiry: timestamp("password_reset_token_expiry", { withTimezone: true }),
 });
 
-export const tours = pgTable("products", {
+export const products = pgTable("products", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   title: text("title").notNull(),
   price: text("price").notNull(), // DEPRECATED: use adultPriceCents
@@ -78,7 +78,7 @@ export const tours = pgTable("products", {
 
 export const tourInstances = pgTable("tour_instances", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  tourId: varchar("tour_id").notNull().references(() => tours.id),
+  tourId: varchar("tour_id").notNull().references(() => products.id),
   serviceDate: text("service_date").notNull(),
   timeSlot: text("time_slot"), // optional time slot
   startTime: text("start_time"), // HH:MM format, null = full day (Phase 2)
@@ -98,7 +98,7 @@ export const tourInstances = pgTable("tour_instances", {
 // Phase 1: Resources table for asset-allocated products (vehicles, specific transfer buses)
 export const resources = pgTable("resources", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  productId: varchar("product_id").notNull().references(() => tours.id),
+  productId: varchar("product_id").notNull().references(() => products.id),
   name: text("name").notNull(), // e.g. "Toyota Hilux #1", "Airport Bus A"
   seatCapacity: integer("seat_capacity").notNull(), // vehicle seats or bus capacity
   status: text("status").notNull().default("active"), // 'active', 'maintenance'
@@ -130,7 +130,7 @@ export const bookings = pgTable("bookings", {
   userId: varchar("user_id").references(() => users.id),
   bookingSessionId: text("booking_session_id").notNull().default(""), // Authoritative: links ALL holds for this booking
   idempotencyKey: varchar("idempotency_key").unique(), // Phase 6: prevents double-booking
-  tourId: varchar("tour_id").notNull().references(() => tours.id), // CRIT-3: Display-only, first item's product
+  tourId: varchar("tour_id").notNull().references(() => products.id), // CRIT-3: Display-only, first item's product
   tourInstanceId: varchar("tour_instance_id").references(() => tourInstances.id),
   holdId: varchar("hold_id").references(() => availabilityHolds.id), // CRIT-3: Display-only, first item's hold
   date: text("date").notNull(), // CRIT-3: Display-only, first item's date
@@ -221,7 +221,7 @@ export const paymentGateways = pgTable("payment_gateways", {
 export const wishlistItems = pgTable("wishlist_items", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id),
-  tourId: varchar("tour_id").notNull().references(() => tours.id),
+  tourId: varchar("tour_id").notNull().references(() => products.id),
   addedAt: timestamp("added_at").notNull().defaultNow(),
 });
 
@@ -340,7 +340,7 @@ export const paymentOverviews = pgTable("payment_overviews", {
 // Phase 4: Blackout dates per product (tours, transfers, vehicles)
 export const productBlackoutDates = pgTable("product_blackout_dates", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  productId: varchar("product_id").notNull().references(() => tours.id),
+  productId: varchar("product_id").notNull().references(() => products.id),
   date: text("date").notNull(),       // YYYY-MM-DD
   reason: text("reason"),
   createdBy: varchar("created_by").references(() => users.id),
@@ -352,7 +352,7 @@ export const productBlackoutDates = pgTable("product_blackout_dates", {
 // Phase 5: Pricing version history
 export const pricingVersions = pgTable("pricing_versions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  productId: varchar("product_id").notNull().references(() => tours.id),
+  productId: varchar("product_id").notNull().references(() => products.id),
   effectiveFrom: text("effective_from").notNull(), // YYYY-MM-DD
   adultPriceCents: integer("adult_price_cents").notNull().default(0),
   childPriceCents: integer("child_price_cents").notNull().default(0),
@@ -407,7 +407,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   bookings: many(bookings),
 }));
 
-export const toursRelations = relations(tours, ({ many }) => ({
+export const toursRelations = relations(products, ({ many }) => ({
   bookings: many(bookings),
   resources: many(resources),
   blackoutDates: many(productBlackoutDates),
@@ -415,9 +415,9 @@ export const toursRelations = relations(tours, ({ many }) => ({
 }));
 
 export const resourcesRelations = relations(resources, ({ one, many }) => ({
-  product: one(tours, {
+  product: one(products, {
     fields: [resources.productId],
-    references: [tours.id],
+    references: [products.id],
   }),
   holds: many(availabilityHolds),
 }));
@@ -427,9 +427,9 @@ export const bookingsRelations = relations(bookings, ({ one, many }) => ({
     fields: [bookings.userId],
     references: [users.id],
   }),
-  tour: one(tours, {
+  tour: one(products, {
     fields: [bookings.tourId],
-    references: [tours.id],
+    references: [products.id],
   }),
   tourInstance: one(tourInstances, {
     fields: [bookings.tourInstanceId],
@@ -452,9 +452,9 @@ export const bookingItemsRelations = relations(bookingItems, ({ one }) => ({
 }));
 
 export const tourInstancesRelations = relations(tourInstances, ({ one, many }) => ({
-  tour: one(tours, {
+  tour: one(products, {
     fields: [tourInstances.tourId],
-    references: [tours.id],
+    references: [products.id],
   }),
   bookings: many(bookings),
   holds: many(availabilityHolds),
@@ -488,9 +488,9 @@ export const availabilityHoldsRelations = relations(availabilityHolds, ({ one })
 }));
 
 export const productBlackoutDatesRelations = relations(productBlackoutDates, ({ one }) => ({
-  product: one(tours, {
+  product: one(products, {
     fields: [productBlackoutDates.productId],
-    references: [tours.id],
+    references: [products.id],
   }),
   creator: one(users, {
     fields: [productBlackoutDates.createdBy],
@@ -499,9 +499,9 @@ export const productBlackoutDatesRelations = relations(productBlackoutDates, ({ 
 }));
 
 export const pricingVersionsRelations = relations(pricingVersions, ({ one }) => ({
-  product: one(tours, {
+  product: one(products, {
     fields: [pricingVersions.productId],
-    references: [tours.id],
+    references: [products.id],
   }),
   creator: one(users, {
     fields: [pricingVersions.createdBy],
@@ -529,9 +529,9 @@ export const wishlistItemsRelations = relations(wishlistItems, ({ one }) => ({
     fields: [wishlistItems.userId],
     references: [users.id],
   }),
-  tour: one(tours, {
+  tour: one(products, {
     fields: [wishlistItems.tourId],
-    references: [tours.id],
+    references: [products.id],
   }),
 }));
 
@@ -556,7 +556,7 @@ export const adminInsertUserSchema = insertUserSchema.extend({
   role: z.enum(['admin', 'field_service', 'customer']).default('customer'),
 });
 
-export const insertTourSchema = createInsertSchema(tours).omit({
+export const insertProductSchema = createInsertSchema(products).omit({
   id: true,
 });
 
@@ -821,8 +821,8 @@ export const insertFeatureFlagSchema = createInsertSchema(featureFlags).omit({
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
-export type InsertTour = z.infer<typeof insertTourSchema>;
-export type Tour = typeof tours.$inferSelect;
+export type InsertProduct = z.infer<typeof insertProductSchema>;
+export type Product = typeof products.$inferSelect;
 export type InsertTourInstance = z.infer<typeof insertTourInstanceSchema>;
 export type TourInstance = typeof tourInstances.$inferSelect;
 export type InsertAvailabilityHold = z.infer<typeof insertAvailabilityHoldSchema>;
@@ -909,7 +909,7 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
 export const reviews = pgTable("reviews", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").references(() => users.id), // nullable — guests have no user account
-  tourId: varchar("tour_id").notNull().references(() => tours.id),
+  tourId: varchar("tour_id").notNull().references(() => products.id),
   bookingId: varchar("booking_id").references(() => bookings.id), // nullable — guests may not have a booking ref
   rating: integer("rating").notNull(), // 1 to 5
   comment: text("comment"),
@@ -928,9 +928,9 @@ export const reviewsRelations = relations(reviews, ({ one }) => ({
     fields: [reviews.userId],
     references: [users.id],
   }),
-  tour: one(tours, {
+  tour: one(products, {
     fields: [reviews.tourId],
-    references: [tours.id],
+    references: [products.id],
   }),
   booking: one(bookings, {
     fields: [reviews.bookingId],

@@ -94,12 +94,12 @@ async function migrateImages() {
 
     // 3. Update tours in database
     console.log("Updating tour images in database...");
-    const tours = await storage.getTours();
+    const productsList = await storage.getProducts();
 
-    for (const tour of tours) {
+    for (const tour of productsList) {
       if (tour.image && tour.image.startsWith('/attached_assets/') && imageMappings[tour.image]) {
         try {
-          await storage.updateTour(tour.id, { image: imageMappings[tour.image] });
+          await storage.updateProduct(tour.id, { image: imageMappings[tour.image] });
           console.log(`✓ Updated tour "${tour.title}" image to Cloudinary URL`);
         } catch (error) {
           console.error(`✗ Failed to update tour "${tour.title}":`, error);
@@ -116,7 +116,7 @@ async function migrateImages() {
 
       for (const content of cmsContents) {
         if (content.value && content.value.startsWith('/attached_assets/') &&
-            content.contentType === 'image' && imageMappings[content.value]) {
+          content.contentType === 'image' && imageMappings[content.value]) {
           try {
             await storage.updateCmsContent(content.id, { value: imageMappings[content.value] });
             console.log(`✓ Updated CMS content "${content.contentKey}" image to Cloudinary URL`);

@@ -65,9 +65,9 @@ export default function AdminSettings() {
   });
 
   const { data: allTours = [] } = useQuery<any[]>({
-    queryKey: ["tours"],
+    queryKey: ["products"],
     queryFn: async () => {
-      const res = await fetch("/api/tours", { credentials: "include" });
+      const res = await fetch("/api/products", { credentials: "include" });
       return res.json();
     },
   });

@@ -1,4 +1,4 @@
-import { Tour, Booking } from "../../../shared/schema.js";
+import { Product, Booking } from "../../../shared/schema.js";
 import { isSameDay, eachDayOfInterval, parseISO, format } from "date-fns";
 import { IStorage } from "../../storage.js";
 import { PricingEngine } from "../pricing/PricingEngine.js";
@@ -90,7 +90,7 @@ export class AvailabilityDomainService {
     }
 
     // Fetch product
-    const product = await this.storage.getTour(productId);
+    const product = await this.storage.getProduct(productId);
     if (!product) {
       return {
         isAvailable: false,
@@ -221,7 +221,7 @@ export class AvailabilityDomainService {
 
     if (overlappingInstances.length === 0) {
       // No instance exists - need to check tour's default capacity
-      const product = await this.storage.getTour(productId);
+      const product = await this.storage.getProduct(productId);
       if (!product) throw new Error(`Product ${productId} not found`);
 
       const defaultCapacity = product.defaultCapacity;
@@ -262,7 +262,7 @@ export class AvailabilityDomainService {
     );
 
     // 5. Check capacity alerts
-    const product = await this.storage.getTour(productId);
+    const product = await this.storage.getProduct(productId);
     if (product) {
       capacityAlertService.checkCapacity(
         productId,
@@ -294,7 +294,7 @@ export class AvailabilityDomainService {
     const end = parseISO(endDate);
     const dates = eachDayOfInterval({ start, end });
 
-    const product = await this.storage.getTour(productId);
+    const product = await this.storage.getProduct(productId);
     if (!product) throw new Error("Product not found");
 
     const results: Record<string, any> = {};
@@ -394,7 +394,7 @@ export class AvailabilityDomainService {
    * LEGACY: Kept for backward compatibility during migration
    * @deprecated Use checkAvailability instead
    */
-  calculateAvailableSlots(service: Tour, date: Date, existingBookings: Booking[]): number {
+  calculateAvailableSlots(service: Product, date: Date, existingBookings: Booking[]): number {
     const totalCapacity = service.capacity;
     const bookedGuests = existingBookings.reduce((sum, booking) => {
       const bookingDate = new Date(booking.date);
@@ -416,7 +416,7 @@ export class AvailabilityDomainService {
     date: string,
     guests: number
   ): Promise<{ time: string; available: boolean; remaining: number }[]> {
-    const product = await this.storage.getTour(productId);
+    const product = await this.storage.getProduct(productId);
     if (!product) throw new Error("Product not found");
 
     // 1. Check blackout

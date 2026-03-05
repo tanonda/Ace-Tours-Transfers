@@ -4,7 +4,7 @@ import { CreateBookingFromCartService } from "../application/booking/CreateBooki
 import { AtomicSessionConfirmationService } from "../application/booking/AtomicSessionConfirmationService.js";
 import { storage } from "../storage.js";
 import { db } from "../db.js";
-import { tourInstances, bookings, availabilityHolds, tours } from "../../shared/schema.js";
+import { tourInstances, bookings, availabilityHolds, products } from "../../shared/schema.js";
 import { eq } from "drizzle-orm";
 
 const TEST_TOUR_ID = "telemetry-test-tour";
@@ -13,10 +13,10 @@ const TEST_DATE = "2026-03-20";
 async function runTelemetryTest() {
     console.log("🧪 Starting Telemetry Verification Test...");
 
-    // Setup: Create Tour
-    await db.insert(tours).values({
+    // Setup: Create Product
+    await db.insert(products).values({
         id: TEST_TOUR_ID,
-        title: "TEST_Telemetry Test Tour",
+        title: "TEST_Telemetry Test Product",
         description: ["Test tour for telemetry"],
 
         price: "$100",
@@ -108,7 +108,7 @@ async function runTelemetryTest() {
     await db.delete(availabilityHolds).where(eq(availabilityHolds.tourInstanceId, "inst_telemetry_test"));
     await db.delete(capacityAuditLog).where(eq(capacityAuditLog.tourInstanceId, "inst_telemetry_test"));
     await db.delete(tourInstances).where(eq(tourInstances.id, "inst_telemetry_test"));
-    await db.delete(tours).where(eq(tours.id, TEST_TOUR_ID));
+    await db.delete(products).where(eq(products.id, TEST_TOUR_ID));
 
     if (allPassed) {
         console.log("\n✨ ALL TELEMETRY VERIFIED SUCCESSFULLY! ✨");

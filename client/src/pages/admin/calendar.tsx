@@ -5,9 +5,10 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useQuery } from "@tanstack/react-query";
-import { fetchBookings, fetchTours } from "@/lib/api";
+import { fetchBookings, fetchProducts } from "@/lib/api";
 import { useState, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
+import type { Product } from "@shared/schema";
 import {
   Users,
   MapPin,
@@ -103,9 +104,9 @@ export default function AdminCalendar() {
     queryFn: () => fetchBookings(),
   });
 
-  const { data: tours = [] } = useQuery({
-    queryKey: ["tours"],
-    queryFn: fetchTours,
+  const { data: products = [] } = useQuery({
+    queryKey: ["products"],
+    queryFn: fetchProducts,
   });
 
   const filteredBookings = useMemo(() => {
@@ -224,7 +225,7 @@ export default function AdminCalendar() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Products</SelectItem>
-                {tours.map(tour => (
+                {products.map((tour: Product) => (
                   <SelectItem key={tour.id} value={tour.id}>{tour.title}</SelectItem>
                 ))}
               </SelectContent>
@@ -384,7 +385,7 @@ export default function AdminCalendar() {
                                 <SelectValue placeholder="Choose a product" />
                               </SelectTrigger>
                               <SelectContent>
-                                {tours.map(t => (
+                                {products.map((t: Product) => (
                                   <SelectItem key={t.id} value={t.id}>{t.title}</SelectItem>
                                 ))}
                               </SelectContent>

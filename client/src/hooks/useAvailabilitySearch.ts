@@ -12,7 +12,7 @@ import { useState, useMemo, useCallback } from "react";
 import { format, addDays, differenceInCalendarDays } from "date-fns";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { fetchTours } from "@/lib/api";
+import { fetchProducts } from "@/lib/api";
 import { useBookingDraft } from "@/lib/booking-state-context";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -178,8 +178,8 @@ export function useAvailabilitySearch(): AvailabilitySearchResult {
 
   // ── Product data ──────────────────────────────────────────────────────────
   const { data: rawProducts = [], isLoading: isLoadingProducts } = useQuery({
-    queryKey: ["tours"],
-    queryFn: fetchTours,
+    queryKey: ["products"],
+    queryFn: fetchProducts,
     staleTime: 5 * 60 * 1000,
   });
 

@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchBookings, fetchBookingStats, fetchTours, updateBooking, exportBookingsCSV, fetchNotifications } from "@/lib/api";
+import { fetchBookings, fetchBookingStats, fetchProducts, updateBooking, exportBookingsCSV, fetchNotifications } from "@/lib/api";
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth-context";
@@ -143,7 +143,7 @@ export default function AdminDashboard() {
 
   const { data: bookings = [] } = useQuery<any[]>({ queryKey: ["bookings"], queryFn: () => fetchBookings() });
   const { data: stats } = useQuery({ queryKey: ["stats"], queryFn: fetchBookingStats });
-  const { data: tours = [] } = useQuery({ queryKey: ["tours"], queryFn: fetchTours });
+  const { data: products = [] } = useQuery({ queryKey: ["products"], queryFn: fetchProducts });
   const { data: notifications = [] } = useQuery({ queryKey: ["notifications"], queryFn: fetchNotifications });
 
   const { data: uptimeData } = useQuery({
@@ -299,10 +299,10 @@ export default function AdminDashboard() {
           />
           <KPICard
             label={t("dashboard.activeTours")}
-            value={tours.filter((t: any) => t.isActive !== false).length}
+            value={products.filter((t: any) => t.isActive !== false).length}
             icon={Map}
             colorClass="bg-green-500/15 text-green-600"
-            sublabel={`${tours.length} total products`}
+            sublabel={`${products.length} total products`}
           />
           {/* Uptime card with live BetterStack link */}
           <div className="p-5 rounded-xl bg-card border border-border hover:border-primary/20 transition-colors">

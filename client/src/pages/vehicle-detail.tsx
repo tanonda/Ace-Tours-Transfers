@@ -4,7 +4,7 @@ import { fetchVehicle } from "@/lib/api";
 import { apiRequest } from "@/lib/queryClient";
 import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Clock, ChevronLeft, ChevronRight, Calendar, Fuel, Users, Settings, Wind, Shield, Wifi, Baby, Zap, CheckCircle2, AlertTriangle, XCircle, ShoppingCart } from "lucide-react";
+import { ArrowLeft, Clock, ChevronLeft, ChevronRight, Calendar, Fuel, Users, Settings, Wind, Shield, Wifi, Baby, Zap, CheckCircle2, AlertTriangle, XCircle, ShoppingCart, Mail, Phone } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -349,7 +349,7 @@ export default function VehicleDetail() {
   const { data: reviews = [] } = useQuery({
     queryKey: ["product-reviews", id],
     queryFn: async () => {
-      const res = await apiRequest("GET", `/api/tours/${id}/reviews`);
+      const res = await apiRequest("GET", `/api/products/${id}/reviews`);
       return res.json();
     },
     enabled: !!id,
@@ -845,7 +845,7 @@ export default function VehicleDetail() {
                 <div className="space-y-4">
                   {vehicle.supportPhone && (
                     <a
-                      href={`tel:${vehicle.supportPhone.replace(/\\s/g, '')}`}
+                      href={`tel:${vehicle.supportPhone.replace(/\s/g, '')}`}
                       className="w-full flex justify-center items-center h-14 rounded-[10px] text-[0.95rem] font-black tracking-[0.02em] transition-all bg-[#4caf7d] hover:bg-[#5dbd8f] text-[#0f0d09]"
                     >
                       <Phone className="mr-2 h-5 w-5" />

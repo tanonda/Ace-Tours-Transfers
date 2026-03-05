@@ -3,7 +3,7 @@ import { storage } from "../server/storage.js";
 
 async function check() {
     try {
-        const tours = await storage.getTours();
+        const tours = await storage.getProducts();
         console.log(`Checking ${tours.length} tours...`);
 
         for (const tour of tours) {

@@ -9,7 +9,7 @@
  */
 
 import { IStorage } from '../../storage.js';
-import { Tour } from '../../../shared/schema.js';
+import { Product } from '../../../shared/schema.js';
 
 // ─── Rate and Pricing Type ────────────────────────────────────────────────────
 
@@ -135,7 +135,7 @@ export class PricingEngine {
    * Fetch effective rates for a product, respecting pricing versions.
    */
   async getTourRate(tourId: string, date?: string): Promise<TourRate | null> {
-    const tour = await this.storage.getTour(tourId);
+    const tour = await this.storage.getProduct(tourId);
     if (!tour) return null;
 
     let adultPriceCents = tour.adultPriceCents || 0;

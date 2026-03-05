@@ -7,7 +7,7 @@ async function runChaos() {
   console.log("🚀 Starting Chaos Simulation...");
 
   // 1. Setup Pre-requisites
-  const tours = await storage.getTours();
+  const tours = await storage.getProducts();
   if (tours.length === 0) {
     console.error("No tours found. Please seed the database first.");
     process.exit(1);

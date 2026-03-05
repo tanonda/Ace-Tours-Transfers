@@ -1,6 +1,6 @@
 
 import { db } from "../db.js";
-import { tours, tourInstances, availabilityHolds, InsertTour, resources, capacityAuditLog } from "../../shared/schema.js";
+import { products, tourInstances, availabilityHolds, InsertProduct, resources, capacityAuditLog } from "../../shared/schema.js";
 import { AvailabilityService } from "../domain/availability/availability.service.js";
 import { storage } from "../storage.js";
 import { eq, and, sql } from "drizzle-orm";
@@ -16,12 +16,12 @@ async function setupTestData() {
     await db.delete(availabilityHolds).where(sql`booking_session_id LIKE 'load-session-%'`);
     await db.delete(tourInstances).where(sql`tour_id LIKE 'load-test-%'`);
     await db.delete(resources).where(sql`product_id LIKE 'load-test-%'`);
-    await db.delete(tours).where(sql`id LIKE 'load-test-%'`);
+    await db.delete(products).where(sql`id LIKE 'load-test-%'`);
 
-    // 1. Tour (Pooled Capacity)
-    await db.insert(tours).values({
+    // 1. Product (Pooled Capacity)
+    await db.insert(products).values({
         id: TEST_PREFIX + "tour",
-        title: "TEST_Load Test Tour",
+        title: "TEST_Load Test Product",
         category: "tour",
         defaultCapacity: 50,
         price: "$100 / adult",
@@ -32,7 +32,7 @@ async function setupTestData() {
     });
 
     // 2. Transfer (Time-Slot)
-    await db.insert(tours).values({
+    await db.insert(products).values({
         id: TEST_PREFIX + "transfer",
         title: "TEST_Load Test Transfer",
         category: "transfer",
@@ -45,7 +45,7 @@ async function setupTestData() {
     });
 
     // 3. Vehicle (Multi-day, Resource Pinning)
-    await db.insert(tours).values({
+    await db.insert(products).values({
         id: TEST_PREFIX + "vehicle",
         title: "TEST_Load Test Vehicle",
         category: "vehicle",

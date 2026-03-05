@@ -1,6 +1,6 @@
 import { neon } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-http";
-import { tours, bookings, bookingItems } from "../../shared/schema.js";
+import { products, bookings, bookingItems } from "../../shared/schema.js";
 import { PriceResolver } from "../domain/pricing/PriceResolver.js";
 import { eq } from "drizzle-orm";
 import "dotenv/config";
@@ -16,18 +16,18 @@ async function runBackfill() {
   console.log("🚀 Starting numeric price backfill migration via Neon HTTP driver...");
 
   // 1. Migrate Tours
-  const allTours = await db.select().from(tours);
-  console.log(`📋 Found ${allTours.length} tours to migrate.`);
+  const allProducts = await db.select().from(products);
+  console.log(`📋 Found ${allProducts.length} tours to migrate.`);
 
-  for (const tour of allTours) {
+  for (const tour of allProducts) {
     const adultPriceCents = PriceResolver.parseAmountTextToCents(tour.price);
     const childPriceCents = PriceResolver.parseAmountTextToCents(tour.childPrice);
 
-    await db.update(tours)
+    await db.update(products)
       .set({ adultPriceCents, childPriceCents })
-      .where(eq(tours.id, tour.id));
-    
-    console.log(`   ✅ Migrated Tour ${tour.id}: ${tour.price} -> ${adultPriceCents} cents`);
+      .where(eq(products.id, tour.id));
+
+    console.log(`   ✅ Migrated Product ${tour.id}: ${tour.price} -> ${adultPriceCents} cents`);
   }
 
   // 2. Migrate Bookings & Create BookingItems
@@ -36,10 +36,10 @@ async function runBackfill() {
 
   for (const booking of allBookings) {
     const totalAmountCents = PriceResolver.parseAmountTextToCents(booking.amount);
-    
+
     // Update Booking header
     await db.update(bookings)
-      .set({ 
+      .set({
         totalAmountCents,
         currency: 'VUV',
         adultPaxTotal: booking.guests, // Assume all guests were adults for legacy data
@@ -49,11 +49,11 @@ async function runBackfill() {
 
     // Check if BookingItems already exist (idempotency)
     const existingItems = await db.select().from(bookingItems).where(eq(bookingItems.bookingId, booking.id));
-    
+
     if (existingItems.length === 0) {
       // Create a single BookingItem for the legacy booking
-      const tour = allTours.find(t => t.id === booking.tourId);
-      
+      const tour = allProducts.find(t => t.id === booking.tourId);
+
       await db.insert(bookingItems).values({
         id: `bi_mig_${booking.id}`,
         bookingId: booking.id,

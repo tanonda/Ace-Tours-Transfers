@@ -214,7 +214,7 @@ export class PaymentApplicationService {
           try {
             const bookingItems = await this.storage.getBookingItems(booking.id);
             const firstItem = bookingItems[0];
-            const tourData = firstItem ? await this.storage.getTour(firstItem.productId) : null;
+            const tourData = firstItem ? await this.storage.getProduct(firstItem.productId) : null;
             const tourInfo = tourData || { title: 'Tour/Transfer Booking', id: '' };
 
             function buildGuestString(item: any): string {

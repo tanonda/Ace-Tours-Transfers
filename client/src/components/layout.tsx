@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/navigation-menu";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
-import { fetchTours, fetchVehicles, fetchSiteSettings } from "@/lib/api";
+import { fetchProducts, fetchVehicles, fetchSiteSettings } from "@/lib/api";
 import { useCart } from "@/lib/cart-context";
 import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -28,6 +28,7 @@ import { useCMS } from "@/lib/cms-context";
 import { useCmsText } from "@/hooks/use-cms-text";
 import { WhatsAppWidget } from "@/components/whatsapp-widget";
 import { useAuth } from "@/lib/auth-context";
+import type { Product } from "@shared/schema";
 import {
   Collapsible,
   CollapsibleContent,
@@ -62,8 +63,8 @@ ListItem.displayName = "ListItem"
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const { data: allTours = [] } = useQuery({
-    queryKey: ["tours"],
-    queryFn: fetchTours,
+    queryKey: ["products"],
+    queryFn: fetchProducts,
   });
 
   const { data: allVehicles = [] } = useQuery({
@@ -101,11 +102,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
   });
 
   // Deduplicate tours by normalized title to handle DB duplicates and naming variations
-  const uniqueTours = allTours.reduce<typeof allTours>((acc, current) => {
+  const uniqueTours = allTours.reduce<Product[]>((acc: Product[], current: Product) => {
     const normalize = (t: string) => t.replace(/\s+Package$/i, "").trim();
     const normalizedTitle = normalize(current.title);
 
-    const existingIndex = acc.findIndex(item => normalize(item.title) === normalizedTitle);
+    const existingIndex = acc.findIndex((item: Product) => normalize(item.title) === normalizedTitle);
 
     if (existingIndex === -1) {
       acc.push(current);
@@ -116,8 +117,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
     return acc;
   }, []);
 
-  const tours = uniqueTours.filter(t => t.category === "tour" && t.isActive !== false);
-  const transfers = uniqueTours.filter(t => t.category === "transfer" && t.isActive !== false);
+  const tours = uniqueTours.filter((t: Product) => t.category === "tour" && t.isActive !== false);
+  const transfers = uniqueTours.filter((t: Product) => t.category === "transfer" && t.isActive !== false);
 
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -273,7 +274,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                       <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform duration-200", toursOpen && "rotate-180")} />
                     </CollapsibleTrigger>
                     <CollapsibleContent className="pl-12 pr-4 pb-2 space-y-1">
-                      {tours.map((tour) => (
+                      {tours.map((tour: Product) => (
                         <Link
                           key={tour.id}
                           href={`/tours/${tour.id}`}
@@ -303,7 +304,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                       <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform duration-200", transfersOpen && "rotate-180")} />
                     </CollapsibleTrigger>
                     <CollapsibleContent className="pl-12 pr-4 pb-2 space-y-1">
-                      {transfers.map((transfer) => (
+                      {transfers.map((transfer: Product) => (
                         <Link
                           key={transfer.id}
                           href={`/transfers/${transfer.id}`}
@@ -513,7 +514,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   </NavigationMenuTrigger>
                   <NavigationMenuContent>
                     <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
-                      {tours.map((tour) => (
+                      {tours.map((tour: Product) => (
                         <ListItem
                           key={tour.id}
                           title={tour.title}
@@ -539,7 +540,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   </NavigationMenuTrigger>
                   <NavigationMenuContent>
                     <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
-                      {transfers.map((transfer) => (
+                      {transfers.map((transfer: Product) => (
                         <ListItem
                           key={transfer.id}
                           title={transfer.title}
@@ -566,7 +567,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     </NavigationMenuTrigger>
                     <NavigationMenuContent>
                       <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
-                        {allVehicles.filter(v => v.isActive !== false).map((vehicle) => (
+                        {allVehicles.filter((v: Product) => v.isActive !== false).map((vehicle: Product) => (
                           <ListItem
                             key={vehicle.id}
                             title={vehicle.title}
@@ -744,7 +745,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <div className="space-y-3">
               <Link href="/tours" className="text-lg font-medium hover:text-primary block">{t("nav.tours")}</Link>
               <div className="pl-4 space-y-2 border-l-2 border-muted">
-                {tours.map(tour => (
+                {tours.map((tour: Product) => (
                   <Link key={tour.id} href="/tours" className="block text-sm text-muted-foreground hover:text-primary">
                     {tour.title}
                   </Link>
@@ -755,7 +756,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <div className="space-y-3">
               <Link href="/transfers" className="text-lg font-medium hover:text-primary block">{t("nav.transfers")}</Link>
               <div className="pl-4 space-y-2 border-l-2 border-muted">
-                {transfers.map(transfer => (
+                {transfers.map((transfer: Product) => (
                   <Link key={transfer.id} href="/transfers" className="block text-sm text-muted-foreground hover:text-primary">
                     {transfer.title}
                   </Link>

@@ -1,6 +1,6 @@
 import "dotenv/config";
 import { db } from "../server/db.js";
-import { tours as toursTable } from "../shared/schema.js";
+import { products as toursTable } from "../shared/schema.js";
 import { eq } from "drizzle-orm";
 
 async function main() {

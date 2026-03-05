@@ -4,7 +4,7 @@
 
 import { IStorage } from "../../storage.js";
 import { db } from "../../db.js";
-import { tours, tourInstances } from "../../../shared/schema.js";
+import { products, tourInstances } from "../../../shared/schema.js";
 import { eq, gte, sql } from "drizzle-orm";
 
 export interface TourCapacityOverview {
@@ -34,7 +34,7 @@ export class CapacityOverviewService {
         const instances = await db
             .select({
                 tourId: tourInstances.tourId,
-                tourTitle: tours.title,
+                tourTitle: products.title,
                 date: tourInstances.serviceDate,
                 totalCapacity: tourInstances.totalCapacity,
                 confirmedCount: tourInstances.confirmedCount,
@@ -42,7 +42,7 @@ export class CapacityOverviewService {
                 blockedCount: tourInstances.blockedCount,
             })
             .from(tourInstances)
-            .innerJoin(tours, eq(tours.id, tourInstances.tourId))
+            .innerJoin(products, eq(products.id, tourInstances.tourId))
             .where(
                 sql`${tourInstances.serviceDate} >= ${startDate} AND ${tourInstances.serviceDate} <= ${endDate}`
             );

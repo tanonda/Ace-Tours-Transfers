@@ -86,7 +86,7 @@ export class BookingEventHandler {
         console.log(`[EVENT][SUCCESS] Booking session ${booking.bookingSessionId} confirmed atomically via PaymentConfirmed event`);
 
         // Trigger emails/admin notifications here
-        const tour = await this.storage.getTour(booking.tourId);
+        const tour = await this.storage.getProduct(booking.tourId);
 
         // 1. Send Payment Receipt
         await mailingService.sendPaymentSuccess(booking.customerEmail, {
