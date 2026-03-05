@@ -14,6 +14,7 @@ import {
   Heading1, Heading2, Link as LinkIcon, Undo, Redo, AlignLeft,
   AlignCenter, Code, Quote, Minus
 } from "lucide-react";
+import { sanitizeHtml } from "@/components/shared-detail-components";
 import { useState, useRef, useCallback, useEffect } from "react";
 
 import { useEditor, EditorContent } from '@tiptap/react';
@@ -475,7 +476,7 @@ export default function AdminCMS() {
                                 <p className="text-[10px] text-green-600 font-semibold uppercase tracking-wide mb-1">✅ Currently Live (Database)</p>
                                 {displayValue ? (
                                   field.type === 'rich' ? (
-                                    <div className="prose prose-sm max-w-none text-sm" dangerouslySetInnerHTML={{ __html: displayValue }} />
+                                    <div className="prose prose-sm max-w-none text-sm" dangerouslySetInnerHTML={{ __html: sanitizeHtml(displayValue) }} />
                                   ) : (
                                     <p className="text-sm text-foreground">{displayValue}</p>
                                   )
@@ -488,7 +489,7 @@ export default function AdminCMS() {
                                 <div className="px-3 py-2 bg-orange-500/5">
                                   <p className="text-[10px] text-orange-600 font-semibold uppercase tracking-wide mb-1">⏳ Proposed (unsaved)</p>
                                   {field.type === 'rich' ? (
-                                    <div className="prose prose-sm max-w-none text-sm" dangerouslySetInnerHTML={{ __html: richContent[richKey] }} />
+                                    <div className="prose prose-sm max-w-none text-sm" dangerouslySetInnerHTML={{ __html: sanitizeHtml(richContent[richKey]) }} />
                                   ) : (
                                     <p className="text-sm text-foreground">{richContent[richKey]}</p>
                                   )}

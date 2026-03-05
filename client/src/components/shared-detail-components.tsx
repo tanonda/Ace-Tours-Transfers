@@ -13,11 +13,15 @@ import {
   CheckCircle2, Star,
 } from "lucide-react";
 
+import DOMPurify from "dompurify";
+
 const WHATSAPP_NUMBER = "6787114045";
 
-// ─── HTML passthrough (swap for DOMPurify later) ────────────────────────────
+// ─── HTML passthrough (implemented with DOMPurify) ──────────────────────────
 export function sanitizeHtml(html: string): string {
-  return html;
+  // Use DOMPurify for server-side or client-side sanitization
+  // It handles typical XSS vectors while preserving safe TipTap/HTML tags
+  return DOMPurify.sanitize(html);
 }
 
 // ─── Booking Countdown Timer ────────────────────────────────────────────────
