@@ -729,7 +729,7 @@ export default function AdminSettings() {
           {/* ── Integrations Tab ────────────────────────────────────────────── */}
           <TabsContent value="integrations" className="mt-4 space-y-4">
 
-            {/* ── Review Provider Selector ── */}
+            {/* Review Provider Selector */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -738,7 +738,6 @@ export default function AdminSettings() {
                 </CardTitle>
                 <CardDescription>
                   Choose which external review platform appears above the booking CTA and below guest reviews on all detail pages.
-                  Your internal reviews always display regardless of this setting.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -770,105 +769,8 @@ export default function AdminSettings() {
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Current: <code className="bg-muted px-1 rounded">{formData["review_provider"] ?? "trustpilot"}</code>.
-                  Changes take effect immediately — no rebuild required.
+                  Changes take effect immediately.
                 </p>
-              </CardContent>
-            </Card>
-
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  {/* Trustpilot green star */}
-                  <div className="w-6 h-6 rounded bg-[#00b67a] flex items-center justify-center">
-                    <Star className="h-3.5 w-3.5 text-white fill-white" />
-                  </div>
-                  Trustpilot TrustBox Widget
-                </CardTitle>
-                <CardDescription>
-                  Displays a live Trustpilot rating bar on every tour detail page.
-                  Configured via environment variables — no database storage needed.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-5">
-
-                {/* Status badge */}
-                {(() => {
-                  const buId = import.meta.env.VITE_TRUSTPILOT_BU_ID;
-                  return buId ? (
-                    <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-green-500/30 bg-green-500/10">
-                      <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
-                      <div>
-                        <p className="text-sm font-semibold text-green-700 dark:text-green-400">Widget Active</p>
-                        <p className="text-xs text-muted-foreground">Business Unit ID: <code className="bg-muted px-1 rounded text-xs">{buId}</code></p>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-amber-400/30 bg-amber-50 dark:bg-amber-900/20">
-                      <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
-                      <div>
-                        <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">Widget Inactive — Business Unit ID not set</p>
-                        <p className="text-xs text-muted-foreground">The fallback static link is shown to guests until you add the env var.</p>
-                      </div>
-                    </div>
-                  );
-                })()}
-
-                {/* Setup instructions */}
-                <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-3 text-sm">
-                  <p className="font-semibold">Setup Steps</p>
-                  <ol className="list-decimal list-inside space-y-2 text-muted-foreground text-sm">
-                    <li>
-                      Go to{" "}
-                      <a
-                        href="https://business.trustpilot.com"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-primary underline inline-flex items-center gap-1"
-                      >
-                        business.trustpilot.com <ExternalLink className="h-3 w-3" />
-                      </a>
-                      {" "}and sign in / create a free account.
-                    </li>
-                    <li>Navigate to <strong>Integrations → TrustBox Library</strong> to find your Business Unit ID.</li>
-                    <li>
-                      Add the following to your{" "}
-                      <code className="bg-muted px-1 rounded text-xs">.env</code> file (local) or{" "}
-                      <strong>Render Dashboard → Environment</strong> (production):
-                    </li>
-                  </ol>
-                  <div className="font-mono text-xs bg-background border border-border rounded p-3 space-y-1">
-                    <p><span className="text-blue-500">VITE_TRUSTPILOT_BU_ID</span>=<span className="text-green-600">your_business_unit_id</span></p>
-                    <p className="text-muted-foreground"># Optional — defaults to https://www.trustpilot.com/review/acetours.vu</p>
-                    <p><span className="text-blue-500">VITE_TRUSTPILOT_URL</span>=<span className="text-green-600">https://www.trustpilot.com/review/yourdomain.com</span></p>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    After adding env vars, <strong>redeploy the app</strong> — these are build-time variables baked into the client bundle.
-                  </p>
-                </div>
-
-                {/* Widget template note */}
-                <div className="rounded-lg border border-border p-4 space-y-2 text-sm">
-                  <p className="font-semibold">Current Widget Template</p>
-                  <div className="flex items-center gap-3">
-                    <code className="bg-muted px-2 py-0.5 rounded text-xs">5419b637fa0340045cd0c936</code>
-                    <span className="text-muted-foreground text-xs">Mini horizontal rating bar (24 px height, dark theme)</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    To change the widget style, update <code className="bg-muted px-1 rounded text-xs">data-template-id</code> in{" "}
-                    <code className="bg-muted px-1 rounded text-xs">client/src/pages/tour-detail.tsx</code> → <code className="bg-muted px-1 rounded text-xs">TrustpilotWidget</code>.
-                    Find all template IDs at{" "}
-                    <a
-                      href="https://business.trustpilot.com/trustbox-library"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-primary underline inline-flex items-center gap-1"
-                    >
-                      TrustBox Library <ExternalLink className="h-3 w-3" />
-                    </a>.
-                  </p>
-                </div>
-
               </CardContent>
             </Card>
 
@@ -887,103 +789,286 @@ export default function AdminSettings() {
                   Google Reviews API
                 </CardTitle>
                 <CardDescription>
-                  Fetches your latest 5 reviews directly from Google Places. Server-side cached to stay within the free tier.
+                  Fetches your latest reviews directly from Google Places. Server-side cached to stay within the free tier.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-3 text-sm">
-                  <p className="font-semibold">Setup Steps</p>
-                  <ol className="list-decimal list-inside space-y-2 text-muted-foreground text-sm">
-                    <li>Create a Google Cloud project and enable the <strong>Places API</strong>.</li>
-                    <li>Generate an API key and restrict it to the Places API.</li>
-                    <li>Find your <strong>Place ID</strong> using <a href="https://developers.google.com/maps/documentation/places/web-service/place-id" target="_blank" rel="noopener noreferrer" className="text-primary underline">Google's finder tool</a>.</li>
-                    <li>Add these variables to your environment / Render Dashboard:</li>
-                  </ol>
+                  <p className="font-semibold text-xs uppercase tracking-wider text-muted-foreground">Required Environment Variables</p>
                   <div className="font-mono text-xs bg-background border border-border rounded p-3 space-y-1">
                     <p><span className="text-blue-500">GOOGLE_PLACES_API_KEY</span>=<span className="text-green-600">AIzaSy...</span></p>
                     <p><span className="text-blue-500">GOOGLE_PLACE_ID</span>=<span className="text-green-600">ChIJ...</span></p>
                   </div>
                   <p className="text-xs text-muted-foreground pt-1">
-                    Wait for the app to reboot after adding these variables. You can verify they are working by hovering over the "Google Reviews" option above.
+                    Find your Place ID using <a href="https://developers.google.com/maps/documentation/places/web-service/place-id" target="_blank" rel="noopener noreferrer" className="text-primary underline">Google's finder tool</a>.
                   </p>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Render Dashboard */}
+            {/* Trustpilot */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded bg-black flex items-center justify-center">
-                    <span className="text-white font-bold text-xs">R</span>
+                  <div className="w-6 h-6 rounded bg-[#00b67a] flex items-center justify-center">
+                    <Star className="h-3.5 w-3.5 text-white fill-white" />
                   </div>
-                  Render Hosting
+                  Trustpilot Integration
                 </CardTitle>
                 <CardDescription>
-                  Access your server logs, redeploy the application, and manage environment variables.
+                  Displays a live Trustpilot rating bar and widget on tour pages.
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="rounded-lg border border-border p-4 space-y-3">
-                  <p className="text-sm">Log in to the Render dashboard to monitor your web service performance, view deployment logs, or update environment variables (like adding API keys).</p>
-                  <Button variant="outline" asChild size="sm">
+              <CardContent className="space-y-4">
+                <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-3 text-sm">
+                  <p className="font-semibold text-xs uppercase tracking-wider text-muted-foreground">Required Environment Variables</p>
+                  <div className="font-mono text-xs bg-background border border-border rounded p-3 space-y-1">
+                    <p><span className="text-blue-500">VITE_TRUSTPILOT_BU_ID</span>=<span className="text-green-600">bu_id_from_trustpilot</span></p>
+                    <p><span className="text-blue-500">VITE_TRUSTPILOT_URL</span>=<span className="text-green-600">https://www.trustpilot.com/review/acetours.vu</span></p>
+                  </div>
+                  <p className="text-xs text-muted-foreground pt-1">
+                    Navigate to <strong>Integrations → TrustBox Library</strong> in your Trustpilot Business dashboard to find your BU ID.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Payments & SMS Section */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Stripe */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <CreditCard className="h-5 w-5 text-blue-600" />
+                    Stripe Payments
+                  </CardTitle>
+                  <CardDescription>
+                    Secure credit and debit card processing.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-3 text-sm">
+                    <p className="font-semibold text-xs uppercase tracking-wider text-muted-foreground">Required Environment Variables</p>
+                    <div className="font-mono text-xs bg-background border border-border rounded p-3 space-y-1 overflow-x-auto">
+                      <p><span className="text-blue-500">STRIPE_PUBLISHABLE_KEY</span>=<span className="text-green-600">pk_...</span></p>
+                      <p><span className="text-blue-500">STRIPE_SECRET_KEY</span>=<span className="text-green-600">sk_...</span></p>
+                    </div>
+                  </div>
+                  <Button variant="outline" asChild size="sm" className="w-full">
+                    <a href="https://dashboard.stripe.com" target="_blank" rel="noopener noreferrer">
+                      Open Stripe Dashboard <ExternalLink className="h-3 w-3 ml-2" />
+                    </a>
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* SMS Gateway */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Globe className="h-5 w-5 text-blue-500" />
+                    SMS Notifications
+                  </CardTitle>
+                  <CardDescription>
+                    Send booking alerts via Android SMS Gateway or Twilio.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-3 text-sm">
+                    <p className="font-semibold text-xs uppercase tracking-wider text-muted-foreground">Required Environment Variables</p>
+                    <div className="font-mono text-xs bg-background border border-border rounded p-3 space-y-1 overflow-x-auto">
+                      <p><span className="text-blue-500">SMS_PROVIDER</span>=<span className="text-green-600">android_gateway</span> | <span className="text-green-600">twilio</span></p>
+                      <p><span className="text-blue-500">SMS_GATEWAY_URL</span>=<span className="text-green-600">http://ip:port</span></p>
+                      <p><span className="text-blue-500">TWILIO_ACCOUNT_SID</span>=<span className="text-green-600">AC...</span></p>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Set provider to <code className="bg-muted px-1 rounded">android_gateway</code> for local Vanuatu SIM integration.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Email & Media Section */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Cloudinary */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded bg-[#3448c5] flex items-center justify-center">
+                      <span className="text-white font-bold text-xs">C</span>
+                    </div>
+                    Cloudinary Assets
+                  </CardTitle>
+                  <CardDescription>
+                    Image optimization and cloud storage for tour photos.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-3 text-sm">
+                    <p className="font-semibold text-xs uppercase tracking-wider text-muted-foreground">Required Environment Variables</p>
+                    <div className="font-mono text-xs bg-background border border-border rounded p-3 space-y-1">
+                      <p><span className="text-blue-500">VITE_CLOUDINARY_CLOUD_NAME</span>=<span className="text-green-600">name</span></p>
+                    </div>
+                  </div>
+                  <Button variant="outline" asChild size="sm" className="w-full">
+                    <a href="https://cloudinary.com/console" target="_blank" rel="noopener noreferrer">
+                      Open Cloudinary Console <ExternalLink className="h-3 w-3 ml-2" />
+                    </a>
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* Email Gateway (Nodemailer) */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Mail className="h-5 w-5 text-red-500" />
+                    Google SMTP (Gmail)
+                  </CardTitle>
+                  <CardDescription>
+                    Transaction emails for booking confirmations.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-3 text-sm">
+                    <p className="font-semibold text-xs uppercase tracking-wider text-muted-foreground">Required Environment Variables</p>
+                    <div className="font-mono text-xs bg-background border border-border rounded p-3 space-y-1">
+                      <p><span className="text-blue-500">GMAIL_USER</span>=<span className="text-green-600">your-email@gmail.com</span></p>
+                      <p><span className="text-blue-500">GMAIL_APP_PASSWORD</span>=<span className="text-green-600">16-char-code</span></p>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Use "App Passwords" in Google Security settings. Standard passwords will not work.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Infra Section */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Redis */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded bg-[#d82c20] flex items-center justify-center">
+                      <span className="text-white font-bold text-xs">R</span>
+                    </div>
+                    Redis Cache
+                  </CardTitle>
+                  <CardDescription>
+                    Session storage and high-performance caching.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-3 text-sm">
+                    <p className="font-semibold text-xs uppercase tracking-wider text-muted-foreground">Required Environment Variables</p>
+                    <div className="font-mono text-xs bg-background border border-border rounded p-3 space-y-1 overflow-x-auto">
+                      <p><span className="text-blue-500">REDIS_URL</span>=<span className="text-green-600">redis://...</span></p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Sentry */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded bg-[#362d59] flex items-center justify-center">
+                      <span className="text-white font-bold text-xs text-[10px]">S</span>
+                    </div>
+                    Sentry Monitoring
+                  </CardTitle>
+                  <CardDescription>
+                    Error tracking and performance monitoring.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-3 text-sm">
+                    <p className="font-semibold text-xs uppercase tracking-wider text-muted-foreground">Required Environment Variables</p>
+                    <div className="font-mono text-xs bg-background border border-border rounded p-3 space-y-1 overflow-x-auto">
+                      <p><span className="text-blue-500">SENTRY_DSN</span>=<span className="text-green-600">https://...</span></p>
+                      <p><span className="text-blue-500">VITE_SENTRY_DSN</span>=<span className="text-green-600">https://...</span></p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Hosting Section */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Render Dashboard */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Render Hosting</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <p className="text-xs text-muted-foreground leading-relaxed">View server logs, redeploy, and manage environment variables.</p>
+                  <Button variant="outline" asChild size="sm" className="w-full">
                     <a href="https://dashboard.render.com" target="_blank" rel="noopener noreferrer">
-                      Open Render Dashboard <ExternalLink className="h-3 w-3 ml-2" />
+                      Dashboard <ExternalLink className="h-3 w-3 ml-2" />
                     </a>
                   </Button>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
 
-            {/* Neon Database */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded bg-[#00e599] flex items-center justify-center">
-                    <span className="text-black font-bold text-xs text-[10px]">Neon</span>
-                  </div>
-                  Neon Database
-                </CardTitle>
-                <CardDescription>
-                  Manage your PostgreSQL database, view branches, and execute raw SQL queries.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="rounded-lg border border-border p-4 space-y-3">
-                  <p className="text-sm">Neon hosts your application data. Use the Neon console to manage backups, view storage limits, or check database connection string credentials.</p>
-                  <Button variant="outline" asChild size="sm">
+              {/* Neon Database */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Neon DB</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <p className="text-xs text-muted-foreground leading-relaxed">Manage your PostgreSQL instance, backups, and SQL console.</p>
+                  <Button variant="outline" asChild size="sm" className="w-full">
                     <a href="https://console.neon.tech" target="_blank" rel="noopener noreferrer">
-                      Open Neon Console <ExternalLink className="h-3 w-3 ml-2" />
+                      Neon Console <ExternalLink className="h-3 w-3 ml-2" />
                     </a>
                   </Button>
+                </CardContent>
+              </Card>
+
+              {/* BetterStack */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">BetterStack</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <p className="text-xs text-muted-foreground leading-relaxed">24/7 uptime monitoring and incident alerting.</p>
+                  <Button variant="outline" asChild size="sm" className="w-full">
+                    <a href="https://betterstack.com" target="_blank" rel="noopener noreferrer">
+                      Open Log Snare <ExternalLink className="h-3 w-3 ml-2" />
+                    </a>
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Banks Payment Gateways */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Globe className="h-5 w-5 text-green-600" />
+                  Local Bank Gateways
+                </CardTitle>
+                <CardDescription>
+                  Configure instructions for offline payments (BSP, ANZ, BRED, E-Wallets).
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="rounded-lg border border-blue-200 bg-blue-50/50 p-4 text-sm">
+                  <p className="text-blue-800">
+                    Guest instructions for bank transfers and e-wallets are managed in the <strong>Payment Instructions</strong> tab.
+                  </p>
+                </div>
+                <div className="rounded-lg border border-border p-4 space-y-3 text-sm">
+                  <p className="font-semibold text-xs uppercase tracking-wider text-muted-foreground">Switching Providers</p>
+                  <p className="text-muted-foreground">
+                    To enable/disable specific payment methods (like "Pay by Card" vs "Manual Bank Transfer"), go to the <strong>Feature Flags</strong> tab.
+                  </p>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Sentry Error Tracking */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded bg-[#362d59] flex items-center justify-center">
-                    <span className="text-white font-bold text-xs text-[10px]">S</span>
-                  </div>
-                  Sentry Error Tracking
-                </CardTitle>
-                <CardDescription>
-                  Monitor application health, track exceptions, and debug production errors.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="rounded-lg border border-border p-4 space-y-3">
-                  <p className="text-sm">Sentry automatically captures runtime errors and crashes. Use the Sentry dashboard to view stack traces and alert rules.</p>
-                  <Button variant="outline" asChild size="sm">
-                    <a href="https://sentry.io" target="_blank" rel="noopener noreferrer">
-                      Open Sentry Dashboard <ExternalLink className="h-3 w-3 ml-2" />
-                    </a>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
 
           </TabsContent>
 
