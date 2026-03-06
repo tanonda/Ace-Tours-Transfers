@@ -37,7 +37,7 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
         if (!g.active) return false;
         const slug = g.slug.toLowerCase();
 
-        if (slug === 'stripe') return stripeExplicitlyEnabled && isFlagEnabled('payment-stripe');
+        if (slug === 'stripe') return stripeExplicitlyEnabled && isFlagEnabled('payment-stripe', false);
         if (slug === 'manual' || slug === 'manual_transfer') {
           return isFlagEnabled('payment-bank-transfer');
         }
@@ -71,7 +71,7 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
 
       // FEATURE FLAG GUARD
       const flags = await storage.getFeatureFlags();
-      const isFlagEnabled = (slug: string) => flags.find(f => f.slug === slug)?.enabled ?? false;
+      const isFlagEnabled = (slug: string, defaultValue = true) => flags.find(f => f.slug === slug)?.enabled ?? defaultValue;
 
       if (provider === 'stripe' && !isFlagEnabled('payment-stripe')) {
         return res.status(403).json({ error: "Stripe payments are currently disabled" });
@@ -285,7 +285,8 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
       const { PaymentMethodClassifier } = await import("../domain/payments/payment-method-classifier.js");
       const gateways = await storage.getPaymentGateways();
       const flags = await storage.getFeatureFlags();
-      const isFlagEnabled = (slug: string) => flags.find(f => f.slug === slug)?.enabled ?? false;
+      // Feature flag defaults: stripe=false (needs explicit env var), bank-transfer/cash=true (admin gateway toggle is the control)
+      const isFlagEnabled = (slug: string, defaultValue = true) => flags.find(f => f.slug === slug)?.enabled ?? defaultValue;
       const stripeExplicitlyEnabled = process.env.STRIPE_ENABLED === 'true';
 
       // Reuse the same feature-flag filtering as /api/payment-gateways
@@ -293,12 +294,12 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
         if (!g.active) return false;
         const slug = g.slug.toLowerCase();
 
-        if (slug === 'stripe') return stripeExplicitlyEnabled && isFlagEnabled('payment-stripe');
+        if (slug === 'stripe') return stripeExplicitlyEnabled && isFlagEnabled('payment-stripe', false);
         if (slug === 'manual' || slug === 'manual_transfer') {
-          return isFlagEnabled('payment-bank-transfer');
+          return isFlagEnabled('payment-bank-transfer', true);
         }
         if (slug === 'cash') {
-          return isFlagEnabled('payment-cash-on-delivery');
+          return isFlagEnabled('payment-cash-on-delivery', true);
         }
 
         return true;
@@ -329,14 +330,14 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
     try {
       const gateways = await storage.getPaymentGateways();
       const flags = await storage.getFeatureFlags();
-      const isFlagEnabled = (slug: string) => flags.find(f => f.slug === slug)?.enabled ?? false;
+      const isFlagEnabled = (slug: string, defaultValue = true) => flags.find(f => f.slug === slug)?.enabled ?? defaultValue;
       const stripeExplicitlyEnabled = process.env.STRIPE_ENABLED === 'true';
 
       const visibleGateways = gateways.filter((g: any) => {
         if (!g.active) return false;
         const slug = g.slug.toLowerCase();
 
-        if (slug === 'stripe') return stripeExplicitlyEnabled && isFlagEnabled('payment-stripe');
+        if (slug === 'stripe') return stripeExplicitlyEnabled && isFlagEnabled('payment-stripe', false);
         if (slug === 'manual' || slug === 'manual_transfer') {
           return isFlagEnabled('payment-bank-transfer');
         }

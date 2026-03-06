@@ -60,9 +60,6 @@ const gatewaySchemas: Record<string, { credentials?: z.ZodObject<any>, config?: 
     'digicel-mobile-money': { credentials: DigicelMobileMoneyCredentialsSchema, config: LocalEWalletConfigSchema },
     'kwikpay': { credentials: KwikPayCredentialsSchema, config: LocalEWalletConfigSchema },
     'manual_transfer': { credentials: undefined, config: undefined },
-    'bank-transfer': { credentials: undefined, config: undefined },
-    'bank_transfer': { credentials: undefined, config: undefined },
-    'bank': { credentials: undefined, config: undefined },
     'cash': { credentials: undefined, config: undefined },
 };
 
@@ -76,7 +73,7 @@ const GATEWAY_CATEGORIES = {
         'wantok-money', 'digicel-mobile-money', 'kwikpay', 'apple-pay', 'google-pay'
     ],
     'offline': [
-        'manual_transfer', 'bank-transfer', 'bank_transfer', 'bank', 'cash'
+        'manual_transfer', 'cash'
     ]
 };
 
