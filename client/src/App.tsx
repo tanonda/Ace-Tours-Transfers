@@ -25,6 +25,7 @@ const PaymentCancel = lazy(() => import("@/pages/payment-cancel"));
 const About = lazy(() => import("@/pages/about"));
 const Contact = lazy(() => import("@/pages/contact"));
 const Cart = lazy(() => import("@/pages/cart"));
+const Checkout = lazy(() => import("@/pages/checkout"));
 const ManageBooking = lazy(() => import("@/pages/manage-booking"));
 const Login = lazy(() => import("@/pages/login"));
 const Register = lazy(() => import("@/pages/register"));
@@ -143,6 +144,7 @@ function Router() {
         <Route path="/about" component={About} />
         <Route path="/contact" component={Contact} />
         <Route path="/cart" component={Cart} />
+        <Route path="/checkout" component={Checkout} />
         <Route path="/payment" component={Payment} />
         <Route path="/payment/success" component={PaymentSuccess} />
         <Route path="/payment/cancel" component={PaymentCancel} />

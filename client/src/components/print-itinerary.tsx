@@ -10,6 +10,10 @@ interface Booking {
   id: string;
   tourName: string;
   customerName: string;
+  customerEmail?: string;
+  customerPhone?: string;
+  pickupLocation?: string;
+  notes?: string;
   date: string;
   guests: number;
   amount: string;
@@ -231,7 +235,7 @@ export function PrintItinerary({ booking, items, payments, qrCodeData, onClose }
               <h1>Ace Tours & Transfers</h1>
               <p>Port Vila, Vanuatu</p>
               <div class="booking-badge">
-                ${t("itinerary.confirmationNumber", "Confirmation")}: ACT-${(booking.id||'').replace(/^book_/i,'').replace(/-/g,'').slice(0,8).toUpperCase()}
+                ${t("itinerary.confirmationNumber", "Confirmation")}: ACT-${(booking.id || '').replace(/^book_/i, '').replace(/-/g, '').slice(0, 8).toUpperCase()}
               </div>
             </div>
             
@@ -250,6 +254,7 @@ export function PrintItinerary({ booking, items, payments, qrCodeData, onClose }
                   <div class="info-item">
                     <div class="info-label">${t("booking.customer")}</div>
                     <div class="info-value">${booking.customerName}</div>
+                    ${booking.customerPhone ? `<div style="font-size: 13px; color: #666; margin-top: 2px;">${booking.customerPhone}</div>` : ''}
                   </div>
                   <div class="info-item">
                     <div class="info-label">${t("booking.date")}</div>
@@ -263,6 +268,12 @@ export function PrintItinerary({ booking, items, payments, qrCodeData, onClose }
                     <div class="info-label">${t("booking.status")}</div>
                     <div class="info-value" style="text-transform: capitalize;">${booking.status}</div>
                   </div>
+                  ${booking.pickupLocation ? `
+                  <div class="info-item">
+                    <div class="info-label">${t("booking.pickupLocation", "Pickup")}</div>
+                    <div class="info-value">${booking.pickupLocation}</div>
+                  </div>
+                  ` : ''}
                 </div>
               </div>
 
@@ -326,6 +337,12 @@ export function PrintItinerary({ booking, items, payments, qrCodeData, onClose }
               
               <div class="notes">
                 <h4>${t("itinerary.importantNotes", "Important Notes")}</h4>
+                ${booking.notes ? `
+                  <div style="margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px dashed #e67e22; opacity: 0.9;">
+                    <strong>Special Requests:</strong><br/>
+                    ${booking.notes}
+                  </div>
+                ` : ''}
                 <ul>
                   <li>${t("itinerary.note1", "Please arrive 15 minutes before your scheduled pickup time")}</li>
                   <li>${t("itinerary.note2", "Bring comfortable walking shoes and sun protection")}</li>
@@ -389,7 +406,7 @@ export function PrintItinerary({ booking, items, payments, qrCodeData, onClose }
             <h1 className="text-2xl font-bold mb-1">Ace Tours & Transfers</h1>
             <p className="text-white/80 text-sm">Port Vila, Vanuatu</p>
             <div className="booking-badge inline-block bg-primary text-white px-4 py-2 rounded-full font-bold mt-3">
-              {t("itinerary.confirmationNumber", "Confirmation")}: ACT-{(booking.id||'').replace(/^book_/i,'').replace(/-/g,'').slice(0,8).toUpperCase()}
+              {t("itinerary.confirmationNumber", "Confirmation")}: ACT-{(booking.id || '').replace(/^book_/i, '').replace(/-/g, '').slice(0, 8).toUpperCase()}
             </div>
           </div>
 
@@ -417,6 +434,7 @@ export function PrintItinerary({ booking, items, payments, qrCodeData, onClose }
                   <div>
                     <div className="info-label text-xs text-muted-foreground uppercase">{t("booking.customer")}</div>
                     <div className="info-value font-semibold">{booking.customerName}</div>
+                    {booking.customerPhone && <div className="text-xs text-muted-foreground mt-0.5">{booking.customerPhone}</div>}
                   </div>
                 </div>
                 <div className="info-item flex items-start gap-3">
@@ -440,6 +458,15 @@ export function PrintItinerary({ booking, items, payments, qrCodeData, onClose }
                     <div className="info-value font-semibold capitalize">{booking.status}</div>
                   </div>
                 </div>
+                {booking.pickupLocation && (
+                  <div className="info-item flex items-start gap-3">
+                    <MapPin className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                    <div>
+                      <div className="info-label text-xs text-muted-foreground uppercase">{t("booking.pickupLocation", "Pickup")}</div>
+                      <div className="info-value font-semibold">{booking.pickupLocation}</div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -511,6 +538,12 @@ export function PrintItinerary({ booking, items, payments, qrCodeData, onClose }
 
             <div className="notes bg-amber-50 dark:bg-amber-900/20 border-l-4 border-primary p-4 rounded-r-lg">
               <h4 className="text-primary font-semibold mb-2">{t("itinerary.importantNotes", "Important Notes")}</h4>
+              {booking.notes && (
+                <div className="mb-3 pb-3 border-b border-primary/20">
+                  <strong className="text-sm font-semibold">{t("itinerary.specialRequests", "Special Requests")}:</strong>
+                  <p className="text-sm text-foreground mt-1">{booking.notes}</p>
+                </div>
+              )}
               <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
                 <li>{t("itinerary.note1", "Please arrive 15 minutes before your scheduled pickup time")}</li>
                 <li>{t("itinerary.note2", "Bring comfortable walking shoes and sun protection")}</li>

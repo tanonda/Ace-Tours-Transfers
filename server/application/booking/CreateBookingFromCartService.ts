@@ -15,6 +15,7 @@ import crypto from "crypto";
 export interface CreateBookingRequest {
   customerName: string;
   customerEmail: string;
+  customerPhone?: string;
   sessionId?: string;
   idempotencyKey?: string;
   pickupLocation?: string;
@@ -208,6 +209,7 @@ export class CreateBookingFromCartService {
             id: domainBooking.id,
             customerName: domainBooking.customerName,
             customerEmail: domainBooking.customerEmail,
+            customerPhone: request.customerPhone || null,
             amount: snapshot.totalCents.toString(),
             totalAmountCents: snapshot.totalCents,
             status: "pending",
@@ -215,10 +217,10 @@ export class CreateBookingFromCartService {
             guests: request.items.reduce((sum, i) => sum + i.adultPax + i.childPax, 0),
             tourId: request.items[0].productId,
             tourName: cart.getItems()[0].name,
-            adultPaxTotal:  request.items.reduce((sum, i) => sum + i.adultPax, 0),
-            childPaxTotal:  request.items.reduce((sum, i) => sum + i.childPax, 0),
+            adultPaxTotal: request.items.reduce((sum, i) => sum + i.adultPax, 0),
+            childPaxTotal: request.items.reduce((sum, i) => sum + i.childPax, 0),
             infantPaxTotal: request.items.reduce((sum, i) => sum + (i.infantPax ?? 0), 0), // NEW
-            petPaxTotal:    request.items.reduce((sum, i) => sum + (i.petPax ?? 0), 0),    // NEW
+            petPaxTotal: request.items.reduce((sum, i) => sum + (i.petPax ?? 0), 0),    // NEW
             holdId: createdHolds[0] || null,
             bookingSessionId: cartId,
             idempotencyKey: request.idempotencyKey || null,
@@ -242,10 +244,10 @@ export class CreateBookingFromCartService {
               quantity: item.quantity,
               unitPriceCents: item.unitPriceCents,
               subtotalCents: item.unitPriceCents * item.quantity,
-              adultPax:  item.adultPax,
-              childPax:  item.childPax,
+              adultPax: item.adultPax,
+              childPax: item.childPax,
               infantPax: req?.infantPax ?? 0,  // NEW
-              petPax:    req?.petPax ?? 0,     // NEW
+              petPax: req?.petPax ?? 0,     // NEW
             },
             tx
           );

@@ -54,9 +54,8 @@ export default function Cart() {
   };
 
   const handleCheckout = async () => {
-    // Guests are fully supported — no login required for checkout
-    // Redirect to payment page which handles both guests and logged-in users
-    setLocation("/payment");
+    // Navigate to the new checkout step to capture guest details
+    setLocation("/checkout");
   };
 
   if (items.length === 0) {

@@ -396,7 +396,10 @@ export default function ManageBooking() {
                                     <div>
                                         <p className="text-muted-foreground">Customer</p>
                                         <p className="font-medium">{booking.customerName}</p>
-                                        <p className="text-xs text-muted-foreground">{booking.customerEmail}</p>
+                                        <div className="text-xs text-muted-foreground flex flex-col gap-0.5 mt-0.5">
+                                            <span>{booking.customerEmail}</span>
+                                            {booking.customerPhone && <span>{booking.customerPhone}</span>}
+                                        </div>
                                     </div>
                                     <div>
                                         <p className="text-muted-foreground">Total Amount</p>
@@ -408,6 +411,12 @@ export default function ManageBooking() {
                                         <div>
                                             <p className="text-muted-foreground">Pickup Location</p>
                                             <p className="font-medium">{booking.pickupLocation}</p>
+                                        </div>
+                                    )}
+                                    {booking.notes && (
+                                        <div className="md:col-span-2 mt-2 pt-3 border-t">
+                                            <p className="text-muted-foreground">Special Requests</p>
+                                            <p className="font-medium text-sm mt-1">{booking.notes}</p>
                                         </div>
                                     )}
                                 </div>

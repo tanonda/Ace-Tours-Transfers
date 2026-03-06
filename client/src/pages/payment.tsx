@@ -92,6 +92,10 @@ export default function Payment() {
 
   const [guestName, setGuestName] = useState(user?.name || "");
   const [guestEmail, setGuestEmail] = useState(user?.email || "");
+  const [guestPhone, setGuestPhone] = useState(user?.phone || "");
+  const [pickupLocation, setPickupLocation] = useState("");
+  const [notes, setNotes] = useState("");
+
   const [bookingId, setBookingId] = useState<string | null>(null);
   const [selectedMethod, setSelectedMethod] = useState<string>("");
   const [selectedSubOption, setSelectedSubOption] = useState<string>("");
@@ -99,6 +103,27 @@ export default function Payment() {
   const [cachedBooking, setCachedBooking] = useState<BookingDetails | null>(null);
   // FIX (audit section 3.5): Generate a stable idempotency key once per page load.
   const idempotencyKey = useRef(crypto.randomUUID());
+
+  // Load checkout details from session storage
+  useEffect(() => {
+    const savedDetails = sessionStorage.getItem("checkout_details");
+    if (savedDetails) {
+      try {
+        const parsed = JSON.parse(savedDetails);
+        setGuestName(parsed.name || user?.name || "");
+        setGuestEmail(parsed.email || user?.email || "");
+        setGuestPhone(parsed.phone || user?.phone || "");
+        setPickupLocation(parsed.pickupLocation || "");
+        setNotes(parsed.notes || "");
+      } catch (e) {
+        console.error("Failed to parse checkout details", e);
+      }
+    } else if (!isAuthenticated && items.length > 0) {
+      // If we're a guest and have items but no details, we should probably be on the checkout step
+      // unless we came from somewhere else. We'll let the user decide with a warning or auto-redirect 
+      // if it becomes a common issue.
+    }
+  }, [isAuthenticated, user, items.length]);
 
   useEffect(() => {
     fetch("/api/config")
@@ -197,8 +222,11 @@ export default function Payment() {
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
-          customerName: user?.name || guestName,
-          customerEmail: user?.email || guestEmail,
+          customerName: guestName || user?.name || "Guest User",
+          customerEmail: guestEmail || user?.email || "guest@example.com",
+          customerPhone: guestPhone || user?.phone || undefined,
+          pickupLocation: pickupLocation || undefined,
+          notes: notes || undefined,
           idempotencyKey: idempotencyKey.current,
           items: items.map(i => ({
             productId: i.id,
@@ -258,9 +286,10 @@ export default function Payment() {
   const handlePayment = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Only require guest details if no booking exists AND user isn't authenticated
-    if (!bookingId && !isAuthenticated && (!guestName || !guestEmail)) {
-      toast({ title: "Details Required", description: "Please provide your name and email.", variant: "destructive" });
+    // Since we now have a checkout step, we just show a generic error if they somehow bypassed it
+    if (!bookingId && !guestName && !guestEmail) {
+      toast({ title: "Details Required", description: "Please complete the checkout details step first.", variant: "destructive" });
+      setLocation("/checkout");
       return;
     }
 
@@ -577,23 +606,42 @@ export default function Payment() {
             )}
 
             {/* ──── Guest Details (only when no pre-created booking) ──── */}
-            {!hasBooking && !isAuthenticated && (
+            {!hasBooking && guestName && guestEmail && (
               <Card className="border-border/50 shadow-lg bg-card/80 backdrop-blur-sm">
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <ExternalLink className="h-5 w-5 text-primary" />
-                    Your Details
-                  </CardTitle>
-                  <CardDescription>We'll send your booking confirmation to this email</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="guestName">Full Name</Label>
-                    <Input id="guestName" value={guestName} onChange={(e) => setGuestName(e.target.value)} placeholder="John Doe" required />
+                <CardHeader className="pb-3 flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <Users className="h-5 w-5 text-primary" />
+                      Contact Details
+                    </CardTitle>
+                    <CardDescription>We'll send your booking confirmation to this email</CardDescription>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="guestEmail">Email Address</Label>
-                    <Input id="guestEmail" type="email" value={guestEmail} onChange={(e) => setGuestEmail(e.target.value)} placeholder="john@example.com" required />
+                  <Button variant="ghost" size="sm" onClick={() => setLocation("/checkout")} className="text-xs">
+                    Edit
+                  </Button>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div className="space-y-1">
+                      <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Name</span>
+                      <p className="font-medium">{guestName}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Email</span>
+                      <p className="font-medium">{guestEmail}</p>
+                    </div>
+                    {guestPhone && (
+                      <div className="space-y-1">
+                        <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Phone</span>
+                        <p className="font-medium">{guestPhone}</p>
+                      </div>
+                    )}
+                    {pickupLocation && (
+                      <div className="space-y-1">
+                        <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Pickup</span>
+                        <p className="font-medium truncate">{pickupLocation}</p>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
