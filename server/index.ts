@@ -66,6 +66,15 @@ app.use(helmet({
         "https://js.stripe.com",
         "https://fonts.googleapis.com",
         "https://www.googletagmanager.com",
+        "https://widget.trustpilot.com", // Trustpilot review widget
+      ],
+      scriptSrcElem: [
+        "'self'",
+        "'unsafe-inline'",
+        "https://js.stripe.com",
+        "https://fonts.googleapis.com",
+        "https://www.googletagmanager.com",
+        "https://widget.trustpilot.com", // Trustpilot review widget
       ],
       styleSrc: [
         "'self'",
@@ -81,16 +90,22 @@ app.use(helmet({
         "https://lh3.googleusercontent.com",
         "https://*.stripe.com",
         "https://www.googletagmanager.com",
+        "https://www.transparenttextures.com", // Background texture patterns
       ],
       connectSrc: [
         "'self'",
         "https://api.stripe.com",
         "https://res.cloudinary.com",
         "https://www.googletagmanager.com",
+        "https://cdn.jsdelivr.net", // Live currency exchange rates (VUV)
         "wss:",
         "ws:",
       ],
-      frameSrc: ["https://js.stripe.com", "https://hooks.stripe.com"],
+      frameSrc: [
+        "https://js.stripe.com",
+        "https://hooks.stripe.com",
+        "https://widget.trustpilot.com", // Trustpilot iframe
+      ],
       objectSrc: ["'none'"],
       upgradeInsecureRequests: process.env.NODE_ENV === "production" ? [] : null,
     } as any,

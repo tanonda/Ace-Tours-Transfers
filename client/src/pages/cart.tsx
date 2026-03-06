@@ -129,7 +129,7 @@ export default function Cart() {
 
                   if (pricingSnapshot && pricingSnapshot.items[index]) {
                     const pricedItem = pricingSnapshot.items[index];
-                    finalItemSubtotal = pricedItem.breakdown.finalTotalCents;
+                    finalItemSubtotal = pricedItem.breakdown?.finalTotalCents ?? ((item.price * item.adultPax) + (item.childPrice * item.childPax) + (item.addonTotal || 0));
                     appliedRules = pricedItem.breakdown.appliedRules;
                   } else {
                     finalItemSubtotal = (item.price * item.adultPax) + (item.childPrice * item.childPax) + (item.addonTotal || 0);
@@ -284,7 +284,7 @@ export default function Cart() {
                 <div className="h-1 bg-gradient-to-r from-primary via-primary/80 to-primary/40" />
                 <CardHeader className="pb-2">
                   <CardTitle className="flex items-center justify-between text-base">
-                    <span>{t("payment.orderSummary")}</span>
+                    <span>Order Summary</span>
                     <span className="text-xs font-normal text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
                       {items.length} item{items.length !== 1 ? "s" : ""}
                     </span>
@@ -305,7 +305,7 @@ export default function Cart() {
                         const anyItem = item as any;
                         let lineTotal = 0;
                         if (pricingSnapshot && pricingSnapshot.items[index]) {
-                          lineTotal = pricingSnapshot.items[index].breakdown.finalTotalCents;
+                          lineTotal = pricingSnapshot.items[index].breakdown?.finalTotalCents ?? ((item.price * item.adultPax) + (item.childPrice * item.childPax) + (item.addonTotal || 0));
                         } else {
                           lineTotal = (item.price * item.adultPax) + (item.childPrice * item.childPax) + (item.addonTotal || 0);
                         }
@@ -381,6 +381,25 @@ export default function Cart() {
 
                   <Separator className="my-3" />
 
+                  {/* What happens next — clear flow indicator */}
+                  <div className="rounded-lg bg-muted/40 border border-border/40 p-3 mb-3">
+                    <p className="text-[0.7rem] font-semibold text-muted-foreground uppercase tracking-wider mb-2">What happens next</p>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-xs">
+                        <span className="h-5 w-5 rounded-full bg-primary text-primary-foreground text-[10px] font-black flex items-center justify-center shrink-0">1</span>
+                        <span>Enter your contact details</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs">
+                        <span className="h-5 w-5 rounded-full bg-primary/30 text-foreground text-[10px] font-black flex items-center justify-center shrink-0">2</span>
+                        <span>Choose your payment method</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span className="h-5 w-5 rounded-full bg-muted text-muted-foreground text-[10px] font-black flex items-center justify-center shrink-0">3</span>
+                        <span>Receive instant confirmation by email</span>
+                      </div>
+                    </div>
+                  </div>
+
                   {/* Trust signals */}
                   <div className="space-y-1.5 text-xs text-muted-foreground">
                     <div className="flex items-center gap-2">
@@ -393,11 +412,11 @@ export default function Cart() {
                     </div>
                     <div className="flex items-center gap-2">
                       <Shield className="h-3.5 w-3.5 text-blue-500 shrink-0" />
-                      <span>Secure checkout — no account required</span>
+                      <span>No account required — guest checkout</span>
                     </div>
                   </div>
                 </CardContent>
-                <CardFooter className="pt-0">
+                <CardFooter className="pt-0 flex-col gap-2">
                   <Button
                     className="w-full py-6 text-base font-bold"
                     size="lg"
@@ -410,6 +429,9 @@ export default function Cart() {
                       <>Proceed to Checkout <ArrowRight className="ml-2 h-4 w-4" /></>
                     )}
                   </Button>
+                  <p className="text-[0.65rem] text-muted-foreground text-center">
+                    🔒 Secure checkout — 256-bit encryption
+                  </p>
                 </CardFooter>
               </Card>
 
