@@ -764,6 +764,7 @@ export function Hero() {
   const { isBlockEnabled } = useCMS();
   const showVehicleHire = isBlockEnabled('vehicle-hire');
   const search = useAvailabilitySearch();
+  const bgUrl = cms.text("hero_image") || heroBg;
 
   return (
     <section
@@ -776,7 +777,7 @@ export function Hero() {
         aria-hidden="true"
       >
         <img
-          src={heroBg.replace("/upload/", "/upload/f_auto,q_auto,w_1600/")}
+          src={bgUrl.replace("/upload/", "/upload/f_auto,q_auto,w_1600/")}
           alt=""
           className="w-full h-full object-cover object-center"
           loading="eager"

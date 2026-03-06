@@ -32,7 +32,10 @@ function ToolbarButton({
       type="button"
       title={title}
       onClick={onClick}
-      className={`p-1.5 rounded text-sm hover:bg-muted transition-colors ${active ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+      className={`p-1.5 md:p-2 rounded-md transition-all duration-200 flex items-center justify-center ${active
+          ? 'bg-primary/10 text-primary shadow-sm'
+          : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+        }`}
     >
       {children}
     </button>
@@ -61,7 +64,7 @@ function RichEditor({
     },
     editorProps: {
       attributes: {
-        class: 'min-h-[160px] p-4 text-sm focus:outline-none prose prose-sm max-w-none focus:ring-0 outline-none',
+        class: 'min-h-[200px] p-5 text-base focus:outline-none prose prose-stone dark:prose-invert max-w-none focus:ring-0 outline-none placeholder:text-muted-foreground',
         style: 'line-height: 1.6',
       },
     },
@@ -90,32 +93,32 @@ function RichEditor({
   };
 
   return (
-    <div className="border border-border rounded-lg overflow-hidden flex flex-col">
+    <div className="border border-input rounded-xl overflow-hidden flex flex-col focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition-all duration-200 shadow-sm bg-background">
       {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-0.5 p-2 border-b border-border bg-muted/30">
-        <ToolbarButton onClick={() => editor.chain().focus().undo().run()} title="Undo"><Undo className="h-3.5 w-3.5" /></ToolbarButton>
-        <ToolbarButton onClick={() => editor.chain().focus().redo().run()} title="Redo"><Redo className="h-3.5 w-3.5" /></ToolbarButton>
+      <div className="flex flex-wrap items-center gap-1 p-2 border-b border-border bg-muted/10">
+        <ToolbarButton onClick={() => editor.chain().focus().undo().run()} title="Undo"><Undo className="h-4 w-4" /></ToolbarButton>
+        <ToolbarButton onClick={() => editor.chain().focus().redo().run()} title="Redo"><Redo className="h-4 w-4" /></ToolbarButton>
         <div className="w-px h-5 bg-border mx-1" />
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
           title="Heading 1"
           active={editor.isActive('heading', { level: 1 })}
         >
-          <Heading1 className="h-3.5 w-3.5" />
+          <Heading1 className="h-4 w-4" />
         </ToolbarButton>
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
           title="Heading 2"
           active={editor.isActive('heading', { level: 2 })}
         >
-          <Heading2 className="h-3.5 w-3.5" />
+          <Heading2 className="h-4 w-4" />
         </ToolbarButton>
         <ToolbarButton
           onClick={() => editor.chain().focus().setParagraph().run()}
           title="Paragraph"
           active={editor.isActive('paragraph') && !editor.isActive('heading')}
         >
-          <AlignLeft className="h-3.5 w-3.5" />
+          <AlignLeft className="h-4 w-4" />
         </ToolbarButton>
         <div className="w-px h-5 bg-border mx-1" />
         <ToolbarButton
@@ -123,21 +126,21 @@ function RichEditor({
           title="Bold"
           active={editor.isActive('bold')}
         >
-          <Bold className="h-3.5 w-3.5" />
+          <Bold className="h-4 w-4" />
         </ToolbarButton>
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleItalic().run()}
           title="Italic"
           active={editor.isActive('italic')}
         >
-          <Italic className="h-3.5 w-3.5" />
+          <Italic className="h-4 w-4" />
         </ToolbarButton>
         <ToolbarButton
           onClick={() => editor.chain().focus().setTextAlign('center').run()}
           title="Center"
           active={editor.isActive({ textAlign: 'center' })}
         >
-          <AlignCenter className="h-3.5 w-3.5" />
+          <AlignCenter className="h-4 w-4" />
         </ToolbarButton>
         <div className="w-px h-5 bg-border mx-1" />
         <ToolbarButton
@@ -145,36 +148,36 @@ function RichEditor({
           title="Bullet List"
           active={editor.isActive('bulletList')}
         >
-          <List className="h-3.5 w-3.5" />
+          <List className="h-4 w-4" />
         </ToolbarButton>
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleBlockquote().run()}
           title="Quote"
           active={editor.isActive('blockquote')}
         >
-          <Quote className="h-3.5 w-3.5" />
+          <Quote className="h-4 w-4" />
         </ToolbarButton>
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleCodeBlock().run()}
           title="Code Block"
           active={editor.isActive('codeBlock')}
         >
-          <Code className="h-3.5 w-3.5" />
+          <Code className="h-4 w-4" />
         </ToolbarButton>
-        <ToolbarButton onClick={() => editor.chain().focus().setHorizontalRule().run()} title="Divider"><Minus className="h-3.5 w-3.5" /></ToolbarButton>
+        <ToolbarButton onClick={() => editor.chain().focus().setHorizontalRule().run()} title="Divider"><Minus className="h-4 w-4" /></ToolbarButton>
         <ToolbarButton
           onClick={addLink}
           title="Insert Link"
           active={editor.isActive('link')}
         >
-          <LinkIcon className="h-3.5 w-3.5" />
+          <LinkIcon className="h-4 w-4" />
         </ToolbarButton>
       </div>
 
-      <EditorContent editor={editor} />
+      <EditorContent editor={editor} className="flex-1 cursor-text" onClick={() => editor.chain().focus().run()} />
 
       <style>{`
-        .ProseMirror { min-height: 160px; }
+        .ProseMirror { min-height: 200px; }
         .ProseMirror p.is-editor-empty:first-child::before {
           content: attr(data-placeholder);
           float: left;
@@ -182,12 +185,17 @@ function RichEditor({
           pointer-events: none;
           height: 0;
         }
-        .ProseMirror h1 { font-size: 1.5rem; font-weight: 700; margin: 0.5rem 0; }
-        .ProseMirror h2 { font-size: 1.25rem; font-weight: 600; margin: 0.5rem 0; }
-        .ProseMirror blockquote { border-left: 3px solid hsl(var(--primary)); padding-left: 1rem; color: hsl(var(--muted-foreground)); margin: 0.5rem 0; }
-        .ProseMirror pre { background: hsl(var(--muted)); padding: 0.75rem; border-radius: 6px; font-family: monospace; font-size: 0.8rem; }
-        .ProseMirror ul { list-style: disc; padding-left: 1.5rem; }
-        .ProseMirror a { color: hsl(var(--primary)); text-decoration: underline; }
+        .ProseMirror h1 { font-size: 1.875rem; font-weight: 800; margin: 0.75rem 0; line-height: 1.2; letter-spacing: -0.02em; }
+        .ProseMirror h2 { font-size: 1.5rem; font-weight: 700; margin: 0.75rem 0; line-height: 1.3; }
+        .ProseMirror p { margin: 0.5rem 0; }
+        .ProseMirror blockquote { border-left: 4px solid hsl(var(--primary)); padding-left: 1rem; color: hsl(var(--muted-foreground)); margin: 1rem 0; font-style: italic; background: hsl(var(--muted)/0.3); padding: 1rem; border-radius: 0 0.5rem 0.5rem 0; }
+        .ProseMirror pre { background: hsl(var(--muted)/0.5); padding: 1rem; border-radius: 0.5rem; font-family: monospace; font-size: 0.875rem; border: 1px solid hsl(var(--border)); overflow-x: auto; }
+        .ProseMirror ul { list-style: disc; padding-left: 1.5rem; margin: 0.5rem 0; }
+        .ProseMirror li { margin: 0.25rem 0; }
+        .ProseMirror a { color: hsl(var(--primary)); text-decoration: underline; text-underline-offset: 4px; font-weight: 500; transition: color 0.2s; }
+        .ProseMirror a:hover { color: hsl(var(--primary)/0.8); }
+        .ProseMirror p, .ProseMirror h1, .ProseMirror h2, .ProseMirror ul { cursor: text; }
+        .ProseMirror:focus { outline: none; }
       `}</style>
     </div>
   );
@@ -433,22 +441,41 @@ export default function AdminCMS() {
                               placeholder={`Enter ${field.label.toLowerCase()}...`}
                             />
                           ) : field.type === 'image' ? (
-                            <div className="flex items-start gap-4">
+                            <div className="space-y-3">
                               {item.value ? (
-                                <img src={item.value} alt={field.label} className="w-40 h-24 object-cover rounded-lg border border-border" />
-                              ) : (
-                                <div className="w-40 h-24 bg-muted/50 rounded-lg border border-border flex items-center justify-center text-muted-foreground">
-                                  <ImageIcon className="h-6 w-6" />
+                                <div className="relative group rounded-xl overflow-hidden border border-border bg-muted/20">
+                                  <img src={item.value} alt={field.label} className="w-full h-48 md:h-56 object-cover transition-transform duration-500 group-hover:scale-105" />
+                                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center gap-3">
+                                    <label className="cursor-pointer bg-white text-black hover:bg-gray-100 px-5 py-2.5 rounded-full font-semibold flex items-center gap-2 transition-all transform hover:scale-105 shadow-xl">
+                                      {isUploading ? <Loader2 className="animate-spin h-4 w-4" /> : <Upload className="h-4 w-4" />}
+                                      {isUploading ? "Uploading..." : "Replace Image"}
+                                      <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e, item)} disabled={isUploading} />
+                                    </label>
+                                  </div>
                                 </div>
-                              )}
-                              <div className="flex-1">
-                                <label className="flex items-center gap-2 cursor-pointer">
-                                  <Input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, item)} disabled={isUploading} className="w-full max-w-sm cursor-pointer" />
-                                  {isUploading && <Loader2 className="animate-spin h-4 w-4" />}
+                              ) : (
+                                <label className="flex flex-col items-center justify-center w-full h-48 md:h-56 rounded-xl border-2 border-dashed border-border/60 hover:border-primary/50 hover:bg-primary/5 transition-all cursor-pointer group">
+                                  <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center px-4">
+                                    {isUploading ? (
+                                      <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
+                                    ) : (
+                                      <div className="p-4 bg-muted/50 rounded-full group-hover:bg-primary/10 transition-colors mb-4 shadow-sm group-hover:shadow-md">
+                                        <Upload className="h-8 w-8 text-muted-foreground group-hover:text-primary transition-colors" />
+                                      </div>
+                                    )}
+                                    <p className="mb-2 text-sm text-foreground font-semibold">
+                                      {isUploading ? "Uploading file..." : "Click to upload an image"}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground max-w-[200px]">
+                                      High resolution images recommended. PNG, JPG or WEBP.
+                                    </p>
+                                  </div>
+                                  <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e, item)} disabled={isUploading} />
                                 </label>
-                                <p className="text-xs text-muted-foreground mt-1.5">
-                                  <Upload className="h-3 w-3 inline mr-1" />Uploads to Cloudinary — replaces current image immediately.
-                                </p>
+                              )}
+                              <div className="flex items-center gap-2 p-3 bg-blue-50/50 text-blue-700 rounded-lg border border-blue-100 object-contain">
+                                <ImageIcon className="h-4 w-4 shrink-0 text-blue-500" />
+                                <p className="text-xs font-medium content-center">Uploads to Cloudinary — replaces magically & instantly.</p>
                               </div>
                             </div>
                           ) : (
