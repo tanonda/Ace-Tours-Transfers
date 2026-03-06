@@ -24,11 +24,8 @@ export class PaymentFactory {
     'manual_transfer': ManualAdapter as any,   // Bank transfer (canonical slug in DB)
     'cash': ManualAdapter as any,              // Cash on delivery
     // Local bank gateways (ANZ/BSP/BRED all delegate to MastercardGatewayAdapter for real VPC hash signing)
-    'anz': AnzEGateAdapter as any,
     'anz-egate': AnzEGateAdapter as any,
-    'bsp': BspEGateAdapter as any,
     'bsp-bank': BspEGateAdapter as any,
-    'bred': BredEGateAdapter as any,
     'bred-bank': BredEGateAdapter as any,
     // International / digital (stub implementations — configure credentials before activating)
     'stripe': StripeAdapter as any,
@@ -82,9 +79,9 @@ export class PaymentFactory {
   }
 
   private static normalizeSlugToFlag(slug: string): string {
-    if (slug === 'anz-egate') return 'anz';
-    if (slug === 'bred-bank') return 'bred';
-    if (slug === 'bsp-bank') return 'bsp';
+    if (slug === 'anz-egate') return 'anz-egate';
+    if (slug === 'bred-bank') return 'bred-bank';
+    if (slug === 'bsp-bank') return 'bsp-bank';
     // All manual/offline variants map to the 'manual' config block
     if (slug === 'manual_transfer' || slug === 'cash') return 'manual';
     return slug;

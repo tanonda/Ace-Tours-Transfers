@@ -23,16 +23,6 @@ const GATEWAY_DATA = [
     config: {}
   },
   {
-    slug: "anz",
-    displayName: "ANZ Bank",
-    description: "ANZ Bank direct merchant integration.",
-    active: false,
-    priority: 2,
-    supportedCurrencies: ["VUV", "AUD"],
-    credentials: {},
-    config: {}
-  },
-  {
     slug: "bsp-bank",
     displayName: "BSP Bank",
     description: "Bank of South Pacific online payment gateway.",
@@ -43,51 +33,11 @@ const GATEWAY_DATA = [
     config: {}
   },
   {
-    slug: "bsp",
-    displayName: "BSP eGate",
-    description: "BSP eGate payment processing services.",
-    active: false,
-    priority: 4,
-    supportedCurrencies: ["VUV"],
-    credentials: {},
-    config: {}
-  },
-  {
     slug: "bred-bank",
     displayName: "Bred Bank",
     description: "Bred Bank Vanuatu payment processing.",
     active: false,
     priority: 5,
-    supportedCurrencies: ["VUV"],
-    credentials: {},
-    config: {}
-  },
-  {
-    slug: "bred",
-    displayName: "Bred eGate",
-    description: "Bred Bank eGate merchant services.",
-    active: false,
-    priority: 6,
-    supportedCurrencies: ["VUV"],
-    credentials: {},
-    config: {}
-  },
-  {
-    slug: "mastercard-gateway",
-    displayName: "Mastercard Gateway",
-    description: "Generic Mastercard Payment Gateway Service (MPGS).",
-    active: false,
-    priority: 7,
-    supportedCurrencies: ["VUV", "AUD", "USD"],
-    credentials: {},
-    config: {}
-  },
-  {
-    slug: "generic-local-bank",
-    displayName: "Local Bank (Other)",
-    description: "Generic integration for other local Vanuatu banks.",
-    active: false,
-    priority: 8,
     supportedCurrencies: ["VUV"],
     credentials: {},
     config: {}

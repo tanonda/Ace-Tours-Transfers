@@ -61,12 +61,11 @@ const ONLINE_CARD_SLUGS = new Set([
   'anz-egate',
   'bsp-bank',
   'bred-bank',
+  'stripe',
+  'paypal',
   'wantok-money',
   'digicel-mobile-money',
   'kwikpay',
-  'generic-local-bank',
-  'stripe',
-  'paypal',
   'google-pay',
   'apple-pay',
   'e-wallet',
@@ -98,15 +97,14 @@ const SLUG_TO_CATEGORY: Record<string, PaymentMethodCategory> = {
   'cash': 'cash',
 
   // Legacy / catch-all
-  'generic-local-bank': 'card',
   'e-wallet': 'mobile-money',
 };
 
 /** Guest-facing labels for each category. */
 const CATEGORY_LABELS: Record<PaymentMethodCategory, { label: string; description: string; icon: string }> = {
   'card': {
-    label: 'Pay with Card',
-    description: 'Visa, Mastercard, and other cards',
+    label: 'Online Card Payment',
+    description: 'Secure online card payment',
     icon: 'credit-card',
   },
   'paypal': {

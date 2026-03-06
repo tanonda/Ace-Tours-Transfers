@@ -46,12 +46,8 @@ import { Textarea } from "@/components/ui/textarea";
 // Helper to map gateway slugs to their respective Zod schemas
 const gatewaySchemas: Record<string, { credentials?: z.ZodObject<any>, config?: z.ZodObject<any> }> = {
     'anz-egate': { credentials: AnzEGateCredentialsSchema, config: LocalBankConfigSchema },
-    'anz': { credentials: AnzEGateCredentialsSchema, config: LocalBankConfigSchema },
     'bsp-bank': { credentials: BspBankCredentialsSchema, config: LocalBankConfigSchema },
-    'bsp': { credentials: BspBankCredentialsSchema, config: LocalBankConfigSchema },
     'bred-bank': { credentials: BredBankCredentialsSchema, config: LocalBankConfigSchema },
-    'bred': { credentials: BredBankCredentialsSchema, config: LocalBankConfigSchema },
-    'mastercard-gateway': { credentials: MastercardGatewayCredentialsSchema, config: LocalBankConfigSchema },
     'stripe': { credentials: StripeCredentialsSchema, config: StripeConfigSchema },
     'google-pay': { credentials: GooglePayCredentialsSchema, config: DigitalWalletConfigSchema },
     'apple-pay': { credentials: ApplePayCredentialsSchema, config: DigitalWalletConfigSchema },
@@ -66,8 +62,8 @@ const gatewaySchemas: Record<string, { credentials?: z.ZodObject<any>, config?: 
 // Define categorization for gateways based on their slug
 const GATEWAY_CATEGORIES = {
     'online': [
-        'anz-egate', 'anz', 'bsp-bank', 'bsp', 'bred-bank', 'bred',
-        'mastercard-gateway', 'stripe', 'paypal'
+        'anz-egate', 'bsp-bank', 'bred-bank',
+        'stripe', 'paypal'
     ],
     'ewallet': [
         'wantok-money', 'digicel-mobile-money', 'kwikpay', 'apple-pay', 'google-pay'
