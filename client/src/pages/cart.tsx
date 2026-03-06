@@ -130,7 +130,7 @@ export default function Cart() {
                   if (pricingSnapshot && pricingSnapshot.items[index]) {
                     const pricedItem = pricingSnapshot.items[index];
                     finalItemSubtotal = pricedItem.breakdown?.finalTotalCents ?? ((item.price * item.adultPax) + (item.childPrice * item.childPax) + (item.addonTotal || 0));
-                    appliedRules = pricedItem.breakdown.appliedRules;
+                    appliedRules = pricedItem.breakdown?.appliedRules ?? [];
                   } else {
                     finalItemSubtotal = (item.price * item.adultPax) + (item.childPrice * item.childPax) + (item.addonTotal || 0);
                     if (item.adultPax >= 7) {

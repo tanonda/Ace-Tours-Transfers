@@ -98,6 +98,7 @@ app.use(helmet({
         "https://res.cloudinary.com",
         "https://www.googletagmanager.com",
         "https://cdn.jsdelivr.net", // Live currency exchange rates (VUV)
+        "https://widget.trustpilot.com", // Trustpilot widget sourcemaps
         "wss:",
         "ws:",
       ],
