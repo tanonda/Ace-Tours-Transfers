@@ -1,4 +1,4 @@
-import { useParams } from "wouter";
+import { useParams, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { fetchVehicle } from "@/lib/api";
 import { apiRequest } from "@/lib/queryClient";
@@ -424,6 +424,8 @@ export default function VehicleDetail() {
   const grandTotal = totalPriceCents + addonTotal;
   const canBook = !!(pickupDate && returnDate && hireDays >= 1 && availabilityStatus !== "unavailable");
 
+  const [, setLocation] = useLocation();
+
   const handleAddToCart = () => {
     if (!vehicle || !pickupDate || !returnDate) return;
     addToCart({
@@ -440,6 +442,7 @@ export default function VehicleDetail() {
       endTime: dropoffTime || undefined,
       pickupDate, returnDate, pickupTime, dropoffTime, hireDays,
     } as any);
+    setLocation("/cart");
   };
 
   if (isLoading) return (

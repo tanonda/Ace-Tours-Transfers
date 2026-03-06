@@ -1,5 +1,5 @@
 
-import { Link, useParams } from "wouter";
+import { Link, useParams, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { fetchTour } from "@/lib/api";
 import { apiRequest } from "@/lib/queryClient";
@@ -392,6 +392,8 @@ export default function TourDetail() {
   const handleDateSelect = useCallback((d: string) => { setDate(d); setSelectedTime(null); }, []);
   const handleTimeSelect = useCallback((t: string) => { setSelectedTime(t); }, []);
 
+  const [, setLocation] = useLocation();
+
   const handleAddToCart = () => {
     if (!tour) return;
     addToCart({
@@ -405,6 +407,7 @@ export default function TourDetail() {
       date: date ? new Date(date) : new Date(),
       startTime: selectedTime || undefined,
     });
+    setLocation("/cart");
   };
 
   const averageRating = reviews.length > 0
@@ -1071,20 +1074,10 @@ export default function TourDetail() {
                     onClick={handleAddToCart}
                   >
                     <ShoppingCart className="mr-2 h-5 w-5" />
-                    {date ? t("cart.addToCart", "Add to Cart") : t("booking.selectDateFirst", "Select a Date to Continue")}
+                    {date
+                      ? isBooked ? "Fully Booked — Choose Another Date" : t("cart.addToCart", "Add to Cart")
+                      : t("booking.selectDateFirst", "Select a Date to Continue")}
                   </Button>
-
-                  <Link href={`/reservations?tab=book-new&service=${encodeURIComponent(tour.title)}&adults=${adultPax}&children=${childPax}&date=${date}`}>
-                    <button
-                      disabled={!date || isBooked || availLoading}
-                      className={`w-full h-12 rounded-[10px] text-[0.875rem] font-bold border-2 transition-all ${date && !isBooked
-                        ? "bg-transparent border-[#f4a830] text-[#f4a830] hover:bg-[#f4a830]/10"
-                        : "border-[rgba(244,168,48,0.18)] text-[#4a4438] cursor-not-allowed"
-                        }`}
-                    >
-                      {t("tour.bookNow", "Book Now")}
-                    </button>
-                  </Link>
                 </div>
 
                 {/* WhatsApp */}

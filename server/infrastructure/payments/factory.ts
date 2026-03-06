@@ -21,10 +21,8 @@ export class PaymentFactory {
   private static adapters: Record<string, new (config: PaymentGateway) => PaymentGatewayService> = {
     // Manual / offline payment methods — all routed through ManualAdapter
     'manual': ManualAdapter as any,
-    'manual_transfer': ManualAdapter as any,   // Bank transfer (primary slug in DB)
+    'manual_transfer': ManualAdapter as any,   // Bank transfer (canonical slug in DB)
     'cash': ManualAdapter as any,              // Cash on delivery
-    'bank-transfer': ManualAdapter as any,     // Alias variant
-    'bank': ManualAdapter as any,              // Alias variant
     // Local bank gateways (ANZ/BSP/BRED all delegate to MastercardGatewayAdapter for real VPC hash signing)
     'anz': AnzEGateAdapter as any,
     'anz-egate': AnzEGateAdapter as any,
@@ -88,7 +86,7 @@ export class PaymentFactory {
     if (slug === 'bred-bank') return 'bred';
     if (slug === 'bsp-bank') return 'bsp';
     // All manual/offline variants map to the 'manual' config block
-    if (slug === 'manual_transfer' || slug === 'bank-transfer' || slug === 'bank' || slug === 'cash') return 'manual';
+    if (slug === 'manual_transfer' || slug === 'cash') return 'manual';
     return slug;
   }
 }

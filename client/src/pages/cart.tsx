@@ -279,54 +279,155 @@ export default function Cart() {
 
             {/* Order Summary */}
             <div className="lg:w-1/3">
-              <Card className="sticky top-24 shadow-lg border-none">
-                <CardHeader>
-                  <CardTitle>{t("payment.orderSummary")}</CardTitle>
+              <Card className="sticky top-24 shadow-lg border-none overflow-hidden">
+                {/* Accent bar */}
+                <div className="h-1 bg-gradient-to-r from-primary via-primary/80 to-primary/40" />
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center justify-between text-base">
+                    <span>{t("payment.orderSummary")}</span>
+                    <span className="text-xs font-normal text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                      {items.length} item{items.length !== 1 ? "s" : ""}
+                    </span>
+                  </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  {/* Show detailed pricing breakdown from PricingEngine */}
-                  {isLoadingPricing && (
-                    <div className="flex flex-col items-center justify-center py-12 space-y-4">
-                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                      <p className="text-sm text-muted-foreground italic">
-                        {t("cart.calculatingFinalPrice")}
-                      </p>
+                <CardContent className="space-y-0 pb-4">
+
+                  {/* Per-item summary rows */}
+                  {isLoadingPricing ? (
+                    <div className="flex items-center gap-2 py-4 text-sm text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin shrink-0" />
+                      <span>{t("cart.calculatingFinalPrice", "Calculating final price…")}</span>
+                    </div>
+                  ) : (
+                    <div className="space-y-3 mb-4">
+                      {items.map((item, index) => {
+                        const isVehicle = item.type === "vehicle";
+                        const anyItem = item as any;
+                        let lineTotal = 0;
+                        if (pricingSnapshot && pricingSnapshot.items[index]) {
+                          lineTotal = pricingSnapshot.items[index].breakdown.finalTotalCents;
+                        } else {
+                          lineTotal = (item.price * item.adultPax) + (item.childPrice * item.childPax) + (item.addonTotal || 0);
+                        }
+                        const cat = CATEGORY_LABELS[item.type] || CATEGORY_LABELS.tour;
+                        return (
+                          <div key={item.cartItemId} className="text-sm">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium leading-tight truncate">{item.title}</p>
+                                <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5 text-xs text-muted-foreground">
+                                  <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-[0.65rem] font-semibold ${cat.color}`}>
+                                    {cat.icon} {cat.label}
+                                  </span>
+                                  {item.date && (
+                                    <span className="flex items-center gap-1">
+                                      <Calendar className="h-3 w-3" />
+                                      {format(new Date(item.date), "d MMM")}
+                                    </span>
+                                  )}
+                                  {isVehicle && anyItem.hireDays > 0 ? (
+                                    <span>{anyItem.hireDays}d hire</span>
+                                  ) : (
+                                    <span className="flex items-center gap-1">
+                                      <Users className="h-3 w-3" />
+                                      {item.adultPax}A{item.childPax > 0 ? `, ${item.childPax}C` : ""}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              <span className="font-semibold whitespace-nowrap shrink-0">
+                                {formatPriceDisplay(lineTotal * item.quantity, currency)}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
 
-                  {!isLoadingPricing && pricingSnapshot && (
-                    <div className="mb-6">
-                      <PricingBreakdown
-                        pricing={pricingSnapshot}
-                        currency={currency}
-                        expanded={false}
-                      />
-                    </div>
-                  )}
-
-                  {/* If no loading and no snapshot, show client-side estimate */}
-                  {!isLoadingPricing && !pricingSnapshot && (
-                    <div className="space-y-4">
-                      <div className="flex justify-between font-bold text-lg pt-2 border-t mt-2">
-                        <span>{t("cart.total")}</span>
-                        <span>{formatPriceDisplay(displayTotal, currency)}</span>
+                  {/* Applied pricing rules / discounts */}
+                  {!isLoadingPricing && pricingSnapshot && (() => {
+                    const allRules = Array.from(new Set(
+                      pricingSnapshot.items.flatMap((i: any) => i.breakdown?.appliedRules ?? [])
+                    ));
+                    if (allRules.length === 0) return null;
+                    return (
+                      <div className="mb-3 space-y-1">
+                        {allRules.map((rule: any, i: number) => (
+                          <p key={i} className="text-xs text-green-600 dark:text-green-400 font-medium flex items-center gap-1">
+                            <CheckCircle2 className="h-3 w-3 shrink-0" /> {rule}
+                          </p>
+                        ))}
                       </div>
-                      <p className="text-xs text-muted-foreground text-center">Estimated total — confirmed at payment</p>
+                    );
+                  })()}
+
+                  <Separator className="my-3" />
+
+                  {/* Total */}
+                  <div className="flex justify-between items-baseline">
+                    <span className="font-semibold text-sm">{t("cart.total", "Total")}</span>
+                    <div className="text-right">
+                      <p className="text-xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+                        {formatPriceDisplay(displayTotal, currency)}
+                      </p>
+                      <p className="text-[0.6rem] text-muted-foreground">Incl. 15% VAT</p>
                     </div>
+                  </div>
+
+                  {!pricingSnapshot && !isLoadingPricing && (
+                    <p className="text-[0.65rem] text-muted-foreground text-center mt-1">Estimated — confirmed at payment</p>
                   )}
+
+                  <Separator className="my-3" />
+
+                  {/* Trust signals */}
+                  <div className="space-y-1.5 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-2">
+                      <Shield className="h-3.5 w-3.5 text-green-500 shrink-0" />
+                      <span>Free cancellation up to 24h before</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
+                      <span>Instant confirmation by email</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Shield className="h-3.5 w-3.5 text-blue-500 shrink-0" />
+                      <span>Secure checkout — no account required</span>
+                    </div>
+                  </div>
                 </CardContent>
-                <CardFooter>
+                <CardFooter className="pt-0">
                   <Button
-                    className="w-full py-6 text-lg"
+                    className="w-full py-6 text-base font-bold"
                     size="lg"
                     onClick={handleCheckout}
-                    disabled={isProcessing}
+                    disabled={isProcessing || isLoadingPricing}
                   >
-                    {isProcessing ? "Processing..." : "Proceed to Checkout"}
-                    {!isProcessing && <ArrowRight className="ml-2 h-4 w-4" />}
+                    {isProcessing ? (
+                      <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Processing…</>
+                    ) : (
+                      <>Proceed to Checkout <ArrowRight className="ml-2 h-4 w-4" /></>
+                    )}
                   </Button>
                 </CardFooter>
               </Card>
+
+              {/* Add more products link */}
+              <div className="mt-4 text-center space-y-2">
+                <p className="text-xs text-muted-foreground">Want to add more to your order?</p>
+                <div className="flex gap-2 justify-center flex-wrap">
+                  <Link href="/tours">
+                    <Button variant="outline" size="sm" className="text-xs h-8">+ Browse Tours</Button>
+                  </Link>
+                  <Link href="/transfers">
+                    <Button variant="outline" size="sm" className="text-xs h-8">+ Transfers</Button>
+                  </Link>
+                  <Link href="/vehicles">
+                    <Button variant="outline" size="sm" className="text-xs h-8">+ Vehicle Hire</Button>
+                  </Link>
+                </div>
+              </div>
             </div>
           </div>
         </div>

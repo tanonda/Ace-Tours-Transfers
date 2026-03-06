@@ -188,42 +188,12 @@ const GATEWAY_DATA = [
     config: {}
   },
   {
-    slug: "bank-transfer",
-    displayName: "Bank Transfer (Swift)",
-    description: "International wire transfer for overseas bookings.",
-    active: false,
-    priority: 18,
-    supportedCurrencies: ["VUV", "AUD", "USD", "NZD"],
-    credentials: {},
-    config: {}
-  },
-  {
-    slug: "bank_transfer",
-    displayName: "Local Bank Transfer",
-    description: "Local bank-to-bank transfer within Vanuatu.",
-    active: false,
-    priority: 19,
-    supportedCurrencies: ["VUV"],
-    credentials: {},
-    config: {}
-  },
-  {
-    slug: "bank",
-    displayName: "ATM / Over-the-counter",
-    description: "Deposit cash or check at any local bank branch.",
-    active: false,
-    priority: 20,
-    supportedCurrencies: ["VUV"],
-    credentials: {},
-    config: {}
-  },
-  {
     slug: "cash",
     displayName: "Cash on Delivery",
     description: "Pay in cash at the start of your tour or vehicle pickup.",
     active: true,
     isDefault: false,
-    priority: 21,
+    priority: 18,
     supportedCurrencies: ["VUV", "AUD", "USD", "NZD"],
     credentials: {},
     config: {}

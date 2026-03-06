@@ -54,8 +54,6 @@ const OFFLINE_SLUGS = new Set([
   'manual',
   'manual_transfer',
   'cash',
-  'bank-transfer',
-  'bank_transfer',
 ]);
 
 /** Slugs that represent online card-processing gateways — redirect + webhook flow. */
@@ -97,8 +95,6 @@ const SLUG_TO_CATEGORY: Record<string, PaymentMethodCategory> = {
   // Offline methods
   'manual': 'bank-transfer',
   'manual_transfer': 'bank-transfer',
-  'bank-transfer': 'bank-transfer',
-  'bank_transfer': 'bank-transfer',
   'cash': 'cash',
 
   // Legacy / catch-all

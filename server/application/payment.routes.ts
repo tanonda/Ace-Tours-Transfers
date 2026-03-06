@@ -38,7 +38,7 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
         const slug = g.slug.toLowerCase();
 
         if (slug === 'stripe') return stripeExplicitlyEnabled && isFlagEnabled('payment-stripe');
-        if (slug === 'bank-transfer' || slug === 'manual' || slug === 'manual_transfer' || slug === 'bank') {
+        if (slug === 'manual' || slug === 'manual_transfer') {
           return isFlagEnabled('payment-bank-transfer');
         }
         if (slug === 'cash') {
@@ -76,8 +76,8 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
       if (provider === 'stripe' && !isFlagEnabled('payment-stripe')) {
         return res.status(403).json({ error: "Stripe payments are currently disabled" });
       }
-      // Also check slug variants for bank transfer feature flag
-      if ((provider === 'manual' || provider === 'bank-transfer' || provider === 'manual_transfer') && !isFlagEnabled('payment-bank-transfer')) {
+      // Check canonical bank transfer slug
+      if ((provider === 'manual' || provider === 'manual_transfer') && !isFlagEnabled('payment-bank-transfer')) {
         return res.status(403).json({ error: "Bank transfer payments are currently disabled" });
       }
       if (provider === 'cash' && !isFlagEnabled('payment-cash-on-delivery')) {
@@ -294,7 +294,7 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
         const slug = g.slug.toLowerCase();
 
         if (slug === 'stripe') return stripeExplicitlyEnabled && isFlagEnabled('payment-stripe');
-        if (slug === 'bank-transfer' || slug === 'manual' || slug === 'manual_transfer' || slug === 'bank') {
+        if (slug === 'manual' || slug === 'manual_transfer') {
           return isFlagEnabled('payment-bank-transfer');
         }
         if (slug === 'cash') {
@@ -337,7 +337,7 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
         const slug = g.slug.toLowerCase();
 
         if (slug === 'stripe') return stripeExplicitlyEnabled && isFlagEnabled('payment-stripe');
-        if (slug === 'bank-transfer' || slug === 'manual' || slug === 'manual_transfer' || slug === 'bank') {
+        if (slug === 'manual' || slug === 'manual_transfer') {
           return isFlagEnabled('payment-bank-transfer');
         }
         if (slug === 'cash') {

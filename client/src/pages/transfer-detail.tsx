@@ -1,5 +1,5 @@
 
-import { Link, useParams } from "wouter";
+import { Link, useParams, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { fetchTour } from "@/lib/api";
 import { apiRequest } from "@/lib/queryClient";
@@ -123,6 +123,8 @@ export default function TransferDetail() {
   const handleDateSelect = useCallback((d: string) => { setDate(d); setSelectedTime(null); }, []);
   const handleTimeSelect = useCallback((t: string) => { setSelectedTime(t); }, []);
 
+  const [, setLocation] = useLocation();
+
   const handleAddToCart = () => {
     if (!transfer) return;
     addToCart({
@@ -136,6 +138,7 @@ export default function TransferDetail() {
       date: date ? new Date(date) : new Date(),
       startTime: selectedTime || undefined,
     });
+    setLocation("/cart");
   };
 
   const averageRating = reviews.length > 0
