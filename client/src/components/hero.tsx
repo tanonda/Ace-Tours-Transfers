@@ -773,11 +773,11 @@ export function Hero() {
     >
       {/* Background image + gradient — real <img> tag enables fetchpriority=high for LCP */}
       <div
-        className="absolute inset-0 scale-105 overflow-hidden"
+        className="absolute inset-0 overflow-hidden"
         aria-hidden="true"
       >
         <img
-          src={bgUrl.replace("/upload/", "/upload/f_auto,q_auto,w_1600/")}
+          src={bgUrl.replace("/upload/", "/upload/ar_16:9,c_fill,g_auto,f_auto,q_auto,w_1600/")}
           alt=""
           className="w-full h-full object-cover object-center"
           loading="eager"
