@@ -432,7 +432,7 @@ export default function AdminDashboard() {
             <div className="p-5 rounded-xl bg-card border border-border">
               <h4 className="text-foreground text-sm font-semibold mb-3">{t("dashboard.quickActions")}</h4>
               <div className="flex flex-wrap gap-2">
-                <button data-testid="button-new-booking" onClick={() => setLocation('/reservations?tab=book-new')}
+                <button data-testid="button-new-booking" onClick={() => setLocation('/admin/bookings')}
                   className="bg-muted px-3 py-2 rounded-lg border border-border text-foreground text-xs hover:bg-accent transition-colors">
                   {t("dashboard.newBooking")}
                 </button>

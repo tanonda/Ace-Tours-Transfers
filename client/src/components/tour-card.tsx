@@ -121,8 +121,8 @@ export function TourCard({ tour, index }: { tour: ProductRouteProps; index: numb
                   <Button className="w-full font-semibold touch-target touch-feedback" size="lg">{t("tour.inquireNow", "View Details & Contact")}</Button>
                 </Link>
               ) : (
-                <Link href={`/reservations?tab=book-new&service=${encodeURIComponent(tour.title)}`}>
-                  <Button className="w-full font-semibold touch-target touch-feedback" size="lg">{t("tour.bookNow", "Book Now")}</Button>
+                <Link href={`/tours/${tour.id}`}>
+                  <Button className="w-full font-semibold touch-target touch-feedback" size="lg">{t("tour.viewDetails", "View Details")}</Button>
                 </Link>
               )}
             </div>

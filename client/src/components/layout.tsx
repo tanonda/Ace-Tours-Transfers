@@ -372,14 +372,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                         <ChevronRight className="h-3 w-3" />
                         {t("nav.editTrip")}
                       </Link>
-                      <Link
-                        href="/reservations"
-                        onClick={closeMobileMenu}
-                        className="flex items-center gap-2 py-2 px-3 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
-                      >
-                        <ChevronRight className="h-3 w-3" />
-                        {t("nav.bookRide")}
-                      </Link>
+
                     </CollapsibleContent>
                   </Collapsible>
 
@@ -440,9 +433,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 </nav>
 
                 <div className="p-4 border-t border-border">
-                  <Link href="/reservations?tab=book-new" onClick={closeMobileMenu}>
-                    <Button size="lg" className="w-full font-semibold shadow-lg" data-testid="button-mobile-book-now">
-                      {t("tour.bookNow")}
+                  <Link href="/tours" onClick={closeMobileMenu}>
+                    <Button size="lg" className="w-full font-semibold shadow-lg" data-testid="button-mobile-browse-tours">
+                      Browse Tours & Transfers
                     </Button>
                   </Link>
                 </div>
@@ -623,9 +616,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
                       <ListItem href="/manage-booking" title={t("nav.editTrip")}>
                         {t("nav.manageBookings", "Manage or cancel existing bookings")}
                       </ListItem>
-                      <ListItem href="/reservations" title={t("nav.bookRide")}>
-                        {t("nav.startNewBooking", "Start a new booking")}
-                      </ListItem>
                     </ul>
                   </NavigationMenuContent>
                 </NavigationMenuItem>
@@ -636,8 +626,16 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <CurrencySelector />
               <LanguageSelector />
               <ThemeToggle size="sm" />
-              <Link href="/reservations?tab=book-new">
-                <Button size="lg" className="font-semibold shadow-lg">{t("tour.bookNow")}</Button>
+              <Link href="/cart">
+                <Button size="lg" className="font-semibold shadow-lg relative" variant={itemCount > 0 ? "default" : "outline"}>
+                  <ShoppingCart className="h-4 w-4 mr-2" />
+                  {itemCount > 0 ? `View Cart (${itemCount})` : "Cart"}
+                  {itemCount > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-[#f4a830] text-[#0f0d09] text-[10px] font-black flex items-center justify-center">
+                      {itemCount}
+                    </span>
+                  )}
+                </Button>
               </Link>
             </div>
           </nav>
@@ -767,7 +765,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <Link href="/about" className="text-lg font-medium hover:text-primary">{t("nav.about")}</Link>
             <Link href="/contact" className="text-lg font-medium hover:text-primary">{t("nav.contact")}</Link>
             <Link href="/manage-booking" className="text-lg font-medium hover:text-primary">{t("nav.editTrip")}</Link>
-            <Link href="/reservations" className="text-lg font-medium hover:text-primary">{t("nav.bookRide")}</Link>
+
 
             <div className="flex items-center justify-between py-2">
               <span className="text-lg font-medium text-foreground">Currency</span>
@@ -784,8 +782,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <ThemeToggle size="md" />
             </div>
 
-            <Link href="/reservations?tab=book-new">
-              <Button size="lg" className="w-full">{t("tour.bookNow")}</Button>
+            <Link href="/tours">
+              <Button size="lg" className="w-full">Browse Tours & Transfers</Button>
             </Link>
           </div>
         }

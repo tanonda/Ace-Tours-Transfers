@@ -251,7 +251,7 @@ export default function Home() {
             className="text-xl md:text-2xl mb-10 max-w-2xl mx-auto opacity-90 prose prose-xl prose-invert prose-p:my-2"
             dangerouslySetInnerHTML={{ __html: cms.html("cta_desc", t("home.ctaDesc")) }}
           />
-          <Link href="/reservations?tab=book-new">
+          <Link href="/tours">
             <Button size="lg" variant="secondary" className="text-primary font-bold px-10 py-8 text-xl shadow-2xl">{cms.text("cta_button", t("home.ctaButton"))}</Button>
           </Link>
         </div>
