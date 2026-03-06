@@ -178,8 +178,8 @@ const GATEWAY_DATA = [
   // ── 3. OFFLINE & MANUAL METHODS (5) ──────────────────────────────────
   {
     slug: "manual_transfer",
-    displayName: "Bank Transfer",
-    description: "Transfer to Ace Tours bank account (local, direct, or international/SWIFT). Admin confirms manually.",
+    displayName: "Bank Transfer (Direct)",
+    description: "Direct transfer to Ace Tours bank account. Admin confirms manually.",
     active: true,
     isDefault: true,
     priority: 17,
@@ -189,8 +189,8 @@ const GATEWAY_DATA = [
   },
   {
     slug: "bank-transfer",
-    displayName: "Bank Transfer (Swift — legacy)",
-    description: "International wire transfer — consolidated into manual_transfer. Kept inactive to avoid duplicate display.",
+    displayName: "Bank Transfer (Swift)",
+    description: "International wire transfer for overseas bookings.",
     active: false,
     priority: 18,
     supportedCurrencies: ["VUV", "AUD", "USD", "NZD"],
@@ -199,8 +199,8 @@ const GATEWAY_DATA = [
   },
   {
     slug: "bank_transfer",
-    displayName: "Local Bank Transfer (legacy)",
-    description: "Local bank-to-bank — consolidated into manual_transfer. Kept inactive to avoid duplicate display.",
+    displayName: "Local Bank Transfer",
+    description: "Local bank-to-bank transfer within Vanuatu.",
     active: false,
     priority: 19,
     supportedCurrencies: ["VUV"],
@@ -247,11 +247,12 @@ export async function seedGateways(): Promise<void> {
       console.log(`✓ Created: ${gateway.displayName}`);
       created++;
     } else {
-      // Update existing gateways to ensure correct active/default status
+      // IMPORTANT: Only update safe metadata fields (displayName, description, priority,
+      // supportedCurrencies). Never overwrite admin-managed fields like `active`,
+      // `isDefault`, or `credentials` — those are set by admins and must persist
+      // across server restarts and redeployments.
       await db.update(paymentGateways)
         .set({
-          active: gateway.active,
-          isDefault: gateway.isDefault,
           priority: gateway.priority,
           displayName: gateway.displayName,
           description: gateway.description,
@@ -259,7 +260,7 @@ export async function seedGateways(): Promise<void> {
           updatedAt: new Date()
         })
         .where(eq(paymentGateways.slug, gateway.slug));
-      console.log(`✓ Updated: ${gateway.displayName} (Active: ${gateway.active}, Default: ${gateway.isDefault})`);
+      console.log(`✓ Metadata refreshed: ${gateway.displayName} (active/credentials preserved)`);
       skipped++;
     }
   }
