@@ -56,6 +56,8 @@ export const products = pgTable("products", {
   seoTitle: text("seo_title"),          // custom <title> tag — falls back to product title
   seoDescription: text("seo_description"), // custom meta description — falls back to description[0]
   seoKeywords: text("seo_keywords"),    // comma-separated keywords appended to auto-generated list
+  geoTargeting: text("geo_targeting"),  // text indicating target region/location, e.g. 'Port Vila, Vanuatu'
+  listingOrder: integer("listing_order").default(0), // Defines display priority on catalog pages
   imageAlt: text("image_alt"),             // alt text for the product image — falls back to title if null
   // ── Tour detail page fields (added in migration 0016) ───────────────────────
   itineraryStops: jsonb("itinerary_stops").$type<ItineraryStop[]>(),

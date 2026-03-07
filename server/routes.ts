@@ -78,9 +78,9 @@ const bookingLimiter = rateLimit({
 });
 
 const verifyLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 10,
-  message: { error: "Too many verification attempts, please try again later." },
+  windowMs: 15 * 60 * 1000, // 15-minute window
+  max: 5,                    // 5 attempts per IP — tight enough to block brute-force, fine for real guests
+  message: { error: "Too many verification attempts, please try again in 15 minutes." },
 });
 
 const newsletterLimiter = rateLimit({

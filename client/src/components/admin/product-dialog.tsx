@@ -229,6 +229,8 @@ const schema = z.object({
   seoTitle: z.string().optional(),
   seoDescription: z.string().max(160, 'Keep under 160 chars for best results').optional(),
   seoKeywords: z.string().optional(),
+  geoTargeting: z.string().optional(),
+  listingOrder: z.coerce.number().default(0),
 
   image: z.string().optional(),
   imageAlt: z.string().optional(),
@@ -337,8 +339,8 @@ export function ProductDialog({ tour, open, onOpenChange, onSave }: ProductDialo
       title: '', isActive: true, category: 'tour', duration: '', minPax: '',
       defaultCapacity: 20,
       tourOverview: '', inclusions: '', transferDetail: '', vehicleAbout: '',
-      seoTitle: '', seoDescription: '', seoKeywords: '',
-      image: '', pricingType: 'per_person',
+      seoTitle: '', seoDescription: '', seoKeywords: '', geoTargeting: '', listingOrder: 0,
+      image: '', imageAlt: '', pricingType: 'per_person',
       adultPriceInput: '', childPriceInput: '', infantPriceInput: '', petPriceInput: '', groupPriceInput: '', groupMaxPax: '',
       vehicleDetails: null,
       // New fields
@@ -369,7 +371,10 @@ export function ProductDialog({ tour, open, onOpenChange, onSave }: ProductDialo
         seoTitle: tour.seoTitle || '',
         seoDescription: tour.seoDescription || '',
         seoKeywords: tour.seoKeywords || '',
+        geoTargeting: tour.geoTargeting || '',
+        listingOrder: tour.listingOrder || 0,
         image: tour.image || '',
+        imageAlt: tour.imageAlt || '',
         pricingType: (tour.pricingType as PricingType) || 'per_person',
         adultPriceInput: vuvToStr(tour.adultPriceCents ?? 0, adminCurrency),
         childPriceInput: vuvToStr(tour.childPriceCents ?? 0, adminCurrency),
@@ -436,6 +441,9 @@ export function ProductDialog({ tour, open, onOpenChange, onSave }: ProductDialo
       seoTitle: values.seoTitle || null,
       seoDescription: values.seoDescription || null,
       seoKeywords: values.seoKeywords || null,
+      geoTargeting: values.geoTargeting || null,
+      listingOrder: values.listingOrder || 0,
+      imageAlt: values.imageAlt || null,
       id: tour?.id,
       pricingType: values.pricingType,
       adultPriceCents, childPriceCents, infantPriceCents, petPriceCents, groupPriceCents,
@@ -1246,6 +1254,24 @@ export function ProductDialog({ tour, open, onOpenChange, onSave }: ProductDialo
                   }} />
                 </div>
 
+                <FormField control={form.control} name="seoKeywords" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>SEO Keywords</FormLabel>
+                    <FormControl>
+                      <Input placeholder="vanuatu tours, efate island, port vila" {...field} value={field.value || ''} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="geoTargeting" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Geo Targeting</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Port Vila, Efate, Vanuatu" {...field} value={field.value || ''} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
               </div>
 
               {/* ══ RIGHT: Pricing + Media ══════════════════════ */}

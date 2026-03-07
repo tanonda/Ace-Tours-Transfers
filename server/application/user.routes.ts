@@ -2,7 +2,7 @@
 import { Express, Request, Response } from "express";
 import { userProfileDomainService } from "../domain/users/user-profile.domain-service.js";
 import { requireAdmin } from "../routes.js";
-import { insertUserSchema, adminInsertUserSchema } from '../../shared/schema.js';
+import { adminInsertUserSchema } from '../../shared/schema.js';
 import { ZodError } from "zod";
 import { storage } from "../storage.js";
 
@@ -18,17 +18,14 @@ export function registerUserRoutes(app: Express) {
     }
   });
 
-  app.post("/api/users", async (req, res) => {
+  /**
+   * POST /api/users
+   * Admin-only: create a staff or customer account directly (invitation flow).
+   * Public self-registration goes through POST /api/auth/register (OTP-verified).
+   */
+  app.post("/api/users", requireAdmin, async (req, res) => {
     try {
-      const isAdmin = req.session.userRole === 'admin';
-      const schema = isAdmin ? adminInsertUserSchema : insertUserSchema;
-      const validatedData = schema.parse(req.body);
-
-      // If not admin, force role to customer
-      if (!isAdmin) {
-        (validatedData as any).role = 'customer';
-      }
-
+      const validatedData = adminInsertUserSchema.parse(req.body);
       const user = await userProfileDomainService.createUser(validatedData);
       res.status(201).json({
         id: user.id,
@@ -117,11 +114,9 @@ export function registerUserRoutes(app: Express) {
   // Public access to user details (with owner check)
   app.get("/api/users/:id", async (req, res) => {
     try {
-      // SECURITY: Owner or Admin check
       if (req.session.userRole !== 'admin' && req.session.userId !== req.params.id) {
         return res.status(403).json({ error: "Access denied" });
       }
-
       const user = await userProfileDomainService.getUserById(req.params.id);
       if (!user) {
         return res.status(404).json({ error: "User not found" });
@@ -139,6 +134,10 @@ export function registerUserRoutes(app: Express) {
     }
   });
 
+  /**
+   * POST /api/users/:id/send-welcome
+   * Admin sends (or re-sends) the invitation email with a password-set link.
+   */
   app.post("/api/users/:id/send-welcome", requireAdmin, async (req, res) => {
     try {
       const user = await userProfileDomainService.getUserById(req.params.id);
@@ -148,26 +147,31 @@ export function registerUserRoutes(app: Express) {
 
       const { sendEmail } = await import("../lib/mail.js");
       const token = await userProfileDomainService.generatePasswordResetToken(user.id);
-      const appUrl = process.env.APP_URL || "https://acetours.vu";
+      const appUrl = process.env.APP_URL || "https://ace-tours-transfers.onrender.com";
       const resetLink = `${appUrl}/reset-password?token=${token}`;
 
       await sendEmail({
         to: user.email,
-        subject: "Welcome to Ace Tours & Transfers",
-        html: `<div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px;">
-<h2 style="color: #004165;">Welcome, ${user.name ?? "Staff Member"}! 👋</h2>
-<p>You have been invited to join the Ace Tours & Transfers platform.</p>
-<p>Your role is: <strong>${user.role}</strong></p>
-<p>To get started, please set your password by clicking the link below:</p>
-<div style="text-align: center; margin: 30px 0;">
-  <a href="${resetLink}" style="background-color: #004165; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Set Your Password</a>
-</div>
-<p style="color: #6b7280; font-size: 14px;">This link will expire in 24 hours.</p>
-<hr style="border: 0; border-top: 1px solid #e5e7eb; margin: 20px 0;" />
-<p style="font-size: 12px; color: #9ca3af;">Ace Tours & Transfers · Port Vila, Vanuatu</p>
-</div>`,
+        subject: "You're invited — Ace Tours & Transfers",
+        html: `
+          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 32px; border: 1px solid #e5e7eb; border-radius: 12px;">
+            <img src="${appUrl}/assets/logo.png" alt="Ace Tours & Transfers" style="height: 48px; margin-bottom: 24px;" />
+            <h2 style="color: #004165; margin: 0 0 8px 0;">Welcome, ${user.name ?? "Team Member"}! 👋</h2>
+            <p style="color: #374151; font-size: 14px; margin: 0 0 8px 0;">You've been invited to join the Ace Tours &amp; Transfers platform.</p>
+            <p style="color: #6b7280; font-size: 14px; margin: 0 0 24px 0;">Your role is: <strong>${user.role}</strong></p>
+            <div style="text-align: center; margin: 28px 0;">
+              <a href="${resetLink}" style="display: inline-block; background: #004165; color: white; padding: 14px 36px; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 15px;">
+                Set Your Password
+              </a>
+            </div>
+            <p style="color: #9ca3af; font-size: 12px; margin: 0;">This link expires in 24 hours. If you weren't expecting this invitation, you can safely ignore it.</p>
+            <hr style="border: 0; border-top: 1px solid #f3f4f6; margin: 20px 0;" />
+            <p style="font-size: 11px; color: #d1d5db; margin: 0;">Ace Tours &amp; Transfers · Port Vila, Vanuatu</p>
+          </div>
+        `,
       });
 
+      console.log(`[USER] Welcome email sent to ${user.email} by admin`);
       res.json({ success: true, message: "Welcome email sent successfully" });
     } catch (error) {
       console.error("Failed to send welcome email:", error);
@@ -185,52 +189,10 @@ export function registerUserRoutes(app: Express) {
     }
   });
 
-  // E: Send welcome/invite email to a user
-  app.post("/api/users/:id/send-welcome", requireAdmin, async (req, res) => {
-    try {
-      const user = await userProfileDomainService.getUserById(req.params.id);
-      if (!user) return res.status(404).json({ error: "User not found" });
-
-      // Use existing email infrastructure (nodemailer via GMAIL_USER env)
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore – email module path may vary by build; graceful fallback below
-      const { sendEmail } = await import("../lib/email.js").catch(() => ({ sendEmail: null }));
-      if (!sendEmail) {
-        return res.status(503).json({ error: "Email not configured. Set GMAIL_USER and GMAIL_APP_PASSWORD." });
-      }
-
-      const token = await userProfileDomainService.generatePasswordResetToken(user.id);
-      const appUrl = process.env.APP_URL || "https://acetours.vu";
-      const resetLink = `${appUrl}/reset-password?token=${token}`;
-
-      await (sendEmail as any)({
-        to: user.email,
-        subject: "Welcome to Ace Tours & Transfers",
-        html: `<div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px;">
-<h2 style="color: #004165;">Welcome, ${user.name ?? "Staff Member"}! 👋</h2>
-<p>You have been invited to join the Ace Tours & Transfers admin platform.</p>
-<p>Your role is: <strong>${user.role}</strong></p>
-<p>To get started, please set your password by clicking the link below:</p>
-<div style="text-align: center; margin: 30px 0;">
-  <a href="${resetLink}" style="background-color: #004165; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Set Your Password</a>
-</div>
-<p style="color: #6b7280; font-size: 14px;">This link will expire in 24 hours.</p>
-<hr style="border: 0; border-top: 1px solid #e5e7eb; margin: 20px 0;" />
-<p style="font-size: 12px; color: #9ca3af;">Ace Tours & Transfers · Port Vila, Vanuatu</p>
-</div>`,
-      });
-      res.json({ success: true });
-    } catch (error) {
-      console.error("Failed to send welcome email:", error);
-      res.status(500).json({ error: "Failed to send welcome email" });
-    }
-  });
-
   // Self-service: Update own profile (name, email, phone)
   app.patch("/api/users/:id/profile", async (req, res) => {
     try {
       if (!req.session.userId) return res.status(401).json({ error: "Unauthorized" });
-      // Only self or admin can update profile
       if (req.session.userRole !== 'admin' && req.session.userId !== req.params.id) {
         return res.status(403).json({ error: "Access denied" });
       }
@@ -252,10 +214,9 @@ export function registerUserRoutes(app: Express) {
         return res.status(403).json({ error: "Access denied" });
       }
       const { currentPassword, newPassword } = req.body;
-      if (!newPassword || newPassword.length < 6) {
-        return res.status(400).json({ error: "New password must be at least 6 characters" });
+      if (!newPassword || newPassword.length < 8) {
+        return res.status(400).json({ error: "New password must be at least 8 characters" });
       }
-      // Verify current password
       const user = await storage.getUser(req.params.id);
       if (!user) return res.status(404).json({ error: "User not found" });
       const bcrypt = await import("bcryptjs");

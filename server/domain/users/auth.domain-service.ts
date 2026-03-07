@@ -104,6 +104,11 @@ export class AuthDomainService {
     const user = await this.storage.getUser(userId);
     return user || null;
   }
+
+  /** Used by the registration flow to check if an email is already taken before sending an OTP. */
+  async getUserByEmail(email: string) {
+    return this.storage.getUserByEmail(email);
+  }
 }
 
 export const authDomainService = new AuthDomainService(storage);
