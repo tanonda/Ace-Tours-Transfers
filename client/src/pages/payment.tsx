@@ -230,8 +230,8 @@ export default function Payment() {
           idempotencyKey: idempotencyKey.current,
           items: items.map(i => ({
             productId: i.id,
-            adultPax: i.adultPax,
-            childPax: i.childPax,
+            adultPax: i.adultPax ?? 1,   // FIX: guard against undefined from stale cart entries
+            childPax: i.childPax ?? 0,   // FIX: guard against undefined from stale cart entries
             infantPax: i.infantPax ?? 0,
             petPax: i.petPax ?? 0,
             date: i.date ? (typeof i.date === 'string' ? i.date : format(new Date(i.date), "yyyy-MM-dd")) : format(new Date(), "yyyy-MM-dd"),

@@ -9,6 +9,9 @@ const STATIC_CACHE_URLS = [
 ];
 
 // Install event - cache static assets
+// FIX: Removed bare self.skipWaiting() here. Activation is now triggered explicitly
+// via a 'SKIP_WAITING' message from the page, preventing abrupt context teardown
+// that caused "message channel closed" warnings from browser extensions / devtools.
 self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME)
@@ -20,8 +23,6 @@ self.addEventListener('install', (event) => {
                 console.log('Cache add failed:', error);
             })
     );
-    // Activate immediately
-    self.skipWaiting();
 });
 
 // Activate event - clean up old caches
@@ -40,6 +41,19 @@ self.addEventListener('activate', (event) => {
     );
     // Take control of all pages immediately
     self.clients.claim();
+});
+
+// FIX: Message handler — responds to SKIP_WAITING requests and always ACKs
+// incoming messages so that the browser message channel is never left hanging,
+// which was the source of the repeated "message channel closed" console errors.
+self.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'SKIP_WAITING') {
+        self.skipWaiting();
+    }
+    // Always acknowledge so the channel closes cleanly
+    if (event.ports && event.ports[0]) {
+        event.ports[0].postMessage({ received: true });
+    }
 });
 
 // Fetch event - network first, fallback to cache

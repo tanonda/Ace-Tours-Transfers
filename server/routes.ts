@@ -1887,7 +1887,13 @@ ${allPages.map(p => `  <url>
       if (msg.toLowerCase().includes("idempotency") || msg.toLowerCase().includes("duplicate")) {
         return res.status(409).json({ error: "This booking was already submitted. Please check your bookings." });
       }
-      res.status(400).json({ error: "Failed to create booking. Please try again or contact us for assistance." });
+      // FIX: Product or pricing data missing — stale cart item referencing a deleted/unconfigured product
+      if (msg.toLowerCase().includes("not found") || msg.toLowerCase().includes("rates for")) {
+        return res.status(422).json({ error: "One or more items in your cart are no longer available. Please remove them and try again." });
+      }
+      // FIX: Catch-all now returns 500 for genuine server errors instead of misleading 400
+      console.error("[ROUTE] POST /api/bookings unexpected error:", error);
+      res.status(500).json({ error: "An unexpected error occurred. Please try again or contact us for assistance." });
     }
   });
 
