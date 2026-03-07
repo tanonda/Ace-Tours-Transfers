@@ -39,9 +39,9 @@ const BRAND_FOOTER = `
     Ace Tours &amp; Transfers Vanuatu &bull; Port Vila, Vanuatu
   </p>
   <p style="color:#706a60;font-size:11px;margin:8px 0 0">
-    <a href="mailto:info@acetoursvanuatu.com" style="color:#f4a830;text-decoration:none">info@acetoursvanuatu.com</a>
+    <a href="mailto:${process.env.BUSINESS_EMAIL || 'info@acetours.vu'}" style="color:#f4a830;text-decoration:none">${process.env.BUSINESS_EMAIL || 'info@acetours.vu'}</a>
     &nbsp;&bull;&nbsp;
-    <a href="https://acetoursvanuatu.com" style="color:#f4a830;text-decoration:none">acetoursvanuatu.com</a>
+    <a href="${process.env.APP_URL || 'https://acetours.vu'}" style="color:#f4a830;text-decoration:none">${(process.env.APP_URL || 'https://acetours.vu').replace(/^https?:\/\//, '')}</a>
   </p>
   <p style="color:#504a40;font-size:10px;margin:12px 0 0">
     &copy; ${new Date().getFullYear()} Ace Tours &amp; Transfers. All prices include 15% VAT where applicable.
@@ -53,7 +53,7 @@ function wrap(content: string): string {
   const googlePlaceId = process.env.GOOGLE_PLACE_ID;
   const reviewLink = googlePlaceId
     ? `https://search.google.com/local/writereview?placeid=${googlePlaceId}`
-    : `https://acetoursvanuatu.com`;
+    : (process.env.APP_URL || `https://acetours.vu`);
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(reviewLink)}`;
 
   // We add a subtle review link & QR in the footer area for guest communications
@@ -241,7 +241,7 @@ export function paymentFailure(data: PaymentTemplateData & { reason?: string }) 
     <p style="color:#706a60;font-size:14px;margin:16px 0">Please try again with a different payment method or contact us for assistance.</p>
 
     <div style="text-align:center;margin:24px 0">
-      <a href="https://acetoursvanuatu.com/payment?bookingId=${data.bookingRef}" style="display:inline-block;background:#f4a830;color:#0f0d09;font-weight:bold;padding:12px 32px;border-radius:8px;text-decoration:none;font-size:14px">Retry Payment</a>
+      <a href="${process.env.APP_URL || 'https://acetours.vu'}/payment?bookingId=${data.bookingRef}" style="display:inline-block;background:#f4a830;color:#0f0d09;font-weight:bold;padding:12px 32px;border-radius:8px;text-decoration:none;font-size:14px">Retry Payment</a>
     </div>
   `);
 
@@ -261,7 +261,7 @@ export function paymentExpiry(data: { customerName: string; bookingRef: string }
     </div>
 
     <div style="text-align:center;margin:24px 0">
-      <a href="https://acetoursvanuatu.com" style="display:inline-block;background:#f4a830;color:#0f0d09;font-weight:bold;padding:12px 32px;border-radius:8px;text-decoration:none;font-size:14px">Browse Experiences</a>
+      <a href="${process.env.APP_URL || 'https://acetours.vu'}" style="display:inline-block;background:#f4a830;color:#0f0d09;font-weight:bold;padding:12px 32px;border-radius:8px;text-decoration:none;font-size:14px">Browse Experiences</a>
     </div>
   `);
 

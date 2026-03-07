@@ -88,19 +88,25 @@ export class BookingEventHandler {
         // Trigger emails/admin notifications here
         const tour = await this.storage.getProduct(booking.tourId);
 
-        // 1. Send Payment Receipt
+        // 1. Send Payment Receipt (branded template via MailingService)
         await mailingService.sendPaymentSuccess(booking.customerEmail, {
           bookingId: booking.id,
-          amount: booking.amount,
+          customerName: booking.customerName,
+          amount: typeof booking.totalAmountCents === 'number'
+            ? `${Math.round(booking.totalAmountCents).toLocaleString()} VT`
+            : booking.amount,
+          transactionId: event.paymentId,
         });
 
-        // 2. Send Booking Confirmation
+        // 2. Send Booking Confirmation (branded template via MailingService)
         await mailingService.sendBookingConfirmation(booking.customerEmail, {
           id: booking.id,
           customerName: booking.customerName,
           tourName: tour?.title || 'Your Tour',
           date: booking.date,
-          amount: booking.amount
+          totalAmountCents: booking.totalAmountCents,
+          amount: booking.amount,
+          paymentMethod: booking.paymentMethod || undefined,
         });
       } catch (error: any) {
         console.error(`[EVENT][ERROR][${correlationId}] Failed to confirm booking ${booking.id}:`, error);
@@ -140,6 +146,10 @@ export class BookingEventHandler {
 
     await mailingService.sendPaymentFailure(booking.customerEmail, {
       bookingId: booking.id,
+      customerName: booking.customerName,
+      amount: typeof booking.totalAmountCents === 'number'
+        ? `${Math.round(booking.totalAmountCents).toLocaleString()} VT`
+        : booking.amount,
       reason: event.reason
     });
   }
@@ -151,6 +161,6 @@ export class BookingEventHandler {
     console.log(`[EVENT][HANDLER] Handling PaymentExpired for Booking ${booking.id}`);
 
     await this.storage.updateBooking(booking.id, { status: 'cancelled' });
-    await mailingService.sendPaymentExpiry(booking.customerEmail, booking.id);
+    await mailingService.sendPaymentExpiry(booking.customerEmail, booking.id, booking.customerName);
   }
 }

@@ -44,7 +44,7 @@ export class MailingService {
    * Send an email to the administrator
    */
   async sendAdminEmail(subject: string, html: string): Promise<void> {
-    const adminEmail = process.env.ADMIN_EMAIL || process.env.SMTP_USER || 'admin@acetoursvanuatu.com';
+    const adminEmail = process.env.ADMIN_EMAIL || process.env.SMTP_USER || 'admin@acetours.vu';
     await this.sendEmail({ to: adminEmail, subject, html });
   }
 
@@ -62,7 +62,7 @@ export class MailingService {
     let lastError;
 
     const mailOptions = {
-      from: `"Ace Tours Vanuatu" <${process.env.SMTP_FROM || 'no-reply@acetoursvanuatu.com'}>`,
+      from: `"Ace Tours Vanuatu" <${process.env.SMTP_FROM || process.env.SMTP_USER || 'no-reply@acetours.vu'}>`,
       ...options
     };
 
@@ -85,73 +85,69 @@ export class MailingService {
   }
 
   /**
-   * Send a booking confirmation email
-   * @param to Recipient email
-   * @param bookingDetails Details of the booking
+   * Send a booking confirmation email using the branded template.
    */
   async sendBookingConfirmation(to: string, bookingDetails: any): Promise<void> {
-    await this.sendEmail({
-      to,
-      subject: `Booking Confirmation - ${bookingDetails.id}`,
-      html: `
-        <h1>Booking Confirmation</h1>
-        <p>Dear ${bookingDetails.customerName},</p>
-        <p>Thank you for booking with Ace Tours Vanuatu!</p>
-        <p><strong>Booking ID:</strong> ${bookingDetails.id}</p>
-        <p><strong>Tour:</strong> ${bookingDetails.tourName}</p>
-        <p><strong>Date:</strong> ${bookingDetails.date}</p>
-        <p><strong>Total Amount:</strong> ${bookingDetails.amount}</p>
-        <p>We look forward to seeing you!</p>
-      `,
+    // Lazy-import to avoid circular deps at module load time
+    const templates = await import('../mailing/email-templates.js');
+    const ref = `ACT-${(bookingDetails.id || '').replace(/^book_/i, '').replace(/-/g, '').slice(0, 8).toUpperCase()}`;
+    const pax = bookingDetails.guests ? `${bookingDetails.guests} guest${bookingDetails.guests !== 1 ? 's' : ''}` : '1 guest';
+    const { subject, html } = templates.bookingConfirmation({
+      customerName: bookingDetails.customerName || 'Guest',
+      bookingRef: ref,
+      tourName: bookingDetails.tourName || 'Your Tour',
+      date: bookingDetails.date || 'TBD',
+      paxSummary: pax,
+      totalFormatted: typeof bookingDetails.totalAmountCents === 'number'
+        ? `${Math.round(bookingDetails.totalAmountCents).toLocaleString()} VT`
+        : bookingDetails.amount || '',
+      paymentMethod: bookingDetails.paymentMethod,
     });
+    await this.sendEmail({ to, subject, html });
   }
 
   /**
-   * Send a payment receipt/success email
+   * Send a payment receipt/success email using the branded template.
    */
   async sendPaymentSuccess(to: string, paymentDetails: any): Promise<void> {
-    await this.sendEmail({
-      to,
-      subject: `Payment Successful - Receipt for ${paymentDetails.bookingId}`,
-      html: `
-        <h1>Payment Received</h1>
-        <p>Your payment of <strong>${paymentDetails.amount}</strong> was successful.</p>
-        <p><strong>Booking Reference:</strong> ${paymentDetails.bookingId}</p>
-        <p><strong>Transaction ID:</strong> ${paymentDetails.transactionId || 'N/A'}</p>
-        <p>You will receive a separate email with your booking details shortly.</p>
-      `,
+    const templates = await import('../mailing/email-templates.js');
+    const ref = `ACT-${(paymentDetails.bookingId || '').replace(/^book_/i, '').replace(/-/g, '').slice(0, 8).toUpperCase()}`;
+    const { subject, html } = templates.paymentReceipt({
+      customerName: paymentDetails.customerName || 'Valued Customer',
+      bookingRef: ref,
+      amount: paymentDetails.amount || '',
+      transactionId: paymentDetails.transactionId,
+      method: paymentDetails.method,
     });
+    await this.sendEmail({ to, subject, html });
   }
 
   /**
-   * Send a payment failure notification
+   * Send a payment failure notification using the branded template.
    */
   async sendPaymentFailure(to: string, paymentDetails: any): Promise<void> {
-    await this.sendEmail({
-      to,
-      subject: `Payment Failed - action required`,
-      html: `
-        <h1>Payment Attempt Failed</h1>
-        <p>We were unable to process your payment for booking ${paymentDetails.bookingId}.</p>
-        <p><strong>Reason:</strong> ${paymentDetails.reason || 'Payment was declined by the gateway.'}</p>
-        <p>Please try again using a different payment method or contact us for assistance.</p>
-      `,
+    const templates = await import('../mailing/email-templates.js');
+    const ref = `ACT-${(paymentDetails.bookingId || '').replace(/^book_/i, '').replace(/-/g, '').slice(0, 8).toUpperCase()}`;
+    const { subject, html } = templates.paymentFailure({
+      customerName: paymentDetails.customerName || 'Valued Customer',
+      bookingRef: ref,
+      amount: paymentDetails.amount || '',
+      reason: paymentDetails.reason,
     });
+    await this.sendEmail({ to, subject, html });
   }
 
   /**
-   * Send a payment expiry notification
+   * Send a payment expiry notification using the branded template.
    */
-  async sendPaymentExpiry(to: string, bookingId: string): Promise<void> {
-    await this.sendEmail({
-      to,
-      subject: `Booking Expired - Payment Timeout`,
-      html: `
-        <h1>Booking Expired</h1>
-        <p>Your pending booking <strong>${bookingId}</strong> has expired because payment was not received within the required timeframe.</p>
-        <p>The inventory has been released. If you still wish to book, please start a new checkout.</p>
-      `,
+  async sendPaymentExpiry(to: string, bookingId: string, customerName?: string): Promise<void> {
+    const templates = await import('../mailing/email-templates.js');
+    const ref = `ACT-${(bookingId || '').replace(/^book_/i, '').replace(/-/g, '').slice(0, 8).toUpperCase()}`;
+    const { subject, html } = templates.paymentExpiry({
+      customerName: customerName || 'Valued Customer',
+      bookingRef: ref,
     });
+    await this.sendEmail({ to, subject, html });
   }
 }
 
