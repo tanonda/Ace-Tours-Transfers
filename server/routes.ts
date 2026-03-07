@@ -95,6 +95,12 @@ const reviewsLimiter = rateLimit({
   message: { error: "Too many review submissions. Please try again later." },
 });
 
+const contactLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 5, // max 5 contact form submissions per IP per hour
+  message: { error: "Too many messages sent. Please try again later." },
+});
+
 // C6 Fix: Zod schema for booking creation
 const createBookingItemSchema = z.object({
   productId: z.string(),
@@ -1383,13 +1389,11 @@ ${allPages.map(p => `  <url>
 
       // Notify the customer their cancellation was received
       try {
+        const tourInfo = await storage.getProduct(booking.tourId);
         await sendEmail({
           to: booking.customerEmail!,
           subject: `Booking Cancelled — ACT-${shortBookingRef(booking.id)}`,
-          html: `<p>Hi ${booking.customerName},</p>
-                 <p>Your booking (Ref ACT-${shortBookingRef(booking.id)}) has been cancelled as requested.</p>
-                 <p>If you did not request this cancellation please contact us immediately.</p>
-                 <p>Thank you,<br/>Ace Tours &amp; Transfers</p>`,
+          html: await getBookingStatusUpdateTemplate(booking, "cancelled", tourInfo || { title: booking.tourName || "Your Tour" }),
         });
       } catch (emailErr) {
         console.error("[BOOKING CANCEL] Cancellation email failed (non-fatal):", emailErr);
@@ -2187,9 +2191,108 @@ ${allPages.map(p => `  <url>
         locale: safeLocale,
         source: safeSource
       });
+
+      // Send branded confirmation email to subscriber (non-fatal)
+      try {
+        await sendEmail({
+          to: email.toLowerCase().trim(),
+          subject: "You're subscribed to Ace Tours & Transfers! 🌴",
+          html: await getNewsletterConfirmationTemplate(email.toLowerCase().trim(), safeName || undefined),
+        });
+      } catch (emailErr) {
+        console.error("[NEWSLETTER] Confirmation email failed (non-fatal):", emailErr);
+      }
+
       res.status(201).json({ message: "Subscribed!", subscriber });
     } catch (error) {
       res.status(400).json({ error: "Failed to subscribe" });
+    }
+  });
+
+  // ── Contact Form ─────────────────────────────────────────────────────────
+  /**
+   * POST /api/contact
+   * Accepts a guest contact form submission.
+   * - Sends a branded notification email to admin
+   * - Sends an auto-reply confirmation to the guest
+   */
+  app.post("/api/contact", contactLimiter, async (req, res) => {
+    try {
+      const { name, email, phone, subject, message } = req.body;
+
+      // Validation
+      if (!name || typeof name !== "string" || name.trim().length < 2) {
+        return res.status(400).json({ error: "A valid name is required." });
+      }
+      if (!email || typeof email !== "string") {
+        return res.status(400).json({ error: "A valid email address is required." });
+      }
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email) || email.length > 254) {
+        return res.status(400).json({ error: "Invalid email address." });
+      }
+      if (!message || typeof message !== "string" || message.trim().length < 10) {
+        return res.status(400).json({ error: "Message must be at least 10 characters." });
+      }
+      if (message.trim().length > 3000) {
+        return res.status(400).json({ error: "Message is too long (max 3000 characters)." });
+      }
+
+      const contact = {
+        name: name.trim().slice(0, 100),
+        email: email.toLowerCase().trim(),
+        phone: typeof phone === "string" ? phone.trim().slice(0, 30) || undefined : undefined,
+        subject: typeof subject === "string" ? subject.trim().slice(0, 200) || undefined : undefined,
+        message: message.trim(),
+      };
+
+      // 1. Notify admin
+      try {
+        await sendAdminEmail(
+          `📬 Contact Form: ${contact.subject || "New Enquiry"} — ${contact.name}`,
+          await getContactFormTemplate(contact)
+        );
+      } catch (adminEmailErr) {
+        console.error("[CONTACT] Admin notification email failed:", adminEmailErr);
+        // Still attempt guest auto-reply even if admin email fails
+      }
+
+      // 2. Auto-reply to guest
+      try {
+        const appUrl = process.env.APP_URL || "https://ace-tours-transfers.onrender.com";
+        const { emailWrapper, emailHeader, emailFooter } = await import("./infrastructure/mailing/email-templates.js");
+        const logoUrl = `${appUrl}/assets/logo.png`;
+        const autoReplyHtml = emailWrapper(`
+          ${emailHeader(logoUrl, "We received your message! ✉️", "We'll be in touch soon")}
+          <div style="padding: 32px 28px;">
+            <p style="color: #374151; font-size: 16px; margin: 0 0 8px 0;">Hi ${name.trim().split(" ")[0]}! 👋</p>
+            <p style="color: #6b7280; font-size: 14px; line-height: 1.8; margin: 0 0 20px 0;">
+              Thanks for reaching out to Ace Tours &amp; Transfers. We've received your message and will get back to you as soon as possible — usually within a few hours during business hours.
+            </p>
+            <div style="background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; margin-bottom: 24px;">
+              <p style="color: #6b7280; font-size: 13px; margin: 0 0 6px 0; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Your message</p>
+              <p style="color: #374151; font-size: 14px; line-height: 1.7; margin: 0; white-space: pre-wrap;">${contact.message.slice(0, 500)}${contact.message.length > 500 ? "…" : ""}</p>
+            </div>
+            <p style="color: #6b7280; font-size: 13px; margin: 0;">
+              In the meantime, you can also reach us via WhatsApp for a faster response.
+            </p>
+          </div>
+          ${emailFooter()}
+        `);
+
+        await sendEmail({
+          to: contact.email,
+          subject: "We received your message — Ace Tours & Transfers",
+          html: autoReplyHtml,
+        });
+      } catch (guestEmailErr) {
+        console.error("[CONTACT] Guest auto-reply email failed (non-fatal):", guestEmailErr);
+      }
+
+      return res.status(200).json({ message: "Message sent! We'll be in touch shortly." });
+    } catch (error: any) {
+      console.error("[CONTACT] Unexpected error:", error);
+      return res.status(500).json({ error: "Failed to send message. Please try again." });
     }
   });
 
