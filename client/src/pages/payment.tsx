@@ -243,6 +243,7 @@ export default function Payment() {
       });
       if (!res.ok) {
         const err = await res.json();
+        if (err.debug) console.error("[BOOKING API] Server debug:", err.debug);
         throw new Error(err.error || "Failed to create booking");
       }
       return res.json();

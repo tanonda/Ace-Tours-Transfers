@@ -1873,12 +1873,22 @@ ${allPages.map(p => `  <url>
       res.status(201).json(booking);
     } catch (error: any) {
       const msg: string = error?.message || "";
-      console.error("[ROUTE] POST /api/bookings failed:", msg);
+      console.error("[ROUTE] POST /api/bookings failed:", msg, error?.stack || "");
       // Surface known domain errors as user-friendly messages; hide internal details
+
       if (error instanceof ZodError) {
         return res.status(400).json({ error: "Invalid booking data.", details: error.errors });
       }
-      if (msg.toLowerCase().includes("capacity") || msg.toLowerCase().includes("unavailable")) {
+      // Availability / capacity errors — from createHold capacity check, vehicle conflicts, blackouts
+      if (
+        msg.toLowerCase().includes("insufficient availability") ||
+        msg.toLowerCase().includes("capacity") ||
+        msg.toLowerCase().includes("unavailable") ||
+        msg.toLowerCase().includes("blackout") ||
+        msg.toLowerCase().includes("already reserved") ||
+        msg.toLowerCase().includes("no available") ||
+        msg.toLowerCase().includes("no single")
+      ) {
         return res.status(409).json({ error: "One or more items in your cart are no longer available. Please update your cart and try again." });
       }
       if (msg.toLowerCase().includes("past date") || msg.toLowerCase().includes("past_date")) {
@@ -1887,13 +1897,16 @@ ${allPages.map(p => `  <url>
       if (msg.toLowerCase().includes("idempotency") || msg.toLowerCase().includes("duplicate")) {
         return res.status(409).json({ error: "This booking was already submitted. Please check your bookings." });
       }
-      // FIX: Product or pricing data missing — stale cart item referencing a deleted/unconfigured product
+      if (msg.toLowerCase().includes("paused") || msg.toLowerCase().includes("maintenance")) {
+        return res.status(503).json({ error: "Bookings are temporarily paused for maintenance. Please try again shortly." });
+      }
+      // Product or pricing data missing — stale cart item referencing a deleted/unconfigured product
       if (msg.toLowerCase().includes("not found") || msg.toLowerCase().includes("rates for")) {
         return res.status(422).json({ error: "One or more items in your cart are no longer available. Please remove them and try again." });
       }
-      // FIX: Catch-all now returns 500 for genuine server errors instead of misleading 400
-      console.error("[ROUTE] POST /api/bookings unexpected error:", error);
-      res.status(500).json({ error: "An unexpected error occurred. Please try again or contact us for assistance." });
+      // Genuine server error — log full details server-side, return sanitised message to client
+      console.error("[ROUTE] POST /api/bookings unhandled error:", error);
+      res.status(500).json({ error: "An unexpected error occurred. Please try again or contact us for assistance.", debug: process.env.NODE_ENV !== "production" ? msg : undefined });
     }
   });
 
