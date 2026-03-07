@@ -127,7 +127,14 @@ export async function runIdempotentMigrations(externalPool?: InstanceType<typeof
     console.log("Migrations complete!");
   } finally {
     client.release();
-    if (ownsPool) await pool.end();
+    if (ownsPool) {
+      // Force-end the pool with a timeout so the CLI process always exits
+      // promptly even if Neon's WebSocket connection doesn't close cleanly.
+      await Promise.race([
+        pool.end(),
+        new Promise<void>(resolve => setTimeout(resolve, 5000)),
+      ]);
+    }
   }
 }
 
