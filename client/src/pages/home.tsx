@@ -15,12 +15,10 @@ import { useCmsText } from "@/hooks/use-cms-text";
 import { useCMS } from "@/lib/cms-context";
 import type { Product } from "@shared/schema";
 
-// Using Cloudinary URL instead of local import
-const aboutImg = "https://res.cloudinary.com/dwro1dh5q/image/upload/v1764939968/ace-tours-stock/1764939966139_vanuatu_rarru_waterf_a12f619f.jpg.jpg";
-
 export default function Home() {
   const { t } = useTranslation();
-  const cms = useCmsText("home");
+  const cms = useCmsText("home-page");
+  const aboutImg = cms.text("about_image") || "https://res.cloudinary.com/dwro1dh5q/image/upload/v1764939968/ace-tours-stock/1764939966139_vanuatu_rarru_waterf_a12f619f.jpg.jpg";
   const { isBlockEnabled } = useCMS();
   const showVehicleHire = isBlockEnabled('vehicle-hire');
   const { data: allTours = [] } = useQuery({
@@ -192,10 +190,18 @@ export default function Home() {
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {toursList.map((tour: any, index: number) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-10">
+            {toursList.slice(0, 3).map((tour: any, index: number) => (
               <TourCard key={tour.id} tour={{ ...tour, category: tour.category as any }} index={index} />
             ))}
+          </div>
+
+          <div className="text-center">
+            <Link href="/tours">
+              <Button variant="outline" size="lg" className="border-primary text-primary hover:bg-primary hover:text-white">
+                View All Tours
+              </Button>
+            </Link>
           </div>
         </div>
       </section>
@@ -212,10 +218,18 @@ export default function Home() {
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {transfers.map((transfer: any, index: number) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-10">
+            {transfers.slice(0, 3).map((transfer: any, index: number) => (
               <TourCard key={transfer.id} tour={{ ...transfer, category: transfer.category as any }} index={index} />
             ))}
+          </div>
+
+          <div className="text-center">
+            <Link href="/transfers">
+              <Button variant="outline" size="lg" className="border-primary text-primary hover:bg-primary hover:text-white">
+                View All Transfers
+              </Button>
+            </Link>
           </div>
         </div>
       </section>
@@ -233,10 +247,18 @@ export default function Home() {
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-10">
               {vehicles.slice(0, 3).map((vehicle: any, index: number) => (
                 <TourCard key={vehicle.id} tour={{ ...vehicle, category: vehicle.category as any }} index={index} />
               ))}
+            </div>
+
+            <div className="text-center">
+              <Link href="/vehicles">
+                <Button variant="outline" size="lg" className="border-primary text-primary hover:bg-primary hover:text-white">
+                  View All Vehicle Hire
+                </Button>
+              </Link>
             </div>
           </div>
         </section>

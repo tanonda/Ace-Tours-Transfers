@@ -760,7 +760,7 @@ function SearchBar({ search, showVehicleHire }: SearchBarProps) {
 // ─── Hero ─────────────────────────────────────────────────────────────────────
 export function Hero() {
   const { t } = useTranslation();
-  const cms = useCmsText("home");
+  const cms = useCmsText("home-page");
   const { isBlockEnabled } = useCMS();
   const showVehicleHire = isBlockEnabled('vehicle-hire');
   const search = useAvailabilitySearch();

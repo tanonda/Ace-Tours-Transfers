@@ -12,6 +12,11 @@ import { useCurrency } from "@/lib/currency-context";
 import { type ProductCategory, formatPriceDisplay } from "@/lib/product.types";
 import { cloudinaryOpt } from "@/components/seo";
 
+// Simple utility to strip HTML but keep text content
+function stripHtml(html: string): string {
+  return html.replace(/<[^>]*>?/gm, '');
+}
+
 export interface ProductRouteProps {
   id: string;
   title: string;
@@ -89,22 +94,14 @@ export function TourCard({ tour, index }: { tour: ProductRouteProps; index: numb
             </div>
           </CardHeader>
 
-          <CardContent className="flex-grow">
-            <ul className="space-y-2 mt-2">
-              {Array.isArray(tour.description) ? tour.description.map((item: string, i: number) => (
-                <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
-                  <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                  <span>{item}</span>
-                </li>
-              )) : (
-                typeof tour.description === "string" ? (
-                  <li className="flex items-start gap-2 text-sm text-muted-foreground">
-                    <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                    <span>{tour.description}</span>
-                  </li>
-                ) : null
-              )}
-            </ul>
+          <CardContent className="flex-grow flex flex-col justify-start overflow-hidden">
+            <p className="text-sm text-muted-foreground line-clamp-3 leading-relaxed mt-1">
+              {Array.isArray(tour.description) && tour.description.length > 0
+                ? stripHtml(tour.description[0])
+                : typeof tour.description === "string"
+                  ? stripHtml(tour.description)
+                  : ""}
+            </p>
           </CardContent>
 
           <CardFooter className="pt-4 border-t border-border/50 bg-muted/30" onClick={(e) => e.stopPropagation()}>

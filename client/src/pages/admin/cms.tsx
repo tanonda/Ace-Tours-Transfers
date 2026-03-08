@@ -33,8 +33,8 @@ function ToolbarButton({
       title={title}
       onClick={onClick}
       className={`p-1.5 md:p-2 rounded-md transition-all duration-200 flex items-center justify-center ${active
-          ? 'bg-primary/10 text-primary shadow-sm'
-          : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+        ? 'bg-primary/10 text-primary shadow-sm'
+        : 'text-muted-foreground hover:bg-muted hover:text-foreground'
         }`}
     >
       {children}
@@ -207,7 +207,7 @@ export default function AdminCMS() {
   const { t } = useTranslation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState("home");
+  const [activeTab, setActiveTab] = useState("home-page");
   const [isUploading, setIsUploading] = useState(false);
   const [richContent, setRichContent] = useState<Record<string, string>>({});
 
@@ -271,7 +271,7 @@ export default function AdminCMS() {
   };
 
   const SECTIONS = {
-    home: {
+    "home-page": {
       label: "Home Page",
       fields: [
         // Hero
@@ -280,6 +280,7 @@ export default function AdminCMS() {
         { key: "hero_subtitle", label: "Hero Subtitle", type: "text", description: "Sentence below the headline in the hero" },
         { key: "hero_image", label: "Hero Background Image", type: "image", description: "1920×1080 recommended" },
         // About
+        { key: "about_image", label: "About Section Image", type: "image", description: "Image next to the about text" },
         { key: "about_label", label: "About Label", type: "text", description: "Small uppercase label above the about heading" },
         { key: "about_title", label: "About Heading", type: "text", description: "Main about section heading" },
         { key: "about_desc1", label: "About Body — Paragraph 1", type: "rich", description: "First paragraph in the about section" },
