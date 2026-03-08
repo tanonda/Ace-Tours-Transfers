@@ -1344,6 +1344,78 @@ export function ProductDialog({ tour, open, onOpenChange, onSave }: ProductDialo
                   )} />
                 </div>
 
+                {/* ── ADDITIONAL IMAGES (Traveler Photos) ── */}
+                <div className="pt-2">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <ImageIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span className="text-sm font-semibold">Additional Images / Gallery</span>
+                  </div>
+                  <FormField control={form.control} name="travelerPhotos" render={({ field }) => {
+                    const photos = field.value || [];
+                    const addPhoto = () => field.onChange([...photos, '']);
+                    const removePhoto = (idx: number) => field.onChange(photos.filter((_: any, i: number) => i !== idx));
+                    const updatePhoto = (idx: number, val: string) => {
+                      const next = [...photos];
+                      next[idx] = val;
+                      field.onChange(next);
+                    };
+                    return (
+                      <FormItem>
+                        <div className="space-y-3">
+                          {photos.map((photo: string, idx: number) => (
+                            <div key={idx} className="relative rounded-lg overflow-hidden border border-border p-3 space-y-2 bg-background">
+                              <div className="flex justify-between items-center mb-1">
+                                <span className="text-xs font-semibold">Gallery Image {idx + 1}</span>
+                                <button type="button" onClick={() => removePhoto(idx)} className="text-muted-foreground hover:text-destructive">
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                              {photo && (
+                                <img src={photo} alt={`Gallery ${idx + 1}`} className="w-full h-24 object-cover rounded-md border border-border" />
+                              )}
+                              <Input
+                                placeholder="Paste image URL…"
+                                value={photo}
+                                onChange={e => updatePhoto(idx, e.target.value)}
+                                className="text-xs"
+                              />
+                              <label className={`flex items-center justify-center gap-2 cursor-pointer px-3 py-1.5 rounded-md border border-dashed transition-colors text-xs w-full ${isUploading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-muted/60 hover:border-primary/50 text-muted-foreground'}`}>
+                                {isUploading
+                                  ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Uploading…</>
+                                  : <><Upload className="h-3.5 w-3.5" /> Upload image</>
+                                }
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={async (e) => {
+                                    const file = e.target.files?.[0];
+                                    if (!file) return;
+                                    setIsUploading(true);
+                                    setUploadError(null);
+                                    try {
+                                      const result = await uploadImage(file);
+                                      updatePhoto(idx, result.url);
+                                    } catch (err: any) {
+                                      setUploadError(err.message || 'Upload failed.');
+                                    } finally {
+                                      setIsUploading(false);
+                                    }
+                                  }}
+                                  disabled={isUploading}
+                                  className="hidden"
+                                />
+                              </label>
+                            </div>
+                          ))}
+                          <Button type="button" variant="outline" size="sm" className="w-full text-xs border-dashed" onClick={addPhoto}>
+                            <Plus className="h-3.5 w-3.5 mr-1" /> Add Gallery Image
+                          </Button>
+                        </div>
+                      </FormItem>
+                    );
+                  }} />
+                </div>
+
                 <Separator />
 
                 {/* ── SEO ── */}
