@@ -49,7 +49,7 @@ export function TourCard({ tour, index }: { tour: ProductRouteProps; index: numb
           className="h-full flex flex-col overflow-hidden border-none shadow-lg hover:shadow-xl transition-shadow duration-300 group cursor-pointer"
           onClick={() => setShowQuickView(true)}
         >
-          <div className="relative h-64 overflow-hidden bg-[#211e18]">
+          <div className="relative aspect-video overflow-hidden bg-[#211e18]">
             <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors z-10" />
             {tour.image && (
               <img

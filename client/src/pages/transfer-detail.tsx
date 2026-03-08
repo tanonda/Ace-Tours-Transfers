@@ -231,7 +231,7 @@ export default function TransferDetail() {
       <div className="min-h-screen bg-[#0f0d09] text-[#f0ece4] font-sans pt-28 md:pt-32">
 
         {/* ── HERO ── */}
-        <div className="relative h-[280px] overflow-hidden bg-[#0f0d09]">
+        <div className="relative aspect-video lg:aspect-[21/9] max-h-[60vh] overflow-hidden bg-[#0f0d09]">
           <img
             src={cloudinaryOpt(transfer.image, 1400)}
             className="w-full h-full object-cover filter brightness-[0.45] object-center"

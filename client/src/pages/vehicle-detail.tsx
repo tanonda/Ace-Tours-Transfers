@@ -517,7 +517,7 @@ export default function VehicleDetail() {
       <div className="min-h-screen bg-[#0f0d09] text-[#f0ece4] font-sans pt-28 md:pt-32">
 
         {/* Hero */}
-        <div className="relative h-[340px] overflow-hidden bg-[#0f0d09]">
+        <div className="relative aspect-video lg:aspect-[21/9] max-h-[60vh] overflow-hidden bg-[#0f0d09]">
           <img src={cloudinaryOpt(vehicle.image, 1200)} className="w-full h-full object-cover brightness-[0.42] object-center" alt={vehicle.imageAlt || `${vehicle.title} - vehicle hire Vanuatu`} loading="eager" fetchPriority="high" />
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#0f0d09]/20 to-[#0f0d09]" />
           <div className="absolute inset-0 opacity-[0.025]"
