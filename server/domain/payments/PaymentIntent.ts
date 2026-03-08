@@ -54,7 +54,8 @@ export class PaymentIntent {
   }
 
   public receive(): void {
-    if (this.props.status !== PaymentIntentStatus.PENDING) {
+    const validStates = [PaymentIntentStatus.PENDING, 'pending', 'processing', 'manual_review_required'];
+    if (!validStates.includes(this.props.status as any)) {
       throw new Error(`Cannot receive payment in status ${this.props.status}`);
     }
     this.props.status = PaymentIntentStatus.RECEIVED;
@@ -64,7 +65,8 @@ export class PaymentIntent {
   }
 
   public fail(reason: string): void {
-    if (this.props.status !== PaymentIntentStatus.PENDING) {
+    const validStates = [PaymentIntentStatus.PENDING, 'pending', 'processing', 'manual_review_required'];
+    if (!validStates.includes(this.props.status as any)) {
       throw new Error(`Cannot fail payment in status ${this.props.status}`);
     }
     this.props.status = PaymentIntentStatus.FAILED;
