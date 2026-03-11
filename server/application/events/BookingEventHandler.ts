@@ -108,6 +108,22 @@ export class BookingEventHandler {
           amount: booking.amount,
           paymentMethod: booking.paymentMethod || undefined,
         });
+
+        // 3. Notify Admin of confirmed booking
+        try {
+          await mailingService.sendAdminEmail(
+            `✅ Payment Confirmed: ACT-${(booking.id || '').replace(/^book_/i, '').replace(/-/g, '').slice(0, 8).toUpperCase()} - ${booking.customerName}`,
+            `<h2>Payment Confirmed</h2>
+                <p>A payment has been successfully confirmed for booking <strong>ACT-${(booking.id || '').replace(/^book_/i, '').replace(/-/g, '').slice(0, 8).toUpperCase()}</strong>.</p>
+                <p><strong>Customer:</strong> ${booking.customerName} (${booking.customerEmail})</p>
+                <p><strong>Tour:</strong> ${tour?.title || 'Unknown'}</p>
+                <p><strong>Date:</strong> ${booking.date}</p>
+                <p><strong>Amount:</strong> VT ${booking.totalAmountCents?.toLocaleString()}</p>
+                <p>Login to the admin dashboard for more details.</p>`
+          );
+        } catch (adminErr) {
+          console.error(`[EVENT][ERROR][${correlationId}] Failed to send admin payment confirmation email:`, adminErr);
+        }
       } catch (error: any) {
         console.error(`[EVENT][ERROR][${correlationId}] Failed to confirm booking ${booking.id}:`, error);
 
