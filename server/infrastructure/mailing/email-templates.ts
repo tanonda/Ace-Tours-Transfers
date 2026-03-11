@@ -24,21 +24,29 @@ type PaymentTemplateData = {
   method?: string;
 };
 
+const LOGO_URL = 'https://res.cloudinary.com/dwro1dh5q/image/upload/v1765063924/ace-tours-assets/ace_tours_logo_official.jpg';
+
 const BRAND_HEADER = `
-<div style="background:#0f0d09;padding:24px 32px;text-align:center;border-bottom:3px solid #f4a830">
-  <h1 style="color:#f4a830;font-family:Georgia,serif;font-size:28px;margin:0;letter-spacing:1px">
+<div style="background:#0f0d09;padding:28px 32px 24px;text-align:center;border-bottom:3px solid #f4a830">
+  <img src="${LOGO_URL}" alt="Ace Tours & Transfers" width="70" height="70" style="display:block;margin:0 auto 12px;border-radius:50%;border:2px solid #f4a830" />
+  <h1 style="color:#f4a830;font-family:Georgia,serif;font-size:26px;margin:0;letter-spacing:1px">
     Ace Tours &amp; Transfers
   </h1>
-  <p style="color:#a0998d;font-size:12px;margin:6px 0 0;letter-spacing:2px">VANUATU</p>
+  <p style="color:#a0998d;font-size:11px;margin:6px 0 0;letter-spacing:3px;text-transform:uppercase">VANUATU</p>
+  <p style="color:#706a60;font-size:11px;margin:8px 0 0;font-style:italic">Your Gateway to Vanuatu Adventures</p>
 </div>
+<div style="height:3px;background:linear-gradient(90deg,#f4a830,#e6c97a,#f4a830)"></div>
 `;
 
 const BRAND_FOOTER = `
-<div style="background:#0f0d09;padding:20px 32px;text-align:center;border-top:2px solid #1a1814">
-  <p style="color:#a0998d;font-size:12px;margin:0">
-    Ace Tours &amp; Transfers Vanuatu &bull; Port Vila, Vanuatu
+<div style="background:#0f0d09;padding:24px 32px;text-align:center;border-top:2px solid #1a1814">
+  <img src="${LOGO_URL}" alt="Ace Tours" width="40" height="40" style="display:block;margin:0 auto 10px;border-radius:50%;opacity:0.8" />
+  <p style="color:#a0998d;font-size:12px;margin:0;font-weight:600">
+    Ace Tours &amp; Transfers Vanuatu
   </p>
-  <p style="color:#706a60;font-size:11px;margin:8px 0 0">
+  <p style="color:#706a60;font-size:11px;margin:4px 0 0">Port Vila, Vanuatu</p>
+  <div style="width:60px;height:1px;background:#f4a830;margin:12px auto"></div>
+  <p style="color:#706a60;font-size:11px;margin:0">
     <a href="mailto:${process.env.BUSINESS_EMAIL || 'info@acetours.vu'}" style="color:#f4a830;text-decoration:none">${process.env.BUSINESS_EMAIL || 'info@acetours.vu'}</a>
     &nbsp;&bull;&nbsp;
     <a href="${process.env.APP_URL || 'https://acetours.vu'}" style="color:#f4a830;text-decoration:none">${(process.env.APP_URL || 'https://acetours.vu').replace(/^https?:\/\//, '')}</a>
@@ -105,7 +113,8 @@ export function bookingConfirmation(data: BookingTemplateData) {
 
   const html = wrap(`
     <h2 style="color:#0f0d09;margin:0 0 8px;font-size:22px">Booking Confirmed! ✅</h2>
-    <p style="color:#706a60;margin:0 0 24px;font-size:14px">Thank you for booking with us, ${data.customerName}.</p>
+    <p style="color:#706a60;margin:0 0 6px;font-size:14px">Thank you for booking with us, ${data.customerName}!</p>
+    <p style="color:#a0998d;margin:0 0 24px;font-size:13px;font-style:italic">Your Vanuatu adventure awaits — we can't wait to welcome you.</p>
 
     <div style="background:#fafaf8;border:1px solid #e8e4dc;border-radius:8px;padding:20px;margin:0 0 20px">
       <table style="width:100%;border-collapse:collapse;font-size:14px">
@@ -138,7 +147,7 @@ export function bookingConfirmation(data: BookingTemplateData) {
       <p style="color:#92400e;font-size:12px;margin:0"><strong>Cancellation Policy:</strong> Free cancellation up to 24 hours before your scheduled date. After that, a 50% fee applies.</p>
     </div>
 
-    <p style="color:#706a60;font-size:13px;margin:16px 0 0">We look forward to welcoming you! If you have any questions, reply to this email or WhatsApp us.</p>
+    <p style="color:#706a60;font-size:13px;margin:16px 0 0">We look forward to welcoming you to beautiful Vanuatu! If you have any questions, simply reply to this email or WhatsApp us — we're always happy to help. 🌴</p>
   `);
 
   return {
@@ -150,7 +159,8 @@ export function bookingConfirmation(data: BookingTemplateData) {
 export function paymentReceipt(data: PaymentTemplateData) {
   const html = wrap(`
     <h2 style="color:#0f0d09;margin:0 0 8px;font-size:22px">Payment Received 🎉</h2>
-    <p style="color:#706a60;margin:0 0 24px;font-size:14px">Hi ${data.customerName}, your payment has been confirmed.</p>
+    <p style="color:#706a60;margin:0 0 6px;font-size:14px">Hi ${data.customerName}, your payment has been confirmed.</p>
+    <p style="color:#a0998d;margin:0 0 24px;font-size:13px;font-style:italic">Thank you for choosing Ace Tours & Transfers — see you in Vanuatu!</p>
 
     <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:20px;margin:0 0 20px">
       <table style="width:100%;border-collapse:collapse;font-size:14px">

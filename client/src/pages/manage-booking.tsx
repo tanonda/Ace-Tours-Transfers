@@ -276,8 +276,16 @@ export default function ManageBooking() {
             <Layout>
                 <div className="bg-muted/30 min-h-screen pt-40 md:pt-44 pb-20">
                     <div className="container mx-auto px-4 flex justify-center">
-                        <Card className="w-full max-w-md shadow-xl">
+                        <Card className="w-full max-w-md shadow-xl overflow-hidden">
+                            <div className="h-1.5 bg-gradient-to-r from-[#f4a830] via-[#e6c97a] to-[#f4a830]" />
                             <CardHeader className="text-center">
+                                <div className="flex items-center justify-center gap-3 mb-3">
+                                    <img src="/assets/logo.png" alt="Ace Tours & Transfers" className="h-10 w-10 rounded-full border border-[#f4a830]/30" />
+                                    <div className="text-left">
+                                        <p className="text-sm font-semibold text-[#f4a830] tracking-wide">Ace Tours & Transfers</p>
+                                        <p className="text-[10px] text-muted-foreground">Vanuatu</p>
+                                    </div>
+                                </div>
                                 <div className="mx-auto mb-3 w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
                                     <Search className="h-6 w-6 text-primary" />
                                 </div>
@@ -352,8 +360,9 @@ export default function ManageBooking() {
                     )}
 
                     {/* Header */}
-                    <div className="flex items-center justify-between mb-6">
-                        <div>
+                    <div className="flex items-center gap-3 mb-6">
+                        <img src="/assets/logo.png" alt="Ace Tours & Transfers" className="h-10 w-10 rounded-full border border-[#f4a830]/30" />
+                        <div className="flex-1">
                             <h1 className="text-2xl md:text-3xl font-serif font-bold">Your Booking</h1>
                             <p className="text-muted-foreground text-sm mt-1">
                                 Ref: <span className="font-mono">ACT-{booking.id.replace(/^book_/i, '').replace(/-/g, '').slice(0, 8).toUpperCase()}</span>

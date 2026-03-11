@@ -82,11 +82,19 @@ export default function ConfirmationPage() {
 
   return (
     <div className="container py-12">
-      <Card className="max-w-2xl mx-auto">
+      <Card className="max-w-2xl mx-auto overflow-hidden">
+        <div className="h-1.5 bg-gradient-to-r from-[#f4a830] via-[#e6c97a] to-[#f4a830]" />
         <CardHeader className="text-center">
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <img src="/assets/logo.png" alt="Ace Tours & Transfers" className="h-12 w-12 rounded-full border-2 border-[#f4a830]/30" />
+            <div className="text-left">
+              <p className="text-sm font-semibold text-[#f4a830] tracking-wide">Ace Tours & Transfers</p>
+              <p className="text-[10px] text-muted-foreground">Vanuatu</p>
+            </div>
+          </div>
           <h1 className="text-3xl font-bold text-primary">Booking Confirmation</h1>
           <CardDescription>
-            Thank you for your booking! Your adventure awaits.
+            Thank you for booking with us! Your Vanuatu adventure awaits. 🌴
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -95,7 +103,7 @@ export default function ConfirmationPage() {
             <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-4 space-y-2">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Booking ID</span>
-                <span>ACT-{(booking.id||'').replace(/^book_/i,'').replace(/-/g,'').slice(0,8).toUpperCase()}</span>
+                <span>ACT-{(booking.id || '').replace(/^book_/i, '').replace(/-/g, '').slice(0, 8).toUpperCase()}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Tour</span>

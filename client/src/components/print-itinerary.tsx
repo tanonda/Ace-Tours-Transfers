@@ -75,7 +75,7 @@ export function PrintItinerary({ booking, items, payments, qrCodeData, onClose }
             .itinerary-container {
               max-width: 800px;
               margin: 0 auto;
-              border: 2px solid #e67e22;
+              border: 2px solid #f4a830;
               border-radius: 12px;
               overflow: hidden;
             }
@@ -102,8 +102,8 @@ export function PrintItinerary({ booking, items, payments, qrCodeData, onClose }
             }
             .booking-badge {
               display: inline-block;
-              background: #e67e22;
-              color: white;
+              background: #f4a830;
+              color: #0f0d09;
               padding: 8px 20px;
               border-radius: 20px;
               font-weight: bold;
@@ -119,7 +119,7 @@ export function PrintItinerary({ booking, items, payments, qrCodeData, onClose }
               font-size: 18px;
               font-weight: bold;
               color: #004165;
-              border-bottom: 2px solid #e67e22;
+              border-bottom: 2px solid #f4a830;
               padding-bottom: 8px;
               margin-bottom: 15px;
             }
@@ -178,13 +178,13 @@ export function PrintItinerary({ booking, items, payments, qrCodeData, onClose }
             }
             .notes {
               background: #fff9e6;
-              border-left: 4px solid #e67e22;
+              border-left: 4px solid #f4a830;
               padding: 15px;
               margin-top: 20px;
               border-radius: 0 8px 8px 0;
             }
             .notes h4 {
-              color: #e67e22;
+              color: #f4a830;
               margin-bottom: 10px;
               font-size: 16px;
             }
@@ -234,6 +234,7 @@ export function PrintItinerary({ booking, items, payments, qrCodeData, onClose }
               <img src="https://res.cloudinary.com/dwro1dh5q/image/upload/v1765063924/ace-tours-assets/ace_tours_logo_official.jpg" alt="Ace Tours & Transfers Logo" class="logo"/>
               <h1>Ace Tours & Transfers</h1>
               <p>Port Vila, Vanuatu</p>
+              <p style="font-size:11px;opacity:0.7;margin-top:4px;font-style:italic">Your Gateway to Vanuatu Adventures</p>
               <div class="booking-badge">
                 ${t("itinerary.confirmationNumber", "Confirmation")}: ACT-${(booking.id || '').replace(/^book_/i, '').replace(/-/g, '').slice(0, 8).toUpperCase()}
               </div>
@@ -364,8 +365,9 @@ export function PrintItinerary({ booking, items, payments, qrCodeData, onClose }
               <div class="contact-info">
                 <span class="contact-item">📞 7114045 / 7342389</span>
                 <span class="contact-item">✉️ acetoursvanuatu@outlook.com</span>
+                <span class="contact-item">🌐 acetours.vu</span>
               </div>
-              <p class="footer-note">${t("itinerary.footerNote", "Thank you for choosing Ace Tours & Transfers. Have a wonderful trip!")}</p>
+              <p class="footer-note">${t("itinerary.footerNote", "Thank you for choosing Ace Tours & Transfers. Have a wonderful trip!")} 🌴</p>
             </div>
           </div>
         </body>
@@ -405,7 +407,8 @@ export function PrintItinerary({ booking, items, payments, qrCodeData, onClose }
             <img src="https://res.cloudinary.com/dwro1dh5q/image/upload/v1765063924/ace-tours-assets/ace_tours_logo_official.jpg" alt="Ace Tours & Transfers Logo" className="h-12 absolute top-5 left-5" />
             <h1 className="text-2xl font-bold mb-1">Ace Tours & Transfers</h1>
             <p className="text-white/80 text-sm">Port Vila, Vanuatu</p>
-            <div className="booking-badge inline-block bg-primary text-white px-4 py-2 rounded-full font-bold mt-3">
+            <p className="text-white/50 text-[11px] mt-1 italic">Your Gateway to Vanuatu Adventures</p>
+            <div className="booking-badge inline-block bg-[#f4a830] text-[#0f0d09] px-4 py-2 rounded-full font-bold mt-3">
               {t("itinerary.confirmationNumber", "Confirmation")}: ACT-{(booking.id || '').replace(/^book_/i, '').replace(/-/g, '').slice(0, 8).toUpperCase()}
             </div>
           </div>
@@ -536,8 +539,8 @@ export function PrintItinerary({ booking, items, payments, qrCodeData, onClose }
               </span>
             </div>
 
-            <div className="notes bg-amber-50 dark:bg-amber-900/20 border-l-4 border-primary p-4 rounded-r-lg">
-              <h4 className="text-primary font-semibold mb-2">{t("itinerary.importantNotes", "Important Notes")}</h4>
+            <div className="notes bg-amber-50 dark:bg-amber-900/20 border-l-4 border-[#f4a830] p-4 rounded-r-lg">
+              <h4 className="text-[#f4a830] font-semibold mb-2">{t("itinerary.importantNotes", "Important Notes")}</h4>
               {booking.notes && (
                 <div className="mb-3 pb-3 border-b border-primary/20">
                   <strong className="text-sm font-semibold">{t("itinerary.specialRequests", "Special Requests")}:</strong>
@@ -572,18 +575,22 @@ export function PrintItinerary({ booking, items, payments, qrCodeData, onClose }
           </div>
 
           <div className="footer bg-muted/30 p-5 text-center border-t">
-            <div className="contact-info flex justify-center gap-8 mb-3">
+            <div className="contact-info flex flex-wrap justify-center gap-6 mb-3">
               <div className="contact-item flex items-center gap-2 text-sm">
-                <Phone className="h-4 w-4 text-primary" />
+                <Phone className="h-4 w-4 text-[#f4a830]" />
                 <span>7114045 / 7342389</span>
               </div>
               <div className="contact-item flex items-center gap-2 text-sm">
-                <Mail className="h-4 w-4 text-primary" />
+                <Mail className="h-4 w-4 text-[#f4a830]" />
                 <span>acetoursvanuatu@outlook.com</span>
+              </div>
+              <div className="contact-item flex items-center gap-2 text-sm">
+                <span className="text-[#f4a830]">🌐</span>
+                <span>acetours.vu</span>
               </div>
             </div>
             <p className="footer-note text-xs text-muted-foreground">
-              {t("itinerary.footerNote", "Thank you for choosing Ace Tours & Transfers. Have a wonderful trip!")}
+              {t("itinerary.footerNote", "Thank you for choosing Ace Tours & Transfers. Have a wonderful trip!")} 🌴
             </p>
           </div>
         </div>

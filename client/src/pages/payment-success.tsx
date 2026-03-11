@@ -141,6 +141,15 @@ export default function PaymentSuccess() {
       <div className="min-h-[60vh] flex items-center justify-center p-4 pt-40 pb-16">
         <div className="w-full max-w-lg space-y-4">
 
+          {/* Ace Tours Brand Identity */}
+          <div className="flex items-center justify-center gap-3 mb-2">
+            <img src="/assets/logo.png" alt="Ace Tours & Transfers" className="h-10 w-10 rounded-full border border-[#f4a830]/30" />
+            <div className="text-center">
+              <p className="text-sm font-semibold text-[#f4a830] tracking-wide">Ace Tours & Transfers</p>
+              <p className="text-[10px] text-muted-foreground">Vanuatu</p>
+            </div>
+          </div>
+
           {/* Status Card */}
           <Card className="shadow-lg border-none overflow-hidden">
             <div className={`h-2 w-full ${isConfirmed ? 'bg-green-500' : 'bg-amber-400'}`} />
@@ -158,7 +167,7 @@ export default function PaymentSuccess() {
               </CardTitle>
               <p className="text-muted-foreground text-sm mt-1">
                 {isConfirmed
-                  ? "Your adventure is secured. See you soon!"
+                  ? "Your adventure is secured — see you in beautiful Vanuatu!"
                   : isCash
                     ? "Please pay at the start of your tour or vehicle pickup."
                     : "Please complete your bank transfer to secure your booking."

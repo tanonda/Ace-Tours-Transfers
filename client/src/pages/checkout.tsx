@@ -103,6 +103,15 @@ export default function Checkout() {
                             <ArrowLeft className="mr-2 h-4 w-4" /> Back to Cart
                         </Button>
 
+                        {/* Ace Tours Brand Identity */}
+                        <div className="flex items-center justify-center gap-3 mb-5">
+                            <img src="/assets/logo.png" alt="Ace Tours & Transfers" className="h-10 w-10 rounded-full border border-[#f4a830]/30" />
+                            <div className="text-center">
+                                <p className="text-sm font-semibold text-[#f4a830] tracking-wide">Ace Tours & Transfers</p>
+                                <p className="text-[10px] text-muted-foreground">Vanuatu</p>
+                            </div>
+                        </div>
+
                         <div className="flex items-center gap-3 mb-2">
                             <div className="p-2 rounded-xl bg-primary/10">
                                 <User className="h-6 w-6 text-primary" />

@@ -65,10 +65,10 @@ export function BookingDetailsDialog({ booking, open, onOpenChange }: BookingDet
   const getStatusColor = (status: string) => {
     switch (status) {
       case "confirmed": return "bg-green-100 text-green-800 hover:bg-green-100";
-      case "pending":   return "bg-yellow-100 text-yellow-800 hover:bg-yellow-100";
+      case "pending": return "bg-yellow-100 text-yellow-800 hover:bg-yellow-100";
       case "completed": return "bg-blue-100 text-blue-800 hover:bg-blue-100";
       case "cancelled": return "bg-red-100 text-red-800 hover:bg-red-100";
-      default:          return "bg-gray-100 text-gray-800";
+      default: return "bg-gray-100 text-gray-800";
     }
   };
 
@@ -80,20 +80,26 @@ export function BookingDetailsDialog({ booking, open, onOpenChange }: BookingDet
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
-        <DialogHeader>
-          <div className="flex items-center justify-between mr-6">
-            <DialogTitle className="text-xl font-serif font-bold text-[#004165]">Booking Details</DialogTitle>
-            <Badge className={getStatusColor(booking.status)} variant="outline">
-              {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
-            </Badge>
-          </div>
-          <DialogDescription>
-            Booking Reference: <span className="font-mono font-medium text-foreground">{booking.id}</span>
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="sm:max-w-[600px] overflow-hidden p-0">
+        <div className="h-1.5 bg-gradient-to-r from-[#f4a830] via-[#e6c97a] to-[#f4a830]" />
+        <div className="px-6 pt-5 pb-0">
+          <DialogHeader>
+            <div className="flex items-center justify-between mr-6">
+              <div className="flex items-center gap-3">
+                <img src="/assets/logo.png" alt="Ace Tours & Transfers" className="h-8 w-8 rounded-full border border-[#f4a830]/30" />
+                <DialogTitle className="text-xl font-serif font-bold text-[#004165]">Booking Details</DialogTitle>
+              </div>
+              <Badge className={getStatusColor(booking.status)} variant="outline">
+                {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+              </Badge>
+            </div>
+            <DialogDescription>
+              Booking Reference: <span className="font-mono font-medium text-foreground">{booking.id}</span>
+            </DialogDescription>
+          </DialogHeader>
+        </div>
 
-        <div className="grid gap-6 py-4">
+        <div className="grid gap-6 py-4 px-6">
           <div className="grid grid-cols-2 gap-6">
             <div className="space-y-4">
               {/* Fix #2: Show real email and phone from booking data */}
