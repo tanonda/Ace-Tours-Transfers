@@ -10,14 +10,14 @@ interface Booking {
   id: string;
   tourName: string;
   customerName: string;
-  customerEmail?: string;
-  customerPhone?: string;
-  pickupLocation?: string;
-  notes?: string;
+  customerEmail?: string | null;
+  customerPhone?: string | null;
+  pickupLocation?: string | null;
+  notes?: string | null;
   date: string;
   guests: number;
   amount: string;
-  totalAmountCents?: number;
+  totalAmountCents?: number | null;
   status: string;
 }
 

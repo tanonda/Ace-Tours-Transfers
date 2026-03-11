@@ -2259,12 +2259,12 @@ ${allPages.map(p => `  <url>
 
       // 2. Auto-reply to guest
       try {
-        const appUrl = process.env.APP_URL || "https://ace-tours-transfers.onrender.com";
-        const { emailWrapper, emailHeader, emailFooter } = await import("./infrastructure/mailing/email-templates.js");
-        const logoUrl = `${appUrl}/assets/logo.png`;
-        const autoReplyHtml = emailWrapper(`
-          ${emailHeader(logoUrl, "We received your message! ✉️", "We'll be in touch soon")}
-          <div style="padding: 32px 28px;">
+        const appUrl = process.env.APP_URL || "https://ace-tours-transfers.onrender.com"; // used by sendEmail subject below
+        const { wrap } = await import("./infrastructure/mailing/email-templates.js");
+        const autoReplyHtml = wrap(`
+          <h2 style="color:#0f0d09;margin:0 0 8px;font-size:22px">We received your message! ✉️</h2>
+          <p style="color:#706a60;margin:0 0 24px;font-size:14px">We'll be in touch soon</p>
+          <div style="padding: 0;">
             <p style="color: #374151; font-size: 16px; margin: 0 0 8px 0;">Hi ${name.trim().split(" ")[0]}! 👋</p>
             <p style="color: #6b7280; font-size: 14px; line-height: 1.8; margin: 0 0 20px 0;">
               Thanks for reaching out to Ace Tours &amp; Transfers. We've received your message and will get back to you as soon as possible — usually within a few hours during business hours.
@@ -2277,7 +2277,6 @@ ${allPages.map(p => `  <url>
               In the meantime, you can also reach us via WhatsApp for a faster response.
             </p>
           </div>
-          ${emailFooter()}
         `);
 
         await sendEmail({

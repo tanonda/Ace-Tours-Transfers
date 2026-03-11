@@ -57,7 +57,7 @@ const BRAND_FOOTER = `
 </div>
 `;
 
-function wrap(content: string): string {
+export function wrap(content: string): string {
   const googlePlaceId = process.env.GOOGLE_PLACE_ID;
   const reviewLink = googlePlaceId
     ? `https://search.google.com/local/writereview?placeid=${googlePlaceId}`

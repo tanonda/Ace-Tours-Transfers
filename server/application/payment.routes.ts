@@ -25,9 +25,9 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
       const gateways = await storage.getPaymentGateways();
       const flags = await storage.getFeatureFlags();
 
-      const isFlagEnabled = (slug: string) => {
+      const isFlagEnabled = (slug: string, defaultValue = true) => {
         const flag = flags.find(f => f.slug === slug);
-        return flag ? flag.enabled : false;
+        return flag ? flag.enabled : defaultValue;
       };
 
       // Filter gateways base logic
