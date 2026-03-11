@@ -18,7 +18,7 @@ import { SEO, cloudinaryOpt } from "@/components/seo";
 import { GuestReviewForm } from "@/components/GuestReviewForm";
 import { useCmsText } from "@/hooks/use-cms-text";
 import { AddonsPanel, calcAddonTotal, type AddonSelections, type ProductAddonEntry } from "@/components/addons-panel";
-import { useRealtimeAvailability } from "@/hooks/useRealtimeAvailability";
+import { useAvailabilityToast } from "@/hooks/useAvailabilityToast";
 import {
   BookingCountdownTimer,
   CancellationModal,
@@ -83,7 +83,7 @@ export default function TransferDetail() {
     enabled: !!id,
   });
 
-  const { data: availability, loading: availLoading } = useRealtimeAvailability(
+  const { data: availability, loading: availLoading } = useAvailabilityToast(
     id && date ? { productId: id, date, adultPax, childPax, startTime: selectedTime || undefined } : null
   );
 

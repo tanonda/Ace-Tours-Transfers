@@ -10,7 +10,7 @@ import { useTranslation } from "react-i18next";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useCart } from "@/lib/cart-context";
 import { useBookingDraft } from "@/lib/booking-state-context";
-import { useRealtimeAvailability } from "@/hooks/useRealtimeAvailability";
+import { useAvailabilityToast } from "@/hooks/useAvailabilityToast";
 import { formatPriceDisplay, estimateBookingTotal, type ProductCategory } from "@/lib/product.types";
 import { useCurrency } from "@/lib/currency-context";
 import { AvailabilityCalendar } from "@/components/AvailabilityCalendar";
@@ -355,8 +355,8 @@ export default function TourDetail() {
     enabled: !!id,
   });
 
-  const { data: availability, loading: availLoading } = useRealtimeAvailability(
-    id && date ? { productId: id, date, adultPax, childPax } : null,
+  const { data: availability, loading: availLoading } = useAvailabilityToast(
+    id && date ? { productId: id, date, adultPax, childPax, startTime: selectedTime || undefined } : null,
     { enabled: !!id && !!date }
   );
 

@@ -8,6 +8,11 @@ import { ArrowLeft, Clock, ChevronLeft, ChevronRight, Calendar, Fuel, Users, Set
 import { useTranslation } from "react-i18next";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
+import {
+  getSlotBucket,
+  buildAvailabilityToast,
+  formatDateTimeLabel,
+} from "@/lib/availability-toast-messages";
 import { SEO, cloudinaryOpt } from "@/components/seo";
 import { GuestReviewForm } from "@/components/GuestReviewForm";
 import { useCmsText } from "@/hooks/use-cms-text";
@@ -393,27 +398,15 @@ export default function VehicleDetail() {
   }, []);
 
   const handleAvailabilityLoaded = useCallback((hasAny: boolean, total: number, available: number) => {
-    if (!hasAny) {
-      setAvailabilityStatus("unavailable");
-      toast({
-        title: "No availability",
-        description: "This vehicle is fully booked on the selected date. Please choose a different pickup date.",
-        variant: "destructive",
-      });
-    } else if (available <= 2) {
-      setAvailabilityStatus("limited");
-      toast({
-        title: `Only ${available} slot${available === 1 ? "" : "s"} left!`,
-        description: "High demand — select your time soon to secure this vehicle.",
-      });
-    } else {
-      setAvailabilityStatus("available");
-      toast({
-        title: "Vehicle available",
-        description: `${available} of ${total} time slots open on this date.`,
-      });
-    }
-  }, [toast]);
+    const bucket = getSlotBucket(total, available);
+    if (bucket === 'sold-out') setAvailabilityStatus("unavailable");
+    else if (bucket === 'limited') setAvailabilityStatus("limited");
+    else setAvailabilityStatus("available");
+
+    const label = formatDateTimeLabel(pickupDate);
+    const msg = buildAvailabilityToast(bucket, available, label);
+    toast(msg);
+  }, [toast, pickupDate]);
 
   // Use groupPriceCents as the day rate for group/flat-rate vehicles, adultPriceCents for per-person
   const isGroupPricing = vehicle?.pricingType === "group";
@@ -753,7 +746,9 @@ export default function VehicleDetail() {
                     onSelect={(t, remaining) => {
                       setPickupTime(t);
                       if (remaining <= 3 && remaining < 99) {
-                        toast({ title: `⚡ Only ${remaining} spot${remaining === 1 ? "" : "s"} at ${t}`, description: "Book now before it fills up!" });
+                        const label = formatDateTimeLabel(pickupDate, t);
+                        const msg = buildAvailabilityToast('limited', remaining, label, true);
+                        toast(msg);
                       }
                     }}
                     onAvailabilityLoaded={handleAvailabilityLoaded}
