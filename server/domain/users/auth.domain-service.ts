@@ -3,6 +3,7 @@ import { type User, type InsertUser } from "../../../shared/schema.js";
 import { type IStorage, storage } from "../../storage.js";
 import { mailingService } from "../../infrastructure/mailing/MailingService.js";
 import bcrypt from "bcryptjs";
+import { verify } from "otplib";
 
 export interface AuthResult extends User {
   // Add any extra fields needed for the auth response
@@ -15,7 +16,7 @@ export class AuthDomainService {
     this.storage = storage;
   }
 
-  async login(email: string, password: string): Promise<AuthResult | null> {
+  async login(email: string, password: string, mfaToken?: string): Promise<{ user: AuthResult, requiresMfa?: boolean } | null> {
     const user = await this.storage.getUserByEmail(email.trim().toLowerCase());
     if (!user) return null;
 
@@ -26,7 +27,15 @@ export class AuthDomainService {
       throw new Error("Account is suspended. Please contact administrator.");
     }
 
-    return user;
+    if (user.totpEnabled && user.totpSecret) {
+      if (!mfaToken) {
+        return { user, requiresMfa: true };
+      }
+      const isValid = await verify({ token: mfaToken.replace(/\s/g, ''), secret: user.totpSecret });
+      if (!isValid) throw new Error("Invalid verification code.");
+    }
+
+    return { user };
   }
 
   private async verifyPassword(password: string, storedPassword: string): Promise<boolean> {

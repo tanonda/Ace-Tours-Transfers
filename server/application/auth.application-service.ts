@@ -11,10 +11,10 @@ export class AuthApplicationService {
     this.sessionAdapter = sessionAdapter;
   }
 
-  public async login(email: string, password: string) {
-    const authResult = await this.authDomainService.login(email, password);
-    if (authResult) {
-      this.sessionAdapter.setSession(authResult.id, authResult.role);
+  public async login(email: string, password: string, mfaToken?: string) {
+    const authResult = await this.authDomainService.login(email, password, mfaToken);
+    if (authResult?.user && !authResult.requiresMfa) {
+      this.sessionAdapter.setSession(authResult.user.id, authResult.user.role);
     }
     return authResult;
   }

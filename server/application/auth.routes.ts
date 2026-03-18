@@ -5,10 +5,13 @@ import { ExpressSessionAdapter } from "../infrastructure/session.adapter.js";
 import { requireAuth } from "../routes.js";
 import { rateLimit } from "express-rate-limit";
 import crypto from "crypto";
+import { generateSecret, generateURI, verify } from "otplib";
+import qr from "qr-image";
+import { storage } from "../storage.js";
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10,                   // 10 login attempts per 15 min — brute-force protection without locking out typo-prone users
+  max: 5,                   // 5 login attempts per 15 min — brute-force protection
   message: { error: "Too many login attempts, please try again later." },
 });
 
@@ -51,7 +54,7 @@ export function registerAuthRoutes(app: Express) {
   // ── Login ────────────────────────────────────────────────────────────────
   app.post("/api/auth/login", authLimiter, async (req: Request, res: Response) => {
     try {
-      const { email, password } = req.body;
+      const { email, password, mfaToken } = req.body;
 
       if (!email || !password) {
         return res.status(400).json({ error: "Email and password are required" });
@@ -63,18 +66,73 @@ export function registerAuthRoutes(app: Express) {
       );
 
       console.log(`[AUTH] Login attempt for: ${email}`);
-      const authResult = await authAppService.login(email, password);
+      const authResult = await authAppService.login(email, password, mfaToken);
 
       if (!authResult) {
         console.log(`[AUTH] Login failed: Invalid credentials for ${email}`);
         return res.status(401).json({ error: "Invalid email or password" });
       }
 
+      if (authResult.requiresMfa) {
+        return res.status(200).json({ requiresMfa: true });
+      }
+
       console.log(`[AUTH] Login successful for: ${email}`);
-      res.json(authResult);
-    } catch (error) {
+      res.json(authResult.user);
+    } catch (error: any) {
       console.error("[AUTH] Login error:", error);
+      if (error.message === "Invalid verification code.") {
+        return res.status(400).json({ error: "Invalid verification code." });
+      }
       res.status(500).json({ error: "Login failed" });
+    }
+  });
+
+  // ── MFA Setup ────────────────────────────────────────────────────────────
+  app.get("/api/auth/mfa/setup", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const userId = req.session?.userId;
+      if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+      const user = await storage.getUser(userId);
+      if (!user) return res.status(404).json({ error: "User not found" });
+
+      const secret = generateSecret();
+      const otpauth = generateURI({ issuer: "Ace Tours & Transfers", label: user.email, secret });
+
+      const qrCode = qr.imageSync(otpauth, { type: "svg" });
+
+      res.json({
+        secret,
+        qrCode: qrCode.toString("base64"),
+      });
+    } catch (error) {
+      console.error("[AUTH] MFA Setup error:", error);
+      res.status(500).json({ error: "Failed to generate MFA setup" });
+    }
+  });
+
+  app.post("/api/auth/mfa/verify-setup", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const userId = req.session?.userId;
+      if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+      const { token, secret } = req.body;
+      if (!token || !secret) {
+        return res.status(400).json({ error: "Token and secret are required" });
+      }
+
+      const isValid = await verify({ token: token.replace(/\s/g, ''), secret });
+
+      if (isValid) {
+        await storage.updateUserMfa(userId, secret, true);
+        return res.json({ success: true });
+      } else {
+        return res.status(400).json({ error: "Invalid token" });
+      }
+    } catch (error) {
+      console.error("[AUTH] MFA Verify Setup error:", error);
+      res.status(500).json({ error: "Failed to verify MFA setup" });
     }
   });
 

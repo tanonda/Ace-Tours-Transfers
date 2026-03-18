@@ -24,6 +24,9 @@ export default function AdminProfile() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
+  const [mfaSetupData, setMfaSetupData] = useState<{ secret: string; qrCode: string } | null>(null);
+  const [mfaToken, setMfaToken] = useState("");
+
   const profileMutation = useMutation({
     mutationFn: async () => {
       if (!user?.id) throw new Error("Not authenticated");
@@ -70,6 +73,20 @@ export default function AdminProfile() {
       setNewPassword("");
       setConfirmPassword("");
       toast({ title: "Password changed", description: "Your password has been updated." });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const setupMfaMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/auth/mfa/setup`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to generate MFA setup");
+      return res.json();
+    },
+    onSuccess: (data) => {
+      setMfaSetupData(data);
     },
     onError: (err: Error) => {
       toast({ title: "Error", description: err.message, variant: "destructive" });
@@ -248,6 +265,74 @@ export default function AdminProfile() {
             </Button>
           </CardContent>
         </Card>
+
+        {/* Two-Factor Authentication Setup */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Shield className="h-5 w-5" />
+              Two-Factor Authentication (2FA)
+            </CardTitle>
+            <CardDescription>Add an extra layer of security to your account with Google Authenticator.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {!mfaSetupData ? (
+              <Button
+                onClick={() => setupMfaMutation.mutate()}
+                disabled={setupMfaMutation.isPending}
+                variant="outline"
+              >
+                {setupMfaMutation.isPending ? "Generating..." : "Set up 2FA"}
+              </Button>
+            ) : (
+              <div className="space-y-4 border p-4 rounded-lg bg-muted/20">
+                <div className="text-sm font-medium">1. Scan this QR Code with your Authenticator app (e.g., Google Authenticator)</div>
+                <div className="bg-white p-2 rounded-lg inline-block">
+                  <img
+                    src={`data:image/svg+xml;base64,${mfaSetupData.qrCode}`}
+                    alt="MFA QR Code"
+                    className="w-48 h-48"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="mfa-verify">2. Enter the 6-digit code</Label>
+                  <Input
+                    id="mfa-verify"
+                    placeholder="000000"
+                    value={mfaToken}
+                    onChange={(e) => setMfaToken(e.target.value)}
+                    maxLength={6}
+                  />
+                </div>
+                <Button
+                  onClick={async () => {
+                    try {
+                      const res = await fetch("/api/auth/mfa/verify-setup", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        credentials: "include",
+                        body: JSON.stringify({ token: mfaToken, secret: mfaSetupData.secret }),
+                      });
+                      if (!res.ok) {
+                         const err = await res.json();
+                         throw new Error(err.error || "Verification failed");
+                      }
+                      setMfaSetupData(null);
+                      setMfaToken("");
+                      toast({ title: "Success", description: "Two-Factor Authentication is now enabled on your account." });
+                    } catch (error: any) {
+                      toast({ title: "Invalid Code", description: error.message, variant: "destructive" });
+                    }
+                  }}
+                  disabled={mfaToken.length < 6}
+                >
+                  Verify and Enable 2FA
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
       </div>
     </DashboardLayout>
   );

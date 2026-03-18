@@ -82,6 +82,7 @@ export interface IStorage {
   updateUserRole(id: string, role: string): Promise<User | undefined>;
   updateUserStatus(id: string, isActive: boolean): Promise<User | undefined>;
   updateUserPassword(id: string, password: string): Promise<User | undefined>;
+  updateUserMfa(id: string, secret: string | null, enabled: boolean): Promise<User | undefined>;
   updateUserProfile(id: string, data: { name?: string; email?: string; phone?: string }): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   getCustomers(): Promise<User[]>;
@@ -335,6 +336,17 @@ export class DatabaseStorage implements IStorage {
       const [user] = await db
         .update(users)
         .set({ password, updatedAt: new Date() })
+        .where(eq(users.id, id))
+        .returning();
+      return user || undefined;
+    });
+  }
+
+  async updateUserMfa(id: string, secret: string | null, enabled: boolean): Promise<User | undefined> {
+    return this.withRetry(async () => {
+      const [user] = await db
+        .update(users)
+        .set({ totpSecret: secret, totpEnabled: enabled, updatedAt: new Date() })
         .where(eq(users.id, id))
         .returning();
       return user || undefined;

@@ -15,6 +15,8 @@ export default function Login() {
   const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [requiresMfa, setRequiresMfa] = useState(false);
+  const [mfaToken, setMfaToken] = useState("");
   const { t } = useTranslation();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -22,8 +24,17 @@ export default function Login() {
     setIsLoading(true);
 
     try {
-      const result = await login(email, password);
+      const result = await login(email, password, requiresMfa ? mfaToken : undefined);
       setIsLoading(false);
+
+      if (result.requiresMfa) {
+        setRequiresMfa(true);
+        toast({
+          title: "Two-Factor Authentication Required",
+          description: "Please enter the code from your Authenticator app.",
+        });
+        return;
+      }
 
       if (result.success) {
         try {
@@ -113,6 +124,22 @@ export default function Login() {
                   onChange={(e) => setPassword(e.target.value)}
                 />
               </div>
+              
+              {requiresMfa && (
+                <div className="space-y-2">
+                  <Label htmlFor="mfaToken">Authentication Code</Label>
+                  <Input
+                    id="mfaToken"
+                    type="text"
+                    autoComplete="one-time-code"
+                    required
+                    placeholder="6-digit code"
+                    value={mfaToken}
+                    onChange={(e) => setMfaToken(e.target.value)}
+                  />
+                </div>
+              )}
+              
               <Button type="submit" className="w-full font-semibold" disabled={isLoading}>
                 {isLoading ? (
                   <>

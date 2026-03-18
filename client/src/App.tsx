@@ -150,7 +150,7 @@ function Router() {
         <Route path="/payment/cancel" component={PaymentCancel} />
         <Route path="/manage-booking" component={ManageBooking} />
         <Route path="/confirmation" component={Confirmation} />
-        <Route path="/login" component={Login} />
+        <Route path="/staff-access" component={Login} />
         <Route path="/register" component={Register} />
         <Route path="/privacy-policy" component={PrivacyPolicy} />
         <Route path="/terms-of-service" component={TermsOfService} />

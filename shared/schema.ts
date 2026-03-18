@@ -26,6 +26,8 @@ export const users = pgTable("users", {
   isActive: boolean("is_active").notNull().default(true),
   passwordResetToken: text("password_reset_token"),
   passwordResetTokenExpiry: timestamp("password_reset_token_expiry", { withTimezone: true }),
+  totpSecret: text("totp_secret"),
+  totpEnabled: boolean("totp_enabled").notNull().default(false),
 });
 
 export const products = pgTable("products", {

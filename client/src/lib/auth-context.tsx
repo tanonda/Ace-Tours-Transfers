@@ -12,7 +12,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  login: (email: string, password: string, mfaToken?: string) => Promise<{ success: boolean; requiresMfa?: boolean; error?: string }>;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
   isAdmin: boolean;
@@ -46,17 +46,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, mfaToken?: string) => {
     try {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, mfaToken }),
       });
 
       if (res.ok) {
         const userData = await res.json();
+        
+        if (userData.requiresMfa) {
+          return { success: false, requiresMfa: true };
+        }
+
         setUser(userData);
 
         // Redirect based on role - use native navigation to avoid framework issues
@@ -87,7 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
     } finally {
       setUser(null);
-      setLocation("/login");
+      setLocation("/staff-access");
     }
   };
 
@@ -131,7 +136,7 @@ export function ProtectedRoute({
   useEffect(() => {
     if (!isLoading) {
       if (!isAuthenticated) {
-        setLocation("/login");
+        setLocation("/staff-access");
       } else if (requireAdmin && !isAdmin) {
         setLocation("/dashboard");
       } else if (requireStaff && !isStaff) {
