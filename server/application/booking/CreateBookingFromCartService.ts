@@ -32,6 +32,7 @@ export interface CreateBookingRequest {
     startTime?: string;
     endTime?: string;
   }[];
+  locale?: string;
 }
 
 export class CreateBookingFromCartService {
@@ -227,6 +228,7 @@ export class CreateBookingFromCartService {
             startTime: aggregateStart,
             endTime: aggregateEnd,
             pickupLocation: request.pickupLocation || null,
+            locale: request.locale || "en",
           },
           tx
         );

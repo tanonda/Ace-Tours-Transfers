@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchAllCmsContent, createCmsContent, updateCmsContent, uploadImage } from "@/lib/api";
+import { fetchAllCmsContent, createCmsContent, updateCmsContent, uploadImage, autoTranslateCmsContent } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { useTranslation } from "react-i18next";
@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   Loader2, Save, Upload, ImageIcon, Bold, Italic, List,
   Heading1, Heading2, Link as LinkIcon, Undo, Redo, AlignLeft,
-  AlignCenter, Code, Quote, Minus
+  AlignCenter, Code, Quote, Minus, Globe, Languages
 } from "lucide-react";
 import { sanitizeHtml } from "@/components/shared-detail-components";
 import { useState, useRef, useCallback, useEffect } from "react";
@@ -203,17 +203,37 @@ function RichEditor({
 
 // ─── Main CMS Page ─────────────────────────────────────────────────────────────
 
+const CMS_LANGUAGES = [
+  { code: 'en', name: 'English', flag: '🇬🇧' },
+  { code: 'fr', name: 'Français', flag: '🇫🇷' },
+  { code: 'es', name: 'Español', flag: '🇪🇸' },
+  { code: 'bi', name: 'Bislama', flag: '🇻🇺' },
+  { code: 'zh', name: '中文', flag: '🇨🇳' },
+];
+
+/** Locales that can be auto-translated (Bislama not supported by translation APIs) */
+const AUTO_TRANSLATABLE = ['fr', 'es', 'zh'];
+
 export default function AdminCMS() {
   const { t } = useTranslation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("home-page");
+  const [activeLocale, setActiveLocale] = useState("en");
   const [isUploading, setIsUploading] = useState(false);
   const [richContent, setRichContent] = useState<Record<string, string>>({});
+  const [translatingIds, setTranslatingIds] = useState<Set<string>>(new Set());
 
   const { data: content = {}, isLoading } = useQuery({
-    queryKey: ["cms-content"],
-    queryFn: fetchAllCmsContent,
+    queryKey: ["cms-content", activeLocale],
+    queryFn: () => fetchAllCmsContent(activeLocale),
+  });
+
+  // Also fetch English content to power the "translate" button when on non-EN tabs
+  const { data: enContent = {} } = useQuery({
+    queryKey: ["cms-content", "en"],
+    queryFn: () => fetchAllCmsContent("en"),
+    enabled: activeLocale !== 'en',
   });
 
   const updateMutation = useMutation({
@@ -244,8 +264,28 @@ export default function AdminCMS() {
         contentKey: item.key,
         contentType: item.type,
         value,
-        locale: 'en'
+        locale: activeLocale
       });
+    }
+  };
+
+  const handleAutoTranslate = async (enItem: any) => {
+    if (!enItem?.id) {
+      toast({ title: "No English content", description: "Save English content first before translating.", variant: "destructive" });
+      return;
+    }
+    setTranslatingIds(prev => new Set(prev).add(enItem.id));
+    try {
+      const result = await autoTranslateCmsContent(enItem.id);
+      queryClient.invalidateQueries({ queryKey: ["cms-content"] });
+      toast({
+        title: "Auto-translated!",
+        description: `Translated to ${result.locales.map(l => l.toUpperCase()).join(', ')}. Bislama must be entered manually.`,
+      });
+    } catch {
+      toast({ title: "Translation failed", description: "Could not auto-translate. Please try again.", variant: "destructive" });
+    } finally {
+      setTranslatingIds(prev => { const next = new Set(prev); next.delete(enItem.id); return next; });
     }
   };
 
@@ -377,6 +417,13 @@ export default function AdminCMS() {
     );
   }
 
+  /** Get the English CMS row for a key (used for translate button on non-EN tabs) */
+  const getEnContent = (key: string): any => {
+    const blockContent = (enContent as any)[activeTab] || [];
+    const item = blockContent.find((c: any) => c.contentKey === key);
+    return item || null;
+  };
+
   return (
     <DashboardLayout type="admin">
       <div className="flex flex-col gap-6">
@@ -390,6 +437,38 @@ export default function AdminCMS() {
             Live CMS
           </Badge>
         </div>
+
+        {/* Language Selector */}
+        <div className="flex items-center gap-2 p-1 bg-muted/50 rounded-lg border border-border w-fit">
+          <Globe className="h-4 w-4 text-muted-foreground ml-2" />
+          {CMS_LANGUAGES.map(lang => (
+            <button
+              key={lang.code}
+              onClick={() => { setActiveLocale(lang.code); setRichContent({}); }}
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-200 flex items-center gap-1.5 ${
+                activeLocale === lang.code
+                  ? 'bg-background text-foreground shadow-sm border border-border'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
+              }`}
+            >
+              <span>{lang.flag}</span>
+              <span className="hidden sm:inline">{lang.name}</span>
+              <span className="sm:hidden">{lang.code.toUpperCase()}</span>
+            </button>
+          ))}
+        </div>
+
+        {activeLocale !== 'en' && (
+          <div className="flex items-center gap-2 p-3 bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-200 rounded-lg border border-amber-200 dark:border-amber-800/50">
+            <Languages className="h-4 w-4 shrink-0" />
+            <p className="text-xs font-medium">
+              Editing <strong>{CMS_LANGUAGES.find(l => l.code === activeLocale)?.name}</strong> translations.
+              {AUTO_TRANSLATABLE.includes(activeLocale)
+                ? ' You can auto-translate from English using the 🌐 button on each field.'
+                : ' Bislama translations must be entered manually (not supported by auto-translate).'}
+            </p>
+          </div>
+        )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="flex-wrap h-auto gap-1">
@@ -416,6 +495,40 @@ export default function AdminCMS() {
                             <CardDescription className="mt-0.5">{(field as any).description}</CardDescription>
                           )}
                         </div>
+                        <div className="flex items-center gap-2">
+                          {/* Auto-translate button — only on English tab, only for text/rich fields */}
+                          {activeLocale === 'en' && field.type !== 'image' && item.id && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={translatingIds.has(item.id)}
+                              onClick={() => handleAutoTranslate(item)}
+                              title="Auto-translate this field to FR, ES, ZH"
+                            >
+                              {translatingIds.has(item.id)
+                                ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                : <><Globe className="h-3.5 w-3.5 mr-1" />Translate</>
+                              }
+                            </Button>
+                          )}
+                          {/* On non-EN tabs, show translate from English button if source exists */}
+                          {activeLocale !== 'en' && field.type !== 'image' && AUTO_TRANSLATABLE.includes(activeLocale) && (() => {
+                            const enItem = getEnContent(field.key);
+                            return enItem?.id ? (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                disabled={translatingIds.has(enItem.id)}
+                                onClick={() => handleAutoTranslate(enItem)}
+                                title="Auto-translate from English"
+                              >
+                                {translatingIds.has(enItem.id)
+                                  ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                  : <><Globe className="h-3.5 w-3.5 mr-1" />From EN</>
+                                }
+                              </Button>
+                            ) : null;
+                          })()}
                         {field.type !== 'image' && (
                           <Button
                             size="sm"
@@ -428,6 +541,7 @@ export default function AdminCMS() {
                             }
                           </Button>
                         )}
+                        </div>
                       </div>
                     </CardHeader>
                     <CardContent>

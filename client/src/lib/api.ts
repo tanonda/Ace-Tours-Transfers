@@ -242,8 +242,9 @@ export async function setDefaultPaymentGateway(id: string): Promise<void> {
 }
 
 // CMS Content
-export async function fetchAllCmsContent(): Promise<Record<string, CmsContent[]>> {
-  const res = await apiRequest("GET", "/api/content-blocks");
+export async function fetchAllCmsContent(locale?: string): Promise<Record<string, CmsContent[]>> {
+  const qs = locale ? `?locale=${locale}` : '';
+  const res = await apiRequest("GET", `/api/content-blocks${qs}`);
   return res.json();
 }
 
@@ -254,6 +255,11 @@ export async function createCmsContent(data: any): Promise<CmsContent> {
 
 export async function updateCmsContent(id: string, data: any): Promise<CmsContent> {
   const res = await apiRequest("PATCH", `/api/admin/cms-content/${id}`, data);
+  return res.json();
+}
+
+export async function autoTranslateCmsContent(id: string): Promise<{ translated: CmsContent[]; sourceId: string; locales: string[] }> {
+  const res = await apiRequest("POST", "/api/admin/cms-content/auto-translate", { id });
   return res.json();
 }
 

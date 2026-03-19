@@ -96,6 +96,7 @@ export class BookingEventHandler {
             ? `${Math.round(booking.totalAmountCents).toLocaleString()} VT`
             : booking.amount,
           transactionId: event.paymentId,
+          locale: booking.locale || 'en',
         });
 
         // 2. Send Booking Confirmation (branded template via MailingService)
@@ -107,6 +108,7 @@ export class BookingEventHandler {
           totalAmountCents: booking.totalAmountCents,
           amount: booking.amount,
           paymentMethod: booking.paymentMethod || undefined,
+          locale: booking.locale || 'en',
         });
 
         // 3. Notify Admin of confirmed booking
@@ -166,7 +168,8 @@ export class BookingEventHandler {
       amount: typeof booking.totalAmountCents === 'number'
         ? `${Math.round(booking.totalAmountCents).toLocaleString()} VT`
         : booking.amount,
-      reason: event.reason
+      reason: event.reason,
+      locale: booking.locale || 'en'
     });
   }
 
@@ -177,6 +180,6 @@ export class BookingEventHandler {
     console.log(`[EVENT][HANDLER] Handling PaymentExpired for Booking ${booking.id}`);
 
     await this.storage.updateBooking(booking.id, { status: 'cancelled' });
-    await mailingService.sendPaymentExpiry(booking.customerEmail, booking.id, booking.customerName);
+    await mailingService.sendPaymentExpiry(booking.customerEmail, booking.id, booking.customerName, booking.locale || 'en');
   }
 }

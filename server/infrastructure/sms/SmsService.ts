@@ -1,4 +1,5 @@
 import { config } from '../../config.js';
+import { emailTerms } from '../mailing/email-i18n.js';
 
 // ─── Interface ────────────────────────────────────────────────────────
 export interface SmsResult {
@@ -113,29 +114,36 @@ export class SmsService {
     tourName: string;
     date: string;
     amount: string;
+    locale?: string;
   }): Promise<SmsResult> {
-    const msg = `Hi ${details.customerName}, your booking ${details.id} for "${details.tourName}" on ${details.date} is confirmed! Total: ${details.amount}. — Ace Tours Vanuatu`;
+    const t = emailTerms[details.locale || 'en'] || emailTerms['en'];
+    const msg = `${t.hi} ${details.customerName}, ${t.yourBooking} ${details.id} ${t.for} "${details.tourName}" ${t.on} ${details.date} ${t.smsConfirmed} ${details.amount}. — Ace Tours Vanuatu`;
     return this.send(phone, msg);
   }
 
   async sendPaymentSuccess(phone: string, details: {
     bookingId: string;
     amount: string;
+    locale?: string;
   }): Promise<SmsResult> {
-    const msg = `Payment of ${details.amount} received for booking ${details.bookingId}. Thank you! — Ace Tours Vanuatu`;
+    const t = emailTerms[details.locale || 'en'] || emailTerms['en'];
+    const msg = `${t.smsPaymentReceived} ${details.bookingId}. ${t.thanksChoosing}`;
     return this.send(phone, msg);
   }
 
   async sendPaymentFailure(phone: string, details: {
     bookingId: string;
     reason?: string;
+    locale?: string;
   }): Promise<SmsResult> {
-    const msg = `Payment for booking ${details.bookingId} could not be processed${details.reason ? ': ' + details.reason : ''}. Please try again or contact us. — Ace Tours Vanuatu`;
+    const t = emailTerms[details.locale || 'en'] || emailTerms['en'];
+    const msg = `${t.smsPaymentFailed} ${details.bookingId}${details.reason ? ': ' + details.reason : ''}. ${t.tryAgainContact} — Ace Tours Vanuatu`;
     return this.send(phone, msg);
   }
 
-  async sendPaymentExpiry(phone: string, bookingId: string): Promise<SmsResult> {
-    const msg = `Your booking ${bookingId} has expired because payment was not received in time. Please start a new booking if needed. — Ace Tours Vanuatu`;
+  async sendPaymentExpiry(phone: string, bookingId: string, locale = 'en'): Promise<SmsResult> {
+    const t = emailTerms[locale || 'en'] || emailTerms['en'];
+    const msg = `${t.hi}, ${t.yourBooking} ${bookingId} ${t.smsBookingExpired} ${t.inventoryReleased} — Ace Tours Vanuatu`;
     return this.send(phone, msg);
   }
 

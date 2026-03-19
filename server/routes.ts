@@ -122,6 +122,7 @@ const createBookingBodySchema = z.object({
   items: z.array(createBookingItemSchema).min(1, "At least one item is required"),
   pickupLocation: z.string().max(500).nullable().optional(),
   idempotencyKey: z.string().optional(),
+  locale: z.string().optional().default("en"),
 }).refine(data => {
   const totalPax = data.items.reduce((sum, item) => sum + (item.adultPax || 0) + (item.childPax || 0), 0);
   return totalPax >= 1;
@@ -2296,9 +2297,12 @@ ${allPages.map(p => `  <url>
   });
 
   // CMS/Content Blocks API
-  app.get("/api/content-blocks", async (_req, res) => {
+  app.get("/api/content-blocks", async (req, res) => {
     try {
-      const allContent = await storage.getAllCmsContent();
+      const locale = req.query.locale as string | undefined;
+      const allContent = locale && locale !== 'en'
+        ? await storage.getAllCmsContentByLocale(locale)
+        : await storage.getAllCmsContent();
       const result: Record<string, any[]> = {};
 
       allContent.forEach(item => {
@@ -2341,6 +2345,38 @@ ${allPages.map(p => `  <url>
       res.json(content);
     } catch (error) {
       res.status(400).json({ error: "Failed to update content" });
+    }
+  });
+
+  // Auto-translate a CMS content item to all supported languages
+  app.post("/api/admin/cms-content/auto-translate", requireAdmin, async (req, res) => {
+    try {
+      const { id } = req.body;
+      if (!id) return res.status(400).json({ error: "Content ID is required" });
+
+      const source = await storage.getCmsContentItem(id);
+      if (!source) return res.status(404).json({ error: "Content not found" });
+      if (!source.value?.trim()) return res.status(400).json({ error: "Content value is empty — nothing to translate" });
+
+      const { translateToAll } = await import("./lib/translate.js");
+      const translations = await translateToAll(source.value);
+
+      const results: any[] = [];
+      for (const [locale, translatedValue] of Object.entries(translations)) {
+        const row = await storage.upsertCmsContentByLocale(
+          source.blockSlug,
+          source.contentKey,
+          locale,
+          translatedValue,
+          source.contentType || 'text',
+        );
+        results.push(row);
+      }
+
+      res.json({ translated: results, sourceId: id, locales: Object.keys(translations) });
+    } catch (error: any) {
+      console.error("[ROUTE] POST /api/admin/cms-content/auto-translate failed:", error?.message);
+      res.status(500).json({ error: "Auto-translation failed" });
     }
   });
 

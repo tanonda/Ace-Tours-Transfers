@@ -155,6 +155,7 @@ export const bookings = pgTable("bookings", {
   customerEmail: text("customer_email").notNull().default(""),
   customerPhone: text("customer_phone"),
   tourName: text("tour_name").notNull(),
+  locale: text("locale").notNull().default("en"), // Tracks the language used during booking
   pickupLocation: text("pickup_location"), // Phase 4 readiness: stores customer pickup details
   confirmedAt: timestamp("confirmed_at"),  // Phase 4 readiness: tracked for production reporting
   updatedAt: timestamp("updated_at").notNull().defaultNow(),

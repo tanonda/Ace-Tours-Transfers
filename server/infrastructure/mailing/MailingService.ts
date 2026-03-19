@@ -102,7 +102,7 @@ export class MailingService {
         ? `${Math.round(bookingDetails.totalAmountCents).toLocaleString()} VT`
         : bookingDetails.amount || '',
       paymentMethod: bookingDetails.paymentMethod,
-    });
+    }, bookingDetails.locale || 'en');
     await this.sendEmail({ to, subject, html });
   }
 
@@ -118,7 +118,7 @@ export class MailingService {
       amount: paymentDetails.amount || '',
       transactionId: paymentDetails.transactionId,
       method: paymentDetails.method,
-    });
+    }, paymentDetails.locale || 'en');
     await this.sendEmail({ to, subject, html });
   }
 
@@ -133,20 +133,20 @@ export class MailingService {
       bookingRef: ref,
       amount: paymentDetails.amount || '',
       reason: paymentDetails.reason,
-    });
+    }, paymentDetails.locale || 'en');
     await this.sendEmail({ to, subject, html });
   }
 
   /**
    * Send a payment expiry notification using the branded template.
    */
-  async sendPaymentExpiry(to: string, bookingId: string, customerName?: string): Promise<void> {
+  async sendPaymentExpiry(to: string, bookingId: string, customerName?: string, locale = 'en'): Promise<void> {
     const templates = await import('../mailing/email-templates.js');
     const ref = `ACT-${(bookingId || '').replace(/^book_/i, '').replace(/-/g, '').slice(0, 8).toUpperCase()}`;
     const { subject, html } = templates.paymentExpiry({
       customerName: customerName || 'Valued Customer',
       bookingRef: ref,
-    });
+    }, locale);
     await this.sendEmail({ to, subject, html });
   }
 }

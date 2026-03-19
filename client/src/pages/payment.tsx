@@ -85,7 +85,7 @@ export default function Payment() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { total, clearCart, items } = useCart();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { user, isAuthenticated } = useAuth();
   const { currency } = useCurrency();
   const queryClient = useQueryClient();
@@ -228,6 +228,7 @@ export default function Payment() {
           pickupLocation: pickupLocation || undefined,
           notes: notes || undefined,
           idempotencyKey: idempotencyKey.current,
+          locale: i18n.language,
           items: items.map(i => ({
             productId: i.id,
             adultPax: i.adultPax ?? 1,   // FIX: guard against undefined from stale cart entries

@@ -65,6 +65,7 @@ export class GuestNotificationHandler {
                     tourName: (booking as any).tourName || "Booking",
                     date: booking.date || "TBD",
                     amount: this.formatAmount(booking.totalAmountCents ?? event.amount),
+                    locale: booking.locale || 'en',
                 });
             }
 
@@ -85,6 +86,7 @@ export class GuestNotificationHandler {
                 await smsService.sendPaymentSuccess((booking as any).customerPhone, {
                     bookingId: this.formatRef(booking.id),
                     amount: this.formatAmount(booking.totalAmountCents ?? 0),
+                    locale: booking.locale || 'en',
                 });
                 console.log(`[GUEST-NOTIFY] Payment success SMS sent to ${(booking as any).customerPhone}`);
             }
@@ -104,6 +106,7 @@ export class GuestNotificationHandler {
                 await smsService.sendPaymentFailure((booking as any).customerPhone, {
                     bookingId: this.formatRef(booking.id),
                     reason: event.reason,
+                    locale: booking.locale || 'en',
                 });
                 console.log(`[GUEST-NOTIFY] Payment failure SMS sent to ${(booking as any).customerPhone}`);
             }
@@ -120,7 +123,7 @@ export class GuestNotificationHandler {
             // NOTE: Expiry email is already sent by BookingEventHandler.onPaymentExpired.
             // This handler only sends the SMS follow-up.
             if ((booking as any).customerPhone) {
-                await smsService.sendPaymentExpiry((booking as any).customerPhone, this.formatRef(booking.id));
+                await smsService.sendPaymentExpiry((booking as any).customerPhone, this.formatRef(booking.id), booking.locale || 'en');
                 console.log(`[GUEST-NOTIFY] Payment expiry SMS sent to ${(booking as any).customerPhone}`);
             }
         } catch (error) {

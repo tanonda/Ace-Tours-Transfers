@@ -192,9 +192,11 @@ export interface IStorage {
   // CMS Content
   getCmsContent(blockSlug: string, locale?: string): Promise<CmsContent[]>;
   getAllCmsContent(): Promise<CmsContent[]>;
+  getAllCmsContentByLocale(locale: string): Promise<CmsContent[]>;
   getCmsContentItem(id: string): Promise<CmsContent | undefined>;
   createCmsContent(content: InsertCmsContent): Promise<CmsContent>;
   updateCmsContent(id: string, data: Partial<InsertCmsContent>): Promise<CmsContent>;
+  upsertCmsContentByLocale(blockSlug: string, contentKey: string, locale: string, value: string, contentType?: string): Promise<CmsContent>;
   deleteCmsContent(id: string): Promise<void>;
 
   // Availability & Holds
@@ -1241,6 +1243,25 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(cmsContent).orderBy(cmsContent.sortOrder);
   }
 
+  async getAllCmsContentByLocale(locale: string): Promise<CmsContent[]> {
+    // Fetch both the requested locale AND English (fallback).
+    // If a key exists in the target locale, prefer it; otherwise fall back to English.
+    const rows = await db.select().from(cmsContent)
+      .where(sql`${cmsContent.locale} IN (${locale}, 'en')`)
+      .orderBy(cmsContent.sortOrder);
+
+    // De-duplicate: for each (blockSlug, contentKey), prefer the target locale over 'en'
+    const seen = new Map<string, CmsContent>();
+    for (const row of rows) {
+      const key = `${row.blockSlug}::${row.contentKey}`;
+      const existing = seen.get(key);
+      if (!existing || (existing.locale === 'en' && row.locale === locale)) {
+        seen.set(key, row);
+      }
+    }
+    return Array.from(seen.values());
+  }
+
   async getCmsContentItem(id: string): Promise<CmsContent | undefined> {
     const [item] = await db.select().from(cmsContent).where(eq(cmsContent.id, id));
     return item || undefined;
@@ -1258,6 +1279,33 @@ export class DatabaseStorage implements IStorage {
       .where(eq(cmsContent.id, id))
       .returning();
     return updated;
+  }
+
+  async upsertCmsContentByLocale(
+    blockSlug: string, contentKey: string, locale: string, value: string, contentType = 'text'
+  ): Promise<CmsContent> {
+    // Check if a row already exists for this (blockSlug, contentKey, locale)
+    const [existing] = await db.select().from(cmsContent).where(
+      and(
+        eq(cmsContent.blockSlug, blockSlug),
+        eq(cmsContent.contentKey, contentKey),
+        eq(cmsContent.locale, locale)
+      )
+    );
+
+    if (existing) {
+      const [updated] = await db
+        .update(cmsContent)
+        .set({ value, updatedAt: new Date() })
+        .where(eq(cmsContent.id, existing.id))
+        .returning();
+      return updated;
+    }
+
+    const [created] = await db.insert(cmsContent).values({
+      blockSlug, contentKey, contentType, value, locale,
+    }).returning();
+    return created;
   }
 
   async deleteCmsContent(id: string): Promise<void> {
