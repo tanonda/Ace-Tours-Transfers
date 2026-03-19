@@ -2300,9 +2300,7 @@ ${allPages.map(p => `  <url>
   app.get("/api/content-blocks", async (req, res) => {
     try {
       const locale = req.query.locale as string | undefined;
-      const allContent = locale && locale !== 'en'
-        ? await storage.getAllCmsContentByLocale(locale)
-        : await storage.getAllCmsContent();
+      const allContent = await storage.getAllCmsContentByLocale(locale || 'en');
       const result: Record<string, any[]> = {};
 
       allContent.forEach(item => {
