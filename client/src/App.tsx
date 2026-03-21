@@ -15,6 +15,10 @@ import { CMSProvider } from "@/lib/cms-context";
 import { WhatsAppWidget } from "@/components/whatsapp-widget";
 import { NProgressRouter } from "@/components/nprogress-router";
 
+// Coming soon gate — set VITE_COMING_SOON=true in Render env vars to enable
+const COMING_SOON = import.meta.env.VITE_COMING_SOON === "true";
+const ComingSoon = COMING_SOON ? lazy(() => import("@/pages/coming-soon")) : null;
+
 // Lazy-loaded pages
 const Home = lazy(() => import("@/pages/home"));
 const Tours = lazy(() => import("@/pages/tours"));
@@ -131,6 +135,16 @@ const Loader = () => (
 );
 
 function Router() {
+  if (COMING_SOON && ComingSoon) {
+    return (
+      <Suspense fallback={<Loader />}>
+        <Switch>
+          <Route path="/admin" component={AdminDashboard} />
+          <Route component={ComingSoon} />
+        </Switch>
+      </Suspense>
+    );
+  }
   return (
     <Suspense fallback={<Loader />}>
       <Switch>
