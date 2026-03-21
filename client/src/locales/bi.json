@@ -25,7 +25,10 @@
     "emailUs": "Sendem Email",
     "manageBookings": "Managem ol bookings we i stap",
     "cancelReservation": "Stopem wan reservation",
-    "startNewBooking": "Startem wan new booking"
+    "startNewBooking": "Startem wan new booking",
+    "vehicles": "Rentim Trak",
+    "viewAllVehicles": "Lukim olgeta trak",
+    "seeAllVehicles": "Lukim evri rental options blong mifala"
   },
   "hero": {
     "title": "Taem blong nxt adventure blong yu",
@@ -182,7 +185,19 @@
     "nameOnCard": "Name long Card",
     "pay": "Pay Nao",
     "processing": "Processing...",
-    "secure": "Payment blong yu i secure mo encrypted"
+    "secure": "Payment blong yu i secure mo encrypted",
+    "selectMethod": "Choosem wanem metod blong peiem",
+    "success": "Payment i Gud!",
+    "successDesc": "Booking blong yu i konfemem finis. Tankyu tumas from choosem Ace Tours & Transfers!",
+    "confirmationEmail": "Wan confirmation email i bin sendem long email address blong yu.",
+    "cancelled": "Payment i Stopem",
+    "cancelledDesc": "Payment blong yu i no finis. I no gat saja long account blong yu.",
+    "tryAgain": "Yu save traem agen o choosem narafala metod blong peiem.",
+    "retryPayment": "Traem Payment Agen",
+    "payByCard": "Peiem wetem Card",
+    "payByBank": "Peiem wetem Local Bank",
+    "pending": "Payment i Risivem",
+    "pendingDesc": "Mifala i konfemem payment blong yu. Hemia i tekem smol taem nomo."
   },
   "booking": {
     "id": "ID",
@@ -291,7 +306,12 @@
     "noRecentActivity": "No gat recent activity",
     "noBookingsYet": "No gat bookings yet. Mekem first booking blong yu blong lukim ia.",
     "route": "Route",
-    "action": "Action"
+    "action": "Action",
+    "rateYourExperience": "Raetem Experience blong Yu",
+    "howWasYourTour": "Tour blong yu i olsem wanem?",
+    "comment": "Comment",
+    "reviewPlaceholder": "Talem mifala moa about trip blong yu...",
+    "leaveReview": "Livimap Review"
   },
   "common": {
     "search": "Search",
@@ -426,7 +446,8 @@
     "child": "Child",
     "recentReviews": "Recent Reviews",
     "daysAgo": "2 days bifo",
-    "sampleReview": "Experience i amazing tumas! Ol guides oli friendly mo ol sights oli gud tumas."
+    "sampleReview": "Experience i amazing tumas! Ol guides oli friendly mo ol sights oli gud tumas.",
+    "noReviews": "I no gat reviews yet. Yu namba wan blong livimap wan!"
   },
   "reservations": {
     "title": "Reservation Portal",
@@ -497,8 +518,16 @@
     "analyticsTitle": "Analitiks blong Dasbod",
     "analyticsDesc": "Lukluk long ol buk, mani mo sevis.",
     "revenueOverTime": "Mani i Kam In",
-    "bookingDistribution:": "Bak Buking",
+    "bookingDistribution": "Ol Buking Distribiusen",
     "topPerformingTours": "Nambawan Tura"
+  },
+  "trust": {
+    "licensed": "Laesens Fulap",
+    "licensedDesc": "JTB i apruvem mifala olsem official operator",
+    "rated": "Ol Man oli Laekem Mifala",
+    "ratedDesc": "5-star service i garantim",
+    "secure": "Sekim Buking",
+    "secureDesc": "Konfimeisen mo sapot i hapen kwik"
   },
   "vehicles": {
     "title": "Ol Trak blong Mifala",
