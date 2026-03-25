@@ -180,6 +180,6 @@
   },
   "overrides": {
     "esbuild": "^0.25.0",
-    "fast-xml-parser": "5.3.8"
+    "fast-xml-parser": "5.5.8"
   }
 }
