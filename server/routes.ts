@@ -39,6 +39,7 @@ import { PaymentReconciliationService } from "./application/payment-reconciliati
 import { PriceCartService } from "./application/pricing/PriceCartService.js";
 import { cloudinaryService } from "./infrastructure/storage/cloudinary-service.js";
 import { metricsService } from "./infrastructure/metrics/metrics.service.js";
+import { withProductTranslations, autoTranslateProduct, getProductTranslations, upsertProductTranslation } from "./lib/product-translation.service.js";
 
 import crypto from "crypto";
 import multer from "multer";
@@ -1021,8 +1022,8 @@ ${allPages.map(p => `  <url>
         // Delete all products EXCEPT those in keepProductIds
         const toDelete = await db.execute(
           keepProductIds.length > 0
-            ? sql`SELECT id FROM tours WHERE id NOT IN (${sql.raw(keepProductIds.map(id => `'${id.replace(/'/g, "''")}'`).join(","))})`
-            : sql`SELECT id FROM tours`
+            ? sql`SELECT id FROM products WHERE id NOT IN (${sql.raw(keepProductIds.map(id => `'${id.replace(/'/g, "''")}'`).join(","))})`
+            : sql`SELECT id FROM products`
         );
         for (const row of (toDelete as any).rows ?? []) {
           const pid = row.id;
@@ -1037,7 +1038,7 @@ ${allPages.map(p => `  <url>
           await db.execute(sql`DELETE FROM booking_items WHERE booking_id IN (SELECT id FROM bookings WHERE tour_id = ${pid})`);
           await db.execute(sql`DELETE FROM payments WHERE booking_id IN (SELECT id FROM bookings WHERE tour_id = ${pid})`);
           await db.execute(sql`DELETE FROM bookings WHERE tour_id = ${pid}`);
-          await db.execute(sql`DELETE FROM tours WHERE id = ${pid}`);
+          await db.execute(sql`DELETE FROM products WHERE id = ${pid}`);
         }
         deleted.products = ((toDelete as any).rows ?? []).length;
         // Also wipe tour_instances for any surviving products

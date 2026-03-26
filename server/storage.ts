@@ -706,7 +706,7 @@ export class DatabaseStorage implements IStorage {
         SUM(COALESCE(bi.subtotal_cents, b.total_amount_cents, 0)) AS revenue_cents
       FROM bookings b
       LEFT JOIN booking_items bi ON bi.booking_id = b.id
-      LEFT JOIN tours t ON t.id = b.tour_id
+      LEFT JOIN products t ON t.id = b.tour_id
       WHERE
         b.status IN ('confirmed', 'completed')
         AND b.archived_at IS NULL

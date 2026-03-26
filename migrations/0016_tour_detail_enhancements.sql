@@ -2,10 +2,12 @@
 -- Adds: itinerary stop points, meeting/pickup info, cancellation policy,
 --       additional info, traveler photos, opening hours, and review photos
 
-ALTER TABLE tours
+ALTER TABLE products
   -- Itinerary stop points: JSON array of { id, name, duration, description (HTML), admissionIncluded }
   ADD COLUMN IF NOT EXISTS itinerary_stops       jsonb DEFAULT '[]'::jsonb,
   ADD COLUMN IF NOT EXISTS itinerary_intro        text,
+  -- Contact for price flag
+  ADD COLUMN IF NOT EXISTS contact_for_price      boolean NOT NULL DEFAULT false,
   -- Meeting / pickup information
   ADD COLUMN IF NOT EXISTS meeting_point          text,
   ADD COLUMN IF NOT EXISTS meeting_point_map_url  text,
