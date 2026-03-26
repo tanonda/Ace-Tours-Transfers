@@ -42,6 +42,7 @@ const IGNORABLE_CODES = new Set([
   "42710", // duplicate_object (constraint/index)
   "42704", // undefined_object (dropping something that doesn't exist)
   "23505", // unique_violation (on constraint creation)
+  "42P01", // ← ADD THIS: undefined_table (relation does not exist)
 ]);
 
 function splitStatements(sql: string): string[] {

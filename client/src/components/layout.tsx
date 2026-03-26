@@ -540,7 +540,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                           title={transfer.title}
                           href={`/transfers/${transfer.id}`}
                         >
-                          {transfer.description}
+                          {Array.isArray(transfer.description) ? transfer.description[0] : transfer.description}
                         </ListItem>
                       ))}
                       <ListItem href="/transfers" title={t("nav.viewAllTransfers")} className="bg-muted/50">
