@@ -2,7 +2,7 @@ import "dotenv/config";
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
-import { pool as neonPool, db } from "./db.js";
+import { pool as neonPool, db, initializeDatabase } from "./db.js";
 import { registerRoutes } from "./routes.js";
 import { serveStatic } from "./static.js";
 import { createServer } from "http";
@@ -112,18 +112,10 @@ app.use(helmet({
     } as any,
   },
 }));
-// Session setup
-const PGStore = connectPgSimple(session);
-const sessionStore = new PGStore({
-  pool: neonPool as any,
-  tableName: "session",
-  createTableIfMissing: true,
-  pruneSessionInterval: false,
-});
+// Session references will be initialized in the async block
+let sessionStore: any;
+let sessionMiddleware: any;
 
-sessionStore.on('error', (err: Error) => {
-  console.error(`[SESSION ERROR] ${err.message}`);
-});
 
 app.use(compression()); // L5 Fix: Add gzip compression
 app.use(cors({
@@ -221,21 +213,15 @@ app.use((req, res, next) => {
 app.get('/api/health', async (_req, res) => {
   try {
     // 1. Check DB
+    if (!neonPool) {
+       return res.status(503).json({ status: 'starting', message: 'Database pool not initialized' });
+    }
     await neonPool.query('SELECT 1');
-
-    // 2. Check Session
-    const sessionCount = await new Promise((resolve, reject) => {
-      (sessionStore as any).length((err: any, len: any) => {
-        if (err) reject(err);
-        else resolve(len);
-      });
-    });
 
     res.json({
       status: 'ok',
       database: 'connected',
-      sessionStore: 'connected',
-      sessions: sessionCount,
+      sessionStore: sessionStore ? 'initialized' : 'pending',
       env: {
         nodeEnv: process.env.NODE_ENV,
         hasSentry: !!process.env.SENTRY_DSN,
@@ -294,19 +280,8 @@ app.use(express.urlencoded({ extended: false }));
 const pgPool = neonPool;
 // PGStore initialized below after middleware setup for clarity
 
-// Session setup with conditional bypass for Vite dev assets
-const sessionMiddleware = session({
-  store: sessionStore,
-  secret: config.session.secret!, // C2 Fix: Use the validated secret, non-null assertion as validateConfig() ensures it exists or exits
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: config.env === "production",
-    httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    sameSite: config.env === "production" ? "strict" : "lax", // CRIT-4 + MED-1 FIX: strict prevents CSRF and eliminates need for origin pinning (same-origin deployment)
-  },
-});
+// Session setup is now handled inside initializeDatabase block
+
 
 app.use((req, res, next) => {
   // log(`[DEBUG] Session middleware checking path: ${req.path}`);
@@ -325,7 +300,7 @@ app.use((req, res, next) => {
       req.path.match(/\.(png|jpe?g|gif|svg|woff2?|ico)$/i)
     ));
 
-  if (isViteDevAsset) {
+  if (isViteDevAsset || !sessionMiddleware) {
     return next();
   }
 
@@ -378,6 +353,40 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // 0. Initialize Database
+  try {
+    await initializeDatabase();
+  } catch (dbError) {
+    console.error('[FATAL] Failed to initialize database:', dbError);
+    process.exit(1);
+  }
+
+  // 0.1 Initialize Session Store
+  const PGStore = connectPgSimple(session);
+  sessionStore = new PGStore({
+    pool: neonPool as any,
+    tableName: "session",
+    createTableIfMissing: true,
+    pruneSessionInterval: false,
+  });
+
+  sessionStore.on('error', (err: Error) => {
+    console.error(`[SESSION ERROR] ${err.message}`);
+  });
+
+  sessionMiddleware = session({
+    store: sessionStore,
+    secret: config.session.secret!,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: config.env === "production",
+      httpOnly: true,
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      sameSite: config.env === "production" ? "strict" : "lax",
+    },
+  });
+
   // 1. Database Integrity Protection
   try {
     const { BackupIntegrityGuard } = await import('./infrastructure/recovery/integrity-guard.js');

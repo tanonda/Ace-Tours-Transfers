@@ -1,6 +1,6 @@
 import pkg from 'pg';
 const { Pool } = pkg;
-import { drizzle } from 'drizzle-orm/node-postgres';
+import { drizzle, NodePostgresDatabase } from 'drizzle-orm/node-postgres';
 import dns from "node:dns/promises";
 import * as schema from "../shared/schema.js";
 
@@ -9,6 +9,10 @@ if (!process.env.DATABASE_URL) {
     "DATABASE_URL must be set. Did you forget to provision a database?",
   );
 }
+
+// Global instances for pool and db
+export let pool: InstanceType<typeof Pool>;
+export let db: NodePostgresDatabase<typeof schema>;
 
 /**
  * Resilient Pool Factory
@@ -46,7 +50,7 @@ async function createResilientPool() {
   const password = decodeURIComponent(url.password);
   const database = decodeURIComponent(url.pathname.substring(1));
 
-  const pool = new Pool({
+  const p = new Pool({
     host: targetHost,
     port: port,
     user: user,
@@ -62,23 +66,32 @@ async function createResilientPool() {
     }
   });
 
-  pool.on('error', (err) => {
+  p.on('error', (err) => {
     console.error('[DATABASE POOL ERROR]', err.message);
   });
 
-  return pool;
+  return p;
 }
 
-// Initialize the pool asynchronously
-export const pool = await createResilientPool();
-console.log(`[DATABASE] Pool initialized (Resilient IP + SNI Mode)`);
+/**
+ * Explicit Database Initialization
+ * This avoids top-level await which isn't supported in CommonJS builds
+ */
+export async function initializeDatabase() {
+  if (pool) return { pool, db };
 
-export const db = drizzle(pool, { schema });
+  pool = await createResilientPool();
+  console.log(`[DATABASE] Pool initialized (Resilient IP + SNI Mode)`);
 
-// Keepalive: Neon serverless suspends after ~5 min of inactivity
-const KEEPALIVE_INTERVAL_MS = 4 * 60 * 1000; // 4 minutes
-setInterval(() => {
-  pool.query('SELECT 1').catch(() => {
-    // Silently swallow
-  });
-}, KEEPALIVE_INTERVAL_MS).unref(); 
+  db = drizzle(pool, { schema });
+
+  // Keepalive: Neon serverless suspends after ~5 min of inactivity
+  const KEEPALIVE_INTERVAL_MS = 4 * 60 * 1000; // 4 minutes
+  setInterval(() => {
+    pool.query('SELECT 1').catch(() => {
+      // Silently swallow
+    });
+  }, KEEPALIVE_INTERVAL_MS).unref();
+
+  return { pool, db };
+}
