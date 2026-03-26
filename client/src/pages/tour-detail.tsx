@@ -324,7 +324,7 @@ function StarRating({ value, max = 5, size = "sm" }: { value: number; max?: numb
 export default function TourDetail() {
   const cms = useCmsText("faq");
   const { id } = useParams<{ id: string }>();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { addToCart } = useCart();
   const { updateDraft } = useBookingDraft();
   const { currency } = useCurrency();
@@ -341,7 +341,7 @@ export default function TourDetail() {
   const [showAllReviews, setShowAllReviews] = useState(false);
 
   const { data: tour, isLoading, error } = useQuery({
-    queryKey: ["tour", id],
+    queryKey: ["tour", id, i18n.language],
     queryFn: () => fetchTour(id!),
     enabled: !!id,
   });

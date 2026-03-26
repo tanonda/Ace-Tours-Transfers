@@ -2,53 +2,55 @@
 import { Layout } from "@/components/layout";
 import { SEO } from "@/components/seo";
 import { TourCard } from "@/components/tour-card";
-import { useQuery } from "@tanstack/react-query";
-import { fetchProducts } from "@/lib/api";
 import { useTranslation } from "react-i18next";
+import { useLocalizedTransfers } from "@/hooks/useLocalizedProducts";
 
 export default function Transfers() {
   const { t } = useTranslation();
-  const { data: allTours = [], isLoading } = useQuery({
-    queryKey: ["products"],
-    queryFn: fetchProducts,
-  });
+  const { data: allTransfers = [], isLoading } = useLocalizedTransfers();
 
   // Deduplicate by normalized title and filter out test data
-  const uniqueTours = allTours.reduce<typeof allTours>((acc: any[], current: any) => {
-    // Skip test data
+  const transfers = allTransfers.reduce<typeof allTransfers>((acc: any[], current: any) => {
+    if (!current.isActive) return acc;
+
     const titleLower = current.title.toLowerCase();
-    if (titleLower.includes("verification") ||
+    if (
+      titleLower.includes("verification") ||
       titleLower.includes("concurrent") ||
       titleLower.includes("test_tour") ||
-      titleLower.includes("phase4")) {
+      titleLower.includes("phase4")
+    ) {
       return acc;
     }
 
     const normalize = (t: string) => t.replace(/\s+Package$/i, "").trim();
     const normalizedTitle = normalize(current.title);
-
-    const existingIndex = acc.findIndex(item => normalize(item.title) === normalizedTitle);
+    const existingIndex = acc.findIndex(
+      (item) => normalize(item.title) === normalizedTitle,
+    );
 
     if (existingIndex === -1) {
       acc.push(current);
     } else if (current.isActive !== false && acc[existingIndex].isActive === false) {
-      // Prioritize active product over inactive product with same title
       acc[existingIndex] = current;
     }
     return acc;
   }, []);
 
-  const transfers = uniqueTours.filter((t: any) => t.category === "transfer" && t.isActive !== false);
-
   return (
     <Layout>
       <SEO
         title={t("transfers.seoTitle", "Airport Transfers & Transport Services in Vanuatu")}
-        description={t("transfers.seoDesc", "Reliable and comfortable airport transfers, event transport, and VIP hospitality services in Vanuatu.")}
+        description={t(
+          "transfers.seoDesc",
+          "Reliable and comfortable airport transfers, event transport, and VIP hospitality services in Vanuatu.",
+        )}
       />
       <div className="bg-muted/30 pt-40 pb-20">
         <div className="container mx-auto px-4">
-          <h1 className="text-5xl font-serif font-bold text-center mb-6">{t("home.transfersTitle")}</h1>
+          <h1 className="text-5xl font-serif font-bold text-center mb-6">
+            {t("home.transfersTitle")}
+          </h1>
           <p className="text-center text-muted-foreground max-w-2xl mx-auto mb-16 text-lg">
             {t("home.transfersDesc")}
           </p>

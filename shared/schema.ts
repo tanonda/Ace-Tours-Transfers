@@ -80,6 +80,34 @@ export const products = pgTable("products", {
   travelerPhotos: jsonb("traveler_photos").$type<string[]>(),
 });
 
+
+// ── Product Translations ──────────────────────────────────────────────────────
+// Stores translated versions of product text fields per locale.
+// English content lives in the products table (source of truth).
+// All other locales (fr, es, zh, bi) live here.
+export const productTranslations = pgTable("product_translations", {
+  id:                 varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  productId:          varchar("product_id").notNull().references(() => products.id, { onDelete: "cascade" }),
+  locale:             text("locale").notNull(),
+
+  title:              text("title"),
+  description:        text("description").array(),
+
+  itineraryIntro:     text("itinerary_intro"),
+  pickupInstructions: text("pickup_instructions"),
+  meetingPoint:       text("meeting_point"),
+  operatingHours:     text("operating_hours"),
+  cancellationPolicy: text("cancellation_policy"),
+  includedItems:      jsonb("included_items").$type<string[]>(),
+  excludedItems:      jsonb("excluded_items").$type<string[]>(),
+  additionalInfo:     jsonb("additional_info").$type<string[]>(),
+
+  updatedAt:          timestamp("updated_at").notNull().defaultNow(),
+}, (t) => ({
+  uniqProductLocale: uniqueIndex("uq_product_translations_product_locale")
+    .on(t.productId, t.locale),
+}));
+
 export const tourInstances = pgTable("tour_instances", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   tourId: varchar("tour_id").notNull().references(() => products.id),
@@ -413,10 +441,18 @@ export const usersRelations = relations(users, ({ many }) => ({
 }));
 
 export const toursRelations = relations(products, ({ many }) => ({
+  translations: many(productTranslations),
   bookings: many(bookings),
   resources: many(resources),
   blackoutDates: many(productBlackoutDates),
   pricingVersions: many(pricingVersions),
+}));
+
+export const productTranslationsRelations = relations(productTranslations, ({ one }) => ({
+  product: one(products, {
+    fields: [productTranslations.productId],
+    references: [products.id],
+  }),
 }));
 
 export const resourcesRelations = relations(resources, ({ one, many }) => ({
@@ -996,3 +1032,11 @@ export const insertPromotionSchema = createInsertSchema(promotions).omit({
 });
 export type InsertPromotion = z.infer<typeof insertPromotionSchema>;
 export type Promotion = typeof promotions.$inferSelect;
+
+// ── Product Translation schema + types ───────────────────────────────────────
+export const insertProductTranslationSchema = createInsertSchema(productTranslations).omit({
+  id: true,
+  updatedAt: true,
+});
+export type InsertProductTranslation = z.infer<typeof insertProductTranslationSchema>;
+export type ProductTranslation = typeof productTranslations.$inferSelect;

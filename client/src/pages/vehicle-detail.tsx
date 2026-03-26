@@ -346,7 +346,7 @@ export default function VehicleDetail() {
     : 0;
 
   const { data: vehicle, isLoading, error } = useQuery({
-    queryKey: ["vehicle", id],
+    queryKey: ["vehicle", id, i18n.language],
     queryFn: () => fetchVehicle(id!),
     enabled: !!id,
   });

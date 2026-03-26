@@ -14,6 +14,7 @@ import { VerificationDialog } from "@/components/ui/verification-dialog";
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchProducts } from "@/lib/api";
+import { useTranslation } from "react-i18next";
 import { Loader2 } from "lucide-react";
 
 interface Booking {
@@ -39,8 +40,9 @@ export function EditBookingDialog({ booking, open, onOpenChange, onSave }: EditB
 
   // Fix #5: Fetch the real services list from the API instead of using a
   // hardcoded list of tour names that goes stale whenever the lineup changes.
+  const { i18n } = useTranslation();
   const { data: allTours = [], isLoading: isLoadingTours } = useQuery({
-    queryKey: ["products"],
+    queryKey: ["products", i18n.language],
     queryFn: fetchProducts,
     enabled: open, // Only fetch when dialog is open
   });

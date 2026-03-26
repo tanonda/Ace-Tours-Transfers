@@ -3,14 +3,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Star, Trash2 } from "lucide-react";
 import { fetchProducts } from "@/lib/api";
+import { useTranslation } from "react-i18next";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 
 export default function CustomerSaved() {
   const { toast } = useToast();
+  const { i18n } = useTranslation();
   const { data: products = [] } = useQuery({
-    queryKey: ["allProducts"],
+    queryKey: ["allProducts", i18n.language],
     queryFn: fetchProducts,
   });
 

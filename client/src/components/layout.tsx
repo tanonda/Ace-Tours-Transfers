@@ -62,13 +62,14 @@ const ListItem = forwardRef<
 ListItem.displayName = "ListItem"
 
 export function Layout({ children }: { children: React.ReactNode }) {
+  const { i18n } = useTranslation();
   const { data: allTours = [] } = useQuery({
-    queryKey: ["products"],
+    queryKey: ["products", i18n.language],
     queryFn: fetchProducts,
   });
 
   const { data: allVehicles = [] } = useQuery({
-    queryKey: ["vehicles"],
+    queryKey: ["vehicles", i18n.language],
     queryFn: fetchVehicles,
   });
 

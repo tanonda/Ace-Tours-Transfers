@@ -691,10 +691,12 @@ ${allPages.map(p => `  <url>
   });
 
   // Products API (covers tours, transfers, and vehicle hire)
-  app.get("/api/products", async (_req, res) => {
+  app.get("/api/products", async (req, res) => {
     try {
+      const locale = (req.query.locale as string) || "en";
       const productsList = await storage.getProducts();
-      res.json(productsList);
+      const translated = await withProductTranslations(productsList, locale);
+      res.json(translated);
     } catch (error: any) {
       console.error("[ROUTE] GET /api/products failed:", error?.message, error?.code);
       res.status(500).json({ error: "Failed to fetch products" });
@@ -703,10 +705,12 @@ ${allPages.map(p => `  <url>
 
   app.get("/api/products/:id", async (req, res) => {
     try {
+      const locale = (req.query.locale as string) || "en";
       const product = await storage.getProduct(req.params.id);
       if (!product) return res.status(404).json({ error: "Product not found" });
+      const [translated] = await withProductTranslations([product], locale);
       // Include product-specific addons — failure must not break the whole endpoint
-      res.json({ ...product, addons: [] });
+      res.json({ ...translated, addons: [] });
     } catch (error: any) {
       console.error("[ROUTE] GET /api/products/:id failed:", error?.message, error?.code);
       res.status(500).json({ error: "Failed to fetch product" });
@@ -1102,7 +1106,7 @@ ${allPages.map(p => `  <url>
   });
 
   // Vehicles API
-  app.get("/api/vehicles", async (_req, res) => {
+  app.get("/api/vehicles", async (req, res) => {
     try {
       const allTours = await storage.getProducts();
       res.json(allTours.filter(t => t.category === "vehicle"));
@@ -2749,6 +2753,46 @@ ${allPages.map(p => `  <url>
   // Safety 404 for /api routes to prevent hitting Vite middleware
   app.all("/api/*any", (req, res) => {
     res.status(404).json({ error: `Route ${req.method} ${req.originalUrl} not found` });
+  });
+
+  // ── Product Translation Admin Endpoints ─────────────────────────────────────
+
+  // POST: trigger Google-Translate auto-fill for fr, es, zh
+  app.post("/api/admin/products/:id/auto-translate", requireAdmin, async (req, res) => {
+    try {
+      const product = await storage.getProduct(req.params.id);
+      if (!product) return res.status(404).json({ error: "Product not found" });
+      await autoTranslateProduct(product);
+      res.json({ ok: true, message: "Auto-translation complete for fr, es, zh. Bislama must be entered manually." });
+    } catch (error: any) {
+      console.error("[ROUTE] POST /api/admin/products/:id/auto-translate failed:", error?.message);
+      res.status(500).json({ error: "Auto-translation failed" });
+    }
+  });
+
+  // GET: fetch all saved translation rows for a product
+  app.get("/api/admin/products/:id/translations", requireAdmin, async (req, res) => {
+    try {
+      const rows = await getProductTranslations(req.params.id);
+      res.json(rows);
+    } catch (error: any) {
+      console.error("[ROUTE] GET /api/admin/products/:id/translations failed:", error?.message);
+      res.status(500).json({ error: "Failed to fetch translations" });
+    }
+  });
+
+  // PUT: save or overwrite a single locale translation
+  app.put("/api/admin/products/:id/translations/:locale", requireAdmin, async (req, res) => {
+    try {
+      const { id, locale } = req.params;
+      const product = await storage.getProduct(id);
+      if (!product) return res.status(404).json({ error: "Product not found" });
+      await upsertProductTranslation({ productId: id, locale, fields: req.body });
+      res.json({ ok: true });
+    } catch (error: any) {
+      console.error("[ROUTE] PUT /api/admin/products/:id/translations/:locale failed:", error?.message);
+      res.status(500).json({ error: "Failed to save translation" });
+    }
   });
 
   return httpServer;

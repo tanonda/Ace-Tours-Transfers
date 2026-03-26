@@ -1,4 +1,5 @@
 import { apiRequest } from "./queryClient";
+import i18n from "./i18n";
 import type {
   Product,
   Booking,
@@ -73,12 +74,14 @@ export async function updateUserStatus(id: string, isActive: boolean): Promise<U
 
 // Products (covers tours, transfers, and vehicle hire)
 export async function fetchProducts(): Promise<Product[]> {
-  const res = await apiRequest("GET", "/api/products");
+  const locale = i18n.language || "en";
+  const res = await apiRequest("GET", `/api/products?locale=${locale}`);
   return res.json();
 }
 
 export async function fetchProduct(id: string): Promise<Product> {
-  const res = await apiRequest("GET", `/api/products/${id}`);
+  const locale = i18n.language || "en";
+  const res = await apiRequest("GET", `/api/products/${id}?locale=${locale}`);
   return res.json();
 }
 
@@ -520,5 +523,24 @@ export async function deleteAvailability(id: string): Promise<void> {
 
 export async function fetchTourInstances(tourId: string, date: string): Promise<any[]> {
   const res = await apiRequest("GET", `/api/availability?tourId=${tourId}&date=${date}`);
+  return res.json();
+}
+
+// Product Translation Admin Helpers
+export async function fetchProductTranslations(productId: string): Promise<any[]> {
+  const res = await apiRequest("GET", `/api/admin/products/${productId}/translations`);
+  return res.json();
+}
+
+export async function saveProductTranslation(
+  productId: string,
+  locale: string,
+  fields: Record<string, any>,
+): Promise<void> {
+  await apiRequest("PUT", `/api/admin/products/${productId}/translations/${locale}`, fields);
+}
+
+export async function autoTranslateProduct(productId: string): Promise<{ ok: boolean; message: string }> {
+  const res = await apiRequest("POST", `/api/admin/products/${productId}/auto-translate`);
   return res.json();
 }

@@ -53,6 +53,8 @@ import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
 import TextAlign from '@tiptap/extension-text-align';
 import { useState, useEffect, useRef } from 'react';
+import { ProductTranslationEditor } from '@/components/admin/ProductTranslationEditor';
+import { ChevronDown, Languages } from 'lucide-react';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -330,6 +332,7 @@ interface ProductDialogProps {
 export function ProductDialog({ tour, open, onOpenChange, onSave }: ProductDialogProps) {
   const { t } = useTranslation();
   const [isUploading, setIsUploading] = useState(false);
+  const [showTranslations, setShowTranslations] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [adminCurrency, setAdminCurrency] = useState<CurrencyCode>('VUV');
 
@@ -1635,6 +1638,35 @@ export function ProductDialog({ tour, open, onOpenChange, onSave }: ProductDialo
                     </div>
                   )}
                 </div>
+
+
+              {/* ── TRANSLATIONS ──────────────────────────────────────────── */}
+              {tour?.id && (
+                <div className="border border-border rounded-lg overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setShowTranslations((v) => !v)}
+                    className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Languages className="h-4 w-4 text-muted-foreground" />
+                      <span>Translations</span>
+                      <span className="text-xs font-normal text-muted-foreground">(fr, es, zh, bi)</span>
+                    </div>
+                    <ChevronDown
+                      className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${showTranslations ? "rotate-180" : ""}`}
+                    />
+                  </button>
+                  {showTranslations && (
+                    <div className="border-t border-border p-5">
+                      <ProductTranslationEditor
+                        productId={tour.id}
+                        productTitle={tour.title}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
 
               </div>
             </div>

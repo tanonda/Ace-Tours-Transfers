@@ -16,13 +16,13 @@ import { useCMS } from "@/lib/cms-context";
 import type { Product } from "@shared/schema";
 
 export default function Home() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const cms = useCmsText("home-page");
   const aboutImg = cms.text("about_image") || "https://res.cloudinary.com/dwro1dh5q/image/upload/v1764939968/ace-tours-stock/1764939966139_vanuatu_rarru_waterf_a12f619f.jpg.jpg";
   const { isBlockEnabled } = useCMS();
   const showVehicleHire = isBlockEnabled('vehicle-hire');
   const { data: allTours = [] } = useQuery({
-    queryKey: ["products"],
+    queryKey: ["products", i18n.language],
     queryFn: fetchProducts,
   });
 
