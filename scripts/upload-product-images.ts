@@ -1,6 +1,6 @@
 import "dotenv/config";
 import { v2 as cloudinary } from "cloudinary";
-import { db } from "../server/db.js";
+import { db, initializeDatabase } from "../server/db.js";
 import { products as toursTable } from "../shared/schema.js";
 import { eq, like } from "drizzle-orm";
 import * as fs from "fs";
@@ -18,8 +18,8 @@ import * as path from "path";
 // Image to product title mapping
 const imageMapping: { pattern: string; title: string }[] = [
   // Tours
-  { pattern: "tour_efate_scenic", title: "Efate Scenic Tour" },
-  { pattern: "tour_roots_routes", title: "Roots & Routes Tour" },
+  { pattern: "tour_efate_scenic", title: "Efate Scenic Product" },
+  { pattern: "tour_roots_routes", title: "Roots & Routes Product" },
   { pattern: "tour_blue_lagoon_turtle", title: "Blue Lagoon & Turtle Bay Combo" },
   { pattern: "tour_pele_island", title: "Pele Island Beach Day" },
   // Transfers
@@ -61,6 +61,9 @@ async function uploadImage(filePath: string, publicId: string): Promise<string> 
 
 async function main() {
   console.log("🚀 Starting Cloudinary product image upload...\n");
+
+  // Ensure DB is ready
+  await initializeDatabase();
 
   // Check Cloudinary configuration
   if (!process.env.CLOUDINARY_URL) {
