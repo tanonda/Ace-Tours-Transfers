@@ -21,6 +21,8 @@ import pkg from "pg";
 const { Pool } = pkg;
 import fs from "fs";
 import path from "path";
+import { resolve4 } from "node:dns/promises";
+import { URL } from "node:url";
 import dns from "node:dns";
 
 if (dns.setDefaultResultOrder) {
@@ -58,13 +60,45 @@ function splitStatements(sql: string): string[] {
  * shared Neon pool) so callers can reuse an existing connection. When run
  * from the CLI it falls back to a new Pool using DATABASE_URL.
  */
-export async function runIdempotentMigrations(externalPool?: InstanceType<typeof Pool>): Promise<void> {
+export async function runIdempotentMigrations(externalPool?: any): Promise<void> {
   const ownsPool = !externalPool;
-  const pool = externalPool ?? new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false },
-    connectionTimeoutMillis: 10000,
-  });
+  let pool = externalPool;
+
+  if (ownsPool) {
+    const connectionString = process.env.DATABASE_URL!;
+    const url = new URL(connectionString);
+    const host = url.hostname;
+    const port = parseInt(url.port || "5432");
+    const user = decodeURIComponent(url.username);
+    const password = decodeURIComponent(url.password);
+    const database = decodeURIComponent(url.pathname.substring(1));
+
+    console.log(`[MIGRATE] Resolving host: ${host}...`);
+    let targetHost = host;
+
+    try {
+      const ips = await resolve4(host);
+      if (ips && ips.length > 0) {
+        targetHost = ips[0];
+        console.log(`[MIGRATE] Host resolved to IP: ${targetHost}`);
+      }
+    } catch (dnsError: any) {
+      console.warn(`[MIGRATE] DNS fallback: ${dnsError.message}`);
+    }
+
+    pool = new Pool({
+      host: targetHost,
+      port: port,
+      user: user,
+      password: password,
+      database: database,
+      connectionTimeoutMillis: 60000,
+      ssl: {
+        servername: host,
+        rejectUnauthorized: false
+      }
+    });
+  }
 
   const client = await pool.connect();
 
