@@ -1,13 +1,8 @@
 import pkg from 'pg';
 const { Pool } = pkg;
 import { drizzle } from 'drizzle-orm/node-postgres';
-import dns from "node:dns";
+import dns from "node:dns/promises";
 import * as schema from "../shared/schema.js";
-
-// Force IPv4 ordering to prevent timeouts in environments where IPv6 is unavailable/flaky
-if (dns.setDefaultResultOrder) {
-  dns.setDefaultResultOrder("ipv4first");
-}
 
 if (!process.env.DATABASE_URL) {
   throw new Error(
@@ -15,32 +10,75 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-console.log(`[DATABASE] Connecting to: ${process.env.DATABASE_URL.split('@')[1]?.split('/')[0] || "unknown"}`);
+/**
+ * Resilient Pool Factory
+ * In some environments, Node.js struggles with DNS resolution for Neon hosts,
+ * leading to ETIMEDOUT. This factory resolves the host to an IP at startup
+ * and uses it directly with the SNI 'servername' header.
+ */
+async function createResilientPool() {
+  const connectionString = process.env.DATABASE_URL!;
+  
+  // Extract host/port from connection string
+  // Format: postgresql://user:pass@host:port/db
+  const hostPart = connectionString.split('@')[1].split('/')[0];
+  const host = hostPart.split(':')[0];
+  const port = parseInt(hostPart.split(':')[1] || '5432');
 
-export const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  connectionTimeoutMillis: 60000, // Increased to 60s for high-latency environments
-  idleTimeoutMillis: 30000,      // Close idle connections after 30s
-  max: 20,                       // Increased max connections for concurrent peaks
-  allowExitOnIdle: false,
-});
+  console.log(`[DATABASE] Resolving host: ${host}...`);
+  
+  let targetHost = host;
 
-console.log(`[DATABASE] Pool initialized (Timeout: 60s, Max: 20)`);
+  try {
+    // Attempt to resolve to an IPv4 address to bypass environment-specific DNS/IPv6 issues
+    const ips = await dns.resolve4(host);
+    if (ips && ips.length > 0) {
+      targetHost = ips[0];
+      console.log(`[DATABASE] Host resolved to IP: ${targetHost}`);
+    }
+  } catch (dnsError: any) {
+    console.warn(`[DATABASE] DNS resolution failed, falling back to hostname. Error: ${dnsError.message}`);
+  }
 
-// Add pool error listener to prevent uncaught exceptions from broken connections
-pool.on('error', (err) => {
-  console.error('[DATABASE POOL ERROR]', err.message);
-  // Do not exit process, let the pool handle reconnection
-});
+  // Safely parse credentials from the original connection string
+  const url = new URL(connectionString);
+  const user = decodeURIComponent(url.username);
+  const password = decodeURIComponent(url.password);
+  const database = decodeURIComponent(url.pathname.substring(1));
+
+  const pool = new Pool({
+    host: targetHost,
+    port: port,
+    user: user,
+    password: password,
+    database: database,
+    connectionTimeoutMillis: 60000, 
+    idleTimeoutMillis: 30000,      
+    max: 20,                       
+    allowExitOnIdle: false,
+    ssl: {
+      servername: host, // Crucial: Maintain original host for SNI
+      rejectUnauthorized: false
+    }
+  });
+
+  pool.on('error', (err) => {
+    console.error('[DATABASE POOL ERROR]', err.message);
+  });
+
+  return pool;
+}
+
+// Initialize the pool asynchronously
+export const pool = await createResilientPool();
+console.log(`[DATABASE] Pool initialized (Resilient IP + SNI Mode)`);
+
 export const db = drizzle(pool, { schema });
 
-// Keepalive: Neon serverless suspends after ~5 min of inactivity, causing ETIMEDOUT
-// storms on the next request. A lightweight ping every 4 min prevents suspension.
-// Fire-and-forget — errors are expected if the DB is momentarily unreachable and
-// the pool's own retry logic handles reconnection.
+// Keepalive: Neon serverless suspends after ~5 min of inactivity
 const KEEPALIVE_INTERVAL_MS = 4 * 60 * 1000; // 4 minutes
 setInterval(() => {
   pool.query('SELECT 1').catch(() => {
-    // Silently swallow — the retry logic in storage.ts handles reconnection
+    // Silently swallow
   });
-}, KEEPALIVE_INTERVAL_MS).unref(); // .unref() so it doesn't prevent process exit
+}, KEEPALIVE_INTERVAL_MS).unref(); 
