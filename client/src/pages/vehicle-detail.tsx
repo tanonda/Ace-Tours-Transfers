@@ -328,6 +328,7 @@ function SummaryRow({ label, value, sub }: { label: string; value: string; sub?:
 // ─── Main page ────────────────────────────────────────────────────────────────
 export default function VehicleDetail() {
   const cms = useCmsText("faq");
+  const { i18n } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const { addToCart } = useCart();
   const { updateDraft } = useBookingDraft();
