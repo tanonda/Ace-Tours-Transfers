@@ -2265,29 +2265,17 @@ ${allPages.map(p => `  <url>
 
       // 2. Auto-reply to guest
       try {
-        const appUrl = process.env.APP_URL || "https://ace-tours-transfers.onrender.com"; // used by sendEmail subject below
-        const { wrap } = await import("./infrastructure/mailing/email-templates.js");
-        const autoReplyHtml = wrap(`
-          <h2 style="color:#0f0d09;margin:0 0 8px;font-size:22px">We received your message! ✉️</h2>
-          <p style="color:#706a60;margin:0 0 24px;font-size:14px">We'll be in touch soon</p>
-          <div style="padding: 0;">
-            <p style="color: #374151; font-size: 16px; margin: 0 0 8px 0;">Hi ${name.trim().split(" ")[0]}! 👋</p>
-            <p style="color: #6b7280; font-size: 14px; line-height: 1.8; margin: 0 0 20px 0;">
-              Thanks for reaching out to Ace Tours &amp; Transfers. We've received your message and will get back to you as soon as possible — usually within a few hours during business hours.
-            </p>
-            <div style="background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; margin-bottom: 24px;">
-              <p style="color: #6b7280; font-size: 13px; margin: 0 0 6px 0; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Your message</p>
-              <p style="color: #374151; font-size: 14px; line-height: 1.7; margin: 0; white-space: pre-wrap;">${contact.message.slice(0, 500)}${contact.message.length > 500 ? "…" : ""}</p>
-            </div>
-            <p style="color: #6b7280; font-size: 13px; margin: 0;">
-              In the meantime, you can also reach us via WhatsApp for a faster response.
-            </p>
-          </div>
-        `);
+        const { getContactAutoReplyTemplate } = await import("./lib/mail.js");
+        const locale = req.body.locale || 'en';
+        const autoReplyHtml = await getContactAutoReplyTemplate(contact, locale);
 
         await sendEmail({
           to: contact.email,
-          subject: "We received your message — Ace Tours & Transfers",
+          subject: locale === 'en' ? "We received your message — Ace Tours & Transfers" 
+                 : locale === 'fr' ? "Nous avons reçu votre message — Ace Tours & Transfers"
+                 : locale === 'es' ? "Recibimos su mensaje — Ace Tours & Transfers"
+                 : locale === 'zh' ? "我们已收到您的留言 — Ace Tours & Transfers"
+                 : "Mifola Kasem Mesej blong Yula — Ace Tours",
           html: autoReplyHtml,
         });
       } catch (guestEmailErr) {

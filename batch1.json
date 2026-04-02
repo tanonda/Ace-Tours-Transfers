@@ -1,0 +1,43 @@
+[
+  {
+    "id": "90b13e31-6e1b-44e9-942c-667203409126",
+    "title": "Blue Lagoon & Turtle Bay Combo",
+    "description": [
+      "Swim in crystal clear blue waters",
+      "Visit Turtle sanctuary"
+    ],
+    "included_items": [],
+    "excluded_items": [],
+    "cancellation_policy": null
+  },
+  {
+    "id": "03db4647-1499-4156-aa0f-7997e3703955",
+    "title": "Efate Scenic Round Island Tour",
+    "description": [
+      "Experience the Best of Efate: Join our comprehensive 7-hour \"Round Island\" adventure (8 am – 3 pm).",
+      "Top Attractions: Visit the local chocolate factory, take a refreshing dip at Raru Waterfall, and experience the famous Blue Lagoon rope swings.",
+      "All-Inclusive: Relax with lunch at Banana Bay Beach Club, duty-free shopping stops, and all entry fees included.",
+      "Pricing: AUD$120 per adult | AUD$60 per child (<12 yrs). Min 10-14 pax."
+    ],
+    "included_items": [],
+    "excluded_items": [],
+    "cancellation_policy": null
+  },
+  {
+    "id": "a98ccc98-6201-45b7-b268-fce9a7e74241",
+    "title": "Ekasup Cultural Village Tour",
+    "description": [
+      "<p>Step back in time and experience the authentic, ancient Melanesian way of life. The Ekasup Cultural Village is an immersive journey into the heart and soul of traditional Vanuatu culture.</p>",
+      "<h3>What You Will Experience</h3>",
+      "<ul>",
+      "<li>Welcome by the Chief with a traditional warrior dance.</li>",
+      "<li>Demonstrations of traditional hunting, trapping, and fishing methods.</li>",
+      "<li>Learn the secrets of food preservation and natural medicines.</li>",
+      "<li>Experience custom magic and hear ancient legends passed down natively.</li>",
+      "</ul>"
+    ],
+    "included_items": [],
+    "excluded_items": [],
+    "cancellation_policy": null
+  }
+]
