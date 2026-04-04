@@ -768,7 +768,7 @@ export function Hero() {
 
   return (
     <section
-      className="relative min-h-screen w-full overflow-hidden"
+      className="relative min-h-[85vh] md:min-h-screen w-full overflow-hidden"
       aria-label="Hero — search for tours, transfers and vehicles"
     >
       {/* Background image + gradient — real <img> tag enables fetchpriority=high for LCP */}
@@ -787,16 +787,16 @@ export function Hero() {
         <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/20 to-black/65" />
       </div>
 
-      <div className="relative container mx-auto px-4 flex flex-col justify-center items-center text-center text-white pt-28 pb-20 md:pt-36 md:pb-24 min-h-screen">
+      <div className="relative container mx-auto px-4 flex flex-col justify-center items-center text-center text-white pt-32 pb-16 md:pt-36 md:pb-24 min-h-[85vh] md:min-h-screen">
 
         {/* Headline — h1 preserved for SEO */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, ease: "easeOut" }}
-          className="max-w-4xl mb-10"
+          className="max-w-4xl mb-6 md:mb-10"
         >
-          <h1 className="font-serif text-5xl md:text-7xl lg:text-8xl mb-5 leading-[1.1] drop-shadow-[0_4px_8px_rgba(0,0,0,0.55)]">
+          <h1 className="font-serif text-4xl md:text-7xl lg:text-8xl mb-4 md:mb-5 leading-[1.1] drop-shadow-[0_4px_8px_rgba(0,0,0,0.55)]">
             <span className="text-white font-bold block md:inline">
               {cms.text("hero_title_part1", t("hero.titlePart1"))}{" "}
             </span>

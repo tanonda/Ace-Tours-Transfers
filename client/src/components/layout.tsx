@@ -172,11 +172,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
           }`}
       >
         <div className={`transition-all duration-300 ${isScrolled ? "hidden" : "block"}`}>
-          <div className={`container mx-auto px-4 py-2 flex flex-col md:flex-row items-center justify-between text-sm ${isTransparent ? "text-white/90" : "text-muted-foreground"}`}>
+          <div className={`container mx-auto px-4 py-2 flex flex-col items-center justify-center text-center text-sm ${isTransparent ? "text-white/90" : "text-muted-foreground"}`}>
             <p className={`italic font-medium ${isTransparent ? "text-white" : "text-foreground"}`}>
               "{t("app.tagline")}"
             </p>
-            <div className="flex items-center gap-4 mt-1 md:mt-0">
+            <div className="flex items-center gap-4 mt-1">
               <a href={`tel:+678${contactPhone.replace(/\D/g, '')}`} className={`flex items-center gap-1.5 hover:text-primary transition-colors ${isTransparent ? "hover:text-white" : ""}`}>
                 <Phone className="h-3.5 w-3.5" />
                 <span>{contactPhone}</span>
@@ -191,14 +191,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </div>
         </div>
 
-        <div className={`container mx-auto px-4 flex items-center justify-between transition-all duration-300 ${isScrolled ? "py-1" : "pt-1 pb-1"}`}>
-          {/* Mobile hamburger - left side */}
+        <div className={`container mx-auto px-4 flex items-center justify-center relative transition-all duration-300 ${isScrolled ? "py-1" : "pt-1 pb-1"}`}>
+          {/* Mobile hamburger - absolute left so logo stays centered */}
           <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
             <SheetTrigger asChild className="md:hidden">
               <Button
                 variant="ghost"
                 size="icon"
-                className={mobileButtonColor}
+                className={`${mobileButtonColor} absolute left-4`}
                 aria-label={t("accessibility.menuOpen")}
                 data-testid="button-mobile-menu"
               >
@@ -480,9 +480,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
               Ace Tours & Transfers
             </span>
           </Link>
-
-          {/* Spacer for mobile to balance hamburger on the left */}
-          <div className="w-10 md:hidden" />
         </div>
 
         <div className={`container mx-auto px-4 flex items-center justify-center transition-all duration-300 ${isScrolled ? "pb-1" : "pb-2"}`}>

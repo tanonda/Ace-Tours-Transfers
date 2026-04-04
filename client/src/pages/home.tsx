@@ -77,9 +77,9 @@ export default function Home() {
       <Hero />
 
       {/* Trust Indicators - Why Choose Us */}
-      <section className="py-12 bg-primary/5 border-b border-primary/10">
+      <section className="py-8 md:py-12 bg-primary/5 border-b border-primary/10">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-8">
             <div className="flex items-center gap-4 p-4 bg-background rounded-xl shadow-sm border border-border/50">
               <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
                 <Shield className="w-6 h-6 text-primary" />
@@ -114,9 +114,9 @@ export default function Home() {
       </section>
 
       {/* About Section */}
-      <section className="py-20 bg-muted/30 overflow-hidden">
+      <section className="py-12 md:py-20 bg-muted/30 overflow-hidden">
         <div className="container mx-auto px-4">
-          <div className="flex flex-col lg:flex-row items-center gap-16">
+          <div className="flex flex-col lg:flex-row items-center gap-8 lg:gap-16">
             <motion.div
               className="lg:w-1/2"
               initial={{ opacity: 0, x: -50 }}
@@ -179,9 +179,9 @@ export default function Home() {
       </section>
 
       {/* Tours Section */}
-      <section className="py-24 bg-background">
+      <section className="py-16 md:py-24 bg-background">
         <div className="container mx-auto px-4">
-          <div className="text-center max-w-3xl mx-auto mb-16">
+          <div className="text-center max-w-3xl mx-auto mb-8 md:mb-16">
             <span className="text-primary font-semibold uppercase tracking-wider text-sm mb-2 block">{cms.text("tours_label", t("home.toursLabel"))}</span>
             <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-6">{cms.text("tours_title", t("home.toursTitle"))}</h2>
             <div
@@ -207,9 +207,9 @@ export default function Home() {
       </section>
 
       {/* Transfers Section */}
-      <section className="py-24 bg-muted/30">
+      <section className="py-16 md:py-24 bg-muted/30">
         <div className="container mx-auto px-4">
-          <div className="text-center max-w-3xl mx-auto mb-16">
+          <div className="text-center max-w-3xl mx-auto mb-8 md:mb-16">
             <span className="text-primary font-semibold uppercase tracking-wider text-sm mb-2 block">{cms.text("transfers_label", t("home.transfersLabel", "Airport & Hotel"))}</span>
             <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-6">{cms.text("transfers_title", t("home.transfersTitle"))}</h2>
             <div
@@ -236,9 +236,9 @@ export default function Home() {
 
       {/* Vehicle Hire Section */}
       {showVehicleHire && vehicles.length > 0 && (
-        <section className="py-24 bg-background">
+        <section className="py-16 md:py-24 bg-background">
           <div className="container mx-auto px-4">
-            <div className="text-center max-w-3xl mx-auto mb-16">
+            <div className="text-center max-w-3xl mx-auto mb-8 md:mb-16">
               <span className="text-primary font-semibold uppercase tracking-wider text-sm mb-2 block">{cms.text("vehicles_label", t("vehicles.label", "Self-Drive"))}</span>
               <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-6">{cms.text("vehicles_title", t("vehicles.title", "Vehicle Hire"))}</h2>
               <div
@@ -265,7 +265,7 @@ export default function Home() {
       )}
 
       {/* CTA Section */}
-      <section className="py-20 bg-primary relative overflow-hidden">
+      <section className="py-12 md:py-20 bg-primary relative overflow-hidden">
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
         <div className="container mx-auto px-4 relative text-center text-white">
           <h2 className="text-4xl md:text-6xl font-bold mb-8 font-serif">{cms.text("cta_title", t("home.ctaTitle"))}</h2>
