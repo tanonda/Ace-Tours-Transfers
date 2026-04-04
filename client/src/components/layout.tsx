@@ -172,33 +172,42 @@ export function Layout({ children }: { children: React.ReactNode }) {
           }`}
       >
         <div className={`transition-all duration-300 ${isScrolled ? "hidden" : "block"}`}>
-          <div className={`container mx-auto px-4 py-2 flex flex-col items-center justify-center text-center text-sm ${isTransparent ? "text-white/90" : "text-muted-foreground"}`}>
+          <div className={`container mx-auto px-4 py-2 flex flex-col md:flex-row items-center justify-between text-sm ${isTransparent ? "text-white/90" : "text-muted-foreground"}`}>
             <p className={`italic font-medium ${isTransparent ? "text-white" : "text-foreground"}`}>
               "{t("app.tagline")}"
             </p>
-            <div className="flex items-center gap-4 mt-1">
-              <a href={`tel:+678${contactPhone.replace(/\D/g, '')}`} className={`flex items-center gap-1.5 hover:text-primary transition-colors ${isTransparent ? "hover:text-white" : ""}`}>
-                <Phone className="h-3.5 w-3.5" />
-                <span>{contactPhone}</span>
-              </a>
-              <span className={isTransparent ? "text-white/50" : "text-muted-foreground/50"}>|</span>
-              <a href={`mailto:${contactEmail}`} className={`flex items-center gap-1.5 hover:text-primary transition-colors ${isTransparent ? "hover:text-white" : ""}`}>
-                <Mail className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">{contactEmail}</span>
-                <span className="sm:hidden">{t("nav.emailUs", "Email Us")}</span>
-              </a>
+            <div className="flex flex-wrap justify-center md:justify-end items-center gap-3 mt-2 md:mt-0">
+              <div className="hidden lg:flex items-center gap-4">
+                <a href={`tel:+678${contactPhone.replace(/\D/g, '')}`} className={`flex items-center gap-1.5 hover:text-primary transition-colors ${isTransparent ? "hover:text-white" : ""}`}>
+                  <Phone className="h-3.5 w-3.5" />
+                  <span>{contactPhone}</span>
+                </a>
+                <span className={isTransparent ? "text-white/50" : "text-muted-foreground/50"}>|</span>
+                <a href={`mailto:${contactEmail}`} className={`flex items-center gap-1.5 hover:text-primary transition-colors ${isTransparent ? "hover:text-white" : ""}`}>
+                  <Mail className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">{contactEmail}</span>
+                  <span className="sm:hidden">{t("nav.emailUs", "Email Us")}</span>
+                </a>
+              </div>
+              <div className="hidden lg:block w-px h-4 bg-border/50 mx-1"></div>
+              <div className={`flex items-center gap-1 ${isTransparent ? '[&_button]:text-white/90 [&_button:hover]:text-white [&_button:hover]:bg-white/10' : ''}`}>
+                <CurrencySelector />
+                <LanguageSelector />
+                <ThemeToggle size="sm" />
+              </div>
             </div>
           </div>
         </div>
 
-        <div className={`container mx-auto px-4 flex items-center justify-center relative transition-all duration-300 ${isScrolled ? "py-1" : "pt-1 pb-1"}`}>
-          {/* Mobile hamburger - absolute left so logo stays centered */}
+        <div className={`container mx-auto px-4 flex flex-wrap lg:flex-nowrap items-center justify-between transition-all duration-300 ${isScrolled ? "py-2" : "py-3"}`}>
+          <div className="flex items-center justify-center w-full lg:w-auto relative mb-2 lg:mb-0">
+          {/* Mobile hamburger - absolute left so logo stays centered on mobile */}
           <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
             <SheetTrigger asChild className="md:hidden">
               <Button
                 variant="ghost"
                 size="icon"
-                className={`${mobileButtonColor} absolute left-4`}
+                className={`${mobileButtonColor} absolute left-0`}
                 aria-label={t("accessibility.menuOpen")}
                 data-testid="button-mobile-menu"
               >
@@ -480,10 +489,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
               Ace Tours & Transfers
             </span>
           </Link>
-        </div>
+          </div>
 
-        <div className={`container mx-auto px-4 flex items-center justify-center transition-all duration-300 ${isScrolled ? "pb-1" : "pb-2"}`}>
-          <nav className="hidden md:flex items-center gap-6" aria-label="Main navigation">
+          <nav className="hidden md:flex flex-wrap justify-center lg:justify-end items-center gap-2 lg:gap-5" aria-label="Main navigation">
             <NavigationMenu className="relative z-50">
               <NavigationMenuList>
                 <NavigationMenuItem>
@@ -620,14 +628,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
               </NavigationMenuList>
             </NavigationMenu>
 
-            <div className="ml-2 flex items-center gap-4">
-              <CurrencySelector />
-              <LanguageSelector />
-              <ThemeToggle size="sm" />
+            <div className="ml-1 lg:ml-4 flex items-center shrink-0">
               <Link href="/cart">
-                <Button size="lg" className="font-semibold shadow-lg relative" variant={itemCount > 0 ? "default" : "outline"}>
+                <Button size="default" className="font-semibold shadow-md relative" variant={itemCount > 0 ? "default" : "secondary"}>
                   <ShoppingCart className="h-4 w-4 mr-2" />
-                  {itemCount > 0 ? `View Cart (${itemCount})` : "Cart"}
+                  {itemCount > 0 ? `Cart (${itemCount})` : "Cart"}
                   {itemCount > 0 && (
                     <span className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-[#f4a830] text-[#0f0d09] text-[10px] font-black flex items-center justify-center">
                       {itemCount}

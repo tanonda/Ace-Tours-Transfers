@@ -787,7 +787,7 @@ export function Hero() {
         <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/20 to-black/65" />
       </div>
 
-      <div className="relative container mx-auto px-4 flex flex-col justify-center items-center text-center text-white pt-32 pb-16 md:pt-36 md:pb-24 min-h-[85vh] md:min-h-screen">
+      <div className="relative container mx-auto px-4 flex flex-col justify-center items-center text-center text-white pt-44 pb-16 md:pt-52 md:pb-24 min-h-[85vh] md:min-h-screen">
 
         {/* Headline — h1 preserved for SEO */}
         <motion.div

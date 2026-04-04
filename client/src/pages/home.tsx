@@ -113,37 +113,37 @@ export default function Home() {
         </div>
       </section>
 
-      {/* About Section */}
-      <section className="py-12 md:py-20 bg-muted/30 overflow-hidden">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col lg:flex-row items-center gap-8 lg:gap-16">
-            <motion.div
-              className="lg:w-1/2"
-              initial={{ opacity: 0, x: -50 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-            >
-              <div className="relative">
-                <div className="absolute -top-4 -left-4 w-24 h-24 bg-primary/10 rounded-full -z-10" />
-                <img
-                  src={aboutImg}
-                  alt="Vanuatu Waterfall"
-                  className="rounded-2xl shadow-2xl w-full object-cover aspect-[4/3]"
-                />
-                <div className="absolute -bottom-6 -right-6 bg-card p-6 rounded-xl shadow-xl max-w-xs hidden md:block border border-border/50 transition-all duration-300 hover:shadow-2xl hover:shadow-primary/20 hover:border-primary/30 hover:-translate-y-1 cursor-default">
-                  <p className="font-serif text-lg italic text-foreground">"{cms.text("about_quote", t("home.quote"))}"</p>
-                </div>
-              </div>
-            </motion.div>
+      {/* About Section Edge-to-Edge Split */}
+      <section className="bg-muted/30 overflow-hidden relative border-y border-border/10">
+        <div className="flex flex-col lg:flex-row w-full">
+          {/* Base Layout: Edge to Edge Image */}
+          <motion.div
+            className="w-full lg:w-1/2 min-h-[400px] lg:min-h-auto relative"
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+          >
+            <img
+              src={aboutImg}
+              alt="Vanuatu Waterfall"
+              className="absolute inset-0 w-full h-full object-cover object-center"
+            />
+            {/* The Quote Block */}
+            <div className="absolute bottom-6 right-6 bg-card p-6 rounded-xl shadow-xl max-w-xs hidden md:block border border-border/50 transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 cursor-default z-10">
+              <p className="font-serif text-lg italic text-foreground">"{cms.text("about_quote", t("home.quote"))}"</p>
+            </div>
+          </motion.div>
 
-            <motion.div
-              className="lg:w-1/2"
-              initial={{ opacity: 0, x: 50 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-            >
+          {/* Text Container Half */}
+          <motion.div
+            className="w-full lg:w-1/2 flex items-center justify-center py-16 px-6 sm:px-12 lg:px-20 xl:px-28"
+            initial={{ opacity: 0, x: 30 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+          >
+            <div className="w-full max-w-xl">
               <div className="flex items-center gap-2 mb-4">
                 <span className="h-px w-12 bg-primary"></span>
                 <span className="text-primary font-semibold uppercase tracking-wider text-sm">{cms.text("about_label", t("home.aboutLabel"))}</span>
@@ -172,9 +172,11 @@ export default function Home() {
                 ))}
               </div>
 
-              <Button variant="outline" className="border-primary text-primary hover:bg-primary hover:text-white">{t("home.learnMore")}</Button>
-            </motion.div>
-          </div>
+              <Link href="/about">
+                <Button variant="outline" className="border-primary text-primary hover:bg-primary hover:text-white">{t("home.learnMore")}</Button>
+              </Link>
+            </div>
+          </motion.div>
         </div>
       </section>
 

@@ -19,29 +19,30 @@ export default function About() {
         </div>
       </div>
 
-      <section className="py-16">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-            <div>
-              <div className="relative rounded-lg shadow-xl overflow-hidden aspect-[4/3] w-full">
-                <img
-                  src={cms.text("story_image", "https://images.unsplash.com/photo-1596394516093-501ba68a0ba6?q=80&w=2070&auto=format&fit=crop")}
-                  alt="Vanuatu Landscape"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            </div>
-            <div>
-              <h2 className="text-3xl font-bold mb-6 font-serif">{cms.text("story_title", t("about.storyTitle"))}</h2>
+      <section className="bg-background overflow-hidden relative border-y border-border/10">
+        <div className="flex flex-col md:flex-row w-full">
+          {/* Edge-to-Edge Image Half */}
+          <div className="w-full md:w-1/2 min-h-[400px] md:min-h-auto relative">
+            <img
+              src={cms.text("story_image", "https://images.unsplash.com/photo-1596394516093-501ba68a0ba6?q=80&w=2070&auto=format&fit=crop")}
+              alt="Vanuatu Landscape"
+              className="absolute inset-0 w-full h-full object-cover object-center"
+            />
+          </div>
+
+          {/* Text Container Half */}
+          <div className="w-full md:w-1/2 flex items-center justify-center py-16 px-6 sm:px-12 lg:px-20 xl:px-28">
+            <div className="w-full max-w-xl">
+              <h2 className="text-4xl lg:text-5xl font-bold mb-8 font-serif leading-tight">{cms.text("story_title", t("about.storyTitle"))}</h2>
               <div
-                className="text-lg text-muted-foreground mb-4 prose prose-p:my-2"
+                className="text-lg text-muted-foreground mb-6 leading-relaxed prose prose-lg prose-p:my-2"
                 dangerouslySetInnerHTML={{ __html: cms.html("story_desc1", t("about.storyDesc1")) }}
               />
               <div
-                className="text-lg text-muted-foreground mb-6 prose prose-p:my-2"
+                className="text-lg text-muted-foreground mb-8 leading-relaxed prose prose-lg prose-p:my-2"
                 dangerouslySetInnerHTML={{ __html: cms.html("story_desc2", t("about.storyDesc2")) }}
               />
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 {[
                   cms.text("badge1", t("about.locallyOwned")),
                   cms.text("badge2", t("about.fullyLicensed")),
@@ -50,9 +51,9 @@ export default function About() {
                   cms.text("badge5", t("about.customItineraries")),
                   cms.text("badge6", t("about.support247")),
                 ].map((item, i) => (
-                  <div key={i} className="flex items-center gap-2">
+                  <div key={i} className="flex items-center gap-3">
                     <CheckCircle className="text-primary h-5 w-5 shrink-0" />
-                    <span className="font-medium">{item}</span>
+                    <span className="font-medium text-foreground">{item}</span>
                   </div>
                 ))}
               </div>
