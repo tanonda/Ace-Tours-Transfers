@@ -9,7 +9,7 @@ import { ErrorBoundary } from "@/components/error-boundary";
 import { CartProvider } from "@/lib/cart-context";
 import { BookingStateProvider } from "@/lib/booking-state-context";
 import { CurrencyProvider } from "@/lib/currency-context";
-import { AuthProvider, ProtectedRoute } from "@/lib/auth-context";
+import { AuthProvider, ProtectedRoute, useAuth } from "@/lib/auth-context";
 import { ThemeProvider } from "@/lib/theme-context";
 import { CMSProvider } from "@/lib/cms-context";
 import { WhatsAppWidget } from "@/components/whatsapp-widget";
@@ -135,16 +135,29 @@ const Loader = () => (
 );
 
 function Router() {
-  if (COMING_SOON && ComingSoon) {
+  const { isStaff, isLoading } = useAuth();
+
+  // While auth check is in flight, show nothing — avoids a flash of the
+  // coming soon page for staff who are already logged in.
+  if (COMING_SOON && isLoading) {
+    return <Loader />;
+  }
+
+  // Coming soon is active AND the visitor is not staff/admin:
+  // Show the coming soon page for all public routes, but still expose
+  // /staff-access so they can log in.
+  if (COMING_SOON && !isStaff && ComingSoon) {
     return (
       <Suspense fallback={<Loader />}>
         <Switch>
-          <Route path="/admin" component={AdminDashboard} />
+          <Route path="/staff-access" component={Login} />
           <Route component={ComingSoon} />
         </Switch>
       </Suspense>
     );
   }
+
+  // Staff/admin (or coming soon is off): render the full site.
   return (
     <Suspense fallback={<Loader />}>
       <Switch>
