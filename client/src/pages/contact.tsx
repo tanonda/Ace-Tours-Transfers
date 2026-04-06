@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Layout } from "@/components/layout";
+import { SEO } from "@/components/seo";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -56,6 +57,11 @@ export default function Contact() {
 
   return (
     <Layout>
+      <SEO
+        title="Contact Us - Ace Tours & Transfers Vanuatu"
+        description="Get in touch with Ace Tours & Transfers in Port Vila, Vanuatu. Call, email, or send us a message — our team is available 24/7 for bookings and inquiries."
+        keywords={["contact Ace Tours", "Vanuatu tour contact", "Port Vila tour booking", "Vanuatu transfer inquiry"]}
+      />
       <div className="pt-40 pb-10 bg-primary/5">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-4xl md:text-5xl font-serif font-bold mb-4">{cms.text("page_title", t("contact.title"))}</h1>

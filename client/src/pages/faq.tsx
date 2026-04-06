@@ -1,4 +1,5 @@
 import { Layout } from "@/components/layout";
+import { SEO } from "@/components/seo";
 import { useTranslation } from "react-i18next";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Info, HelpCircle } from "lucide-react";
@@ -54,6 +55,12 @@ export default function FAQ() {
 
     return (
         <Layout>
+            <SEO
+                title="Frequently Asked Questions - Ace Tours & Transfers"
+                description="Find answers to common questions about our Vanuatu tours, airport transfers, vehicle hire, payments, cancellations, and pickup locations in Port Vila."
+                keywords={["Vanuatu tour FAQ", "Port Vila transfer questions", "vehicle hire Vanuatu FAQ", "Ace Tours help"]}
+                faqs={faqs}
+            />
             <div className="bg-muted/30 pt-32 md:pt-40 pb-16 md:pb-24">
                 <div className="container mx-auto px-4 max-w-4xl">
                     <div className="text-center mb-12">

@@ -254,30 +254,39 @@ export async function registerRoutes(
   app.get("/sitemap.xml", async (_req, res) => {
     try {
       const SITE_URL = process.env.APP_URL || "https://ace-tours-transfers.onrender.com";
-      const tours = await storage.getProducts();
+      const products = await storage.getProducts();
       const now = new Date().toISOString().split("T")[0];
 
       const staticPages = [
-        { loc: "/", priority: "1.0", changefreq: "weekly" },
-        { loc: "/tours", priority: "0.9", changefreq: "daily" },
-        { loc: "/transfers", priority: "0.9", changefreq: "daily" },
-        { loc: "/vehicles", priority: "0.8", changefreq: "weekly" },
-        { loc: "/about", priority: "0.6", changefreq: "monthly" },
-        { loc: "/contact", priority: "0.6", changefreq: "monthly" },
+        { loc: "/",          priority: "1.0", changefreq: "weekly",  lastmod: now },
+        { loc: "/tours",     priority: "0.9", changefreq: "daily",   lastmod: now },
+        { loc: "/transfers", priority: "0.9", changefreq: "daily",   lastmod: now },
+        { loc: "/vehicles",  priority: "0.8", changefreq: "weekly",  lastmod: now },
+        { loc: "/faq",       priority: "0.7", changefreq: "monthly", lastmod: now },
+        { loc: "/about",     priority: "0.6", changefreq: "monthly", lastmod: now },
+        { loc: "/contact",   priority: "0.6", changefreq: "monthly", lastmod: now },
       ];
 
-      const tourPages = tours.map((t: any) => {
-        const type = t.category === "transfer" ? "transfers" : t.category === "vehicle" ? "vehicles" : "tours";
-        return { loc: `/${type}/${t.id}`, priority: "0.8", changefreq: "weekly" };
-      });
+      const productPages = products
+        .filter((p: any) => p.isActive !== false)
+        .map((p: any) => {
+          const type =
+            p.category === "transfer" ? "transfers" :
+            p.category === "vehicle"  ? "vehicles"  : "tours";
+          // Use the product's own updatedAt so Googlebot knows when content last changed
+          const lastmod = p.updatedAt
+            ? new Date(p.updatedAt).toISOString().split("T")[0]
+            : now;
+          return { loc: `/${type}/${p.id}`, priority: "0.8", changefreq: "weekly", lastmod };
+        });
 
-      const allPages = [...staticPages, ...tourPages];
+      const allPages = [...staticPages, ...productPages];
 
       const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${allPages.map(p => `  <url>
     <loc>${SITE_URL}${p.loc}</loc>
-    <lastmod>${now}</lastmod>
+    <lastmod>${p.lastmod}</lastmod>
     <changefreq>${p.changefreq}</changefreq>
     <priority>${p.priority}</priority>
   </url>`).join("\n")}

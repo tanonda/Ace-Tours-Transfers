@@ -1,4 +1,5 @@
 import { Layout } from "@/components/layout";
+import { SEO } from "@/components/seo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { CheckCircle, MapPin, Phone, Mail, Clock } from "lucide-react";
@@ -10,6 +11,11 @@ export default function About() {
   const cms = useCmsText("about");
   return (
     <Layout>
+      <SEO
+        title="About Us - Ace Tours & Transfers Vanuatu"
+        description="Learn about Ace Tours & Transfers — locally owned and operated in Port Vila, Vanuatu. Expert local guides, modern fleet, and custom-designed tour packages."
+        keywords={["about Ace Tours", "Vanuatu tour company", "Port Vila tour operator", "locally owned Vanuatu"]}
+      />
       <div className="pt-40 pb-10 bg-primary/5">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-4xl md:text-5xl font-serif font-bold mb-4">{cms.text("page_title", t("about.title"))}</h1>

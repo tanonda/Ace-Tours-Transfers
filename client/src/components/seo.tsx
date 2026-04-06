@@ -1,12 +1,28 @@
 import { Helmet } from "react-helmet-async";
 import { useLocation } from "wouter";
+import { useTranslation } from "react-i18next";
 
-const SITE_URL = "https://ace-tours-transfers.onrender.com";
+// Falls back to the Render URL if VITE_APP_URL is not set.
+// Set VITE_APP_URL=https://acetours.com.vu in your Render env vars when the
+// custom domain is live — canonical URLs, OG tags, and the sitemap all derive
+// from this value automatically.
+const SITE_URL =
+  (import.meta.env.VITE_APP_URL as string | undefined)?.replace(/\/$/, "") ||
+  "https://ace-tours-transfers.onrender.com";
 const SITE_NAME = "Ace Tours & Transfers Vanuatu";
 const DEFAULT_DESC =
   "Experience the best of Vanuatu with Ace Tours & Transfers. Meticulously pre-planned and custom-designed tour packages, airport transfers, and vehicle hire in Port Vila, Efate Island.";
 const DEFAULT_IMAGE =
   "https://res.cloudinary.com/dwro1dh5q/image/upload/f_auto,q_auto,w_1200/v1765063053605/ace-tours-assets/vanuatu_beach_hero_1765063053605.png";
+
+// Map i18next language codes → valid OG locale strings
+const OG_LOCALE_MAP: Record<string, string> = {
+  en: "en_AU",
+  fr: "fr_FR",
+  es: "es_ES",
+  zh: "zh_CN",
+  bi: "en_VU", // Bislama — no official OG code, closest is en_VU
+};
 
 export function cloudinaryOpt(url: string, w = 800, q = "auto"): string {
   if (!url?.includes("res.cloudinary.com")) return url;
@@ -35,6 +51,7 @@ interface SEOProps {
   title: string;
   description?: string;
   image?: string;
+  imageAlt?: string;
   type?: string;
   keywords?: string[];
   structuredType?: "TouristAttraction" | "Product" | "LocalBusiness";
@@ -46,12 +63,15 @@ interface SEOProps {
   reviews?: ReviewSchema[];
   faqs?: FAQItem[];
   extraJsonLd?: Record<string, unknown>;
+  /** Emit a WebSite schema with SearchAction — set true only on the home page */
+  isHomePage?: boolean;
 }
 
 export function SEO({
   title,
   description = DEFAULT_DESC,
   image = DEFAULT_IMAGE,
+  imageAlt,
   type = "website",
   keywords = [],
   structuredType,
@@ -63,17 +83,22 @@ export function SEO({
   reviews = [],
   faqs = [],
   extraJsonLd,
+  isHomePage = false,
 }: SEOProps) {
   const [loc] = useLocation();
+  const { i18n } = useTranslation();
   const fullUrl = `${SITE_URL}${loc}`;
   const fullTitle = `${title} | ${SITE_NAME}`;
   const ogImage = cloudinaryOpt(image, 1200, "auto");
+  const ogLocale = OG_LOCALE_MAP[i18n.language] ?? "en_AU";
+  const resolvedImageAlt = imageAlt || `${title} — Ace Tours & Transfers Vanuatu`;
 
   const jsonLdBlocks: object[] = [];
 
+  // ── LocalBusiness / TouristInformationCenter (emitted on every page) ──
   const localBusiness: Record<string, unknown> = {
     "@context": "https://schema.org",
-    "@type": "TouristInformationCenter",
+    "@type": ["TouristInformationCenter", "LocalBusiness"],
     name: SITE_NAME,
     url: SITE_URL,
     description: DEFAULT_DESC,
@@ -94,7 +119,7 @@ export function SEO({
     openingHoursSpecification: [
       {
         "@type": "OpeningHoursSpecification",
-        dayOfWeek: ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
+        dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
         opens: "07:00",
         closes: "18:00",
       },
@@ -102,6 +127,10 @@ export function SEO({
     priceRange: "$$",
     currenciesAccepted: "VUV, AUD, USD",
     areaServed: "Vanuatu",
+    sameAs: [
+      "https://www.facebook.com/acetoursvanuatu",
+      "https://www.instagram.com/acetoursvanuatu",
+    ],
   };
   if (aggregateRating) {
     localBusiness.aggregateRating = {
@@ -113,6 +142,25 @@ export function SEO({
   }
   jsonLdBlocks.push(localBusiness);
 
+  // ── WebSite + SearchAction (home page only) ──
+  if (isHomePage) {
+    jsonLdBlocks.push({
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      name: SITE_NAME,
+      url: SITE_URL,
+      potentialAction: {
+        "@type": "SearchAction",
+        target: {
+          "@type": "EntryPoint",
+          urlTemplate: `${SITE_URL}/tours?q={search_term_string}`,
+        },
+        "query-input": "required name=search_term_string",
+      },
+    });
+  }
+
+  // ── Product / TouristAttraction (detail pages) ──
   if (structuredType && productName) {
     const priceInMajor = offer ? offer.price / 100 : undefined;
     const productSchema: Record<string, unknown> = {
@@ -155,6 +203,7 @@ export function SEO({
     jsonLdBlocks.push(productSchema);
   }
 
+  // ── FAQPage schema ──
   if (faqs.length > 0) {
     jsonLdBlocks.push({
       "@context": "https://schema.org",
@@ -174,7 +223,7 @@ export function SEO({
 
   return (
     <Helmet>
-      <html lang="en" />
+      <html lang={i18n.language || "en"} />
       <title>{fullTitle}</title>
       <meta name="description" content={description} />
       <meta name="keywords" content={allKeywords} />
@@ -186,13 +235,15 @@ export function SEO({
       <meta property="og:image" content={ogImage} />
       <meta property="og:image:width" content="1200" />
       <meta property="og:image:height" content="630" />
+      <meta property="og:image:alt" content={resolvedImageAlt} />
       <meta property="og:site_name" content={SITE_NAME} />
-      <meta property="og:locale" content="en_AU" />
+      <meta property="og:locale" content={ogLocale} />
       <meta name="twitter:card" content="summary_large_image" />
       <meta name="twitter:url" content={fullUrl} />
       <meta name="twitter:title" content={fullTitle} />
       <meta name="twitter:description" content={description} />
       <meta name="twitter:image" content={ogImage} />
+      <meta name="twitter:image:alt" content={resolvedImageAlt} />
       <meta name="geo.region" content="VU" />
       <meta name="geo.placename" content="Port Vila, Vanuatu" />
       <meta name="geo.position" content="-17.7334;168.3273" />

@@ -1,6 +1,7 @@
 
 import { useMemo } from "react";
 import { Layout } from "@/components/layout";
+import { SEO } from "@/components/seo";
 import { TourCard } from "@/components/tour-card";
 import { useTranslation } from "react-i18next";
 import { Car } from "lucide-react";
@@ -28,6 +29,11 @@ export default function Vehicles() {
 
   return (
     <Layout>
+      <SEO
+        title="Vehicle Hire in Vanuatu - Self-Drive & Chauffeured"
+        description="Hire a vehicle in Port Vila, Vanuatu with Ace Tours & Transfers. Choose from SUVs, minibuses, and 4WDs — self-drive or with an experienced local driver."
+        keywords={["vehicle hire Vanuatu", "car hire Port Vila", "self drive Vanuatu", "4WD hire Efate", "minibus hire Vanuatu"]}
+      />
       <section className="pt-40 pb-20 bg-muted/30">
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
