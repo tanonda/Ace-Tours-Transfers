@@ -213,6 +213,7 @@ export default function AdminSettings() {
       { key: "contact_email", label: t("contact.email"), icon: "Mail" },
       { key: "contact_phone", label: t("contact.phone"), icon: "Phone" },
       { key: "contact_address", label: t("footer.address"), icon: "MapPin" },
+      { key: "launch_date", label: "Launch Date (Coming Soon countdown)", icon: "Calendar", placeholder: "YYYY-MM-DD e.g. 2026-05-01" },
     ],
     social: [
       { key: "social_facebook", label: "Facebook URL", icon: "Facebook" },

@@ -52,7 +52,7 @@ VALUES
     'How can I contact from overseas?',
     'en', 110),
   ('faq', 'faq6_a', 'richtext',
-    'You can reach us easily via WhatsApp at +678 7342389, or via email at acetoursvanuatu@outlook.com. We are available 24/7 to assist with your travel inquiries.',
+    'You can reach us easily via WhatsApp at +678 7114045, or via email at acetoursvanuatu@outlook.com. We are available 24/7 to assist with your travel inquiries.',
     'en', 120),
 
   ('faq', 'faq7_q', 'text',
@@ -72,9 +72,9 @@ INSERT INTO site_settings (key, value)
 VALUES
   ('business_name',      '"Ace Tours & Transfers"'),
   ('contact_email',      '"acetoursvanuatu@outlook.com"'),
-  ('contact_phone',      '"+678 7342389"'),
+  ('contact_phone',      '"+678 7114045"'),
   ('contact_address',    '"Port Vila, Efate, Vanuatu"'),
-  ('whatsapp_number',    '"+6787342389"'),
+  ('whatsapp_number',    '"+6787114045"'),
   ('whatsapp_greeting',  '"Hi! I would like to enquire about your tours and transfers."'),
   ('default_currency',   '"VUV"'),
   ('booking_terms',      '"Cancellations more than 48 hours in advance are fully refundable. Within 48 hours may incur a fee."'),
@@ -97,7 +97,7 @@ VALUES
   ('bank_transfer_reference_format', '"Use your Booking ID as the payment reference (e.g. ACT-XXXXXXXX)"'),
   ('cash_instructions',            '"Pay your driver in cash on the day of service. VUV preferred — please bring exact change."'),
   ('cash_accepted_currencies',     '"VUV, AUD, NZD"'),
-  ('ewallet_phone_number',         '"+678 7342389"'),
+  ('ewallet_phone_number',         '"+678 7114045"'),
   ('ewallet_reference_format',     '"Use your Booking ID as the payment reference"'),
   ('ewallet_instructions',         '"Screenshot your payment receipt and WhatsApp or email it to us for faster confirmation."')
 ON CONFLICT (key) DO NOTHING;

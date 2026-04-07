@@ -32,7 +32,7 @@ export default function FAQ() {
         },
         {
             question: "How can I contact from overseas?",
-            answer: "You can reach us easily via WhatsApp at +678 7342389, or via email at acetoursvanuatu@outlook.com. We are available 24/7 to assist with your travel inquiries."
+            answer: "You can reach us easily via WhatsApp at +678 7114045, or via email at acetoursvanuatu@outlook.com. We are available 24/7 to assist with your travel inquiries."
         },
         {
             question: "What currencies do you accept?",
@@ -100,7 +100,7 @@ export default function FAQ() {
                                 Email Us
                             </a>
                             <a
-                                href="https://wa.me/6787342389"
+                                href="https://wa.me/6787114045"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="inline-flex items-center justify-center rounded-md border border-input bg-background px-6 py-2.5 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground"

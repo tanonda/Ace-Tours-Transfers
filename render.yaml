@@ -32,9 +32,9 @@ services:
       - key: BUSINESS_EMAIL
         value: "info@acetours.vu"
       - key: BUSINESS_PHONE
-        value: "+678 7744444"
+        value: "+678 7114045"
       - key: WHATSAPP_NUMBER
-        value: "6787744444"
+        value: "6787114045"
       - key: ADMIN_EMAIL
         sync: false # Admin notification email address
       - key: SMS_PROVIDER

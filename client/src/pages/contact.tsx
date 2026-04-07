@@ -85,7 +85,6 @@ export default function Contact() {
                   <h3 className="font-bold text-lg mb-1">{t("contact.phone")}</h3>
                   <div className="space-y-1">
                     <a href="tel:+6787114045" className="block text-lg font-semibold text-primary hover:underline">+678 7114045</a>
-                    <a href="tel:+6787342389" className="block text-lg font-semibold text-primary hover:underline">+678 7342389</a>
                   </div>
                   <p className="text-sm text-muted-foreground mt-1">{cms.text("phone_availability", t("contact.phoneAvailable"))}</p>
                 </div>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 
-const LAUNCH_DATE = new Date("2026-05-01T00:00:00");
+const DEFAULT_LAUNCH_DATE = "2026-05-01";
 
 function useCountdown(target: Date) {
   const calc = () => {
@@ -17,12 +18,22 @@ function useCountdown(target: Date) {
   useEffect(() => {
     const id = setInterval(() => setTime(calc()), 1000);
     return () => clearInterval(id);
-  }, []);
+  }, [target]);
   return time;
 }
 
 export default function ComingSoon() {
-  const { days, hours, minutes, seconds } = useCountdown(LAUNCH_DATE);
+  const { data: settings = [] } = useQuery<{ key: string; value: string }[]>({
+    queryKey: ["settings"],
+    queryFn: () => fetch("/api/settings").then((r) => r.json()),
+    staleTime: 60_000,
+  });
+
+  const launchDateStr =
+    settings.find((s) => s.key === "launch_date")?.value || DEFAULT_LAUNCH_DATE;
+  const launchDate = new Date(`${launchDateStr}T00:00:00`);
+
+  const { days, hours, minutes, seconds } = useCountdown(launchDate);
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
 
@@ -253,7 +264,7 @@ export default function ComingSoon() {
       }}>
         {[
           { icon: "✉", text: "acetoursvanuatu@outlook.com", href: "mailto:acetoursvanuatu@outlook.com" },
-          { icon: "✆", text: "+678 7744444", href: "tel:+6787744444" },
+          { icon: "✆", text: "+678 7114045", href: "tel:+6787114045" },
         ].map(({ icon, text, href }) => (
           <a key={href} href={href} style={{
             color: "rgba(255,255,255,0.35)",

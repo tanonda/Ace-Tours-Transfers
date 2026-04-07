@@ -652,7 +652,7 @@ export default function ManageBooking() {
                                         Your booking is confirmed. To cancel or make major changes, please contact us directly at{" "}
                                         <a href="mailto:info@acetours.vu" className="text-primary hover:underline">info@acetours.vu</a>
                                         {" "}or call{" "}
-                                        <a href="tel:+6785551234" className="text-primary hover:underline">+678 5551234</a>.
+                                        <a href="tel:+6787114045" className="text-primary hover:underline">+678 7114045</a>.
                                     </p>
                                 </div>
                             </CardContent>

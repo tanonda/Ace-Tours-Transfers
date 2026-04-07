@@ -363,7 +363,7 @@ export function PrintItinerary({ booking, items, payments, qrCodeData, onClose }
             
             <div class="footer">
               <div class="contact-info">
-                <span class="contact-item">📞 7114045 / 7342389</span>
+                <span class="contact-item">📞 7114045</span>
                 <span class="contact-item">✉️ acetoursvanuatu@outlook.com</span>
                 <span class="contact-item">🌐 acetours.vu</span>
               </div>
@@ -578,7 +578,7 @@ export function PrintItinerary({ booking, items, payments, qrCodeData, onClose }
             <div className="contact-info flex flex-wrap justify-center gap-6 mb-3">
               <div className="contact-item flex items-center gap-2 text-sm">
                 <Phone className="h-4 w-4 text-[#f4a830]" />
-                <span>7114045 / 7342389</span>
+                <span>7114045</span>
               </div>
               <div className="contact-item flex items-center gap-2 text-sm">
                 <Mail className="h-4 w-4 text-[#f4a830]" />

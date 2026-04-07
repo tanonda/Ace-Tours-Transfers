@@ -91,7 +91,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
   const contactEmail = getSetting("contact_email", "acetoursvanuatu@outlook.com");
   const contactPhone = getSetting("contact_phone", "7114045");
-  const whatsappNumber = getSetting("whatsapp_number", "7342389");
+  const whatsappNumber = getSetting("whatsapp_number", "7114045");
   const facebookUrl = getSetting("social_facebook", "https://www.facebook.com/share/16xVyw7m7m/");
   const instagramUrl = getSetting("social_instagram", "https://www.instagram.com/acetoursvanuatu/");
   const contactAddress = getSetting("contact_address", "Port Vila, Vanuatu");

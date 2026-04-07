@@ -43,7 +43,7 @@ async function seed() {
         const settings = [
             {
                 key: "whatsapp_number",
-                value: { number: "+678 7744444", label: "WhatsApp" }
+                value: { number: "+678 7114045", label: "WhatsApp" }
             },
             {
                 key: "whatsapp_greeting",
@@ -55,7 +55,7 @@ async function seed() {
             },
             {
                 key: "site_phone",
-                value: "+678 7744444"
+                value: "+678 7114045"
             }
         ];
 

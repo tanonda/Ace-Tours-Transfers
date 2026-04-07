@@ -90,7 +90,7 @@ export default function TermsOfService() {
                   </tbody>
                 </table>
               </div>
-              <p>{cms.text("cancellation_note", "To cancel a booking, please contact us via WhatsApp at +678 7342389 or email acetoursvanuatu@outlook.com with your booking reference number. Cancellations are not accepted via social media messages.")}</p>
+              <p>{cms.text("cancellation_note", "To cancel a booking, please contact us via WhatsApp at +678 7114045 or email acetoursvanuatu@outlook.com with your booking reference number. Cancellations are not accepted via social media messages.")}</p>
               <p>{cms.text("cancellation_weather", "In the event that Ace Tours & Transfers cancels a service due to weather or operational reasons, a full refund will be issued or an alternative date offered at no extra charge.")}</p>
             </div>
           </section>
@@ -151,7 +151,7 @@ export default function TermsOfService() {
             <p className="text-muted-foreground mb-4">If you have any questions about these terms, please contact us before making a booking.</p>
             <div className="flex flex-col sm:flex-row gap-3">
               <a
-                href="https://wa.me/6787342389"
+                href="https://wa.me/6787114045"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center justify-center rounded-md bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90"

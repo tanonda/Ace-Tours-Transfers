@@ -103,9 +103,9 @@ function emailHeader(logoUrl: string, title: string, subtitle: string): string {
 }
 
 function emailFooter(l: string = "en", extra = ""): string {
-  const phone = process.env.BUSINESS_PHONE || "+678 7744444";
+  const phone = process.env.BUSINESS_PHONE || "+678 7114045";
   const email = process.env.BUSINESS_EMAIL || "info@acetours.vu";
-  const whatsapp = process.env.WHATSAPP_NUMBER || "6787744444";
+  const whatsapp = process.env.WHATSAPP_NUMBER || "6787114045";
   return `
     <div style="margin-top: 32px; padding: 24px; background: #f8fafc; border-top: 1px solid #e5e7eb; text-align: center; border-radius: 0 0 8px 8px;">
       ${extra}
@@ -195,7 +195,7 @@ export async function getBookingRequestTemplate(
   const isOffline = paymentMethod === "offline" || paymentMethod === "bank_transfer" || isCash;
   const isOnline = paymentMethod === "online";
 
-  const waNumber = process.env.WHATSAPP_NUMBER || "6787744444";
+  const waNumber = process.env.WHATSAPP_NUMBER || "6787114045";
   let paymentBlock = "";
 
   if (isCash) {
