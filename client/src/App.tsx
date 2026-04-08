@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -15,9 +16,10 @@ import { CMSProvider } from "@/lib/cms-context";
 import { WhatsAppWidget } from "@/components/whatsapp-widget";
 import { NProgressRouter } from "@/components/nprogress-router";
 
-// Coming soon gate — set VITE_COMING_SOON=true in Render env vars to enable
-const COMING_SOON = import.meta.env.VITE_COMING_SOON === "true";
-const ComingSoon = COMING_SOON ? lazy(() => import("@/pages/coming-soon")) : null;
+// Coming soon gate — controlled via Admin Dashboard > Settings > Feature Flags
+// Falls back to VITE_COMING_SOON env var if the DB flag hasn't been seeded yet.
+const ENV_COMING_SOON = import.meta.env.VITE_COMING_SOON === "true";
+const ComingSoon = lazy(() => import("@/pages/coming-soon"));
 
 // Lazy-loaded pages
 const Home = lazy(() => import("@/pages/home"));
@@ -137,16 +139,28 @@ const Loader = () => (
 function Router() {
   const { isStaff, isLoading } = useAuth();
 
-  // While auth check is in flight, show nothing — avoids a flash of the
-  // coming soon page for staff who are already logged in.
-  if (COMING_SOON && isLoading) {
+  // Fetch the coming-soon feature flag from the DB (no auth required).
+  // Falls back gracefully to the env var if the flag isn't seeded yet.
+  const { data: flags = [], isLoading: isFlagsLoading } = useQuery<{ slug: string; enabled: boolean }[]>({
+    queryKey: ["feature-flags"],
+    queryFn: () => fetch("/api/feature-flags").then((r) => r.json()),
+    staleTime: 30_000,
+  });
+
+  const dbComingSoon = flags.find((f) => f.slug === "coming-soon")?.enabled;
+  // If the DB flag exists use it; otherwise fall back to env var
+  const COMING_SOON = dbComingSoon !== undefined ? dbComingSoon : ENV_COMING_SOON;
+
+  // While auth or flags are loading, show nothing — avoids a flash of
+  // the coming soon page for staff who are already logged in.
+  if (isFlagsLoading || (COMING_SOON && isLoading)) {
     return <Loader />;
   }
 
   // Coming soon is active AND the visitor is not staff/admin:
   // Show the coming soon page for all public routes, but still expose
   // /staff-access so they can log in.
-  if (COMING_SOON && !isStaff && ComingSoon) {
+  if (COMING_SOON && !isStaff) {
     return (
       <Suspense fallback={<Loader />}>
         <Switch>

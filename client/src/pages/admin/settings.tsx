@@ -1123,7 +1123,38 @@ export default function AdminSettings() {
 
           </TabsContent>
 
-          <TabsContent value="flags" className="mt-4">
+          <TabsContent value="flags" className="mt-4 space-y-4">
+            {/* ── Coming Soon Toggle — prominent card at top ── */}
+            {(() => {
+              const comingSoonFlag = flags.find((f: any) => f.slug === "coming-soon");
+              if (!comingSoonFlag) return null;
+              return (
+                <Card className={comingSoonFlag.enabled ? "border-amber-400 bg-amber-50 dark:bg-amber-950/20" : "border-green-400 bg-green-50 dark:bg-green-950/20"}>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-3 h-3 rounded-full ${comingSoonFlag.enabled ? "bg-amber-400 animate-pulse" : "bg-green-500"}`} />
+                        <CardTitle className="text-base">
+                          {comingSoonFlag.enabled ? "🚧 Coming Soon Mode is ON" : "🟢 Site is LIVE"}
+                        </CardTitle>
+                      </div>
+                      <Switch
+                        id="coming-soon-toggle"
+                        checked={comingSoonFlag.enabled}
+                        onCheckedChange={(checked) => toggleFlagMutation.mutate({ slug: "coming-soon", enabled: checked })}
+                        disabled={toggleFlagMutation.isPending}
+                      />
+                    </div>
+                    <CardDescription className="mt-2">
+                      {comingSoonFlag.enabled
+                        ? "The public site is showing the Coming Soon page. Staff & admins can still log in via /staff-access."
+                        : "The site is fully live and accessible to all visitors. Toggle ON to show the Coming Soon page instead."}
+                    </CardDescription>
+                  </CardHeader>
+                </Card>
+              );
+            })()}
+
             <Card>
               <CardHeader>
                 <CardTitle>Feature Flags</CardTitle>

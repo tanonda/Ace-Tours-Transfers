@@ -14,7 +14,7 @@ async function main() {
           enabled: true,
           greeting: "Hello! How can we help you with your Vanuatu adventure?",
           position: "bottom-right",
-          phoneNumber: "+678 5551234"
+          phoneNumber: "+678 7114045"
         }
       },
       {
@@ -22,7 +22,7 @@ async function main() {
         value: {
           name: "Ace Tours & Transfers Vanuatu",
           email: "info@acetours.vu",
-          phone: "+678 5551234",
+          phone: "+678 7114045",
           address: "Port Vila, Vanuatu"
         }
       }
