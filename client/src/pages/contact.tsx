@@ -21,8 +21,9 @@ export default function Contact() {
   const { toast } = useToast();
 
   const contactEmail = getSetting("contact_email") || "acetoursvanuatu@outlook.com";
-  const whatsappSettings = getSetting("whatsapp");
-  const whatsappNumber = whatsappSettings?.phoneNumber?.replace(/[^0-9]/g, '') || WHATSAPP_NUMBER;
+  const contactPhone = getSetting("contact_phone") || "7114045";
+  const whatsappSettings = getSetting("whatsapp") as any;
+  const whatsappNumber = (whatsappSettings?.phoneNumber || getSetting("whatsapp_number") || WHATSAPP_NUMBER).replace(/[^0-9]/g, '');
 
   const [form, setForm] = useState({ name: "", email: "", phone: "", subject: "", message: "" });
   const [submitting, setSubmitting] = useState(false);
@@ -84,7 +85,7 @@ export default function Contact() {
                 <div className="flex-1">
                   <h3 className="font-bold text-lg mb-1">{t("contact.phone")}</h3>
                   <div className="space-y-1">
-                    <a href="tel:+6787114045" className="block text-lg font-semibold text-primary hover:underline">+678 7114045</a>
+                    <a href={`tel:+678${contactPhone.replace(/\D/g, '')}`} className="block text-lg font-semibold text-primary hover:underline">+678 {contactPhone}</a>
                   </div>
                   <p className="text-sm text-muted-foreground mt-1">{cms.text("phone_availability", t("contact.phoneAvailable"))}</p>
                 </div>

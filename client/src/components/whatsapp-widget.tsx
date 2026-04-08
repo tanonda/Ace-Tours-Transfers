@@ -21,13 +21,27 @@ export function WhatsAppWidget() {
     } catch { /* sessionStorage unavailable */ }
   }, []);
 
-  const whatsappSettings = getSetting("whatsapp");
+  const whatsappSettingsRaw = getSetting("whatsapp");
+  const legacyPhoneNumber = getSetting("whatsapp_number");
 
-  if (!enabled || !whatsappSettings?.enabled || isDismissed) {
+  // Normalize settings - handle both structured object and legacy missing data
+  const whatsappSettings = (typeof whatsappSettingsRaw === 'object' && whatsappSettingsRaw !== null)
+    ? whatsappSettingsRaw
+    : {};
+
+  // Master enable check: block feature flag + setting-specific toggle
+  const isWidgetEnabled = enabled && (whatsappSettings.enabled !== false);
+
+  if (!isWidgetEnabled || isDismissed) {
     return null;
   }
 
-  const phoneNumber = whatsappSettings.phoneNumber?.replace(/[^0-9+]/g, '') || '';
+  // Fallback chain for phone number: structured object -> legacy flat key -> empty string
+  const phoneNumber = (
+    whatsappSettings.phoneNumber ||
+    (typeof legacyPhoneNumber === 'string' ? legacyPhoneNumber : '')
+  )?.replace(/[^0-9+]/g, '') || '';
+
   const greeting = whatsappSettings.greeting || t("whatsapp.defaultGreeting");
   const position = whatsappSettings.position || "bottom-right";
 

@@ -11,6 +11,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, Save, Flag, Mail, Users, Download, Trash2, CheckCircle, Clock, Globe, CreditCard, Star, ExternalLink, CheckCircle2, AlertCircle } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Switch } from "@/components/ui/switch";
+import { MessageCircle, LayoutDashboard } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 
 function SettingItem({
   itemKey,
@@ -144,6 +147,12 @@ export default function AdminSettings() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState<Record<string, string>>({});
+  const [whatsappSettings, setWhatsappSettings] = useState({
+    phoneNumber: "",
+    greeting: "",
+    enabled: true,
+    position: "bottom-right" as "bottom-right" | "bottom-left"
+  });
 
   const { data: settings = [], isLoading } = useQuery({
     queryKey: ["settings"],
@@ -155,11 +164,15 @@ export default function AdminSettings() {
     if (settings.length > 0) {
       const newFormData: Record<string, string> = {};
       settings.forEach(s => {
-        // Handle both simple strings and JSON objects (though we simple string inputs for now)
         const val = s.value;
         newFormData[s.key] = typeof val === 'string' ? val : JSON.stringify(val);
       });
       setFormData(prev => ({ ...prev, ...newFormData }));
+
+      const ws = settings.find(s => s.key === "whatsapp")?.value;
+      if (ws && typeof ws === 'object') {
+        setWhatsappSettings(prev => ({ ...prev, ...ws }));
+      }
     }
   }, [settings]);
 
@@ -178,7 +191,7 @@ export default function AdminSettings() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ key, value }: { key: string; value: string }) => updateSiteSetting(key, value),
+    mutationFn: ({ key, value }: { key: string; value: any }) => updateSiteSetting(key, value),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["settings"] });
       toast({ title: t("cms.updated"), description: "Setting saved successfully." });
@@ -208,6 +221,12 @@ export default function AdminSettings() {
     updateMutation.mutate({ key, value: formData[key] || "" });
   };
 
+  const handleSaveWhatsapp = async () => {
+    updateMutation.mutate({ key: "whatsapp", value: whatsappSettings });
+    // Keep legacy field in sync for footer compatibility
+    updateMutation.mutate({ key: "whatsapp_number", value: whatsappSettings.phoneNumber });
+  };
+
   const SETTING_GROUPS = {
     contact: [
       { key: "contact_email", label: t("contact.email"), icon: "Mail" },
@@ -218,7 +237,6 @@ export default function AdminSettings() {
     social: [
       { key: "social_facebook", label: "Facebook URL", icon: "Facebook" },
       { key: "social_instagram", label: "Instagram URL", icon: "Instagram" },
-      { key: "whatsapp_number", label: "WhatsApp Number", icon: "MessageCircle" },
     ],
     email: [
       { key: "admin_email", label: "Admin Notification Email", placeholder: "email to receive booking notifications" },
@@ -249,6 +267,10 @@ export default function AdminSettings() {
           <TabsList className="flex-wrap h-auto gap-1">
             <TabsTrigger value="contact">{t("footer.contactInfo")}</TabsTrigger>
             <TabsTrigger value="social">Social Media</TabsTrigger>
+            <TabsTrigger value="whatsapp" className="flex items-center gap-1.5 font-semibold text-primary">
+              <MessageCircle className="h-3.5 w-3.5" />
+              WhatsApp Widget
+            </TabsTrigger>
             <TabsTrigger value="email">Email Config</TabsTrigger>
             {/* Newsletter moved to its own dedicated page: /admin/newsletter */}
             <TabsTrigger value="payments">Payment Instructions</TabsTrigger>
@@ -317,6 +339,88 @@ export default function AdminSettings() {
                       await updateMutation.mutateAsync({ key: "social_custom_links", value: valueString });
                     }}
                   />
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="whatsapp" className="mt-4">
+            <Card className="border-primary/20 shadow-sm">
+              <CardHeader className="bg-primary/5 border-b border-primary/10">
+                <CardTitle className="flex items-center gap-2">
+                  <MessageCircle className="h-5 w-5 text-primary" />
+                  WhatsApp Widget Settings
+                </CardTitle>
+                <CardDescription>
+                  Configure the floating WhatsApp contact button and its behavior.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6 pt-6">
+                <div className="flex items-center justify-between p-4 rounded-lg border bg-muted/30">
+                  <div className="space-y-0.5">
+                    <Label className="text-base">Enable Widget</Label>
+                    <p className="text-sm text-muted-foreground">Show the floating WhatsApp button on all pages.</p>
+                  </div>
+                  <Switch
+                    checked={whatsappSettings.enabled}
+                    onCheckedChange={(checked) => setWhatsappSettings(prev => ({ ...prev, enabled: checked }))}
+                  />
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="wa_phone">WhatsApp Phone Number</Label>
+                    <Input
+                      id="wa_phone"
+                      value={whatsappSettings.phoneNumber}
+                      onChange={(e) => setWhatsappSettings(prev => ({ ...prev, phoneNumber: e.target.value }))}
+                      placeholder="+678 7114045"
+                    />
+                    <p className="text-xs text-muted-foreground">Include country code (e.g., +678 for Vanuatu).</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="wa_pos">Widget Position</Label>
+                    <Select
+                      value={whatsappSettings.position}
+                      onValueChange={(val) => setWhatsappSettings(prev => ({ ...prev, position: val as any }))}
+                    >
+                      <SelectTrigger id="wa_pos">
+                        <SelectValue placeholder="Select position" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="bottom-right">Bottom Right</SelectItem>
+                        <SelectItem value="bottom-left">Bottom Left</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="wa_greeting">Greeting Message</Label>
+                  <Textarea
+                    id="wa_greeting"
+                    value={whatsappSettings.greeting}
+                    onChange={(e) => setWhatsappSettings(prev => ({ ...prev, greeting: e.target.value }))}
+                    placeholder="Hello! How can we help you today?"
+                    rows={3}
+                  />
+                  <p className="text-xs text-muted-foreground">The message that appears when someone opens the widget.</p>
+                </div>
+
+                <div className="pt-4 border-t flex justify-end">
+                  <Button
+                    onClick={handleSaveWhatsapp}
+                    disabled={updateMutation.isPending}
+                    className="w-full md:w-auto"
+                  >
+                    {updateMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : (
+                      <Save className="h-4 w-4 mr-2" />
+                    )}
+                    Save WhatsApp Settings
+                  </Button>
                 </div>
               </CardContent>
             </Card>
