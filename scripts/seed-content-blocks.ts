@@ -1,19 +1,62 @@
 
 import "dotenv/config";
-import { db } from "../server/db.js";
+import { db, initializeDatabase } from "../server/db.js";
 import { contentBlocks } from "../shared/schema.js";
 
 async function main() {
   try {
+    await initializeDatabase();
     console.log("Seeding content blocks...");
     
     const blocks = [
       {
+        slug: "home-page",
+        label: "Home Page",
+        description: "Main landing page content",
+        enabled: true,
+        config: {}
+      },
+      {
         slug: "hero",
-        label: "Hero Section",
+        label: "Hero Section (Legacy)",
         description: "Main hero banner on the home page",
         enabled: true,
         config: { showCta: true, showScrollIndicator: true }
+      },
+      {
+        slug: "about",
+        label: "About Us",
+        description: "Detailed about us page content",
+        enabled: true,
+        config: {}
+      },
+      {
+        slug: "about-section",
+        label: "About Us Section (Home)",
+        description: "About section on home page",
+        enabled: true,
+        config: {}
+      },
+      {
+        slug: "contact",
+        label: "Contact",
+        description: "Contact page details and info",
+        enabled: true,
+        config: {}
+      },
+      {
+        slug: "footer",
+        label: "Footer",
+        description: "Site-wide footer content",
+        enabled: true,
+        config: {}
+      },
+      {
+        slug: "faq",
+        label: "FAQ",
+        description: "Frequently asked questions",
+        enabled: true,
+        config: {}
       },
       {
         slug: "featured-tours",
@@ -28,13 +71,6 @@ async function main() {
         description: "Transfer cards section on home page",
         enabled: true,
         config: { maxItems: 3 }
-      },
-      {
-        slug: "about-section",
-        label: "About Us Section",
-        description: "About section on home page",
-        enabled: true,
-        config: {}
       },
       {
         slug: "testimonials",

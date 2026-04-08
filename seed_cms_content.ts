@@ -1,13 +1,15 @@
-import { db } from "./server/db";
+import "dotenv/config";
+import { db, initializeDatabase } from "./server/db";
 import { cmsContent } from "./shared/schema";
 
 async function main() {
+  await initializeDatabase();
   console.log("Seeding cms_content table...");
 
   const heroContent = [
-    { blockSlug: "home", contentKey: "hero_title_part1", value: "Experience Vanuatu's", contentType: "text" },
-    { blockSlug: "home", contentKey: "hero_title_part2", value: "Natural Beauty", contentType: "text" },
-    { blockSlug: "home", contentKey: "hero_subtitle", value: "Your trusted partner for premium airport transfers, reliable vehicle hire, and unforgettable guided island tours in Port Vila.", contentType: "text" }
+    { blockSlug: "home-page", contentKey: "hero_title_part1", value: "Experience Vanuatu's", contentType: "text" },
+    { blockSlug: "home-page", contentKey: "hero_title_part2", value: "Natural Beauty", contentType: "text" },
+    { blockSlug: "home-page", contentKey: "hero_subtitle", value: "Your trusted partner for premium airport transfers, reliable vehicle hire, and unforgettable guided island tours in Port Vila.", contentType: "text" }
   ];
 
   for (const item of heroContent) {
