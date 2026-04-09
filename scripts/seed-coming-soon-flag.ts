@@ -1,10 +1,11 @@
 import "dotenv/config";
-import { db } from "../server/db.js";
+import { initializeDatabase } from "../server/db.js";
 import { featureFlags } from "../shared/schema.js";
 
 async function main() {
   try {
     console.log("Seeding coming-soon feature flag...");
+    const { db } = await initializeDatabase();
 
     await db
       .insert(featureFlags)

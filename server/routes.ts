@@ -2416,15 +2416,12 @@ ${allPages.map(p => `  <url>
   app.get("/api/admin/feature-flags/:slug", requireAdmin, async (req, res) => {
     try {
       const { slug } = req.params;
-      console.log(`[FLAG] Fetching flag: ${slug}`);
       const flag = await storage.getFeatureFlag(slug);
       if (!flag) {
-        console.warn(`[FLAG] NOT FOUND: ${slug}`);
         return res.status(404).json({ error: "Feature flag not found" });
       }
       res.json(flag);
     } catch (error) {
-      console.error(`[FLAG] Fetch error for ${req.params.slug}:`, error);
       res.status(500).json({ error: "Failed to fetch feature flag" });
     }
   });
@@ -2433,7 +2430,6 @@ ${allPages.map(p => `  <url>
     try {
       const { slug } = req.params;
       const { enabled } = req.body;
-      console.log(`[FLAG] Patching flag: ${slug} -> ${enabled}`);
 
       if (typeof enabled !== 'boolean') {
         return res.status(400).json({ error: "Enabled state must be a boolean" });
@@ -2441,7 +2437,6 @@ ${allPages.map(p => `  <url>
 
       const flag = await storage.getFeatureFlag(slug);
       if (!flag) {
-        console.warn(`[FLAG] Patch target NOT FOUND: ${slug}`);
         return res.status(404).json({ error: "Feature flag not found" });
       }
 
