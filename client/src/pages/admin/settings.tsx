@@ -351,9 +351,10 @@ function ComingSoonTab({
       if (!res.ok) throw new Error("Upload failed");
       const { url } = await res.json();
       const newImgs = [...bgImages, url];
+      const imgsJson = JSON.stringify(newImgs);
       setImages(newImgs);
-      // auto-save
-      await onSave("cs_bg_images");
+      // auto-save with immediate value to prevent stale state issues
+      await onSave("cs_bg_images", imgsJson);
       toast({ title: "Image uploaded", description: "Background image added." });
     } catch (e: any) {
       toast({ title: "Upload failed", description: e.message, variant: "destructive" });
@@ -363,11 +364,20 @@ function ComingSoonTab({
     }
   };
 
-  const removeImage = (idx: number) => setImages(bgImages.filter((_, i) => i !== idx));
-  const moveImage = (idx: number, dir: -1 | 1) => {
+  const removeImage = async (idx: number) => {
+    const newImgs = bgImages.filter((_, i) => i !== idx);
+    const imgsJson = JSON.stringify(newImgs);
+    setImages(newImgs);
+    await onSave("cs_bg_images", imgsJson);
+  };
+
+  const moveImage = async (idx: number, dir: -1 | 1) => {
     const n = [...bgImages]; const t = idx + dir;
     if (t < 0 || t >= n.length) return;
-    [n[idx], n[t]] = [n[t], n[idx]]; setImages(n);
+    [n[idx], n[t]] = [n[t], n[idx]]; 
+    const imgsJson = JSON.stringify(n);
+    setImages(n);
+    await onSave("cs_bg_images", imgsJson);
   };
 
   // countdown for preview
