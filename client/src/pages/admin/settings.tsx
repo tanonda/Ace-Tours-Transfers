@@ -8,12 +8,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Save, Flag, Mail, Users, Download, Trash2, CheckCircle, Clock, Globe, CreditCard, Star, ExternalLink, CheckCircle2, AlertCircle } from "lucide-react";
-import { useState, useEffect } from "react";
+import { Loader2, Save, Flag, Mail, Users, Download, Trash2, CheckCircle, Clock, Globe, CreditCard, Star, ExternalLink, CheckCircle2, AlertCircle, ImagePlus, GripVertical, ChevronUp, ChevronDown, Monitor, Eye, Smartphone } from "lucide-react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Switch } from "@/components/ui/switch";
 import { MessageCircle, LayoutDashboard } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 
 function SettingItem({
   itemKey,
@@ -141,6 +143,467 @@ function SettingList({
     </div>
   );
 }
+
+// ─── Coming Soon Tab Component ────────────────────────────────────────────────
+const CS_DEFAULTS = {
+  cs_tagline: "Port Vila · Vanuatu",
+  cs_headline: "Ace Tours &",
+  cs_headline2: "Transfers",
+  cs_description: "Something extraordinary is on the horizon. We're putting the finishing touches on your next great Vanuatu adventure.",
+  cs_show_countdown: "true",
+  cs_show_signup: "true",
+  cs_signup_placeholder: "Your email address",
+  cs_signup_button: "Notify Me",
+  cs_signup_success: "We'll let you know when we launch",
+  cs_contact_email: "acetoursvanuatu@outlook.com",
+  cs_contact_phone: "+678 7114045",
+  cs_bg_images: "[]",
+  cs_bg_interval: "5000",
+  cs_bg_overlay: "0.55",
+  cs_show_reviews: "true",
+  cs_reviews_count: "3",
+  launch_date: "2026-05-01",
+};
+
+type CSKey = keyof typeof CS_DEFAULTS;
+
+function StarPreview({ rating }: { rating: number }) {
+  return (
+    <div style={{ display: "flex", gap: 2, marginBottom: 6 }}>
+      {[1,2,3,4,5].map(s => (
+        <svg key={s} width="10" height="10" viewBox="0 0 24 24" fill={s <= rating ? "#f59e0b" : "rgba(255,255,255,0.2)"}>
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+        </svg>
+      ))}
+    </div>
+  );
+}
+
+function ComingSoonTab({
+  formData,
+  flags,
+  onChange,
+  onSave,
+  toggleFlagMutation,
+}: {
+  formData: Record<string, string>;
+  flags: any[];
+  onChange: (key: string, val: string) => void;
+  onSave: (key: string) => Promise<any>;
+  toggleFlagMutation: any;
+}) {
+  const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingIdx, setUploadingIdx] = useState<number | null>(null);
+  const [savingKey, setSavingKey] = useState<string | null>(null);
+  const [previewDevice, setPreviewDevice] = useState<"desktop" | "mobile">("desktop");
+  const [previewBg, setPreviewBg] = useState(0);
+
+  const { data: approvedReviews = [] } = useQuery<any[]>({
+    queryKey: ["approved-reviews"],
+    queryFn: () => fetch("/api/reviews/approved").then(r => r.json()),
+    staleTime: 300_000,
+  });
+
+  const comingSoonFlag = flags.find((f: any) => f.slug === "coming-soon");
+  const isOn = comingSoonFlag?.enabled ?? false;
+
+  const get = (key: CSKey) => formData[key] ?? CS_DEFAULTS[key];
+
+  const save = async (key: string) => {
+    setSavingKey(key);
+    try { await onSave(key); } finally { setSavingKey(null); }
+  };
+
+  const bgImages: string[] = (() => { try { return JSON.parse(get("cs_bg_images") || "[]"); } catch { return []; } })();
+  const setImages = (imgs: string[]) => onChange("cs_bg_images", JSON.stringify(imgs));
+
+  const uploadImage = async (file: File) => {
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: "File too large", description: "Max 5MB per image.", variant: "destructive" }); return;
+    }
+    setUploadingIdx(bgImages.length);
+    const fd = new FormData();
+    fd.append("image", file);
+    try {
+      const res = await fetch("/api/admin/upload?folder=ace-tours-coming-soon", { method: "POST", body: fd });
+      if (!res.ok) throw new Error("Upload failed");
+      const { url } = await res.json();
+      const newImgs = [...bgImages, url];
+      setImages(newImgs);
+      // auto-save
+      await onSave("cs_bg_images");
+      toast({ title: "Image uploaded", description: "Background image added." });
+    } catch (e: any) {
+      toast({ title: "Upload failed", description: e.message, variant: "destructive" });
+    } finally {
+      setUploadingIdx(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const removeImage = (idx: number) => setImages(bgImages.filter((_, i) => i !== idx));
+  const moveImage = (idx: number, dir: -1 | 1) => {
+    const n = [...bgImages]; const t = idx + dir;
+    if (t < 0 || t >= n.length) return;
+    [n[idx], n[t]] = [n[t], n[idx]]; setImages(n);
+  };
+
+  // countdown for preview
+  const [liveTime, setLiveTime] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+  useEffect(() => {
+    const tick = () => {
+      const d = Math.max(0, new Date(`${get("launch_date")}T00:00:00`).getTime() - Date.now());
+      setLiveTime({ days: Math.floor(d/86400000), hours: Math.floor((d%86400000)/3600000), minutes: Math.floor((d%3600000)/60000), seconds: Math.floor((d%60000)/1000) });
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [formData["launch_date"]]);
+
+  // bg slideshow in preview
+  useEffect(() => {
+    if (!bgImages.length) return;
+    const interval = parseInt(get("cs_bg_interval")) || 5000;
+    const id = setInterval(() => setPreviewBg(p => (p + 1) % bgImages.length), interval);
+    return () => clearInterval(id);
+  }, [bgImages.length, formData["cs_bg_interval"]]);
+
+  const overlayOpacity = parseFloat(get("cs_bg_overlay")) || 0.55;
+  const showCountdown = get("cs_show_countdown") === "true";
+  const showSignup = get("cs_show_signup") === "true";
+  const showReviews = get("cs_show_reviews") === "true";
+  const reviewCount = parseInt(get("cs_reviews_count")) || 3;
+  const previewReviews = approvedReviews.slice(0, reviewCount);
+
+  const FieldRow = ({ label, csKey, type = "text", placeholder }: { label: string; csKey: CSKey; type?: string; placeholder?: string }) => (
+    <div className="space-y-1.5">
+      <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{label}</Label>
+      <div className="flex gap-2">
+        {type === "textarea" ? (
+          <Textarea value={get(csKey)} onChange={e => onChange(csKey, e.target.value)} placeholder={placeholder || CS_DEFAULTS[csKey]} className="flex-1 text-sm resize-none h-20" />
+        ) : (
+          <Input type={type} value={get(csKey)} onChange={e => onChange(csKey, e.target.value)} placeholder={placeholder || CS_DEFAULTS[csKey]} className="flex-1 h-8 text-sm" />
+        )}
+        <Button size="sm" variant="outline" className="h-8 px-2 shrink-0" onClick={() => save(csKey)} disabled={savingKey === csKey}>
+          {savingKey === csKey ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
+        </Button>
+      </div>
+    </div>
+  );
+
+  const ToggleRow = ({ label, csKey, description }: { label: string; csKey: CSKey; description?: string }) => (
+    <div className="flex items-center justify-between py-2">
+      <div>
+        <p className="text-sm font-medium">{label}</p>
+        {description && <p className="text-xs text-muted-foreground">{description}</p>}
+      </div>
+      <Switch
+        checked={get(csKey) === "true"}
+        onCheckedChange={async v => { onChange(csKey, v ? "true" : "false"); setSavingKey(csKey); try { await onSave(csKey); } finally { setSavingKey(null); } }}
+        disabled={savingKey === csKey}
+      />
+    </div>
+  );
+
+  return (
+    <div className="flex gap-4 h-[calc(100vh-200px)] min-h-[600px]">
+
+      {/* ── Left Controls ── */}
+      <div className="w-[380px] shrink-0 overflow-y-auto space-y-4 pr-2">
+
+        {/* Status */}
+        <Card className={isOn ? "border-amber-400 bg-amber-50 dark:bg-amber-950/20" : "border-green-400 bg-green-50 dark:bg-green-950/20"}>
+          <CardContent className="pt-4 pb-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className={`w-3 h-3 rounded-full ${isOn ? "bg-amber-400 animate-pulse" : "bg-green-500"}`} />
+                <div>
+                  <p className="font-semibold text-sm">{isOn ? "🚧 Coming Soon Mode is ON" : "🟢 Site is LIVE"}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{isOn ? "Public sees coming soon page. Staff can still log in." : "Site fully accessible to all visitors."}</p>
+                </div>
+              </div>
+              <Switch checked={isOn} onCheckedChange={checked => toggleFlagMutation.mutate({ slug: "coming-soon", enabled: checked })} disabled={toggleFlagMutation.isPending} />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Launch date */}
+        <Card>
+          <CardHeader className="pb-2 pt-4"><CardTitle className="text-sm flex items-center gap-2"><Clock className="h-4 w-4" /> Launch Date</CardTitle></CardHeader>
+          <CardContent className="space-y-3">
+            <FieldRow label="Target Launch Date" csKey="launch_date" type="date" />
+            <ToggleRow label="Show Countdown Timer" csKey="cs_show_countdown" description="Display days/hours/minutes/seconds" />
+          </CardContent>
+        </Card>
+
+        {/* Text content */}
+        <Card>
+          <CardHeader className="pb-2 pt-4"><CardTitle className="text-sm">Text Content</CardTitle></CardHeader>
+          <CardContent className="space-y-3">
+            <FieldRow label="Location Tagline" csKey="cs_tagline" />
+            <FieldRow label="Headline Line 1" csKey="cs_headline" />
+            <FieldRow label="Headline Line 2 (accent colour)" csKey="cs_headline2" />
+            <FieldRow label="Description" csKey="cs_description" type="textarea" />
+          </CardContent>
+        </Card>
+
+        {/* Email signup */}
+        <Card>
+          <CardHeader className="pb-2 pt-4"><CardTitle className="text-sm">Email Sign-up</CardTitle></CardHeader>
+          <CardContent className="space-y-3">
+            <ToggleRow label="Show Email Sign-up" csKey="cs_show_signup" />
+            <FieldRow label="Input Placeholder" csKey="cs_signup_placeholder" />
+            <FieldRow label="Button Label" csKey="cs_signup_button" />
+            <FieldRow label="Success Message" csKey="cs_signup_success" />
+          </CardContent>
+        </Card>
+
+        {/* Contact info */}
+        <Card>
+          <CardHeader className="pb-2 pt-4"><CardTitle className="text-sm">Contact Info on Page</CardTitle></CardHeader>
+          <CardContent className="space-y-3">
+            <FieldRow label="Email Address" csKey="cs_contact_email" type="email" />
+            <FieldRow label="Phone Number" csKey="cs_contact_phone" />
+          </CardContent>
+        </Card>
+
+        {/* Reviews */}
+        <Card>
+          <CardHeader className="pb-2 pt-4">
+            <CardTitle className="text-sm flex items-center gap-2"><Star className="h-4 w-4" /> Reviews Section</CardTitle>
+            <CardDescription className="text-xs">Shows approved reviews below the sign-up form.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <ToggleRow label="Show Reviews" csKey="cs_show_reviews" description="Display guest review cards on the page" />
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Number of Reviews to Show</Label>
+              <div className="flex gap-2">
+                <Select value={get("cs_reviews_count")} onValueChange={async v => { onChange("cs_reviews_count", v); setSavingKey("cs_reviews_count"); try { await onSave("cs_reviews_count"); } finally { setSavingKey(null); } }}>
+                  <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {[1,2,3,4,5,6].map(n => <SelectItem key={n} value={String(n)}>{n} review{n > 1 ? "s" : ""}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              {approvedReviews.length === 0 && (
+                <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">⚠ No approved reviews yet — reviews section will be hidden automatically.</p>
+              )}
+              {approvedReviews.length > 0 && (
+                <p className="text-xs text-muted-foreground mt-1">✓ {approvedReviews.length} approved review{approvedReviews.length > 1 ? "s" : ""} available</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Background images */}
+        <Card>
+          <CardHeader className="pb-2 pt-4">
+            <CardTitle className="text-sm flex items-center gap-2"><ImagePlus className="h-4 w-4" /> Background Slideshow</CardTitle>
+            <CardDescription className="text-xs">Images slide behind the entire page. A dark overlay keeps text readable.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Overlay Darkness</Label>
+              <div className="flex gap-2 items-center">
+                <input
+                  type="range" min="0.2" max="0.85" step="0.05"
+                  value={overlayOpacity}
+                  onChange={e => onChange("cs_bg_overlay", e.target.value)}
+                  onMouseUp={() => save("cs_bg_overlay")}
+                  onTouchEnd={() => save("cs_bg_overlay")}
+                  className="flex-1 accent-primary"
+                />
+                <span className="text-xs text-muted-foreground w-10 text-right">{Math.round(overlayOpacity * 100)}%</span>
+              </div>
+              <p className="text-[10px] text-muted-foreground">Higher = darker overlay, easier to read text</p>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Slide Duration</Label>
+              <Select value={get("cs_bg_interval")} onValueChange={async v => { onChange("cs_bg_interval", v); setSavingKey("cs_bg_interval"); try { await onSave("cs_bg_interval"); } finally { setSavingKey(null); } }}>
+                <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="3000">3 seconds</SelectItem>
+                  <SelectItem value="4000">4 seconds</SelectItem>
+                  <SelectItem value="5000">5 seconds</SelectItem>
+                  <SelectItem value="6000">6 seconds</SelectItem>
+                  <SelectItem value="8000">8 seconds</SelectItem>
+                  <SelectItem value="10000">10 seconds</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <Separator />
+
+            {/* Image list */}
+            <div className="space-y-2">
+              {bgImages.map((url, idx) => (
+                <div key={idx} className="flex items-center gap-2 p-2 rounded-md border bg-muted/30">
+                  <div className="flex flex-col gap-0.5">
+                    <button onClick={() => moveImage(idx, -1)} disabled={idx === 0} className="p-0.5 rounded hover:bg-muted disabled:opacity-30"><ChevronUp className="h-3 w-3" /></button>
+                    <button onClick={() => moveImage(idx, 1)} disabled={idx === bgImages.length - 1} className="p-0.5 rounded hover:bg-muted disabled:opacity-30"><ChevronDown className="h-3 w-3" /></button>
+                  </div>
+                  <img src={url} alt="" className="h-14 w-20 object-cover rounded border shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-muted-foreground">Photo {idx + 1}</p>
+                    <p className="text-[10px] text-muted-foreground/50 truncate">{url.split("/").pop()}</p>
+                  </div>
+                  <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:bg-destructive/10 shrink-0" onClick={() => removeImage(idx)}>
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              ))}
+              {bgImages.length === 0 && (
+                <div className="border border-dashed rounded-md p-4 text-center text-muted-foreground text-xs">No background images yet. Without images, a dark blue gradient is shown.</div>
+              )}
+            </div>
+
+            {bgImages.length < 12 && (
+              <>
+                <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden"
+                  onChange={async e => { for (const f of Array.from(e.target.files || []).slice(0, 12 - bgImages.length)) await uploadImage(f); }} />
+                <Button variant="outline" size="sm" className="w-full" onClick={() => fileInputRef.current?.click()} disabled={uploadingIdx !== null}>
+                  {uploadingIdx !== null ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Uploading...</> : <><ImagePlus className="h-4 w-4 mr-2" />Add Background Photos ({bgImages.length}/12)</>}
+                </Button>
+                {bgImages.length > 0 && (
+                  <Button size="sm" className="w-full" onClick={() => save("cs_bg_images")} disabled={savingKey === "cs_bg_images"}>
+                    {savingKey === "cs_bg_images" ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                    Save Photo Order
+                  </Button>
+                )}
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+      </div>
+
+      {/* ── Right: Live Preview ── */}
+      <div className="flex-1 flex flex-col min-w-0">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Eye className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-medium">Live Preview</span>
+            <Badge variant="secondary" className="text-xs">Updates as you type</Badge>
+          </div>
+          <div className="flex items-center gap-1 border rounded-md p-0.5">
+            <button onClick={() => setPreviewDevice("desktop")} className={`p-1.5 rounded transition-colors ${previewDevice === "desktop" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}><Monitor className="h-3.5 w-3.5" /></button>
+            <button onClick={() => setPreviewDevice("mobile")} className={`p-1.5 rounded transition-colors ${previewDevice === "mobile" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}><Smartphone className="h-3.5 w-3.5" /></button>
+          </div>
+        </div>
+
+        <div className="flex-1 border rounded-xl overflow-hidden bg-muted/20 flex items-start justify-center p-4">
+          <div
+            className="overflow-y-auto rounded-lg shadow-2xl transition-all duration-300"
+            style={{ width: previewDevice === "mobile" ? "375px" : "100%", maxHeight: "100%", background: "#001a2e", position: "relative" }}
+          >
+            {/* Background slideshow preview */}
+            {bgImages.length > 0 && (
+              <div style={{ position: "absolute", inset: 0, zIndex: 0, overflow: "hidden", borderRadius: "inherit" }}>
+                {bgImages.map((url, idx) => (
+                  <div key={idx} style={{ position: "absolute", inset: 0, opacity: idx === previewBg % bgImages.length ? 1 : 0, transition: "opacity 1.5s ease" }}>
+                    <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  </div>
+                ))}
+                <div style={{ position: "absolute", inset: 0, background: `rgba(0,26,46,${overlayOpacity})` }} />
+                <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, transparent 40%, rgba(0,26,46,0.7) 100%)" }} />
+              </div>
+            )}
+            {bgImages.length === 0 && (
+              <div style={{ position: "absolute", inset: 0, opacity: 0.05, backgroundImage: "radial-gradient(circle at 25% 35%, #00a8e0 0%, transparent 60%), radial-gradient(circle at 75% 70%, #0077b6 0%, transparent 55%)", zIndex: 0 }} />
+            )}
+
+            {/* Content */}
+            <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", alignItems: "center", padding: "32px 20px 28px", minHeight: "560px" }}>
+              <div style={{ width: "100%", maxWidth: 460, borderTop: "1px solid rgba(255,255,255,0.15)", marginBottom: 28 }} />
+
+              <div style={{ textAlign: "center", marginBottom: 10 }}>
+                <p style={{ color: "#5bb8d4", fontSize: 9, letterSpacing: "0.3em", textTransform: "uppercase", fontFamily: "Arial, sans-serif", fontWeight: 600, margin: "0 0 12px" }}>{get("cs_tagline")}</p>
+                <h1 style={{ color: "#fff", fontSize: 26, fontWeight: 400, lineHeight: 1.1, margin: "0 0 4px", fontFamily: "Georgia, serif", textShadow: "0 2px 12px rgba(0,0,0,0.4)" }}>{get("cs_headline")}</h1>
+                <h1 style={{ color: "#5bb8d4", fontSize: 26, fontWeight: 400, lineHeight: 1.1, margin: "0 0 20px", fontFamily: "Georgia, serif" }}>{get("cs_headline2")}</h1>
+              </div>
+
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18, width: "100%", maxWidth: 320 }}>
+                <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.15)" }} />
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" style={{ opacity: 0.6 }}><path d="M12 2L13.09 8.26L19 7L15.45 12L19 17L13.09 15.74L12 22L10.91 15.74L5 17L8.55 12L5 7L10.91 8.26L12 2Z" fill="#5bb8d4"/></svg>
+                <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.15)" }} />
+              </div>
+
+              <p style={{ color: "rgba(255,255,255,0.6)", fontSize: 12, textAlign: "center", maxWidth: 320, lineHeight: 1.7, fontStyle: "italic", margin: "0 0 24px", fontFamily: "Georgia, serif" }}>{get("cs_description")}</p>
+
+              {showCountdown && (
+                <div style={{ display: "flex", gap: 14, marginBottom: 24 }}>
+                  {[{ value: liveTime.days, label: "Days" }, { value: liveTime.hours, label: "Hours" }, { value: liveTime.minutes, label: "Min" }, { value: liveTime.seconds, label: "Sec" }].map(({ value, label }, i) => (
+                    <div key={label} style={{ textAlign: "center", position: "relative" }}>
+                      {i > 0 && <span style={{ position: "absolute", left: -9, top: "38%", color: "rgba(255,255,255,0.2)", fontSize: 16, fontFamily: "Arial, sans-serif" }}>:</span>}
+                      <div style={{ background: "rgba(255,255,255,0.06)", backdropFilter: "blur(8px)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 6, padding: "8px 10px", minWidth: 40 }}>
+                        <span style={{ display: "block", color: "#fff", fontSize: 20, fontWeight: 300, fontFamily: "Georgia, serif", lineHeight: 1 }}>{String(value).padStart(2, "0")}</span>
+                      </div>
+                      <p style={{ color: "rgba(255,255,255,0.35)", fontSize: 7, letterSpacing: "0.15em", textTransform: "uppercase", fontFamily: "Arial, sans-serif", margin: "5px 0 0" }}>{label}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {showSignup && (
+                <div style={{ width: "100%", maxWidth: 340, marginBottom: 24 }}>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <div style={{ flex: 1, background: "rgba(255,255,255,0.06)", backdropFilter: "blur(8px)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 5, padding: "9px 12px", color: "rgba(255,255,255,0.3)", fontSize: 11, fontFamily: "Arial, sans-serif" }}>{get("cs_signup_placeholder")}</div>
+                    <div style={{ background: "#5bb8d4", borderRadius: 5, padding: "9px 14px", color: "#001a2e", fontSize: 11, fontWeight: 700, fontFamily: "Arial, sans-serif", whiteSpace: "nowrap" }}>{get("cs_signup_button")}</div>
+                  </div>
+                  <p style={{ color: "rgba(255,255,255,0.2)", fontSize: 9, textAlign: "center", margin: "7px 0 0", fontFamily: "Arial, sans-serif" }}>{get("cs_signup_success")}</p>
+                </div>
+              )}
+
+              {/* Reviews preview */}
+              {showReviews && previewReviews.length > 0 && (
+                <div style={{ width: "100%", maxWidth: 460, marginBottom: 22 }}>
+                  <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 8, letterSpacing: "0.2em", textTransform: "uppercase", fontFamily: "Arial, sans-serif", textAlign: "center", marginBottom: 12 }}>What our guests say</p>
+                  <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(previewReviews.length, 3)}, 1fr)`, gap: 10 }}>
+                    {previewReviews.map((r: any) => (
+                      <div key={r.id} style={{ background: "rgba(255,255,255,0.05)", backdropFilter: "blur(10px)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, padding: "14px 14px 12px" }}>
+                        <StarPreview rating={r.rating} />
+                        <p style={{ color: "rgba(255,255,255,0.7)", fontSize: 10, lineHeight: 1.6, fontStyle: "italic", fontFamily: "Georgia, serif", margin: "0 0 10px" }}>"{r.comment?.slice(0, 80)}{r.comment?.length > 80 ? "…" : ""}"</p>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          <div style={{ width: 20, height: 20, borderRadius: "50%", background: "rgba(91,184,212,0.2)", border: "1px solid rgba(91,184,212,0.3)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            <span style={{ color: "#5bb8d4", fontSize: 9, fontFamily: "Arial, sans-serif", fontWeight: 600 }}>{(r.authorName || "?")[0].toUpperCase()}</span>
+                          </div>
+                          <div>
+                            <p style={{ color: "rgba(255,255,255,0.55)", fontSize: 9, margin: 0, fontFamily: "Arial, sans-serif", fontWeight: 600 }}>{r.authorName}</p>
+                            {r.tourTitle && <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 8, margin: 0, fontFamily: "Arial, sans-serif" }}>{r.tourTitle}</p>}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {showReviews && previewReviews.length === 0 && (
+                <div style={{ width: "100%", maxWidth: 460, marginBottom: 22, padding: "12px", border: "1px dashed rgba(255,255,255,0.1)", borderRadius: 8, textAlign: "center" }}>
+                  <p style={{ color: "rgba(255,255,255,0.25)", fontSize: 10, fontFamily: "Arial, sans-serif", margin: 0 }}>Reviews section hidden — no approved reviews yet</p>
+                </div>
+              )}
+
+              <div style={{ display: "flex", gap: 18, marginBottom: 22, justifyContent: "center" }}>
+                {[{ icon: "✉", text: get("cs_contact_email") }, { icon: "✆", text: get("cs_contact_phone") }].map(({ icon, text }) => (
+                  <div key={text} style={{ color: "rgba(255,255,255,0.35)", fontSize: 10, fontFamily: "Arial, sans-serif", display: "flex", alignItems: "center", gap: 4 }}>
+                    <span style={{ color: "#5bb8d4" }}>{icon}</span>{text}
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ width: "100%", maxWidth: 460, borderTop: "1px solid rgba(255,255,255,0.08)" }} />
+              <p style={{ color: "rgba(255,255,255,0.12)", fontSize: 8, fontFamily: "Arial, sans-serif", letterSpacing: "0.12em", textTransform: "uppercase", marginTop: 14 }}>© {new Date().getFullYear()} Ace Tours & Transfers Vanuatu</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 
 export default function AdminSettings() {
   const { t } = useTranslation();
@@ -279,6 +742,9 @@ export default function AdminSettings() {
             <TabsTrigger value="integrations">Integrations</TabsTrigger>
             <TabsTrigger value="flags">Feature Flags</TabsTrigger>
             <TabsTrigger value="backlinks">Backlinks</TabsTrigger>
+            <TabsTrigger value="coming-soon" className="flex items-center gap-1.5 font-semibold text-amber-600 dark:text-amber-400">
+              🚧 Coming Soon
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="contact" className="mt-4">
@@ -1315,6 +1781,17 @@ export default function AdminSettings() {
                 />
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="coming-soon" className="mt-4">
+            <ComingSoonTab
+              formData={formData}
+              flags={flags}
+              onChange={handleChange}
+              onSave={(key) => updateMutation.mutateAsync({ key, value: formData[key] || "" })}
+              toggleFlagMutation={toggleFlagMutation}
+              isSaving={updateMutation.isPending}
+            />
           </TabsContent>
 
         </Tabs>

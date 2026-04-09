@@ -805,6 +805,20 @@ ${allPages.map(p => `  <url>
 
 
 
+  // Public: approved reviews for coming soon page (no auth required)
+  app.get("/api/reviews/approved", async (_req, res) => {
+    try {
+      const allReviews = await storage.getAllReviews();
+      const approved = allReviews
+        .filter((r: any) => r.status === "approved" && r.comment)
+        .sort((a: any, b: any) => b.rating - a.rating)
+        .slice(0, 20);
+      res.json(approved);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Guest review submission (no auth required, requires moderation)
   app.post("/api/reviews/guest", reviewsLimiter, async (req, res) => {
     try {
