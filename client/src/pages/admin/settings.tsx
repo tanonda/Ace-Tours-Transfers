@@ -199,7 +199,7 @@ const FieldRow = ({
   placeholder?: string;
   get: (key: CSKey) => string;
   onChange: (key: string, val: string) => void;
-  save: (key: string) => Promise<void>;
+  save: (key: string, val?: string) => Promise<void>;
   savingKey: string | null;
 }) => (
   <div className="space-y-1.5">
@@ -252,7 +252,7 @@ const FieldRow = ({
         size="sm"
         variant="outline"
         className="h-8 px-2 shrink-0"
-        onClick={() => save(csKey)}
+        onClick={() => save(csKey, get(csKey))}
         disabled={savingKey === csKey}
       >
         {savingKey === csKey ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
@@ -276,7 +276,7 @@ const ToggleRow = ({
   description?: string;
   get: (key: CSKey) => string;
   onChange: (key: string, val: string) => void;
-  onSave: (key: string) => Promise<any>;
+  onSave: (key: string, val?: string) => Promise<any>;
   savingKey: string | null;
   setSavingKey: (key: string | null) => void;
 }) => (
@@ -288,9 +288,10 @@ const ToggleRow = ({
     <Switch
       checked={get(csKey) === "true"}
       onCheckedChange={async v => {
-        onChange(csKey, v ? "true" : "false");
+        const nextVal = v ? "true" : "false";
+        onChange(csKey, nextVal);
         setSavingKey(csKey);
-        try { await onSave(csKey); } finally { setSavingKey(null); }
+        try { await onSave(csKey, nextVal); } finally { setSavingKey(null); }
       }}
       disabled={savingKey === csKey}
     />
@@ -308,7 +309,7 @@ function ComingSoonTab({
   formData: Record<string, string>;
   flags: any[];
   onChange: (key: string, val: string) => void;
-  onSave: (key: string) => Promise<any>;
+  onSave: (key: string, val?: string) => Promise<any>;
   toggleFlagMutation: any;
   isSaving: boolean;
 }) {
@@ -330,9 +331,9 @@ function ComingSoonTab({
 
   const get = (key: CSKey) => formData[key] ?? CS_DEFAULTS[key];
 
-  const save = async (key: string) => {
+  const save = async (key: string, val?: string) => {
     setSavingKey(key);
-    try { await onSave(key); } finally { setSavingKey(null); }
+    try { await onSave(key, val); } finally { setSavingKey(null); }
   };
 
   const bgImages: string[] = (() => { try { return JSON.parse(get("cs_bg_images") || "[]"); } catch { return []; } })();
@@ -1879,7 +1880,7 @@ export default function AdminSettings() {
               formData={formData}
               flags={flags}
               onChange={handleChange}
-              onSave={(key) => updateMutation.mutateAsync({ key, value: formData[key] || "" })}
+              onSave={(key, val) => updateMutation.mutateAsync({ key, value: val ?? formData[key] ?? "" })}
               toggleFlagMutation={toggleFlagMutation}
               isSaving={updateMutation.isPending}
             />
