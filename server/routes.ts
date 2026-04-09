@@ -2413,6 +2413,19 @@ ${allPages.map(p => `  <url>
     }
   });
 
+  app.get("/api/admin/feature-flags/:slug", requireAdmin, async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const flag = await storage.getFeatureFlag(slug);
+      if (!flag) {
+        return res.status(404).json({ error: "Feature flag not found" });
+      }
+      res.json(flag);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch feature flag" });
+    }
+  });
+
   app.patch("/api/admin/feature-flags/:slug", requireAdmin, async (req, res) => {
     try {
       const { slug } = req.params;

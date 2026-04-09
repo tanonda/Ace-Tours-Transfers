@@ -147,13 +147,25 @@ function Router() {
     staleTime: 30_000,
   });
 
-  const dbComingSoon = flags.find((f) => f.slug === "coming-soon")?.enabled;
-  // If the DB flag exists use it; otherwise fall back to env var
-  const COMING_SOON = dbComingSoon !== undefined ? dbComingSoon : ENV_COMING_SOON;
+  // Also fetch the launch date from settings to support auto-off
+  const { data: settings = [], isLoading: isSettingsLoading } = useQuery<{ key: string; value: string }[]>({
+    queryKey: ["site-settings-public"],
+    queryFn: () => fetch("/api/settings").then((r) => r.json()),
+    staleTime: 60_000,
+  });
 
-  // While auth or flags are loading, show nothing — avoids a flash of
+  const launchDateVal = settings.find(s => s.key === 'launch_date')?.value;
+  const isPastLaunchDate = launchDateVal ? new Date() >= new Date(`${launchDateVal}T00:00:00`) : false;
+
+  const dbComingSoon = flags.find((f) => f.slug === "coming-soon")?.enabled;
+  // If the DB flag exists use it; otherwise fall back to env var.
+  // AUTO-OFF: If we're past the launch date, Coming Soon is always FALSE.
+  const flagEnabled = dbComingSoon !== undefined ? dbComingSoon : ENV_COMING_SOON;
+  const COMING_SOON = flagEnabled && !isPastLaunchDate;
+
+  // While auth, flags or settings are loading, show nothing — avoids a flash of
   // the coming soon page for staff who are already logged in.
-  if (isFlagsLoading || (COMING_SOON && isLoading)) {
+  if (isFlagsLoading || isSettingsLoading || (COMING_SOON && isLoading)) {
     return <Loader />;
   }
 

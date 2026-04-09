@@ -42,22 +42,24 @@ function ToolbarButton({
   );
 }
 
+const EDITOR_EXTENSIONS = [
+  StarterKit,
+  Link.configure({
+    openOnClick: false,
+    HTMLAttributes: {
+      class: 'text-primary underline cursor-pointer',
+    },
+  }),
+  TextAlign.configure({
+    types: ['heading', 'paragraph'],
+  }),
+];
+
 function RichEditor({
   value, onChange, placeholder = "Start typing..."
 }: { value: string; onChange: (html: string) => void; placeholder?: string }) {
   const editor = useEditor({
-    extensions: [
-      StarterKit,
-      Link.configure({
-        openOnClick: false,
-        HTMLAttributes: {
-          class: 'text-primary underline cursor-pointer',
-        },
-      }),
-      TextAlign.configure({
-        types: ['heading', 'paragraph'],
-      }),
-    ],
+    extensions: EDITOR_EXTENSIONS,
     content: value,
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML());

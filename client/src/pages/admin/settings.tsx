@@ -8,7 +8,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Save, Flag, Mail, Users, Download, Trash2, CheckCircle, Clock, Globe, CreditCard, Star, ExternalLink, CheckCircle2, AlertCircle, ImagePlus, GripVertical, ChevronUp, ChevronDown, Monitor, Eye, Smartphone } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
+import { Calendar as CalendarIcon, Clock, Globe, CreditCard, Star, ExternalLink, CheckCircle2, AlertCircle, ImagePlus, GripVertical, ChevronUp, ChevronDown, Monitor, Eye, Smartphone, Save, Mail, Users, Download, Trash2, CheckCircle, Flag, Loader2 } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Switch } from "@/components/ui/switch";
 import { MessageCircle, LayoutDashboard } from "lucide-react";
@@ -185,12 +189,14 @@ function ComingSoonTab({
   onChange,
   onSave,
   toggleFlagMutation,
+  isSaving,
 }: {
   formData: Record<string, string>;
   flags: any[];
   onChange: (key: string, val: string) => void;
   onSave: (key: string) => Promise<any>;
   toggleFlagMutation: any;
+  isSaving: boolean;
 }) {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -280,10 +286,37 @@ function ComingSoonTab({
     <div className="space-y-1.5">
       <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{label}</Label>
       <div className="flex gap-2">
-        {type === "textarea" ? (
-          <Textarea value={get(csKey)} onChange={e => onChange(csKey, e.target.value)} placeholder={placeholder || CS_DEFAULTS[csKey]} className="flex-1 text-sm resize-none h-20" />
+        {type === "date" ? (
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant={"outline"}
+                className={cn(
+                  "flex-1 h-8 justify-start text-left font-normal text-sm px-3",
+                  !get(csKey) && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-3.5 w-3.5" />
+                {get(csKey) ? format(new Date(get(csKey)), "PPP") : <span>Pick a date</span>}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={get(csKey) ? new Date(get(csKey)) : undefined}
+                onSelect={(date) => {
+                  if (date) {
+                    onChange(csKey, format(date, "yyyy-MM-dd"));
+                  }
+                }}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
+        ) : type === "textarea" ? (
+          <Textarea value={get(csKey)} onChange={e => onChange(csKey, e.target.value)} placeholder={placeholder || CS_DEFAULTS[csKey as CSKey]} className="flex-1 text-sm resize-none h-20" />
         ) : (
-          <Input type={type} value={get(csKey)} onChange={e => onChange(csKey, e.target.value)} placeholder={placeholder || CS_DEFAULTS[csKey]} className="flex-1 h-8 text-sm" />
+          <Input type={type} value={get(csKey)} onChange={e => onChange(csKey, e.target.value)} placeholder={placeholder || CS_DEFAULTS[csKey as CSKey]} className="flex-1 h-8 text-sm" />
         )}
         <Button size="sm" variant="outline" className="h-8 px-2 shrink-0" onClick={() => save(csKey)} disabled={savingKey === csKey}>
           {savingKey === csKey ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}

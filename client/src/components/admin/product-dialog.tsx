@@ -83,6 +83,12 @@ function ToolbarBtn({
   );
 }
 
+const EDITOR_EXTENSIONS = [
+  StarterKit,
+  Link.configure({ openOnClick: false, HTMLAttributes: { class: 'text-primary underline cursor-pointer' } }),
+  TextAlign.configure({ types: ['heading', 'paragraph'] }),
+];
+
 function RichEditor({
   value,
   onChange,
@@ -100,11 +106,7 @@ function RichEditor({
   const internalChange = useRef(false);
 
   const editor = useEditor({
-    extensions: [
-      StarterKit,
-      Link.configure({ openOnClick: false, HTMLAttributes: { class: 'text-primary underline cursor-pointer' } }),
-      TextAlign.configure({ types: ['heading', 'paragraph'] }),
-    ],
+    extensions: EDITOR_EXTENSIONS,
     content: value,
     onUpdate: ({ editor }) => {
       internalChange.current = true;
