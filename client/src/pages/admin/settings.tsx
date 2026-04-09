@@ -183,6 +183,120 @@ function StarPreview({ rating }: { rating: number }) {
   );
 }
 
+const FieldRow = ({
+  label,
+  csKey,
+  type = "text",
+  placeholder,
+  get,
+  onChange,
+  save,
+  savingKey
+}: {
+  label: string;
+  csKey: CSKey;
+  type?: string;
+  placeholder?: string;
+  get: (key: CSKey) => string;
+  onChange: (key: string, val: string) => void;
+  save: (key: string) => Promise<void>;
+  savingKey: string | null;
+}) => (
+  <div className="space-y-1.5">
+    <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{label}</Label>
+    <div className="flex gap-2">
+      {type === "date" ? (
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant={"outline"}
+              className={cn(
+                "flex-1 h-8 justify-start text-left font-normal text-sm px-3",
+                !get(csKey) && "text-muted-foreground"
+              )}
+            >
+              <CalendarIcon className="mr-2 h-3.5 w-3.5" />
+              {get(csKey) ? format(new Date(get(csKey)), "PPP") : <span>Pick a date</span>}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="single"
+              selected={get(csKey) ? new Date(get(csKey)) : undefined}
+              onSelect={(date) => {
+                if (date) {
+                  onChange(csKey, format(date, "yyyy-MM-dd"));
+                }
+              }}
+              initialFocus
+            />
+          </PopoverContent>
+        </Popover>
+      ) : type === "textarea" ? (
+        <Textarea
+          value={get(csKey)}
+          onChange={e => onChange(csKey, e.target.value)}
+          placeholder={placeholder || CS_DEFAULTS[csKey as CSKey]}
+          className="flex-1 text-sm resize-none h-20"
+        />
+      ) : (
+        <Input
+          type={type}
+          value={get(csKey)}
+          onChange={e => onChange(csKey, e.target.value)}
+          placeholder={placeholder || CS_DEFAULTS[csKey as CSKey]}
+          className="flex-1 h-8 text-sm"
+        />
+      )}
+      <Button
+        size="sm"
+        variant="outline"
+        className="h-8 px-2 shrink-0"
+        onClick={() => save(csKey)}
+        disabled={savingKey === csKey}
+      >
+        {savingKey === csKey ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
+      </Button>
+    </div>
+  </div>
+);
+
+const ToggleRow = ({
+  label,
+  csKey,
+  description,
+  get,
+  onChange,
+  onSave,
+  savingKey,
+  setSavingKey
+}: {
+  label: string;
+  csKey: CSKey;
+  description?: string;
+  get: (key: CSKey) => string;
+  onChange: (key: string, val: string) => void;
+  onSave: (key: string) => Promise<any>;
+  savingKey: string | null;
+  setSavingKey: (key: string | null) => void;
+}) => (
+  <div className="flex items-center justify-between py-2">
+    <div>
+      <p className="text-sm font-medium">{label}</p>
+      {description && <p className="text-xs text-muted-foreground">{description}</p>}
+    </div>
+    <Switch
+      checked={get(csKey) === "true"}
+      onCheckedChange={async v => {
+        onChange(csKey, v ? "true" : "false");
+        setSavingKey(csKey);
+        try { await onSave(csKey); } finally { setSavingKey(null); }
+      }}
+      disabled={savingKey === csKey}
+    />
+  </div>
+);
+
 function ComingSoonTab({
   formData,
   flags,
@@ -282,62 +396,6 @@ function ComingSoonTab({
   const reviewCount = parseInt(get("cs_reviews_count")) || 3;
   const previewReviews = approvedReviews.slice(0, reviewCount);
 
-  const FieldRow = ({ label, csKey, type = "text", placeholder }: { label: string; csKey: CSKey; type?: string; placeholder?: string }) => (
-    <div className="space-y-1.5">
-      <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{label}</Label>
-      <div className="flex gap-2">
-        {type === "date" ? (
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant={"outline"}
-                className={cn(
-                  "flex-1 h-8 justify-start text-left font-normal text-sm px-3",
-                  !get(csKey) && "text-muted-foreground"
-                )}
-              >
-                <CalendarIcon className="mr-2 h-3.5 w-3.5" />
-                {get(csKey) ? format(new Date(get(csKey)), "PPP") : <span>Pick a date</span>}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={get(csKey) ? new Date(get(csKey)) : undefined}
-                onSelect={(date) => {
-                  if (date) {
-                    onChange(csKey, format(date, "yyyy-MM-dd"));
-                  }
-                }}
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
-        ) : type === "textarea" ? (
-          <Textarea value={get(csKey)} onChange={e => onChange(csKey, e.target.value)} placeholder={placeholder || CS_DEFAULTS[csKey as CSKey]} className="flex-1 text-sm resize-none h-20" />
-        ) : (
-          <Input type={type} value={get(csKey)} onChange={e => onChange(csKey, e.target.value)} placeholder={placeholder || CS_DEFAULTS[csKey as CSKey]} className="flex-1 h-8 text-sm" />
-        )}
-        <Button size="sm" variant="outline" className="h-8 px-2 shrink-0" onClick={() => save(csKey)} disabled={savingKey === csKey}>
-          {savingKey === csKey ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
-        </Button>
-      </div>
-    </div>
-  );
-
-  const ToggleRow = ({ label, csKey, description }: { label: string; csKey: CSKey; description?: string }) => (
-    <div className="flex items-center justify-between py-2">
-      <div>
-        <p className="text-sm font-medium">{label}</p>
-        {description && <p className="text-xs text-muted-foreground">{description}</p>}
-      </div>
-      <Switch
-        checked={get(csKey) === "true"}
-        onCheckedChange={async v => { onChange(csKey, v ? "true" : "false"); setSavingKey(csKey); try { await onSave(csKey); } finally { setSavingKey(null); } }}
-        disabled={savingKey === csKey}
-      />
-    </div>
-  );
 
   return (
     <div className="flex gap-4 h-[calc(100vh-200px)] min-h-[600px]">
@@ -365,8 +423,8 @@ function ComingSoonTab({
         <Card>
           <CardHeader className="pb-2 pt-4"><CardTitle className="text-sm flex items-center gap-2"><Clock className="h-4 w-4" /> Launch Date</CardTitle></CardHeader>
           <CardContent className="space-y-3">
-            <FieldRow label="Target Launch Date" csKey="launch_date" type="date" />
-            <ToggleRow label="Show Countdown Timer" csKey="cs_show_countdown" description="Display days/hours/minutes/seconds" />
+            <FieldRow label="Target Launch Date" csKey="launch_date" type="date" get={get} onChange={onChange} save={save} savingKey={savingKey} />
+            <ToggleRow label="Show Countdown Timer" csKey="cs_show_countdown" description="Display days/hours/minutes/seconds" get={get} onChange={onChange} onSave={onSave} savingKey={savingKey} setSavingKey={setSavingKey} />
           </CardContent>
         </Card>
 
@@ -374,10 +432,10 @@ function ComingSoonTab({
         <Card>
           <CardHeader className="pb-2 pt-4"><CardTitle className="text-sm">Text Content</CardTitle></CardHeader>
           <CardContent className="space-y-3">
-            <FieldRow label="Location Tagline" csKey="cs_tagline" />
-            <FieldRow label="Headline Line 1" csKey="cs_headline" />
-            <FieldRow label="Headline Line 2 (accent colour)" csKey="cs_headline2" />
-            <FieldRow label="Description" csKey="cs_description" type="textarea" />
+            <FieldRow label="Location Tagline" csKey="cs_tagline" get={get} onChange={onChange} save={save} savingKey={savingKey} />
+            <FieldRow label="Headline Line 1" csKey="cs_headline" get={get} onChange={onChange} save={save} savingKey={savingKey} />
+            <FieldRow label="Headline Line 2 (accent colour)" csKey="cs_headline2" get={get} onChange={onChange} save={save} savingKey={savingKey} />
+            <FieldRow label="Description" csKey="cs_description" type="textarea" get={get} onChange={onChange} save={save} savingKey={savingKey} />
           </CardContent>
         </Card>
 
@@ -385,10 +443,10 @@ function ComingSoonTab({
         <Card>
           <CardHeader className="pb-2 pt-4"><CardTitle className="text-sm">Email Sign-up</CardTitle></CardHeader>
           <CardContent className="space-y-3">
-            <ToggleRow label="Show Email Sign-up" csKey="cs_show_signup" />
-            <FieldRow label="Input Placeholder" csKey="cs_signup_placeholder" />
-            <FieldRow label="Button Label" csKey="cs_signup_button" />
-            <FieldRow label="Success Message" csKey="cs_signup_success" />
+            <ToggleRow label="Show Email Sign-up" csKey="cs_show_signup" get={get} onChange={onChange} onSave={onSave} savingKey={savingKey} setSavingKey={setSavingKey} />
+            <FieldRow label="Input Placeholder" csKey="cs_signup_placeholder" get={get} onChange={onChange} save={save} savingKey={savingKey} />
+            <FieldRow label="Button Label" csKey="cs_signup_button" get={get} onChange={onChange} save={save} savingKey={savingKey} />
+            <FieldRow label="Success Message" csKey="cs_signup_success" get={get} onChange={onChange} save={save} savingKey={savingKey} />
           </CardContent>
         </Card>
 
@@ -396,8 +454,8 @@ function ComingSoonTab({
         <Card>
           <CardHeader className="pb-2 pt-4"><CardTitle className="text-sm">Contact Info on Page</CardTitle></CardHeader>
           <CardContent className="space-y-3">
-            <FieldRow label="Email Address" csKey="cs_contact_email" type="email" />
-            <FieldRow label="Phone Number" csKey="cs_contact_phone" />
+            <FieldRow label="Email Address" csKey="cs_contact_email" type="email" get={get} onChange={onChange} save={save} savingKey={savingKey} />
+            <FieldRow label="Phone Number" csKey="cs_contact_phone" get={get} onChange={onChange} save={save} savingKey={savingKey} />
           </CardContent>
         </Card>
 
@@ -408,7 +466,7 @@ function ComingSoonTab({
             <CardDescription className="text-xs">Shows approved reviews below the sign-up form.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            <ToggleRow label="Show Reviews" csKey="cs_show_reviews" description="Display guest review cards on the page" />
+            <ToggleRow label="Show Reviews" csKey="cs_show_reviews" description="Display guest review cards on the page" get={get} onChange={onChange} onSave={onSave} savingKey={savingKey} setSavingKey={setSavingKey} />
             <div className="space-y-1.5">
               <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Number of Reviews to Show</Label>
               <div className="flex gap-2">
