@@ -39,19 +39,22 @@ async function fetchFlaggedBookings(): Promise<FlaggedBooking[]> {
   return res.json();
 }
 async function approveBooking(id: string) {
-  const res = await fetch(`/api/admin/fraud/${id}/approve`, { method: "POST", credentials: "include" });
+  const csrfToken = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]+)/)?.[1] || "";
+  const res = await fetch(`/api/admin/fraud/${id}/approve`, { method: "POST", credentials: "include", headers: { "X-CSRF-Token": csrfToken } });
   if (!res.ok) throw new Error("Failed to approve booking");
   return res.json();
 }
 async function dismissBooking(id: string) {
-  const res = await fetch(`/api/admin/fraud/${id}/dismiss`, { method: "POST", credentials: "include" });
+  const csrfToken = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]+)/)?.[1] || "";
+  const res = await fetch(`/api/admin/fraud/${id}/dismiss`, { method: "POST", credentials: "include", headers: { "X-CSRF-Token": csrfToken } });
   if (!res.ok) throw new Error("Failed to dismiss booking");
   return res.json();
 }
 async function whitelistEmail(email: string) {
+  const csrfToken = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]+)/)?.[1] || "";
   const res = await fetch("/api/admin/fraud/whitelist", {
     method: "POST", credentials: "include",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", "X-CSRF-Token": csrfToken },
     body: JSON.stringify({ email }),
   });
   if (!res.ok) throw new Error("Failed to whitelist email");

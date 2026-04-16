@@ -192,9 +192,42 @@ export default function ManageBooking() {
             if (modifyFields.adultPax > 0) payload.adultPax = modifyFields.adultPax;
             if (modifyFields.childPax >= 0 && isModifying) payload.childPax = modifyFields.childPax;
 
+            const csrfToken = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]+)/)?.[1] || "";
+            const headers = { "Content-Type": "application/json", "X-CSRF-Token": csrfToken };
+
+            // Step 1: Dry-run to preview price change
+            const previewRes = await fetch("/api/bookings/session/modify", {
+                method: "POST",
+                headers,
+                credentials: "include",
+                body: JSON.stringify({ ...payload, dryRun: true }),
+            });
+            const preview = await previewRes.json();
+
+            if (!previewRes.ok) {
+                toast({
+                    title: "Modification Failed",
+                    description: preview.error || preview.availabilityMessage || "Could not apply changes.",
+                    variant: "destructive",
+                });
+                return;
+            }
+
+            // Step 2: If price changes, ask user to confirm before committing
+            if (preview.priceDifference && preview.priceDifference !== 0) {
+                const diff = preview.priceDifference;
+                const msg = diff > 0
+                    ? `This change increases the price by VT ${diff.toLocaleString()}. Additional payment will be required. Proceed?`
+                    : `This change decreases the price by VT ${Math.abs(diff).toLocaleString()}. A credit will be pending admin review. Proceed?`;
+                if (!window.confirm(msg)) {
+                    return;
+                }
+            }
+
+            // Step 3: Commit the modification
             const res = await fetch("/api/bookings/session/modify", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers,
                 credentials: "include",
                 body: JSON.stringify(payload),
             });

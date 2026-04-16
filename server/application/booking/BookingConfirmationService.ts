@@ -18,6 +18,8 @@ import { IStorage } from "../../storage.js";
 import { AvailabilityApplicationService } from "../availability/availability.application-service.js";
 import { Booking } from "../../../shared/schema.js";
 import { metricsService } from "../../infrastructure/metrics/metrics.service.js";
+import { db } from "../../db.js";
+import { sql } from "drizzle-orm";
 
 export interface BookingConfirmationRequest {
   bookingId: string;
@@ -168,12 +170,33 @@ export class BookingConfirmationService {
         }
       }
 
-      // Step 7: Update booking status to confirmed
+      // Step 7: Atomically transition booking status pending → confirmed.
+      // This UPDATE ... WHERE status = 'pending' acts as a compare-and-swap,
+      // preventing double-confirmation from concurrent webhook deliveries.
       console.log(`[BOOKING_CONFIRM] Updating booking ${bookingId} status to 'confirmed'`);
-      const updatedBooking = await this.storage.updateBooking(bookingId, {
-        status: 'confirmed',
-        paymentReference: paymentId
-      });
+      const result = await db.execute(
+        sql`UPDATE bookings SET status = 'confirmed', payment_reference = ${paymentId}, updated_at = NOW()
+            WHERE id = ${bookingId} AND status = 'pending'`
+      );
+      const rowsAffected = (result as any).rowCount ?? (result as any).changes ?? 0;
+
+      if (rowsAffected === 0) {
+        // Another thread already confirmed or cancelled this booking
+        console.warn(`[BOOKING_CONFIRM] Booking ${bookingId} was already transitioned (no rows affected)`);
+        metricsService.incrementConfirmationFailure("ALREADY_TRANSITIONED");
+        const currentBooking = await this.storage.getBooking(bookingId);
+        if (currentBooking?.status === 'confirmed') {
+          // Idempotent success — booking is confirmed, just not by us
+          return { success: true, message: "Booking already confirmed", booking: currentBooking };
+        }
+        return {
+          success: false,
+          message: `Booking status was changed concurrently (now '${currentBooking?.status}')`,
+          error: { code: "ALREADY_TRANSITIONED", reason: "Concurrent status change detected" }
+        };
+      }
+
+      const updatedBooking = await this.storage.getBooking(bookingId);
 
       console.log(`[BOOKING_CONFIRM] ✅ Successfully confirmed booking ${bookingId}`);
       metricsService.incrementConfirmationSuccess();
@@ -182,7 +205,7 @@ export class BookingConfirmationService {
       return {
         success: true,
         message: "Booking confirmed successfully",
-        booking: updatedBooking
+        booking: updatedBooking!
       };
 
     } catch (error) {

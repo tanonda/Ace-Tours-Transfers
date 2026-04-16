@@ -44,6 +44,13 @@ export default function PaymentSuccess() {
 
   const { currency } = useCurrency();
   const [copiedRef, setCopiedRef] = useState(false);
+  const [pollingTimedOut, setPollingTimedOut] = useState(false);
+
+  // Stop polling after 5 minutes to avoid infinite requests
+  useEffect(() => {
+    const timer = setTimeout(() => setPollingTimedOut(true), 5 * 60 * 1000);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Get bank details from individual site settings
   const bankName = (getSetting("bank_name") as any) || "ANZ Bank (Vanuatu) Ltd";
@@ -83,6 +90,7 @@ export default function PaymentSuccess() {
     refetchInterval: (query) => {
       const data = query.state.data;
       if (data?.status === "confirmed" || data?.status === "completed") return false;
+      if (pollingTimedOut) return false;
       return 5000;
     },
   });
@@ -173,6 +181,11 @@ export default function PaymentSuccess() {
                     : "Please complete your bank transfer to secure your booking."
                 }
               </p>
+              {pollingTimedOut && !isConfirmed && (
+                <p className="text-orange-600 text-xs mt-2">
+                  Status check timed out. If you've completed payment, please contact us or check back later.
+                </p>
+              )}
             </CardHeader>
 
             <CardContent className="space-y-4 px-6 pb-6">

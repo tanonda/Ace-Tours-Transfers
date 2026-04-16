@@ -347,7 +347,8 @@ function ComingSoonTab({
     const fd = new FormData();
     fd.append("image", file);
     try {
-      const res = await fetch("/api/admin/upload?folder=ace-tours-coming-soon", { method: "POST", body: fd });
+      const csrfToken = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]+)/)?.[1] || "";
+      const res = await fetch("/api/admin/upload?folder=ace-tours-coming-soon", { method: "POST", body: fd, headers: { "X-CSRF-Token": csrfToken } });
       if (!res.ok) throw new Error("Upload failed");
       const { url } = await res.json();
       const newImgs = [...bgImages, url];

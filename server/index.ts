@@ -14,6 +14,8 @@ import * as Sentry from "@sentry/node";
 import helmet from "helmet";
 import cors from "cors";
 import compression from "compression";
+import cookieParser from "cookie-parser";
+import { csrfProtection, generateCsrfToken } from "./middleware/csrf.js";
 
 
 // Sentry is now initialized via --import ./server/instrument.ts for ESM compatibility
@@ -277,6 +279,23 @@ app.post(
 );
 
 app.use(express.urlencoded({ extended: false }));
+app.use(cookieParser());
+
+// CSRF token endpoint — client calls this once on load
+app.get("/api/csrf-token", (req, res) => {
+  const token = generateCsrfToken();
+  res.cookie("csrf_token", token, {
+    httpOnly: false,          // JS must read this to send it as a header
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
+    path: "/",
+    maxAge: 24 * 60 * 60 * 1000,
+  });
+  res.json({ csrfToken: token });
+});
+
+// Enforce CSRF on all state-changing API requests
+app.use("/api", csrfProtection);
 
 const pgPool = neonPool;
 // PGStore initialized below after middleware setup for clarity

@@ -67,7 +67,8 @@ export default function AdminNotifications() {
 
   const markAllReadMutation = useMutation({
     mutationFn: async () => {
-      const res = await fetch("/api/notifications/mark-all-read", { method: "POST", credentials: "include" });
+      const csrfToken = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]+)/)?.[1] || "";
+      const res = await fetch("/api/notifications/mark-all-read", { method: "POST", credentials: "include", headers: { "X-CSRF-Token": csrfToken } });
       if (!res.ok) throw new Error("Failed");
     },
     onSuccess: () => {

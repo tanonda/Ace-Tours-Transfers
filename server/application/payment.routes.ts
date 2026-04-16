@@ -14,6 +14,12 @@ const paymentLimiter = rateLimit({
   message: { error: "Too many payment attempts, please try again later." },
 });
 
+const callbackLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  message: { error: "Too many callback requests." },
+});
+
 
 export function registerPaymentRoutes(app: Express, storage: IStorage) {
   const paymentAppService = new PaymentApplicationService(storage);
@@ -182,7 +188,7 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
   // ─────────────────────────────────────────────────────────────────────────
   const BANK_GATEWAY_SLUGS = ['anz-egate', 'bsp-bank', 'bred-bank', 'wantok-money', 'generic-local-bank'];
 
-  app.get("/api/payments/callback/:gateway", async (req, res) => {
+  app.get("/api/payments/callback/:gateway", callbackLimiter, async (req, res) => {
     const { gateway } = req.params;
 
     if (!BANK_GATEWAY_SLUGS.includes(gateway)) {
@@ -217,7 +223,7 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
   });
 
   // POST variant — some banks POST the callback parameters instead of GET
-  app.post("/api/payments/callback/:gateway", async (req, res) => {
+  app.post("/api/payments/callback/:gateway", callbackLimiter, async (req, res) => {
     const { gateway } = req.params;
 
     if (!BANK_GATEWAY_SLUGS.includes(gateway)) {

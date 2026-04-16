@@ -1623,10 +1623,11 @@ ${allPages.map(p => `  <url>
         return res.status(400).json({ error: `Cannot modify a booking with status '${booking.status}'.` });
       }
 
-      const { date, adultPax, childPax } = req.body as {
+      const { date, adultPax, childPax, dryRun } = req.body as {
         date?: string;
         adultPax?: number;
         childPax?: number;
+        dryRun?: boolean;
       };
 
       const newDate = date || booking.date;
@@ -1658,6 +1659,19 @@ ${allPages.map(p => `  <url>
         booking.totalAmountCents; // fallback if pricing not returned
 
       const priceDifference = newTotalCents - booking.totalAmountCents;
+
+      // Dry run: return price preview without committing changes
+      if (dryRun) {
+        return res.json({
+          dryRun: true,
+          changed: newTotalCents !== booking.totalAmountCents || newDate !== booking.date || newAdultPax !== booking.adultPaxTotal || newChildPax !== booking.childPaxTotal,
+          priceDifference: newTotalCents - booking.totalAmountCents,
+          currentTotalCents: booking.totalAmountCents,
+          newTotalCents,
+          requiresAdditionalPayment: newTotalCents > booking.totalAmountCents,
+          creditPending: newTotalCents < booking.totalAmountCents,
+        });
+      }
 
       // Build audit trail in notes
       const auditEntry = `[${new Date().toISOString()}] Modification: date ${booking.date}->${newDate}, pax ${booking.adultPaxTotal}A+${booking.childPaxTotal}C->${newAdultPax}A+${newChildPax}C, price ${booking.totalAmountCents}->${newTotalCents}`;
@@ -1997,7 +2011,7 @@ ${allPages.map(p => `  <url>
         }
       }
 
-      // If cancelling, release holds associated with this booking
+      // If cancelling, release holds and flag completed payments for refund
       if (updates.status === 'cancelled' && existing) {
         try {
           // Release primary hold if exists
@@ -2014,6 +2028,29 @@ ${allPages.map(p => `  <url>
             const svc = new AvailabilityApplicationService(storage);
             for (const h of holds) {
               await svc.releaseHold(h.id).catch(console.error);
+            }
+          }
+
+          // Flag completed payments for refund
+          const payments = await storage.getPaymentsByBooking(existing.id);
+          const completedPayments = payments.filter((p: any) => p.status === 'completed');
+          for (const p of completedPayments) {
+            await storage.updatePayment(p.id, {
+              status: 'refund_pending',
+              failureReason: `Refund required: booking cancelled by admin`
+            });
+            console.log(`[BOOKING][CANCEL] Flagged payment ${p.id} for refund (amount: ${p.amount})`);
+          }
+          if (completedPayments.length > 0) {
+            try {
+              await sendAdminEmail(
+                `Refund Required — ACT-${shortBookingRef(existing.id)}`,
+                `<p>Booking <strong>ACT-${shortBookingRef(existing.id)}</strong> was cancelled after payment.</p>
+                 <p><strong>${completedPayments.length}</strong> payment(s) totalling <strong>VT ${completedPayments.reduce((s: number, p: any) => s + (p.amount || 0), 0).toLocaleString()}</strong> require manual refund.</p>
+                 <p>Customer: ${existing.customerName} (${existing.customerEmail})</p>`
+              );
+            } catch (emailErr) {
+              console.error('[BOOKING][CANCEL] Refund notification email failed:', emailErr);
             }
           }
         } catch (err) {

@@ -65,6 +65,7 @@ export class CreateBookingFromCartService {
         for (const item of request.items) {
           const product = await this.storage.getProduct(item.productId);
           if (!product) throw new Error(`Product ${item.productId} not found`);
+          if (!product.isActive) throw new Error(`Product "${product.title}" is no longer available`);
 
           const rates = await this.pricingEngine.getTourRate(item.productId, item.date);
           if (!rates) throw new Error(`Rates for product ${item.productId} not found`);

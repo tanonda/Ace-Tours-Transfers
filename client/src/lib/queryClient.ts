@@ -9,14 +9,45 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
+/** Read the CSRF token from the cookie set by /api/csrf-token */
+function getCsrfToken(): string | undefined {
+  const match = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]+)/);
+  return match?.[1];
+}
+
+/** Ensure we have a CSRF token; fetch one if missing. */
+let csrfPromise: Promise<void> | null = null;
+export function ensureCsrfToken(): Promise<void> {
+  if (getCsrfToken()) return Promise.resolve();
+  if (!csrfPromise) {
+    csrfPromise = fetch("/api/csrf-token", { credentials: "include" })
+      .then(() => { csrfPromise = null; })
+      .catch(() => { csrfPromise = null; });
+  }
+  return csrfPromise;
+}
+
 export async function apiRequest(
   method: string,
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
+  // Ensure CSRF token exists for state-changing requests
+  if (method !== "GET" && method !== "HEAD") {
+    await ensureCsrfToken();
+  }
+
+  const headers: Record<string, string> = {};
+  if (data) headers["Content-Type"] = "application/json";
+
+  const csrfToken = getCsrfToken();
+  if (csrfToken && method !== "GET" && method !== "HEAD") {
+    headers["X-CSRF-Token"] = csrfToken;
+  }
+
   const res = await fetch(url, {
     method,
-    headers: data ? { "Content-Type": "application/json" } : {},
+    headers,
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include",
   });

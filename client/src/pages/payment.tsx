@@ -22,7 +22,7 @@ import { useTranslation } from "react-i18next";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchPaymentMethods, type PaymentMethodOption } from "@/lib/api";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, ensureCsrfToken } from "@/lib/queryClient";
 import { format } from "date-fns";
 import { formatPriceDisplay } from "@/lib/product.types";
 import { useCurrency } from "@/lib/currency-context";
@@ -217,9 +217,11 @@ export default function Payment() {
 
   const createBookingMutation = useMutation({
     mutationFn: async () => {
+      await ensureCsrfToken();
+      const csrfToken = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]+)/)?.[1] || "";
       const res = await fetch("/api/bookings", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "X-CSRF-Token": csrfToken },
         credentials: "include",
         body: JSON.stringify({
           customerName: guestName || user?.name || "Guest User",
@@ -317,9 +319,11 @@ export default function Payment() {
         }
 
         // SERVER-SIDE PRICE VALIDATION
+        await ensureCsrfToken();
+        const csrfTk = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]+)/)?.[1] || "";
         const priceCheckRes = await fetch("/api/cart/price", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", "X-CSRF-Token": csrfTk },
           credentials: "include",
           body: JSON.stringify({
             items: items.map(i => ({
