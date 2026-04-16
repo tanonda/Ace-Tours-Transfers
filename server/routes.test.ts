@@ -99,7 +99,7 @@ describe('API Routes', () => {
 
             // Assert
             expect(res.status).toBe(200);
-            expect(res.body).toEqual(mockTour);
+            expect(res.body).toEqual({ ...mockTour, addons: [] });
             expect(storage.getProduct).toHaveBeenCalledWith('t1');
         });
 
