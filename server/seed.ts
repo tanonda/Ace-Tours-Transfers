@@ -6,6 +6,10 @@ import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
 
 async function main() {
+  if (process.env.NODE_ENV === "production") {
+    console.error("Seed script cannot run in production. Set NODE_ENV to something else to proceed.");
+    process.exit(1);
+  }
   console.log("Seeding database...");
 
   // 1. Seed Admin User

@@ -99,6 +99,7 @@ app.use(helmet({
         "https://www.googletagmanager.com",
         "https://cdn.jsdelivr.net", // Live currency exchange rates (VUV)
         "https://widget.trustpilot.com", // Trustpilot widget sourcemaps
+        "https://*.ingest.de.sentry.io",
         "wss:",
         "ws:",
       ],
