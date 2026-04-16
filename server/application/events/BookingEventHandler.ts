@@ -47,14 +47,28 @@ export class BookingEventHandler {
         const paidAmountCents = paymentRecord?.amount;
         if (typeof paidAmountCents === 'number' && paidAmountCents !== booking.totalAmountCents) {
           // Genuine mismatch: gateway charged a different amount than we expected.
-          await mailingService.sendAdminEmail(
-            `🚨 Payment Amount Mismatch: Booking ${booking.id}`,
-            `<p>A payment amount mismatch was detected during payment confirmation for booking <strong>${booking.id}</strong>.</p>
-             <p><strong>Customer:</strong> ${booking.customerName} (${booking.customerEmail})</p>
-             <p><strong>Booking Snapshot Total:</strong> ${booking.totalAmountCents} VUV cents</p>
-             <p><strong>Amount Charged by Gateway:</strong> ${paidAmountCents} VUV cents</p>
-             <p>The booking has been marked as <code>price_mismatch</code> and requires manual review.</p>`
-          );
+          // Send admin email with in-app notification fallback
+          const mismatchMsg = `Payment amount mismatch for booking ${booking.id}: snapshot ${booking.totalAmountCents} vs paid ${paidAmountCents}. Requires manual review.`;
+          try {
+            await mailingService.sendAdminEmail(
+              `Payment Amount Mismatch: Booking ${booking.id}`,
+              `<p>A payment amount mismatch was detected during payment confirmation for booking <strong>${booking.id}</strong>.</p>
+               <p><strong>Customer:</strong> ${booking.customerName} (${booking.customerEmail})</p>
+               <p><strong>Booking Snapshot Total:</strong> ${booking.totalAmountCents} VUV cents</p>
+               <p><strong>Amount Charged by Gateway:</strong> ${paidAmountCents} VUV cents</p>
+               <p>The booking has been marked as <code>price_mismatch</code> and requires manual review.</p>`
+            );
+          } catch (emailErr) {
+            console.error(`[EVENT][CRITICAL] Failed to send price mismatch admin email — creating fallback notification`);
+            // Fallback: create in-app notification so admin still sees the alert
+            await this.storage.createNotification({
+              type: 'error',
+              title: 'CRITICAL: Payment Amount Mismatch',
+              message: mismatchMsg,
+              link: '/admin/bookings',
+              userId: null,
+            });
+          }
 
           await this.storage.updateBooking(booking.id, { status: 'price_mismatch' });
           const audit = new AuditLogService(this.storage);
@@ -85,47 +99,51 @@ export class BookingEventHandler {
 
         console.log(`[EVENT][SUCCESS] Booking session ${booking.bookingSessionId} confirmed atomically via PaymentConfirmed event`);
 
-        // Trigger emails/admin notifications here
+        // Trigger emails/admin notifications here (non-blocking — never delay confirmation)
         const tour = await this.storage.getProduct(booking.tourId);
+        const bookingRef = (booking.id || '').replace(/^book_/i, '').replace(/-/g, '').slice(0, 8).toUpperCase();
 
-        // 1. Send Payment Receipt (branded template via MailingService)
-        await mailingService.sendPaymentSuccess(booking.customerEmail, {
-          bookingId: booking.id,
-          customerName: booking.customerName,
-          amount: typeof booking.totalAmountCents === 'number'
-            ? `${Math.round(booking.totalAmountCents).toLocaleString()} VT`
-            : booking.amount,
-          transactionId: event.paymentId,
-          locale: booking.locale || 'en',
-        });
-
-        // 2. Send Booking Confirmation (branded template via MailingService)
-        await mailingService.sendBookingConfirmation(booking.customerEmail, {
-          id: booking.id,
-          customerName: booking.customerName,
-          tourName: tour?.title || 'Your Tour',
-          date: booking.date,
-          totalAmountCents: booking.totalAmountCents,
-          amount: booking.amount,
-          paymentMethod: booking.paymentMethod || undefined,
-          locale: booking.locale || 'en',
-        });
-
-        // 3. Notify Admin of confirmed booking
-        try {
-          await mailingService.sendAdminEmail(
-            `✅ Payment Confirmed: ACT-${(booking.id || '').replace(/^book_/i, '').replace(/-/g, '').slice(0, 8).toUpperCase()} - ${booking.customerName}`,
+        // Fire-and-forget: emails must not block the confirmation flow
+        Promise.allSettled([
+          // 1. Send Payment Receipt
+          mailingService.sendPaymentSuccess(booking.customerEmail, {
+            bookingId: booking.id,
+            customerName: booking.customerName,
+            amount: typeof booking.totalAmountCents === 'number'
+              ? `${Math.round(booking.totalAmountCents).toLocaleString()} VT`
+              : booking.amount,
+            transactionId: event.paymentId,
+            locale: booking.locale || 'en',
+          }),
+          // 2. Send Booking Confirmation
+          mailingService.sendBookingConfirmation(booking.customerEmail, {
+            id: booking.id,
+            customerName: booking.customerName,
+            tourName: tour?.title || 'Your Tour',
+            date: booking.date,
+            totalAmountCents: booking.totalAmountCents,
+            amount: booking.amount,
+            paymentMethod: booking.paymentMethod || undefined,
+            locale: booking.locale || 'en',
+          }),
+          // 3. Notify Admin
+          mailingService.sendAdminEmail(
+            `Payment Confirmed: ACT-${bookingRef} - ${booking.customerName}`,
             `<h2>Payment Confirmed</h2>
-                <p>A payment has been successfully confirmed for booking <strong>ACT-${(booking.id || '').replace(/^book_/i, '').replace(/-/g, '').slice(0, 8).toUpperCase()}</strong>.</p>
+                <p>A payment has been successfully confirmed for booking <strong>ACT-${bookingRef}</strong>.</p>
                 <p><strong>Customer:</strong> ${booking.customerName} (${booking.customerEmail})</p>
                 <p><strong>Tour:</strong> ${tour?.title || 'Unknown'}</p>
                 <p><strong>Date:</strong> ${booking.date}</p>
                 <p><strong>Amount:</strong> VT ${booking.totalAmountCents?.toLocaleString()}</p>
                 <p>Login to the admin dashboard for more details.</p>`
-          );
-        } catch (adminErr) {
-          console.error(`[EVENT][ERROR][${correlationId}] Failed to send admin payment confirmation email:`, adminErr);
-        }
+          ),
+        ]).then(results => {
+          const failures = results.filter(r => r.status === 'rejected');
+          if (failures.length > 0) {
+            console.error(`[EVENT][EMAIL][${correlationId}] ${failures.length} email(s) failed for booking ${booking.id}:`,
+              failures.map(f => (f as PromiseRejectedResult).reason?.message || f));
+          }
+        });
       } catch (error: any) {
         console.error(`[EVENT][ERROR][${correlationId}] Failed to confirm booking ${booking.id}:`, error);
 
@@ -162,7 +180,8 @@ export class BookingEventHandler {
 
     await this.storage.updateBooking(booking.id, { status: 'failed' });
 
-    await mailingService.sendPaymentFailure(booking.customerEmail, {
+    // Non-blocking email
+    mailingService.sendPaymentFailure(booking.customerEmail, {
       bookingId: booking.id,
       customerName: booking.customerName,
       amount: typeof booking.totalAmountCents === 'number'
@@ -170,7 +189,7 @@ export class BookingEventHandler {
         : booking.amount,
       reason: event.reason,
       locale: booking.locale || 'en'
-    });
+    }).catch(err => console.error(`[EVENT][EMAIL] PaymentFailed email failed for ${booking.id}:`, err));
   }
 
   private async onPaymentExpired(event: PaymentExpired): Promise<void> {
@@ -180,6 +199,8 @@ export class BookingEventHandler {
     console.log(`[EVENT][HANDLER] Handling PaymentExpired for Booking ${booking.id}`);
 
     await this.storage.updateBooking(booking.id, { status: 'cancelled' });
-    await mailingService.sendPaymentExpiry(booking.customerEmail, booking.id, booking.customerName, booking.locale || 'en');
+    // Non-blocking email
+    mailingService.sendPaymentExpiry(booking.customerEmail, booking.id, booking.customerName, booking.locale || 'en')
+      .catch(err => console.error(`[EVENT][EMAIL] PaymentExpired email failed for ${booking.id}:`, err));
   }
 }

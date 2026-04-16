@@ -5,6 +5,7 @@
  * Branding: #f4a830 gold, #0f0d09 dark, #f0ece4 cream.
  */
 import { emailTerms } from './email-i18n.js';
+import { escapeHtml } from '../../lib/escape-html.js';
 
 type BookingTemplateData = {
   customerName: string;
@@ -39,6 +40,10 @@ const BRAND_HEADER = `
 <div style="height:3px;background:linear-gradient(90deg,#f4a830,#e6c97a,#f4a830)"></div>
 `;
 
+const _bizEmail = escapeHtml(process.env.BUSINESS_EMAIL || 'info@acetours.vu');
+const _appUrl = escapeHtml(process.env.APP_URL || 'https://acetours.vu');
+const _appDomain = _appUrl.replace(/^https?:\/\//, '');
+
 const BRAND_FOOTER = `
 <div style="background:#0f0d09;padding:24px 32px;text-align:center;border-top:2px solid #1a1814">
   <img src="${LOGO_URL}" alt="Ace Tours" width="40" height="40" style="display:block;margin:0 auto 10px;border-radius:50%;opacity:0.8" />
@@ -48,9 +53,9 @@ const BRAND_FOOTER = `
   <p style="color:#706a60;font-size:11px;margin:4px 0 0">Port Vila, Vanuatu</p>
   <div style="width:60px;height:1px;background:#f4a830;margin:12px auto"></div>
   <p style="color:#706a60;font-size:11px;margin:0">
-    <a href="mailto:${process.env.BUSINESS_EMAIL || 'info@acetours.vu'}" style="color:#f4a830;text-decoration:none">${process.env.BUSINESS_EMAIL || 'info@acetours.vu'}</a>
+    <a href="mailto:${_bizEmail}" style="color:#f4a830;text-decoration:none">${_bizEmail}</a>
     &nbsp;&bull;&nbsp;
-    <a href="${process.env.APP_URL || 'https://acetours.vu'}" style="color:#f4a830;text-decoration:none">${(process.env.APP_URL || 'https://acetours.vu').replace(/^https?:\/\//, '')}</a>
+    <a href="${_appUrl}" style="color:#f4a830;text-decoration:none">${_appDomain}</a>
   </p>
   <p style="color:#504a40;font-size:10px;margin:12px 0 0">
     &copy; ${new Date().getFullYear()} Ace Tours &amp; Transfers. All prices include 15% VAT where applicable.

@@ -451,6 +451,26 @@ app.use((req, res, next) => {
   } catch (err) {
     console.warn("Could not fetch initial exchange rates", err);
   }
+
+  // SMTP verification (non-blocking — logs warning if unreachable)
+  try {
+    const { verifyEmailConfig } = await import('./lib/mail.js');
+    const smtpOk = await verifyEmailConfig();
+    if (!smtpOk && process.env.NODE_ENV === 'production') {
+      console.error('[STARTUP] WARNING: SMTP connection failed — emails will not be delivered!');
+    }
+  } catch (err) {
+    console.warn('[STARTUP] SMTP verification skipped:', err);
+  }
+
+  // Notification cleanup (non-blocking)
+  try {
+    const { cleanupNotifications } = await import('./infrastructure/cleanup/notification-cleanup.js');
+    await cleanupNotifications();
+  } catch (err) {
+    console.warn('[STARTUP] Notification cleanup skipped:', err);
+  }
+
   await registerRoutes(httpServer, app);
 
   // ── Gateway Auto-Seed Guard ────────────────────────────────────────────────

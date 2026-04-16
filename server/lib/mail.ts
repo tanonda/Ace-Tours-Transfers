@@ -2,6 +2,7 @@ import { mailingService } from "../infrastructure/mailing/MailingService.js";
 import { escapeHtml } from "./escape-html.js";
 import QRCode from "qrcode";
 import { emailLocales } from "./email-translations.js";
+import crypto from "crypto";
 
 interface EmailOptions {
   to: string;
@@ -20,15 +21,49 @@ export function getMsg(locale: string = "en", key: string, vars: Record<string, 
 }
 
 export async function verifyEmailConfig(): Promise<boolean> {
-  return Promise.resolve(true);
+  return mailingService.verify();
 }
 
-export async function sendEmail({ to, subject, html }: EmailOptions): Promise<boolean> {
+/** Generate an HMAC-based unsubscribe URL for CAN-SPAM compliance */
+export async function getUnsubscribeUrl(email: string): Promise<string> {
+  const { config } = await import("../config.js");
+  const appUrl = await getAppUrl();
+  const token = crypto
+    .createHmac("sha256", config.session.secret || "newsletter-unsub")
+    .update(email.toLowerCase().trim())
+    .digest("hex")
+    .slice(0, 16);
+  return `${appUrl}/api/newsletter/unsubscribe?email=${encodeURIComponent(email.toLowerCase().trim())}&token=${token}`;
+}
+
+export async function sendEmail({ to, subject, html, replyTo }: EmailOptions): Promise<boolean> {
   try {
-    await (mailingService as any).sendEmail({ to, subject, html });
+    const opts: Record<string, any> = { to, subject, html };
+    if (replyTo) opts.replyTo = replyTo;
+    await (mailingService as any).sendEmail(opts);
     return true;
   } catch (err) {
     console.error("[MAIL] sendEmail failed:", err);
+    return false;
+  }
+}
+
+/** Send a newsletter email with proper List-Unsubscribe headers (CAN-SPAM) */
+export async function sendNewsletterEmail(to: string, subject: string, html: string): Promise<boolean> {
+  try {
+    const unsubUrl = await getUnsubscribeUrl(to);
+    await (mailingService as any).sendEmail({
+      to,
+      subject,
+      html,
+      headers: {
+        'List-Unsubscribe': `<${unsubUrl}>`,
+        'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+      },
+    });
+    return true;
+  } catch (err) {
+    console.error("[MAIL] sendNewsletterEmail failed:", err);
     return false;
   }
 }
@@ -508,22 +543,23 @@ export async function getWelcomeEmailTemplate(user: { name: string; email: strin
 export async function getNewsletterConfirmationTemplate(email: string, name?: string, locale: string = "en"): Promise<string> {
   const appUrl = await getAppUrl();
   const logoUrl = `${appUrl}/assets/logo.png`;
+  const unsubUrl = await getUnsubscribeUrl(email);
 
   return emailWrapper(`
     ${emailHeader(logoUrl, getMsg(locale, 'newsletterTitle'), getMsg(locale, 'newsletterSubtitle'))}
     <div style="padding: 32px 28px;">
-      <p style="color: #374151; font-size: 16px; margin: 0 0 8px 0;">${getMsg(locale, 'greeting', { name: escapeHtml(name || "there") })} 👋</p>
+      <p style="color: #374151; font-size: 16px; margin: 0 0 8px 0;">${getMsg(locale, 'greeting', { name: escapeHtml(name || "there") })}</p>
       <p style="color: #6b7280; font-size: 14px; line-height: 1.8; margin: 0 0 24px 0;">
         ${getMsg(locale, 'newsletterIntro')}
       </p>
       <div style="background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px;">
-        <h3 style="margin: 0 0 12px 0; color: #004165; font-size: 15px;">📬 ${getMsg(locale, 'newsletterBenefitsTitle')}</h3>
+        <h3 style="margin: 0 0 12px 0; color: #004165; font-size: 15px;">${getMsg(locale, 'newsletterBenefitsTitle')}</h3>
         <ul style="color: #374151; font-size: 14px; line-height: 2.1; padding-left: 20px; margin: 0;">
           ${getMsg(locale, 'newsletterBenefitsText')}
         </ul>
       </div>
       <p style="color: #9ca3af; font-size: 12px; margin-top: 24px; text-align: center;">
-        ${getMsg(locale, 'newsletterUnsubText')}
+        Don't want these emails? <a href="${unsubUrl}" style="color: #9ca3af; text-decoration: underline;">Unsubscribe</a>
       </p>
     </div>
     ${emailFooter(locale)}

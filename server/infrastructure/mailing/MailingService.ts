@@ -23,6 +23,11 @@ export class MailingService {
     const smtpUser   = process.env.SMTP_USER   || process.env.GMAIL_USER;
     const smtpPass   = process.env.SMTP_PASS   || process.env.GMAIL_APP_PASSWORD;
 
+    // Production guard: require explicit ADMIN_EMAIL
+    if (process.env.NODE_ENV === 'production' && !process.env.ADMIN_EMAIL) {
+      console.error('[MAILING] WARNING: ADMIN_EMAIL is not set. Admin notifications will fall back to SMTP_USER or a hardcoded default.');
+    }
+
     if (smtpHost && smtpUser && smtpPass) {
       this.transporter = nodemailer.createTransport({
         host: smtpHost,
@@ -37,6 +42,19 @@ export class MailingService {
       console.log('[MAILING] Service initialized with SMTP.');
     } else {
       console.warn('[MAILING] SMTP credentials missing. Mailing service is disabled.');
+    }
+  }
+
+  /** Verify SMTP connection is working. Returns true if connected, false otherwise. */
+  async verify(): Promise<boolean> {
+    if (!this.isEnabled || !this.transporter) return false;
+    try {
+      await this.transporter.verify();
+      console.log('[MAILING] SMTP connection verified successfully.');
+      return true;
+    } catch (err) {
+      console.error('[MAILING] SMTP connection verification failed:', err);
+      return false;
     }
   }
 
@@ -71,9 +89,17 @@ export class MailingService {
         await this.transporter.sendMail(mailOptions);
         console.log(`[MAILING] Email sent successfully (Attempt ${attempt}): ${options.subject}`);
         return;
-      } catch (error) {
+      } catch (error: any) {
         lastError = error;
-        console.warn(`[MAILING][WARN] Delivery failed (Attempt ${attempt}/${MAX_RETRIES}):`, error);
+        console.warn(`[MAILING][WARN] Delivery failed (Attempt ${attempt}/${MAX_RETRIES}):`, error?.message || error);
+
+        // Don't retry authentication failures — they won't self-resolve
+        const code = error?.responseCode || error?.code || '';
+        if (code === 535 || code === 'EAUTH' || (error?.message || '').includes('authentication')) {
+          console.error(`[MAILING][ERROR] Authentication failure — skipping retries for: ${options.subject}`);
+          break;
+        }
+
         if (attempt < MAX_RETRIES) {
           // Exponential backoff
           await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt - 1) * 1000));

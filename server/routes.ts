@@ -2232,6 +2232,43 @@ ${allPages.map(p => `  <url>
   });
 
   // Delete subscriber permanently
+  // PUBLIC: One-click newsletter unsubscribe (CAN-SPAM compliance)
+  app.get("/api/newsletter/unsubscribe", async (req, res) => {
+    try {
+      const { email, token } = req.query as { email?: string; token?: string };
+      if (!email || !token) {
+        return res.status(400).send("<html><body><h2>Invalid unsubscribe link.</h2></body></html>");
+      }
+
+      // Verify HMAC token to prevent abuse
+      const expectedToken = crypto
+        .createHmac("sha256", config.session.secret || "newsletter-unsub")
+        .update(email.toLowerCase().trim())
+        .digest("hex")
+        .slice(0, 16);
+
+      if (token !== expectedToken) {
+        return res.status(403).send("<html><body><h2>Invalid or expired unsubscribe link.</h2></body></html>");
+      }
+
+      // Find and unsubscribe
+      const existing = await db.execute(
+        sql`UPDATE newsletter_subscribers SET unsubscribed_at = NOW() WHERE LOWER(email) = ${email.toLowerCase().trim()} AND unsubscribed_at IS NULL`
+      );
+
+      res.send(`
+        <html><body style="font-family:sans-serif;text-align:center;padding:60px;">
+          <h2>You've been unsubscribed</h2>
+          <p>You will no longer receive newsletter emails from Ace Tours & Transfers.</p>
+          <p><a href="${process.env.APP_URL || 'https://acetours.vu'}">Return to website</a></p>
+        </body></html>
+      `);
+    } catch (error) {
+      console.error("[NEWSLETTER] Unsubscribe error:", error);
+      res.status(500).send("<html><body><h2>Something went wrong. Please contact us.</h2></body></html>");
+    }
+  });
+
   app.delete("/api/newsletter/subscribers/:id", requireAdmin, async (req, res) => {
     try {
       const { id } = req.params;
@@ -2270,13 +2307,14 @@ ${allPages.map(p => `  <url>
         source: safeSource
       });
 
-      // Send branded confirmation email to subscriber (non-fatal)
+      // Send branded confirmation email with List-Unsubscribe header (CAN-SPAM)
       try {
-        await sendEmail({
-          to: email.toLowerCase().trim(),
-          subject: "You're subscribed to Ace Tours & Transfers! 🌴",
-          html: await getNewsletterConfirmationTemplate(email.toLowerCase().trim(), safeName || undefined),
-        });
+        const { sendNewsletterEmail } = await import("./lib/mail.js");
+        await sendNewsletterEmail(
+          email.toLowerCase().trim(),
+          "You're subscribed to Ace Tours & Transfers!",
+          await getNewsletterConfirmationTemplate(email.toLowerCase().trim(), safeName || undefined),
+        );
       } catch (emailErr) {
         console.error("[NEWSLETTER] Confirmation email failed (non-fatal):", emailErr);
       }
