@@ -9,13 +9,8 @@ export default defineConfig({
   schema: "./shared/schema.ts",
   dialect: "postgresql",
   dbCredentials: {
-    host: "ep-delicate-king-am3aopbg-pooler.c-5.us-east-1.aws.neon.tech",
-    port: 5432,
-    user: "neondb_owner",
-    password: "REDACTED",
-    database: "neondb",
+    url: process.env.DATABASE_URL,
     ssl: {
-      servername: "ep-delicate-king-am3aopbg-pooler.c-5.us-east-1.aws.neon.tech",
       rejectUnauthorized: false
     }
   },

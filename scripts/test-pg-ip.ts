@@ -5,7 +5,7 @@ async function testIP() {
     const host = '54.206.85.193'; // One of the IPs for ep-bitter-frog-a7zxak3x-pooler.ap-southeast-2.aws.neon.tech
     const port = 5432;
     const user = 'neondb_owner';
-    const password = 'REDACTED';
+    const password = process.env.PGPASSWORD ?? '';
     const database = 'neondb';
 
     console.log(`Connecting to ${host}:${port} (IP)...`);

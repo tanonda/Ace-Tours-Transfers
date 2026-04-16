@@ -2,7 +2,8 @@ import pg from "pg";
 import translate from "google-translate-api-x";
 
 const { Client } = pg;
-const DB_URL = "postgresql://neondb_owner:REDACTED@ep-delicate-king-am3aopbg-pooler.c-5.us-east-1.aws.neon.tech/neondb?sslmode=require";
+const DB_URL = process.env.DATABASE_URL;
+if (!DB_URL) throw new Error("DATABASE_URL is required");
 
 const LOCALE_MAP: Record<string, string> = { fr: "fr", es: "es", zh: "zh-CN" };
 const TARGETS = ["fr", "es", "zh"] as const;

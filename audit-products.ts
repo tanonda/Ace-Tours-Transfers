@@ -4,7 +4,8 @@
 import pg from "pg";
 const { Client } = pg;
 
-const DB_URL = "postgresql://neondb_owner:REDACTED@ep-delicate-king-am3aopbg-pooler.c-5.us-east-1.aws.neon.tech/neondb?sslmode=require";
+const DB_URL = process.env.DATABASE_URL;
+if (!DB_URL) throw new Error("DATABASE_URL is required");
 
 async function main() {
   const client = new Client({ connectionString: DB_URL });

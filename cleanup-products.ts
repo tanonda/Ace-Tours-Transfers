@@ -12,8 +12,9 @@
 import pg from "pg";
 const { Client } = pg;
 
-const OLD_DB_URL = "postgresql://neondb_owner:REDACTED@ep-bitter-frog-a7zxak3x-pooler.ap-southeast-2.aws.neon.tech/neondb?sslmode=require";
-const NEW_DB_URL = "postgresql://neondb_owner:REDACTED@ep-delicate-king-am3aopbg-pooler.c-5.us-east-1.aws.neon.tech/neondb?sslmode=require";
+const OLD_DB_URL = process.env.OLD_DATABASE_URL ?? "";
+const NEW_DB_URL = process.env.DATABASE_URL;
+if (!NEW_DB_URL) throw new Error("DATABASE_URL is required");
 
 // ── IDs to DELETE (bare seed duplicates + test entry) ───────────────────────
 const IDS_TO_DELETE = [
