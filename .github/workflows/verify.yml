@@ -42,11 +42,11 @@ jobs:
       - name: Verify Architecture & Invariants
         env:
           DATABASE_URL: postgresql://postgres:password@localhost:5432/acetours_test
-          SESSION_SECRET: ${{ secrets.SESSION_SECRET || 'test-secret' }}
+          SESSION_SECRET: ${{ secrets.SESSION_SECRET || 'ci-test-session-secret-that-is-at-least-32-characters-long' }}
         run: npm run check-architecture
 
       - name: Run Go-Live Tests
         env:
           DATABASE_URL: postgresql://postgres:password@localhost:5432/acetours_test
-          SESSION_SECRET: ${{ secrets.SESSION_SECRET || 'test-secret' }}
+          SESSION_SECRET: ${{ secrets.SESSION_SECRET || 'ci-test-session-secret-that-is-at-least-32-characters-long' }}
         run: npm run go-live-verify
