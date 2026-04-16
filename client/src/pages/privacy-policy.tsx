@@ -23,7 +23,7 @@ export default function PrivacyPolicy() {
               <span className="text-primary font-semibold uppercase tracking-wider text-sm">Legal</span>
             </div>
             <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">Privacy Policy</h1>
-            <p className="text-muted-foreground">Last updated: January 2026</p>
+            <p className="text-muted-foreground">Last updated: April 2026</p>
           </motion.div>
         </div>
       </div>
@@ -141,7 +141,7 @@ export default function PrivacyPolicy() {
             <address className="not-italic">
               <strong>Ace Tours &amp; Transfers Vanuatu</strong><br />
               Port Vila, Vanuatu<br />
-              Phone: <a href="tel:+6787114045" className="text-primary hover:underline">7114045</a><br />
+              Phone: <a href="tel:+6787114045" className="text-primary hover:underline">+678 7114045</a><br />
               Email: <a href="mailto:acetoursvanuatu@outlook.com" className="text-primary hover:underline">acetoursvanuatu@outlook.com</a>
             </address>
           </motion.div>

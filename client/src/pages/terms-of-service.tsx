@@ -22,7 +22,7 @@ export default function TermsOfService() {
               <span className="text-primary font-semibold uppercase tracking-wider text-sm">Legal</span>
             </div>
             <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">Terms of Service</h1>
-            <p className="text-muted-foreground">Last updated: January 2026</p>
+            <p className="text-muted-foreground">Last updated: April 2026</p>
           </div>
         </div>
       </div>
