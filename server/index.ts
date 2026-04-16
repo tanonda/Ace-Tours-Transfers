@@ -412,6 +412,9 @@ app.use((req, res, next) => {
       console.warn('[MIGRATIONS] Migration execution warning:', errMsg);
     }
 
+    const { initFeatureFlags } = await import('./feature-flags.js');
+    await initFeatureFlags();
+
     const status = await integrityGuard.checkIntegrity();
     if (!status.isSafe) {
       console.error(`[INTEGRITY] CRITICAL: ${status.message}`);

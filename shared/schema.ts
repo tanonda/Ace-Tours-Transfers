@@ -333,10 +333,12 @@ export const payments = pgTable("payments", {
 
 export const featureFlags = pgTable("feature_flags", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  slug: text("slug").notNull().unique(), // e.g., 'client-dashboard', 'reviews-system'
+  slug: text("slug").notNull().unique(),
   enabled: boolean("enabled").notNull().default(false),
   displayName: text("display_name").notNull(),
   description: text("description"),
+  rolloutPercentage: integer("rollout_percentage").notNull().default(0),
+  updatedBy: text("updated_by").notNull().default("system"),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
