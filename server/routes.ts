@@ -102,6 +102,18 @@ const contactLimiter = rateLimit({
   message: { error: "Too many messages sent. Please try again later." },
 });
 
+const holdsLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 20,
+  message: { error: "Too many hold requests, please try again later." },
+});
+
+const cartPriceLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  message: { error: "Too many pricing requests, please try again later." },
+});
+
 // C6 Fix: Zod schema for booking creation
 const createBookingItemSchema = z.object({
   productId: z.string(),
@@ -396,7 +408,7 @@ ${allPages.map(p => `  <url>
     }
   });
 
-  app.post("/api/holds", async (req, res) => {
+  app.post("/api/holds", holdsLimiter, async (req, res) => {
     try {
       const { tourId, date, slot, quantity, startTime, endTime } = req.body;
       const sessionId = req.sessionID;
@@ -632,7 +644,7 @@ ${allPages.map(p => `  <url>
 
   // Cart Pricing API - Server-side price validation
   const priceCartService = new PriceCartService(storage);
-  app.post("/api/cart/price", async (req, res) => {
+  app.post("/api/cart/price", cartPriceLimiter, async (req, res) => {
     try {
       // Phase 2E: Feature flag controls which pricing system is used
       const { isFeatureEnabled } = await import('./feature-flags.js');

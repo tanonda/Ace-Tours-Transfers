@@ -1,10 +1,17 @@
 
 import { Express, Request, Response } from "express";
+import { rateLimit } from "express-rate-limit";
 import { userProfileDomainService } from "../domain/users/user-profile.domain-service.js";
 import { requireAdmin } from "../routes.js";
 import { adminInsertUserSchema } from '../../shared/schema.js';
 import { ZodError } from "zod";
 import { storage } from "../storage.js";
+
+const resetPasswordLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: { error: "Too many password reset attempts, please try again in 15 minutes." },
+});
 
 export function registerUserRoutes(app: Express) {
   // Admin-only User Management
@@ -49,7 +56,7 @@ export function registerUserRoutes(app: Express) {
   });
 
   // Password Reset consume endpoint
-  app.post("/api/auth/reset-password", async (req, res) => {
+  app.post("/api/auth/reset-password", resetPasswordLimiter, async (req, res) => {
     try {
       const { token, newPassword } = req.body;
       if (!token || !newPassword) {
