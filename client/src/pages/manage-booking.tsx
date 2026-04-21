@@ -113,9 +113,10 @@ export default function ManageBooking() {
         e.preventDefault();
         setIsVerifying(true);
         try {
+            const csrfToken = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]+)/)?.[1] || "";
             const res = await fetch("/api/bookings/session", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: { "Content-Type": "application/json", "X-CSRF-Token": csrfToken },
                 credentials: "include",
                 body: JSON.stringify({ bookingId: bookingRef.trim(), email: email.trim() }),
             });
@@ -162,9 +163,10 @@ export default function ManageBooking() {
     const handleSaveDetails = async () => {
         setIsSaving(true);
         try {
+            const csrfToken = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]+)/)?.[1] || "";
             const res = await fetch("/api/bookings/session/update", {
                 method: "PATCH",
-                headers: { "Content-Type": "application/json" },
+                headers: { "Content-Type": "application/json", "X-CSRF-Token": csrfToken },
                 credentials: "include",
                 body: JSON.stringify(editFields),
             });
@@ -270,9 +272,10 @@ export default function ManageBooking() {
         if (!session) return;
         setIsCancelling(true);
         try {
+            const csrfToken = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]+)/)?.[1] || "";
             const res = await fetch(`/api/bookings/${session.booking.id}/cancel`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: { "Content-Type": "application/json", "X-CSRF-Token": csrfToken },
                 credentials: "include",
                 body: JSON.stringify({ type: "email", value: email }),
             });

@@ -63,9 +63,10 @@ function ReviewModal({ booking, onClose, t, toast }: { booking: any; onClose: ()
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
+      const csrfToken = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]+)/)?.[1] || "";
       const res = await fetch("/api/reviews", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "X-CSRF-Token": csrfToken },
         body: JSON.stringify({
           bookingId: booking.id,
           tourId: booking.tourId,

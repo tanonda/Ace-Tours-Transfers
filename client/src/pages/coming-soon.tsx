@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 
 const DEFAULTS = {
   launch_date: "2026-05-01",
@@ -118,11 +119,7 @@ export default function ComingSoon() {
     e.preventDefault();
     if (!email) return;
     try {
-      await fetch("/api/newsletter/subscribe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
+      await apiRequest("POST", "/api/newsletter/subscribe", { email });
     } catch {}
     setSubmitted(true);
   };

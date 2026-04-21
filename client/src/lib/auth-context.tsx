@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { useLocation } from "wouter";
+import { ensureCsrfToken } from "./queryClient";
 
 interface User {
   id: string;
@@ -48,9 +49,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string, mfaToken?: string) => {
     try {
+      await ensureCsrfToken();
+      const match = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]+)/);
+      const csrfToken = match?.[1];
+
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (csrfToken) headers["X-CSRF-Token"] = csrfToken;
+
       const res = await fetch("/api/auth/login", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         credentials: "include",
         body: JSON.stringify({ email, password, mfaToken }),
       });
@@ -86,8 +94,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     try {
+      await ensureCsrfToken();
+      const match = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]+)/);
+      const csrfToken = match?.[1];
+
+      const headers: Record<string, string> = {};
+      if (csrfToken) headers["X-CSRF-Token"] = csrfToken;
+
       await fetch("/api/auth/logout", {
         method: "POST",
+        headers,
         credentials: "include",
       });
     } finally {

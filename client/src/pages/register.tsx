@@ -47,9 +47,10 @@ export default function Register() {
         return;
       }
 
+      const csrfToken = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]+)/)?.[1] || "";
       const res = await fetch("/api/auth/register", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "X-CSRF-Token": csrfToken },
         body: JSON.stringify({
           name: formData.name,
           email: formData.email,
@@ -83,9 +84,10 @@ export default function Register() {
     setIsLoading(true);
 
     try {
+      const csrfToken = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]+)/)?.[1] || "";
       const res = await fetch("/api/auth/verify-email", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "X-CSRF-Token": csrfToken },
         body: JSON.stringify({ email: pendingEmail, code: otp.trim() }),
       });
 
@@ -107,9 +109,10 @@ export default function Register() {
   const handleResend = async () => {
     setIsLoading(true);
     try {
+      const csrfToken = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]+)/)?.[1] || "";
       await fetch("/api/auth/register", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "X-CSRF-Token": csrfToken },
         body: JSON.stringify({ name: formData.name, email: pendingEmail, password: formData.password }),
       });
       toast({ title: "Code resent", description: "A new verification code has been sent to your email." });
