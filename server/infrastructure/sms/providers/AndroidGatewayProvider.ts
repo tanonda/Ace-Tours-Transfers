@@ -1,51 +1,72 @@
+import * as AndroidSmsGateway from 'android-sms-gateway';
 import type { ISmsProvider, SmsResult } from '../SmsService.js';
+
+type HttpClient = AndroidSmsGateway.HttpClient;
+const ClientClass: any = (AndroidSmsGateway as any).default || AndroidSmsGateway;
+
+class FetchHttpClient implements HttpClient {
+    private async request<T>(method: string, url: string, body?: any, headers?: Record<string, string>): Promise<T> {
+        const response = await fetch(url, {
+            method,
+            headers: {
+                'Content-Type': 'application/json',
+                ...headers,
+            },
+            body: body ? JSON.stringify(body) : undefined,
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+        }
+        
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            return await response.json() as T;
+        }
+        return await response.text() as unknown as T;
+    }
+
+    async get<T>(url: string, headers?: Record<string, string>): Promise<T> { return this.request<T>('GET', url, undefined, headers); }
+    async post<T>(url: string, body: any, headers?: Record<string, string>): Promise<T> { return this.request<T>('POST', url, body, headers); }
+    async put<T>(url: string, body: any, headers?: Record<string, string>): Promise<T> { return this.request<T>('PUT', url, body, headers); }
+    async patch<T>(url: string, body: any, headers?: Record<string, string>): Promise<T> { return this.request<T>('PATCH', url, body, headers); }
+    async delete<T>(url: string, headers?: Record<string, string>): Promise<T> { return this.request<T>('DELETE', url, undefined, headers); }
+}
 
 /**
  * AndroidGatewayProvider
  *
- * Adapter for the open-source Android SMS Gateway
- * (https://github.com/capcom6/android-sms-gateway).
- *
- * Sends SMS through a spare Android phone running a local SIM.
- * Messages go out as local Vanuatu SMS at local carrier rates — no
- * third-party aggregator fees.
- *
- * Required env vars:
- *   ANDROID_GATEWAY_URL   – e.g. http://192.168.1.50:8080
- *   ANDROID_GATEWAY_API_KEY – API key configured in the Android app
+ * Configured for CapCom6 Cloud Server mode.
  */
 export class AndroidGatewayProvider implements ISmsProvider {
     readonly name = 'android_gateway';
+    private client: any;
 
     constructor(
-        private readonly gatewayUrl: string,
-        private readonly apiKey: string,
-    ) { }
+        gatewayUrl: string,
+        login: string,
+        password: string,
+    ) {
+        const configUrl = gatewayUrl || 'https://api.sms-gate.app';
+        this.client = new ClientClass(login, password, new FetchHttpClient(), configUrl);
+    }
 
     async sendSms(to: string, message: string): Promise<SmsResult> {
-        const url = `${this.gatewayUrl.replace(/\/+$/, '')}/api/v1/message`;
-
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${this.apiKey}`,
-            },
-            body: JSON.stringify({
-                phoneNumbers: [to],
+        try {
+            const response = await this.client.send({
                 message,
-            }),
-        });
+                phoneNumbers: [to],
+            });
 
-        if (!response.ok) {
-            const body = await response.text();
+            return {
+                success: true,
+                messageId: response?.id || 'ok'
+            };
+        } catch (error: any) {
             return {
                 success: false,
-                error: `Android Gateway HTTP ${response.status}: ${body}`,
+                error: `Android Gateway Cloud Error: ${error.message || String(error)}`,
             };
         }
-
-        const data = await response.json() as { id?: string };
-        return { success: true, messageId: data.id || 'ok' };
     }
 }

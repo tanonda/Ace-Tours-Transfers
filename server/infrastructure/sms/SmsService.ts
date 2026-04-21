@@ -44,8 +44,9 @@ export class SmsService {
         case 'android_gateway': {
           const { AndroidGatewayProvider } = await import('./providers/AndroidGatewayProvider.js');
           this.provider = new AndroidGatewayProvider(
-            config.sms.androidGateway.url!,
-            config.sms.androidGateway.apiKey!,
+            config.sms.androidGateway.url || 'https://api.sms-gate.app',
+            config.sms.androidGateway.login!,
+            config.sms.androidGateway.password!
           );
           break;
         }

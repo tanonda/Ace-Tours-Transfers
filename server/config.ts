@@ -84,8 +84,9 @@ export const config = {
     provider: (process.env.SMS_PROVIDER as 'android_gateway' | 'twilio' | 'console') || 'console',
     adminPhone: process.env.SMS_ADMIN_PHONE,
     androidGateway: {
-      url: process.env.ANDROID_GATEWAY_URL,
-      apiKey: process.env.ANDROID_GATEWAY_API_KEY,
+      url: process.env.SMS_CLOUD_URL || 'https://api.sms-gate.app',
+      login: process.env.SMS_CLOUD_LOGIN,
+      password: process.env.SMS_CLOUD_PASSWORD,
     },
     twilio: {
       accountSid: process.env.TWILIO_ACCOUNT_SID,
