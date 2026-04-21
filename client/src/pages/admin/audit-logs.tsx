@@ -359,9 +359,13 @@ export default function AdminAuditLogs() {
 
           {/* ── INVENTORY EVENTS TAB ──────────────────────────────── */}
           <TabsContent value="inventory" className="space-y-4">
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => refetchInventory()} size="sm"><RefreshCw className="h-4 w-4 mr-2" /> Refresh</Button>
-              <Button variant="outline" onClick={handleExport} size="sm"><Download className="h-4 w-4 mr-2" /> Export CSV</Button>
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <Button variant="outline" onClick={() => refetchInventory()} size="sm" className="flex-1 sm:flex-none">
+                <RefreshCw className="h-4 w-4 mr-2" /> Refresh
+              </Button>
+              <Button variant="outline" onClick={handleExport} size="sm" className="flex-1 sm:flex-none">
+                <Download className="h-4 w-4 mr-2" /> Export CSV
+              </Button>
             </div>
 
             <Card>
@@ -488,9 +492,13 @@ export default function AdminAuditLogs() {
 
           {/* ── ADMIN ACTIONS TAB ─────────────────────────────────── */}
           <TabsContent value="admin-actions" className="space-y-4">
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => refetchAdmin()} size="sm"><RefreshCw className="h-4 w-4 mr-2" /> Refresh</Button>
-              <Button variant="outline" onClick={handleAdminExport} size="sm"><Download className="h-4 w-4 mr-2" /> Export CSV</Button>
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <Button variant="outline" onClick={() => refetchAdmin()} size="sm" className="flex-1 sm:flex-none">
+                <RefreshCw className="h-4 w-4 mr-2" /> Refresh
+              </Button>
+              <Button variant="outline" onClick={handleAdminExport} size="sm" className="flex-1 sm:flex-none">
+                <Download className="h-4 w-4 mr-2" /> Export CSV
+              </Button>
             </div>
 
             <Card>

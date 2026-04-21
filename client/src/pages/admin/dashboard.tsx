@@ -248,20 +248,20 @@ export default function AdminDashboard() {
 
       <div className="flex flex-col gap-5">
         {/* Header */}
-        <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-foreground">{t("dashboard.welcome")}, {user?.name || 'Admin'}</h1>
             <p className="mt-1 text-sm text-muted-foreground">{t("dashboard.whatsHappening")}</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto mt-2 sm:mt-0">
             <input
               data-testid="input-search"
               placeholder={t("common.searchPlaceholder")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="py-2.5 px-3.5 rounded-lg border border-border min-w-[200px] bg-background text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className="py-2.5 px-3.5 rounded-lg border border-border min-w-[200px] w-full sm:w-auto bg-background text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
-            <Button data-testid="button-export-csv" onClick={handleExportCSV} size="sm" className="gap-2">
+            <Button data-testid="button-export-csv" onClick={handleExportCSV} size="sm" className="gap-2 shrink-0 w-full sm:w-auto">
               <Download className="w-4 h-4" />
               {t("common.export")}
             </Button>
@@ -330,14 +330,14 @@ export default function AdminDashboard() {
           <div className="rounded-xl bg-card border border-border overflow-hidden">
             <div className="flex items-center justify-between p-5 border-b border-border gap-2 flex-wrap">
               <h3 className="text-foreground text-base font-semibold">{t("dashboard.recentBookings")}</h3>
-              <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
                 {/* Date range toggle */}
-                <div className="flex bg-muted rounded-lg p-0.5 text-xs">
+                <div className="flex flex-wrap sm:flex-nowrap bg-muted rounded-lg p-0.5 text-xs w-full sm:w-auto">
                   {(['week', 'month', 'all'] as const).map(range => (
                     <button
                       key={range}
                       onClick={() => setDateRange(range)}
-                      className={`px-2.5 py-1 rounded-md transition-colors font-medium ${dateRange === range ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                      className={`flex-1 sm:flex-none px-2.5 py-1 rounded-md transition-colors font-medium ${dateRange === range ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
                     >
                       {range === 'week' ? 'This Week' : range === 'month' ? 'This Month' : 'All Time'}
                     </button>
@@ -347,14 +347,14 @@ export default function AdminDashboard() {
                   data-testid="select-status-filter"
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="py-1.5 px-3 rounded-md bg-muted border border-border text-foreground text-xs cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  className="w-full sm:w-auto py-1.5 px-3 rounded-md bg-muted border border-border text-foreground text-xs cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50"
                 >
                   <option value="all">{t("dashboard.allStatuses")}</option>
                   <option value="confirmed">{t("booking.confirmed")}</option>
                   <option value="pending">{t("booking.pending")}</option>
                   <option value="cancelled">{t("booking.cancelled")}</option>
                 </select>
-                <button onClick={() => setLocation('/admin/bookings')} className="text-xs text-primary hover:underline flex items-center gap-0.5">
+                <button onClick={() => setLocation('/admin/bookings')} className="text-xs text-primary hover:underline flex items-center justify-center sm:justify-start gap-0.5 mt-1 sm:mt-0">
                   All <ChevronRight className="w-3 h-3" />
                 </button>
               </div>

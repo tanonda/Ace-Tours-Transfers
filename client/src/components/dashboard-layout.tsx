@@ -114,10 +114,10 @@ export function DashboardLayout({ children, type }: DashboardLayoutProps) {
   ];
 
   const customerLinks = [
-    { href: "/dashboard", label: "My Dashboard", icon: LayoutDashboard, emoji: "🏠", group: "main" },
-    { href: "/dashboard/bookings", label: "My Bookings", icon: ShoppingBag, emoji: "🎫", group: "main" },
-    { href: "/dashboard/saved", label: "Saved Tours", icon: Heart, emoji: "❤️", group: "main" },
-    { href: "/dashboard/profile", label: "Profile & Settings", icon: User, emoji: "👤", group: "main" },
+    { href: "/dashboard", label: "My Dashboard", icon: LayoutDashboard, emoji: "🏠", group: "main", show: true },
+    { href: "/dashboard/bookings", label: "My Bookings", icon: ShoppingBag, emoji: "🎫", group: "main", show: true },
+    { href: "/dashboard/saved", label: "Saved Tours", icon: Heart, emoji: "❤️", group: "main", show: true },
+    { href: "/dashboard/profile", label: "Profile & Settings", icon: User, emoji: "👤", group: "main", show: true },
   ];
 
   const links = type === "admin" ? adminLinks : customerLinks;
@@ -360,9 +360,46 @@ export function DashboardLayout({ children, type }: DashboardLayoutProps) {
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-4 lg:p-6 animate-in fade-in duration-200">
+        <main className="flex-1 overflow-y-auto p-4 pb-24 lg:p-6 lg:pb-6 animate-in fade-in duration-200">
           {children}
         </main>
+        {/* Mobile Bottom Nav */}
+        <nav
+          className="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-background/95 backdrop-blur-lg border-t border-border shadow-[0_-4px_15px_-5px_rgba(0,0,0,0.1)]"
+          style={{ paddingBottom: "var(--safe-area-inset-bottom)" }}
+          role="navigation"
+          aria-label="Dashboard mobile navigation"
+        >
+          <div className="flex items-center justify-around h-16">
+            {links.filter(l => l.group === "main" && l.show).slice(0, 4).map((link) => {
+              const isActive = location === link.href || (link.href !== (type === 'admin' ? '/admin/dashboard' : '/dashboard') && location.startsWith(link.href));
+              return (
+                <button
+                  key={link.href}
+                  onClick={() => navigate(link.href)}
+                  className={`flex flex-col items-center justify-center flex-1 h-full touch-target touch-feedback relative transition-colors duration-200 ${isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+                >
+                  <div className="relative">
+                    <link.icon className="h-5 w-5" />
+                  </div>
+                  <span className="text-[10px] mt-1 font-medium">{link.label}</span>
+                  {isActive && (
+                    <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-primary rounded-full" />
+                  )}
+                </button>
+              );
+            })}
+            {/* Menu Button */}
+            <button
+              onClick={() => setIsMobileSidebarOpen(true)}
+              className="flex flex-col items-center justify-center flex-1 h-full touch-target touch-feedback text-muted-foreground hover:text-foreground transition-colors duration-200"
+              aria-label="Open menu"
+            >
+              <Menu className="h-5 w-5" />
+              <span className="text-[10px] mt-1 font-medium">Menu</span>
+            </button>
+          </div>
+        </nav>
       </div>
     </div>
   );

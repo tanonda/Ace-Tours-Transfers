@@ -216,11 +216,11 @@ export default function AdminUsers() {
             <h1 className="text-3xl font-bold text-[#004165]">Customer Management</h1>
             <p className="text-muted-foreground">View and manage registered customers. For staff and admin accounts, visit the Staff page.</p>
           </div>
-          <div className="flex gap-2">
-            <Button onClick={() => setIsCreateUserDialogOpen(true)} data-testid="button-create-user">
+          <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+            <Button onClick={() => setIsCreateUserDialogOpen(true)} data-testid="button-create-user" className="flex-1 sm:flex-none">
               <PlusCircle className="h-4 w-4 mr-2" /> Add Customer
             </Button>
-            <Button variant="outline" onClick={handleExportUsers} data-testid="button-export-users">
+            <Button variant="outline" onClick={handleExportUsers} data-testid="button-export-users" className="flex-1 sm:flex-none">
               <Download className="h-4 w-4 mr-2" /> Export List
             </Button>
           </div>
@@ -295,19 +295,19 @@ export default function AdminUsers() {
         </div>
 
         <Card>
-          <CardHeader className="pb-3 flex flex-row items-center justify-between">
-            <div className="relative w-full sm:w-72">
+          <CardHeader className="pb-3 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div className="relative w-full lg:w-72">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search users..."
-                className="pl-8"
+                className="pl-8 w-full"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 data-testid="input-search-customers"
               />
             </div>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
+            <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
+              <div className="flex items-center justify-between sm:justify-start gap-2 w-full sm:w-auto bg-muted/30 px-3 py-1.5 rounded-md border border-border">
                 <label className="text-xs font-medium text-muted-foreground whitespace-nowrap">Show Inactive</label>
                 <button
                   onClick={() => setShowInactive(!showInactive)}
@@ -318,17 +318,19 @@ export default function AdminUsers() {
               </div>
 
               {selectedItems.length > 0 && (
-                <div className="flex items-center gap-2 bg-primary/5 px-2 py-1 rounded-lg border border-primary/20 animate-in fade-in slide-in-from-right-2">
+                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 bg-primary/5 px-2 py-1.5 rounded-lg border border-primary/20 w-full sm:w-auto">
                   <span className="text-xs font-bold text-primary mr-1 px-1">{selectedItems.length} Selected</span>
-                  <Button variant="outline" size="sm" onClick={() => handleBulkStatusUpdate(true)} className="h-8 text-xs text-green-600 border-green-200">
-                    <CheckCircle2 className="h-3 w-3 mr-1" /> Activate
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => handleBulkStatusUpdate(false)} className="h-8 text-xs text-orange-600 border-orange-200">
-                    <XCircle className="h-3 w-3 mr-1" /> Suspend
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={() => handleBulkStatusUpdate(true)} className="h-8 text-xs text-green-600 border-green-200">
+                      <CheckCircle2 className="h-3 w-3 mr-1" /> Activate
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => handleBulkStatusUpdate(false)} className="h-8 text-xs text-orange-600 border-orange-200">
+                      <XCircle className="h-3 w-3 mr-1" /> Suspend
+                    </Button>
+                  </div>
                 </div>
               )}
-              <div className="flex gap-1 bg-muted p-1 rounded-md">
+              <div className="flex gap-1 bg-muted p-1 rounded-md ml-auto sm:ml-0">
                 <Button
                   variant={viewMode === 'list' ? 'secondary' : 'ghost'}
                   size="icon"

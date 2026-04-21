@@ -119,12 +119,12 @@ export default function AdminProfile() {
         {/* Account info card */}
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
                 <CardTitle>Account Overview</CardTitle>
                 <CardDescription>Your account details and role</CardDescription>
               </div>
-              <span className={`px-3 py-1 text-xs font-semibold rounded-full border ${roleBadgeClass[user?.role || "admin"] || ""}`}>
+              <span className={`px-3 py-1 text-xs font-semibold rounded-full border shrink-0 ${roleBadgeClass[user?.role || "admin"] || ""}`}>
                 {roleLabel[user?.role || "admin"] || user?.role}
               </span>
             </div>

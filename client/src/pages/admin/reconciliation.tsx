@@ -242,12 +242,12 @@ export default function AdminReconciliation() {
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>
-                                <div className="mb-6 rounded-md bg-muted/30 p-4 border flex items-center justify-between">
+                                <div className="mb-6 rounded-md bg-muted/30 p-4 border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                                     <div>
                                         <h4 className="font-medium text-sm">Automated Reconciliation</h4>
                                         <p className="text-xs text-muted-foreground">Upload a CSV bank statement to automatically match and confirm offline payments via reference IDs (e.g. BKG-1234).</p>
                                     </div>
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-2 w-full sm:w-auto">
                                         <Input
                                             type="file"
                                             accept=".csv"

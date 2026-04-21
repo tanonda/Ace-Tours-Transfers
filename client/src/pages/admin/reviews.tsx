@@ -192,7 +192,7 @@ export default function AdminReviews() {
     <DashboardLayout type="admin">
       <div className="flex flex-col gap-5">
         {/* Header */}
-        <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
               <Star className="h-5 w-5 text-yellow-400 fill-yellow-400" />
@@ -200,8 +200,8 @@ export default function AdminReviews() {
             </h1>
             <p className="text-sm text-muted-foreground mt-0.5">Moderate guest reviews before they appear publicly</p>
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => refetch()}>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <Button variant="outline" size="sm" onClick={() => refetch()} className="w-full sm:w-auto">
               <RefreshCw className="h-4 w-4 mr-1" /> Refresh
             </Button>
           </div>

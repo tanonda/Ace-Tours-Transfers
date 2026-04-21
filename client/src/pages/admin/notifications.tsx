@@ -188,7 +188,7 @@ function ComposePanel({ staffUsers, onSent }: { staffUsers: any[]; onSent: () =>
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="px-5 py-4 border-b border-border flex items-center justify-between">
+      <div className="px-5 py-4 border-b border-border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
             <Megaphone className="h-3.5 w-3.5 text-primary" />
@@ -420,7 +420,7 @@ export default function AdminNotifications() {
       <div className="flex flex-col gap-5 h-full">
 
         {/* ── Header ── */}
-        <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-foreground flex items-center gap-2.5">
               <Bell className="h-6 w-6 text-primary" />
@@ -433,7 +433,7 @@ export default function AdminNotifications() {
             </h1>
             <p className="text-sm text-muted-foreground mt-0.5">System alerts, booking events and staff broadcasts</p>
           </div>
-          <Button variant="outline" size="sm" onClick={refetchAll2} className="gap-2 shrink-0">
+          <Button variant="outline" size="sm" onClick={refetchAll2} className="gap-2 w-full sm:w-auto shrink-0">
             <RefreshCw className="h-3.5 w-3.5" /> Refresh
           </Button>
         </div>

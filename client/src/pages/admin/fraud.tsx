@@ -167,7 +167,7 @@ export default function AdminFraud() {
     <DashboardLayout type="admin">
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="p-2.5 bg-red-50 rounded-xl border border-red-200">
               <ShieldAlert className="w-6 h-6 text-red-600" />
@@ -177,7 +177,7 @@ export default function AdminFraud() {
               <p className="text-sm text-muted-foreground">Bookings flagged by automated risk detection</p>
             </div>
           </div>
-          <Button variant="outline" size="sm" onClick={() => refetch()} className="gap-2">
+          <Button variant="outline" size="sm" onClick={() => refetch()} className="w-full sm:w-auto gap-2">
             <RefreshCw className="w-4 h-4" /> Refresh
           </Button>
         </div>

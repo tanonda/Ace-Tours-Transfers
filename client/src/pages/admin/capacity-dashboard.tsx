@@ -513,11 +513,11 @@ export default function CapacityDashboard() {
             <h1 className="text-3xl font-bold text-[#004165]">Availability Dashboard</h1>
             <p className="text-muted-foreground text-sm">Real-time capacity management across all products</p>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={handleRefresh}>
+          <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+            <Button variant="outline" size="sm" onClick={handleRefresh} className="flex-1 sm:flex-none">
               <RefreshCw className="h-4 w-4 mr-2" /> Refresh
             </Button>
-            <Button size="sm" className="bg-[#004165] text-white hover:bg-[#004165]/90" onClick={() => setAddDialogOpen(true)}>
+            <Button size="sm" className="bg-[#004165] text-white hover:bg-[#004165]/90 flex-1 sm:flex-none" onClick={() => setAddDialogOpen(true)}>
               <Plus className="h-4 w-4 mr-2" /> Add Slot
             </Button>
           </div>
@@ -637,12 +637,12 @@ export default function CapacityDashboard() {
           <TabsContent value="table" className="mt-4">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center justify-between gap-4">
+                <CardTitle className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <span>Capacity Overview</span>
-                  <div className="flex gap-2 ml-auto">
+                  <div className="flex flex-wrap gap-2 w-full sm:w-auto">
                     {/* Status filter */}
                     <Select value={filterStatus} onValueChange={setFilterStatus}>
-                      <SelectTrigger className="w-36">
+                      <SelectTrigger className="flex-1 sm:w-36">
                         <SelectValue placeholder="All statuses" />
                       </SelectTrigger>
                       <SelectContent>
@@ -655,7 +655,7 @@ export default function CapacityDashboard() {
                     </Select>
                     {/* Product filter */}
                     <Select value={filterTour} onValueChange={setFilterTour}>
-                      <SelectTrigger className="w-48">
+                      <SelectTrigger className="flex-1 sm:w-48">
                         <SelectValue placeholder="All products" />
                       </SelectTrigger>
                       <SelectContent>
@@ -666,7 +666,7 @@ export default function CapacityDashboard() {
                       </SelectContent>
                     </Select>
                     {dayFilterDate && (
-                      <Button variant="outline" size="sm" onClick={() => setDayFilterDate(null)}>
+                      <Button variant="outline" size="sm" onClick={() => setDayFilterDate(null)} className="w-full sm:w-auto">
                         Clear date filter
                       </Button>
                     )}

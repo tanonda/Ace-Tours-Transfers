@@ -213,14 +213,14 @@ export default function AdminPromotions() {
     <DashboardLayout type="admin">
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-2"><Percent className="h-6 w-6 text-primary" /> Promotions & Discounts</h1>
             <p className="text-sm text-muted-foreground mt-1">Manage promo codes — all codes apply at checkout automatically.</p>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => refetch()}><RefreshCw className="h-4 w-4 mr-1" /> Refresh</Button>
-            <Button size="sm" onClick={() => { setEditingPromo(null); setFormData(emptyForm); setIsCreateOpen(true); }}>
+          <div className="flex gap-2 w-full sm:w-auto">
+            <Button variant="outline" size="sm" onClick={() => refetch()} className="flex-1 sm:flex-none"><RefreshCw className="h-4 w-4 mr-1" /> Refresh</Button>
+            <Button size="sm" onClick={() => { setEditingPromo(null); setFormData(emptyForm); setIsCreateOpen(true); }} className="flex-1 sm:flex-none">
               <Plus className="h-4 w-4 mr-2" /> New Promo Code
             </Button>
           </div>

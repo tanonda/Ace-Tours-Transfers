@@ -218,9 +218,9 @@ export default function AdminCalendar() {
               View and manage all bookings in a calendar view.
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
             <Select value={tourFilter} onValueChange={setTourFilter}>
-              <SelectTrigger className="w-[180px]" data-testid="select-tour-filter">
+              <SelectTrigger className="flex-1 sm:w-[180px]" data-testid="select-tour-filter">
                 <SelectValue placeholder="Filter by product" />
               </SelectTrigger>
               <SelectContent>
@@ -230,7 +230,7 @@ export default function AdminCalendar() {
                 ))}
               </SelectContent>
             </Select>
-            <Button variant="outline" onClick={goToToday} data-testid="button-today">
+            <Button variant="outline" onClick={goToToday} data-testid="button-today" className="shrink-0">
               Today
             </Button>
           </div>
@@ -240,7 +240,7 @@ export default function AdminCalendar() {
           <div className="lg:col-span-3">
             <Card>
               <CardHeader className="pb-4">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <div className="flex items-center gap-4">
                     <Button variant="outline" size="icon" onClick={goToPrevMonth} data-testid="button-prev-month">
                       <ChevronLeft className="h-4 w-4" />
@@ -252,14 +252,14 @@ export default function AdminCalendar() {
                       <ChevronRight className="h-4 w-4" />
                     </Button>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-1 text-xs">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex items-center gap-1 text-xs whitespace-nowrap">
                       <div className="w-3 h-3 rounded-full bg-green-500" /> Confirmed
                     </div>
-                    <div className="flex items-center gap-1 text-xs">
+                    <div className="flex items-center gap-1 text-xs whitespace-nowrap">
                       <div className="w-3 h-3 rounded-full bg-yellow-500" /> Pending
                     </div>
-                    <div className="flex items-center gap-1 text-xs">
+                    <div className="flex items-center gap-1 text-xs whitespace-nowrap">
                       <div className="w-3 h-3 rounded-full bg-blue-500" /> Completed
                     </div>
                   </div>
@@ -476,7 +476,7 @@ export default function AdminCalendar() {
           <div className="space-y-6">
             <Card>
               <CardHeader>
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <div>
                     <CardTitle className="text-lg flex items-center gap-2">
                       <CalendarIcon className="h-5 w-5 text-[#004165]" />
@@ -491,7 +491,7 @@ export default function AdminCalendar() {
                     </CardDescription>
                   </div>
                   {todayBookings.length > 0 && (
-                    <Button variant="outline" size="sm" onClick={() => setTodayDialogOpen(true)}>
+                    <Button variant="outline" size="sm" onClick={() => setTodayDialogOpen(true)} className="w-full sm:w-auto">
                       View All ({todayBookings.length})
                     </Button>
                   )}

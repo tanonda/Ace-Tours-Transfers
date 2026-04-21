@@ -429,35 +429,37 @@ export default function AdminCMS() {
   return (
     <DashboardLayout type="admin">
       <div className="flex flex-col gap-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-foreground">{t("cms.title")}</h1>
             <p className="text-sm text-muted-foreground">Edit page content with rich text formatting — changes publish immediately.</p>
           </div>
-          <Badge variant="secondary" className="gap-1.5">
+          <Badge variant="secondary" className="gap-1.5 shrink-0">
             <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
             Live CMS
           </Badge>
         </div>
 
         {/* Language Selector */}
-        <div className="flex items-center gap-2 p-1 bg-muted/50 rounded-lg border border-border w-fit">
-          <Globe className="h-4 w-4 text-muted-foreground ml-2" />
-          {CMS_LANGUAGES.map(lang => (
-            <button
-              key={lang.code}
-              onClick={() => { setActiveLocale(lang.code); setRichContent({}); }}
-              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-200 flex items-center gap-1.5 ${
-                activeLocale === lang.code
-                  ? 'bg-background text-foreground shadow-sm border border-border'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
-              }`}
-            >
-              <span>{lang.flag}</span>
-              <span className="hidden sm:inline">{lang.name}</span>
-              <span className="sm:hidden">{lang.code.toUpperCase()}</span>
-            </button>
-          ))}
+        <div className="flex items-center gap-2 p-1 bg-muted/50 rounded-lg border border-border w-full sm:w-fit overflow-x-auto no-scrollbar">
+          <Globe className="h-4 w-4 text-muted-foreground ml-2 shrink-0" />
+          <div className="flex gap-1.5">
+            {CMS_LANGUAGES.map(lang => (
+              <button
+                key={lang.code}
+                onClick={() => { setActiveLocale(lang.code); setRichContent({}); }}
+                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-200 flex items-center gap-1.5 whitespace-nowrap ${
+                  activeLocale === lang.code
+                    ? 'bg-background text-foreground shadow-sm border border-border'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
+                }`}
+              >
+                <span>{lang.flag}</span>
+                <span className="hidden sm:inline">{lang.name}</span>
+                <span className="sm:hidden">{lang.code.toUpperCase()}</span>
+              </button>
+            ))}
+          </div>
         </div>
 
         {activeLocale !== 'en' && (

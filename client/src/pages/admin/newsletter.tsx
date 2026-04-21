@@ -138,10 +138,14 @@ export default function AdminNewsletter() {
             <h1 className="text-2xl font-bold text-[#004165]">Newsletter Management</h1>
             <p className="text-muted-foreground text-sm">Manage subscribers and send campaigns</p>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => refetch()}><RefreshCw className="h-4 w-4 mr-2" /> Refresh</Button>
-            <Button variant="outline" size="sm" onClick={handleExportCSV} disabled={!stats.total}><Download className="h-4 w-4 mr-2" /> Export CSV</Button>
-            <Button size="sm" className="bg-[#004165]" onClick={() => setIsBroadcastOpen(true)} disabled={!stats.confirmed}>
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            <Button variant="outline" size="sm" onClick={() => refetch()} className="flex-1 sm:flex-none">
+              <RefreshCw className="h-4 w-4 mr-2" /> Refresh
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleExportCSV} disabled={!stats.total} className="flex-1 sm:flex-none">
+              <Download className="h-4 w-4 mr-2" /> Export CSV
+            </Button>
+            <Button size="sm" className="bg-[#004165] w-full sm:w-auto" onClick={() => setIsBroadcastOpen(true)} disabled={!stats.confirmed}>
               <Send className="h-4 w-4 mr-2" /> Send Campaign
             </Button>
           </div>
@@ -174,12 +178,12 @@ export default function AdminNewsletter() {
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-base"><Users className="h-4 w-4" /> Subscribers</CardTitle>
-                <div className="flex gap-2 mt-2">
+                <div className="flex flex-col sm:flex-row gap-2 mt-2">
                   <div className="relative flex-1">
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input placeholder="Search by email or name..." className="pl-8" value={search} onChange={e => setSearch(e.target.value)} />
                   </div>
-                  <select className="px-3 py-2 border border-border rounded-md text-sm bg-background" value={statusFilter}
+                  <select className="px-3 py-2 border border-border rounded-md text-sm bg-background w-full sm:w-auto" value={statusFilter}
                     onChange={e => setStatusFilter(e.target.value as any)}>
                     <option value="all">All Status</option>
                     <option value="confirmed">Confirmed</option>

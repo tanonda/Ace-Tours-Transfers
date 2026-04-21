@@ -139,12 +139,18 @@ export default function AdminBookings() {
             <h1 className="text-3xl font-bold text-[#004165]">Bookings</h1>
             <p className="text-muted-foreground">Manage and track all tour reservations.</p>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => refetch()}><RefreshCw className="h-4 w-4 mr-2" />Refresh</Button>
+          <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+            <Button variant="outline" size="sm" onClick={() => refetch()} className="flex-1 sm:flex-none">
+              <RefreshCw className="h-4 w-4 mr-2" />Refresh
+            </Button>
             {isAdmin && (
               <>
-                <Button variant="outline" size="sm" onClick={async () => { try { await exportBookingsCSV(); toast({ title: "Exported" }); } catch { toast({ title: "Failed", variant: "destructive" }); } }}><Download className="h-4 w-4 mr-2" />Export CSV</Button>
-                <Button className="bg-[#004165]" size="sm" onClick={() => setIsCreateOpen(true)}><Plus className="h-4 w-4 mr-2" />New Booking</Button>
+                <Button variant="outline" size="sm" onClick={async () => { try { await exportBookingsCSV(); toast({ title: "Exported" }); } catch { toast({ title: "Failed", variant: "destructive" }); } }} className="flex-1 sm:flex-none">
+                  <Download className="h-4 w-4 mr-2" />Export CSV
+                </Button>
+                <Button className="bg-[#004165] flex-1 sm:flex-none" size="sm" onClick={() => setIsCreateOpen(true)}>
+                  <Plus className="h-4 w-4 mr-2" />New Booking
+                </Button>
               </>
             )}
           </div>
@@ -152,32 +158,34 @@ export default function AdminBookings() {
 
         <Card>
           <CardHeader className="pb-3 space-y-3">
-            <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex flex-col lg:flex-row gap-3">
               <div className="relative flex-1">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Smart search: name, tour, ID, date, status…" className="pl-8" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+                <Input placeholder="Smart search: name, tour, ID, date, status…" className="pl-8 w-full" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
                 {searchQuery && <button onClick={() => setSearchQuery("")} className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>}
               </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[160px]"><SelectValue placeholder="Status" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="confirmed">Confirmed</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
-                  <SelectItem value="failed">Failed/Unsuccessful</SelectItem>
-                </SelectContent>
-              </Select>
-              <div className="flex items-center space-x-2 mr-2">
-                <Checkbox id="show-deleted" checked={includeArchived} onCheckedChange={(c) => setIncludeArchived(!!c)} />
-                <label htmlFor="show-deleted" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                  Show Deleted
-                </label>
+              <div className="flex flex-wrap sm:flex-nowrap gap-3">
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-full sm:w-[160px]"><SelectValue placeholder="Status" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="confirmed">Confirmed</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                    <SelectItem value="failed">Failed/Unsuccessful</SelectItem>
+                  </SelectContent>
+                </Select>
+                <div className="flex items-center space-x-2 bg-muted/50 px-3 py-1 rounded-md border border-border flex-1 sm:flex-none justify-center sm:justify-start">
+                  <Checkbox id="show-deleted" checked={includeArchived} onCheckedChange={(c) => setIncludeArchived(!!c)} />
+                  <label htmlFor="show-deleted" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 whitespace-nowrap">
+                    Show Deleted
+                  </label>
+                </div>
+                <Button variant="outline" size="icon" onClick={() => setDateSort(d => d === "desc" ? "asc" : "desc")} title="Toggle date sort" className="shrink-0">
+                  <Filter className="h-4 w-4" />
+                </Button>
               </div>
-              <Button variant="outline" size="icon" onClick={() => setDateSort(d => d === "desc" ? "asc" : "desc")} title="Toggle date sort">
-                <Filter className="h-4 w-4" />
-              </Button>
             </div>
 
             {someSelected && isAdmin && (

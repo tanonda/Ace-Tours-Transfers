@@ -88,14 +88,14 @@ export default function AdminAnalytics() {
     <DashboardLayout type="admin">
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold">{t("admin.analyticsTitle", "Advanced Analytics")}</h1>
             <p className="text-muted-foreground text-sm mt-1">{t("admin.analyticsDesc", "Business performance and customer trends.")}</p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
             <Select value={period} onValueChange={(v: any) => setPeriod(v)}>
-              <SelectTrigger className="w-36 h-9">
+              <SelectTrigger className="w-full sm:w-36 h-9">
                 <Calendar className="h-3.5 w-3.5 mr-1.5" />
                 <SelectValue />
               </SelectTrigger>
@@ -105,13 +105,17 @@ export default function AdminAnalytics() {
                 <SelectItem value="365">Last 12 months</SelectItem>
               </SelectContent>
             </Select>
-            <Button variant="outline" size="sm" onClick={() => refetch()}><RefreshCw className="h-4 w-4 mr-1.5" /> Refresh</Button>
-            <Button variant="outline" size="sm" onClick={exportCSV}><Download className="h-4 w-4 mr-1.5" /> Export CSV</Button>
+            <Button variant="outline" size="sm" onClick={() => refetch()} className="flex-1 sm:flex-none">
+              <RefreshCw className="h-4 w-4 mr-1.5" /> Refresh
+            </Button>
+            <Button variant="outline" size="sm" onClick={exportCSV} className="flex-1 sm:flex-none">
+              <Download className="h-4 w-4 mr-1.5" /> Export CSV
+            </Button>
           </div>
         </div>
 
         {/* KPI Row */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <KPI label="Total Revenue" value={`${Math.round(totalRevenue / 100).toLocaleString()} VT`}
             sublabel={`~${Math.round(avgDaily / 100).toLocaleString()} VT/day`}
             icon={DollarSign} colorClass="bg-yellow-500/15 text-yellow-600" />

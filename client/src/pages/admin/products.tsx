@@ -184,12 +184,12 @@ export default function AdminProducts() {
   return (
     <DashboardLayout type="admin">
       <div className="flex flex-col gap-6">
-        <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-foreground">Products Management</h1>
             <p className="text-sm text-muted-foreground">Manage tours, transfers, and vehicle hire listings</p>
           </div>
-          <Button onClick={() => { setSelectedTour(null); setIsDialogOpen(true); }}>
+          <Button onClick={() => { setSelectedTour(null); setIsDialogOpen(true); }} className="w-full sm:w-auto">
             <Plus className="mr-2 h-4 w-4" /> Add Product
           </Button>
         </div>
@@ -203,7 +203,7 @@ export default function AdminProducts() {
           </TabsList>
         </Tabs>
 
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
           <Card><CardContent className="p-4 flex items-center gap-3"><ImageIcon className="h-5 w-5 text-blue-500" /><div><p className="text-xs text-muted-foreground">Tours</p><p className="text-xl font-bold">{tourStats.totalTours}</p></div></CardContent></Card>
           <Card><CardContent className="p-4 flex items-center gap-3"><Car className="h-5 w-5 text-green-500" /><div><p className="text-xs text-muted-foreground">Transfers</p><p className="text-xl font-bold">{tourStats.totalTransfers}</p></div></CardContent></Card>
           <Card><CardContent className="p-4 flex items-center gap-3"><LayoutGrid className="h-5 w-5 text-orange-500" /><div><p className="text-xs text-muted-foreground">Vehicles</p><p className="text-xl font-bold">{tourStats.totalVehicles}</p></div></CardContent></Card>
@@ -211,13 +211,13 @@ export default function AdminProducts() {
           <Card><CardContent className="p-4 flex items-center gap-3"><DollarSign className="h-5 w-5 text-yellow-500" /><div><p className="text-xs text-muted-foreground">Revenue</p><p className="text-xl font-bold">{formatPrice(tourStats.totalRevenueCents)}</p></div></CardContent></Card>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-card p-4 rounded-xl border border-border">
-          <div className="flex items-center gap-3 w-full sm:w-auto">
-            <div className="relative flex-1 sm:w-80">
+        <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4 bg-card p-4 rounded-xl border border-border">
+          <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
+            <div className="relative w-full sm:w-80">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder={t("common.searchPlaceholder")} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
+              <Input placeholder={t("common.searchPlaceholder")} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 w-full" />
             </div>
-            <div className="flex items-center gap-2 ml-2">
+            <div className="flex items-center justify-between sm:justify-start gap-2 w-full sm:w-auto bg-muted/30 px-3 py-1.5 rounded-md border border-border">
               <label className="text-xs font-medium text-muted-foreground whitespace-nowrap">Show Hidden</label>
               <button
                 onClick={() => setShowInactive(!showInactive)}
@@ -227,23 +227,25 @@ export default function AdminProducts() {
               </button>
             </div>
           </div>
-          <div className="flex items-center gap-3 w-full sm:w-auto">
+          <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
             {selectedItems.length > 0 && (
-              <div className="flex items-center gap-2 bg-primary/5 px-2 py-1 rounded-lg border border-primary/20 animate-in fade-in slide-in-from-right-2">
-                <span className="text-xs font-bold text-primary mr-2">{selectedItems.length} Selected</span>
-                <Button variant="outline" size="sm" onClick={() => handleBulkStatusUpdate(true)} className="h-8 text-xs text-green-600 border-green-200 hover:bg-green-50">
-                  <Plus className="h-3 w-3 mr-1.5" /> Activate
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => handleBulkStatusUpdate(false)} className="h-8 text-xs text-orange-600 border-orange-200 hover:bg-orange-50">
-                  <EyeOff className="h-3 w-3 mr-1.5" /> Deactivate
-                </Button>
-                <Button variant="destructive" size="sm" className="h-8 text-xs" onClick={handleBulkDelete} disabled={isBulkDeleting}>
-                  {isBulkDeleting ? <Loader2 className="animate-spin h-3 w-3 mr-1.5" /> : <Trash className="h-3 w-3 mr-1.5" />}
-                  Delete
-                </Button>
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 bg-primary/5 px-2 py-1.5 rounded-lg border border-primary/20 w-full sm:w-auto">
+                <span className="text-xs font-bold text-primary px-2">{selectedItems.length} Selected</span>
+                <div className="flex gap-2 flex-wrap justify-center">
+                  <Button variant="outline" size="sm" onClick={() => handleBulkStatusUpdate(true)} className="h-8 text-xs text-green-600 border-green-200 hover:bg-green-50">
+                    <Plus className="h-3 w-3 mr-1.5" /> Activate
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => handleBulkStatusUpdate(false)} className="h-8 text-xs text-orange-600 border-orange-200 hover:bg-orange-50">
+                    <EyeOff className="h-3 w-3 mr-1.5" /> Deactivate
+                  </Button>
+                  <Button variant="destructive" size="sm" className="h-8 text-xs" onClick={handleBulkDelete} disabled={isBulkDeleting}>
+                    {isBulkDeleting ? <Loader2 className="animate-spin h-3 w-3 mr-1.5" /> : <Trash className="h-3 w-3 mr-1.5" />}
+                    Delete
+                  </Button>
+                </div>
               </div>
             )}
-            <div className="flex items-center gap-1 bg-muted p-1 rounded-md">
+            <div className="flex items-center gap-1 bg-muted p-1 rounded-md ml-auto sm:ml-0">
               <Button variant={viewMode === 'list' ? 'secondary' : 'ghost'} size="icon" className="h-8 w-8" onClick={() => setViewMode('list')} title="List View">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
               </Button>

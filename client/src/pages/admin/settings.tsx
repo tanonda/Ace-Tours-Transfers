@@ -48,17 +48,18 @@ function SettingItem({
   };
 
   return (
-    <div className="flex gap-4 items-end">
-      <div className="flex-1 space-y-2">
+    <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-end">
+      <div className="w-full space-y-2">
         <Label htmlFor={itemKey}>{label}</Label>
         <Input
           id={itemKey}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder || `Enter ${label.toLowerCase()}`}
+          className="w-full"
         />
       </div>
-      <Button onClick={handleSaveClick} disabled={isSaving}>
+      <Button onClick={handleSaveClick} disabled={isSaving} className="w-full sm:w-auto h-10 shrink-0">
         {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
       </Button>
     </div>
@@ -111,12 +112,12 @@ function SettingList({
 
   return (
     <div className="space-y-3 p-4 border rounded-lg bg-card text-card-foreground shadow-sm">
-      <div className="flex justify-between items-start">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <div>
           <Label className="text-base">{label}</Label>
           {description && <p className="text-sm text-muted-foreground">{description}</p>}
         </div>
-        <Button onClick={handleSaveClick} disabled={isSaving || list.every(v => v.trim() === '')} size="sm">
+        <Button onClick={handleSaveClick} disabled={isSaving || list.every(v => v.trim() === '')} size="sm" className="w-full sm:w-auto">
           {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
           Save List
         </Button>
@@ -410,10 +411,10 @@ function ComingSoonTab({
 
 
   return (
-    <div className="flex gap-4 h-[calc(100vh-200px)] min-h-[600px]">
+    <div className="flex flex-col xl:flex-row gap-6 h-auto xl:h-[calc(100vh-200px)] min-h-[600px]">
 
       {/* ── Left Controls ── */}
-      <div className="w-[380px] shrink-0 overflow-y-auto space-y-4 pr-2">
+      <div className="w-full xl:w-[380px] shrink-0 xl:overflow-y-auto space-y-4 pr-2">
 
         {/* Status */}
         <Card className={isOn ? "border-amber-400 bg-amber-50 dark:bg-amber-950/20" : "border-green-400 bg-green-50 dark:bg-green-950/20"}>
@@ -599,7 +600,7 @@ function ComingSoonTab({
         <div className="flex-1 border rounded-xl overflow-hidden bg-muted/20 flex items-start justify-center p-4">
           <div
             className="overflow-y-auto rounded-lg shadow-2xl transition-all duration-300"
-            style={{ width: previewDevice === "mobile" ? "375px" : "100%", maxHeight: "100%", background: "#001a2e", position: "relative" }}
+            style={{ width: previewDevice === "mobile" ? "min(375px, 100%)" : "100%", maxHeight: "100%", background: "#001a2e", position: "relative" }}
           >
             {/* Background slideshow preview */}
             {bgImages.length > 0 && (

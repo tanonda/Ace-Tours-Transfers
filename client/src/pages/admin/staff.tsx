@@ -177,13 +177,13 @@ export default function AdminStaff() {
               <p className="text-muted-foreground text-sm">Manage admin and field service accounts</p>
             </div>
           </div>
-          <Button onClick={() => setCreateDialogOpen(true)} className="bg-[#004165] hover:bg-[#004165]/90">
+          <Button onClick={() => setCreateDialogOpen(true)} className="bg-[#004165] hover:bg-[#004165]/90 w-full sm:w-auto">
             <Plus className="mr-2 h-4 w-4" /> Add Staff Member
           </Button>
         </div>
 
         {/* KPI cards */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
             { label: "Total Staff", value: stats.total, color: "border-l-[#004165]", icon: <Users className="h-5 w-5 text-[#004165]" /> },
             { label: "Admins", value: stats.admins, color: "border-l-purple-500", icon: <ShieldAlert className="h-5 w-5 text-purple-500" /> },
@@ -230,14 +230,16 @@ export default function AdminStaff() {
                 </div>
 
                 {selectedItems.length > 0 && (
-                  <div className="flex items-center gap-2 bg-[#004165]/5 px-2 py-1 rounded-lg border border-[#004165]/20 animate-in fade-in slide-in-from-right-2">
+                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 bg-[#004165]/5 px-2 py-1.5 rounded-lg border border-[#004165]/20 w-full sm:w-auto">
                     <span className="text-xs font-bold text-[#004165] mr-1 px-1">{selectedItems.length} Selected</span>
-                    <Button variant="outline" size="sm" onClick={() => handleBulkStatusUpdate(true)} className="h-8 text-xs text-green-600 border-green-200">
-                      <UserCheck className="h-3 w-3 mr-1" /> Activate
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => handleBulkStatusUpdate(false)} className="h-8 text-xs text-orange-600 border-orange-200">
-                      <Lock className="h-3 w-3 mr-1" /> Suspend
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" onClick={() => handleBulkStatusUpdate(true)} className="h-8 text-xs text-green-600 border-green-200">
+                        <UserCheck className="h-3 w-3 mr-1" /> Activate
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => handleBulkStatusUpdate(false)} className="h-8 text-xs text-orange-600 border-orange-200">
+                        <Lock className="h-3 w-3 mr-1" /> Suspend
+                      </Button>
+                    </div>
                   </div>
                 )}
 
@@ -248,7 +250,7 @@ export default function AdminStaff() {
               </div>
             </div>
           </CardHeader>
-          <CardContent className="p-0">
+          <CardContent className="p-0 overflow-x-auto overflow-y-hidden">
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/40">

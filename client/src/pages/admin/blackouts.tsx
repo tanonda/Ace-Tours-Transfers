@@ -201,7 +201,7 @@ export default function AdminBlackouts() {
             <CardTitle>All Blackout Dates</CardTitle>
             <CardDescription>All blocked dates across products</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>

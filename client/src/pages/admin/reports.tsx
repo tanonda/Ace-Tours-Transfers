@@ -161,7 +161,7 @@ export default function AdminReports() {
   return (
     <DashboardLayout type="admin">
       <div className="flex flex-col gap-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-foreground">{t("dashboard.reports")}</h1>
             <p className="text-sm text-muted-foreground">Financial overview, booking reports, and guest manifests</p>
