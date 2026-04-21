@@ -143,14 +143,32 @@ function Router() {
   // Falls back gracefully to the env var if the flag isn't seeded yet.
   const { data: flags = [], isLoading: isFlagsLoading } = useQuery<{ slug: string; enabled: boolean }[]>({
     queryKey: ["feature-flags"],
-    queryFn: () => fetch("/api/feature-flags").then((r) => r.json()),
+    queryFn: async () => {
+      try {
+        const res = await fetch("/api/feature-flags");
+        if (!res.ok) return [];
+        const data = await res.json();
+        return Array.isArray(data) ? data : [];
+      } catch (e) {
+        return [];
+      }
+    },
     staleTime: 30_000,
   });
 
   // Also fetch the launch date from settings to support auto-off
   const { data: settings = [], isLoading: isSettingsLoading } = useQuery<{ key: string; value: string }[]>({
     queryKey: ["site-settings-public"],
-    queryFn: () => fetch("/api/settings").then((r) => r.json()),
+    queryFn: async () => {
+      try {
+        const res = await fetch("/api/settings");
+        if (!res.ok) return [];
+        const data = await res.json();
+        return Array.isArray(data) ? data : [];
+      } catch (e) {
+        return [];
+      }
+    },
     staleTime: 60_000,
   });
 

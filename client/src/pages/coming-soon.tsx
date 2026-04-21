@@ -58,13 +58,31 @@ function StarRating({ rating }: { rating: number }) {
 export default function ComingSoon() {
   const { data: settings = [] } = useQuery<{ key: string; value: string }[]>({
     queryKey: ["settings"],
-    queryFn: () => fetch("/api/settings").then((r) => r.json()),
+    queryFn: async () => {
+      try {
+        const res = await fetch("/api/settings");
+        if (!res.ok) return [];
+        const data = await res.json();
+        return Array.isArray(data) ? data : [];
+      } catch (e) {
+        return [];
+      }
+    },
     staleTime: 60_000,
   });
 
   const { data: approvedReviews = [] } = useQuery<any[]>({
     queryKey: ["approved-reviews"],
-    queryFn: () => fetch("/api/reviews/approved").then((r) => r.json()),
+    queryFn: async () => {
+      try {
+        const res = await fetch("/api/reviews/approved");
+        if (!res.ok) return [];
+        const data = await res.json();
+        return Array.isArray(data) ? data : [];
+      } catch (e) {
+        return [];
+      }
+    },
     staleTime: 300_000,
   });
 
