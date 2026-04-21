@@ -8,10 +8,10 @@ import { useTranslation } from "react-i18next";
 // from this value automatically.
 const SITE_URL =
   (import.meta.env.VITE_APP_URL as string | undefined)?.replace(/\/$/, "") ||
-  "https://ace-tours-transfers.onrender.com";
+  "https://acetoursvanuatu.com";
 const SITE_NAME = "Ace Tours & Transfers Vanuatu";
 const DEFAULT_DESC =
-  "Experience the best of Vanuatu with Ace Tours & Transfers. Meticulously pre-planned and custom-designed tour packages, airport transfers, and vehicle hire in Port Vila, Efate Island.";
+  "Experience the best of Efate Island with Ace Tours & Transfers. Meticulously pre-planned and custom-designed tour packages, airport transfers, and vehicle hire in Port Vila and across Efate Island, Vanuatu.";
 const DEFAULT_IMAGE =
   "https://res.cloudinary.com/dwro1dh5q/image/upload/f_auto,q_auto,w_1200/v1765063053605/ace-tours-assets/vanuatu_beach_hero_1765063053605.png";
 
@@ -217,7 +217,8 @@ export function SEO({
   }
 
   const allKeywords = [
-    "Vanuatu tours", "Port Vila", "Efate Island", "Vanuatu tourism",
+    "Ace Tours Vanuatu", "Ace Transfers", "Efate Island Day Tours", "Port Vila Airport Transfer",
+    "Vanuatu tourism", "Efate tours", "Blue Lagoon tour Vanuatu",
     ...keywords,
   ].join(", ");
 
