@@ -337,7 +337,7 @@ export default function TransferDetail() {
                       )}
                     </div>
                   </div>
-                  {transfer.meetingPoint && (
+                  {transfer.meetingPoint && import.meta.env.VITE_GOOGLE_MAPS_EMBED_KEY && (
                     <div className="rounded-[10px] overflow-hidden border border-[rgba(244,168,48,0.12)] mb-4 bg-[#1a1710]" style={{ height: 180 }}>
                       <iframe
                         title="Meeting point map"
@@ -345,7 +345,7 @@ export default function TransferDetail() {
                         style={{ border: 0, display: 'block' }}
                         loading="lazy"
                         referrerPolicy="no-referrer-when-downgrade"
-                        src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyD-9tSrke72PouQMnMX-a7eZSW0jkFMBWY&q=${encodeURIComponent(transfer.meetingPoint + ', Vanuatu')}`}
+                        src={`https://www.google.com/maps/embed/v1/place?key=${import.meta.env.VITE_GOOGLE_MAPS_EMBED_KEY}&q=${encodeURIComponent(transfer.meetingPoint + ', Vanuatu')}`}
                       />
                     </div>
                   )}

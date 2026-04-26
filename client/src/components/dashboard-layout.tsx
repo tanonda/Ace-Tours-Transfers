@@ -28,7 +28,8 @@ import {
   Mail,
   RotateCcw,
   Landmark,
-  Bell
+  Bell,
+  Plug
 } from "lucide-react";
 import {
   Popover,
@@ -110,6 +111,7 @@ export function DashboardLayout({ children, type }: DashboardLayoutProps) {
     { icon: ShieldAlert, label: "Fraud Review", href: "/admin/fraud", show: user?.role === "admin", group: "system" },
     { icon: RotateCcw, label: "Recovery", href: "/admin/recovery", show: user?.role === "admin", group: "system" },
     { icon: Settings, label: "Settings", href: "/admin/settings", show: user?.role === "admin", group: "system" },
+    { icon: Plug, label: "External Services", href: "/admin/external-services", show: user?.role === "admin", group: "system" },
     { icon: User, label: "My Profile", href: "/admin/profile", show: true, group: "system" },
   ];
 

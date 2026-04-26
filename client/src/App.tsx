@@ -71,6 +71,7 @@ const AdminFraud = lazy(() => import("@/pages/admin/fraud"));
 const AdminNewsletter = lazy(() => import("@/pages/admin/newsletter"));
 const AdminNotifications = lazy(() => import("@/pages/admin/notifications"));
 const AdminProfile = lazy(() => import("@/pages/admin/admin-profile"));
+const AdminExternalServices = lazy(() => import("@/pages/admin/external-services"));
 
 // Customer pages
 const CustomerDashboard = lazy(() => import("@/pages/customer/dashboard"));
@@ -298,6 +299,9 @@ function Router() {
         </Route>
         <Route path="/admin/profile">
           <ProtectedRoute requireStaff><AdminProfile /></ProtectedRoute>
+        </Route>
+        <Route path="/admin/external-services">
+          <ProtectedRoute requireAdmin><AdminExternalServices /></ProtectedRoute>
         </Route>
 
         {/* Field Service Routes */}

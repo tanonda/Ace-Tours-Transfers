@@ -647,7 +647,7 @@ export default function TourDetail() {
 
                   {/* Google Maps embed — uses meetingPoint text as the place query.
                       Falls back gracefully if the Maps Embed API is unavailable. */}
-                  {tour.meetingPoint && (
+                  {tour.meetingPoint && import.meta.env.VITE_GOOGLE_MAPS_EMBED_KEY && (
                     <div className="rounded-[10px] overflow-hidden border border-[rgba(244,168,48,0.12)] mb-4 bg-[#1a1710]" style={{ height: 180 }}>
                       <iframe
                         title="Meeting point map"
@@ -656,7 +656,7 @@ export default function TourDetail() {
                         style={{ border: 0, display: 'block' }}
                         loading="lazy"
                         referrerPolicy="no-referrer-when-downgrade"
-                        src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyD-9tSrke72PouQMnMX-a7eZSW0jkFMBWY&q=${encodeURIComponent(tour.meetingPoint + ', Vanuatu')}`}
+                        src={`https://www.google.com/maps/embed/v1/place?key=${import.meta.env.VITE_GOOGLE_MAPS_EMBED_KEY}&q=${encodeURIComponent(tour.meetingPoint + ', Vanuatu')}`}
                       />
                     </div>
                   )}
