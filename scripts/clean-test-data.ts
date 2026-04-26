@@ -34,7 +34,7 @@ async function main() {
   }
 
   if (dryRun) {
-    targetBookings.forEach(b => {
+    targetBookings.forEach((b: any) => {
       console.log(`[DRY RUN] Would delete booking: ${b.id} (${b.customerName} - ${b.customerEmail})`);
     });
   } else {

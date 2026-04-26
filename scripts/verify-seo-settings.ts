@@ -20,7 +20,7 @@ async function verify() {
         ];
 
         for (const key of keysToVerify) {
-            const setting = settings.find(s => s.key === key);
+            const setting = settings.find((s: any) => s.key === key);
             if (setting) {
                 console.log(`✅ ${key}: Found`);
             } else {

@@ -56,7 +56,7 @@ export async function withProductTranslations(
     );
 
   // Build a fast lookup by productId.
-  const byProductId = new Map(rows.map((r) => [r.productId, r]));
+  const byProductId = new Map(rows.map((r: any) => [r.productId, r]));
 
   return products.map((product) => {
     const t = byProductId.get(product.id);

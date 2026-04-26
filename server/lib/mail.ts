@@ -139,7 +139,7 @@ function emailHeader(logoUrl: string, title: string, subtitle: string): string {
 
 function emailFooter(l: string = "en", extra = ""): string {
   const phone = process.env.BUSINESS_PHONE || "+678 7114045";
-  const email = process.env.BUSINESS_EMAIL || "info@acetours.vu";
+  const email = process.env.BUSINESS_EMAIL || "acetoursvanuatu@outlook.com";
   const whatsapp = process.env.WHATSAPP_NUMBER || "6787114045";
   return `
     <div style="margin-top: 32px; padding: 24px; background: #f8fafc; border-top: 1px solid #e5e7eb; text-align: center; border-radius: 0 0 8px 8px;">

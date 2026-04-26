@@ -57,7 +57,7 @@ export class CreateBookingFromCartService {
     const cart = new Cart(cartId);
 
     // Phase 4: Wrap EVERYTHING in a single atomic transaction
-    return await db.transaction(async (tx) => {
+    return await db.transaction(async (tx: any) => {
       const createdHolds: string[] = [];
 
       try {

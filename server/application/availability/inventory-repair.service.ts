@@ -32,7 +32,7 @@ export class InventoryRepairService {
    * Deterministically rebuilds confirmed_count for a single instance from its confirmed bookings.
    */
   async repairTourInstance(instanceId: string): Promise<RepairResult> {
-    return await db.transaction(async (tx) => {
+    return await db.transaction(async (tx: any) => {
       // 1. Lock the instance for update
       const [instance] = await tx
         .select()

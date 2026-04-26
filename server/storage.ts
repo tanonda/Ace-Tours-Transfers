@@ -460,7 +460,7 @@ export class DatabaseStorage implements IStorage {
     // Uses the dedicated fraud_level column — efficient with the partial index.
     const allBookings = await db.select().from(bookings).where(isNull(bookings.archivedAt)).orderBy(desc(bookings.createdAt));
     return allBookings.filter(
-      b => (b as any).fraudLevel != null && (b as any).fraudReviewedAt == null
+      (b: any) => b.fraudLevel != null && b.fraudReviewedAt == null
     );
   }
 
@@ -557,7 +557,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteBooking(id: string, hardDelete: boolean = false): Promise<void> {
-    await db.transaction(async (tx) => {
+    await db.transaction(async (tx: any) => {
       // M8 Fix: Properly release holds and handle confirmedCount before deletion
       const [booking] = await tx.select().from(bookings).where(eq(bookings.id, id));
       if (!booking) return;
@@ -613,7 +613,7 @@ export class DatabaseStorage implements IStorage {
       .groupBy(bookings.status);
 
     const result = { total: 0, confirmed: 0, pending: 0, completed: 0, failed: 0, cancelled: 0, totalRevenueCents: 0, pendingRevenueCents: 0 };
-    stats.forEach(s => {
+    stats.forEach((s: any) => {
       if (s.status === 'confirmed') { result.confirmed = s.count; result.totalRevenueCents += (s.revenueCents || 0); }
       else if (s.status === 'pending') { result.pending = s.count; result.pendingRevenueCents += (s.revenueCents || 0); }
       else if (s.status === 'completed') { result.completed = s.count; result.totalRevenueCents += (s.revenueCents || 0); }
@@ -967,7 +967,7 @@ export class DatabaseStorage implements IStorage {
           .where(and(eq(reviews.tourId, productId), eq(reviews.status as any, "approved")))
           .orderBy(desc(reviews.createdAt));
 
-        return rows.map(r => ({
+        return rows.map((r: any) => ({
           ...r,
           authorName: r.isGuest ? (r.guestName || "Anonymous") : (r.userName || "Guest"),
         }));
@@ -986,7 +986,7 @@ export class DatabaseStorage implements IStorage {
             .leftJoin(users, eq(reviews.userId, users.id))
             .where(eq(reviews.tourId, productId))
             .orderBy(desc(reviews.createdAt));
-          return rows.map(r => ({ ...r, authorName: r.userName || "Guest" }));
+          return rows.map((r: any) => ({ ...r, authorName: r.userName || "Guest" }));
         }
         throw e;
       }
@@ -1057,7 +1057,7 @@ export class DatabaseStorage implements IStorage {
           .leftJoin(products, eq(reviews.tourId, products.id))
           .orderBy(desc(reviews.createdAt));
 
-        return rows.map(r => ({
+        return rows.map((r: any) => ({
           ...r,
           authorName: r.isGuest ? (r.guestName || "Anonymous Guest") : (r.userName || "Registered User"),
         }));
@@ -1077,7 +1077,7 @@ export class DatabaseStorage implements IStorage {
             .from(reviews)
             .leftJoin(users, eq(reviews.userId, users.id))
             .orderBy(desc(reviews.createdAt));
-          return rows.map(r => ({
+          return rows.map((r: any) => ({
             ...r,
             status: "approved",
             isGuest: false,
@@ -1513,10 +1513,10 @@ export class DatabaseStorage implements IStorage {
       if (!startTime && !endTime) {
         // Full day or legacy check - any hold on this date blocks the resource
         const heldResourceIds = new Set<string>();
-        activeHolds.forEach(h => {
+        activeHolds.forEach((h: any) => {
           if (h.resourceId) heldResourceIds.add(h.resourceId);
         });
-        return allResources.filter(r => !heldResourceIds.has(r.id));
+        return allResources.filter((r: any) => !heldResourceIds.has(r.id));
       }
 
       // Time-aware overlap check
@@ -1525,7 +1525,7 @@ export class DatabaseStorage implements IStorage {
       const reqEnd = timeToMinutes(endTime || "23:59");
 
       const heldResourceIds = new Set<string>();
-      activeHolds.forEach(h => {
+      activeHolds.forEach((h: any) => {
         if (!h.resourceId) return;
 
         const holdStart = timeToMinutes(h.startTime || "00:00");
@@ -1537,7 +1537,7 @@ export class DatabaseStorage implements IStorage {
         }
       });
 
-      return allResources.filter(r => !heldResourceIds.has(r.id));
+      return allResources.filter((r: any) => !heldResourceIds.has(r.id));
     });
   }
 
@@ -1576,7 +1576,7 @@ export class DatabaseStorage implements IStorage {
     const reqEnd = timeToMinutes(endTime || "23:59");
 
     const heldResourceIdsByDate = new Map<string, Set<string>>();
-    heldResources.forEach(h => {
+    heldResources.forEach((h: any) => {
       if (!h.resourceId) return;
 
       const holdStart = timeToMinutes(h.startTime || "00:00");
@@ -1590,7 +1590,7 @@ export class DatabaseStorage implements IStorage {
       }
     });
 
-    return allResources.filter(resource => {
+    return allResources.filter((resource: any) => {
       // Resource must be free on EVERY day
       return dates.every(date => {
         const heldOnDate = heldResourceIdsByDate.get(date);

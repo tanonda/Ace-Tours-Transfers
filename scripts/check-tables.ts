@@ -10,7 +10,7 @@ async function main() {
     FROM information_schema.tables 
     WHERE table_schema = 'public'
   `);
-  console.log("Tables found:", result.rows.map(r => r.table_name));
+  console.log("Tables found:", result.rows.map((r: any) => r.table_name));
   process.exit(0);
 }
 

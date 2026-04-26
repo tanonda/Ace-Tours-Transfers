@@ -47,7 +47,7 @@ export class CapacityOverviewService {
                 sql`${tourInstances.serviceDate} >= ${startDate} AND ${tourInstances.serviceDate} <= ${endDate}`
             );
 
-        const overview: TourCapacityOverview[] = instances.map((instance) => {
+        const overview: TourCapacityOverview[] = instances.map((instance: any) => {
             const used = instance.confirmedCount + instance.heldCount + instance.blockedCount;
             const remaining = Math.max(0, instance.totalCapacity - used);
             const utilizationPercent = instance.totalCapacity > 0 ? used / instance.totalCapacity : 0;

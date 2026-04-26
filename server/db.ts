@@ -1,6 +1,6 @@
 import pkg from 'pg';
 const { Pool } = pkg;
-import { drizzle, NodePostgresDatabase } from 'drizzle-orm/node-postgres';
+import { drizzle, type NodePgDatabase } from 'drizzle-orm/node-postgres';
 import dns from "node:dns/promises";
 import * as schema from "../shared/schema.js";
 
@@ -12,7 +12,7 @@ if (!process.env.DATABASE_URL) {
 
 // Global instances for pool and db
 export let pool: InstanceType<typeof Pool>;
-export let db: NodePostgresDatabase<typeof schema>;
+export let db: NodePgDatabase<typeof schema>;
 
 /**
  * Resilient Pool Factory

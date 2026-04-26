@@ -39,18 +39,17 @@ export const tours = [
     capacity: 20 // Default capacity for tours
   },
   {
-    id: "vehicle_hire_day",
-    title: "Vehicle Hire for the Day",
+    id: "bus_hire_day",
+    title: "Bus Hire for the Day",
     price: "A$400 / day",
     duration: "5-8 Hours",
     minPax: "Ideal for large groups",
     image: "https://res.cloudinary.com/dwro1dh5q/image/upload/v1765064623/ace-tours-assets/tour_bus_hire.jpg",
     description: [
-      "Hire the vehicle for the day",
+      "Hire the bus for the day (Typically 5-8 hours)",
       "Choose your own stops",
       "Light refreshments provided",
-      "You take care of your entrance fees",
-      "Ideal for large groups"
+      "You take care of your entrance fees"
     ],
     capacity: 999 // High capacity for private hire
   }

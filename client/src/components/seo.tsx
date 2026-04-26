@@ -103,7 +103,7 @@ export function SEO({
     url: SITE_URL,
     description: DEFAULT_DESC,
     telephone: "+678-711-4045",
-    email: "info@acetours.com.vu",
+    email: "acetoursvanuatu@outlook.com",
     image: DEFAULT_IMAGE,
     address: {
       "@type": "PostalAddress",

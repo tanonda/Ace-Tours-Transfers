@@ -86,7 +86,7 @@ export default function Contact() {
                 <div className="flex-1">
                   <h3 className="font-bold text-lg mb-1">{t("contact.phone")}</h3>
                   <div className="space-y-1">
-                    <a href={`tel:+678${contactPhone.replace(/\D/g, '')}`} className="block text-lg font-semibold text-primary hover:underline">+678 {contactPhone}</a>
+                    <a href={`tel:+678${String(contactPhone).replace(/\D/g, '')}`} className="block text-lg font-semibold text-primary hover:underline">+678 {String(contactPhone)}</a>
                   </div>
                   <p className="text-sm text-muted-foreground mt-1">{cms.text("phone_availability", t("contact.phoneAvailable"))}</p>
                 </div>

@@ -40,7 +40,7 @@ const BRAND_HEADER = `
 <div style="height:3px;background:linear-gradient(90deg,#f4a830,#e6c97a,#f4a830)"></div>
 `;
 
-const _bizEmail = escapeHtml(process.env.BUSINESS_EMAIL || 'info@acetours.vu');
+const _bizEmail = escapeHtml(process.env.BUSINESS_EMAIL || 'acetoursvanuatu@outlook.com');
 const _appUrl = escapeHtml(process.env.APP_URL || 'https://acetours.vu');
 const _appDomain = _appUrl.replace(/^https?:\/\//, '');
 
