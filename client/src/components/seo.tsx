@@ -2,10 +2,11 @@ import { Helmet } from "react-helmet-async";
 import { useLocation } from "wouter";
 import { useTranslation } from "react-i18next";
 
-// Falls back to the Render URL if VITE_APP_URL is not set.
-// Set VITE_APP_URL=https://acetours.com.vu in your Render env vars when the
-// custom domain is live — canonical URLs, OG tags, and the sitemap all derive
-// from this value automatically.
+// Canonical site URL for client-rendered SEO tags (canonical link, OG, JSON-LD).
+// Override via VITE_APP_URL at build time — Vite bakes it into the client bundle.
+// NOTE: the sitemap handler in server/routes.ts uses APP_URL (server-side, runtime)
+// for the same purpose. Both env vars should be set to the same canonical domain
+// in production, or both left unset to fall through to the default below.
 const SITE_URL =
   (import.meta.env.VITE_APP_URL as string | undefined)?.replace(/\/$/, "") ||
   "https://acetoursvanuatu.com";

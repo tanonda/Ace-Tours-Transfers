@@ -265,7 +265,7 @@ export async function registerRoutes(
   // ── SEO: Sitemap ──────────────────────────────────────────────────────────
   app.get("/sitemap.xml", async (_req, res) => {
     try {
-      const SITE_URL = process.env.APP_URL || "https://ace-tours-transfers.onrender.com";
+      const SITE_URL = process.env.APP_URL || "https://acetoursvanuatu.com";
       const products = await storage.getProducts();
       const now = new Date().toISOString().split("T")[0];
 
