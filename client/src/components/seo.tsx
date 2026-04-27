@@ -11,7 +11,7 @@ const SITE_URL =
   "https://acetoursvanuatu.com";
 const SITE_NAME = "Ace Tours & Transfers Vanuatu";
 const DEFAULT_DESC =
-  "Experience the best of Efate Island with Ace Tours & Transfers. Meticulously pre-planned and custom-designed tour packages, airport transfers, and vehicle hire in Port Vila and across Efate Island, Vanuatu.";
+  "Experience the best of Efate Island with Ace Tours & Transfers. Meticulously pre-planned and custom-designed tour packages and airport transfers in Port Vila and across Efate Island, Vanuatu.";
 const DEFAULT_IMAGE =
   "https://res.cloudinary.com/dwro1dh5q/image/upload/f_auto,q_auto,w_1200/v1765063053605/ace-tours-assets/vanuatu_beach_hero_1765063053605.png";
 

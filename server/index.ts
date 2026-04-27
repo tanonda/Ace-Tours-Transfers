@@ -473,6 +473,19 @@ app.use((req, res, next) => {
 
   await registerRoutes(httpServer, app);
 
+  // ── Feature Flag Seed + FIU Enforcement ───────────────────────────────────
+  // Inserts default flags only if missing (preserves admin UI edits) and
+  // force-applies FIU-mandated overrides (e.g. vehicle-hire = false) on every
+  // boot. See server/seed-flags.ts for the split.
+  try {
+    const { seedFlags } = await import('./seed-flags.js');
+    await seedFlags();
+  } catch (flagSeedErr) {
+    console.error('[STARTUP] Feature flag seed failed:', flagSeedErr);
+    // FIU enforcement is non-negotiable — fail fast if the seed didn't run.
+    throw flagSeedErr;
+  }
+
   // ── Gateway Auto-Seed Guard ────────────────────────────────────────────────
   // Ensures payment_gateways is never empty after a DB reset or reprovisioning.
   // Only inserts rows that don't already exist (idempotent ON CONFLICT skip).

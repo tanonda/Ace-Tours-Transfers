@@ -262,6 +262,12 @@ export async function registerRoutes(
   // 1. Enforce Integrity Guard
   app.use(BackupIntegrityGuard.enforceReadOnly);
 
+  // ── Vehicle hire retirement (Vanuatu FIU compliance) ─────────────────────
+  // /vehicles and /vehicles/:id are permanently retired. 301 to /transfers
+  // so any inbound link or bookmark lands on the closest equivalent offering.
+  app.get("/vehicles", (_req, res) => res.redirect(301, "/transfers"));
+  app.get("/vehicles/:id", (_req, res) => res.redirect(301, "/transfers"));
+
   // ── SEO: Sitemap ──────────────────────────────────────────────────────────
   app.get("/sitemap.xml", async (_req, res) => {
     try {
@@ -273,18 +279,15 @@ export async function registerRoutes(
         { loc: "/",          priority: "1.0", changefreq: "weekly",  lastmod: now },
         { loc: "/tours",     priority: "0.9", changefreq: "daily",   lastmod: now },
         { loc: "/transfers", priority: "0.9", changefreq: "daily",   lastmod: now },
-        { loc: "/vehicles",  priority: "0.8", changefreq: "weekly",  lastmod: now },
         { loc: "/faq",       priority: "0.7", changefreq: "monthly", lastmod: now },
         { loc: "/about",     priority: "0.6", changefreq: "monthly", lastmod: now },
         { loc: "/contact",   priority: "0.6", changefreq: "monthly", lastmod: now },
       ];
 
       const productPages = products
-        .filter((p: any) => p.isActive !== false)
+        .filter((p: any) => p.isActive !== false && p.category !== "vehicle")
         .map((p: any) => {
-          const type =
-            p.category === "transfer" ? "transfers" :
-            p.category === "vehicle"  ? "vehicles"  : "tours";
+          const type = p.category === "transfer" ? "transfers" : "tours";
           // Use the product's own updatedAt so Googlebot knows when content last changed
           const lastmod = p.updatedAt
             ? new Date(p.updatedAt).toISOString().split("T")[0]
