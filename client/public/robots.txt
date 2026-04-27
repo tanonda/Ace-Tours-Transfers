@@ -10,4 +10,4 @@ Disallow: /cart
 Disallow: /payment
 Disallow: /confirmation
 
-Sitemap: https://ace-tours-transfers.onrender.com/sitemap.xml
+Sitemap: https://acetoursvanuatu.com/sitemap.xml
