@@ -55,11 +55,9 @@ export function ProductQuickView({ isOpen, onClose, product }: ProductQuickViewP
   const descText = typeof product.description === "string" ? product.description : descArray[0] || "";
   const included = descArray.length > 1 ? descArray.slice(1) : descArray;
 
-  const detailHref = product.category === "vehicle"
-    ? `/vehicles/${product.id}`
-    : product.category === "transfer"
-      ? `/transfers/${product.id}`
-      : `/tours/${product.id}`;
+  const detailHref = product.category === "transfer"
+    ? `/transfers/${product.id}`
+    : `/tours/${product.id}`;
 
   const handleAddToCart = () => {
     addToCart({

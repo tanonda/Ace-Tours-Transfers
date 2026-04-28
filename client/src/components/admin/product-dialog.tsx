@@ -13,11 +13,7 @@
  * TRANSFER:
  *   transferDetail (HTML) → description[0] → "Transfer Details" card
  *   inclusions     (HTML) → description[1] → "What's Included" card
- *
- * VEHICLE:
- *   vehicleAbout (HTML) → description[0] → "About This Vehicle" card
- *   vehicleDetails.features[] → "What's Included" card (checkboxes)
- *   vehicleDetails.{make,model,seats,transmission} → "Vehicle Specs" card
+ *   vehicleDetails.{make,model,seats,transmission} → fleet vehicle specs (optional)
  */
 
 import {
@@ -57,13 +53,6 @@ import { ProductTranslationEditor } from '@/components/admin/ProductTranslationE
 import { ChevronDown, Languages } from 'lucide-react';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-
-const VEHICLE_FEATURES = [
-  'Air Conditioning', 'Bluetooth', 'USB Charging', 'Leather Seats',
-  '4WD/AWD', 'Child Seat Available', 'Rear View Camera', 'GPS Navigation',
-  'Free Wi-Fi', 'Wheelchair Accessible', 'Professional Driver', 'Fuel Included',
-  'Complimentary Water', 'Airport Pickup',
-];
 
 // ─── TipTap Rich Editor ───────────────────────────────────────────────────────
 
@@ -227,7 +216,6 @@ const schema = z.object({
   tourOverview: z.string().optional(),
   inclusions: z.string().optional(),
   transferDetail: z.string().optional(),
-  vehicleAbout: z.string().optional(),
 
   // SEO fields
   seoTitle: z.string().optional(),
@@ -304,16 +292,14 @@ function vuvToStr(cents: number, currency: CurrencyCode): string {
 }
 
 function descToFields(desc: string | string[] | null | undefined, cat: string) {
-  if (!desc) return { tourOverview: '', transferDetail: '', vehicleAbout: '', inclusions: '' };
+  if (!desc) return { tourOverview: '', transferDetail: '', inclusions: '' };
   const lines = Array.isArray(desc) ? desc : [desc];
-  if (cat === 'vehicle') return { tourOverview: '', transferDetail: '', vehicleAbout: lines[0] || '', inclusions: '' };
-  if (cat === 'transfer') return { tourOverview: '', transferDetail: lines[0] || '', vehicleAbout: '', inclusions: lines[1] || '' };
-  return { tourOverview: lines[0] || '', transferDetail: '', vehicleAbout: '', inclusions: lines[1] || '' };
+  if (cat === 'transfer') return { tourOverview: '', transferDetail: lines[0] || '', inclusions: lines[1] || '' };
+  return { tourOverview: lines[0] || '', transferDetail: '', inclusions: lines[1] || '' };
 }
 
 function buildDescription(values: FormValues): string[] {
   const cat = values.category;
-  if (cat === 'vehicle') return [values.vehicleAbout || ''].filter(Boolean);
   if (cat === 'transfer') {
     return [values.transferDetail || '', values.inclusions || ''].filter(Boolean);
   }
@@ -343,7 +329,7 @@ export function ProductDialog({ tour, open, onOpenChange, onSave }: ProductDialo
     defaultValues: {
       title: '', isActive: true, category: 'tour', duration: '', minPax: '',
       defaultCapacity: 20,
-      tourOverview: '', inclusions: '', transferDetail: '', vehicleAbout: '',
+      tourOverview: '', inclusions: '', transferDetail: '',
       seoTitle: '', seoDescription: '', seoKeywords: '', geoTargeting: '', listingOrder: 0,
       image: '', imageAlt: '', pricingType: 'per_person',
       adultPriceInput: '', childPriceInput: '', infantPriceInput: '', petPriceInput: '', groupPriceInput: '', groupMaxPax: '',
@@ -408,7 +394,7 @@ export function ProductDialog({ tour, open, onOpenChange, onSave }: ProductDialo
       form.reset({
         title: '', isActive: true, category: 'tour', duration: '', minPax: '',
         defaultCapacity: 20,
-        tourOverview: '', inclusions: '', transferDetail: '', vehicleAbout: '',
+        tourOverview: '', inclusions: '', transferDetail: '',
         image: '', pricingType: 'per_person',
         adultPriceInput: '', childPriceInput: '', infantPriceInput: '', petPriceInput: '', groupPriceInput: '', groupMaxPax: '',
         vehicleDetails: null,
@@ -495,8 +481,7 @@ export function ProductDialog({ tour, open, onOpenChange, onSave }: ProductDialo
   const pricingType = form.watch('pricingType');
   const imageValue = form.watch('image');
 
-  const catLabel = category === 'vehicle' ? 'Vehicle Hire'
-    : category === 'transfer' ? 'Transfer' : 'Tour';
+  const catLabel = category === 'transfer' ? 'Transfer' : 'Tour';
 
   const currDef = CURRENCIES[adminCurrency];
 
@@ -557,10 +542,7 @@ export function ProductDialog({ tour, open, onOpenChange, onSave }: ProductDialo
                       <Select
                         onValueChange={(v) => {
                           field.onChange(v);
-                          if (v === 'vehicle') {
-                            if (!form.getValues('vehicleDetails')) form.setValue('vehicleDetails', { make: '', model: '', seats: 5, transmission: 'Automatic', features: [] });
-                            form.setValue('pricingType', 'group');
-                          } else if (v === 'transfer') {
+                          if (v === 'transfer') {
                             if (!form.getValues('vehicleDetails')) form.setValue('vehicleDetails', { make: '', model: '', seats: 5, transmission: 'Automatic', features: [] });
                           } else {
                             form.setValue('vehicleDetails', null);
@@ -573,7 +555,6 @@ export function ProductDialog({ tour, open, onOpenChange, onSave }: ProductDialo
                         <SelectContent>
                           <SelectItem value="tour">Tour</SelectItem>
                           <SelectItem value="transfer">Transfer</SelectItem>
-                          <SelectItem value="vehicle">Vehicle Hire</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -977,111 +958,6 @@ export function ProductDialog({ tour, open, onOpenChange, onSave }: ProductDialo
                           </FormItem>
                         )} />
                       </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* ── VEHICLE CONTENT ── */}
-                {category === 'vehicle' && (
-                  <div className="space-y-5">
-                    <SectionHeading icon={<Car className="h-4 w-4 text-amber-600" />} title="Vehicle Hire Page Content" color="text-amber-700 dark:text-amber-400" />
-
-                    {/* Specs */}
-                    <div className="bg-muted/30 rounded-lg p-4 space-y-3 border border-border">
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
-                        🔧 Vehicle Specs
-                        <Badge variant="outline" className="text-[0.6rem] py-0">Vehicle Specs card</Badge>
-                      </p>
-                      <div className="grid grid-cols-2 gap-3">
-                        <FormField control={form.control} name="vehicleDetails.make" render={({ field }) => (
-                          <FormItem><FormLabel>Make</FormLabel><FormControl><Input placeholder="Toyota" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
-                        )} />
-                        <FormField control={form.control} name="vehicleDetails.model" render={({ field }) => (
-                          <FormItem><FormLabel>Model</FormLabel><FormControl><Input placeholder="Hilux" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
-                        )} />
-                        <FormField control={form.control} name="vehicleDetails.seats" render={({ field }) => (
-                          <FormItem><FormLabel>Seats</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(parseInt(e.target.value))} /></FormControl><FormMessage /></FormItem>
-                        )} />
-                        <FormField control={form.control} name="vehicleDetails.transmission" render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Transmission</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value ?? 'Automatic'}>
-                              <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                              <SelectContent>
-                                <SelectItem value="Automatic">Automatic</SelectItem>
-                                <SelectItem value="Manual">Manual</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )} />
-                        {/* Contact for Price Toggle */}
-                        <FormField control={form.control} name="contactForPrice" render={({ field }) => (
-                          <FormItem className="flex flex-row items-center justify-between rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 shadow-sm col-span-2 mt-2">
-                            <div className="space-y-1">
-                              <FormLabel className="text-amber-700 dark:text-amber-400 font-bold">Contact for Price Mode</FormLabel>
-                              <p className="text-[0.7rem] text-muted-foreground">
-                                Disable automated pricing & online booking. Guests will be prompted to contact you directly.
-                              </p>
-                            </div>
-                            <FormControl>
-                              <Switch
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )} />
-                      </div>
-                    </div>
-
-                    {/* About */}
-                    <div>
-                      <FieldLabel badge='"About This Vehicle" card on vehicle page'>About This Vehicle</FieldLabel>
-                      <FormField control={form.control} name="vehicleAbout" render={({ field }) => (
-                        <FormItem>
-                          <FormControl>
-                            <RichEditor
-                              value={field.value || ''}
-                              onChange={field.onChange}
-                              placeholder="Describe the vehicle, its features, ideal use cases, coverage area…"
-                              minHeight="120px"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )} />
-                    </div>
-
-                    {/* Features */}
-                    <div className="bg-muted/30 rounded-lg p-4 border border-border space-y-2">
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5 mb-3">
-                        <List className="h-3.5 w-3.5" />
-                        What's Included
-                        <Badge variant="outline" className="text-[0.6rem] py-0">Inclusions card on vehicle page</Badge>
-                      </p>
-                      <FormField control={form.control} name="vehicleDetails.features" render={() => (
-                        <FormItem>
-                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                            {VEHICLE_FEATURES.map((item) => (
-                              <FormField key={item} control={form.control} name="vehicleDetails.features" render={({ field }) => (
-                                <FormItem key={item} className="flex flex-row items-center space-x-2 space-y-0">
-                                  <FormControl>
-                                    <Checkbox
-                                      checked={field.value?.includes(item)}
-                                      onCheckedChange={(checked) => {
-                                        const cur = field.value || [];
-                                        field.onChange(checked ? [...cur, item] : cur.filter(v => v !== item));
-                                      }}
-                                    />
-                                  </FormControl>
-                                  <FormLabel className="font-normal text-sm cursor-pointer">{item}</FormLabel>
-                                </FormItem>
-                              )} />
-                            ))}
-                          </div>
-                        </FormItem>
-                      )} />
                     </div>
                   </div>
                 )}

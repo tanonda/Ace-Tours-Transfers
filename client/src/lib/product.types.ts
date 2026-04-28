@@ -5,7 +5,7 @@
  * INVARIANT: Product type determined by `category` field, never by ID matching.
  * INVARIANT: `pricingType` controls how the checkout calculates total:
  *   - "per_person" → adultPriceCents × adults + childPriceCents × children
- *   - "group"      → flat groupPriceCents regardless of pax (e.g. vehicle hire, private tour)
+ *   - "group"      → flat groupPriceCents regardless of pax (e.g. private tour)
  */
 
 import { CURRENCIES, formatInCurrency, type CurrencyCode } from '@/lib/currency-context';
@@ -21,14 +21,14 @@ export const EXCHANGE_RATES = Object.fromEntries(
 
 /**
  * per_person  — classic per-head pricing (adult + child rates)
- * group       — flat rate for the whole booking/group (e.g. vehicle hire, private charter)
+ * group       — flat rate for the whole booking/group (e.g. private charter)
  *               The admin can optionally still specify an "included pax" hint for display.
  */
 export type PricingType = 'per_person' | 'group';
 
 // ─── Core Types ───────────────────────────────────────────────────────────────
 
-export type ProductCategory = 'tour' | 'transfer' | 'vehicle';
+export type ProductCategory = 'tour' | 'transfer';
 
 export interface Addon {
   id: string;
@@ -36,16 +36,6 @@ export interface Addon {
   description: string | null;
   priceCents: number;
   active: boolean;
-}
-
-export interface VehicleDetails {
-  make?: string;
-  model?: string;
-  year?: number;
-  fuelType?: string;
-  transmission?: string;
-  seats?: number;
-  features?: string[];
 }
 
 export interface ProductData {
@@ -67,7 +57,6 @@ export interface ProductData {
   description: string | string[];
   capacity: number;
   defaultCapacity?: number;
-  vehicleDetails?: VehicleDetails;
   addons?: Addon[];
   // Legacy fields — do not use for calculations
   price?: string;

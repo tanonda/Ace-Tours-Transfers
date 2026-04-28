@@ -39,11 +39,7 @@ export class PriceCartService {
       );
 
       // Get subtotal with all rules applied
-      let subtotalCents = pricing.breakdown.finalTotalCents;
-
-      // For vehicles (duration-based), multiply by quantity (days hired)
-      const duration = (product.category === 'vehicle') ? (item.quantity || 1) : 1;
-      subtotalCents *= duration;
+      const subtotalCents = pricing.breakdown.finalTotalCents;
 
       const isGroupPriced = rates.pricingType === 'group';
       const totalQuantityCount = item.adultPax + item.childPax;

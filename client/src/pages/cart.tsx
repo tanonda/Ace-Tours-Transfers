@@ -20,7 +20,6 @@ import { PricingBreakdown } from "@/components";
 const CATEGORY_LABELS: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
   tour: { label: "Tour", color: "bg-blue-500/15 text-blue-400 border-blue-500/30", icon: <MapPin className="h-3 w-3" /> },
   transfer: { label: "Transfer", color: "bg-green-500/15 text-green-400 border-green-500/30", icon: <Car className="h-3 w-3" /> },
-  vehicle: { label: "Vehicle Hire", color: "bg-amber-500/15 text-amber-400 border-amber-500/30", icon: <Car className="h-3 w-3" /> },
 };
 
 export default function Cart() {
@@ -147,8 +146,6 @@ export default function Cart() {
 
                   const dateKey = item.date ? (item.date instanceof Date ? item.date.getTime() : new Date(item.date).getTime()) : 'no-date';
                   const cat = CATEGORY_LABELS[item.type] || CATEGORY_LABELS.tour;
-                  const isVehicle = item.type === "vehicle";
-                  const anyItem = item as any;
 
                   return (
                     <Card key={`${item.id}-${index}-${dateKey}`} className="overflow-hidden border-none shadow-sm">
@@ -184,38 +181,29 @@ export default function Cart() {
                                       {item.startTime}{item.endTime ? ` – ${item.endTime}` : ""}
                                     </span>
                                   )}
-                                  {isVehicle && anyItem.hireDays > 0 && (
-                                    <span className="flex items-center gap-1.5 font-medium text-foreground">
-                                      {anyItem.hireDays} day{anyItem.hireDays !== 1 ? "s" : ""} hire
-                                    </span>
-                                  )}
                                 </div>
 
                                 {/* Pax Breakdown */}
-                                {!isVehicle && (
-                                  <div className="flex flex-wrap gap-3 mt-2">
-                                    <span className="flex items-center gap-1.5 text-sm">
-                                      <Users className="h-3.5 w-3.5 text-primary/60" />
-                                      {item.adultPax} adult{item.adultPax !== 1 ? "s" : ""}
-                                      {item.childPax > 0 && `, ${item.childPax} child${item.childPax !== 1 ? "ren" : ""}`}
-                                      {item.infantPax > 0 && `, ${item.infantPax} infant${item.infantPax !== 1 ? "s" : ""}`}
-                                      {item.petPax > 0 && `, ${item.petPax} pet${item.petPax !== 1 ? "s" : ""}`}
-                                    </span>
-                                  </div>
-                                )}
+                                <div className="flex flex-wrap gap-3 mt-2">
+                                  <span className="flex items-center gap-1.5 text-sm">
+                                    <Users className="h-3.5 w-3.5 text-primary/60" />
+                                    {item.adultPax} adult{item.adultPax !== 1 ? "s" : ""}
+                                    {item.childPax > 0 && `, ${item.childPax} child${item.childPax !== 1 ? "ren" : ""}`}
+                                    {item.infantPax > 0 && `, ${item.infantPax} infant${item.infantPax !== 1 ? "s" : ""}`}
+                                    {item.petPax > 0 && `, ${item.petPax} pet${item.petPax !== 1 ? "s" : ""}`}
+                                  </span>
+                                </div>
 
                                 {/* Per-tier pricing */}
-                                {!isVehicle && (
-                                  <div className="flex flex-wrap gap-3 mt-1.5 text-xs text-muted-foreground">
-                                    <span>{item.adultPax} × {formatPriceDisplay(item.price, currency)}/adult</span>
-                                    {item.childPax > 0 && item.childPrice > 0 && (
-                                      <span>{item.childPax} × {formatPriceDisplay(item.childPrice, currency)}/child</span>
-                                    )}
-                                    {item.childPax > 0 && item.childPrice === 0 && (
-                                      <span className="text-green-500">Children: Free</span>
-                                    )}
-                                  </div>
-                                )}
+                                <div className="flex flex-wrap gap-3 mt-1.5 text-xs text-muted-foreground">
+                                  <span>{item.adultPax} × {formatPriceDisplay(item.price, currency)}/adult</span>
+                                  {item.childPax > 0 && item.childPrice > 0 && (
+                                    <span>{item.childPax} × {formatPriceDisplay(item.childPrice, currency)}/child</span>
+                                  )}
+                                  {item.childPax > 0 && item.childPrice === 0 && (
+                                    <span className="text-green-500">Children: Free</span>
+                                  )}
+                                </div>
 
                                 {/* Add-ons */}
                                 {item.addonIds && item.addonIds.length > 0 && (
@@ -300,8 +288,6 @@ export default function Cart() {
                   ) : (
                     <div className="space-y-3 mb-4">
                       {items.map((item, index) => {
-                        const isVehicle = item.type === "vehicle";
-                        const anyItem = item as any;
                         let lineTotal = 0;
                         if (pricingSnapshot && pricingSnapshot.items[index]) {
                           lineTotal = pricingSnapshot.items[index].breakdown?.finalTotalCents ?? ((item.price * item.adultPax) + (item.childPrice * item.childPax) + (item.addonTotal || 0));
@@ -324,14 +310,10 @@ export default function Cart() {
                                       {format(new Date(item.date), "d MMM")}
                                     </span>
                                   )}
-                                  {isVehicle && anyItem.hireDays > 0 ? (
-                                    <span>{anyItem.hireDays}d hire</span>
-                                  ) : (
-                                    <span className="flex items-center gap-1">
-                                      <Users className="h-3 w-3" />
-                                      {item.adultPax}A{item.childPax > 0 ? `, ${item.childPax}C` : ""}
-                                    </span>
-                                  )}
+                                  <span className="flex items-center gap-1">
+                                    <Users className="h-3 w-3" />
+                                    {item.adultPax}A{item.childPax > 0 ? `, ${item.childPax}C` : ""}
+                                  </span>
                                 </div>
                               </div>
                               <span className="font-semibold whitespace-nowrap shrink-0">
@@ -443,9 +425,6 @@ export default function Cart() {
                   </Link>
                   <Link href="/transfers">
                     <Button variant="outline" size="sm" className="text-xs h-8">+ Transfers</Button>
-                  </Link>
-                  <Link href="/vehicles">
-                    <Button variant="outline" size="sm" className="text-xs h-8">+ Vehicle Hire</Button>
                   </Link>
                 </div>
               </div>

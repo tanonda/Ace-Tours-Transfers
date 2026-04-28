@@ -75,61 +75,20 @@ export class CreateBookingFromCartService {
           const totalPricedPax = item.adultPax + item.childPax;
 
           if (totalPricedPax > 0) {
-            const isVehicle = product.category === "vehicle";
-            const duration = isVehicle ? (item.quantity || 1) : 1;
-
-            if (isVehicle && duration > 1) {
-              // Multi-day consistency
-              const availableResources = await this.storage.getAvailableResourcesMultiDay(
-                product.id,
-                item.date,
-                duration
-              );
-              if (availableResources.length === 0) {
-                throw new Error(
-                  `No single ${product.title} unit available for the entire period ${item.date} to ${duration} days.`
-                );
-              }
-              const pinnedResourceId = availableResources[0].id;
-              const startDateParts = item.date.split("-").map(Number);
-              const startDate = new Date(
-                Date.UTC(startDateParts[0], startDateParts[1] - 1, startDateParts[2])
-              );
-              for (let d = 0; d < duration; d++) {
-                const currentDate = new Date(startDate);
-                currentDate.setUTCDate(startDate.getUTCDate() + d);
-                const dateStr = currentDate.toISOString().split("T")[0];
-                const hold = await this.availabilityService.createHold(
-                  {
-                    tourId: product.id,
-                    date: dateStr,
-                    slot: item.slot,
-                    quantity: totalPricedPax,
-                    sessionId: cartId,
-                    startTime: item.startTime,
-                    endTime: item.endTime,
-                    pinnedResourceId,
-                  },
-                  tx
-                );
-                createdHolds.push(hold.id);
-              }
-            } else {
-              // Single day lock — infants/pets do NOT consume capacity slots
-              const hold = await this.availabilityService.createHold(
-                {
-                  tourId: product.id,
-                  date: item.date,
-                  slot: item.slot,
-                  quantity: totalPricedPax, // infants/pets excluded from capacity
-                  sessionId: cartId,
-                  startTime: item.startTime,
-                  endTime: item.endTime,
-                },
-                tx
-              );
-              createdHolds.push(hold.id);
-            }
+            // Single day lock — infants/pets do NOT consume capacity slots
+            const hold = await this.availabilityService.createHold(
+              {
+                tourId: product.id,
+                date: item.date,
+                slot: item.slot,
+                quantity: totalPricedPax, // infants/pets excluded from capacity
+                sessionId: cartId,
+                startTime: item.startTime,
+                endTime: item.endTime,
+              },
+              tx
+            );
+            createdHolds.push(hold.id);
           }
 
           // Price calculation — infants and pets are FREE, only adults + children priced
@@ -141,11 +100,7 @@ export class CreateBookingFromCartService {
             item.addonIds
           );
 
-          let serverPricedTotalCents = pricing.breakdown.finalTotalCents;
-          const priceDuration = product.category === "vehicle" ? item.quantity || 1 : 1;
-          serverPricedTotalCents *= priceDuration;
-
-          const subtotalCents = serverPricedTotalCents;
+          const subtotalCents = pricing.breakdown.finalTotalCents;
           const isGroupPriced = (rates as any).pricingType === 'group';
 
           // unitPriceCents semantics differ by pricing model:

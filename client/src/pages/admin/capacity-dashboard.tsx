@@ -223,29 +223,29 @@ function AddAvailabilityDialog({
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-5 py-2">
-          {/* Product selector — shows ALL products (tours + transfers + vehicles) */}
+          {/* Product selector — shows ALL products (tours + transfers) */}
           <div className="space-y-1.5">
             <Label className="font-semibold">Product *</Label>
             <Select value={tourId} onValueChange={setTourId}>
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select a tour, transfer or vehicle hire..." />
+                <SelectValue placeholder="Select a tour or transfer..." />
               </SelectTrigger>
               <SelectContent className="max-h-[360px] overflow-y-auto">
                 {tours.length === 0 && (
                   <div className="px-3 py-2 text-sm text-muted-foreground">No products available</div>
                 )}
                 {/* Group by category */}
-                {["tour", "transfer", "vehicle"].map(cat => {
+                {["tour", "transfer"].map(cat => {
                   const group = tours.filter((t: any) => {
                     const c = (t.category || "tour").toLowerCase();
-                    if (cat === "tour") return !c.includes("transfer") && !c.includes("vehicle");
+                    if (cat === "tour") return !c.includes("transfer");
                     return c.includes(cat);
                   });
                   if (group.length === 0) return null;
                   return (
                     <div key={cat}>
                       <div className="px-2 py-1 text-xs font-bold text-muted-foreground uppercase tracking-wide">
-                        {cat === "tour" ? "Tours" : cat === "transfer" ? "Transfers" : "Vehicle Hire"}
+                        {cat === "tour" ? "Tours" : "Transfers"}
                       </div>
                       {group.map((t: any) => (
                         <SelectItem key={t.id} value={t.id}>

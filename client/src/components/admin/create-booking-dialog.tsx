@@ -134,7 +134,7 @@ export function CreateBookingDialog({ open, onOpenChange, onSuccess }: CreateBoo
         infantPax: formData.infantPax,
         petPax: formData.petPax,
         startTime: formData.pickupTime || undefined,
-        type: selectedTour.category === "vehicle" ? "vehicle" : selectedTour.category === "transfer" ? "transfer" : "tour",
+        type: selectedTour.category === "transfer" ? "transfer" : "tour",
         date: selectedDate ? format(selectedDate, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
       }]
     };

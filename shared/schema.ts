@@ -47,13 +47,13 @@ export const products = pgTable("products", {
   minPax: text("min_pax"),
   image: text("image").notNull(),
   description: text("description").array().notNull(),
-  category: text("category").notNull(), // 'tour', 'transfer', or 'vehicle'
+  category: text("category").notNull(), // 'tour' or 'transfer'
   isActive: boolean("is_active").notNull().default(true),
   // DEPRECATED: Use defaultCapacity instead. This column will be removed in v2.0
   // Keeping for backward compatibility only. Do not use in new code.
   capacity: integer("capacity").notNull().default(999),
   defaultCapacity: integer("default_capacity").notNull().default(20),
-  vehicleDetails: jsonb("vehicle_details"), // { make, model, seats, transmission, features[] }
+  vehicleDetails: jsonb("vehicle_details"), // { make, model, seats, transmission, features[] } — used by transfer fleet specs
   // SEO fields (added in migration 0014)
   seoTitle: text("seo_title"),          // custom <title> tag — falls back to product title
   seoDescription: text("seo_description"), // custom meta description — falls back to description[0]
@@ -127,12 +127,13 @@ export const tourInstances = pgTable("tour_instances", {
     .on(table.tourId, table.serviceDate, table.timeSlot, table.startTime, table.endTime)
 }));
 
-// Phase 1: Resources table for asset-allocated products (vehicles, specific transfer buses)
+// Phase 1: Resources table for asset-allocated products (e.g. specific transfer buses).
+// Originally also used by vehicle-hire (retired for FIU compliance) — table retained for transfer fleet allocation.
 export const resources = pgTable("resources", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   productId: varchar("product_id").notNull().references(() => products.id),
   name: text("name").notNull(), // e.g. "Toyota Hilux #1", "Airport Bus A"
-  seatCapacity: integer("seat_capacity").notNull(), // vehicle seats or bus capacity
+  seatCapacity: integer("seat_capacity").notNull(), // bus / fleet vehicle capacity
   status: text("status").notNull().default("active"), // 'active', 'maintenance'
   metadata: jsonb("metadata"), // { licensePlate, color, etc. }
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -142,7 +143,7 @@ export const resources = pgTable("resources", {
 export const availabilityHolds = pgTable("availability_holds", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   tourInstanceId: varchar("tour_instance_id").notNull().references(() => tourInstances.id),
-  resourceId: varchar("resource_id").references(() => resources.id), // Phase 1: tracks specific vehicle/asset
+  resourceId: varchar("resource_id").references(() => resources.id), // Phase 1: tracks specific asset (e.g. transfer fleet vehicle)
   quantity: integer("quantity").notNull(),
   status: text("status").notNull().default("ACTIVE"), // 'ACTIVE', 'EXPIRED', 'CONFIRMED', 'RELEASED'
   expiresAt: timestamp("expires_at").notNull(),
@@ -202,7 +203,7 @@ export const bookings = pgTable("bookings", {
 export const bookingItems = pgTable("booking_items", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   bookingId: varchar("booking_id").notNull().references(() => bookings.id, { onDelete: "cascade" }),
-  productType: text("product_type").notNull(), // 'tour', 'transfer', 'vehicle'
+  productType: text("product_type").notNull(), // 'tour' or 'transfer'
   productId: varchar("product_id").notNull(),
   productName: text("product_name").notNull(),
   quantity: integer("quantity").notNull().default(1),
@@ -372,7 +373,7 @@ export const paymentOverviews = pgTable("payment_overviews", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-// Phase 4: Blackout dates per product (tours, transfers, vehicles)
+// Phase 4: Blackout dates per product (tours, transfers)
 export const productBlackoutDates = pgTable("product_blackout_dates", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   productId: varchar("product_id").notNull().references(() => products.id),

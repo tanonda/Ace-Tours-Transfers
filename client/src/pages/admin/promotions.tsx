@@ -25,13 +25,13 @@ interface Promotion {
   validFrom: string;
   validTo: string;
   isActive: boolean;
-  applicableTo: 'all' | 'tours' | 'transfers' | 'vehicles';
+  applicableTo: 'all' | 'tours' | 'transfers';
 }
 
 const emptyForm: {
   code: string; description: string; discountType: 'percentage' | 'fixed'; discountValue: number;
   minPurchase: number; maxUses: number; validFrom: string; validTo: string;
-  applicableTo: 'all' | 'tours' | 'transfers' | 'vehicles'; isActive: boolean;
+  applicableTo: 'all' | 'tours' | 'transfers'; isActive: boolean;
 } = {
   code: '', description: '', discountType: 'percentage', discountValue: 0,
   minPurchase: 0, maxUses: 0, validFrom: '', validTo: '', applicableTo: 'all', isActive: true
@@ -191,7 +191,6 @@ export default function AdminPromotions() {
               <SelectItem value="all">All Products</SelectItem>
               <SelectItem value="tours">Tours Only</SelectItem>
               <SelectItem value="transfers">Transfers Only</SelectItem>
-              <SelectItem value="vehicles">Vehicle Hire Only</SelectItem>
             </SelectContent>
           </Select>
         </div>

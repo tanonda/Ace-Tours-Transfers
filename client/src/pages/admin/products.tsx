@@ -42,7 +42,7 @@ export default function AdminProducts() {
     result?: { softDeleted?: boolean; dependents?: { tourInstances: number; bookings: number } };
   }>({ open: false, id: null, title: "" });
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState<"all" | "tour" | "transfer" | "vehicle">("all");
+  const [activeTab, setActiveTab] = useState<"all" | "tour" | "transfer">("all");
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<'grid' | 'list' | 'table'>('table');
   const [showInactive, setShowInactive] = useState(true);
@@ -176,7 +176,6 @@ export default function AdminProducts() {
   const tourStats = {
     totalTours: products.filter((t: any) => t.category === "tour").length,
     totalTransfers: products.filter((t: any) => t.category === "transfer").length,
-    totalVehicles: products.filter((t: any) => t.category === "vehicle").length,
     totalBookings: bookings.length,
     totalRevenueCents: bookings.reduce((sum: number, b: any) => sum + (b.totalAmountCents || 0), 0),
   };
@@ -187,7 +186,7 @@ export default function AdminProducts() {
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-foreground">Products Management</h1>
-            <p className="text-sm text-muted-foreground">Manage tours, transfers, and vehicle hire listings</p>
+            <p className="text-sm text-muted-foreground">Manage tours and transfers listings</p>
           </div>
           <Button onClick={() => { setSelectedTour(null); setIsDialogOpen(true); }} className="w-full sm:w-auto">
             <Plus className="mr-2 h-4 w-4" /> Add Product
@@ -195,18 +194,16 @@ export default function AdminProducts() {
         </div>
 
         <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v as any); setSelectedItems([]); }} className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="all"><Package className="h-4 w-4 mr-1.5" /> All ({products.length})</TabsTrigger>
             <TabsTrigger value="tour"><Map className="h-4 w-4 mr-1.5" /> Tours ({tourStats.totalTours})</TabsTrigger>
             <TabsTrigger value="transfer"><Car className="h-4 w-4 mr-1.5" /> Transfers ({tourStats.totalTransfers})</TabsTrigger>
-            <TabsTrigger value="vehicle"><LayoutGrid className="h-4 w-4 mr-1.5" /> Vehicles ({tourStats.totalVehicles})</TabsTrigger>
           </TabsList>
         </Tabs>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card><CardContent className="p-4 flex items-center gap-3"><ImageIcon className="h-5 w-5 text-blue-500" /><div><p className="text-xs text-muted-foreground">Tours</p><p className="text-xl font-bold">{tourStats.totalTours}</p></div></CardContent></Card>
           <Card><CardContent className="p-4 flex items-center gap-3"><Car className="h-5 w-5 text-green-500" /><div><p className="text-xs text-muted-foreground">Transfers</p><p className="text-xl font-bold">{tourStats.totalTransfers}</p></div></CardContent></Card>
-          <Card><CardContent className="p-4 flex items-center gap-3"><LayoutGrid className="h-5 w-5 text-orange-500" /><div><p className="text-xs text-muted-foreground">Vehicles</p><p className="text-xl font-bold">{tourStats.totalVehicles}</p></div></CardContent></Card>
           <Card><CardContent className="p-4 flex items-center gap-3"><Users className="h-5 w-5 text-purple-500" /><div><p className="text-xs text-muted-foreground">Bookings</p><p className="text-xl font-bold">{tourStats.totalBookings}</p></div></CardContent></Card>
           <Card><CardContent className="p-4 flex items-center gap-3"><DollarSign className="h-5 w-5 text-yellow-500" /><div><p className="text-xs text-muted-foreground">Revenue</p><p className="text-xl font-bold">{formatPrice(tourStats.totalRevenueCents)}</p></div></CardContent></Card>
         </div>
@@ -380,7 +377,7 @@ export default function AdminProducts() {
                 <div className={`relative ${viewMode === 'list' ? 'w-40 h-full rounded-md overflow-hidden shrink-0' : 'aspect-video w-full'}`}>
                   <img src={tour.image} alt={tour.title} className="w-full h-full object-cover" />
                   <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-sm text-white px-2 py-1 rounded text-[10px] font-medium uppercase tracking-wider flex items-center gap-1">
-                    {tour.category === "transfer" ? <Car className="h-3 w-3" /> : tour.category === "vehicle" ? <LayoutGrid className="h-3 w-3" /> : <Map className="h-3 w-3" />}
+                    {tour.category === "transfer" ? <Car className="h-3 w-3" /> : <Map className="h-3 w-3" />}
                     {tour.category}
                   </div>
                   {!tour.isActive && (
@@ -411,7 +408,7 @@ export default function AdminProducts() {
 
                   <div className={`flex items-center gap-2 text-xs text-muted-foreground ${viewMode === 'list' ? 'w-1/4 mb-0' : 'mb-4'}`}>
                     <Users className="h-3.5 w-3.5" />
-                    <span>Capacity: <span className="font-medium text-foreground">{tour.defaultCapacity || "Not set"}</span> {tour.category === "vehicle" ? "vehicles" : "pax"}</span>
+                    <span>Capacity: <span className="font-medium text-foreground">{tour.defaultCapacity || "Not set"}</span> pax</span>
                   </div>
 
                   <div className={`flex gap-2 mt-auto ${viewMode === 'list' ? 'hidden' : ''}`}>

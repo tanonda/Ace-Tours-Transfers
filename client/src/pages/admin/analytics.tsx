@@ -208,7 +208,7 @@ export default function AdminAnalytics() {
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Top Performing Products</CardTitle>
-              <p className="text-xs text-muted-foreground mt-0.5">Tours, transfers & vehicle hires — by revenue</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Tours and transfers — by revenue</p>
               <CardDescription>By total revenue generated</CardDescription>
             </CardHeader>
             <CardContent>
@@ -239,7 +239,7 @@ export default function AdminAnalytics() {
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Revenue by Category</CardTitle>
-              <CardDescription>Tours vs Transfers vs Vehicle Hire breakdown</CardDescription>
+              <CardDescription>Tours vs Transfers breakdown</CardDescription>
             </CardHeader>
             <CardContent className="h-[260px]">
               {revenueByCategory.length > 0 ? (
@@ -247,12 +247,12 @@ export default function AdminAnalytics() {
                   <BarChart data={revenueByCategory}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
                     <XAxis dataKey="category" tick={{ fontSize: 12 }} axisLine={false} tickLine={false}
-                      tickFormatter={(val) => (val === 'vehicle' || val === 'bus') ? 'Vehicle Hire' : val.charAt(0).toUpperCase() + val.slice(1) + 's'}
+                      tickFormatter={(val) => val.charAt(0).toUpperCase() + val.slice(1) + 's'}
                     />
                     <YAxis tickFormatter={v => `${Math.round(v / 1000)}k`} tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
                     <ReTooltip
                       formatter={(val: number) => [`${Math.round(val / 100).toLocaleString()} VT`, "Revenue"]}
-                      labelFormatter={(label) => (label === 'vehicle' || label === 'bus') ? 'Vehicle Hire' : String(label).charAt(0).toUpperCase() + String(label).slice(1) + 's'}
+                      labelFormatter={(label) => String(label).charAt(0).toUpperCase() + String(label).slice(1) + 's'}
                       contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid hsl(var(--border))", background: "hsl(var(--card))" }}
                     />
                     <Bar dataKey="revenueCents" radius={[4, 4, 0, 0]}>

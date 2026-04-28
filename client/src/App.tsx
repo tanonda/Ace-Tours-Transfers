@@ -40,8 +40,6 @@ const PrivacyPolicy = lazy(() => import("@/pages/privacy-policy"));
 const TermsOfService = lazy(() => import("@/pages/terms-of-service"));
 const TourDetail = lazy(() => import("@/pages/tour-detail"));
 const TransferDetail = lazy(() => import("@/pages/transfer-detail"));
-const Vehicles = lazy(() => import("@/pages/vehicles"));
-const VehicleDetail = lazy(() => import("@/pages/vehicle-detail"));
 const Confirmation = lazy(() => import("@/pages/confirmation"));
 const FAQ = lazy(() => import("@/pages/faq"));
 const ResetPassword = lazy(() => import("@/pages/reset-password"));
@@ -211,8 +209,6 @@ function Router() {
         <Route path="/tours/:id" component={TourDetail} />
         <Route path="/transfers" component={Transfers} />
         <Route path="/transfers/:id" component={TransferDetail} />
-        <Route path="/vehicles" component={Vehicles} />
-        <Route path="/vehicles/:id" component={VehicleDetail} />
         <Route path="/about" component={About} />
         <Route path="/contact" component={Contact} />
         <Route path="/cart" component={Cart} />

@@ -717,12 +717,10 @@ export class DatabaseStorage implements IStorage {
     const displayMap: Record<string, string> = {
       'tour': 'Tours',
       'transfer': 'Transfers',
-      'vehicle': 'Vehicle Hire',
-      'bus': 'Vehicle Hire',
       'unknown': 'Other'
     };
 
-    const finalResults: Record<string, number> = { 'Tours': 0, 'Transfers': 0, 'Vehicle Hire': 0 };
+    const finalResults: Record<string, number> = { 'Tours': 0, 'Transfers': 0 };
     for (const r of (results.rows as any[])) {
       const displayKey = displayMap[r.category] || 'Other';
       finalResults[displayKey] = (finalResults[displayKey] || 0) + Number(r.revenue_cents || 0);

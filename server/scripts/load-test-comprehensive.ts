@@ -44,25 +44,6 @@ async function setupTestData() {
         description: ["Test"]
     });
 
-    // 3. Vehicle (Multi-day, Resource Pinning)
-    await db.insert(products).values({
-        id: TEST_PREFIX + "vehicle",
-        title: "TEST_Load Test Vehicle",
-        category: "vehicle",
-        defaultCapacity: 2, // Only 2 vehicles available
-        price: "$200 / day",
-        duration: "N/A",
-        minPax: "1 pax",
-        image: "test.jpg",
-        description: ["Test"]
-    });
-
-    // Add 2 specific resources for the vehicle
-    await db.insert(resources).values([
-        { id: TEST_PREFIX + "v1", productId: TEST_PREFIX + "vehicle", name: "Van 1", seatCapacity: 7, status: "active" },
-        { id: TEST_PREFIX + "v2", productId: TEST_PREFIX + "vehicle", name: "Van 2", seatCapacity: 7, status: "active" }
-    ]);
-
     console.log("✅ Test data ready.");
 }
 
@@ -95,45 +76,14 @@ async function runConcurrentTest() {
             .catch(e => ({ type: 'tour', success: false, error: e.message }));
     });
 
-    // TEST 2: Vehicles - 5 users try to book 1 vehicle for 3 days (Cap: 2)
-    // We expect only 2 users to succeed because we have 2 resources
-    const vehicleTasks = Array.from({ length: 5 }).map((_, i) => async () => {
-        const sessionId = `load-session-vehicle-${i}`;
-        try {
-            const available = await storage.getAvailableResourcesMultiDay(TEST_PREFIX + "vehicle", TEST_DATE, 3);
-            if (available.length === 0) throw new Error("No vehicles");
-            const pinnedId = available[0].id;
-
-            // Hold for 3 days
-            for (let d = 0; d < 3; d++) {
-                const date = new Date(TEST_DATE);
-                date.setDate(date.getDate() + d);
-                await availabilityService.createHold(
-                    TEST_PREFIX + "vehicle",
-                    date.toISOString().split('T')[0],
-                    1,
-                    sessionId,
-                    undefined, 15, undefined, undefined, pinnedId
-                );
-            }
-            return { type: 'vehicle', success: true };
-        } catch (e: any) {
-            return { type: 'vehicle', success: false, error: e.message };
-        }
-    });
-
     const tourResults = await runThrottled(tourTasks, 1);
-    const vehicleResults = await runThrottled(vehicleTasks, 1);
 
     const tourSuccess = tourResults.filter(r => r.success).length;
-    const vehicleSuccess = vehicleResults.filter(r => r.success).length;
 
     console.log(`\n📊 Results:`);
     console.log(`   Tours: ${tourSuccess}/50 expected successes (requested 60, got ${tourSuccess})`);
-    console.log(`   Vehicles: 2/2 expected successes (requested 5, got ${vehicleSuccess})`);
 
     if (tourSuccess > 50) throw new Error("OVERBOOKING DETECTED IN TOURS!");
-    if (vehicleSuccess > 2) throw new Error("OVERBOOKING DETECTED IN VEHICLES!");
 
     console.log("\n✅ NO OVERBOOKING DETECTED. CONCURRENCY CONTROLS VALIDATED.");
 }

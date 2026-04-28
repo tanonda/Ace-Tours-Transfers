@@ -25,10 +25,7 @@
     "emailUs": "发送邮件",
     "manageBookings": "管理现有预订",
     "cancelReservation": "取消预订",
-    "startNewBooking": "开始新预订",
-    "vehicles": "车辆租赁",
-    "viewAllVehicles": "查看所有车辆",
-    "seeAllVehicles": "查看我们完整的车辆租赁选项"
+    "startNewBooking": "开始新预订"
   },
   "hero": {
     "title": "开启您的下一段冒险",
@@ -528,17 +525,5 @@
     "revenueOverTime": "收入（过去 30 天）",
     "bookingDistribution": "预订状态",
     "topPerformingTours": "表现最佳的旅游团"
-  },
-  "vehicles": {
-    "title": "车辆租赁",
-    "description": "通过我们可靠的车辆租赁服务，按照您自己的节奏探索瓦努阿图。 从我们维护良好的车队中进行选择。",
-    "noVehicles": "目前没有可用车辆。",
-    "specs": "规格",
-    "make": "制作",
-    "model": "模型",
-    "seats": "座位数",
-    "transmission": "传播",
-    "features": "车辆特点",
-    "bookNow": "立即聘用"
   }
 }

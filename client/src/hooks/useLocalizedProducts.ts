@@ -26,7 +26,7 @@ import { useTranslation } from "react-i18next";
 import { fetchProducts, fetchProduct } from "@/lib/api";
 import type { Product } from "@shared/schema";
 
-// ─── All products (tours, transfers, vehicles) ────────────────────────────────
+// ─── All products (tours, transfers) ──────────────────────────────────────────
 
 export function useLocalizedProducts() {
   const { i18n } = useTranslation();
@@ -39,7 +39,7 @@ export function useLocalizedProducts() {
   });
 }
 
-// ─── Single product / tour / transfer / vehicle ───────────────────────────────
+// ─── Single product / tour / transfer ─────────────────────────────────────────
 
 export function useLocalizedProduct(id: string | undefined) {
   const { i18n } = useTranslation();
@@ -72,12 +72,3 @@ export function useLocalizedTransfers() {
   };
 }
 
-// ─── Convenience: vehicles only ───────────────────────────────────────────────
-
-export function useLocalizedVehicles() {
-  const result = useLocalizedProducts();
-  return {
-    ...result,
-    data: result.data?.filter((p) => p.category === "vehicle"),
-  };
-}
