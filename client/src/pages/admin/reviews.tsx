@@ -58,7 +58,7 @@ export default function AdminReviews() {
   const [filter, setFilter] = useState<"all" | "pending" | "approved" | "rejected">("pending");
   const [search, setSearch] = useState("");
   const [ratingFilter, setRatingFilter] = useState<string>("all");
-  const [categoryFilter, setCategoryFilter] = useState<"all" | "tour" | "transfer" | "vehicle">("all");
+  const [categoryFilter, setCategoryFilter] = useState<"all" | "tour" | "transfer">("all");
   const [sortCol, setSortCol] = useState<"createdAt" | "rating" | "authorName" | "tourTitle">("createdAt");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [selectedReview, setSelectedReview] = useState<any>(null);
@@ -284,7 +284,6 @@ export default function AdminReviews() {
               <SelectItem value="all">All Categories</SelectItem>
               <SelectItem value="tour">Tours</SelectItem>
               <SelectItem value="transfer">Transfers</SelectItem>
-              <SelectItem value="vehicle">Vehicle Hire</SelectItem>
             </SelectContent>
           </Select>
         </div>

@@ -114,7 +114,7 @@ export function TourCard({ tour, index }: { tour: ProductRouteProps; index: numb
               </div>
 
               {tour.contactForPrice ? (
-                <Link href={`/vehicles/${tour.id}`}>
+                <Link href={`/tours/${tour.id}`}>
                   <Button className="w-full font-semibold touch-target touch-feedback" size="lg">{t("tour.inquireNow", "View Details & Contact")}</Button>
                 </Link>
               ) : (

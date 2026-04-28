@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/navigation-menu";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
-import { fetchProducts, fetchVehicles, fetchSiteSettings } from "@/lib/api";
+import { fetchProducts, fetchSiteSettings } from "@/lib/api";
 import { useCart } from "@/lib/cart-context";
 import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -66,11 +66,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const { data: allTours = [] } = useQuery({
     queryKey: ["products", i18n.language],
     queryFn: fetchProducts,
-  });
-
-  const { data: allVehicles = [] } = useQuery({
-    queryKey: ["vehicles", i18n.language],
-    queryFn: fetchVehicles,
   });
 
   const { data: settings = [] } = useQuery({
@@ -137,7 +132,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
   const isHome = location === "/";
   const showNewsletter = isBlockEnabled('newsletter');
-  const showVehicleHire = isBlockEnabled('vehicle-hire');
 
   const closeMobileMenu = () => {
     setMobileMenuOpen(false);
@@ -337,17 +331,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
                       </Link>
                     </CollapsibleContent>
                   </Collapsible>
-                  {showVehicleHire && (
-                    <Link
-                      href="/vehicles"
-                      onClick={closeMobileMenu}
-                      className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors"
-                      data-testid="mobile-nav-vehicles"
-                    >
-                      <Car className="h-5 w-5 text-primary" />
-                      <span className="font-medium">{t("nav.vehicleHire", "Vehicle Hire")}</span>
-                    </Link>
-                  )}
                   <Link
                     href="/about"
                     onClick={closeMobileMenu}
@@ -559,34 +542,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 </NavigationMenuItem>
               </NavigationMenuList>
             </NavigationMenu>
-
-            {showVehicleHire && (
-              <NavigationMenu className="relative z-50">
-                <NavigationMenuList>
-                  <NavigationMenuItem>
-                    <NavigationMenuTrigger className={cn("bg-transparent hover:bg-transparent focus:bg-transparent data-[state=open]:bg-transparent", navTextColor)}>
-                      {t("nav.vehicleHire", "Vehicle Hire")}
-                    </NavigationMenuTrigger>
-                    <NavigationMenuContent>
-                      <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
-                        {allVehicles.filter((v: Product) => v.isActive !== false).map((vehicle: Product) => (
-                          <ListItem
-                            key={vehicle.id}
-                            title={vehicle.title}
-                            href={`/vehicles/${vehicle.id}`}
-                          >
-                            {Array.isArray(vehicle.description) ? vehicle.description[0] : vehicle.description}
-                          </ListItem>
-                        ))}
-                        <ListItem href="/vehicles" title={t("nav.viewAllVehicles", "View All Vehicles")} className="bg-muted/50">
-                          {t("nav.seeAllVehicles", "Browse our full fleet")}
-                        </ListItem>
-                      </ul>
-                    </NavigationMenuContent>
-                  </NavigationMenuItem>
-                </NavigationMenuList>
-              </NavigationMenu>
-            )}
 
             <NavigationMenu className="relative z-50">
               <NavigationMenuList>

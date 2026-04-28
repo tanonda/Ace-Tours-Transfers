@@ -25,10 +25,7 @@
     "emailUs": "Envoyez-nous un email",
     "manageBookings": "Gérer les réservations existantes",
     "cancelReservation": "Annuler une réservation",
-    "startNewBooking": "Commencer une nouvelle réservation",
-    "vehicles": "Location de véhicules",
-    "viewAllVehicles": "Voir tous les véhicules",
-    "seeAllVehicles": "Découvrez notre gamme complète d'options de location de véhicules"
+    "startNewBooking": "Commencer une nouvelle réservation"
   },
   "hero": {
     "title": "L'heure de votre prochaine aventure",
@@ -528,17 +525,5 @@
     "revenueOverTime": "Revenus (30 derniers jours)",
     "bookingDistribution": "Statut de la réservation",
     "topPerformingTours": "Visites les plus performantes"
-  },
-  "vehicles": {
-    "title": "Location de véhicules",
-    "description": "Explorez Vanuatu à votre rythme grâce à notre service de location de véhicules fiable. Choisissez parmi notre flotte de véhicules bien entretenus.",
-    "noVehicles": "Aucun véhicule disponible pour le moment.",
-    "specs": "Caractéristiques",
-    "make": "Faire",
-    "model": "Modèle",
-    "seats": "Sièges",
-    "transmission": "Transmission",
-    "features": "Caractéristiques du véhicule",
-    "bookNow": "Embauchez maintenant"
   }
 }

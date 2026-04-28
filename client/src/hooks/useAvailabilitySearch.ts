@@ -2,14 +2,14 @@
  * useAvailabilitySearch — updated for infant + pet pax
  *
  * Decoupled search/availability logic for the Ace Tours Hero search bar.
- * Now tracks infantPax and petPax in all three category states.
+ * Now tracks infantPax and petPax in the tour and transfer states.
  *
  * Pricing note: infants and pets are FREE and do not consume capacity.
  * They are collected here for manifesting purposes only.
  */
 
 import { useState, useMemo, useCallback } from "react";
-import { format, addDays, differenceInCalendarDays } from "date-fns";
+import { format } from "date-fns";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { fetchProducts } from "@/lib/api";
@@ -17,7 +17,7 @@ import { useBookingDraft } from "@/lib/booking-state-context";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export type SearchTab = "tour" | "transfer" | "vehicle";
+export type SearchTab = "tour" | "transfer";
 
 export interface GuestCounts {
   adults: number;
@@ -36,13 +36,6 @@ export interface TransferSearchState extends GuestCounts {
   to: string;
   date: Date | undefined;
   time: string;
-}
-
-export interface VehicleSearchState {
-  pickupDate: Date | undefined;
-  pickupTime: string;
-  returnDate: Date | undefined;
-  returnTime: string;
 }
 
 export interface AvailabilitySearchResult {
@@ -70,24 +63,15 @@ export interface AvailabilitySearchResult {
   setTransferInfants: (n: number) => void;  // NEW
   setTransferPets: (n: number) => void;     // NEW
 
-  // Vehicle
-  vehicle: VehicleSearchState;
-  setPickupDate: (d: Date | undefined) => void;
-  setPickupTime: (t: string) => void;
-  setReturnDate: (d: Date | undefined) => void;
-  setReturnTime: (t: string) => void;
-
   // Products
   allProducts: any[];
   tours: any[];
   transfers: any[];
-  vehicles: any[];
   isLoadingProducts: boolean;
   selectedProductId: string | null;
   setSelectedProductId: (id: string | null) => void;
 
   // Derived
-  hireDays: number;
   tourGuestSummary: string;
   transferPassengerSummary: string;
 
@@ -161,21 +145,6 @@ export function useAvailabilitySearch(): AvailabilitySearchResult {
   const [transferInfants, setTransferInfants] = useState(0); // NEW
   const [transferPets, setTransferPets] = useState(0); // NEW
 
-  // ── Vehicle state ─────────────────────────────────────────────────────────
-  const [pickupDate, setPickupDateRaw] = useState<Date | undefined>(undefined);
-  const [pickupTime, setPickupTime] = useState("10:00");
-  const [returnDate, setReturnDateRaw] = useState<Date | undefined>(undefined);
-  const [returnTime, setReturnTime] = useState("10:00");
-
-  const setPickupDate = useCallback((d: Date | undefined) => {
-    setPickupDateRaw(d);
-    if (d && returnDate && returnDate <= d) setReturnDateRaw(addDays(d, 1));
-  }, [returnDate]);
-
-  const setReturnDate = useCallback((d: Date | undefined) => {
-    setReturnDateRaw(d);
-  }, []);
-
   // ── Product data ──────────────────────────────────────────────────────────
   const { data: rawProducts = [], isLoading: isLoadingProducts } = useQuery({
     queryKey: ["products"],
@@ -186,14 +155,8 @@ export function useAvailabilitySearch(): AvailabilitySearchResult {
   const allProducts = useMemo(() => filterProducts(rawProducts), [rawProducts]);
   const tours = useMemo(() => allProducts.filter((p) => p.category === "tour"), [allProducts]);
   const transfers = useMemo(() => allProducts.filter((p) => p.category === "transfer"), [allProducts]);
-  const vehicles = useMemo(() => allProducts.filter((p) => p.category === "vehicle"), [allProducts]);
 
   // ── Derived ───────────────────────────────────────────────────────────────
-  const hireDays = useMemo(() => {
-    if (!pickupDate || !returnDate) return 0;
-    return Math.max(1, differenceInCalendarDays(returnDate, pickupDate));
-  }, [pickupDate, returnDate]);
-
   const tourGuestSummary = useMemo(
     () => buildGuestSummary(tourAdults, tourChildren, tourInfants, tourPets),
     [tourAdults, tourChildren, tourInfants, tourPets]
@@ -214,13 +177,8 @@ export function useAvailabilitySearch(): AvailabilitySearchResult {
       if (!transferDate) return { isValid: false, validationMessage: "Please select a transfer date" };
       return { isValid: true, validationMessage: "" };
     }
-    if (activeTab === "vehicle") {
-      if (!pickupDate) return { isValid: false, validationMessage: "Please select a pickup date" };
-      if (!returnDate) return { isValid: false, validationMessage: "Please select a return date" };
-      return { isValid: true, validationMessage: "" };
-    }
     return { isValid: false, validationMessage: "" };
-  }, [activeTab, tourDate, transferDate, pickupDate, returnDate]);
+  }, [activeTab, tourDate, transferDate]);
 
   // ── Submit ────────────────────────────────────────────────────────────────
   const handleSearch = useCallback(() => {
@@ -280,40 +238,11 @@ export function useAvailabilitySearch(): AvailabilitySearchResult {
       return;
     }
 
-    if (activeTab === "vehicle") {
-      if (pickupDate) {
-        params.set("pickup", format(pickupDate, "yyyy-MM-dd"));
-        params.set("date", format(pickupDate, "yyyy-MM-dd"));
-      }
-      if (returnDate) params.set("return", format(returnDate, "yyyy-MM-dd"));
-      params.set("pickupTime", pickupTime);
-      params.set("returnTime", returnTime);
-      params.set("days", hireDays.toString());
-
-      updateDraft({
-        date: pickupDate ? format(pickupDate, "yyyy-MM-dd") : "",
-        startTime: pickupTime,
-        endTime: returnTime,
-        adultPax: hireDays,
-        childPax: 0,
-        infantPax: 0,
-        petPax: 0,
-      });
-
-      setLocation(
-        selectedProductId
-          ? `/vehicles/${selectedProductId}?${params}`
-          : `/vehicles?${params}`
-      );
-      return;
-    }
-
     setLocation("/tours");
   }, [
     activeTab,
     tourDate, tourTime, tourAdults, tourChildren, tourInfants, tourPets,
     transferFrom, transferTo, transferDate, transferTime, transferAdults, transferChildren, transferInfants, transferPets,
-    pickupDate, pickupTime, returnDate, returnTime, hireDays,
     selectedProductId,
     updateDraft,
     setLocation,
@@ -342,21 +271,13 @@ export function useAvailabilitySearch(): AvailabilitySearchResult {
     setTransferInfants,  // NEW
     setTransferPets,     // NEW
 
-    vehicle: { pickupDate, pickupTime, returnDate, returnTime },
-    setPickupDate,
-    setPickupTime,
-    setReturnDate,
-    setReturnTime,
-
     allProducts,
     tours,
     transfers,
-    vehicles,
     isLoadingProducts,
     selectedProductId,
     setSelectedProductId,
 
-    hireDays,
     tourGuestSummary,
     transferPassengerSummary,
 

@@ -25,10 +25,7 @@
     "emailUs": "Envíanos un correo",
     "manageBookings": "Gestionar reservas existentes",
     "cancelReservation": "Cancelar una reserva",
-    "startNewBooking": "Iniciar una nueva reserva",
-    "vehicles": "Alquiler de vehículos",
-    "viewAllVehicles": "Ver todos los vehículos",
-    "seeAllVehicles": "Vea nuestra gama completa de opciones de alquiler de vehículos"
+    "startNewBooking": "Iniciar una nueva reserva"
   },
   "hero": {
     "title": "Es hora de tu próxima aventura",
@@ -528,17 +525,5 @@
     "revenueOverTime": "Ingresos (últimos 30 días)",
     "bookingDistribution": "Estado de la reserva",
     "topPerformingTours": "Giras de mayor rendimiento"
-  },
-  "vehicles": {
-    "title": "Alquiler de vehículos",
-    "description": "Explora Vanuatu a tu propio ritmo con nuestro confiable servicio de alquiler de vehículos. Elija entre nuestra flota de vehículos en buen estado.",
-    "noVehicles": "No hay vehículos disponibles en este momento.",
-    "specs": "Presupuesto",
-    "make": "Hacer",
-    "model": "Modelo",
-    "seats": "Asientos",
-    "transmission": "Transmisión",
-    "features": "Características del vehículo",
-    "bookNow": "Contratar ahora"
   }
 }

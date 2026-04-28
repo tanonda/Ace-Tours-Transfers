@@ -715,7 +715,7 @@ ${allPages.map(p => `  <url>
     }
   });
 
-  // Products API (covers tours, transfers, and vehicle hire)
+  // Products API (covers tours and transfers)
   app.get("/api/products", async (req, res) => {
     try {
       const locale = (req.query.locale as string) || "en";
@@ -807,7 +807,7 @@ ${allPages.map(p => `  <url>
     }
   });
 
-  // Reviews — works for products, transfers AND vehicles (all share the products table)
+  // Reviews — works for tours and transfers (all share the products table)
   app.get("/api/products/:id/reviews", async (req, res) => {
     try {
       const reviews = await storage.getProductReviews(req.params.id);
@@ -923,7 +923,7 @@ ${allPages.map(p => `  <url>
       // database columns. Passing them to Drizzle .set() throws a runtime error.
       const FORM_HELPER_FIELDS = new Set([
         "adultPriceInput", "childPriceInput", "groupPriceInput",
-        "tourOverview", "inclusions", "transferDetail", "vehicleAbout",
+        "tourOverview", "inclusions", "transferDetail",
         "addons",           // joined at read time, never written back
       ]);
       const updateData: Record<string, unknown> = Object.fromEntries(
@@ -1142,26 +1142,6 @@ ${allPages.map(p => `  <url>
   app.delete("/api/products/:productId/addons/:addonId", requireAdmin, async (req, res) => {
     try { res.status(204).end(); }
     catch { res.status(500).json({ error: "Failed to remove product addon" }); }
-  });
-
-  // Vehicles API
-  app.get("/api/vehicles", async (req, res) => {
-    try {
-      const allTours = await storage.getProducts();
-      res.json(allTours.filter(t => t.category === "vehicle"));
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch vehicles" });
-    }
-  });
-
-  app.get("/api/vehicles/:id", async (req, res) => {
-    try {
-      const tour = await storage.getProduct(req.params.id);
-      if (!tour || tour.category !== "vehicle") return res.status(404).json({ error: "Vehicle not found" });
-      res.json(tour);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch vehicle" });
-    }
   });
 
   // Admin Reviews API

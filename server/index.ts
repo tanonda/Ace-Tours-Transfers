@@ -473,16 +473,14 @@ app.use((req, res, next) => {
 
   await registerRoutes(httpServer, app);
 
-  // ── Feature Flag Seed + FIU Enforcement ───────────────────────────────────
-  // Inserts default flags only if missing (preserves admin UI edits) and
-  // force-applies FIU-mandated overrides (e.g. vehicle-hire = false) on every
-  // boot. See server/seed-flags.ts for the split.
+  // ── Feature Flag Seed ─────────────────────────────────────────────────────
+  // Inserts default flags only if missing — preserves admin UI edits across deploys.
+  // See server/seed-flags.ts.
   try {
     const { seedFlags } = await import('./seed-flags.js');
     await seedFlags();
   } catch (flagSeedErr) {
     console.error('[STARTUP] Feature flag seed failed:', flagSeedErr);
-    // FIU enforcement is non-negotiable — fail fast if the seed didn't run.
     throw flagSeedErr;
   }
 
@@ -581,27 +579,6 @@ app.use((req, res, next) => {
     console.log('[EVENT] Global event handlers registered');
   } catch (eventError) {
     console.error('Failed to initialize Domain Event Handlers:', eventError);
-  }
-
-  // Seed default feature flags (idempotent — uses upsert)
-  try {
-    const { storage: flagStorage } = await import('./storage.js');
-    const defaultFlags = [
-      { slug: 'vehicle-hire', enabled: true, displayName: 'Vehicle Hire', description: 'Enable vehicle and bus hire services' },
-      { slug: 'client-dashboard', enabled: false, displayName: 'Client Dashboard', description: 'Enable user-facing booking history and profile' },
-      { slug: 'reviews-system', enabled: false, displayName: 'Reviews System', description: 'Enable customer reviews and moderation' },
-      { slug: 'guest-reviews', enabled: true, displayName: 'Guest Reviews', description: 'Allow guests (non-logged-in users) to submit product reviews. Disable to require account sign-in for reviews.' },
-    ];
-    for (const flag of defaultFlags) {
-      const existing = await flagStorage.getFeatureFlag(flag.slug);
-      if (!existing) {
-        await flagStorage.upsertFeatureFlag(flag);
-        console.log(`[FLAGS] Seeded flag: ${flag.slug}`);
-      }
-    }
-    console.log('[FLAGS] Feature flag initialization complete');
-  } catch (flagError) {
-    console.error('Failed to seed feature flags:', flagError);
   }
 
   // Set up native Express error handler automatically provided by Sentry

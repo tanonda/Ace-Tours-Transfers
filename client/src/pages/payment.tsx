@@ -571,8 +571,6 @@ export default function Payment() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {items.map((item) => {
-                    const isVehicle = item.type === "vehicle";
-                    const anyItem = item as any;
                     return (
                       <div key={item.cartItemId} className="p-3 rounded-xl border border-border/30 bg-background/50">
                         <div className="flex items-start justify-between gap-3">
@@ -591,19 +589,14 @@ export default function Payment() {
                                   {item.startTime}{item.endTime ? ` – ${item.endTime}` : ""}
                                 </span>
                               )}
-                              {isVehicle && anyItem.hireDays > 0 && (
-                                <span className="font-medium text-foreground">{anyItem.hireDays} day{anyItem.hireDays !== 1 ? "s" : ""} hire</span>
-                              )}
                             </div>
-                            {!isVehicle && (
-                              <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
-                                <Users className="h-3 w-3" />
-                                {item.adultPax} adult{item.adultPax > 1 ? 's' : ''}
-                                {item.childPax > 0 && `, ${item.childPax} child${item.childPax > 1 ? 'ren' : ''}`}
-                                {item.infantPax > 0 && `, ${item.infantPax} infant${item.infantPax > 1 ? 's' : ''}`}
-                                {item.petPax > 0 && `, ${item.petPax} pet${item.petPax > 1 ? 's' : ''}`}
-                              </div>
-                            )}
+                            <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
+                              <Users className="h-3 w-3" />
+                              {item.adultPax} adult{item.adultPax > 1 ? 's' : ''}
+                              {item.childPax > 0 && `, ${item.childPax} child${item.childPax > 1 ? 'ren' : ''}`}
+                              {item.infantPax > 0 && `, ${item.infantPax} infant${item.infantPax > 1 ? 's' : ''}`}
+                              {item.petPax > 0 && `, ${item.petPax} pet${item.petPax > 1 ? 's' : ''}`}
+                            </div>
                           </div>
                           <span className="font-bold text-sm whitespace-nowrap">{formatPriceDisplay(item.price * item.adultPax + item.childPrice * item.childPax + (item.addonTotal || 0), currency)}</span>
                         </div>
@@ -760,7 +753,7 @@ export default function Payment() {
                       <Banknote className="h-8 w-8 text-green-600 mb-2" />
                       <h3 className="font-semibold text-green-900 dark:text-green-200 mb-2">Cash on Delivery</h3>
                       <p className="text-sm text-green-800 dark:text-green-300 text-center">
-                        Please pay at the start of your tour or vehicle pickup.
+                        Please pay at the start of your tour.
                       </p>
                     </div>
                   )}

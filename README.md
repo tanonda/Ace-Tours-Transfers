@@ -1,6 +1,8 @@
 # Ace Tours & Transfers Vanuatu
 
-A production-grade booking and management platform for [Ace Tours Vanuatu](https://acetoursvanuatu.com). This system provides a comprehensive solution for managing tours, airport transfers, and vehicle rentals with a focus on reliability, guest accessibility, and administrative control.
+A production-grade booking and management platform for [Ace Tours Vanuatu](https://acetoursvanuatu.com). This system provides a comprehensive solution for managing tours and airport transfers with a focus on reliability, guest accessibility, and administrative control.
+
+> **Note:** Self-drive vehicle hire was retired from the platform per Vanuatu Financial Intelligence Unit (FIU) compliance requirements.
 
 ---
 
@@ -25,7 +27,6 @@ A production-grade booking and management platform for [Ace Tours Vanuatu](https
 ### ✨ Additions & Enhancements (Current)
 *Context: These modules were added beyond the original quote to accommodate evolving business needs.*
 
-- **Vehicle Hire Module**: Fully integrated management of rental assets, pricing, and availability.
 - **Guest Dashboard Enhancements**: Improved usability and feature set for temporary, account-less management.
 - **Extended Payment Flows**: Support for offline and bank transfer flows beyond the initial baseline.
 - **UX Redesign**: Modernized home hero section with an enhanced availability checker.

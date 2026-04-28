@@ -183,19 +183,6 @@ export class AvailabilityDomainService {
     startTime?: string,
     endTime?: string
   ): Promise<{ remainingCapacity: number; totalCapacity: number }> {
-    // Phase 1: Vehicles check discrete resources instead of pooled instances
-    if (category === 'vehicle') {
-      const allResources = await this.storage.getResourcesByProduct(productId);
-      if (allResources.length > 0) {
-        const availableResources = await this.storage.getAvailableResources(productId, date, startTime, endTime);
-        return {
-          remainingCapacity: availableResources.length,
-          totalCapacity: allResources.length
-        };
-      }
-      // If no discrete resources are defined, fall back to pooled capacity (tourInstances or defaultCapacity)
-    }
-
     // 1. Check cache first
     const cacheKey = slot || (startTime && endTime ? `${startTime}-${endTime}` : "default");
     const cached = availabilityCache.get(productId, date, cacheKey);
@@ -409,7 +396,7 @@ export class AvailabilityDomainService {
   /**
    * Returns available time slots for a given product and date.
    * - For Tours: Returns scheduled instances (e.g. 09:00, 14:00)
-   * - For Transfers/Vehicles: Generates 30-min intervals (06:00 - 20:00)
+   * - For Transfers: Generates 30-min intervals (06:00 - 20:00)
    */
   async getAvailableSlots(
     productId: string,
@@ -449,7 +436,7 @@ export class AvailabilityDomainService {
         // if (product.defaultCapacity) ...
       }
     } else {
-      // Transfers and Vehicles: Generate slots
+      // Transfers: Generate slots
       // 06:00 to 20:00 every 30 mins
       const startHour = 6;
       const endHour = 20;
@@ -459,9 +446,7 @@ export class AvailabilityDomainService {
           const time = `${hour.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
 
           // Check availability for this specific slot
-          // Note: This calls calculateRemainingCapacity loop, might be heavy if not cached.
-          // But category='vehicle' uses resource check which is fast.
-          // category='transfer' might be logical usage.
+          // Note: This calls calculateRemainingCapacity in a loop, might be heavy if not cached.
 
           const { remainingCapacity } = await this.calculateRemainingCapacity(
             productId,

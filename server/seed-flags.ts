@@ -47,32 +47,12 @@ const FLAG_DEFAULTS = [
   }
 ];
 
-// FIU-enforced flags — force-applied on every boot, overriding any admin UI
-// state. Vanuatu Financial Intelligence Unit prohibits self-drive vehicle hire,
-// so this flag MUST be false in production regardless of who toggled what.
-// PR 2 will delete the flag entirely; until then this is the safety net.
-const FIU_ENFORCED_FLAGS = [
-  {
-    slug: "vehicle-hire",
-    enabled: false,
-    displayName: "Vehicle Hire",
-    description: "Disabled per Vanuatu FIU compliance — flag retained as a tombstone for PR 2 removal."
-  }
-];
-
 export async function seedFlags() {
   for (const flag of FLAG_DEFAULTS) {
     const existing = await storage.getFeatureFlag(flag.slug);
     if (existing) continue;
     await storage.upsertFeatureFlag(flag);
     console.log(`[flags] seeded default: ${flag.slug} (${flag.enabled ? 'ON' : 'OFF'})`);
-  }
-
-  for (const flag of FIU_ENFORCED_FLAGS) {
-    const existing = await storage.getFeatureFlag(flag.slug);
-    if (existing && existing.enabled === flag.enabled) continue;
-    await storage.upsertFeatureFlag(flag);
-    console.log(`[flags] FIU enforced: ${flag.slug} -> ${flag.enabled ? 'ON' : 'OFF'}`);
   }
 }
 

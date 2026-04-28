@@ -25,10 +25,7 @@
     "emailUs": "Sendem Email",
     "manageBookings": "Managem ol bookings we i stap",
     "cancelReservation": "Stopem wan reservation",
-    "startNewBooking": "Startem wan new booking",
-    "vehicles": "Rentim Trak",
-    "viewAllVehicles": "Lukim olgeta trak",
-    "seeAllVehicles": "Lukim evri rental options blong mifala"
+    "startNewBooking": "Startem wan new booking"
   },
   "hero": {
     "title": "Taem blong nxt adventure blong yu",
@@ -528,17 +525,5 @@
     "ratedDesc": "5-star service i garantim",
     "secure": "Sekim Buking",
     "secureDesc": "Konfimeisen mo sapot i hapen kwik"
-  },
-  "vehicles": {
-    "title": "Ol Trak blong Mifala",
-    "description": "Faenem ol nambawan trak blong rentakem.",
-    "noVehicles": "I no gat trak i mejem nid blong yu.",
-    "specs": "Geter blong Trak",
-    "make": "Kampani",
-    "model": "Model",
-    "seats": "Jia",
-    "transmission": "Gia",
-    "features": "Spesu Samting",
-    "bookNow": "Bukum Naoia"
   }
 }

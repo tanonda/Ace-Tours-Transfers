@@ -318,7 +318,6 @@ export function PrintItinerary({ booking, items, payments, qrCodeData, onClose }
                             ${item.adultPax > 0 ? `${item.adultPax} Adults` : ''}
                             ${item.adultPax > 0 && item.childPax > 0 ? ' + ' : ''}
                             ${item.childPax > 0 ? `${item.childPax} Children` : ''}
-                            ${item.productType === 'vehicle' ? ` (${item.quantity} Days)` : ''}
                           </div>
                         </div>
                         <div style="text-align: right;">
@@ -518,7 +517,6 @@ export function PrintItinerary({ booking, items, payments, qrCodeData, onClose }
                           {item.adultPax > 0 && `${item.adultPax} Adults`}
                           {item.adultPax > 0 && item.childPax > 0 && " + "}
                           {item.childPax > 0 && `${item.childPax} Children`}
-                          {item.productType === 'vehicle' && ` (${item.quantity} Days)`}
                           <span className="mx-2">•</span>
                           {item.unitPriceCents?.toLocaleString()} / unit
                         </div>

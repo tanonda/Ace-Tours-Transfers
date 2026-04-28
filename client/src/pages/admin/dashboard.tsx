@@ -406,7 +406,7 @@ export default function AdminDashboard() {
                 </div>
               )}
               <div className="flex justify-around mt-3 text-xs text-muted-foreground">
-                <span>{t("nav.tours")}</span><span>{t("nav.transfers")}</span><span>{t("nav.vehicles") || "Vehicle Hire"}</span>
+                <span>{t("nav.tours")}</span><span>{t("nav.transfers")}</span>
               </div>
             </div>
 

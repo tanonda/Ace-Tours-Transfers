@@ -8,7 +8,7 @@
  * - Field labels sit above values inside the same cell
  * - Dark backdrop panel behind the search bar
  * - CTA button flush-right, same height as the bar, orange fill
- * - Tabs sit above the bar (Tours / Transfers / Vehicle Hire)
+ * - Tabs sit above the bar (Tours / Transfers)
  * - Guest counter as clean popover with +/− pill buttons and Apply CTA
  * - Calendar as floating panel, minimal with Close footer
  * - All search logic delegated to useAvailabilitySearch()
@@ -21,7 +21,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "wouter";
 import { useTranslation } from "react-i18next";
 import { useCmsText } from "@/hooks/use-cms-text";
-import { useCMS } from "@/lib/cms-context";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -43,7 +42,6 @@ import {
   Search,
   Map,
   Car,
-  Truck,
   Minus,
   Plus,
 } from "lucide-react";
@@ -487,19 +485,16 @@ function ProductCell({
 const TABS: { id: SearchTab; icon: React.ReactNode; label: string }[] = [
   { id: "tour", icon: <Map className="h-3.5 w-3.5" />, label: "Tours" },
   { id: "transfer", icon: <Car className="h-3.5 w-3.5" />, label: "Transfers" },
-  { id: "vehicle", icon: <Truck className="h-3.5 w-3.5" />, label: "Vehicle Hire" },
 ];
 
 interface SearchTabsProps {
   activeTab: SearchTab;
   onTabChange: (tab: SearchTab) => void;
-  showVehicleHire?: boolean;
 }
-function SearchTabs({ activeTab, onTabChange, showVehicleHire = true }: SearchTabsProps) {
-  const availableTabs = TABS.filter(t => t.id !== 'vehicle' || showVehicleHire);
+function SearchTabs({ activeTab, onTabChange }: SearchTabsProps) {
   return (
     <div role="tablist" aria-label="Search type" className="flex items-center gap-1 mb-3">
-      {availableTabs.map((tab) => (
+      {TABS.map((tab) => (
         <button
           key={tab.id}
           role="tab"
@@ -524,15 +519,13 @@ function SearchTabs({ activeTab, onTabChange, showVehicleHire = true }: SearchTa
 // ─── SearchBar ────────────────────────────────────────────────────────────────
 interface SearchBarProps {
   search: ReturnType<typeof useAvailabilitySearch>;
-  showVehicleHire?: boolean;
 }
-function SearchBar({ search, showVehicleHire }: SearchBarProps) {
+function SearchBar({ search }: SearchBarProps) {
   return (
     <div className="w-full">
       <SearchTabs
         activeTab={search.activeTab}
         onTabChange={search.setActiveTab}
-        showVehicleHire={showVehicleHire}
       />
 
       {/*
@@ -655,75 +648,6 @@ function SearchBar({ search, showVehicleHire }: SearchBarProps) {
               </>
             )}
 
-            {/* ── Vehicle Hire ── */}
-            {search.activeTab === "vehicle" && (
-              <>
-                <ProductCell
-                  label="Vehicle type"
-                  value={search.selectedProductId}
-                  onChange={search.setSelectedProductId}
-                  products={search.vehicles}
-                  placeholder="Any vehicle"
-                  divider
-                  className="flex-[1.5] min-w-0 md:min-w-[180px]"
-                />
-                <DateCell
-                  label="Pick-up date"
-                  value={search.vehicle.pickupDate}
-                  onChange={search.setPickupDate}
-                  placeholder="Add date"
-                  divider
-                  className="flex-1 min-w-0 md:min-w-[130px]"
-                />
-                <TimeCell
-                  label="Time"
-                  value={search.vehicle.pickupTime}
-                  onChange={search.setPickupTime}
-                  divider
-                  className="flex-1 min-w-0 md:min-w-[100px]"
-                />
-                <DateCell
-                  label="Drop-off date"
-                  value={search.vehicle.returnDate}
-                  onChange={search.setReturnDate}
-                  minDate={
-                    search.vehicle.pickupDate
-                      ? addDays(search.vehicle.pickupDate, 1)
-                      : new Date()
-                  }
-                  placeholder="Add date"
-                  divider
-                  className="flex-1 min-w-0 md:min-w-[130px]"
-                />
-                <TimeCell
-                  label="Time"
-                  value={search.vehicle.returnTime}
-                  onChange={search.setReturnTime}
-                  divider={search.hireDays > 0}
-                  className="flex-1 min-w-0 md:min-w-[100px]"
-                />
-                {/* Duration badge — appears inline when both dates set */}
-                <AnimatePresence>
-                  {search.hireDays > 0 && (
-                    <motion.div
-                      initial={{ opacity: 0, width: 0 }}
-                      animate={{ opacity: 1, width: 72 }}
-                      exit={{ opacity: 0, width: 0 }}
-                      className="flex items-center justify-center shrink-0 overflow-hidden"
-                    >
-                      <div className="text-center px-2">
-                        <p className="text-[17px] font-black text-[#f2800d] leading-none">
-                          {search.hireDays}
-                        </p>
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mt-0.5">
-                          {search.hireDays === 1 ? "day" : "days"}
-                        </p>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </>
-            )}
           </motion.div>
         </AnimatePresence>
 
@@ -761,15 +685,13 @@ function SearchBar({ search, showVehicleHire }: SearchBarProps) {
 export function Hero() {
   const { t } = useTranslation();
   const cms = useCmsText("home-page");
-  const { isBlockEnabled } = useCMS();
-  const showVehicleHire = isBlockEnabled('vehicle-hire');
   const search = useAvailabilitySearch();
   const bgUrl = cms.text("hero_image") || heroBg;
 
   return (
     <section
       className="relative min-h-[85vh] md:min-h-screen w-full overflow-hidden"
-      aria-label="Hero — search for tours, transfers and vehicles"
+      aria-label="Hero — search for tours and transfers"
     >
       {/* Background image + gradient — real <img> tag enables fetchpriority=high for LCP */}
       <div

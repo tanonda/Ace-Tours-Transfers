@@ -2,7 +2,7 @@
  * shared-detail-components.tsx
  *
  * Reusable UI components extracted from tour-detail.tsx so that
- * Transfers, Vehicle Hire, and Tours all share the same widgets.
+ * Transfers and Tours share the same widgets.
  */
 
 import { useState, useEffect, useRef } from "react";
@@ -296,7 +296,7 @@ interface WhatsIncludedProps {
 }
 
 // ─── Trustpilot TrustBox Widget ─────────────────────────────────────────────
-// Single source of truth for all detail pages (tour / transfer / vehicle).
+// Single source of truth for all detail pages (tour / transfer).
 // Business Unit ID  → VITE_TRUSTPILOT_BU_ID  (build-time env var)
 // Review page URL   → VITE_TRUSTPILOT_URL     (optional, defaults to acetours.vu)
 // Set in .env (local) or Render Dashboard → Environment (production), then redeploy.

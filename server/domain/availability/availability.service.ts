@@ -84,16 +84,14 @@ export class AvailabilityService {
     pinnedResourceId?: string, // Phase 1: Support pinning a resource for multi-day consistency
     tx?: any // Phase 4: Allow passing transactional context
   ): Promise<AvailabilityHold> {
-    // Phase 4: Check blackout dates (applies to all product types: products, transfers, vehicles)
+    // Phase 4: Check blackout dates (applies to tours and transfers)
     const isBlacked = await this.storage.isBlackedOut(tourId, date);
     if (isBlacked) {
       throw new Error(`This date (${date}) is not available for bookings (blackout period).`);
     }
 
-    // Phase 1: Determine if this is a vehicle (asset-allocated) product
     const product = await this.storage.getProduct(tourId);
     if (!product) throw new Error(`Product ${tourId} not found`);
-    const isVehicle = product.category === 'vehicle';
 
     const runInTransaction = async (transaction: any) => {
       // 1. Get or Create TourInstance with LOCK
@@ -111,35 +109,9 @@ export class AvailabilityService {
         throw new Error(`Insufficient availability. Requested ${quantity}, available ${available}`);
       }
 
-      // Phase 1: Resource allocation for vehicles
-      let resourceId: string | null = pinnedResourceId || null;
-      if (isVehicle) {
-        if (resourceId) {
-          // Verify pinned resource is actually available on this date (locked within instance tx)
-          const isHeld = await transaction
-            .select()
-            .from(availabilityHolds)
-            .where(and(
-              eq(availabilityHolds.tourInstanceId, instance.id),
-              eq(availabilityHolds.resourceId, resourceId),
-              sql`status IN ('ACTIVE', 'CONFIRMED')`
-            ))
-            .limit(1);
-
-          if (isHeld.length > 0) {
-            throw new Error(`Vehicle ${resourceId} is already reserved for ${date}`);
-          }
-        } else {
-          const availableResources = await this.storage.getAvailableResources(tourId, date, startTime, endTime);
-          if (availableResources.length === 0) {
-            throw new Error(
-              `No available ${product.title} units for ${date} during ${startTime || '00:00'}-${endTime || '23:59'}. All vehicles are currently reserved.`
-            );
-          }
-          // Allocate first available resource
-          resourceId = availableResources[0].id;
-        }
-      }
+      // Resource allocation: only honoured when caller explicitly pins a resource.
+      // The auto-allocation path was vehicle-hire only (removed for FIU compliance).
+      const resourceId: string | null = pinnedResourceId || null;
 
       // 3. Update held count using atomic increment
       await transaction
@@ -150,7 +122,7 @@ export class AvailabilityService {
         })
         .where(eq(tourInstances.id, instance.id));
 
-      // 4. Create Hold record (with optional resourceId for vehicles)
+      // 4. Create Hold record (with optional resourceId for pinned assets)
       const expiresAt = new Date();
       expiresAt.setMinutes(expiresAt.getMinutes() + ttlMinutes);
 

@@ -72,7 +72,7 @@ export async function updateUserStatus(id: string, isActive: boolean): Promise<U
   return res.json();
 }
 
-// Products (covers tours, transfers, and vehicle hire)
+// Products (covers tours and transfers)
 export async function fetchProducts(): Promise<Product[]> {
   const locale = i18n.language || "en";
   const res = await apiRequest("GET", `/api/products?locale=${locale}`);
@@ -109,16 +109,6 @@ export const deleteTour = deleteProduct;
 export async function fetchAddons(): Promise<Addon[]> {
   const res = await apiRequest("GET", "/api/addons");
   return res.json();
-}
-
-// Vehicles API (Vehicle Hire feature) - using the common products endpoint since they share schema
-export async function fetchVehicles(): Promise<Product[]> {
-  const products = await fetchProducts();
-  return products.filter((t: Product) => t.category === 'vehicle');
-}
-
-export async function fetchVehicle(id: string): Promise<Product> {
-  return fetchProduct(id);
 }
 
 // Bookings

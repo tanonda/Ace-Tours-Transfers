@@ -4,7 +4,6 @@
  * Product Type Time Semantics:
  * - Tours: session-based (morning 09:00-12:00, afternoon 13:00-17:00)
  * - Transfers: point-in-time or short intervals (e.g. 06:00-06:30)
- * - Vehicles: full-day intervals (00:00-23:59 per rental day)
  *
  * When startTime/endTime are null on a tour instance, it represents
  * a full-day booking (backward compatible).
@@ -66,7 +65,7 @@ export function intervalFitsWithin(requested: TimeInterval, slot: TimeInterval):
 }
 
 /**
- * Generates the full-day interval for vehicle rentals.
+ * Generates a full-day interval (00:00-23:59).
  */
 export function fullDayInterval(): TimeInterval {
     return { startTime: "00:00", endTime: "23:59" };
@@ -76,17 +75,12 @@ export function fullDayInterval(): TimeInterval {
  * Determines the default time interval based on product category.
  * - Tours: uses the provided slot or defaults to full day
  * - Transfers: uses provided times or defaults to a short window
- * - Vehicles: always full day
  */
 export function getDefaultInterval(
-    category: string,
+    _category: string,
     startTime?: string | null,
     endTime?: string | null
 ): TimeInterval {
-    if (category === "vehicle") {
-        return fullDayInterval();
-    }
-
     return {
         startTime: startTime || null,
         endTime: endTime || null,

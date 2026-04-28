@@ -137,7 +137,6 @@ export default function ConfirmationPage() {
                             {item.adultPax > 0 && `${item.adultPax} Adults`}
                             {item.adultPax > 0 && item.childPax > 0 && " + "}
                             {item.childPax > 0 && `${item.childPax} Children`}
-                            {item.productType === 'vehicle' && `${item.quantity} Days`}
                           </span>
                           <span>{item.unitPriceCents?.toLocaleString()} / unit</span>
                         </div>
