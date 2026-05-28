@@ -10,3 +10,6 @@ env.txt
 .vscode
 .replit
 replit.nix
+
+# User manual built PDFs (generated)
+docs/user-manual/dist/
