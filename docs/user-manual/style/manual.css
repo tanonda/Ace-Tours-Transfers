@@ -1,0 +1,103 @@
+@page {
+  size: A4;
+  margin: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  font-size: 11pt;
+  line-height: 1.55;
+  color: #1f2937;
+  max-width: none;
+  padding: 0;
+}
+
+h1, h2, h3, h4 {
+  color: #0f3a52;
+  page-break-after: avoid;
+}
+
+h1 { font-size: 22pt; margin-top: 1em; }
+h2 { font-size: 16pt; margin-top: 1.2em; border-bottom: 2px solid #0f3a52; padding-bottom: 0.2em; }
+h3 { font-size: 13pt; margin-top: 1em; }
+
+p, ul, ol { orphans: 3; widows: 3; }
+
+img { max-width: 100%; height: auto; page-break-inside: avoid; }
+
+a { color: #0a6e9c; text-decoration: none; }
+
+/* Page breaks */
+.page-break { page-break-before: always; }
+
+/* Cover page */
+.cover {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  background: linear-gradient(180deg, #0f3a52 0%, #1c5d80 100%);
+  color: white;
+  page-break-after: always;
+}
+.cover h1 { color: white; font-size: 36pt; margin: 0 0 0.3em 0; border: none; }
+.cover .subtitle { font-size: 16pt; opacity: 0.85; }
+.cover .version { font-size: 12pt; opacity: 0.75; margin-top: 2em; }
+
+/* Section divider */
+.section-divider {
+  text-align: center;
+  font-size: 28pt;
+  color: #0f3a52;
+  margin-top: 40vh;
+  page-break-after: always;
+  border: none;
+}
+
+/* Role tags */
+.role-tags { margin-bottom: 0.6em; }
+.role-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-size: 8.5pt;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  margin-right: 4px;
+  color: white;
+}
+.role-tag-owner    { background: #2563eb; }
+.role-tag-operator { background: #047857; }
+.role-tag-admin    { background: #b45309; }
+
+/* Callouts (used as blockquote variants) */
+blockquote {
+  border-left: 4px solid #94a3b8;
+  background: #f1f5f9;
+  margin: 1em 0;
+  padding: 0.6em 1em;
+  page-break-inside: avoid;
+}
+blockquote.info    { border-color: #2563eb; background: #eff6ff; }
+blockquote.tip     { border-color: #047857; background: #ecfdf5; }
+blockquote.caution { border-color: #b45309; background: #fff7ed; }
+blockquote.caution::before { content: "CAUTION — "; font-weight: 700; color: #b45309; }
+blockquote.info::before    { content: "INFO — ";    font-weight: 700; color: #2563eb; }
+blockquote.tip::before     { content: "TIP — ";     font-weight: 700; color: #047857; }
+
+/* Code */
+code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 9.5pt;
+  background: #f1f5f9;
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+pre code { display: block; padding: 0.8em; }
+
+/* Tables */
+table { border-collapse: collapse; width: 100%; margin: 1em 0; page-break-inside: avoid; }
+th, td { border: 1px solid #cbd5e1; padding: 0.4em 0.6em; text-align: left; }
+th { background: #f1f5f9; }
