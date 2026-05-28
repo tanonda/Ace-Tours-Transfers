@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { loadConfig } from './build-user-manual';
+import { writeFile, mkdtemp, rm } from 'node:fs/promises';
+import os from 'node:os';
+import { loadConfig, parseChapter } from './build-user-manual';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const CONFIG_PATH = path.resolve(HERE, '..', 'docs', 'user-manual', 'manual.config.json');
@@ -13,5 +15,35 @@ describe('loadConfig', () => {
     expect(cfg.version).toBe('1.0.0');
     expect(cfg.workflows).toHaveLength(10);
     expect(cfg.reference).toHaveLength(11);
+  });
+});
+
+describe('parseChapter', () => {
+  it('extracts frontmatter fields and body from a markdown file', async () => {
+    const tmp = await mkdtemp(path.join(os.tmpdir(), 'manual-test-'));
+    const file = path.join(tmp, 'sample.md');
+    await writeFile(file, [
+      '---',
+      'title: Sample Chapter',
+      'roles: [Operator, Owner]',
+      'screen: bookings',
+      'last_updated: 2026-05-28',
+      'order: 1',
+      '---',
+      '',
+      '## Hello',
+      'body content',
+    ].join('\n'));
+
+    const chapter = await parseChapter(file);
+    expect(chapter.frontmatter.title).toBe('Sample Chapter');
+    expect(chapter.frontmatter.roles).toEqual(['Operator', 'Owner']);
+    expect(chapter.frontmatter.screen).toBe('bookings');
+    // gray-matter automatically parses dates, so last_updated becomes a Date object
+    const lastUpdated = chapter.frontmatter.last_updated as unknown as Date;
+    expect(lastUpdated.toISOString()).toBe('2026-05-28T00:00:00.000Z');
+    expect(chapter.body.trim().startsWith('## Hello')).toBe(true);
+
+    await rm(tmp, { recursive: true, force: true });
   });
 });
