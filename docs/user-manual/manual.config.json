@@ -1,0 +1,34 @@
+{
+  "title": "Ace Tours Manager Manual",
+  "subtitle": "Phase 1 — Owner / Operator / Admin",
+  "version": "1.0.0",
+  "buildDate": null,
+  "cover": "00-cover.md",
+  "introduction": "01-introduction.md",
+  "gettingStarted": "02-getting-started.md",
+  "workflows": [
+    "workflows/01-taking-bookings.md",
+    "workflows/02-cancellations-refunds.md",
+    "workflows/03-closing-dates-blackouts.md",
+    "workflows/04-managing-capacity.md",
+    "workflows/05-editing-website-content.md",
+    "workflows/06-pricing-and-promotions.md",
+    "workflows/07-managing-tours-and-transfers.md",
+    "workflows/08-reports-and-performance.md",
+    "workflows/09-staff-and-user-access.md",
+    "workflows/10-reading-audit-logs.md"
+  ],
+  "reference": [
+    "reference/dashboard.md",
+    "reference/bookings.md",
+    "reference/calendar.md",
+    "reference/capacity-dashboard.md",
+    "reference/blackouts.md",
+    "reference/products.md",
+    "reference/pricing.md",
+    "reference/cms.md",
+    "reference/promotions.md",
+    "reference/reports-analytics.md",
+    "reference/deferred-screens.md"
+  ]
+}
