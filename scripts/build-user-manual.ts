@@ -66,6 +66,18 @@ export function rewriteImagePaths(markdown: string, chapterAbsDir: string): stri
   });
 }
 
+const SIX_MONTHS_MS = 1000 * 60 * 60 * 24 * 30 * 6;
+
+export function findStaleChapters(chapters: Chapter[], today: Date = new Date()): Chapter[] {
+  return chapters.filter((c) => {
+    const ts = c.frontmatter.last_updated;
+    if (!ts) return false;
+    const updated = new Date(ts);
+    if (Number.isNaN(updated.getTime())) return false;
+    return today.getTime() - updated.getTime() > SIX_MONTHS_MS;
+  });
+}
+
 async function main() {
   // Wired in Task 9.
   console.log('build-user-manual: not yet implemented');

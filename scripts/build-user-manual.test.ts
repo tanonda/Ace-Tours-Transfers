@@ -3,7 +3,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { writeFile, mkdtemp, rm } from 'node:fs/promises';
 import os from 'node:os';
-import { loadConfig, parseChapter, renderRoleTags, rewriteImagePaths } from './build-user-manual';
+import { loadConfig, parseChapter, renderRoleTags, rewriteImagePaths, findStaleChapters } from './build-user-manual';
+import type { Chapter } from './build-user-manual';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const CONFIG_PATH = path.resolve(HERE, '..', 'docs', 'user-manual', 'manual.config.json');
@@ -81,5 +82,26 @@ describe('rewriteImagePaths', () => {
     const out = rewriteImagePaths(md, '/abs/docs/user-manual/workflows');
     expect(out).toContain('file:///abs/docs/user-manual/images/workflows/a.png');
     expect(out).toContain('file:///abs/docs/user-manual/images/workflows/b.png');
+  });
+});
+
+describe('findStaleChapters', () => {
+  const today = new Date('2026-05-28');
+
+  it('returns chapters with last_updated older than 6 months', () => {
+    const chapters: Chapter[] = [
+      { sourcePath: 'a.md', frontmatter: { title: 'A', last_updated: '2025-10-01' }, body: '' },
+      { sourcePath: 'b.md', frontmatter: { title: 'B', last_updated: '2026-04-01' }, body: '' },
+      { sourcePath: 'c.md', frontmatter: { title: 'C', last_updated: '2025-01-01' }, body: '' },
+    ];
+    const stale = findStaleChapters(chapters, today);
+    expect(stale.map((c) => c.frontmatter.title)).toEqual(['A', 'C']);
+  });
+
+  it('treats missing last_updated as not stale (avoid noise on new chapters)', () => {
+    const chapters: Chapter[] = [
+      { sourcePath: 'a.md', frontmatter: { title: 'A' }, body: '' },
+    ];
+    expect(findStaleChapters(chapters, today)).toEqual([]);
   });
 });
