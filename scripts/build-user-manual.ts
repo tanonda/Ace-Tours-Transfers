@@ -43,6 +43,17 @@ export async function parseChapter(absPath: string): Promise<Chapter> {
   };
 }
 
+export function renderRoleTags(roles: string[] | undefined): string {
+  if (!roles || roles.length === 0) return '';
+  const pills = roles
+    .map((role) => {
+      const slug = role.toLowerCase();
+      return `<span class="role-tag role-tag-${slug}">${role.toUpperCase()}</span>`;
+    })
+    .join(' ');
+  return `<div class="role-tags">${pills}</div>`;
+}
+
 async function main() {
   // Wired in Task 9.
   console.log('build-user-manual: not yet implemented');

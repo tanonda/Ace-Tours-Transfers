@@ -3,7 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { writeFile, mkdtemp, rm } from 'node:fs/promises';
 import os from 'node:os';
-import { loadConfig, parseChapter } from './build-user-manual';
+import { loadConfig, parseChapter, renderRoleTags } from './build-user-manual';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const CONFIG_PATH = path.resolve(HERE, '..', 'docs', 'user-manual', 'manual.config.json');
@@ -45,5 +45,20 @@ describe('parseChapter', () => {
     expect(chapter.body.trim().startsWith('## Hello')).toBe(true);
 
     await rm(tmp, { recursive: true, force: true });
+  });
+});
+
+describe('renderRoleTags', () => {
+  it('renders an empty string when no roles are present', () => {
+    expect(renderRoleTags(undefined)).toBe('');
+    expect(renderRoleTags([])).toBe('');
+  });
+
+  it('renders an HTML span per role with uppercase label', () => {
+    const html = renderRoleTags(['Operator', 'Owner']);
+    expect(html).toContain('<span class="role-tag role-tag-operator">OPERATOR</span>');
+    expect(html).toContain('<span class="role-tag role-tag-owner">OWNER</span>');
+    expect(html.startsWith('<div class="role-tags">')).toBe(true);
+    expect(html.endsWith('</div>')).toBe(true);
   });
 });
