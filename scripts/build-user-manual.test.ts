@@ -15,7 +15,7 @@ describe('loadConfig', () => {
     expect(cfg.title).toBe('Ace Tours Manager Manual');
     expect(cfg.version).toBe('1.0.0');
     expect(cfg.workflows).toHaveLength(10);
-    expect(cfg.reference).toHaveLength(11);
+    expect(cfg.reference).toHaveLength(21);
   });
 });
 

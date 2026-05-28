@@ -29,6 +29,16 @@
     "reference/cms.md",
     "reference/promotions.md",
     "reference/reports-analytics.md",
-    "reference/deferred-screens.md"
+    "reference/reconciliation.md",
+    "reference/fraud.md",
+    "reference/recovery.md",
+    "reference/reviews.md",
+    "reference/newsletter.md",
+    "reference/notifications.md",
+    "reference/external-services.md",
+    "reference/settings.md",
+    "reference/payments.md",
+    "reference/admin-profile.md",
+    "reference/staff-users.md"
   ]
 }
