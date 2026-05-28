@@ -3,7 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { writeFile, mkdtemp, rm } from 'node:fs/promises';
 import os from 'node:os';
-import { loadConfig, parseChapter, renderRoleTags } from './build-user-manual';
+import { loadConfig, parseChapter, renderRoleTags, rewriteImagePaths } from './build-user-manual';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const CONFIG_PATH = path.resolve(HERE, '..', 'docs', 'user-manual', 'manual.config.json');
@@ -60,5 +60,26 @@ describe('renderRoleTags', () => {
     expect(html).toContain('<span class="role-tag role-tag-owner">OWNER</span>');
     expect(html.startsWith('<div class="role-tags">')).toBe(true);
     expect(html.endsWith('</div>')).toBe(true);
+  });
+});
+
+describe('rewriteImagePaths', () => {
+  it('rewrites a relative image path to an absolute file:// URL', () => {
+    const chapterAbsDir = '/abs/docs/user-manual/workflows';
+    const md = '![alt](../images/workflows/01-new-booking.png)';
+    const out = rewriteImagePaths(md, chapterAbsDir);
+    expect(out).toBe('![alt](file:///abs/docs/user-manual/images/workflows/01-new-booking.png)');
+  });
+
+  it('leaves absolute http(s) and file:// URLs untouched', () => {
+    const md = '![a](https://example.com/x.png) ![b](file:///already/abs.png)';
+    expect(rewriteImagePaths(md, '/abs/docs/user-manual/workflows')).toBe(md);
+  });
+
+  it('rewrites multiple images in one chapter', () => {
+    const md = '![a](../images/workflows/a.png) and ![b](../images/workflows/b.png)';
+    const out = rewriteImagePaths(md, '/abs/docs/user-manual/workflows');
+    expect(out).toContain('file:///abs/docs/user-manual/images/workflows/a.png');
+    expect(out).toContain('file:///abs/docs/user-manual/images/workflows/b.png');
   });
 });

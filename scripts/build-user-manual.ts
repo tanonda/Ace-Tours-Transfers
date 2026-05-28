@@ -54,6 +54,18 @@ export function renderRoleTags(roles: string[] | undefined): string {
   return `<div class="role-tags">${pills}</div>`;
 }
 
+const MARKDOWN_IMAGE_RE = /!\[([^\]]*)\]\(([^)]+)\)/g;
+
+export function rewriteImagePaths(markdown: string, chapterAbsDir: string): string {
+  return markdown.replace(MARKDOWN_IMAGE_RE, (match, alt: string, src: string) => {
+    if (src.startsWith('http://') || src.startsWith('https://') || src.startsWith('file://')) {
+      return match;
+    }
+    const absolute = path.resolve(chapterAbsDir, src);
+    return `![${alt}](file://${absolute})`;
+  });
+}
+
 async function main() {
   // Wired in Task 9.
   console.log('build-user-manual: not yet implemented');
