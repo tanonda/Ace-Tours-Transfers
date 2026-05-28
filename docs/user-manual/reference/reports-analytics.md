@@ -1,27 +1,53 @@
 ---
-title: Reports and analytics
-roles: [Owner]
-screen: reports-analytics
-last_updated: 2026-05-28
-order: 10
+title: "Reference — Reports and Analytics"
+roles: [admin]
+screen: reports
+order: 110
 ---
 
-## Purpose
+# Reference — Reports and Analytics
 
-_What this screen is for, in one sentence._
+**Paths:** Admin → Reports & Admin → Analytics
 
-## What you see
+These screens provide summaries, exports, and manifestations of operational and financial booking records.
 
-_Top-level layout: panels, lists, filters._
+---
 
-## What each section does
+## KPI summary Cards (Reports Screen)
 
-_Walk through each panel/section._
+- **Total Revenue** — Grand total of all payments from `confirmed` and `completed` bookings.
+- **Total Bookings** — Count of all bookings.
+- **Monthly Avg Revenue** — Total revenue divided by active calendar months.
+- **Pending Payments** — Aggregated booking revenue waiting for payment verification.
 
-## Common gotchas
+---
 
-_Things to watch out for._
+## Reports Tabs
 
-## Related workflows
+### 1. Revenue Chart Tab
+Displays a vertical bar chart using recharts, grouping daily transaction records into monthly totals:
+- Y-axis represents revenue values scaled in thousands (k).
+- X-axis groups values chronologically by month.
+- Tooltip displays detailed revenue metrics when hovering over bars.
 
-_Links to workflow chapters that use this screen._
+### 2. Booking Report Tab
+A searchable data grid focused on transaction exports:
+- **Filters** — Custom `From` and `To` date fields, booking status dropdown, and a customer search bar.
+- **Live Counter** — Shows matching bookings count and sum value dynamically as filters are changed.
+- **Export CSV Button** — Downloads the current filtered view.
+- **Table Columns** — ID, Customer, Tour/Transfer, Date, Pax, Amount, Status, and Actions (View Details).
+
+### 3. Guest Manifest Tab
+Generates operational daily rosters:
+- **Date Selector** — Filters bookings by execution date.
+- **Roster Grid** — Lists index number, guest name, contact details (email/phone), tour/transfer title, breakdown of passengers (adults/children/infants), status, and total amount.
+- **Print Button** — Opens a printable page containing company branding, metadata, and tables, triggering the browser print prompt automatically.
+- **Export CSV Button** — Downloads the manifest as a spreadsheet.
+
+---
+
+## Analytics Dashboard Panels
+
+- **Revenue Breakdown Bar Chart** — Displays horizontal bars contrasting sales totals from Tours vs. Transfers.
+- **Volume Over Time Line Chart** — Tracks daily booking frequency to identify demand trends.
+- **Top Performing Products List** — Ranks active tours by booking frequency and total revenue.

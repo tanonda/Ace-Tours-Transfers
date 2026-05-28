@@ -1,27 +1,45 @@
 ---
-title: Pricing
-roles: [Owner, Operator]
+title: "Reference — Pricing Screen"
+roles: [admin]
 screen: pricing
-last_updated: 2026-05-28
-order: 7
+order: 107
 ---
 
-## Purpose
+# Reference — Pricing Screen
 
-_What this screen is for, in one sentence._
+**Path:** Admin → Pricing (or Admin → Pricing Versions)
 
-## What you see
+The Pricing screen handles the creation, viewing, and historical tracking of scheduled price changes.
 
-_Top-level layout: panels, lists, filters._
+---
 
-## What each section does
+## Technical Concept
 
-_Walk through each panel/section._
+The system uses **effective-date pricing versions**. Prices are not bound directly to the booking date based on when the customer purchased, but rather on when the tour/transfer takes place. The active price is the latest version whose `Effective From` date is on or before the requested booking date.
 
-## Common gotchas
+---
 
-_Things to watch out for._
+## Form Fields (New Pricing Version Card)
 
-## Related workflows
+- **Product Selector** — Select a product to set the price for. Group pricing products are flagged with a `(group)` suffix.
+- **Effective From** — Date (YYYY-MM-DD) when this pricing version goes live.
+- **Entry Currency Select** — Choose the input currency symbol (VUV, USD, AUD, EUR, etc.). Since all amounts are stored in VUV, this converts the input values using the system rates.
+- **Pricing Model Radio** — Choose **Per Person** or **Group / Package**. If the selection disagrees with the product's default, a warning banner appears.
+- **Adult Price** — Required for Per Person model.
+- **Child Price** — Optional.
+- **Infant Price** — Optional (under 2 years old).
+- **Pet Price** — Optional.
+- **Package / Group Rate** — Flat rate for the entire vehicle/booking regardless of guest count.
+- **Live Preview Panel** — Shows the calculated VUV value alongside display currency equivalents.
 
-_Links to workflow chapters that use this screen._
+---
+
+## View Panels
+
+- **Product Filter Select** — Choose a product in the **View Pricing History** card to filter the history lists.
+- **Current Active Price Box** — Highlighted box in blue showing the pricing version currently applied to new bookings.
+- **Upcoming Schedule List** — Highlighted in amber, showing scheduled versions whose effective date is in the future.
+- **All Pricing Versions Table** — A grid at the bottom displaying all pricing versions across past, active, and future periods:
+  - Columns: **Product**, **Effective From**, **Model** (Group/Per Person badge), **Adult / Package**, **Child**, **Infant**, **Pet**, and **Status**.
+  - **Status Badges** — `Active` (Green), `Scheduled` (Orange), or `Past` (Grey).
+  - Rows are sorted in reverse chronological order (newest effective date first).

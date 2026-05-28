@@ -1,27 +1,43 @@
 ---
-title: Calendar
-roles: [Operator, Owner]
+title: "Reference — Calendar"
+roles: [admin, field_service]
 screen: calendar
-last_updated: 2026-05-28
-order: 3
+order: 103
 ---
 
-## Purpose
+# Reference — Calendar
 
-_What this screen is for, in one sentence._
+**Path:** Admin → Calendar
 
-## What you see
+The Calendar provides a visual, date-first view of bookings — ideal for Field Service staff checking daily schedules.
 
-_Top-level layout: panels, lists, filters._
+---
 
-## What each section does
+## Calendar Views
 
-_Walk through each panel/section._
+The calendar supports standard month, week, and day views. Use the navigation arrows to move between periods; click **Today** to return to the current date.
 
-## Common gotchas
+---
 
-_Things to watch out for._
+## Booking Entries
 
-## Related workflows
+Each booking appears as a coloured block on its tour date. The block shows the customer name and tour name. Click a block to see full booking details.
 
-_Links to workflow chapters that use this screen._
+**Colour coding** corresponds to booking status (confirmed = green, pending = yellow, cancelled = red, etc.).
+
+---
+
+## Field Service Use
+
+Field Service staff use the Calendar as their primary screen. It shows:
+- Which tours are running on each day.
+- How many bookings/guests per tour.
+- Customer names for the manifest.
+
+Field Service staff can view details but cannot create, edit, or cancel bookings from this screen.
+
+---
+
+## Admin Use
+
+Admins can click a day to see availability data for that date, then navigate to the Availability Dashboard for capacity management. The Calendar does not have direct edit controls — use the Bookings screen for modifications.
