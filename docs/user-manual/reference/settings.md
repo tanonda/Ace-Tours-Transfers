@@ -1,6 +1,7 @@
 ---
 title: "Reference — Settings Deep Dive"
-roles: [admin, owner]
+roles: [admin]
+last_updated: 2026-05-29
 screen: settings
 order: 118
 ---

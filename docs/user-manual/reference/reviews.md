@@ -1,6 +1,7 @@
 ---
 title: "Reference — Reviews Moderation"
-roles: [operator, owner]
+roles: [admin, field_service]
+last_updated: 2026-05-29
 screen: reviews
 order: 114
 ---

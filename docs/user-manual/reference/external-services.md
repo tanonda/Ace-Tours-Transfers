@@ -1,6 +1,7 @@
 ---
 title: "Reference — External Services"
-roles: [admin, owner]
+roles: [admin]
+last_updated: 2026-05-29
 screen: external-services
 order: 117
 ---

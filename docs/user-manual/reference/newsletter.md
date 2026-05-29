@@ -1,6 +1,7 @@
 ---
 title: "Reference — Newsletter Management"
-roles: [owner, admin]
+roles: [admin]
+last_updated: 2026-05-29
 screen: newsletter
 order: 115
 ---

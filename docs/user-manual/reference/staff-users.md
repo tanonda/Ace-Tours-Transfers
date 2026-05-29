@@ -1,6 +1,7 @@
 ---
 title: "Reference — Staff & Users"
-roles: [admin, owner]
+roles: [admin]
+last_updated: 2026-05-29
 screen: staff-users
 order: 121
 ---
@@ -15,7 +16,7 @@ Management controls are divided into two dedicated interfaces: **Staff Managemen
 
 ## 1. Staff Management
 
-Staff Management oversees accounts with system administration and operator privileges.
+Staff Management oversees accounts with `admin` and `field_service` role privileges.
 
 ### Permissions Hierarchy
 - **Admin:** Full system privileges (all bookings, billing, system settings, user management, analytics).

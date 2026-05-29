@@ -1,6 +1,7 @@
 ---
 title: "Reference — Admin Profile"
-roles: [admin, operator]
+roles: [admin, field_service]
+last_updated: 2026-05-29
 screen: admin-profile
 order: 120
 ---

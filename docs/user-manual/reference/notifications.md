@@ -1,6 +1,7 @@
 ---
 title: "Reference — Notifications (Admin)"
-roles: [admin, operator]
+roles: [admin, field_service]
+last_updated: 2026-05-29
 screen: notifications
 order: 116
 ---

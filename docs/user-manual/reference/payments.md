@@ -1,6 +1,7 @@
 ---
 title: "Reference — Payments Gateways"
-roles: [admin, owner]
+roles: [admin]
+last_updated: 2026-05-29
 screen: payments
 order: 119
 ---
