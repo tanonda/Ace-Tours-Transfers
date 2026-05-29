@@ -1,11 +1,16 @@
 ---
 title: "Workflow 6 — Pricing and Promotions"
 roles: [admin]
+last_updated: 2026-05-29
 screen: pricing
 order: 6
 ---
 
 # Workflow 6 — Pricing and Promotions
+
+> caution
+> Changes on this screen affect revenue or paid-out money. Confirm with the
+> business owner or finance before applying anything.
 
 Pricing is managed through two tools: **Pricing Versions** (scheduled price changes) and **Promotions** (discount codes).
 

@@ -213,8 +213,24 @@ async function runOnce(): Promise<void> {
   const css = existsSync(cssPath) ? await readFileAsync(cssPath, 'utf8') : '';
   const outFile = path.join(distDir, `Ace-Tours-User-Manual-v${config.version}.pdf`);
 
+  // Post-process markdown to add blockquote type classes (info, tip, caution, warning, note)
+  function processBlockquoteClasses(markdown: string): string {
+    // Replace blockquote syntax with HTML blockquotes that include classes
+    // e.g., "> caution\n> text..." becomes "<blockquote class="caution">\ntext...</blockquote>"
+    return markdown.replace(/^> (info|tip|caution|warning|note)\n((?:> .*\n?)*)/gm, (match, type, contentLines) => {
+      // Remove the '> ' prefix from each line and join
+      const content = contentLines.split('\n')
+        .map(line => line.replace(/^> /, '').trim())
+        .filter(Boolean)
+        .join('\n');
+      return `<blockquote class="${type}">\n<p>${content}</p>\n</blockquote>`;
+    });
+  }
+
+  const processedComposed = processBlockquoteClasses(composed);
+
   const result = await mdToPdf(
-    { content: composed },
+    { content: processedComposed },
     {
       dest: outFile,
       css,

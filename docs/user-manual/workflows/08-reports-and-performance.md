@@ -1,11 +1,16 @@
 ---
 title: "Workflow 8 — Reports and Performance Monitoring"
 roles: [admin]
+last_updated: 2026-05-29
 screen: reports
 order: 8
 ---
 
 # Workflow 8 — Reports and Performance Monitoring
+
+> caution
+> Changes on this screen affect revenue or paid-out money. Confirm with the
+> business owner or finance before applying anything.
 
 The **Reports** screen consolidates financial and operational data into three tools: a revenue chart, a filterable booking report, and a daily guest manifest.
 

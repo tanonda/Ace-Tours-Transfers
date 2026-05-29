@@ -8,6 +8,10 @@ order: 119
 
 # Reference — Payments Gateways
 
+> caution
+> Changes on this screen affect revenue or paid-out money. Confirm with the
+> business owner or finance before applying anything.
+
 **Path:** Admin → Payments (or Admin → Payment Gateways)
 
 The Payment Gateways screen configures API credentials, merchant details, and activation toggles for online, e-wallet, and manual payment methods.

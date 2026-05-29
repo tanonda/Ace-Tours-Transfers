@@ -1,11 +1,16 @@
 ---
 title: "Reference — Promotions Screen"
 roles: [admin]
+last_updated: 2026-05-29
 screen: promotions
 order: 109
 ---
 
 # Reference — Promotions Screen
+
+> caution
+> Changes on this screen affect revenue or paid-out money. Confirm with the
+> business owner or finance before applying anything.
 
 **Path:** Admin → Promotions (or Admin → Promotions & Discounts)
 

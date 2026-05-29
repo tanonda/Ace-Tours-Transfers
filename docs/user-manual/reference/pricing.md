@@ -1,11 +1,16 @@
 ---
 title: "Reference — Pricing Screen"
 roles: [admin]
+last_updated: 2026-05-29
 screen: pricing
 order: 107
 ---
 
 # Reference — Pricing Screen
+
+> caution
+> Changes on this screen affect revenue or paid-out money. Confirm with the
+> business owner or finance before applying anything.
 
 **Path:** Admin → Pricing (or Admin → Pricing Versions)
 

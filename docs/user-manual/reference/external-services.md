@@ -8,6 +8,10 @@ order: 117
 
 # Reference — External Services
 
+> caution
+> Changes on this screen affect revenue or paid-out money. Confirm with the
+> business owner or finance before applying anything.
+
 **Path:** Admin → Settings → Integrations → External Services (or Admin → External Services Audit)
 
 The External Services screen provides an administrative audit view of all third-party APIs, CDNs, hosting platforms, and database servers connected to the application.
