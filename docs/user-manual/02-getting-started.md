@@ -1,6 +1,6 @@
 ---
 title: Getting started
-roles: [Owner, Operator, Admin]
+roles: [admin, field_service]
 last_updated: 2026-05-28
 order: 0
 ---

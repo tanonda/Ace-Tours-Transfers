@@ -201,6 +201,15 @@ async function runOnce(): Promise<void> {
     chapters.push(await parseChapter(abs));
   }
 
+  const roleErrors = validateChapterRoles(chapters);
+  if (roleErrors.length > 0) {
+    for (const err of roleErrors) {
+      console.error(`[error] ${err}`);
+    }
+    console.error(`[error] aborting build: ${roleErrors.length} role-validation error(s)`);
+    process.exit(1);
+  }
+
   const stale = findStaleChapters(chapters);
   if (stale.length > 0) {
     console.warn(`[stale] ${stale.length} chapter(s) older than 6 months:`);
