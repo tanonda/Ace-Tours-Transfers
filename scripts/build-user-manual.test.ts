@@ -105,3 +105,38 @@ describe('findStaleChapters', () => {
     expect(findStaleChapters(chapters, today)).toEqual([]);
   });
 });
+
+describe('validateChapterRoles', () => {
+  it('returns an empty array when every chapter uses only canonical roles', async () => {
+    const { validateChapterRoles } = await import('./build-user-manual');
+    const chapters: Chapter[] = [
+      { sourcePath: 'a.md', frontmatter: { title: 'A', roles: ['admin'] }, body: '' },
+      { sourcePath: 'b.md', frontmatter: { title: 'B', roles: ['admin', 'field_service'] }, body: '' },
+      { sourcePath: 'c.md', frontmatter: { title: 'C', roles: ['customer'] }, body: '' },
+      { sourcePath: 'd.md', frontmatter: { title: 'D' }, body: '' },
+    ];
+    expect(validateChapterRoles(chapters)).toEqual([]);
+  });
+
+  it('returns one error per unknown role, naming both file and offending role', async () => {
+    const { validateChapterRoles } = await import('./build-user-manual');
+    const chapters: Chapter[] = [
+      { sourcePath: 'workflows/01.md', frontmatter: { title: '1', roles: ['admin', 'owner'] }, body: '' },
+      { sourcePath: 'reference/x.md', frontmatter: { title: 'X', roles: ['operator', 'supervisor'] }, body: '' },
+    ];
+    const errors = validateChapterRoles(chapters);
+    expect(errors).toContain('workflows/01.md: unknown role "owner"');
+    expect(errors).toContain('reference/x.md: unknown role "operator"');
+    expect(errors).toContain('reference/x.md: unknown role "supervisor"');
+    expect(errors).toHaveLength(3);
+  });
+
+  it('exports ALLOWED_ROLES matching shared/schema.ts', async () => {
+    const { ALLOWED_ROLES } = await import('./build-user-manual');
+    expect(ALLOWED_ROLES.has('admin')).toBe(true);
+    expect(ALLOWED_ROLES.has('field_service')).toBe(true);
+    expect(ALLOWED_ROLES.has('customer')).toBe(true);
+    expect(ALLOWED_ROLES.has('owner')).toBe(false);
+    expect(ALLOWED_ROLES.has('operator')).toBe(false);
+  });
+});

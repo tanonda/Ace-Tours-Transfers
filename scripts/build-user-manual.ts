@@ -94,6 +94,26 @@ export function findStaleChapters(chapters: Chapter[], today: Date = new Date())
   });
 }
 
+// ─── Chapter role validation ──────────────────────────────────────────────────
+
+export const ALLOWED_ROLES = new Set(['admin', 'field_service', 'customer']);
+
+export function validateChapterRoles(
+  chapters: Chapter[],
+  allowed: Set<string> = ALLOWED_ROLES,
+): string[] {
+  const errors: string[] = [];
+  for (const c of chapters) {
+    const roles = c.frontmatter.roles ?? [];
+    for (const role of roles) {
+      if (!allowed.has(role)) {
+        errors.push(`${c.sourcePath}: unknown role "${role}"`);
+      }
+    }
+  }
+  return errors;
+}
+
 // ─── Chapter renderer ─────────────────────────────────────────────────────────
 
 function renderChapterBody(chapter: Chapter): string {
