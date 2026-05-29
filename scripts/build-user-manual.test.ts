@@ -13,7 +13,7 @@ describe('loadConfig', () => {
   it('reads manual.config.json and returns typed config', async () => {
     const cfg = await loadConfig(CONFIG_PATH);
     expect(cfg.title).toBe('Ace Tours Manager Manual');
-    expect(cfg.version).toBe('1.0.0');
+    expect(cfg.version).toBe('1.1.0');
     expect(cfg.workflows).toHaveLength(10);
     expect(cfg.reference).toHaveLength(21);
   });

@@ -97,10 +97,8 @@ The Ace Tours application has three roles defined in `shared/schema.ts`:
   perform field actions).
 - `customer` — public-site booking customers; not a manual audience.
 
-Use only `admin` and `field_service` in `roles:`. Some early v1.0.0 chapters list
-`owner` or `operator` — these were drafted from a conceptual role model that does
-not exist in the codebase and should be reconciled in v1.1 to use the canonical
-roles.
+Use only `admin` and `field_service` in `roles:`. The build script enforces
+this via `validateChapterRoles` and fails the build on unknown values.
 
 ## Screenshots
 

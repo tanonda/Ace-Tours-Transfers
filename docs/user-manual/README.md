@@ -75,17 +75,13 @@ screenshots in a future revision:
      --notes "<changelog>"
    ```
 
-## Known issues in v1.0.0
+## Known issues
 
 These are intentional deferrals to v1.1, not bugs:
 
 - **No screenshots embedded.** The build script supports image embedding (see
   `rewriteImagePaths` in `scripts/build-user-manual.ts`); the PNG assets just
   haven't been captured yet. Capture instructions are above.
-- **Role taxonomy drift.** Some chapters list `owner` or `operator` in
-  `roles:`. The actual application roles are `admin`, `field_service`, and
-  `customer` (defined in `shared/schema.ts`). Reconcile in v1.1 — see
-  [STYLE.md](STYLE.md) → Role taxonomy for the canonical list.
 
 ## Phase 2 (future)
 
