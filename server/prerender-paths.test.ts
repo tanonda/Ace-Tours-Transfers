@@ -54,3 +54,30 @@ describe('prerenderFileFor', () => {
     expect(prerenderFileFor('/tours/..%2f..', dist)).toBeNull();
   });
 });
+
+import os from 'node:os';
+import { mkdtemp, rm, readFile } from 'node:fs/promises';
+import { parseSitemapRoutes, writeSnapshot } from './prerender-paths';
+
+describe('parseSitemapRoutes', () => {
+  it('extracts unique pathnames from sitemap <loc> entries', () => {
+    const xml = `<?xml version="1.0"?>
+<urlset>
+  <url><loc>https://acetoursvanuatu.com/</loc></url>
+  <url><loc>https://acetoursvanuatu.com/tours</loc></url>
+  <url><loc>https://acetoursvanuatu.com/tours/abc-123</loc></url>
+  <url><loc>https://acetoursvanuatu.com/tours</loc></url>
+</urlset>`;
+    expect(parseSitemapRoutes(xml)).toEqual(['/', '/tours', '/tours/abc-123']);
+  });
+});
+
+describe('writeSnapshot', () => {
+  it('writes the html to the snapshot path, creating directories', async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), 'prerender-'));
+    const file = await writeSnapshot('<html><body>hi</body></html>', '/tours/xyz', dir);
+    expect(file).toBe(path.join(dir, 'tours', 'xyz', 'index.html'));
+    expect(await readFile(file, 'utf-8')).toContain('<body>hi</body>');
+    await rm(dir, { recursive: true, force: true });
+  });
+});

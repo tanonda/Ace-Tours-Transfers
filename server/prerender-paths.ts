@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { mkdir, writeFile } from 'node:fs/promises';
 
 /** Strip query/hash, normalise trailing slash. '/tours/abc/?x=1' -> '/tours/abc' */
 function cleanRoute(route: string): string {
@@ -50,4 +51,32 @@ export function prerenderFileFor(reqPath: string, distPath: string): string | nu
     return null;
   }
   return candidate;
+}
+
+/** Extract unique URL pathnames from sitemap XML, preserving first-seen order. */
+export function parseSitemapRoutes(xml: string): string[] {
+  const locs = [...xml.matchAll(/<loc>(.*?)<\/loc>/g)].map((m) => m[1].trim());
+  const seen = new Set<string>();
+  const routes: string[] = [];
+  for (const loc of locs) {
+    let pathname: string;
+    try {
+      pathname = new URL(loc).pathname || '/';
+    } catch {
+      pathname = loc.startsWith('/') ? loc : '/' + loc;
+    }
+    if (!seen.has(pathname)) {
+      seen.add(pathname);
+      routes.push(pathname);
+    }
+  }
+  return routes;
+}
+
+/** Write a snapshot HTML string to its computed path, creating parent dirs. Returns the path written. */
+export async function writeSnapshot(html: string, route: string, distPath: string): Promise<string> {
+  const file = outputPathFor(route, distPath);
+  await mkdir(path.dirname(file), { recursive: true });
+  await writeFile(file, html, 'utf-8');
+  return file;
 }
