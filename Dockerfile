@@ -7,8 +7,15 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install
 
-# Copy source and build
+# Chromium for the build-time SEO prerender step (scripts/prerender.ts).
+RUN npx playwright install --with-deps chromium
+
+# Copy source and build. DATABASE_URL is passed at build time (--build-arg or
+# BuildKit secret) so prerender can start the server and read /sitemap.xml.
+# Absent DB => prerender is skipped non-fatally and the SPA shell ships as before.
 COPY . .
+ARG DATABASE_URL
+ENV DATABASE_URL=$DATABASE_URL
 RUN npm run build
 
 # Production stage
