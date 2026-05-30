@@ -1,6 +1,7 @@
 import express, { type Express } from "express";
 import fs from "fs";
 import path from "path";
+import { prerenderFileFor } from "./prerender-paths.js";
 
 export function serveStatic(app: Express) {
   const distPath = path.resolve(__dirname, "public");
@@ -10,12 +11,22 @@ export function serveStatic(app: Express) {
     );
   }
 
-  app.use(express.static(distPath));
+  // Serve real files (hashed assets, robots.txt, etc.) but never auto-index a
+  // directory or 301-redirect to a trailing slash — we control HTML responses
+  // ourselves below so canonical (no-trailing-slash) URLs stay intact.
+  app.use(express.static(distPath, { index: false, redirect: false }));
 
-  // Note: Local image serving removed - all images now served from Cloudinary
-  // app.use('/attached_assets', express.static(path.resolve(__dirname, '../../attached_assets')));
+  // Serve a prerendered HTML snapshot for matching GET routes, if one exists.
+  app.use((req, res, next) => {
+    if (req.method !== "GET" && req.method !== "HEAD") return next();
+    const snapshot = prerenderFileFor(req.path, distPath);
+    if (snapshot && fs.existsSync(snapshot)) {
+      return res.sendFile(snapshot);
+    }
+    next();
+  });
 
-  // fall through to index.html if the file doesn't exist
+  // SPA fallback: serve the app shell (or prerendered home) for anything else.
   app.use((_req, res) => {
     res.sendFile(path.resolve(distPath, "index.html"));
   });
