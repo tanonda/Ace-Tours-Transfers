@@ -46,8 +46,7 @@ export function prerenderFileFor(reqPath: string, distPath: string): string | nu
   // Traversal guard: resolved candidate must stay within distPath.
   const resolvedDist = path.resolve(distPath);
   const resolvedCandidate = path.resolve(candidate);
-  if (resolvedCandidate !== resolvedDist + path.sep + 'index.html'
-      && !resolvedCandidate.startsWith(resolvedDist + path.sep)) {
+  if (!resolvedCandidate.startsWith(resolvedDist + path.sep)) {
     return null;
   }
   return candidate;
@@ -55,7 +54,7 @@ export function prerenderFileFor(reqPath: string, distPath: string): string | nu
 
 /** Extract unique URL pathnames from sitemap XML, preserving first-seen order. */
 export function parseSitemapRoutes(xml: string): string[] {
-  const locs = [...xml.matchAll(/<loc>(.*?)<\/loc>/g)].map((m) => m[1].trim());
+  const locs = [...xml.matchAll(/<loc>(.*?)<\/loc>/gs)].map((m) => m[1].trim());
   const seen = new Set<string>();
   const routes: string[] = [];
   for (const loc of locs) {
