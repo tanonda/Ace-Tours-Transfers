@@ -1,4 +1,4 @@
-import { build as esbuild } from "esbuild";
+import { build as esbuild, stop as stopEsbuild } from "esbuild";
 import { build as viteBuild } from "vite";
 import { rm, readFile } from "fs/promises";
 import { runPrerender } from "../scripts/prerender.js";
@@ -78,6 +78,10 @@ async function buildAll() {
       );
     }
   }
+
+  // Stop esbuild's long-lived service process so this build exits cleanly in
+  // CI/Docker instead of lingering after all output is written.
+  stopEsbuild();
 }
 
 buildAll().catch((err) => {
