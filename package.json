@@ -7,6 +7,7 @@
     "dev:client": "vite dev --port 5001",
     "dev": "NODE_ENV=development tsx --import ./server/instrument.ts server/index.ts",
     "build": "tsx script/build.ts",
+    "prerender": "tsx scripts/prerender.ts",
     "start": "NODE_ENV=production node --import ./dist/instrument.cjs dist/index.cjs",
     "test": "vitest run",
     "test:watch": "vitest",

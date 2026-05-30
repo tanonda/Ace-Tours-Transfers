@@ -1,6 +1,7 @@
 import { build as esbuild } from "esbuild";
 import { build as viteBuild } from "vite";
 import { rm, readFile } from "fs/promises";
+import { runPrerender } from "../scripts/prerender.js";
 
 // server deps to bundle to reduce openat(2) syscalls
 // which helps cold start times
@@ -59,6 +60,24 @@ async function buildAll() {
     treeShaking: true,
     sourcemap: false,
   });
+
+  if (process.env.PRERENDER !== "0") {
+    console.log("prerendering public pages...");
+    try {
+      const didWrite = await runPrerender();
+      if (!didWrite) {
+        console.warn(
+          "[build] prerender produced no snapshots — shipping SPA shell only. " +
+          "Set PRERENDER=0 to silence, or check DATABASE_URL / server startup.",
+        );
+      }
+    } catch (err) {
+      console.warn(
+        "[build] prerender failed (non-fatal); shipping SPA shell only:",
+        err instanceof Error ? err.message : err,
+      );
+    }
+  }
 }
 
 buildAll().catch((err) => {
