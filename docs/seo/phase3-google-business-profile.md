@@ -38,7 +38,7 @@ Use the chosen values in the GBP below and on every directory in the citations l
 - **Street:** Kumul Highway, Port Vila
 - **Region/City:** Port Vila, Shefa Province, Vanuatu
 - **Geo:** -17.7334, 168.3273
-- **Hours:** 06:00–20:00, 7 days (Mon–Sun)
+- **Hours (per current structured data):** 07:00–18:00, **Mon–Sat** (Sunday not listed)
 - **Price range:** $$
 - **Website:** https://acetoursvanuatu.com
 - **Facebook:** https://www.facebook.com/acetoursvanuatu
@@ -85,18 +85,25 @@ Mele, Vanuatu
 
 ## 4. Hours
 
+⚠️ **Decision needed — your site's structured data currently says Mon–Sat 07:00–18:00,
+Sunday closed.** For a tours/transfers business that meets flights, that's almost
+certainly too narrow and costs you "open now" searches. Decide your real hours and use
+the **same** hours in GBP and in the code (`openingHoursSpecification` in
+`client/src/components/seo.tsx:120`). Two common options:
+
+Option A — keep current (matches code today):
 ```
-Monday    06:00–20:00
-Tuesday   06:00–20:00
-Wednesday 06:00–20:00
-Thursday  06:00–20:00
-Friday    06:00–20:00
-Saturday  06:00–20:00
-Sunday    06:00–20:00
+Mon–Sat  07:00–18:00
+Sun      Closed
 ```
 
-Add **"Open 24 hours" for airport transfers** as a special service note if you meet
-late/early flights — searchers filter by "open now".
+Option B — recommended for a transfer operator (tell me and I'll update the code to match):
+```
+Mon–Sun  06:00–20:00
+```
+
+Either way, also add **"Open 24 hours" for airport transfers** as a special service note
+if you meet late/early flights — searchers filter by "open now".
 
 ## 5. Business description (max 750 chars)
 
