@@ -6,7 +6,7 @@
  * Bislama (bi) is NOT supported — must be entered manually.
  */
 
-import translate from 'google-translate-api-x';
+import { translate } from 'google-translate-api-x';
 
 /** Languages we can auto-translate to (source is always English). */
 export const AUTO_TRANSLATE_TARGETS = ['fr', 'es', 'zh'] as const;

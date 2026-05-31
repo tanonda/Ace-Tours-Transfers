@@ -4,7 +4,7 @@ import request from "supertest";
 import path from "node:path";
 import os from "node:os";
 import { mkdtemp, rm, mkdir, writeFile } from "node:fs/promises";
-import { serveStatic } from "./static";
+import { serveStatic } from "./static.js";
 
 // Integration test for the prerender-aware static server: it must serve a
 // prerendered snapshot for matching page routes, serve real static files

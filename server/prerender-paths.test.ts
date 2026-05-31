@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import path from 'node:path';
-import { routeToRelFile, outputPathFor } from './prerender-paths';
+import { routeToRelFile, outputPathFor } from './prerender-paths.js';
 
 describe('routeToRelFile', () => {
   it('maps root to index.html', () => {
@@ -27,7 +27,7 @@ describe('outputPathFor', () => {
   });
 });
 
-import { prerenderFileFor } from './prerender-paths';
+import { prerenderFileFor } from './prerender-paths.js';
 
 describe('prerenderFileFor', () => {
   const dist = '/tmp/dist';
@@ -57,7 +57,7 @@ describe('prerenderFileFor', () => {
 
 import os from 'node:os';
 import { mkdtemp, rm, readFile } from 'node:fs/promises';
-import { parseSitemapRoutes, writeSnapshot } from './prerender-paths';
+import { parseSitemapRoutes, writeSnapshot } from './prerender-paths.js';
 
 describe('parseSitemapRoutes', () => {
   it('extracts unique pathnames from sitemap <loc> entries', () => {
