@@ -37,7 +37,7 @@ services:
       - key: SMTP_PASS
         sync: false
       - key: SMTP_FROM
-        value: "no-reply@acetours.vu"
+        value: "no-reply@acetoursvanuatu.com"
       - key: BUSINESS_EMAIL
         value: "acetoursvanuatu@outlook.com"
       - key: BUSINESS_PHONE
