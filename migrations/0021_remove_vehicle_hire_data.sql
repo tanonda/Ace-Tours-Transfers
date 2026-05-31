@@ -39,10 +39,6 @@ WHERE tour_id IN (SELECT id FROM products WHERE category = 'vehicle')
    OR booking_id IN (
         SELECT id FROM bookings
         WHERE tour_id IN (SELECT id FROM products WHERE category = 'vehicle')
-      )
-   OR tour_instance_id IN (
-        SELECT id FROM tour_instances
-        WHERE tour_id IN (SELECT id FROM products WHERE category = 'vehicle')
       );
 --> statement-breakpoint
 
