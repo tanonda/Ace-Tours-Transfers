@@ -51,7 +51,7 @@ async function seed() {
             },
             {
                 key: "site_email",
-                value: "info@acetours.vu"
+                value: "acetoursvanuatu@outlook.com"
             },
             {
                 key: "site_phone",

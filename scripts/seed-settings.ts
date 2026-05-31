@@ -21,7 +21,7 @@ async function main() {
         key: "business_info",
         value: {
           name: "Ace Tours & Transfers Vanuatu",
-          email: "info@acetours.vu",
+          email: "acetoursvanuatu@outlook.com",
           phone: "+678 7114045",
           address: "Port Vila, Vanuatu"
         }

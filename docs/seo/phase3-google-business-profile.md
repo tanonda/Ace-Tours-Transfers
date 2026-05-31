@@ -18,17 +18,18 @@ directory. Right now the codebase has two different sets:
 | Field | In structured data (`seo.tsx`) — what crawlers see | In `render.yaml` env vars |
 |-------|---------------------------------------------------|---------------------------|
 | Phone | `+678 711 4045` | `+678 7114045` (same number, fine) |
-| Email | `acetoursvanuatu@outlook.com` | `info@acetours.vu` (**different**) |
+| Email | `acetoursvanuatu@outlook.com` | now aligned across code |
 
-**Decide on ONE canonical phone + email and use it everywhere.** Recommended canonical
-(matches the public structured data already live):
+**✅ RESOLVED:** Canonical public contact is now consistent in code:
 
 - **Phone:** `+678 711 4045`
-- **Email:** pick one — `acetoursvanuatu@outlook.com` (in structured data) **or**
-  `info@acetours.vu` (your env). Whichever you actually monitor. Then make the other
-  match it. Tell me which and I'll align the code in a follow-up.
+- **Email:** `acetoursvanuatu@outlook.com`
 
-Use the chosen values in the GBP below and on every directory in the citations list.
+(The mail-server identity `SMTP_FROM=no-reply@acetours.vu` is intentionally left as-is —
+it's bound to the SMTP host/SPF for deliverability and is never shown to customers as a
+contact address.)
+
+Use these exact values in the GBP below and on every directory in the citations list.
 
 ---
 
@@ -44,10 +45,13 @@ Use the chosen values in the GBP below and on every directory in the citations l
 - **Facebook:** https://www.facebook.com/acetoursvanuatu
 - **Instagram:** https://www.instagram.com/acetoursvanuatu
 
-> Confirm the street address is precise enough for Google to pin it. If you don't serve
-> customers at a walk-in storefront, set GBP up as a **Service-area business** (hide the
-> exact address, list Port Vila + Efate as the service area). Tour/transfer operators
-> usually do this.
+> **You have no storefront yet → set GBP up as a Service-area business (SAB).** During
+> setup, when asked "Do you have a location customers can visit?", answer **No**. Then
+> **hide the address** and define your service area as Port Vila + Efate (see §3). This
+> is the correct, policy-compliant choice for a transfers/tours operator without a
+> walk-in office, and it still ranks in the Port Vila map pack. Keep the Kumul Highway
+> address/geo in the *website's* structured data (it gives Google a locality signal),
+> but do not display a pin-point address on the public GBP.
 
 ---
 
@@ -85,25 +89,18 @@ Mele, Vanuatu
 
 ## 4. Hours
 
-⚠️ **Decision needed — your site's structured data currently says Mon–Sat 07:00–18:00,
-Sunday closed.** For a tours/transfers business that meets flights, that's almost
-certainly too narrow and costs you "open now" searches. Decide your real hours and use
-the **same** hours in GBP and in the code (`openingHoursSpecification` in
-`client/src/components/seo.tsx:120`). Two common options:
+Use the hours that match your live structured data (`openingHoursSpecification` in
+`client/src/components/seo.tsx`) so GBP and the website agree:
 
-Option A — keep current (matches code today):
 ```
 Mon–Sat  07:00–18:00
 Sun      Closed
 ```
 
-Option B — recommended for a transfer operator (tell me and I'll update the code to match):
-```
-Mon–Sun  06:00–20:00
-```
-
-Either way, also add **"Open 24 hours" for airport transfers** as a special service note
-if you meet late/early flights — searchers filter by "open now".
+> Optional later tweak: if you actually meet early/late flights, adding an
+> "Open 24 hours" note for **airport transfers specifically** captures "open now"
+> searches. Not changing it now per your decision to keep current data — just flagging
+> it as an easy future win.
 
 ## 5. Business description (max 750 chars)
 

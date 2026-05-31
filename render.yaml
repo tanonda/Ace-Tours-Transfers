@@ -39,7 +39,7 @@ services:
       - key: SMTP_FROM
         value: "no-reply@acetours.vu"
       - key: BUSINESS_EMAIL
-        value: "info@acetours.vu"
+        value: "acetoursvanuatu@outlook.com"
       - key: BUSINESS_PHONE
         value: "+678 7114045"
       - key: WHATSAPP_NUMBER
