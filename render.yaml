@@ -1,7 +1,7 @@
 services:
   - type: web
     name: ace-tours-vanuatu
-    env: node
+    runtime: node
     plan: starter # Starter plan recommended for always-on background workers
     healthCheckPath: /api/health
     # Install Chromium for the build-time SEO prerender step (scripts/prerender.ts)
