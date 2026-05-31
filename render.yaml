@@ -4,7 +4,11 @@ services:
     env: node
     plan: starter # Starter plan recommended for always-on background workers
     healthCheckPath: /api/health
-    buildCommand: npm install --include=dev --legacy-peer-deps && npm run build
+    # Install Chromium for the build-time SEO prerender step (scripts/prerender.ts)
+    # before building. The browser install is wrapped so it can NEVER fail the
+    # deploy: try with system deps, fall back to a plain browser download, else
+    # continue — prerender is non-fatal, so worst case we ship the SPA shell.
+    buildCommand: npm install --include=dev --legacy-peer-deps && (npx playwright install --with-deps chromium || npx playwright install chromium || true) && npm run build
     startCommand: npm start
     envVars:
       - key: NODE_ENV
@@ -17,6 +21,11 @@ services:
         generateValue: true
       - key: APP_URL
         sync: false # e.g. https://ace-tours-transfers.onrender.com
+      # Build-time var baked into the Vite client (import.meta.env.VITE_APP_URL)
+      # for canonical/OG/JSON-LD URLs. Code already defaults to this domain; set
+      # explicitly per the SEO deployment guide so canonical links are unambiguous.
+      - key: VITE_APP_URL
+        value: https://acetoursvanuatu.com
       - key: CLOUDINARY_URL
         sync: false
       - key: SMTP_HOST
