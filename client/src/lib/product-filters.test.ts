@@ -31,12 +31,12 @@ describe('cleanProductList', () => {
     expect(out).toHaveLength(1);
   });
 
-  it('prefers the active entry when a duplicate exists', () => {
+  it('de-dupes two active entries with the same normalized title — first seen wins', () => {
     const out = cleanProductList<P>([
-      { title: 'City Tour Package', isActive: false },
+      { title: 'City Tour Package', isActive: true },
       { title: 'City Tour', isActive: true },
     ]);
     expect(out).toHaveLength(1);
-    expect(out[0].isActive).toBe(true);
+    expect(out[0].title).toBe('City Tour Package');
   });
 });

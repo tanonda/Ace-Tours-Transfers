@@ -1,9 +1,10 @@
 /**
  * Shared product list cleanup used by the /tours listing and the SEO landing
  * pages. Drops inactive products and obvious test/seed data, then de-dupes by
- * normalized title (treating "X" and "X Package" as the same), preferring the
- * active entry. Extracted verbatim from the original inline logic in tours.tsx
- * so both call sites share one implementation.
+ * normalized title (treating "X" and "X Package" as the same); for duplicates
+ * the first one seen is kept (inactive entries are already removed). Extracted
+ * verbatim from the original inline logic in tours.tsx so both call sites share
+ * one implementation.
  */
 export function cleanProductList<T extends { title: string; isActive?: boolean }>(
   items: T[],
@@ -28,10 +29,10 @@ export function cleanProductList<T extends { title: string; isActive?: boolean }
       (item) => normalize(item.title) === normalizedTitle,
     );
 
+    // First-seen wins for duplicate normalized titles. (Inactive entries are
+    // already dropped above, so there is no active-vs-inactive tie to resolve.)
     if (existingIndex === -1) {
       acc.push(current);
-    } else if (current.isActive !== false && acc[existingIndex].isActive === false) {
-      acc[existingIndex] = current;
     }
     return acc;
   }, []);
