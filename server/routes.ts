@@ -91,6 +91,33 @@ const SEO_LANDING_SLUGS = [
   "port-vila-private-transfers",
 ];
 
+/**
+ * robots.txt served from an in-memory constant via an explicit always-200 route
+ * (see below). Kept in sync with client/public/robots.txt. Serving it from code —
+ * with no DB or async work — guarantees crawlers never get a 5xx for /robots.txt
+ * during a deploy/restart window. A 5xx on robots.txt makes Google cache
+ * "disallow everything" for up to 24h, which previously blocked the whole site.
+ */
+function buildRobotsTxt(): string {
+  const siteUrl = (process.env.APP_URL || "https://acetoursvanuatu.com").replace(/\/$/, "");
+  return [
+    "User-agent: *",
+    "Allow: /",
+    "",
+    "# Block admin panel from indexing",
+    "Disallow: /admin/",
+    "Disallow: /api/",
+    "",
+    "# Block checkout flow from indexing",
+    "Disallow: /cart",
+    "Disallow: /payment",
+    "Disallow: /confirmation",
+    "",
+    `Sitemap: ${siteUrl}/sitemap.xml`,
+    "",
+  ].join("\n");
+}
+
 // Rate limiter for availability check
 const availabilityLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
@@ -301,6 +328,16 @@ export async function registerRoutes(
   app.get("/vehicles/:id", (_req, res) => res.redirect(301, "/transfers"));
 
   // ── SEO: Sitemap ──────────────────────────────────────────────────────────
+  // Always-200 robots.txt, served from an in-memory string with no DB/async work
+  // so a deploy/restart window can never return a 5xx here (which Google caches as
+  // "block everything"). Registered before the static middleware so it wins, and
+  // before /sitemap.xml to keep the SEO routes together.
+  app.get("/robots.txt", (_req, res) => {
+    res.header("Content-Type", "text/plain; charset=utf-8");
+    res.header("Cache-Control", "public, max-age=3600");
+    res.send(buildRobotsTxt());
+  });
+
   app.get("/sitemap.xml", async (_req, res) => {
     try {
       const SITE_URL = process.env.APP_URL || "https://acetoursvanuatu.com";
