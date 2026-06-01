@@ -16,6 +16,10 @@ const SPAWN_SERVER = process.env.PRERENDER_SKIP_SPAWN !== '1';
 const HEALTH_TIMEOUT_MS = 60_000;
 const NAV_TIMEOUT_MS = 45_000;
 const RENDER_DELAY_MS = Number(process.env.PRERENDER_RENDER_DELAY_MS ?? 2500);
+// How long to wait for real content (the JSON-LD marker) after the app mounts,
+// before falling back to snapshotting whatever is rendered. Generous because a
+// cold Render container's first API calls can be slow.
+const CONTENT_TIMEOUT_MS = Number(process.env.PRERENDER_CONTENT_TIMEOUT_MS ?? 15_000);
 
 async function waitForHealth(base: string, timeoutMs: number): Promise<void> {
   const deadline = Date.now() + timeoutMs;
@@ -63,6 +67,23 @@ async function renderAll(base: string, routes: string[], browser: Browser): Prom
       // the toast region (pointer-events:none, zero-size), which Playwright deems
       // invisible, so a visibility wait would time out even though the app mounted.
       await page.waitForSelector('#root > *', { state: 'attached', timeout: NAV_TIMEOUT_MS });
+      // Then wait for real CONTENT, not just the loading spinner. The <SEO>
+      // component injects a JSON-LD <script> into <head> only after the page's
+      // data (react-query) has loaded and the page body renders — so it's the
+      // reliable "content ready" signal we actually care about for SEO. Without
+      // this, a slow API (cold Render container) gets snapshotted mid-spinner:
+      // populated #root but no <h1>/JSON-LD. Fall back to a settle delay if the
+      // marker never appears, so a page that legitimately lacks JSON-LD (or a
+      // transient slow load) still produces a best-effort snapshot rather than
+      // failing outright.
+      try {
+        await page.waitForSelector('head script[type="application/ld+json"]', {
+          state: 'attached',
+          timeout: CONTENT_TIMEOUT_MS,
+        });
+      } catch {
+        console.warn(`[warn] ${route}: no JSON-LD after ${CONTENT_TIMEOUT_MS}ms — snapshotting current DOM`);
+      }
       await page.waitForTimeout(RENDER_DELAY_MS);
       const html = await page.content();
       const file = await writeSnapshot(html, route, DIST_PUBLIC);
