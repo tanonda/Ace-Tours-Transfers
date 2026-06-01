@@ -4,38 +4,13 @@ import { SEO } from "@/components/seo";
 import { TourCard } from "@/components/tour-card";
 import { useTranslation } from "react-i18next";
 import { useLocalizedTours } from "@/hooks/useLocalizedProducts";
+import { cleanProductList } from "@/lib/product-filters";
 
 export default function Tours() {
   const { t } = useTranslation();
   const { data: allTours = [], isLoading } = useLocalizedTours();
 
-  // Deduplicate by normalized title and filter out test data
-  const toursList = allTours.reduce<typeof allTours>((acc: any[], current: any) => {
-    if (!current.isActive) return acc;
-
-    const titleLower = current.title.toLowerCase();
-    if (
-      titleLower.includes("verification") ||
-      titleLower.includes("concurrent") ||
-      titleLower.includes("test_tour") ||
-      titleLower.includes("phase4")
-    ) {
-      return acc;
-    }
-
-    const normalize = (t: string) => t.replace(/\s+Package$/i, "").trim();
-    const normalizedTitle = normalize(current.title);
-    const existingIndex = acc.findIndex(
-      (item) => normalize(item.title) === normalizedTitle,
-    );
-
-    if (existingIndex === -1) {
-      acc.push(current);
-    } else if (current.isActive !== false && acc[existingIndex].isActive === false) {
-      acc[existingIndex] = current;
-    }
-    return acc;
-  }, []);
+  const toursList = cleanProductList(allTours);
 
   return (
     <Layout>
