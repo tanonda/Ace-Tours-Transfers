@@ -525,5 +525,9 @@
     "revenueOverTime": "收入（过去 30 天）",
     "bookingDistribution": "预订状态",
     "topPerformingTours": "表现最佳的旅游团"
+  },
+  "landingPage": {
+    "faq": "常见问题",
+    "readyToBook": "准备预订了吗？"
   }
 }

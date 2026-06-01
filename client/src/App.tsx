@@ -90,22 +90,26 @@ function AnalyticsInjector() {
         const normalizedGtmContainerId = typeof gtmContainerId === "string" ? gtmContainerId.trim() : "";
         const normalizedGa4MeasurementId = typeof ga4MeasurementId === "string" ? ga4MeasurementId.trim() : "";
 
+        // Validate ID formats to prevent XSS via malicious analytics config
+        const gtmPattern = /^GTM-[A-Z0-9]{1,10}$/;
+        const ga4Pattern = /^G-[A-Z0-9]{1,15}$/;
+
         // Google Tag Manager
-        if (normalizedGtmContainerId && !document.getElementById("gtm-script")) {
+        if (normalizedGtmContainerId && gtmPattern.test(normalizedGtmContainerId) && !document.getElementById("gtm-script")) {
           const s = document.createElement("script");
           s.id = "gtm-script";
-          s.innerHTML = `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','${normalizedGtmContainerId}');`;
+          s.textContent = `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','${normalizedGtmContainerId}');`;
           document.head.appendChild(s);
         }
         // GA4 (only if GTM not set — avoid double-counting)
-        if (normalizedGa4MeasurementId && !normalizedGtmContainerId && !document.getElementById("ga4-script")) {
+        if (normalizedGa4MeasurementId && ga4Pattern.test(normalizedGa4MeasurementId) && !normalizedGtmContainerId && !document.getElementById("ga4-script")) {
           const s = document.createElement("script");
           s.id = "ga4-script";
           s.async = true;
           s.src = `https://www.googletagmanager.com/gtag/js?id=${normalizedGa4MeasurementId}`;
           document.head.appendChild(s);
           const s2 = document.createElement("script");
-          s2.innerHTML = `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${normalizedGa4MeasurementId}');`;
+          s2.textContent = `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${normalizedGa4MeasurementId}');`;
           document.head.appendChild(s2);
         }
       })

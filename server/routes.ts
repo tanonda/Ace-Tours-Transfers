@@ -63,6 +63,24 @@ import { rateLimit as customRateLimit } from "./lib/rate-limiter.js";
 import { rateLimit } from "express-rate-limit";
 import { adminAudit } from "./infrastructure/audit/admin-audit-log.service.js";
 
+// Security: HTML/XML encoding helpers to prevent XSS in server-rendered templates
+function escapeHtml(str: string): string {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+function escapeXml(str: string): string {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
 // Keep in sync with client/src/lib/landing-pages.ts (LANDING_SLUGS).
 const SEO_LANDING_SLUGS = [
   "port-vila-airport-transfers",
@@ -156,7 +174,11 @@ const createBookingBodySchema = z.object({
 
 
 // Ensure uploads directory exists (legacy support if needed)
-const uploadDir = path.join(process.cwd(), 'attached_assets', 'uploads');
+const basePath = path.resolve(process.cwd(), 'attached_assets');
+const uploadDir = path.normalize(path.join(basePath, 'uploads'));
+if (!uploadDir.startsWith(basePath)) {
+  throw new Error('Invalid upload directory path detected');
+}
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
@@ -314,10 +336,10 @@ export async function registerRoutes(
       const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${allPages.map(p => `  <url>
-    <loc>${SITE_URL}${p.loc}</loc>
-    <lastmod>${p.lastmod}</lastmod>
-    <changefreq>${p.changefreq}</changefreq>
-    <priority>${p.priority}</priority>
+    <loc>${escapeXml(SITE_URL)}${escapeXml(p.loc)}</loc>
+    <lastmod>${escapeXml(p.lastmod)}</lastmod>
+    <changefreq>${escapeXml(p.changefreq)}</changefreq>
+    <priority>${escapeXml(p.priority)}</priority>
   </url>`).join("\n")}
 </urlset>`;
 
@@ -1983,7 +2005,7 @@ ${allPages.map(p => `  <url>
         'idempotencyKey', 'holdId', 'bookingSessionId', 'id', 'createdAt',
       ];
       for (const field of IMMUTABLE_FIELDS) {
-        if (updates[field] !== undefined) {
+        if (Object.prototype.hasOwnProperty.call(updates, field) && updates[field] !== undefined) {
           return res.status(400).json({ error: `Field '${field}' cannot be modified.` });
         }
       }
@@ -2000,7 +2022,7 @@ ${allPages.map(p => `  <url>
       };
 
       if (updates.status && updates.status !== existing.status) {
-        const allowed = ALLOWED_TRANSITIONS[existing.status] ?? [];
+        const allowed = (Object.prototype.hasOwnProperty.call(ALLOWED_TRANSITIONS, existing.status) ? ALLOWED_TRANSITIONS[existing.status] : null) ?? [];
         if (!allowed.includes(updates.status)) {
           return res.status(400).json({
             error: `Invalid status transition: '${existing.status}' → '${updates.status}'. Allowed: [${allowed.join(', ') || 'none'}]`,
@@ -2042,9 +2064,9 @@ ${allPages.map(p => `  <url>
             try {
               await sendAdminEmail(
                 `Refund Required — ACT-${shortBookingRef(existing.id)}`,
-                `<p>Booking <strong>ACT-${shortBookingRef(existing.id)}</strong> was cancelled after payment.</p>
+                `<p>Booking <strong>ACT-${escapeHtml(shortBookingRef(existing.id))}</strong> was cancelled after payment.</p>
                  <p><strong>${completedPayments.length}</strong> payment(s) totalling <strong>VT ${completedPayments.reduce((s: number, p: any) => s + (p.amount || 0), 0).toLocaleString()}</strong> require manual refund.</p>
-                 <p>Customer: ${existing.customerName} (${existing.customerEmail})</p>`
+                 <p>Customer: ${escapeHtml(existing.customerName || '')} (${escapeHtml(existing.customerEmail || '')})</p>`
               );
             } catch (emailErr) {
               console.error('[BOOKING][CANCEL] Refund notification email failed:', emailErr);
@@ -2253,11 +2275,12 @@ ${allPages.map(p => `  <url>
         sql`UPDATE newsletter_subscribers SET unsubscribed_at = NOW() WHERE LOWER(email) = ${email.toLowerCase().trim()} AND unsubscribed_at IS NULL`
       );
 
+      const safeUrl = escapeHtml(process.env.APP_URL || 'https://acetours.vu');
       res.send(`
         <html><body style="font-family:sans-serif;text-align:center;padding:60px;">
           <h2>You've been unsubscribed</h2>
-          <p>You will no longer receive newsletter emails from Ace Tours & Transfers.</p>
-          <p><a href="${process.env.APP_URL || 'https://acetours.vu'}">Return to website</a></p>
+          <p>You will no longer receive newsletter emails from Ace Tours &amp; Transfers.</p>
+          <p><a href="${safeUrl}">Return to website</a></p>
         </body></html>
       `);
     } catch (error) {
@@ -2401,13 +2424,17 @@ ${allPages.map(p => `  <url>
     try {
       const locale = req.query.locale as string | undefined;
       const allContent = await storage.getAllCmsContentByLocale(locale || 'en');
-      const result: Record<string, any[]> = {};
+      // Use null-prototype object to prevent prototype pollution via bracket notation
+      const result: Record<string, any[]> = Object.create(null);
 
       allContent.forEach(item => {
-        if (!result[item.blockSlug]) {
-          result[item.blockSlug] = [];
+        const slug = item.blockSlug;
+        // Guard against prototype pollution: only allow simple string slugs
+        if (typeof slug !== 'string' || slug === '__proto__' || slug === 'constructor' || slug === 'prototype') return;
+        if (!result[slug]) {
+          result[slug] = [];
         }
-        result[item.blockSlug].push(item);
+        result[slug].push(item);
       });
 
       res.json(result);

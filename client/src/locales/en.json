@@ -473,5 +473,7 @@
   "hero.checkAvailability": "Check Availability",
   "hero.popularSearches": "Popular:",
   "hero.airportTransfer": "Airport Transfer",
-  "hero.dayTours": "Day Tours"
+  "hero.dayTours": "Day Tours",
+  "landingPage.faq": "Frequently Asked Questions",
+  "landingPage.readyToBook": "Ready to book?"
 }

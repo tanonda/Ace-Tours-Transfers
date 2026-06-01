@@ -525,5 +525,9 @@
     "revenueOverTime": "Revenus (30 derniers jours)",
     "bookingDistribution": "Statut de la réservation",
     "topPerformingTours": "Visites les plus performantes"
+  },
+  "landingPage": {
+    "faq": "Questions Fréquentes",
+    "readyToBook": "Prêt à réserver ?"
   }
 }

@@ -1,4 +1,5 @@
 import { useLocation, Link } from "wouter";
+import { useTranslation } from "react-i18next";
 import { Layout } from "@/components/layout";
 import { SEO } from "@/components/seo";
 import { TourCard } from "@/components/tour-card";
@@ -8,6 +9,7 @@ import { cleanProductList } from "@/lib/product-filters";
 import { useLocalizedTours, useLocalizedTransfers } from "@/hooks/useLocalizedProducts";
 
 export default function LandingPage() {
+  const { t } = useTranslation();
   const [location] = useLocation();
   const slug = location.replace(/^\/+/, "").replace(/\/+$/, "").split("?")[0];
   const config = findLandingPage(slug);
@@ -52,7 +54,7 @@ export default function LandingPage() {
 
         {/* Featured products */}
         {query.isLoading ? (
-          <div className="text-center py-12 text-muted-foreground">Loading…</div>
+          <div className="text-center py-12 text-muted-foreground">{t("common.loading")}</div>
         ) : featured.length > 0 ? (
           <div className="my-12">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -79,7 +81,7 @@ export default function LandingPage() {
 
         {/* FAQ */}
         <section className="my-12">
-          <h2 className="text-2xl font-serif font-bold mb-6">Frequently Asked Questions</h2>
+          <h2 className="text-2xl font-serif font-bold mb-6">{t("landingPage.faq")}</h2>
           <div className="space-y-4">
             {config.faqs.map((faq, i) => (
               <details key={i} className="border rounded-lg p-4">
@@ -92,13 +94,13 @@ export default function LandingPage() {
 
         {/* CTA */}
         <section className="my-12 text-center bg-muted/40 rounded-2xl p-8">
-          <h2 className="text-2xl font-serif font-bold mb-4">Ready to book?</h2>
+          <h2 className="text-2xl font-serif font-bold mb-4">{t("landingPage.readyToBook")}</h2>
           <div className="flex flex-wrap gap-4 justify-center">
             <Link href={config.ctaListingPath} className="px-6 py-3 rounded-lg bg-primary text-primary-foreground font-semibold">
-              View all {config.category === "tour" ? "tours" : "transfers"}
+              {t(config.category === "tour" ? "nav.viewAllTours" : "nav.viewAllTransfers")}
             </Link>
             <Link href="/contact" className="px-6 py-3 rounded-lg border border-primary text-primary font-semibold">
-              Contact us
+              {t("nav.contact")}
             </Link>
           </div>
         </section>

@@ -525,5 +525,9 @@
     "ratedDesc": "5-star service i garantim",
     "secure": "Sekim Buking",
     "secureDesc": "Konfimeisen mo sapot i hapen kwik"
+  },
+  "landingPage": {
+    "faq": "Ol Kwestin We Ol Man Oli Askem Plante Taem",
+    "readyToBook": "Redi blong bukim?"
   }
 }
