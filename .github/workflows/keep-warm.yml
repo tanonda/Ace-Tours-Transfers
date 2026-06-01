@@ -1,0 +1,66 @@
+name: Keep Render warm + robots.txt monitor
+
+# Why: the Render service spins down after ~15 min idle. The cold start (~14s) opens a
+# window where Render's edge can serve a timeout or a blocking robots.txt, which Google
+# caches as "disallow everything" for ~24h and de-indexes the site. Pinging /robots.txt
+# every ~10 min keeps the container warm so that window never opens. The ping also asserts
+# the response is the permissive robots (contains "Allow: /"); if it ever isn't, the run
+# fails and GitHub emails the repo owner — an early SEO alarm.
+#
+# Notes:
+# - GitHub scheduled crons are best-effort (can lag) and are auto-disabled after 60 days of
+#   repo inactivity. For an actively-developed repo this is fine; UptimeRobot is a good
+#   independent backup if you want belt-and-suspenders.
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"   # every 10 minutes (under Render's ~15 min idle timeout)
+  workflow_dispatch: {}        # allow manual runs from the Actions tab
+
+# Don't pile up overlapping runs if a cron tick is delayed.
+concurrency:
+  group: keep-warm
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping robots.txt and assert it is permissive
+        run: |
+          URL="https://acetoursvanuatu.com/robots.txt"
+          echo "Pinging $URL"
+          # Retry a few times: the very first hit may be a cold start (slow / transient).
+          for attempt in 1 2 3 4 5; do
+            body="$(curl -fsS --max-time 40 "$URL?ci=$RANDOM" 2>/dev/null || true)"
+            if [ -n "$body" ]; then
+              break
+            fi
+            echo "Attempt $attempt: no response yet (cold start?), retrying in 15s..."
+            sleep 15
+          done
+
+          if [ -z "$body" ]; then
+            echo "::error::No response from $URL after retries — origin may be down."
+            exit 1
+          fi
+
+          echo "--- robots.txt body ---"
+          echo "$body"
+          echo "-----------------------"
+
+          if echo "$body" | grep -qx "Allow: /"; then
+            echo "OK: robots.txt is permissive (contains 'Allow: /')."
+          else
+            echo "::error::robots.txt is NOT permissive — blocking robots served! Google may de-index."
+            exit 1
+          fi
+
+          # Guard against the known bad full-block fallback explicitly.
+          if echo "$body" | grep -qE "^Disallow: /$"; then
+            echo "::error::robots.txt contains a full-site block (Disallow: /)."
+            exit 1
+          fi
