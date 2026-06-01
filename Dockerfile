@@ -49,4 +49,7 @@ EXPOSE 5000
 # (PRERENDER_SKIP_SPAWN=1 → it does NOT spawn its own server) and writes static
 # snapshots into dist/public, which the running server serves per-request as each
 # file appears. `|| true` keeps a prerender failure from killing the container.
-CMD ["sh", "-c", "(PRERENDER_SKIP_SPAWN=1 PRERENDER_BASE_URL=http://localhost:5000 npm run prerender || true) & exec npm start"]
+# IMPORTANT: target the server on whatever PORT the host injects (Render uses
+# 10000, not 5000) — a hardcoded port would make prerender poll the wrong place,
+# time out, and skip every page. ${PORT:-5000} keeps it correct everywhere.
+CMD ["sh", "-c", "(PRERENDER_SKIP_SPAWN=1 PRERENDER_BASE_URL=http://localhost:${PORT:-5000} npm run prerender || true) & exec npm start"]
