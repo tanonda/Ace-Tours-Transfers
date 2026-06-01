@@ -41,7 +41,7 @@ const BRAND_HEADER = `
 `;
 
 const _bizEmail = escapeHtml(process.env.BUSINESS_EMAIL || 'acetoursvanuatu@outlook.com');
-const _appUrl = escapeHtml(process.env.APP_URL || 'https://acetours.vu');
+const _appUrl = escapeHtml(process.env.APP_URL || 'https://acetoursvanuatu.com');
 const _appDomain = _appUrl.replace(/^https?:\/\//, '');
 
 const BRAND_FOOTER = `
@@ -68,7 +68,7 @@ export function wrap(content: string, locale = 'en'): string {
   const googlePlaceId = process.env.GOOGLE_PLACE_ID;
   const reviewLink = googlePlaceId
     ? `https://search.google.com/local/writereview?placeid=${googlePlaceId}`
-    : (process.env.APP_URL || `https://acetours.vu`);
+    : (process.env.APP_URL || `https://acetoursvanuatu.com`);
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(reviewLink)}`;
 
   // We add a subtle review link & QR in the footer area for guest communications
@@ -262,7 +262,7 @@ export function paymentFailure(data: PaymentTemplateData & { reason?: string }, 
     <p style="color:#706a60;font-size:14px;margin:16px 0">${t.tryAgainContact}</p>
 
     <div style="text-align:center;margin:24px 0">
-      <a href="${process.env.APP_URL || 'https://acetours.vu'}/payment?bookingId=${data.bookingRef}" style="display:inline-block;background:#f4a830;color:#0f0d09;font-weight:bold;padding:12px 32px;border-radius:8px;text-decoration:none;font-size:14px">${t.retryPaymentBtn}</a>
+      <a href="${process.env.APP_URL || 'https://acetoursvanuatu.com'}/payment?bookingId=${data.bookingRef}" style="display:inline-block;background:#f4a830;color:#0f0d09;font-weight:bold;padding:12px 32px;border-radius:8px;text-decoration:none;font-size:14px">${t.retryPaymentBtn}</a>
     </div>
   `, locale);
 
@@ -283,7 +283,7 @@ export function paymentExpiry(data: { customerName: string; bookingRef: string }
     </div>
 
     <div style="text-align:center;margin:24px 0">
-      <a href="${process.env.APP_URL || 'https://acetours.vu'}" style="display:inline-block;background:#f4a830;color:#0f0d09;font-weight:bold;padding:12px 32px;border-radius:8px;text-decoration:none;font-size:14px">${t.browseExperiences}</a>
+      <a href="${process.env.APP_URL || 'https://acetoursvanuatu.com'}" style="display:inline-block;background:#f4a830;color:#0f0d09;font-weight:bold;padding:12px 32px;border-radius:8px;text-decoration:none;font-size:14px">${t.browseExperiences}</a>
     </div>
   `, locale);
 

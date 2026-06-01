@@ -62,7 +62,7 @@ export class MailingService {
    * Send an email to the administrator
    */
   async sendAdminEmail(subject: string, html: string): Promise<void> {
-    const adminEmail = process.env.ADMIN_EMAIL || process.env.SMTP_USER || 'admin@acetours.vu';
+    const adminEmail = process.env.ADMIN_EMAIL || process.env.SMTP_USER || 'admin@acetoursvanuatu.com';
     await this.sendEmail({ to: adminEmail, subject, html });
   }
 
@@ -80,7 +80,7 @@ export class MailingService {
     let lastError;
 
     const mailOptions = {
-      from: `"Ace Tours Vanuatu" <${process.env.SMTP_FROM || process.env.SMTP_USER || 'no-reply@acetours.vu'}>`,
+      from: `"Ace Tours Vanuatu" <${process.env.SMTP_FROM || process.env.SMTP_USER || 'no-reply@acetoursvanuatu.com'}>`,
       ...options
     };
 
@@ -93,10 +93,13 @@ export class MailingService {
         lastError = error;
         console.warn(`[MAILING][WARN] Delivery failed (Attempt ${attempt}/${MAX_RETRIES}):`, error?.message || error);
 
-        // Don't retry authentication failures — they won't self-resolve
+        // Don't retry auth / IP-authorization failures — they won't self-resolve.
+        // 535 = bad credentials; 525 = "Unauthorized IP address" (e.g. Brevo's
+        // Authorised IPs feature blocking this server) — retrying just delays the
+        // failure log. Both require an operator/config fix, not a retry.
         const code = error?.responseCode || error?.code || '';
-        if (code === 535 || code === 'EAUTH' || (error?.message || '').includes('authentication')) {
-          console.error(`[MAILING][ERROR] Authentication failure — skipping retries for: ${options.subject}`);
+        if (code === 535 || code === 525 || code === 'EAUTH' || (error?.message || '').includes('authentication')) {
+          console.error(`[MAILING][ERROR] Authentication/authorization failure — skipping retries for: ${options.subject}`);
           break;
         }
 

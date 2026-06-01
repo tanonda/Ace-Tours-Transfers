@@ -69,7 +69,7 @@ export async function sendNewsletterEmail(to: string, subject: string, html: str
 }
 
 export async function sendAdminEmail(subject: string, html: string): Promise<boolean> {
-  const adminEmail = process.env.ADMIN_EMAIL || process.env.SMTP_USER || "admin@acetours.vu";
+  const adminEmail = process.env.ADMIN_EMAIL || process.env.SMTP_USER || "admin@acetoursvanuatu.com";
   return sendEmail({ to: adminEmail, subject, html });
 }
 
@@ -90,12 +90,12 @@ async function getAppUrl(): Promise<string> {
     const { storage } = await import("../storage.js");
     const setting = await storage.getSiteSetting("app_url");
     const raw = (typeof setting?.value === "string" ? setting.value : "") ||
-      process.env.APP_URL || "https://acetours.vu";
+      process.env.APP_URL || "https://acetoursvanuatu.com";
     _cachedAppUrl = raw.replace(/\/$/, "");
     _cacheExpiry = Date.now() + 60_000;
     return _cachedAppUrl;
   } catch {
-    return process.env.APP_URL || "https://acetours.vu";
+    return process.env.APP_URL || "https://acetoursvanuatu.com";
   }
 }
 
@@ -640,7 +640,7 @@ export async function getTestEmailTemplate(): Promise<string> {
       <div style="background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; margin: 24px 0;">
         <table style="width: 100%; border-collapse: collapse;">
           <tr><td style="padding: 8px 0; color: #6b7280; width: 80px; font-size: 14px;">SMTP</td><td style="padding: 8px 0; color: #059669; font-weight: 600; font-size: 14px;">${process.env.SMTP_HOST || "smtp.gmail.com"}</td></tr>
-          <tr><td style="padding: 8px 0; color: #6b7280; font-size: 14px;">From</td><td style="padding: 8px 0; color: #111827; font-size: 14px;">${process.env.SMTP_USER || "noreply@acetours.vu"}</td></tr>
+          <tr><td style="padding: 8px 0; color: #6b7280; font-size: 14px;">From</td><td style="padding: 8px 0; color: #111827; font-size: 14px;">${process.env.SMTP_USER || "no-reply@acetoursvanuatu.com"}</td></tr>
           <tr><td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Sent</td><td style="padding: 8px 0; color: #111827; font-size: 14px;">${timestamp}</td></tr>
         </table>
       </div>
