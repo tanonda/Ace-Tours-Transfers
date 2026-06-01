@@ -63,6 +63,16 @@ import { rateLimit as customRateLimit } from "./lib/rate-limiter.js";
 import { rateLimit } from "express-rate-limit";
 import { adminAudit } from "./infrastructure/audit/admin-audit-log.service.js";
 
+// Keep in sync with client/src/lib/landing-pages.ts (LANDING_SLUGS).
+const SEO_LANDING_SLUGS = [
+  "port-vila-airport-transfers",
+  "efate-island-day-tours",
+  "blue-lagoon-vanuatu-tour",
+  "mele-cascades-tour",
+  "vanuatu-cultural-tours",
+  "port-vila-private-transfers",
+];
+
 // Rate limiter for availability check
 const availabilityLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
@@ -283,6 +293,10 @@ export async function registerRoutes(
         { loc: "/about",     priority: "0.6", changefreq: "monthly", lastmod: now },
         { loc: "/contact",   priority: "0.6", changefreq: "monthly", lastmod: now },
       ];
+
+      for (const slug of SEO_LANDING_SLUGS) {
+        staticPages.push({ loc: `/${slug}`, priority: "0.8", changefreq: "monthly", lastmod: now });
+      }
 
       const productPages = products
         .filter((p: any) => p.isActive !== false && p.category !== "vehicle")
