@@ -1,15 +1,15 @@
 services:
   - type: web
     name: ace-tours-vanuatu
-    runtime: node
+    # Docker runtime: the Dockerfile uses the official Playwright image so
+    # Chromium + its system libraries are present, which Render's native node
+    # runtime can't provide. The build compiles client+server; the SEO prerender
+    # runs at container STARTUP (Render only exposes DATABASE_URL at runtime, and
+    # prerender needs the DB to read the sitemap). See Dockerfile CMD.
+    runtime: docker
+    dockerfilePath: ./Dockerfile
     plan: starter # Starter plan recommended for always-on background workers
     healthCheckPath: /api/health
-    # Install Chromium for the build-time SEO prerender step (scripts/prerender.ts)
-    # before building. The browser install is wrapped so it can NEVER fail the
-    # deploy: try with system deps, fall back to a plain browser download, else
-    # continue — prerender is non-fatal, so worst case we ship the SPA shell.
-    buildCommand: npm install --include=dev --legacy-peer-deps && (npx playwright install --with-deps chromium || npx playwright install chromium || true) && npm run build
-    startCommand: npm start
     envVars:
       - key: NODE_ENV
         value: production

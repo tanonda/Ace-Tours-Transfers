@@ -58,8 +58,11 @@ async function renderAll(base: string, routes: string[], browser: Browser): Prom
       // fires and each page would stall near NAV_TIMEOUT. Mirrors the proven
       // approach in scripts/capture-user-manual-screenshots.ts.
       await page.goto(`${base}${route}`, { timeout: NAV_TIMEOUT_MS, waitUntil: 'load' });
-      // Wait until React has actually mounted content into #root, then settle.
-      await page.waitForSelector('#root > *', { timeout: NAV_TIMEOUT_MS });
+      // Wait until React has mounted *something* into #root. Use state:'attached'
+      // (DOM presence) — NOT the default 'visible': the first child React renders is
+      // the toast region (pointer-events:none, zero-size), which Playwright deems
+      // invisible, so a visibility wait would time out even though the app mounted.
+      await page.waitForSelector('#root > *', { state: 'attached', timeout: NAV_TIMEOUT_MS });
       await page.waitForTimeout(RENDER_DELAY_MS);
       const html = await page.content();
       const file = await writeSnapshot(html, route, DIST_PUBLIC);
