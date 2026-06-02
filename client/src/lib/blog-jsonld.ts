@@ -5,8 +5,8 @@ export interface ArticleLike {
   imageAlt?: string | null;
   author?: string | null;
   tags?: string[] | null;
-  publishedAt?: string | null;
-  updatedAt?: string | null;
+  publishedAt?: string | Date | null;
+  updatedAt?: string | Date | null;
   seoDescription?: string | null;
 }
 

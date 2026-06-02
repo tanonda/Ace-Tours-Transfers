@@ -42,7 +42,7 @@ export default function BlogArticle() {
         image={article.coverImage || undefined}
         imageAlt={article.imageAlt || article.title}
         keywords={article.tags ?? []}
-        extraJsonLd={buildBlogPostingJsonLd(article as any, canonical)}
+        extraJsonLd={buildBlogPostingJsonLd(article, canonical)}
       />
       <article className="bg-background">
         <header className="bg-muted/30 pt-40 pb-12">
