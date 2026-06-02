@@ -29,4 +29,13 @@ describe('insertArticleSchema', () => {
   it('rejects an invalid status', () => {
     expect(() => insertArticleSchema.parse({ ...valid, status: 'archived' })).toThrow();
   });
+  it('defaults status to draft; tags/relatedProductIds are undefined (SQL default applied at DB insert)', () => {
+    const { status, ...noStatus } = valid;
+    const parsed = insertArticleSchema.parse(noStatus);
+    expect(parsed.status).toBe('draft');
+    // drizzle-zod treats SQL-defaulted array columns as optional; the DB default ('{}'::text[])
+    // is applied at insert time, not at parse time — so parsed values are undefined here.
+    expect(parsed.tags).toBeUndefined();
+    expect(parsed.relatedProductIds).toBeUndefined();
+  });
 });

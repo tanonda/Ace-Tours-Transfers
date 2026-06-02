@@ -607,7 +607,9 @@ export const articles = pgTable("articles", {
   seoKeywords: text("seo_keywords"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+}, (table) => ({
+  statusPublishedIdx: index("idx_articles_status_published_at").on(table.status, table.publishedAt),
+}));
 
 export const insertArticleSchema = createInsertSchema(articles, {
   status: z.enum(["draft", "published"]).default("draft"),
