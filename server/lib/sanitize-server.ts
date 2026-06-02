@@ -1,8 +1,10 @@
-import DOMPurify from "dompurify";
+import DOMPurify, { type WindowLike } from "dompurify";
+// jsdom ships no bundled types and we intentionally don't add @types/jsdom;
+// the DOMPurify factory only needs the .window object at runtime.
+// @ts-ignore - no type declarations for 'jsdom'
 import { JSDOM } from "jsdom";
 
-const window = new JSDOM("").window;
-const purify = DOMPurify(window as unknown as Window);
+const purify = DOMPurify(new JSDOM("").window as unknown as WindowLike);
 
 const ALLOWED_TAGS = [
   "p","br","strong","em","u","s","h1","h2","h3","h4","ul","ol","li",
