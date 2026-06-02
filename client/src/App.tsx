@@ -73,6 +73,7 @@ const AdminNewsletter = lazy(() => import("@/pages/admin/newsletter"));
 const AdminNotifications = lazy(() => import("@/pages/admin/notifications"));
 const AdminProfile = lazy(() => import("@/pages/admin/admin-profile"));
 const AdminExternalServices = lazy(() => import("@/pages/admin/external-services"));
+const AdminBlog = lazy(() => import("@/pages/admin/blog"));
 
 // Customer pages
 const CustomerDashboard = lazy(() => import("@/pages/customer/dashboard"));
@@ -251,6 +252,9 @@ function Router() {
         </Route>
         <Route path="/admin/products">
           <ProtectedRoute requireAdmin><AdminProducts /></ProtectedRoute>
+        </Route>
+        <Route path="/admin/blog">
+          <ProtectedRoute requireAdmin><AdminBlog /></ProtectedRoute>
         </Route>
         <Route path="/admin/customers">
           <ProtectedRoute requireAdmin><AdminUsers /></ProtectedRoute>
