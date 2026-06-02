@@ -39,7 +39,12 @@ jobs:
         run: npm install
 
       - name: Build
-        run: npm run build
+        # PRERENDER=0: skip the runtime browser-prerender step in CI. Prerender needs a
+        # live DATABASE_URL + a Chromium binary (neither present in this job) and is a
+        # runtime snapshot step, not a compile check — Render runs the real prerender at
+        # container startup. This matches the Dockerfile (`RUN PRERENDER=0 npm run build`)
+        # and keeps CI fast and deterministic. The build still validates client+server compilation.
+        run: PRERENDER=0 npm run build
 
       - name: Verify Architecture & Invariants
         env:
