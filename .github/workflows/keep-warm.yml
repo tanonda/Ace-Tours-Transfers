@@ -9,8 +9,12 @@ name: Keep Render warm + robots.txt monitor
 #
 # Notes:
 # - GitHub scheduled crons are best-effort (can lag) and are auto-disabled after 60 days of
-#   repo inactivity. For an actively-developed repo this is fine; UptimeRobot is a good
-#   independent backup if you want belt-and-suspenders.
+#   repo inactivity.
+# - STATUS 2026-06-02: DORMANT. GitHub Actions is disabled on this repo due to a billing
+#   lock, so this workflow does NOT currently run. The PRIMARY keep-warm is an external
+#   UptimeRobot HTTP monitor on https://acetoursvanuatu.com/robots.txt (5-min interval) —
+#   see docs/seo/render-keep-warm.md. This file is kept so it resumes automatically as a
+#   second layer once Actions billing is restored; no need to recreate it then.
 
 on:
   schedule:

@@ -19,6 +19,12 @@ Audited 2026-06-02:
 
 The fix is to **never let it go cold**. Two options.
 
+> **STATUS 2026-06-02:** UptimeRobot (Option A) is the **PRIMARY** keep-warm. The
+> in-repo GitHub Actions workflow (`.github/workflows/keep-warm.yml`) is **dormant** —
+> GitHub Actions is disabled on this repo due to a billing lock, so it cannot run. The
+> workflow is retained and will resume automatically as a second layer once Actions
+> billing is restored. Until then, **UptimeRobot is doing the actual work.**
+
 ## Option A (recommended, free): external uptime ping
 
 Use a free uptime monitor to hit the site every ~10 minutes so it never idles down.
