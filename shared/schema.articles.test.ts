@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { insertArticleSchema } from './schema';
+import { insertArticleSchema } from './schema.js';
 
 const valid = {
   slug: 'things-to-do-in-port-vila',

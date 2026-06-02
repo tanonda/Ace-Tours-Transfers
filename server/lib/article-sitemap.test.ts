@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { publishedArticleSitemapEntries } from './article-sitemap';
+import { publishedArticleSitemapEntries } from './article-sitemap.js';
 
 const now = '2026-06-02';
 const rows = [
@@ -11,9 +11,9 @@ const rows = [
 describe('publishedArticleSitemapEntries', () => {
   it('emits only published articles as /blog/<slug> with priority 0.7', () => {
     const out = publishedArticleSitemapEntries(rows, now);
-    expect(out.map(e => e.loc)).toEqual(['/blog/a', '/blog/c']);
-    expect(out.every(e => e.priority === '0.7')).toBe(true);
-    expect(out.every(e => e.changefreq === 'monthly')).toBe(true);
+    expect(out.map((e) => e.loc)).toEqual(['/blog/a', '/blog/c']);
+    expect(out.every((e) => e.priority === '0.7')).toBe(true);
+    expect(out.every((e) => e.changefreq === 'monthly')).toBe(true);
   });
   it('uses updatedAt date for lastmod, falling back to now', () => {
     const out = publishedArticleSitemapEntries(rows, now);

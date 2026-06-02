@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { sanitizeServerHtml } from './sanitize-server';
+import { sanitizeServerHtml } from './sanitize-server.js';
 
 describe('sanitizeServerHtml', () => {
   it('removes <script> tags and their content', () => {
