@@ -50,11 +50,11 @@ export class PaymentFactory {
     }
 
     // 2. Resolve Adapter Class
-    const AdapterClass = this.adapters[slug];
-    if (!AdapterClass) {
+    if (!Object.prototype.hasOwnProperty.call(this.adapters, slug)) {
       log.error('Adapter not implemented', { slug });
       throw new Error(`Payment gateway ${slug} is not implemented.`);
     }
+    const AdapterClass = this.adapters[slug];
 
     // 3. Feature Flag Check (Absolute Source of Truth)
     const flagKey = this.normalizeSlugToFlag(slug);

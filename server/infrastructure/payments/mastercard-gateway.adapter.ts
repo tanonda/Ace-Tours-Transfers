@@ -193,10 +193,8 @@ export class MastercardGatewayAdapter implements PaymentGatewayService {
     let newStatus: PaymentStatus = PaymentStatus.Failed;
     if (responseCode === '0') {
       newStatus = PaymentStatus.Completed;
-    } else if (responseCode === 'D') { // Example: 'Declined' or similar for specific status
-      newStatus = PaymentStatus.Failed;
     } else {
-      // Handle other codes as per MCPGS documentation (e.g., pending, error)
+      // Handle other codes (including 'D' for Declined, or other errors) as Failed
       newStatus = PaymentStatus.Failed;
     }
 

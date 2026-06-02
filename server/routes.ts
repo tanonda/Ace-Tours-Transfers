@@ -60,8 +60,17 @@ import {
   getNewsletterConfirmationTemplate,
   getContactFormTemplate,
   getTestEmailTemplate,
-  shortBookingRef
+  shortBookingRef,
+  sendNewsletterEmail,
+  getContactAutoReplyTemplate
 } from "./lib/mail.js";
+import { CapacityOverviewService } from "./application/admin/capacity-overview.service.js";
+import { isFeatureEnabled } from "./feature-flags.js";
+import { AtomicBookingConfirmationService } from "./application/booking/AtomicBookingConfirmationService.js";
+import QRCode from "qrcode";
+import { CreateBookingFromCartService } from "./application/booking/CreateBookingFromCartService.js";
+import { FraudDetectionService } from "./infrastructure/fraud/FraudDetectionService.js";
+import { translateToAll } from "./lib/translate.js";
 import { ZodError, z } from "zod";
 import { rateLimit as customRateLimit } from "./lib/rate-limiter.js";
 import { rateLimit } from "express-rate-limit";
@@ -524,7 +533,6 @@ ${allPages.map(p => `  <url>
       const startDate = (req.query.start as string) || new Date().toISOString().split("T")[0];
       const endDate = (req.query.end as string) || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
 
-      const { CapacityOverviewService } = await import("./application/admin/capacity-overview.service.js");
       const service = new CapacityOverviewService(storage);
       const overview = await service.getCapacityOverview(startDate, endDate);
 
@@ -684,7 +692,6 @@ ${allPages.map(p => `  <url>
       const startDate = (req.query.start as string) || new Date().toISOString().split("T")[0];
       const endDate = (req.query.end as string) || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
 
-      const { CapacityOverviewService } = await import("./application/admin/capacity-overview.service.js");
       const service = new CapacityOverviewService(storage);
       const summary = await service.getCapacitySummary(startDate, endDate);
 
@@ -731,7 +738,6 @@ ${allPages.map(p => `  <url>
   app.post("/api/cart/price", cartPriceLimiter, async (req, res) => {
     try {
       // Phase 2E: Feature flag controls which pricing system is used
-      const { isFeatureEnabled } = await import('./feature-flags.js');
       const usePricingEngine = isFeatureEnabled('USE_PRICING_ENGINE' as any, (req as any).user?.id, req.sessionID);
 
       const { items } = req.body;
@@ -750,17 +756,8 @@ ${allPages.map(p => `  <url>
         addonIds: item.addonIds || []
       }));
 
-      let snapshot;
-      if (usePricingEngine) {
-        // Phase 2E: Production - Use new PricingEngine (after Wave 1 validation)
-        snapshot = await priceCartService.priceCart(cartId, parsedItems);
-      } else {
-        // Phase 2: Legacy pricing (fallback during deployment)
-        // Using old system for backward compatibility
-        snapshot = await priceCartService.priceCart(cartId, parsedItems);
-        // Note: Both systems currently use PricingEngine internally
-        // Old system available as fallback during Phase 2E waves
-      }
+      // Note: Both systems currently use PricingEngine internally
+      const snapshot = await priceCartService.priceCart(cartId, parsedItems);
 
       // Add metadata for monitoring
       res.json({
@@ -1484,7 +1481,6 @@ ${allPages.map(p => `  <url>
         });
       }
 
-      const { AtomicBookingConfirmationService } = await import("./application/booking/AtomicBookingConfirmationService.js");
       const svc = new AtomicBookingConfirmationService(storage);
       const result = await svc.cancelBookingAtomically(booking.id, "guest_self_cancel");
 
@@ -1874,9 +1870,8 @@ ${allPages.map(p => `  <url>
       // QR payload: the manage-booking deep-link — scannable by the tour guide or guest
       const qrData = `${appUrl}/manage-booking?ref=${booking.id}`;
 
-      const QRCode = await import("qrcode");
       // Return both the data URL (for img src) and the raw string
-      const dataUrl = await QRCode.default.toDataURL(qrData, {
+      const dataUrl = await QRCode.toDataURL(qrData, {
         width: 200,
         margin: 2,
         errorCorrectionLevel: "H",
@@ -1904,7 +1899,6 @@ ${allPages.map(p => `  <url>
         }
       }
 
-      const { CreateBookingFromCartService } = await import("./application/booking/CreateBookingFromCartService.js");
       const bookingService = new CreateBookingFromCartService(storage);
 
       const booking = await bookingService.execute({
@@ -1920,7 +1914,6 @@ ${allPages.map(p => `  <url>
       // Run asynchronously after booking is created. Non-blocking: a fraud
       // assessment failure never prevents the booking from being returned.
       try {
-        const { FraudDetectionService } = await import("./infrastructure/fraud/FraudDetectionService.js");
         const fraudService = new FraudDetectionService(storage);
         const firstItem = items[0];
         const assessment = await fraudService.assess({
@@ -2080,7 +2073,6 @@ ${allPages.map(p => `  <url>
         try {
           // Release primary hold if exists
           if (existing.holdId) {
-            const { AvailabilityApplicationService } = await import("./application/availability/availability.application-service.js");
             const svc = new AvailabilityApplicationService(storage);
             await svc.releaseHold(existing.holdId).catch(console.error);
           }
@@ -2088,7 +2080,6 @@ ${allPages.map(p => `  <url>
           // Release session holds
           if (existing.bookingSessionId) {
             const holds = await storage.getHoldsBySession(existing.bookingSessionId);
-            const { AvailabilityApplicationService } = await import("./application/availability/availability.application-service.js");
             const svc = new AvailabilityApplicationService(storage);
             for (const h of holds) {
               await svc.releaseHold(h.id).catch(console.error);
@@ -2374,7 +2365,6 @@ ${allPages.map(p => `  <url>
 
       // Send branded confirmation email with List-Unsubscribe header (CAN-SPAM)
       try {
-        const { sendNewsletterEmail } = await import("./lib/mail.js");
         await sendNewsletterEmail(
           email.toLowerCase().trim(),
           "You're subscribed to Ace Tours & Transfers!",
@@ -2440,7 +2430,6 @@ ${allPages.map(p => `  <url>
 
       // 2. Auto-reply to guest
       try {
-        const { getContactAutoReplyTemplate } = await import("./lib/mail.js");
         const locale = req.body.locale || 'en';
         const autoReplyHtml = await getContactAutoReplyTemplate(contact, locale);
 
@@ -2528,7 +2517,6 @@ ${allPages.map(p => `  <url>
       if (!source) return res.status(404).json({ error: "Content not found" });
       if (!source.value?.trim()) return res.status(400).json({ error: "Content value is empty — nothing to translate" });
 
-      const { translateToAll } = await import("./lib/translate.js");
       const translations = await translateToAll(source.value);
 
       const results: any[] = [];

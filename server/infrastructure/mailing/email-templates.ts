@@ -7,6 +7,12 @@
 import { emailTerms } from './email-i18n.js';
 import { escapeHtml } from '../../lib/escape-html.js';
 
+function getTerms(locale = 'en') {
+  return (typeof locale === 'string' && Object.prototype.hasOwnProperty.call(emailTerms, locale))
+    ? emailTerms[locale]
+    : emailTerms['en'];
+}
+
 type BookingTemplateData = {
   customerName: string;
   bookingRef: string;
@@ -64,7 +70,7 @@ const BRAND_FOOTER = `
 `;
 
 export function wrap(content: string, locale = 'en'): string {
-  const t = emailTerms[locale] || emailTerms['en'];
+  const t = getTerms(locale);
   const googlePlaceId = process.env.GOOGLE_PLACE_ID;
   const reviewLink = googlePlaceId
     ? `https://search.google.com/local/writereview?placeid=${googlePlaceId}`
@@ -106,7 +112,7 @@ export function wrap(content: string, locale = 'en'): string {
 }
 
 export function bookingConfirmation(data: BookingTemplateData, locale = 'en') {
-  const t = emailTerms[locale] || emailTerms['en'];
+  const t = getTerms(locale);
   const paymentNote = data.paymentMethod === 'Bank Transfer'
     ? `<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:16px;margin:20px 0">
          <h3 style="color:#1e40af;margin:0 0 8px;font-size:14px">${t.bankTransferInstructions}</h3>
@@ -165,7 +171,7 @@ export function bookingConfirmation(data: BookingTemplateData, locale = 'en') {
 }
 
 export function paymentReceipt(data: PaymentTemplateData, locale = 'en') {
-  const t = emailTerms[locale] || emailTerms['en'];
+  const t = getTerms(locale);
   const html = wrap(`
     <h2 style="color:#0f0d09;margin:0 0 8px;font-size:22px">${t.paymentReceivedTitle}</h2>
     <p style="color:#706a60;margin:0 0 6px;font-size:14px">${t.hi} ${data.customerName}, ${t.paymentConfirmed}</p>
@@ -204,7 +210,7 @@ export function paymentReceipt(data: PaymentTemplateData, locale = 'en') {
 }
 
 export function paymentInstructions(data: BookingTemplateData, locale = 'en') {
-  const t = emailTerms[locale] || emailTerms['en'];
+  const t = getTerms(locale);
   const html = wrap(`
     <h2 style="color:#0f0d09;margin:0 0 8px;font-size:22px">${t.paymentInstructionsTitle}</h2>
     <p style="color:#706a60;margin:0 0 24px;font-size:14px">${t.hi} ${data.customerName}, ${t.completePayment} <strong>${data.bookingRef}</strong>.</p>
@@ -236,7 +242,7 @@ export function paymentInstructions(data: BookingTemplateData, locale = 'en') {
 }
 
 export function paymentFailure(data: PaymentTemplateData & { reason?: string }, locale = 'en') {
-  const t = emailTerms[locale] || emailTerms['en'];
+  const t = getTerms(locale);
   const html = wrap(`
     <h2 style="color:#0f0d09;margin:0 0 8px;font-size:22px">${t.paymentIssueTitle}</h2>
     <p style="color:#706a60;margin:0 0 24px;font-size:14px">${t.hi} ${data.customerName}, ${t.issueEncountered}</p>
@@ -273,7 +279,7 @@ export function paymentFailure(data: PaymentTemplateData & { reason?: string }, 
 }
 
 export function paymentExpiry(data: { customerName: string; bookingRef: string }, locale = 'en') {
-  const t = emailTerms[locale] || emailTerms['en'];
+  const t = getTerms(locale);
   const html = wrap(`
     <h2 style="color:#0f0d09;margin:0 0 8px;font-size:22px">${t.bookingExpiredTitle}</h2>
     <p style="color:#706a60;margin:0 0 24px;font-size:14px">${t.hi} ${data.customerName}, ${t.yourBooking} <strong>${data.bookingRef}</strong> ${t.bookingExpiredDesc}</p>

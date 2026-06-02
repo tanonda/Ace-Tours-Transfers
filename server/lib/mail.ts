@@ -15,7 +15,7 @@ export function getMsg(locale: string = "en", key: string, vars: Record<string, 
   const messages = emailLocales[locale] || emailLocales['en'];
   let text = messages[key] || emailLocales['en'][key] || key;
   for (const [k, v] of Object.entries(vars)) {
-    text = text.replace(new RegExp(`{${k}}`, 'g'), v);
+    text = text.replaceAll(`{${k}}`, v);
   }
   return text;
 }

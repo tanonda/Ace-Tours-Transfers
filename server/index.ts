@@ -16,6 +16,30 @@ import cors from "cors";
 import compression from "compression";
 import cookieParser from "cookie-parser";
 import { csrfProtection, generateCsrfToken } from "./middleware/csrf.js";
+import { PaymentApplicationService } from "./application/payment.application-service.js";
+import { storage } from "./storage.js";
+import { BackupIntegrityGuard } from "./infrastructure/recovery/integrity-guard.js";
+import { runIdempotentMigrations } from "./migrate.js";
+import { initFeatureFlags } from "./feature-flags.js";
+import { fetchLiveExchangeRates } from "./domain/pricing/PricingEngine.js";
+import { verifyEmailConfig } from "./lib/mail.js";
+import { cleanupNotifications } from "./infrastructure/cleanup/notification-cleanup.js";
+import { seedFlags } from "./seed-flags.js";
+import { seedGateways } from "./seed-gateways.js";
+import { PaymentReconciliationService } from "./application/payment-reconciliation.service.js";
+import { ReconciliationWorker } from "./infrastructure/payments/reconciliation.worker.js";
+import { HoldExpiryJob } from "./infrastructure/jobs/hold-expiry.job.js";
+import { ArchiveCleanupJob } from "./infrastructure/jobs/archive-cleanup.job.js";
+import { AvailabilityApplicationService } from "./application/availability/availability.application-service.js";
+import { BookingEventHandler } from "./application/events/BookingEventHandler.js";
+import { AdminNotificationHandler } from "./application/events/AdminNotificationHandler.js";
+import { GuestNotificationHandler } from "./application/events/GuestNotificationHandler.js";
+import { projectionEngine } from "./infrastructure/projections/projection-engine.js";
+import { BookingSummaryHandler } from "./application/projections/BookingSummaryHandler.js";
+import { RevenueByDayHandler } from "./application/projections/RevenueByDayHandler.js";
+import { PaymentOverviewHandler } from "./application/projections/PaymentOverviewHandler.js";
+import { BankTransferReconciliationSaga } from "./application/sagas/BankTransferReconciliationSaga.js";
+import { BookingCreated, PaymentConfirmed, PaymentInitiated } from "./domain/events.js";
 
 
 // Sentry is now initialized via --import ./server/instrument.ts for ESM compatibility
@@ -256,8 +280,6 @@ app.post(
 
       // Redirect to modular payment service for processing
       // We pass 'stripe' as the gateway slug
-      const { PaymentApplicationService } = await import('./application/payment.application-service.js');
-      const { storage } = await import('./storage.js');
       const paymentAppService = new PaymentApplicationService(storage);
 
       const result = await paymentAppService.handlePaymentWebhook({
@@ -409,14 +431,12 @@ app.use((req, res, next) => {
 
   // 1. Database Integrity Protection
   try {
-    const { BackupIntegrityGuard } = await import('./infrastructure/recovery/integrity-guard.js');
     const integrityGuard = new BackupIntegrityGuard();
 
     // Run database migrations first using the existing shared pool — avoids
     // spawning a competing WebSocket connection at startup that races and times out.
     try {
       console.log('[MIGRATIONS] Running migrations...');
-      const { runIdempotentMigrations } = await import('./migrate.js');
       await runIdempotentMigrations(neonPool as any);
       console.log('[MIGRATIONS] Migrations completed successfully');
     } catch (migrationError: any) {
@@ -431,7 +451,6 @@ app.use((req, res, next) => {
       console.warn('[MIGRATIONS] Migration execution warning:', errMsg);
     }
 
-    const { initFeatureFlags } = await import('./feature-flags.js');
     await initFeatureFlags();
 
     const status = await integrityGuard.checkIntegrity();
@@ -446,7 +465,6 @@ app.use((req, res, next) => {
 
   await initStripe();
   try {
-    const { fetchLiveExchangeRates } = await import('./domain/pricing/PricingEngine.js');
     await fetchLiveExchangeRates();
   } catch (err) {
     console.warn("Could not fetch initial exchange rates", err);
@@ -454,7 +472,6 @@ app.use((req, res, next) => {
 
   // SMTP verification (non-blocking — logs warning if unreachable)
   try {
-    const { verifyEmailConfig } = await import('./lib/mail.js');
     const smtpOk = await verifyEmailConfig();
     if (!smtpOk && process.env.NODE_ENV === 'production') {
       console.error('[STARTUP] WARNING: SMTP connection failed — emails will not be delivered!');
@@ -465,7 +482,6 @@ app.use((req, res, next) => {
 
   // Notification cleanup (non-blocking)
   try {
-    const { cleanupNotifications } = await import('./infrastructure/cleanup/notification-cleanup.js');
     await cleanupNotifications();
   } catch (err) {
     console.warn('[STARTUP] Notification cleanup skipped:', err);
@@ -477,7 +493,6 @@ app.use((req, res, next) => {
   // Inserts default flags only if missing — preserves admin UI edits across deploys.
   // See server/seed-flags.ts.
   try {
-    const { seedFlags } = await import('./seed-flags.js');
     await seedFlags();
   } catch (flagSeedErr) {
     console.error('[STARTUP] Feature flag seed failed:', flagSeedErr);
@@ -488,11 +503,9 @@ app.use((req, res, next) => {
   // Ensures payment_gateways is never empty after a DB reset or reprovisioning.
   // Only inserts rows that don't already exist (idempotent ON CONFLICT skip).
   try {
-    const { storage } = await import('./storage.js');
     const existing = await storage.getPaymentGateways();
     if (existing.length === 0) {
       console.log('[STARTUP] payment_gateways table is empty — running auto-seed...');
-      const { seedGateways } = await import('./seed-gateways.js');
       await seedGateways();
     } else {
       console.log(`[STARTUP] payment_gateways OK — ${existing.length} gateways registered.`);
@@ -503,10 +516,6 @@ app.use((req, res, next) => {
 
   // Initialize Reconciliation Worker (Phase 4)
   try {
-    const { storage } = await import('./storage.js');
-    const { PaymentReconciliationService } = await import('./application/payment-reconciliation.service.js');
-    const { ReconciliationWorker } = await import('./infrastructure/payments/reconciliation.worker.js');
-
     const reconService = new PaymentReconciliationService(storage);
     const reconWorker = new ReconciliationWorker(reconService, 15);
     reconWorker.start();
@@ -516,8 +525,6 @@ app.use((req, res, next) => {
 
   // Initialize Hold Expiry Job
   try {
-    const { storage } = await import('./storage.js');
-    const { HoldExpiryJob } = await import('./infrastructure/jobs/hold-expiry.job.js');
     const holdExpiryJob = new HoldExpiryJob(storage);
     holdExpiryJob.start(60000); // Check every minute
   } catch (holdError) {
@@ -526,8 +533,6 @@ app.use((req, res, next) => {
 
   // Initialize Archive Cleanup Job (runs daily)
   try {
-    const { storage } = await import('./storage.js');
-    const { ArchiveCleanupJob } = await import('./infrastructure/jobs/archive-cleanup.job.js');
     const archiveCleanupJob = new ArchiveCleanupJob(storage);
     archiveCleanupJob.start();
   } catch (archiveError) {
@@ -536,36 +541,24 @@ app.use((req, res, next) => {
 
   // Initialize Domain Event Handlers
   try {
-    const { storage } = await import('./storage.js');
-    const { AvailabilityApplicationService } = await import('./application/availability/availability.application-service.js');
-    const { BookingEventHandler } = await import('./application/events/BookingEventHandler.js');
-
     const availabilityService = new AvailabilityApplicationService(storage);
     const bookingEventHandler = new BookingEventHandler(storage, availabilityService);
     bookingEventHandler.register();
 
-    const { AdminNotificationHandler } = await import('./application/events/AdminNotificationHandler.js');
     const adminNotificationHandler = new AdminNotificationHandler(storage, (app as any)._sseClients || []);
     adminNotificationHandler.register();
 
-    const { GuestNotificationHandler } = await import('./application/events/GuestNotificationHandler.js');
     const guestNotificationHandler = new GuestNotificationHandler(storage);
     guestNotificationHandler.register();
 
     // Initialize Projections
-    const { projectionEngine } = await import('./infrastructure/projections/projection-engine.js');
-    const { BookingSummaryHandler } = await import('./application/projections/BookingSummaryHandler.js');
-    const { RevenueByDayHandler } = await import('./application/projections/RevenueByDayHandler.js');
-    const { PaymentOverviewHandler } = await import('./application/projections/PaymentOverviewHandler.js');
-
-    projectionEngine.register(await import('./domain/events.js').then(m => m.BookingCreated), new BookingSummaryHandler(storage));
-    projectionEngine.register(await import('./domain/events.js').then(m => m.PaymentConfirmed), new BookingSummaryHandler(storage));
-    projectionEngine.register(await import('./domain/events.js').then(m => m.PaymentConfirmed), new RevenueByDayHandler(storage));
-    projectionEngine.register(await import('./domain/events.js').then(m => m.PaymentInitiated), new PaymentOverviewHandler(storage));
-    projectionEngine.register(await import('./domain/events.js').then(m => m.PaymentConfirmed), new PaymentOverviewHandler(storage));
+    projectionEngine.register(BookingCreated, new BookingSummaryHandler(storage));
+    projectionEngine.register(PaymentConfirmed, new BookingSummaryHandler(storage));
+    projectionEngine.register(PaymentConfirmed, new RevenueByDayHandler(storage));
+    projectionEngine.register(PaymentInitiated, new PaymentOverviewHandler(storage));
+    projectionEngine.register(PaymentConfirmed, new PaymentOverviewHandler(storage));
 
     // Initialize Sagas
-    const { BankTransferReconciliationSaga } = await import('./application/sagas/BankTransferReconciliationSaga.js');
     const saga = new BankTransferReconciliationSaga(storage);
     saga.register();
 

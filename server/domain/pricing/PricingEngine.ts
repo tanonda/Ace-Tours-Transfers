@@ -205,7 +205,7 @@ export class PricingEngine {
     // ── 3. Group discount (7+ adults for per_person; always for group pricing) ─
     const paxForDiscount = rates.pricingType === 'group' ? adultPax + childPax : adultPax;
     const discountThreshold = rates.pricingType === 'group'
-      ? this.config.groupDiscountThreshold
+      ? 1
       : this.config.groupDiscountThreshold;
 
     if (paxForDiscount >= discountThreshold) {
@@ -213,7 +213,9 @@ export class PricingEngine {
       totalCents -= discountAmount;
       discountsCents -= discountAmount;
       appliedRules.push(
-        `${this.config.groupDiscountPercent}% group discount (${this.config.groupDiscountThreshold}+ ${rates.pricingType === 'group' ? 'guests' : 'adults'})`
+        rates.pricingType === 'group'
+          ? `${this.config.groupDiscountPercent}% group discount`
+          : `${this.config.groupDiscountPercent}% group discount (${this.config.groupDiscountThreshold}+ adults)`
       );
     }
 
@@ -268,7 +270,8 @@ export class PricingEngine {
     }
 
     const paxForDiscount = rates.pricingType === 'group' ? adultPax + childPax : adultPax;
-    if (paxForDiscount >= this.config.groupDiscountThreshold) {
+    const discountThreshold = rates.pricingType === 'group' ? 1 : this.config.groupDiscountThreshold;
+    if (paxForDiscount >= discountThreshold) {
       total = Math.round(total * (1 - this.config.groupDiscountPercent / 100));
     }
 
