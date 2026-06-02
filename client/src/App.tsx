@@ -44,6 +44,8 @@ const Confirmation = lazy(() => import("@/pages/confirmation"));
 const FAQ = lazy(() => import("@/pages/faq"));
 const ResetPassword = lazy(() => import("@/pages/reset-password"));
 const LandingPage = lazy(() => import("@/pages/landing-page"));
+const Blog = lazy(() => import("@/pages/blog"));
+const BlogArticle = lazy(() => import("@/pages/blog-article"));
 
 // Admin pages
 const AdminDashboard = lazy(() => import("@/pages/admin/dashboard"));
@@ -228,6 +230,8 @@ function Router() {
         <Route path="/privacy-policy" component={PrivacyPolicy} />
         <Route path="/terms-of-service" component={TermsOfService} />
         <Route path="/faq" component={FAQ} />
+        <Route path="/blog" component={Blog} />
+        <Route path="/blog/:slug" component={BlogArticle} />
         <Route path="/reset-password" component={ResetPassword} />
 
         {/* SEO category landing pages */}
