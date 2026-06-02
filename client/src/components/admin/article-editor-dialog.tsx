@@ -145,8 +145,7 @@ export function ArticleEditorDialog({ open, onOpenChange, article, onSaved }: Ar
       editor?.commands.setContent("");
     }
     setSlugError("");
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, article]);
+  }, [open, article, editor]);
 
   // Auto-fill slug from title when creating and slug not manually touched
   useEffect(() => {
@@ -448,8 +447,8 @@ export function ArticleEditorDialog({ open, onOpenChange, article, onSaved }: Ar
               />
               {tags.length > 0 && (
                 <div className="flex flex-wrap gap-1 pt-1">
-                  {tags.map((tag) => (
-                    <Badge key={tag} variant="secondary" className="text-xs">
+                  {tags.map((tag, i) => (
+                    <Badge key={`${tag}-${i}`} variant="secondary" className="text-xs">
                       {tag}
                     </Badge>
                   ))}
