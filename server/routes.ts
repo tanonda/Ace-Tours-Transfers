@@ -43,6 +43,7 @@ import { metricsService } from "./infrastructure/metrics/metrics.service.js";
 import { withProductTranslations, autoTranslateProduct, getProductTranslations, upsertProductTranslation } from "./lib/product-translation.service.js";
 import { slugify, uniqueSlug } from "./lib/slugify.js";
 import { sanitizeServerHtml } from "./lib/sanitize-server.js";
+import { publishedArticleSitemapEntries } from "./lib/article-sitemap.js";
 
 import crypto from "crypto";
 import multer from "multer";
@@ -354,6 +355,7 @@ export async function registerRoutes(
         { loc: "/faq",       priority: "0.7", changefreq: "monthly", lastmod: now },
         { loc: "/about",     priority: "0.6", changefreq: "monthly", lastmod: now },
         { loc: "/contact",   priority: "0.6", changefreq: "monthly", lastmod: now },
+        { loc: "/blog",      priority: "0.7", changefreq: "weekly",  lastmod: now },
       ];
 
       for (const slug of SEO_LANDING_SLUGS) {
@@ -371,7 +373,10 @@ export async function registerRoutes(
           return { loc: `/${type}/${p.id}`, priority: "0.8", changefreq: "weekly", lastmod };
         });
 
-      const allPages = [...staticPages, ...productPages];
+      const articleRows = await storage.getAllArticles();
+      const articlePages = publishedArticleSitemapEntries(articleRows as any, now);
+
+      const allPages = [...staticPages, ...productPages, ...articlePages];
 
       const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
