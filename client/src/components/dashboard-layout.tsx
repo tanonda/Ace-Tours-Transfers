@@ -92,6 +92,7 @@ export function DashboardLayout({ children, type }: DashboardLayoutProps) {
     { icon: LayoutDashboard, label: "Overview", href: "/admin/dashboard", show: true, group: "main" },
     { icon: CalendarDays, label: "Bookings", href: "/admin/bookings", show: true, group: "main" },
     { icon: Map, label: "Products", href: "/admin/products", show: user?.role === "admin", group: "main" },
+    { icon: FileText, label: "Blog", href: "/admin/blog", show: user?.role === "admin", group: "main" },
     { icon: CalendarDays, label: "Calendar", href: "/admin/calendar", show: true, group: "main" },
     { icon: Gauge, label: "Capacity", href: "/admin/capacity", show: user?.role === "admin", group: "main" },
     { icon: Star, label: "Reviews", href: "/admin/reviews", show: user?.role === "admin", group: "manage" },

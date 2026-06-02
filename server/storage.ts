@@ -67,7 +67,10 @@ import {
   type PricingVersion,
   type InsertPricingVersion,
   type CapacityAuditLog,
-  type InsertCapacityAuditLog
+  type InsertCapacityAuditLog,
+  articles,
+  type Article,
+  type InsertArticle,
 } from "../shared/schema.js";
 import { db } from "./db.js";
 import { eq, like, desc, and, or, isNull, sql, lte, asc, lt, inArray, gt } from "drizzle-orm";
@@ -96,6 +99,15 @@ export interface IStorage {
   createProduct(tour: InsertProduct): Promise<Product>;
   updateProduct(id: string, tour: Partial<InsertProduct>): Promise<Product>;
   deleteProduct(id: string): Promise<void>;
+
+  // Article (blog) operations
+  getPublishedArticles(): Promise<Article[]>;
+  getAllArticles(): Promise<Article[]>;
+  getArticleBySlug(slug: string): Promise<Article | undefined>;
+  getArticleById(id: string): Promise<Article | undefined>;
+  createArticle(data: InsertArticle): Promise<Article>;
+  updateArticle(id: string, data: Partial<InsertArticle>): Promise<Article>;
+  deleteArticle(id: string): Promise<void>;
 
   // Booking operations
   getBookings(includeArchived?: boolean): Promise<Booking[]>;
@@ -1692,6 +1704,53 @@ export class DatabaseStorage implements IStorage {
       return await query.where(and(...conditions));
     }
     return await query;
+  }
+
+  // Article (blog) operations
+  async getPublishedArticles(): Promise<Article[]> {
+    return this.withRetry(() =>
+      db.select().from(articles)
+        .where(eq(articles.status, "published"))
+        .orderBy(desc(articles.publishedAt))
+    );
+  }
+
+  async getAllArticles(): Promise<Article[]> {
+    return this.withRetry(() =>
+      db.select().from(articles).orderBy(desc(articles.updatedAt))
+    );
+  }
+
+  async getArticleBySlug(slug: string): Promise<Article | undefined> {
+    return this.withRetry(async () => {
+      const [a] = await db.select().from(articles).where(eq(articles.slug, slug));
+      return a || undefined;
+    });
+  }
+
+  async getArticleById(id: string): Promise<Article | undefined> {
+    return this.withRetry(async () => {
+      const [a] = await db.select().from(articles).where(eq(articles.id, id));
+      return a || undefined;
+    });
+  }
+
+  async createArticle(data: InsertArticle): Promise<Article> {
+    const [a] = await db.insert(articles).values(data as any).returning();
+    return a;
+  }
+
+  async updateArticle(id: string, data: Partial<InsertArticle>): Promise<Article> {
+    const [a] = await db
+      .update(articles)
+      .set({ ...(data as any), updatedAt: new Date() })
+      .where(eq(articles.id, id))
+      .returning();
+    return a;
+  }
+
+  async deleteArticle(id: string): Promise<void> {
+    await db.delete(articles).where(eq(articles.id, id));
   }
 }
 

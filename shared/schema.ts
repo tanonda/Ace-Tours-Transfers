@@ -586,6 +586,38 @@ export const cmsContentRelations = relations(cmsContent, ({ one }) => ({
   }),
 }));
 
+// ── Articles (Blog / Content Engine) ─────────────────────────────────────────
+// SEO-friendly blog posts. Mirrors the products SEO pattern.
+// Added in migration 0022.
+export const articles = pgTable("articles", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  slug: text("slug").notNull().unique(),
+  title: text("title").notNull(),
+  excerpt: text("excerpt"),
+  bodyHtml: text("body_html").notNull(),
+  coverImage: text("cover_image"),
+  imageAlt: text("image_alt"),
+  author: text("author"),
+  tags: text("tags").array().notNull().default(sql`'{}'::text[]`),
+  relatedProductIds: text("related_product_ids").array().notNull().default(sql`'{}'::text[]`),
+  status: text("status").notNull().default("draft"),
+  publishedAt: timestamp("published_at"),
+  seoTitle: text("seo_title"),
+  seoDescription: text("seo_description"),
+  seoKeywords: text("seo_keywords"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  statusPublishedIdx: index("idx_articles_status_published_at").on(table.status, table.publishedAt),
+}));
+
+export const insertArticleSchema = createInsertSchema(articles, {
+  status: z.enum(["draft", "published"]).default("draft"),
+}).omit({ id: true, createdAt: true, updatedAt: true });
+
+export type Article = typeof articles.$inferSelect;
+export type InsertArticle = z.infer<typeof insertArticleSchema>;
+
 // Insert Schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,

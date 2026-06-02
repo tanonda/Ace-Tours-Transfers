@@ -202,6 +202,9 @@ export function SEO({
     }
     if (extraJsonLd) Object.assign(productSchema, extraJsonLd);
     jsonLdBlocks.push(productSchema);
+  } else if (extraJsonLd) {
+    // ── Standalone extra JSON-LD (e.g. BlogPosting) when there is no product context ──
+    jsonLdBlocks.push(extraJsonLd);
   }
 
   // ── FAQPage schema ──
