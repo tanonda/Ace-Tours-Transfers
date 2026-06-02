@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { useState, useEffect, forwardRef } from "react";
-import { Menu, Phone, Mail, Instagram, Facebook, X, ChevronRight, ShoppingCart, User, LogIn, LogOut, UserPlus, Home, Map, Car, Info, MessageSquare, Calendar, ChevronDown } from "lucide-react";
+import { Menu, Phone, Mail, Instagram, Facebook, X, ChevronRight, ShoppingCart, User, LogIn, LogOut, UserPlus, Home, Map, Car, Info, MessageSquare, Calendar, ChevronDown, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { NewsletterForm } from "@/components/newsletter-form";
@@ -342,6 +342,16 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   </Link>
 
                   <Link
+                    href="/blog"
+                    onClick={closeMobileMenu}
+                    className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors"
+                    data-testid="mobile-nav-blog"
+                  >
+                    <BookOpen className="h-5 w-5 text-primary" />
+                    <span className="font-medium">{t("nav.blog", "Blog")}</span>
+                  </Link>
+
+                  <Link
                     href="/contact"
                     onClick={closeMobileMenu}
                     className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors"
@@ -559,6 +569,19 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <NavigationMenu className="relative z-50">
               <NavigationMenuList>
                 <NavigationMenuItem>
+                  <Link href="/blog" className={cn(
+                    "group inline-flex h-9 w-max items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors focus:outline-none disabled:pointer-events-none disabled:opacity-50",
+                    navTextColor
+                  )}>
+                    {t("nav.blog", "Blog")}
+                  </Link>
+                </NavigationMenuItem>
+              </NavigationMenuList>
+            </NavigationMenu>
+
+            <NavigationMenu className="relative z-50">
+              <NavigationMenuList>
+                <NavigationMenuItem>
                   <Link href="/contact" className={cn(
                     "group inline-flex h-9 w-max items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors focus:outline-none disabled:pointer-events-none disabled:opacity-50",
                     navTextColor
@@ -635,6 +658,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 <li><Link href="/tours" className="text-white/70 hover:text-white transition-colors">{t("nav.tours")}</Link></li>
                 <li><Link href="/transfers" className="text-white/70 hover:text-white transition-colors">{t("nav.transfers")}</Link></li>
                 <li><Link href="/about" className="text-white/70 hover:text-white transition-colors">{t("nav.about")}</Link></li>
+                <li><Link href="/blog" className="text-white/70 hover:text-white transition-colors">{t("nav.blog", "Blog")}</Link></li>
                 <li><Link href="/contact" className="text-white/70 hover:text-white transition-colors">{t("nav.contact")}</Link></li>
                 <li><Link href="/faq" className="text-white/70 hover:text-white transition-colors">FAQ</Link></li>
                 {footerBacklinks.map((link, i) => (
