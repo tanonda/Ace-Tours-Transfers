@@ -10,11 +10,8 @@ import {
   PaymentStatus,
 } from '../../domain/payments/interfaces.js';
 import { Payment } from '../../../shared/schema.js';
-import { z } from 'zod'; // Import z for Zod validation
-
-// This would typically be a library like 'crypto' or a specific SDK for secure hash generation
-// For mock, we'll simulate.
-import crypto from 'crypto';
+import { z } from 'zod';
+import { generate as vpcGenerate, verify as vpcVerify, HashFormat } from './vpc-secure-hash.js';
 
 export type MastercardGatewayCredentials = z.infer<typeof MastercardGatewayCredentialsSchema>;
 export type LocalBankConfig = z.infer<typeof LocalBankConfigSchema>;
@@ -29,6 +26,14 @@ export class MastercardGatewayAdapter implements PaymentGatewayService {
   private credentials: MastercardGatewayCredentials;
   private config: LocalBankConfig;
   private gatewayConfig: PaymentGateway; // The specific bank's gateway config
+  /**
+   * Hash format used for all VPC requests and response verification.
+   *
+   * // CONFIRM-WITH-BRED: set to 'VALUE_CONCAT' if their gateway uses the
+   * legacy values-only format. Resolved from gateway config, defaults to
+   * 'KEY_VALUE' (standard HMAC-SHA256 over sorted key=value pairs).
+   */
+  private hashFormat: HashFormat;
 
   constructor(gatewayConfig: PaymentGateway) {
     if (!gatewayConfig.credentials) {
@@ -52,65 +57,32 @@ export class MastercardGatewayAdapter implements PaymentGatewayService {
     this.config = parsedConfig.data;
     this.gatewayConfig = gatewayConfig;
 
+    // Resolve hash format from config (default: KEY_VALUE).
+    // // CONFIRM-WITH-BRED: flip to 'VALUE_CONCAT' if their docs specify legacy format.
+    this.hashFormat = ((this.config as any).hashFormat as HashFormat | undefined) ?? 'KEY_VALUE';
+
     // Additional validation/setup based on config
     if (!this.config.supportedCurrencies.includes(this.config.defaultDisplayCurrency)) {
       console.warn(`Default display currency ${this.config.defaultDisplayCurrency} is not in supported currencies for ${this.gatewayConfig.displayName}.`);
     }
 
-    console.log(`Mastercard Gateway Adapter initialized for ${this.gatewayConfig.displayName} (${this.credentials.merchantId})`);
+    console.log(`Mastercard Gateway Adapter initialized for ${this.gatewayConfig.displayName} (${this.credentials.merchantId}), hashFormat=${this.hashFormat}`);
   }
 
   /**
-   * Generates a secure hash for outgoing requests to MCPGS using HMAC-SHA256.
-   * The vpc_SecureHashType parameter tells the gateway which algorithm was used;
-   * both must agree or the gateway will reject the request.
-   *
-   * VPC hash algorithm: concatenate the values of all vpc_* params (sorted by key,
-   * excluding vpc_SecureHash itself) then HMAC-SHA256 with the secureHashSecret.
+   * Generates a VPC/MIGS secure hash for outgoing requests.
+   * Delegates to the isolated vpc-secure-hash module (see vpc-secure-hash.ts).
    */
   private generateSecureHash(params: Record<string, string>): string {
-    const sortedKeys = Object.keys(params)
-      .filter(k => k.startsWith('vpc_') && k !== 'vpc_SecureHash')
-      .sort();
-    let hashData = '';
-    for (const key of sortedKeys) {
-      if (params[key] !== null && params[key] !== undefined) {
-        hashData += params[key];
-      }
-    }
-    return crypto
-      .createHmac('sha256', this.credentials.secureHashSecret)
-      .update(hashData)
-      .digest('hex')
-      .toUpperCase(); // MCPGS typically expects upper-case hex
+    return vpcGenerate(params, this.credentials.secureHashSecret, this.hashFormat);
   }
 
   /**
-   * Verifies an incoming secure hash from MCPGS callback/webhook using HMAC-SHA256.
-   * Uses a timing-safe comparison to prevent timing attacks.
+   * Verifies an incoming VPC/MIGS secure hash in a timing-safe manner.
+   * Delegates to the isolated vpc-secure-hash module (see vpc-secure-hash.ts).
    */
   private verifySecureHash(params: Record<string, string>, receivedHash: string): boolean {
-    const sortedKeys = Object.keys(params)
-      .filter(k => k.startsWith('vpc_') && k !== 'vpc_SecureHash')
-      .sort();
-    let hashData = '';
-    for (const key of sortedKeys) {
-      if (params[key] !== null && params[key] !== undefined) {
-        hashData += params[key];
-      }
-    }
-    const expected = crypto
-      .createHmac('sha256', this.credentials.secureHashSecret)
-      .update(hashData)
-      .digest('hex')
-      .toUpperCase();
-
-    // Timing-safe comparison to prevent timing attacks
-    if (expected.length !== receivedHash.toUpperCase().length) return false;
-    return crypto.timingSafeEqual(
-      Buffer.from(expected),
-      Buffer.from(receivedHash.toUpperCase())
-    );
+    return vpcVerify(params, receivedHash, this.credentials.secureHashSecret, this.hashFormat);
   }
 
   /**
