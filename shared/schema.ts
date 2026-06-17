@@ -767,6 +767,7 @@ export const LocalBankConfigSchema = z.object({
   callbackWebhookUrl: z.string().url().optional(),
   checkoutLogoUrl: z.string().url().optional(),
   nameOnCheckout: z.string().optional(),
+  dataPortEndpoint: z.string().url().optional(),
 });
 
 // Refined: ANZ eGate Credentials Schema - extends Mastercard Gateway with optional specific fields

@@ -155,6 +155,7 @@ export interface IStorage {
   // Payments
   getPayments(): Promise<Payment[]>;
   getPayment(id: string): Promise<Payment | undefined>;
+  getPaymentByGatewayReference(gatewayReference: string): Promise<Payment | undefined>;
   getPaymentsByBooking(bookingId: string): Promise<Payment[]>;
   createPayment(payment: InsertPayment): Promise<Payment>;
   updatePayment(id: string, data: Partial<InsertPayment>): Promise<Payment>;
@@ -845,8 +846,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getPayment(id: string): Promise<Payment | undefined> {
-    const [payment] = await db.select().from(payments).where(eq(payments.id, id));
-    return payment || undefined;
+    return this.withRetry(async () => {
+      const [payment] = await db.select().from(payments).where(eq(payments.id, id));
+      return payment || undefined;
+    });
+  }
+
+  async getPaymentByGatewayReference(gatewayReference: string): Promise<Payment | undefined> {
+    return this.withRetry(async () => {
+      const [payment] = await db.select().from(payments).where(eq(payments.gatewayReference, gatewayReference));
+      return payment || undefined;
+    });
   }
 
   async getPaymentsByBooking(bookingId: string): Promise<Payment[]> {

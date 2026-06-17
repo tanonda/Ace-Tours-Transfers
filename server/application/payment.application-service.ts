@@ -284,10 +284,16 @@ export class PaymentApplicationService {
     const adapter = PaymentFactory.getPaymentGatewayService(gateway);
     const result = await adapter.handleWebhook(event);
 
-    // Resolve the payment: prefer explicit paymentId, fall back to bookingId lookup.
-    // Bank gateway callbacks (ANZ eGate, BSP, BRED) don't carry our internal paymentId
-    // through the redirect — only the bookingId survives as vpc_OrderInfo.
+    // Resolve the payment: prefer explicit paymentId, then resolve by gatewayReference (vpc_MerchTxnRef),
+    // and finally fall back to bookingId lookup (vpc_OrderInfo) if needed.
     let resolvedPaymentId = result.paymentId;
+    if (!resolvedPaymentId && result.gatewayReference) {
+      const paymentByRef = await this.storage.getPaymentByGatewayReference(result.gatewayReference);
+      if (paymentByRef) {
+        resolvedPaymentId = paymentByRef.id;
+        console.log(`[WEBHOOK] Resolved paymentId ${resolvedPaymentId} from gatewayReference ${result.gatewayReference}`);
+      }
+    }
     if (!resolvedPaymentId && result.bookingId) {
       const bookingPayments = await this.storage.getPaymentsByBooking(result.bookingId);
       const activePayment = bookingPayments.find(p =>
@@ -306,6 +312,78 @@ export class PaymentApplicationService {
 
       const terminalStates = [PaymentStatus.Completed, PaymentStatus.Failed, PaymentStatus.Cancelled, PaymentStatus.Expired];
       if (existingPayment && terminalStates.includes(existingPayment.status as PaymentStatus)) {
+        return result;
+      }
+
+      // Verify callback amount + currency (Item 2)
+      let amountMismatch = false;
+      let currencyMismatch = false;
+
+      if (existingPayment) {
+        if (result.amount !== undefined && result.amount !== existingPayment.amount) {
+          amountMismatch = true;
+        }
+        if (result.currency !== undefined && result.currency !== existingPayment.currency) {
+          currencyMismatch = true;
+        }
+      }
+
+      if ((amountMismatch || currencyMismatch) && result.newPaymentStatus === PaymentStatus.Completed) {
+        console.error(`[WEBHOOK] Payment mismatch detected for payment ${resolvedPaymentId}. Expected: ${existingPayment!.amount} ${existingPayment!.currency}, Received: ${result.amount} ${result.currency}`);
+
+        // Mismatch! Transition to manual_review_required and do NOT mark as Completed.
+        result.newPaymentStatus = PaymentStatus.ManualReviewRequired;
+        result.success = false;
+        result.message = `Amount or currency mismatch: expected ${existingPayment!.amount} ${existingPayment!.currency}, received ${result.amount} ${result.currency}`;
+
+        await this.storage.updatePayment(resolvedPaymentId, {
+          status: PaymentStatus.ManualReviewRequired,
+          gatewayReference: result.gatewayReference,
+          failureReason: 'amount_currency_mismatch',
+          metadata: {
+            ...(existingPayment!.metadata as Record<string, any> || {}),
+            bankReportedAmount: result.amount,
+            bankReportedCurrency: result.currency,
+          }
+        });
+
+        // Emit an admin alert email
+        try {
+          const booking = await this.storage.getBooking(existingPayment!.bookingId);
+          const customerName = booking?.customerName || "Customer";
+          await sendAdminEmail(
+            `⚠️ Payment Discrepancy Alert — Booking ACT-${shortBookingRef(existingPayment!.bookingId)}`,
+            `<div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+              <h2 style="color: #d35400;">⚠️ Payment Verification Mismatch Detected</h2>
+              <p>A payment callback was received from BRED Bank/eGate with a mismatch in the amount or currency.</p>
+              <table style="border-collapse: collapse; width: 100%; max-width: 500px; margin: 20px 0;">
+                <tr style="background-color: #f2f2f2;">
+                  <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Field</th>
+                  <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Expected (Us)</th>
+                  <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Received (Bank)</th>
+                </tr>
+                <tr>
+                  <td style="padding: 10px; border: 1px solid #ddd;"><strong>Amount</strong></td>
+                  <td style="padding: 10px; border: 1px solid #ddd;">${existingPayment!.amount}</td>
+                  <td style="padding: 10px; border: 1px solid #ddd; color: ${amountMismatch ? 'red' : 'inherit'};">${result.amount}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 10px; border: 1px solid #ddd;"><strong>Currency</strong></td>
+                  <td style="padding: 10px; border: 1px solid #ddd;">${existingPayment!.currency}</td>
+                  <td style="padding: 10px; border: 1px solid #ddd; color: ${currencyMismatch ? 'red' : 'inherit'};">${result.currency}</td>
+                </tr>
+              </table>
+              <p><strong>Payment ID:</strong> ${existingPayment!.id}</p>
+              <p><strong>Booking ID:</strong> ${existingPayment!.bookingId} (ACT-${shortBookingRef(existingPayment!.bookingId)})</p>
+              <p><strong>Customer:</strong> ${customerName}</p>
+              <p><strong>Gateway Reference:</strong> ${result.gatewayReference || "N/A"}</p>
+              <p>The payment status has been set to <strong>manual_review_required</strong>. Please reconcile this booking manually in the Admin Dashboard.</p>
+            </div>`
+          );
+        } catch (emailErr) {
+          console.error('[WEBHOOK] Failed to send admin mismatch email:', emailErr);
+        }
+
         return result;
       }
 

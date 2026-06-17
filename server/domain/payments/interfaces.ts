@@ -66,6 +66,8 @@ export interface WebhookResponse {
   newPaymentStatus?: PaymentStatus;
   gatewayReference?: string;
   failureReason?: string;
+  amount?: number;
+  currency?: string;
 }
 
 export interface PaymentGatewayService {

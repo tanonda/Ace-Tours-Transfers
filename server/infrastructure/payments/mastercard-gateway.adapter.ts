@@ -12,15 +12,17 @@ import {
 import { Payment } from '../../../shared/schema.js';
 import { z } from 'zod';
 import { generate as vpcGenerate, verify as vpcVerify, HashFormat } from './vpc-secure-hash.js';
+import { createLogger } from '../../lib/logger.js';
 
 export type MastercardGatewayCredentials = z.infer<typeof MastercardGatewayCredentialsSchema>;
 export type LocalBankConfig = z.infer<typeof LocalBankConfigSchema>;
+
+const logger = createLogger('mastercard-gateway-adapter');
 
 /**
  * Mastercard Gateway Adapter.
  * This class implements the PaymentGatewayService interface for payment gateways
  * that utilize the Mastercard Payment Gateway System (MCPGS) network (e.g., ANZ eGate, Bred, BSP).
- * It simulates interactions with a generic MIGS-style API.
  */
 export class MastercardGatewayAdapter implements PaymentGatewayService {
   private credentials: MastercardGatewayCredentials;
@@ -63,10 +65,14 @@ export class MastercardGatewayAdapter implements PaymentGatewayService {
 
     // Additional validation/setup based on config
     if (!this.config.supportedCurrencies.includes(this.config.defaultDisplayCurrency)) {
-      console.warn(`Default display currency ${this.config.defaultDisplayCurrency} is not in supported currencies for ${this.gatewayConfig.displayName}.`);
+      logger.warn(`Default display currency ${this.config.defaultDisplayCurrency} is not in supported currencies for ${this.gatewayConfig.displayName}.`);
     }
 
-    console.log(`Mastercard Gateway Adapter initialized for ${this.gatewayConfig.displayName} (${this.credentials.merchantId}), hashFormat=${this.hashFormat}`);
+    logger.info(`Mastercard Gateway Adapter initialized`, {
+      displayName: this.gatewayConfig.displayName,
+      merchantId: this.credentials.merchantId,
+      hashFormat: this.hashFormat,
+    });
   }
 
   /**
@@ -90,7 +96,11 @@ export class MastercardGatewayAdapter implements PaymentGatewayService {
    * This typically involves constructing a URL and redirecting the user to the gateway.
    */
   async initiatePayment(request: PaymentInitiationRequest): Promise<PaymentInitiationResponse> {
-    console.log(`Mastercard Gateway: Initiating payment for booking ${request.bookingId} via ${this.gatewayConfig.displayName}`);
+    logger.info(`Initiating payment via ${this.gatewayConfig.displayName}`, {
+      bookingId: request.bookingId,
+      amount: request.amount,
+      currency: request.currency,
+    });
 
     const transactionId = `${this.gatewayConfig.slug}-${Date.now()}-${request.bookingId.substring(0, 8)}`;
 
@@ -98,6 +108,16 @@ export class MastercardGatewayAdapter implements PaymentGatewayService {
     if (!this.config.supportedCurrencies.includes(request.currency)) {
       return { success: false, message: `Currency ${request.currency} not supported by ${this.gatewayConfig.displayName}.` };
     }
+
+    // Currency Exponent Guard (Item 7):
+    // MIGS/VPC expects amount in the currency's smallest unit (integer).
+    // For VUV (zero-decimal currency), 1 VUV is passed directly as 1.
+    // For USD/AUD (two-decimal currencies), $1.00 is passed as 100.
+    // Since our application service currently only supports 'VUV' (zero decimals),
+    // booking.totalAmountCents stores whole vatu, and passing request.amount directly
+    // is correct. If we support two-decimal currencies in the future, we must scale
+    // the amount accordingly (e.g., multiplying by 10^exponent).
+    const amountStr = request.amount.toString();
 
     // Construct common VPC payment parameters
     const vpcParams: Record<string, string> = {
@@ -107,7 +127,7 @@ export class MastercardGatewayAdapter implements PaymentGatewayService {
       vpc_Locale: 'en',
       vpc_Version: this.credentials.version || '1',
       vpc_ReturnURL: this.config.callbackWebhookUrl || request.successUrl, // Use configured callback URL if available
-      vpc_Amount: request.amount.toString(), // Amount in smallest unit (e.g., cents)
+      vpc_Amount: amountStr,
       vpc_Currency: request.currency,
       vpc_MerchTxnRef: transactionId, // Our unique transaction reference
       vpc_OrderInfo: request.bookingId, // Additional order info
@@ -117,7 +137,6 @@ export class MastercardGatewayAdapter implements PaymentGatewayService {
     if (this.config.enforce3DSecure && request.amount > (this.config.threeDSecureThreshold || 0)) {
       vpcParams.vpc_3DSecure = 'Y'; // Example parameter
     }
-
 
     // Generate Secure Hash
     const secureHash = this.generateSecureHash(vpcParams);
@@ -144,7 +163,7 @@ export class MastercardGatewayAdapter implements PaymentGatewayService {
    * These usually come as URL parameters in a GET or POST request to the ReturnURL.
    */
   async handleWebhook(event: WebhookEvent): Promise<WebhookResponse> {
-    console.log(`Mastercard Gateway: Handling webhook/callback event for ${event.gatewaySlug}.`);
+    logger.info(`Handling webhook/callback event`, { gatewaySlug: event.gatewaySlug });
 
     // In a real scenario, the rawEvent would be the query parameters (or body)
     // of the incoming request from the MCPGS ReturnURL.
@@ -153,9 +172,9 @@ export class MastercardGatewayAdapter implements PaymentGatewayService {
 
     // Verify Secure Hash (Crucial for security!)
     const receivedSecureHash = vpcResponseParams.vpc_SecureHash;
-    const isValidHash = this.verifySecureHash(vpcResponseParams, receivedSecureHash); // Simplified mock verification
+    const isValidHash = this.verifySecureHash(vpcResponseParams, receivedSecureHash);
     if (!isValidHash) {
-      console.error(`Mastercard Gateway: Secure Hash verification failed for ${event.gatewaySlug}.`);
+      logger.error(`Secure Hash verification failed`, { gatewaySlug: event.gatewaySlug });
       return { success: false, message: 'Secure Hash verification failed.' };
     }
 
@@ -170,17 +189,18 @@ export class MastercardGatewayAdapter implements PaymentGatewayService {
       newStatus = PaymentStatus.Failed;
     }
 
-    // This part requires mapping MCPGS transactionReference back to our internal payment ID.
-    // Assuming our `transactionId` sent in initiatePayment is MCPGS `vpc_MerchTxnRef`.
-    // The application service will handle fetching our payment based on this.
+    // Parse bank reported amount & currency (Item 2)
+    const amount = vpcResponseParams.vpc_Amount ? parseInt(vpcResponseParams.vpc_Amount, 10) : undefined;
+    const currency = vpcResponseParams.vpc_Currency || undefined;
 
     return {
       success: true,
       message: `Callback processed. MCPGS Response Code: ${responseCode}`,
-      // paymentId is resolved by the application service via bookingId lookup.
-      // VPC params from the bank do not include our internal payment ID.
       bookingId: vpcResponseParams.vpc_OrderInfo, // We set vpc_OrderInfo = bookingId in initiatePayment
       newPaymentStatus: newStatus,
+      gatewayReference: transactionReference, // Map MerchTxnRef (Item 3)
+      amount,
+      currency,
     };
   }
 
@@ -192,11 +212,15 @@ export class MastercardGatewayAdapter implements PaymentGatewayService {
    * returns a clear "not configured" status instead of fake mock data.
    */
   async queryPaymentStatus(request: PaymentStatusRequest): Promise<PaymentStatusResponse> {
-    const endpoint = this.credentials.apiEndpoint || this.config.bankApiEndpointUrl;
+    // Separate pay vs. data-port endpoint (Item 6)
+    // // CONFIRM-WITH-BRED: verify if queryDR uses dataPortEndpoint or apiEndpoint.
+    const endpoint = (this.config as any).dataPortEndpoint || this.credentials.apiEndpoint || this.config.bankApiEndpointUrl;
 
     // Guard: if no endpoint is configured, return honestly instead of faking it
     if (!endpoint) {
-      console.warn(`Mastercard Gateway: queryPaymentStatus called but no API endpoint configured for ${this.gatewayConfig.displayName}. Configure the endpoint URL in Admin → Payments.`);
+      logger.warn(`queryPaymentStatus called but no API endpoint configured. Configure in Admin → Payments.`, {
+        displayName: this.gatewayConfig.displayName
+      });
       return {
         status: PaymentStatus.Pending,
         message: `Payment status query unavailable: API endpoint not configured for ${this.gatewayConfig.displayName}. Configure in Admin → Payments.`,
@@ -211,7 +235,11 @@ export class MastercardGatewayAdapter implements PaymentGatewayService {
       };
     }
 
-    console.log(`Mastercard Gateway: Querying status for payment ${request.paymentId} (ref: ${txnRef}) via ${this.gatewayConfig.displayName}`);
+    logger.info(`Querying status for payment`, {
+      paymentId: request.paymentId,
+      gateway: this.gatewayConfig.displayName,
+      txnRef,
+    });
 
     // Build VPC queryDR parameters
     const vpcParams: Record<string, string> = {
@@ -241,26 +269,33 @@ export class MastercardGatewayAdapter implements PaymentGatewayService {
       });
 
       if (!response.ok) {
-        console.error(`Mastercard Gateway: queryDR HTTP error ${response.status} from ${this.gatewayConfig.displayName}`);
+        logger.error(`queryDR HTTP error from gateway`, {
+          status: response.status,
+          displayName: this.gatewayConfig.displayName
+        });
         return {
           status: PaymentStatus.Pending,
           message: `Gateway returned HTTP ${response.status} during status query.`,
         };
       }
 
-      // Parse url-encoded response from the gateway
+      // Parse url-encoded response from the gateway, decoding + as spaces
       const responseText = await response.text();
       const responseParams: Record<string, string> = {};
       for (const pair of responseText.split('&')) {
         const [key, ...rest] = pair.split('=');
-        responseParams[decodeURIComponent(key)] = decodeURIComponent(rest.join('='));
+        const k = decodeURIComponent(key.replace(/\+/g, '%20'));
+        const v = decodeURIComponent(rest.join('=').replace(/\+/g, '%20'));
+        responseParams[k] = v;
       }
 
       // Verify response hash if present
       if (responseParams.vpc_SecureHash) {
         const hashValid = this.verifySecureHash(responseParams, responseParams.vpc_SecureHash);
         if (!hashValid) {
-          console.error(`Mastercard Gateway: queryDR response hash verification FAILED for ${this.gatewayConfig.displayName}`);
+          logger.error(`queryDR response hash verification FAILED`, {
+            displayName: this.gatewayConfig.displayName
+          });
           return {
             status: PaymentStatus.Pending,
             message: 'Status query response failed hash verification — possible tampering.',
@@ -269,8 +304,6 @@ export class MastercardGatewayAdapter implements PaymentGatewayService {
       }
 
       // Map VPC response code to internal PaymentStatus
-      // vpc_TxnResponseCode: '0' = approved, '300' = pending/unknown,
-      // anything else = declined/failed (codes vary by bank)
       const responseCode = responseParams.vpc_TxnResponseCode;
       const drExists = responseParams.vpc_DRExists; // 'Y' if original txn found
 
@@ -292,15 +325,17 @@ export class MastercardGatewayAdapter implements PaymentGatewayService {
         status,
         gatewayReference: responseParams.vpc_TransactionNo || txnRef,
         amount,
-        currency: this.config.defaultDisplayCurrency || 'VUV',
+        currency: responseParams.vpc_Currency || this.config.defaultDisplayCurrency || 'VUV',
         message: `queryDR response code: ${responseCode || 'N/A'} (${this.gatewayConfig.displayName})`,
         failureReason: status === PaymentStatus.Failed
           ? `VPC response code: ${responseCode} — ${responseParams.vpc_Message || 'Declined'}`
           : undefined,
       };
     } catch (error: any) {
-      // Network error, timeout, DNS failure, etc.
-      console.error(`Mastercard Gateway: queryDR network error for ${this.gatewayConfig.displayName}:`, error.message);
+      logger.error(`queryDR network error`, {
+        displayName: this.gatewayConfig.displayName,
+        error: error.message
+      });
       return {
         status: PaymentStatus.Pending,
         message: `Status query failed: ${error.message}. Will retry later.`,
@@ -310,21 +345,140 @@ export class MastercardGatewayAdapter implements PaymentGatewayService {
 
   /**
    * Initiates a refund for a completed payment via Mastercard Payment Gateway.
-   * This would typically be a server-to-server API call.
+   * Replaces the mock with a signed vpc_Command=refund server-to-server POST.
    */
   async refundPayment(payment: Payment, amount?: number, reason?: string): Promise<PaymentStatusResponse> {
-    console.log(`Mastercard Gateway: Refunding payment ${payment.id} for amount ${amount || 'full'} with reason: ${reason}`);
+    const refundAmount = amount || payment.amount;
 
-    // This would involve another server-to-server API call to MCPGS for a refund.
+    logger.info(`Initiating refund for payment`, {
+      paymentId: payment.id,
+      amount: refundAmount,
+      reason,
+    });
 
-    return {
-      status: PaymentStatus.Refunded,
-      gatewayReference: payment.gatewayReference || `mock-vpc-refund-ref-${Date.now()}`,
-      amount: amount || payment.amount,
-      currency: payment.currency,
-      message: 'Payment refunded (mock).',
+    if (!payment.gatewayReference) {
+      return {
+        status: PaymentStatus.Failed,
+        message: 'Cannot initiate refund: payment does not have a gateway reference.',
+      };
+    }
+
+    // Separate pay vs. data-port endpoint (Item 6)
+    // // CONFIRM-WITH-BRED: verify if refund uses dataPortEndpoint or apiEndpoint.
+    const endpoint = (this.config as any).dataPortEndpoint || this.credentials.apiEndpoint || this.config.bankApiEndpointUrl;
+
+    if (!endpoint) {
+      return {
+        status: PaymentStatus.Failed,
+        message: `Refund failed: API endpoint not configured for ${this.gatewayConfig.displayName}.`,
+      };
+    }
+
+    const refundTxnRef = `refund-${payment.gatewayReference}-${Date.now()}`;
+
+    // Currency Exponent Guard (Item 7): Same as initiatePayment.
+    const amountStr = refundAmount.toString();
+
+    // Build VPC refund parameters
+    const vpcParams: Record<string, string> = {
+      vpc_Command: 'refund',
+      vpc_AccessCode: this.credentials.accessCode,
+      vpc_Merchant: this.credentials.merchantId,
+      vpc_Version: this.credentials.version || '1',
+      vpc_MerchTxnRef: refundTxnRef,
+      vpc_TransNo: payment.gatewayReference, // original gateway transaction reference
+      vpc_Amount: amountStr,
+      vpc_Currency: payment.currency,
     };
+
+    // Sign the request
+    const secureHash = this.generateSecureHash(vpcParams);
+    vpcParams.vpc_SecureHash = secureHash;
+    vpcParams.vpc_SecureHashType = 'SHA256';
+
+    try {
+      // Server-to-server HTTPS POST to the MIGS gateway
+      const body = Object.keys(vpcParams)
+        .map(key => `${key}=${encodeURIComponent(vpcParams[key])}`)
+        .join('&');
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body,
+        signal: AbortSignal.timeout(15_000), // 15s timeout
+      });
+
+      if (!response.ok) {
+        logger.error(`refundPayment HTTP error from gateway`, {
+          status: response.status,
+          displayName: this.gatewayConfig.displayName
+        });
+        return {
+          status: PaymentStatus.Failed,
+          message: `Gateway returned HTTP ${response.status} during refund transaction.`,
+        };
+      }
+
+      // Parse response parameters, decoding + as spaces
+      const responseText = await response.text();
+      const responseParams: Record<string, string> = {};
+      for (const pair of responseText.split('&')) {
+        const [key, ...rest] = pair.split('=');
+        const k = decodeURIComponent(key.replace(/\+/g, '%20'));
+        const v = decodeURIComponent(rest.join('=').replace(/\+/g, '%20'));
+        responseParams[k] = v;
+      }
+
+      // Verify response hash if present
+      if (responseParams.vpc_SecureHash) {
+        const hashValid = this.verifySecureHash(responseParams, responseParams.vpc_SecureHash);
+        if (!hashValid) {
+          logger.error(`refundPayment response hash verification FAILED`, {
+            displayName: this.gatewayConfig.displayName
+          });
+          return {
+            status: PaymentStatus.Failed,
+            message: 'Refund response failed hash verification — possible tampering.',
+          };
+        }
+      }
+
+      const responseCode = responseParams.vpc_TxnResponseCode;
+
+      if (responseCode === '0') {
+        logger.info(`Refund successful`, {
+          paymentId: payment.id,
+          gatewayReference: responseParams.vpc_TransactionNo
+        });
+        return {
+          status: PaymentStatus.Refunded,
+          gatewayReference: responseParams.vpc_TransactionNo || refundTxnRef,
+          amount: responseParams.vpc_Amount ? parseInt(responseParams.vpc_Amount, 10) : refundAmount,
+          currency: responseParams.vpc_Currency || payment.currency,
+          message: 'Refund successful.',
+        };
+      } else {
+        logger.warn(`Refund declined by gateway`, {
+          paymentId: payment.id,
+          responseCode,
+          message: responseParams.vpc_Message
+        });
+        return {
+          status: PaymentStatus.Failed,
+          gatewayReference: responseParams.vpc_TransactionNo || refundTxnRef,
+          message: `Refund declined: ${responseParams.vpc_Message || 'Unknown error'} (Code: ${responseCode})`,
+        };
+      }
+    } catch (error: any) {
+      logger.error(`refundPayment network error`, {
+        displayName: this.gatewayConfig.displayName,
+        error: error.message
+      });
+      return {
+        status: PaymentStatus.Failed,
+        message: `Refund transaction failed: ${error.message}`,
+      };
+    }
   }
 }
-
-
