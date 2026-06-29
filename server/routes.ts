@@ -104,6 +104,8 @@ const SEO_LANDING_SLUGS = [
   "port-vila-private-transfers",
 ];
 
+let lastGoodSitemapXml: string | null = null;
+
 /**
  * robots.txt served from an in-memory constant via an explicit always-200 route
  * (see below). Kept in sync with client/public/robots.txt. Serving it from code —
@@ -353,7 +355,7 @@ export async function registerRoutes(
 
   app.get("/sitemap.xml", async (_req, res) => {
     try {
-      const SITE_URL = process.env.APP_URL || "https://acetoursvanuatu.com";
+      const SITE_URL = (process.env.APP_URL || "https://acetoursvanuatu.com").replace(/\/$/, "");
       const products = await storage.getProducts();
       const now = new Date().toISOString().split("T")[0];
 
@@ -399,9 +401,18 @@ ${allPages.map(p => `  <url>
 
       res.header("Content-Type", "application/xml");
       res.header("Cache-Control", "public, max-age=3600");
+      lastGoodSitemapXml = xml;
       res.send(xml);
-    } catch {
-      res.status(500).send("<!-- sitemap generation failed -->");
+    } catch (error) {
+      console.error("[SEO] sitemap generation failed:", error);
+      if (lastGoodSitemapXml) {
+        res.header("Content-Type", "application/xml");
+        res.header("Cache-Control", "public, max-age=300");
+        res.header("X-Sitemap-Stale", "1");
+        res.send(lastGoodSitemapXml);
+        return;
+      }
+      res.status(500).send("<!-- sitemap generation failed: no cached sitemap available -->");
     }
   });
 

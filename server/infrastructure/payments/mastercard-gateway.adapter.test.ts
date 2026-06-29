@@ -1,38 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MastercardGatewayAdapter } from './mastercard-gateway.adapter.js';
-import { PaymentGateway, Payment } from '../../../shared/schema.js';
+import { Payment } from '../../../shared/schema.js';
 import { PaymentStatus, WebhookEvent } from '../../domain/payments/interfaces.js';
+import { makeMastercardPaymentGateway } from '../../test-fixtures/payment.js';
 
 // Setup mock gateway config
-const MOCK_GATEWAY_CONFIG: PaymentGateway = {
-  id: 'gw-123',
-  slug: 'bred-bank',
-  displayName: 'BRED Bank',
-  active: true,
-  isDefault: true,
-  priority: 1,
-  credentials: {
-    merchantId: 'TESTMERCH',
-    accessCode: 'TESTACCESS',
-    secureHashSecret: 'SuperSecret123',
-    apiEndpoint: 'https://migs.bred.vd/vpcpay',
-    version: '1',
-  },
-  config: {
-    terminalId: 'T1',
-    integrationType: 'HOSTED_REDIRECT',
-    bankApiEndpointUrl: 'https://migs.bred.vd/vpcpay',
-    settlementAccountId: 'ACC123',
-    supportedCurrencies: ['VUV'],
-    defaultDisplayCurrency: 'VUV',
-    enforce3DSecure: true,
-    threeDSecureThreshold: 10000,
-    callbackWebhookUrl: 'https://acetours.com/payment/callback',
-    dataPortEndpoint: 'https://migs.bred.vd/vpcdps',
-  },
-  createdAt: new Date(),
-  updatedAt: new Date(),
-};
+const MOCK_GATEWAY_CONFIG = makeMastercardPaymentGateway();
 
 describe('MastercardGatewayAdapter', () => {
   let adapter: MastercardGatewayAdapter;

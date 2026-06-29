@@ -1,9 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type Mocked } from 'vitest';
 import { PaymentApplicationService } from './payment.application-service.js';
 import { PaymentStatus, WebhookEvent } from '../domain/payments/interfaces.js';
 import { IStorage } from '../storage.js';
-import { PaymentGateway, Payment, Booking } from '../../shared/schema.js';
+import { Payment } from '../../shared/schema.js';
 import { PaymentIntent } from '../domain/payments/PaymentIntent.js';
+import { makeBooking, makePaymentGateway } from '../test-fixtures/payment.js';
 
 // Mock mail helpers
 const sendAdminEmailMock = vi.fn().mockResolvedValue(true);
@@ -37,21 +38,7 @@ vi.mock('../domain/payments/PaymentIntent.js', () => {
 });
 
 // Setup mock data
-const MOCK_GATEWAY: PaymentGateway = {
-  id: 'gw-123',
-  slug: 'bred-bank',
-  displayName: 'BRED Bank',
-  active: true,
-  isDefault: true,
-  priority: 1,
-  credentials: {},
-  config: {
-    supportedCurrencies: ['VUV'],
-    defaultDisplayCurrency: 'VUV',
-  },
-  createdAt: new Date(),
-  updatedAt: new Date(),
-};
+const MOCK_GATEWAY = makePaymentGateway();
 
 const MOCK_PAYMENT: Payment = {
   id: 'pay-1',
@@ -73,26 +60,10 @@ const MOCK_PAYMENT: Payment = {
   updatedAt: new Date(),
 };
 
-const MOCK_BOOKING: Booking = {
-  id: 'book-123',
-  userId: 'usr-1',
-  bookingSessionId: 'sess-1',
-  status: 'pending',
-  customerName: 'Alice',
-  customerEmail: 'alice@example.com',
-  customerPhone: '12345',
-  tourId: 'tour-1',
-  tourName: 'Blue Hole Tour',
-  date: '2026-06-20',
-  guests: 2,
-  totalAmountCents: 25000,
-  archivedAt: null,
-  createdAt: new Date(),
-  updatedAt: new Date(),
-};
+const MOCK_BOOKING = makeBooking();
 
 describe('PaymentApplicationService — handlePaymentWebhook', () => {
-  let storageMock: vi.Mocked<IStorage>;
+  let storageMock: Mocked<IStorage>;
   let service: PaymentApplicationService;
 
   beforeEach(() => {

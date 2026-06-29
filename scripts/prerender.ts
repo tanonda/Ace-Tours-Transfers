@@ -2,6 +2,7 @@ import 'dotenv/config';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn, type ChildProcess } from 'node:child_process';
+import { writeFile } from 'node:fs/promises';
 import { chromium, type Browser } from 'playwright';
 import { parseSitemapRoutes, writeSnapshot } from '../server/prerender-paths.js';
 
@@ -55,6 +56,8 @@ async function renderAll(base: string, routes: string[], browser: Browser): Prom
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   const page = await context.newPage();
   let ok = 0;
+  const writtenRoutes: string[] = [];
+  const failedRoutes: Array<{ route: string; error: string }> = [];
   for (const route of routes) {
     try {
       // Use 'load' (not 'networkidle'): this SPA holds persistent connections
@@ -89,10 +92,25 @@ async function renderAll(base: string, routes: string[], browser: Browser): Prom
       const file = await writeSnapshot(html, route, DIST_PUBLIC);
       console.log(`[ok] ${route} -> ${path.relative(REPO_ROOT, file)}`);
       ok++;
+      writtenRoutes.push(route);
     } catch (err) {
-      console.error(`[fail] ${route}: ${err instanceof Error ? err.message : err}`);
+      const error = err instanceof Error ? err.message : String(err);
+      console.error(`[fail] ${route}: ${error}`);
+      failedRoutes.push({ route, error });
     }
   }
+  await writeFile(
+    path.join(DIST_PUBLIC, '.prerender-manifest.json'),
+    JSON.stringify({
+      generatedAt: new Date().toISOString(),
+      baseUrl: base,
+      expectedRoutes: routes,
+      writtenRoutes,
+      failedRoutes,
+      coverage: routes.length > 0 ? writtenRoutes.length / routes.length : 0,
+    }, null, 2),
+    'utf-8',
+  );
   await context.close();
   return ok;
 }

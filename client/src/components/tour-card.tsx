@@ -2,7 +2,7 @@ import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Users, Check, Eye } from "lucide-react";
+import { Clock, Users, Eye } from "lucide-react";
 import { ProductQuickView } from "@/components/product-quick-view";
 import { ShareButton } from "@/components/share-button";
 import { motion } from "framer-motion";
@@ -36,6 +36,7 @@ export function TourCard({ tour, index }: { tour: ProductRouteProps; index: numb
   const [showQuickView, setShowQuickView] = useState(false);
   const { t } = useTranslation();
   const { currency } = useCurrency();
+  const detailHref = `/${tour.category === "transfer" ? "transfers" : "tours"}/${tour.id}`;
 
   return (
     <>
@@ -114,11 +115,11 @@ export function TourCard({ tour, index }: { tour: ProductRouteProps; index: numb
               </div>
 
               {tour.contactForPrice ? (
-                <Link href={`/tours/${tour.id}`}>
+                <Link href={detailHref}>
                   <Button className="w-full font-semibold touch-target touch-feedback" size="lg">{t("tour.inquireNow", "View Details & Contact")}</Button>
                 </Link>
               ) : (
-                <Link href={`/tours/${tour.id}`}>
+                <Link href={detailHref}>
                   <Button className="w-full font-semibold touch-target touch-feedback" size="lg">{t("tour.viewDetails", "View Details")}</Button>
                 </Link>
               )}
