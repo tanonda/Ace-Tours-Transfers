@@ -71,8 +71,11 @@ const BRAND_FOOTER = `
 
 export function wrap(content: string, locale = 'en'): string {
   const t = getTerms(locale);
+  const configuredReviewUrl = process.env.GOOGLE_REVIEW_URL;
   const googlePlaceId = process.env.GOOGLE_PLACE_ID;
-  const reviewLink = googlePlaceId
+  const reviewLink = configuredReviewUrl
+    ? configuredReviewUrl
+    : googlePlaceId
     ? `https://search.google.com/local/writereview?placeid=${googlePlaceId}`
     : (process.env.APP_URL || `https://acetoursvanuatu.com`);
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(reviewLink)}`;

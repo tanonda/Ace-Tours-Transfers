@@ -99,6 +99,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
     const [label, url] = line.split("|").map(s => s.trim());
     return { label, url };
   });
+  const landingLinks = [
+    { label: "Port Vila Airport Transfers", href: "/port-vila-airport-transfers" },
+    { label: "Efate Island Day Tours", href: "/efate-island-day-tours" },
+    { label: "Blue Lagoon Vanuatu Tour", href: "/blue-lagoon-vanuatu-tour" },
+    { label: "Mele Cascades Tour", href: "/mele-cascades-tour" },
+    { label: "Vanuatu Cultural Tours", href: "/vanuatu-cultural-tours" },
+    { label: "Port Vila Private Transfers", href: "/port-vila-private-transfers" },
+  ];
 
   // Deduplicate tours by normalized title to handle DB duplicates and naming variations
   const uniqueTours = allTours.reduce<Product[]>((acc: Product[], current: Product) => {
@@ -632,7 +640,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
       <footer role="contentinfo" className="bg-[#291B12] text-white pt-16 pb-24 md:pb-8">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
             <div>
               <div className="flex items-center gap-2 mb-6">
                 <img src={logo} alt="Ace Tours Logo" className="h-10 w-auto rounded-full border-2 border-white/20" />
@@ -663,6 +671,19 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 <li><Link href="/faq" className="text-white/70 hover:text-white transition-colors">FAQ</Link></li>
                 {footerBacklinks.map((link, i) => (
                   <li key={i}><a href={link.url} target="_blank" rel="noopener noreferrer" className="text-white/70 hover:text-white transition-colors">{link.label}</a></li>
+                ))}
+              </ul>
+            </div>
+
+            <div>
+              <h3 className="font-serif text-lg font-semibold mb-6 text-primary">Popular Searches</h3>
+              <ul className="space-y-3">
+                {landingLinks.map((link) => (
+                  <li key={link.href}>
+                    <Link href={link.href} className="text-white/70 hover:text-white transition-colors">
+                      {link.label}
+                    </Link>
+                  </li>
                 ))}
               </ul>
             </div>

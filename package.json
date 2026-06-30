@@ -27,7 +27,9 @@
     "test-pricing-engine": "tsx scripts/test-pricing-engine-standalone.ts",
     "rebuild-projections": "tsx scripts/verify-projections.ts --rebuild",
     "go-live-verify": "tsx scripts/go-live-verify.ts",
-    "upload-images": "tsx scripts/upload-product-images.ts"
+    "upload-images": "tsx scripts/upload-product-images.ts",
+    "seo:seed-settings": "tsx scripts/seed-seo-backlinks.ts",
+    "seo:seed-local-articles": "tsx scripts/seed-local-seo-articles.ts"
   },
   "dependencies": {
     "@cloudinary/react": "1.14.3",
