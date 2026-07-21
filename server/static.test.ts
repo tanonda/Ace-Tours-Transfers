@@ -4,7 +4,7 @@ import request from "supertest";
 import path from "node:path";
 import os from "node:os";
 import { mkdtemp, rm, mkdir, writeFile } from "node:fs/promises";
-import { serveStatic } from "./static.js";
+import { registerPrerenderStatusRoute, serveStatic } from "./static.js";
 
 // Integration test for the prerender-aware static server: it must serve a
 // prerendered snapshot for matching page routes, serve real static files
@@ -31,8 +31,14 @@ describe("serveStatic (prerender-aware)", () => {
     await mkdir(path.join(dist, "assets"), { recursive: true });
     await writeFile(path.join(dist, "assets", "app-abc.js"), "console.log('asset');");
     await writeFile(path.join(dist, "robots.txt"), "User-agent: *\nAllow: /\n");
+    await writeFile(
+      path.join(dist, ".prerender-manifest.json"),
+      JSON.stringify({ expectedRoutes: ["/", "/tours/abc-123"], writtenRoutes: ["/", "/tours/abc-123"] }),
+    );
 
     app = express();
+    registerPrerenderStatusRoute(app, dist);
+    app.all("/api/*any", (_req, res) => res.status(404).json({ error: "API route not found" }));
     serveStatic(app, dist);
   });
 
@@ -75,5 +81,16 @@ describe("serveStatic (prerender-aware)", () => {
     const res = await request(app).get("/");
     expect(res.status).toBe(200);
     expect(res.text).toContain("root");
+  });
+
+  it("serves non-cacheable prerender diagnostics before the API catch-all", async () => {
+    const res = await request(app).get("/api/seo/prerender-status");
+
+    expect(res.status).toBe(200);
+    expect(res.headers["cache-control"]).toBe("no-store");
+    expect(res.body.status).toBe("ok");
+    expect(res.body.snapshots.htmlFiles).toBe(2);
+    expect(res.body.manifest.writtenRoutes).toEqual(["/", "/tours/abc-123"]);
+    expect(res.body).not.toHaveProperty("distPath");
   });
 });

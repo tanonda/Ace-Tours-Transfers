@@ -14,4 +14,14 @@ describe("API route registration order", () => {
     expect(articleBySlug).toBeGreaterThan(publicArticles);
     expect(catchAll).toBeGreaterThan(articleBySlug);
   });
+
+  it("registers prerender diagnostics before the API catch-all is installed", () => {
+    const indexPath = fileURLToPath(new URL("./index.ts", import.meta.url));
+    const source = readFileSync(indexPath, "utf8");
+    const prerenderStatus = source.indexOf("registerPrerenderStatusRoute(app)");
+    const registerApiRoutes = source.indexOf("await registerRoutes(httpServer, app)");
+
+    expect(prerenderStatus).toBeGreaterThan(-1);
+    expect(registerApiRoutes).toBeGreaterThan(prerenderStatus);
+  });
 });

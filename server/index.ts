@@ -4,7 +4,7 @@ import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 import { pool as neonPool, db, initializeDatabase } from "./db.js";
 import { registerRoutes } from "./routes.js";
-import { serveStatic } from "./static.js";
+import { registerPrerenderStatusRoute, serveStatic } from "./static.js";
 import { createServer } from "http";
 import path from "path";
 import { runMigrations } from 'stripe-replit-sync';
@@ -485,6 +485,12 @@ app.use((req, res, next) => {
     await cleanupNotifications();
   } catch (err) {
     console.warn('[STARTUP] Notification cleanup skipped:', err);
+  }
+
+  // Register production diagnostics before registerRoutes installs its final
+  // /api/* 404 handler. Static page serving itself still belongs at the end.
+  if (process.env.NODE_ENV === "production") {
+    registerPrerenderStatusRoute(app);
   }
 
   await registerRoutes(httpServer, app);

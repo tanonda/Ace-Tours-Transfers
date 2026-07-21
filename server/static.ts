@@ -3,6 +3,9 @@ import fs from "fs";
 import path from "path";
 import { prerenderFileFor } from "./prerender-paths.js";
 
+let prerenderHits = 0;
+let prerenderMisses = 0;
+
 function countHtmlSnapshots(dir: string): { count: number; newestMtimeMs: number | null } {
   let count = 0;
   let newestMtimeMs: number | null = null;
@@ -27,21 +30,10 @@ function countHtmlSnapshots(dir: string): { count: number; newestMtimeMs: number
   return { count, newestMtimeMs };
 }
 
-export function serveStatic(app: Express, distPath: string = path.resolve(__dirname, "public")) {
-  if (!fs.existsSync(distPath)) {
-    throw new Error(
-      `Could not find the build directory: ${distPath}, make sure to build the client first`,
-    );
-  }
-
-  let prerenderHits = 0;
-  let prerenderMisses = 0;
-
-  // Serve real files (hashed assets, robots.txt, etc.) but never auto-index a
-  // directory or 301-redirect to a trailing slash — we control HTML responses
-  // ourselves below so canonical (no-trailing-slash) URLs stay intact.
-  app.use(express.static(distPath, { index: false, redirect: false }));
-
+export function registerPrerenderStatusRoute(
+  app: Express,
+  distPath: string = path.resolve(__dirname, "public"),
+) {
   app.get("/api/seo/prerender-status", (_req, res) => {
     const manifestPath = path.join(distPath, ".prerender-manifest.json");
     const snapshotStats = countHtmlSnapshots(distPath);
@@ -56,9 +48,9 @@ export function serveStatic(app: Express, distPath: string = path.resolve(__dirn
       }
     }
 
+    res.setHeader("Cache-Control", "no-store");
     res.json({
       status: manifest ? "ok" : "missing-manifest",
-      distPath,
       snapshots: {
         htmlFiles: snapshotStats.count,
         newest: snapshotStats.newestMtimeMs ? new Date(snapshotStats.newestMtimeMs).toISOString() : null,
@@ -70,6 +62,19 @@ export function serveStatic(app: Express, distPath: string = path.resolve(__dirn
       manifest,
     });
   });
+}
+
+export function serveStatic(app: Express, distPath: string = path.resolve(__dirname, "public")) {
+  if (!fs.existsSync(distPath)) {
+    throw new Error(
+      `Could not find the build directory: ${distPath}, make sure to build the client first`,
+    );
+  }
+
+  // Serve real files (hashed assets, robots.txt, etc.) but never auto-index a
+  // directory or 301-redirect to a trailing slash — we control HTML responses
+  // ourselves below so canonical (no-trailing-slash) URLs stay intact.
+  app.use(express.static(distPath, { index: false, redirect: false }));
 
   // Serve a prerendered HTML snapshot for matching GET routes, if one exists.
   app.use((req, res, next) => {
