@@ -2932,11 +2932,6 @@ ${p.lastmod ? `    <lastmod>${escapeXml(p.lastmod)}</lastmod>\n` : ""}    <chang
   await registerRecoveryRoutes(app, storage);
   registerBookingEngineRoutes(app, storage, requireAdmin);
 
-  // Safety 404 for /api routes to prevent hitting Vite middleware
-  app.all("/api/*any", (req, res) => {
-    res.status(404).json({ error: `Route ${req.method} ${req.originalUrl} not found` });
-  });
-
   // ── Product Translation Admin Endpoints ─────────────────────────────────────
 
   // POST: trigger Google-Translate auto-fill for fr, es, zh
@@ -3060,6 +3055,13 @@ ${p.lastmod ? `    <lastmod>${escapeXml(p.lastmod)}</lastmod>\n` : ""}    <chang
       console.error("[ROUTE] DELETE /api/admin/articles/:id", e);
       res.status(500).json({ error: "Failed to delete article" });
     }
+  });
+
+  // Safety 404 for unknown API routes. This must remain the final API route:
+  // Express matches in registration order, so placing it earlier makes every
+  // subsequently registered endpoint (including the public blog API) unreachable.
+  app.all("/api/*any", (req, res) => {
+    res.status(404).json({ error: `Route ${req.method} ${req.originalUrl} not found` });
   });
 
   return httpServer;
