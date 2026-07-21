@@ -8,6 +8,34 @@ import { findLandingPage } from "@/lib/landing-pages";
 import { cleanProductList } from "@/lib/product-filters";
 import { useLocalizedTours, useLocalizedTransfers } from "@/hooks/useLocalizedProducts";
 
+const RELATED_GUIDES: Record<string, Array<{ href: string; label: string }>> = {
+  "port-vila-airport-transfers": [
+    { href: "/blog/port-vila-airport-transfer-guide", label: "Port Vila airport transfer guide" },
+    { href: "/blog/efate-vanuatu-3-day-itinerary", label: "A relaxed three-day Efate itinerary" },
+  ],
+  "efate-island-day-tours": [
+    { href: "/blog/best-things-to-do-in-vanuatu", label: "18 best things to do in Vanuatu" },
+    { href: "/blog/things-to-do-in-port-vila-vanuatu", label: "12 best things to do in Port Vila" },
+    { href: "/blog/efate-vanuatu-3-day-itinerary", label: "A relaxed three-day Efate itinerary" },
+  ],
+  "blue-lagoon-vanuatu-tour": [
+    { href: "/blog/blue-lagoon-vanuatu-tour-tips", label: "Blue Lagoon timing, swimming, and packing tips" },
+    { href: "/blog/things-to-do-in-port-vila-vanuatu", label: "Things to do in Port Vila and nearby Efate" },
+  ],
+  "mele-cascades-tour": [
+    { href: "/blog/things-to-do-in-port-vila-vanuatu", label: "Things to do in Port Vila and nearby Efate" },
+    { href: "/blog/efate-vanuatu-3-day-itinerary", label: "A relaxed three-day Efate itinerary" },
+  ],
+  "vanuatu-cultural-tours": [
+    { href: "/blog/best-things-to-do-in-vanuatu", label: "Vanuatu attractions by island" },
+    { href: "/blog/vanuatu-attractions-which-island-to-visit", label: "How to choose between Efate, Tanna, and Santo" },
+  ],
+  "port-vila-private-transfers": [
+    { href: "/blog/port-vila-cruise-transfer-and-shore-tour-guide", label: "Port Vila cruise and shore-day guide" },
+    { href: "/blog/things-to-do-in-port-vila-vanuatu", label: "12 best things to do in Port Vila" },
+  ],
+};
+
 export default function LandingPage() {
   const { t } = useTranslation();
   const [location] = useLocation();
@@ -25,6 +53,7 @@ export default function LandingPage() {
   const featured = cleanProductList(all).filter((p) =>
     config.featuredMatch.test(p.title),
   );
+  const relatedGuides = RELATED_GUIDES[config.slug] ?? [];
 
   return (
     <Layout>
@@ -78,6 +107,21 @@ export default function LandingPage() {
             ))}
           </section>
         ))}
+
+        {relatedGuides.length > 0 ? (
+          <section className="my-12 rounded-2xl border bg-card p-6">
+            <h2 className="mb-4 text-2xl font-serif font-bold">Plan your Vanuatu visit</h2>
+            <ul className="space-y-3">
+              {relatedGuides.map((guide) => (
+                <li key={guide.href}>
+                  <Link href={guide.href} className="font-semibold text-primary hover:underline">
+                    {guide.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
 
         {/* FAQ */}
         <section className="my-12">

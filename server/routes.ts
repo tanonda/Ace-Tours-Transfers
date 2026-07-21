@@ -358,19 +358,22 @@ export async function registerRoutes(
       const SITE_URL = (process.env.APP_URL || "https://acetoursvanuatu.com").replace(/\/$/, "");
       const products = await storage.getProducts();
       const now = new Date().toISOString().split("T")[0];
+      // Only claim a static page changed when the deploy pipeline provides an
+      // accurate date. A fresh lastmod on every request is misleading to crawlers.
+      const staticLastmod = process.env.SITEMAP_STATIC_LASTMOD?.match(/^\d{4}-\d{2}-\d{2}$/)?.[0];
 
       const staticPages = [
-        { loc: "/",          priority: "1.0", changefreq: "weekly",  lastmod: now },
-        { loc: "/tours",     priority: "0.9", changefreq: "daily",   lastmod: now },
-        { loc: "/transfers", priority: "0.9", changefreq: "daily",   lastmod: now },
-        { loc: "/faq",       priority: "0.7", changefreq: "monthly", lastmod: now },
-        { loc: "/about",     priority: "0.6", changefreq: "monthly", lastmod: now },
-        { loc: "/contact",   priority: "0.6", changefreq: "monthly", lastmod: now },
-        { loc: "/blog",      priority: "0.7", changefreq: "weekly",  lastmod: now },
+        { loc: "/",          priority: "1.0", changefreq: "weekly",  lastmod: staticLastmod },
+        { loc: "/tours",     priority: "0.9", changefreq: "daily",   lastmod: staticLastmod },
+        { loc: "/transfers", priority: "0.9", changefreq: "daily",   lastmod: staticLastmod },
+        { loc: "/faq",       priority: "0.7", changefreq: "monthly", lastmod: staticLastmod },
+        { loc: "/about",     priority: "0.6", changefreq: "monthly", lastmod: staticLastmod },
+        { loc: "/contact",   priority: "0.6", changefreq: "monthly", lastmod: staticLastmod },
+        { loc: "/blog",      priority: "0.7", changefreq: "weekly",  lastmod: staticLastmod },
       ];
 
       for (const slug of SEO_LANDING_SLUGS) {
-        staticPages.push({ loc: `/${slug}`, priority: "0.8", changefreq: "monthly", lastmod: now });
+        staticPages.push({ loc: `/${slug}`, priority: "0.8", changefreq: "monthly", lastmod: staticLastmod });
       }
 
       const productPages = products
@@ -393,8 +396,7 @@ export async function registerRoutes(
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${allPages.map(p => `  <url>
     <loc>${escapeXml(SITE_URL)}${escapeXml(p.loc)}</loc>
-    <lastmod>${escapeXml(p.lastmod)}</lastmod>
-    <changefreq>${escapeXml(p.changefreq)}</changefreq>
+${p.lastmod ? `    <lastmod>${escapeXml(p.lastmod)}</lastmod>\n` : ""}    <changefreq>${escapeXml(p.changefreq)}</changefreq>
     <priority>${escapeXml(p.priority)}</priority>
   </url>`).join("\n")}
 </urlset>`;

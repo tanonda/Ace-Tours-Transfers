@@ -28,6 +28,9 @@ export default function BlogArticle() {
   if (isError || !article) return <NotFound />;
 
   const canonical = `${SITE_URL}/blog/${article.slug}`;
+  const seoKeywords = article.seoKeywords
+    ? article.seoKeywords.split(",").map((keyword) => keyword.trim()).filter(Boolean)
+    : [];
   const related = cleanProductList(productsQuery.data ?? [])
     .filter((p) => (article.relatedProductIds ?? []).includes(p.id));
   const date = article.publishedAt
@@ -41,7 +44,8 @@ export default function BlogArticle() {
         description={article.seoDescription || article.excerpt || article.title}
         image={article.coverImage || undefined}
         imageAlt={article.imageAlt || article.title}
-        keywords={article.tags ?? []}
+        type="article"
+        keywords={[...seoKeywords, ...(article.tags ?? [])]}
         extraJsonLd={buildBlogPostingJsonLd(article, canonical)}
       />
       <article className="bg-background">

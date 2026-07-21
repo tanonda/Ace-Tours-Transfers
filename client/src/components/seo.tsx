@@ -64,7 +64,7 @@ interface SEOProps {
   reviews?: ReviewSchema[];
   faqs?: FAQItem[];
   extraJsonLd?: Record<string, unknown>;
-  /** Emit a WebSite schema with SearchAction — set true only on the home page */
+  /** Emit WebSite schema — set true only on the home page */
   isHomePage?: boolean;
 }
 
@@ -88,10 +88,18 @@ export function SEO({
 }: SEOProps) {
   const [loc] = useLocation();
   const { i18n } = useTranslation();
-  const fullUrl = `${SITE_URL}${loc}`;
+  // Search engines should never see filters or tracking parameters as separate
+  // canonical pages. Wouter exposes the query string as part of the location.
+  const canonicalPath = loc.split("?")[0].split("#")[0].replace(/\/+$/, "") || "/";
+  const fullUrl = `${SITE_URL}${canonicalPath === "/" ? "/" : canonicalPath}`;
   const fullTitle = `${title} | ${SITE_NAME}`;
   const ogImage = cloudinaryOpt(image, 1200, "auto");
-  const ogLocale = OG_LOCALE_MAP[i18n.language] ?? "en_AU";
+  // Browser detection can return values such as en-US@posix. Only emit one of
+  // the languages the site actually supports in the document metadata.
+  const documentLanguage = (i18n.resolvedLanguage || i18n.language || "en")
+    .toLowerCase()
+    .split(/[-_@]/)[0];
+  const ogLocale = OG_LOCALE_MAP[documentLanguage] ?? "en_AU";
   const resolvedImageAlt = imageAlt || `${title} — Ace Tours & Transfers Vanuatu`;
 
   const jsonLdBlocks: object[] = [];
@@ -143,21 +151,13 @@ export function SEO({
   }
   jsonLdBlocks.push(localBusiness);
 
-  // ── WebSite + SearchAction (home page only) ──
+  // ── WebSite (home page only) ──
   if (isHomePage) {
     jsonLdBlocks.push({
       "@context": "https://schema.org",
       "@type": "WebSite",
       name: SITE_NAME,
       url: SITE_URL,
-      potentialAction: {
-        "@type": "SearchAction",
-        target: {
-          "@type": "EntryPoint",
-          urlTemplate: `${SITE_URL}/tours?q={search_term_string}`,
-        },
-        "query-input": "required name=search_term_string",
-      },
     });
   }
 
@@ -228,7 +228,7 @@ export function SEO({
 
   return (
     <Helmet>
-      <html lang={i18n.language || "en"} />
+      <html lang={documentLanguage} />
       <title>{fullTitle}</title>
       <meta name="description" content={description} />
       <meta name="keywords" content={allKeywords} />
