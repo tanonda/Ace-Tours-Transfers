@@ -41,15 +41,12 @@ COPY shared ./shared
 COPY migrations ./migrations
 COPY drizzle.config.ts ./
 COPY tsconfig.json ./
+RUN chmod +x ./scripts/start-with-prerender.sh
 
 EXPOSE 5000
 
-# Start the real server in the foreground (Render health check hits /api/health
-# and passes quickly). Concurrently, the prerender runner polls that same server
-# (PRERENDER_SKIP_SPAWN=1 → it does NOT spawn its own server) and writes static
-# snapshots into dist/public, which the running server serves per-request as each
-# file appears. `|| true` keeps a prerender failure from killing the container.
-# IMPORTANT: target the server on whatever PORT the host injects (Render uses
-# 10000, not 5000) — a hardcoded port would make prerender poll the wrong place,
-# time out, and skip every page. ${PORT:-5000} keeps it correct everywhere.
-CMD ["sh", "-c", "(PRERENDER_SKIP_SPAWN=1 PRERENDER_BASE_URL=http://localhost:${PORT:-5000} npm run prerender || true) & exec npm start"]
+# The supervisor starts the server so the prerender can crawl it, but treats the
+# prerender as a required startup phase. A failed or incomplete sitemap pass
+# terminates the server and exits non-zero instead of silently serving SPA-only
+# HTML. It also forwards container termination signals to the Node process.
+CMD ["/app/scripts/start-with-prerender.sh"]
