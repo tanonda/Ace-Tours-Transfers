@@ -18,7 +18,7 @@ const guides = [
     seoKeywords:
       "Port Vila airport transfers, Bauerfield Airport transfer, Vanuatu airport shuttle, airport taxi Port Vila",
     tags: ["Airport Transfers", "Port Vila", "Travel Tips"],
-    coverImage: `${siteUrl}/transfer_airport_png_1770298600300.png`,
+    coverImage: `${siteUrl}/assets/guides/port-vila-airport-welcome.webp`,
     imageAlt: "Ace Tours airport transfer vehicle in Port Vila, Vanuatu",
     relatedProductIds: [],
     bodyHtml: `
@@ -43,7 +43,7 @@ const guides = [
     seoKeywords:
       "Efate Island day tours, Port Vila tours, things to do Port Vila, Vanuatu day trips",
     tags: ["Efate Island", "Day Tours", "Port Vila"],
-    coverImage: `${siteUrl}/tour_efate_scenic_png_1770298439442.png`,
+    coverImage: `${siteUrl}/assets/guides/efate-coastal-road.webp`,
     imageAlt: "Scenic coastline on an Efate Island day tour from Port Vila",
     relatedProductIds: [],
     bodyHtml: `
@@ -68,7 +68,7 @@ const guides = [
     seoKeywords:
       "Blue Lagoon Vanuatu, Blue Lagoon Port Vila tour, Vanuatu swimming tour, Efate lagoon",
     tags: ["Blue Lagoon", "Swimming", "Efate Island"],
-    coverImage: `${siteUrl}/tour_blue_lagoon_turtle_png_1770298527281.png`,
+    coverImage: `${siteUrl}/assets/guides/blue-lagoon-efate.webp`,
     imageAlt: "Clear turquoise water at Blue Lagoon on Efate, Vanuatu",
     relatedProductIds: [],
     bodyHtml: `
@@ -93,7 +93,7 @@ const guides = [
     seoKeywords:
       "Port Vila cruise transfer, Vanuatu shore tours, Port Vila wharf transfer, cruise ship transfer Vanuatu",
     tags: ["Cruise Transfers", "Port Vila", "Shore Tours"],
-    coverImage: `${siteUrl}/transfer_wharf_png_1770298625471.png`,
+    coverImage: `${siteUrl}/assets/guides/port-vila-cruise-day.webp`,
     imageAlt: "Private cruise wharf transfer in Port Vila, Vanuatu",
     relatedProductIds: [],
     bodyHtml: `
@@ -118,7 +118,7 @@ const guides = [
     seoKeywords:
       "things to do in Vanuatu, Vanuatu tourist attractions, best places to visit Vanuatu, Vanuatu attractions, what to do in Vanuatu",
     tags: ["Vanuatu Attractions", "Things to Do", "Travel Guide"],
-    coverImage: `${siteUrl}/tour_efate_scenic_png_1770298439442.png`,
+    coverImage: `${siteUrl}/assets/guides/vanuatu-coast-field-guide.webp`,
     imageAlt: "Tropical coast and clear blue water among Vanuatu's tourist attractions",
     relatedProductIds: [],
     bodyHtml: `
@@ -202,7 +202,7 @@ const guides = [
     seoKeywords:
       "things to do in Port Vila, Port Vila attractions, what to do Port Vila Vanuatu, places to visit Port Vila, Efate attractions",
     tags: ["Port Vila", "Things to Do", "Efate Island"],
-    coverImage: `${siteUrl}/tour_roots_routes_png_1770298461368.png`,
+    coverImage: `${siteUrl}/assets/guides/port-vila-culture.webp`,
     imageAlt: "Local cultural experience near Port Vila on Efate Island, Vanuatu",
     relatedProductIds: [],
     bodyHtml: `
@@ -271,7 +271,7 @@ const guides = [
     seoKeywords:
       "Efate itinerary, Vanuatu 3 day itinerary, Port Vila itinerary, 3 days in Vanuatu, Efate things to do",
     tags: ["Efate Itinerary", "Port Vila", "Travel Planning"],
-    coverImage: `${siteUrl}/tour_blue_lagoon_turtle_png_1770298527281.png`,
+    coverImage: `${siteUrl}/assets/guides/efate-itinerary-planning.webp`,
     imageAlt: "Blue Lagoon swimming stop on a three-day Efate itinerary",
     relatedProductIds: [],
     bodyHtml: `
@@ -347,7 +347,7 @@ const guides = [
     seoKeywords:
       "best island in Vanuatu, Efate vs Tanna vs Santo, where to go in Vanuatu, Vanuatu islands to visit, Vanuatu attractions by island",
     tags: ["Vanuatu Islands", "Trip Planning", "Travel Guide"],
-    coverImage: `${siteUrl}/tour_pele_island_png_1770298546250.png`,
+    coverImage: `${siteUrl}/assets/guides/vanuatu-island-comparison.webp`,
     imageAlt: "Tropical island and reef near Efate, Vanuatu",
     relatedProductIds: [],
     bodyHtml: `

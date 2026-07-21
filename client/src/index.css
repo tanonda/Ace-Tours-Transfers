@@ -291,3 +291,164 @@
   border-top-color: hsl(var(--primary)) !important;
   border-left-color: hsl(var(--primary)) !important;
 }
+
+/* Vanuatu guide editorial system — deliberately separate from admin/Tiptap prose. */
+.travel-prose {
+  max-width: 68ch;
+  color: #4e4134;
+  font-size: clamp(1.02rem, 0.98rem + 0.18vw, 1.125rem);
+  line-height: 1.88;
+  text-wrap: pretty;
+}
+
+.travel-prose > :first-child {
+  margin-top: 0;
+  color: #2b1d13;
+  font-family: "Playfair Display", serif;
+  font-size: clamp(1.32rem, 1.2rem + 0.45vw, 1.65rem);
+  font-weight: 600;
+  line-height: 1.55;
+}
+
+.travel-prose p {
+  margin-block: 1.3rem;
+}
+
+.travel-prose h2 {
+  position: relative;
+  scroll-margin-top: 8.5rem;
+  margin-top: clamp(3.5rem, 7vw, 5.75rem);
+  margin-bottom: 1.25rem;
+  padding-top: 1.2rem;
+  border-top: 1px solid #d7c9b3;
+  color: #281b12;
+  font-family: "Playfair Display", serif;
+  font-size: clamp(2rem, 1.65rem + 1.25vw, 3rem);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.08;
+  text-wrap: balance;
+}
+
+.travel-prose h2::before {
+  content: "";
+  position: absolute;
+  top: -4px;
+  left: 0;
+  width: 3.4rem;
+  height: 7px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #d26c16 0 62%, #2d8f88 62% 100%);
+}
+
+.travel-prose h3 {
+  scroll-margin-top: 8.5rem;
+  margin-top: 2.35rem;
+  margin-bottom: 0.65rem;
+  color: #342318;
+  font-family: "DM Sans", sans-serif;
+  font-size: clamp(1.2rem, 1.12rem + 0.35vw, 1.45rem);
+  font-weight: 750;
+  line-height: 1.32;
+  text-wrap: balance;
+}
+
+.travel-prose ul,
+.travel-prose ol {
+  margin-block: 1.75rem;
+  padding: 1.25rem 1.25rem 1.25rem 2.8rem;
+  border: 1px solid #cdd9d2;
+  border-radius: 1.15rem;
+  background: #edf3ed;
+}
+
+.travel-prose li {
+  margin-block: 0.65rem;
+  padding-left: 0.25rem;
+}
+
+.travel-prose li::marker {
+  color: #c76112;
+  font-weight: 800;
+}
+
+.travel-prose a {
+  border-bottom: 1px solid #c76112;
+  color: #9d470c;
+  font-weight: 700;
+  text-decoration: none;
+  transition: color 160ms ease, border-color 160ms ease;
+}
+
+.travel-prose a:hover {
+  border-color: #236e68;
+  color: #236e68;
+}
+
+.travel-prose blockquote {
+  margin-block: 2.5rem;
+  padding: 0.25rem 0 0.25rem 1.5rem;
+  border-left: 4px solid #2d8f88;
+  color: #35271c;
+  font-family: "Playfair Display", serif;
+  font-size: 1.3em;
+  font-style: italic;
+  line-height: 1.55;
+}
+
+.travel-prose strong {
+  color: #2c1e14;
+  font-weight: 750;
+}
+
+.dark .travel-prose {
+  color: #cfc1ad;
+}
+
+.dark .travel-prose > :first-child,
+.dark .travel-prose h2,
+.dark .travel-prose h3,
+.dark .travel-prose strong,
+.dark .travel-prose blockquote {
+  color: #f7efdf;
+}
+
+.dark .travel-prose h2 {
+  border-top-color: rgba(255, 255, 255, 0.13);
+}
+
+.dark .travel-prose ul,
+.dark .travel-prose ol {
+  border-color: rgba(98, 207, 196, 0.18);
+  background: rgba(45, 143, 136, 0.09);
+}
+
+.dark .travel-prose a {
+  border-color: #ffad3d;
+  color: #ffc36f;
+}
+
+.dark .travel-prose a:hover {
+  border-color: #7cddd4;
+  color: #7cddd4;
+}
+
+@media (max-width: 639px) {
+  .travel-prose {
+    line-height: 1.78;
+  }
+
+  .travel-prose p {
+    margin-block: 1.1rem;
+  }
+
+  .travel-prose h2 {
+    margin-top: 3.5rem;
+  }
+
+  .travel-prose ul,
+  .travel-prose ol {
+    margin-inline: -0.25rem;
+    padding: 1rem 1rem 1rem 2.35rem;
+  }
+}
