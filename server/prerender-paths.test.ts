@@ -57,7 +57,7 @@ describe('prerenderFileFor', () => {
 
 import os from 'node:os';
 import { mkdtemp, rm, readFile } from 'node:fs/promises';
-import { parseSitemapRoutes, writeSnapshot } from './prerender-paths.js';
+import { orderRoutesForPrerender, parseSitemapRoutes, writeSnapshot } from './prerender-paths.js';
 
 describe('parseSitemapRoutes', () => {
   it('extracts unique pathnames from sitemap <loc> entries', () => {
@@ -69,6 +69,16 @@ describe('parseSitemapRoutes', () => {
   <url><loc>https://acetoursvanuatu.com/tours</loc></url>
 </urlset>`;
     expect(parseSitemapRoutes(xml)).toEqual(['/', '/tours', '/tours/abc-123']);
+  });
+});
+
+describe('orderRoutesForPrerender', () => {
+  it('renders the root snapshot last so it cannot contaminate the SPA fallback', () => {
+    expect(orderRoutesForPrerender(['/', '/blog', '/blog/guide'])).toEqual([
+      '/blog',
+      '/blog/guide',
+      '/',
+    ]);
   });
 });
 

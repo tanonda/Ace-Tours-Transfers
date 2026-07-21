@@ -2,9 +2,11 @@ import 'dotenv/config';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn, type ChildProcess } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { writeFile } from 'node:fs/promises';
-import { chromium, type Browser } from 'playwright';
-import { parseSitemapRoutes, writeSnapshot } from '../server/prerender-paths.js';
+import { chromium, type Browser, type Page } from 'playwright';
+import { orderRoutesForPrerender, parseSitemapRoutes, writeSnapshot } from '../server/prerender-paths.js';
+import { validatePrerenderSnapshots, validateSnapshotHtml } from '../server/prerender-validation.js';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(HERE, '..');
@@ -20,7 +22,18 @@ const RENDER_DELAY_MS = Number(process.env.PRERENDER_RENDER_DELAY_MS ?? 2500);
 // How long to wait for real content (the JSON-LD marker) after the app mounts,
 // before falling back to snapshotting whatever is rendered. Generous because a
 // cold Render container's first API calls can be slow.
-const CONTENT_TIMEOUT_MS = Number(process.env.PRERENDER_CONTENT_TIMEOUT_MS ?? 15_000);
+const CONTENT_TIMEOUT_MS = Number(process.env.PRERENDER_CONTENT_TIMEOUT_MS ?? 30_000);
+
+function browserExecutable(): string | undefined {
+  const candidates = [
+    process.env.PRERENDER_BROWSER_EXECUTABLE,
+    chromium.executablePath(),
+    '/usr/bin/google-chrome',
+    '/usr/bin/chromium',
+    '/usr/bin/chromium-browser',
+  ];
+  return candidates.find((candidate): candidate is string => Boolean(candidate && existsSync(candidate)));
+}
 
 async function waitForHealth(base: string, timeoutMs: number): Promise<void> {
   const deadline = Date.now() + timeoutMs;
@@ -52,13 +65,37 @@ async function getRoutes(base: string): Promise<string[]> {
   return parseSitemapRoutes(xml);
 }
 
+async function waitForRouteContent(page: Page, route: string, timeoutMs: number): Promise<void> {
+  const expectedRoute = route.length > 1 ? route.replace(/\/+$/, '') : '/';
+  const requireArticleSchema = expectedRoute.startsWith('/blog/');
+  const deadline = Date.now() + timeoutMs;
+
+  while (Date.now() < deadline) {
+    const canonical = await page.locator('link[rel="canonical"]').first().getAttribute('href', { timeout: 500 }).catch(() => null);
+    const h1 = await page.locator('h1').first().textContent({ timeout: 500 }).catch(() => null);
+    const schemas = await page.locator('script[type="application/ld+json"]').allTextContents().catch(() => []);
+    let canonicalPath: string | null = null;
+    try {
+      const pathname = new URL(canonical ?? '', page.url()).pathname;
+      canonicalPath = pathname.length > 1 ? pathname.replace(/\/+$/, '') : '/';
+    } catch {
+      canonicalPath = null;
+    }
+    const hasArticleSchema = schemas.some((schema) => /"@type"\s*:\s*"(?:BlogPosting|Article)"/i.test(schema));
+    if (canonicalPath === expectedRoute && Boolean(h1?.trim()) && (!requireArticleSchema || hasArticleSchema)) return;
+    await page.waitForTimeout(250);
+  }
+
+  throw new Error(`route-specific content did not become ready within ${timeoutMs}ms`);
+}
+
 async function renderAll(base: string, routes: string[], browser: Browser): Promise<number> {
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   const page = await context.newPage();
   let ok = 0;
   const writtenRoutes: string[] = [];
   const failedRoutes: Array<{ route: string; error: string }> = [];
-  for (const route of routes) {
+  for (const route of orderRoutesForPrerender(routes)) {
     try {
       // Use 'load' (not 'networkidle'): this SPA holds persistent connections
       // (Trustpilot widget, live currency API, Sentry) so networkidle rarely
@@ -70,25 +107,17 @@ async function renderAll(base: string, routes: string[], browser: Browser): Prom
       // the toast region (pointer-events:none, zero-size), which Playwright deems
       // invisible, so a visibility wait would time out even though the app mounted.
       await page.waitForSelector('#root > *', { state: 'attached', timeout: NAV_TIMEOUT_MS });
-      // Then wait for real CONTENT, not just the loading spinner. The <SEO>
-      // component injects a JSON-LD <script> into <head> only after the page's
-      // data (react-query) has loaded and the page body renders — so it's the
-      // reliable "content ready" signal we actually care about for SEO. Without
-      // this, a slow API (cold Render container) gets snapshotted mid-spinner:
-      // populated #root but no <h1>/JSON-LD. Fall back to a settle delay if the
-      // marker never appears, so a page that legitimately lacks JSON-LD (or a
-      // transient slow load) still produces a best-effort snapshot rather than
-      // failing outright.
-      try {
-        await page.waitForSelector('head script[type="application/ld+json"]', {
-          state: 'attached',
-          timeout: CONTENT_TIMEOUT_MS,
-        });
-      } catch {
-        console.warn(`[warn] ${route}: no JSON-LD after ${CONTENT_TIMEOUT_MS}ms — snapshotting current DOM`);
-      }
+      // A generic JSON-LD marker is not enough: the SPA shell already contains
+      // homepage schema and previously caused article URLs to be snapshotted as
+      // the homepage. Require this route's canonical plus real heading content;
+      // article routes must additionally expose article-specific JSON-LD.
+      await waitForRouteContent(page, route, CONTENT_TIMEOUT_MS);
       await page.waitForTimeout(RENDER_DELAY_MS);
       const html = await page.content();
+      const validation = validateSnapshotHtml(html, route);
+      if (validation.issues.length > 0) {
+        throw new Error(validation.issues.join('; '));
+      }
       const file = await writeSnapshot(html, route, DIST_PUBLIC);
       console.log(`[ok] ${route} -> ${path.relative(REPO_ROOT, file)}`);
       ok++;
@@ -129,10 +158,19 @@ export async function runPrerender(): Promise<boolean> {
     const routes = await getRoutes(BASE_URL);
     console.log(`[prerender] ${routes.length} routes from sitemap`);
 
-    browser = await chromium.launch({ headless: true });
+    const executablePath = browserExecutable();
+    console.log(`[prerender] browser: ${executablePath ?? 'Playwright default'}`);
+    browser = await chromium.launch({ headless: true, ...(executablePath && { executablePath }) });
     const written = await renderAll(BASE_URL, routes, browser);
     console.log(`[prerender] wrote ${written}/${routes.length} snapshots`);
-    return written > 0;
+    const validation = await validatePrerenderSnapshots(routes, DIST_PUBLIC);
+    const invalid = validation.filter((result) => result.issues.length > 0);
+    if (invalid.length > 0) {
+      const details = invalid.map((result) => `${result.route}: ${result.issues.join('; ')}`).join('\n');
+      throw new Error(`Prerender validation failed for ${invalid.length}/${routes.length} sitemap routes:\n${details}`);
+    }
+    console.log(`[prerender] validated ${validation.length}/${routes.length} sitemap snapshots`);
+    return validation.length === routes.length && validation.length > 0;
   } finally {
     await browser?.close();
     if (server) {

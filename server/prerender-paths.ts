@@ -72,6 +72,17 @@ export function parseSitemapRoutes(xml: string): string[] {
   return routes;
 }
 
+/**
+ * Keep the root route last. Once `/` is snapshotted it replaces the SPA shell
+ * at dist/public/index.html, which is also the fallback used while rendering
+ * routes that do not have snapshots yet.
+ */
+export function orderRoutesForPrerender(routes: string[]): string[] {
+  return [...routes.filter((route) => cleanRoute(route) !== '/')].concat(
+    routes.some((route) => cleanRoute(route) === '/') ? ['/'] : [],
+  );
+}
+
 /** Write a snapshot HTML string to its computed path, creating parent dirs. Returns the path written. */
 export async function writeSnapshot(html: string, route: string, distPath: string): Promise<string> {
   const file = outputPathFor(route, distPath);

@@ -72,9 +72,9 @@ async function buildAll() {
         );
       }
     } catch (err) {
-      console.warn(
-        "[build] prerender failed (non-fatal); shipping SPA shell only:",
-        err instanceof Error ? err.message : err,
+      throw new Error(
+        `[build] prerender failed; refusing to ship invalid crawler HTML. ` +
+        `Set PRERENDER=0 only for an intentional SPA-only build. ${err instanceof Error ? err.message : String(err)}`,
       );
     }
   }
