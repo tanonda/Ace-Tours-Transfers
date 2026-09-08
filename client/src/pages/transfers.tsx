@@ -46,7 +46,7 @@ export default function Transfers() {
           "Reliable and comfortable airport transfers, event transport, and VIP hospitality services in Vanuatu.",
         )}
       />
-      <div className="bg-muted/30 pt-40 pb-20">
+      <div className="bg-muted/30 pt-48 md:pt-40 pb-20">
         <div className="container mx-auto px-4">
           <h1 className="text-5xl font-serif font-bold text-center mb-6">
             {t("home.transfersTitle")}

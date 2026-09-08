@@ -21,7 +21,7 @@ export default function Tours() {
           "Discover our range of meticulously planned tours in Vanuatu. From scenic cultural tours to vehicle hire for large groups.",
         )}
       />
-      <div className="bg-muted/30 pt-40 pb-20">
+      <div className="bg-muted/30 pt-48 md:pt-40 pb-20">
         <div className="container mx-auto px-4">
           <h1 className="text-5xl font-serif font-bold text-center mb-6">
             {t("home.toursTitle")}
