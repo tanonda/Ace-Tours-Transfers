@@ -11,6 +11,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useCart } from "@/lib/cart-context";
 import { useBookingDraft } from "@/lib/booking-state-context";
 import { formatPriceDisplay, estimateBookingTotal, type ProductCategory } from "@/lib/product.types";
+import { getProductImage } from "@/lib/product-images";
 import { useCurrency } from "@/lib/currency-context";
 import { AvailabilityCalendar } from "@/components/AvailabilityCalendar";
 import { AvailabilityStatus } from "@/components/AvailabilityStatus";
@@ -132,7 +133,7 @@ export default function TransferDetail() {
       title: transfer.title,
       price: transfer.adultPriceCents,
       childPrice: transfer.childPriceCents,
-      image: transfer.image,
+      image: getProductImage(transfer.image),
       type: (transfer.category || "transfer") as ProductCategory,
       adultPax, childPax, infantPax, petPax,
       date: date ? new Date(date) : new Date(),
@@ -205,12 +206,14 @@ export default function TransferDetail() {
     }
   }
 
+  const displayImage = getProductImage(transfer.image);
+
   return (
     <Layout>
       <SEO
         title={transfer.seoTitle || transfer.title}
         description={transfer.seoDescription || (Array.isArray(transfer.description) ? transfer.description[0] : transfer.description)?.replace(/<[^>]+>/g, '').slice(0, 155) || `Book ${transfer.title} in Port Vila, Vanuatu.`}
-        image={transfer.image}
+        image={displayImage}
         type="product"
         keywords={[...(transfer.seoKeywords ? transfer.seoKeywords.split(',').map((k: string) => k.trim()) : []), transfer.title, "Vanuatu transfer", "Port Vila transport", "airport transfer Vanuatu"]}
         structuredType="TouristAttraction"
@@ -233,7 +236,7 @@ export default function TransferDetail() {
         {/* ── HERO ── */}
         <div className="relative aspect-video lg:aspect-[21/9] max-h-[60vh] overflow-hidden bg-[#0f0d09]">
           <img
-            src={cloudinaryOpt(transfer.image, 1400)}
+            src={cloudinaryOpt(displayImage, 1400)}
             className="w-full h-full object-cover filter brightness-[0.45] object-center"
             alt={transfer.imageAlt || `${transfer.title} - Vanuatu transfer`}
             loading="eager"
@@ -281,7 +284,7 @@ export default function TransferDetail() {
             {/* 1. Photo */}
             <div className="rounded-[14px] overflow-hidden bg-[#211e18] aspect-[16/9]">
               <img
-                src={cloudinaryOpt(transfer.image, 900)}
+                src={cloudinaryOpt(displayImage, 900)}
                 className="w-full h-full object-cover object-center block"
                 alt={transfer.imageAlt || `${transfer.title} - transfer photo`}
                 loading="lazy"

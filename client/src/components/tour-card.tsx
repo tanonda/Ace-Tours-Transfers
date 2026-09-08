@@ -10,6 +10,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useCurrency } from "@/lib/currency-context";
 import { type ProductCategory, formatPriceDisplay } from "@/lib/product.types";
+import { getProductImage } from "@/lib/product-images";
 import { cloudinaryOpt } from "@/components/seo";
 
 // Simple utility to strip HTML but keep text content
@@ -36,6 +37,7 @@ export function TourCard({ tour, index }: { tour: ProductRouteProps; index: numb
   const [showQuickView, setShowQuickView] = useState(false);
   const { t } = useTranslation();
   const { currency } = useCurrency();
+  const displayImage = getProductImage(tour.image);
   const detailHref = `/${tour.category === "transfer" ? "transfers" : "tours"}/${tour.id}`;
 
   return (
@@ -52,9 +54,9 @@ export function TourCard({ tour, index }: { tour: ProductRouteProps; index: numb
         >
           <div className="relative aspect-video overflow-hidden bg-[#211e18]">
             <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors z-10" />
-            {tour.image && (
+            {displayImage && (
               <img
-                src={cloudinaryOpt(tour.image, 600)}
+                src={cloudinaryOpt(displayImage, 600)}
                 alt={(tour as any).imageAlt || tour.title}
                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                 loading="lazy"

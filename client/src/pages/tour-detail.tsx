@@ -12,6 +12,7 @@ import { useCart } from "@/lib/cart-context";
 import { useBookingDraft } from "@/lib/booking-state-context";
 import { useAvailabilityToast } from "@/hooks/useAvailabilityToast";
 import { formatPriceDisplay, estimateBookingTotal, type ProductCategory } from "@/lib/product.types";
+import { getProductImage } from "@/lib/product-images";
 import { useCurrency } from "@/lib/currency-context";
 import { AvailabilityCalendar } from "@/components/AvailabilityCalendar";
 import { AvailabilityStatus } from "@/components/AvailabilityStatus";
@@ -401,7 +402,7 @@ export default function TourDetail() {
       title: tour.title,
       price: tour.adultPriceCents,
       childPrice: tour.childPriceCents,
-      image: tour.image,
+      image: getProductImage(tour.image),
       type: (tour.category || "tour") as ProductCategory,
       adultPax, childPax, infantPax, petPax,
       date: date ? new Date(date) : new Date(),
@@ -425,7 +426,7 @@ export default function TourDetail() {
   const excludedItems: string[] = tour?.excludedItems ?? [];
   const additionalInfoItems: string[] = tour?.additionalInfo ?? [];
   const travelerPhotos: string[] = tour?.travelerPhotos ?? [];
-  const allPhotos = tour ? [tour.image, ...travelerPhotos].filter(Boolean) : [];
+  const allPhotos = tour ? [getProductImage(tour.image), ...travelerPhotos].filter(Boolean) : [];
   const displayedReviews = showAllReviews ? reviews : reviews.slice(0, 5);
 
   if (isLoading) {
@@ -454,6 +455,7 @@ export default function TourDetail() {
 
   const totalPax = adultPax + childPax;
   const isBooked = !availability?.isAvailable && !!date;
+  const displayImage = getProductImage(tour.image);
 
   const avgRating = reviews.length > 0 ? reviews.reduce((a: number, r: any) => a + r.rating, 0) / reviews.length : 0;
   const tourFaqs = [];
@@ -482,7 +484,7 @@ export default function TourDetail() {
       <SEO
         title={tour.seoTitle || tour.title}
         description={tour.seoDescription || (Array.isArray(tour.description) ? tour.description[0] : tour.description)?.replace(/<[^>]+>/g, '').slice(0, 155) || `Book ${tour.title} in Port Vila, Vanuatu.`}
-        image={tour.image}
+        image={displayImage}
         type="product"
         keywords={[...(tour.seoKeywords ? tour.seoKeywords.split(',').map((k: string) => k.trim()) : []), tour.title, "Vanuatu tour", "Port Vila tour", tour.category || ""]}
         structuredType="TouristAttraction"
@@ -506,7 +508,7 @@ export default function TourDetail() {
         {/* ── HERO ── */}
         <div className="relative aspect-video lg:aspect-[21/9] max-h-[60vh] overflow-hidden bg-[#0f0d09]">
           <img
-            src={cloudinaryOpt(tour.image, 1400)}
+            src={cloudinaryOpt(displayImage, 1400)}
             className="w-full h-full object-cover filter brightness-[0.45] object-center"
             alt={tour.imageAlt || `${tour.title} - Vanuatu tour`}
             loading="eager"
@@ -556,7 +558,7 @@ export default function TourDetail() {
             ) : (
               <div className="rounded-[14px] overflow-hidden bg-[#211e18] aspect-[16/9]">
                 <img
-                  src={cloudinaryOpt(tour.image, 900)}
+                  src={cloudinaryOpt(displayImage, 900)}
                   className="w-full h-full object-cover object-center block"
                   alt={tour.imageAlt || `${tour.title} - tour photo`}
                   loading="lazy"
