@@ -9,7 +9,7 @@ import { usePrefillFromCart } from "@/lib/booking-state-context";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useTranslation } from "react-i18next";
-import { formatPriceDisplay, type ProductCategory } from "@/lib/product.types";
+import { formatPriceDisplay, getDisplayPrice, type ProductCategory } from "@/lib/product.types";
 import { useCurrency } from "@/lib/currency-context";
 import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
@@ -21,6 +21,8 @@ interface BookableProduct {
   description?: string | string[];
   adultPriceCents: number;
   childPriceCents?: number;
+  pricingType?: string | null;
+  groupPriceCents?: number | null;
   image?: string;
   duration?: string;
   minPax?: number | string;
@@ -52,6 +54,7 @@ export function ProductQuickView({ isOpen, onClose, product }: ProductQuickViewP
 
   if (!product) return null;
 
+  const shownPrice = getDisplayPrice(product);
   const descArray = Array.isArray(product.description) ? product.description : [];
   const descText = typeof product.description === "string" ? product.description : descArray[0] || "";
   const included = descArray.length > 1 ? descArray.slice(1) : descArray;
@@ -97,8 +100,8 @@ export function ProductQuickView({ isOpen, onClose, product }: ProductQuickViewP
                 {/* Price badge */}
                 <div className="absolute top-4 left-4">
                   <div className="bg-[#f2800d] text-white font-black text-base px-4 py-1.5 rounded-full shadow-lg">
-                    {formatPriceDisplay(product.adultPriceCents, currency)}
-                    <span className="text-white/70 font-normal text-xs ml-1">/ adult</span>
+                    {formatPriceDisplay(shownPrice.amount, currency)}
+                    <span className="text-white/70 font-normal text-xs ml-1">{shownPrice.isPackage ? "/ package" : "/ adult"}</span>
                   </div>
                 </div>
 
@@ -178,8 +181,8 @@ export function ProductQuickView({ isOpen, onClose, product }: ProductQuickViewP
                       {t("quickView.ratesOptions", "Rates")}
                     </div>
                     <div className="flex justify-between text-sm mb-1.5">
-                      <span className="text-[#8a826e]">{t("quickView.adult", "Adult")}</span>
-                      <span className="text-white font-bold">{formatPriceDisplay(product.adultPriceCents, currency)}</span>
+                      <span className="text-[#8a826e]">{shownPrice.isPackage ? t("quickView.package", "Package (whole group)") : t("quickView.adult", "Adult")}</span>
+                      <span className="text-white font-bold">{formatPriceDisplay(shownPrice.amount, currency)}</span>
                     </div>
                     {(product.childPriceCents || 0) > 0 && (
                       <div className="flex justify-between text-sm">

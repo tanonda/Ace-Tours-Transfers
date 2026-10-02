@@ -72,6 +72,22 @@ export interface ProductData {
  * @param vuvAmount  - Amount in VUV integer units
  * @param currency   - Display currency (defaults to 'VUV')
  */
+/**
+ * The headline price to show for a product (cards, quick view, structured data).
+ * Group-priced products are charged a flat `groupPriceCents` at checkout, so
+ * showing `adultPriceCents` for them misstates the price (e.g. "VT 0").
+ */
+export function getDisplayPrice(p: {
+  pricingType?: string | null;
+  adultPriceCents?: number | null;
+  groupPriceCents?: number | null;
+}): { amount: number; isPackage: boolean } {
+  if (p.pricingType === 'group' && (p.groupPriceCents ?? 0) > 0) {
+    return { amount: p.groupPriceCents!, isPackage: true };
+  }
+  return { amount: p.adultPriceCents ?? 0, isPackage: false };
+}
+
 export function formatPriceDisplay(vuvAmount: number, currency: CurrencyCode | string = 'VUV'): string {
   return formatInCurrency(vuvAmount, currency);
 }

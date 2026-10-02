@@ -10,7 +10,7 @@ import { useTranslation } from "react-i18next";
 import { useState, useEffect, useCallback } from "react";
 import { useCart } from "@/lib/cart-context";
 import { useBookingDraft } from "@/lib/booking-state-context";
-import { formatPriceDisplay, estimateBookingTotal, type ProductCategory } from "@/lib/product.types";
+import { formatPriceDisplay, estimateBookingTotal, getDisplayPrice, type ProductCategory } from "@/lib/product.types";
 import { getProductImage } from "@/lib/product-images";
 import { useCurrency } from "@/lib/currency-context";
 import { AvailabilityCalendar } from "@/components/AvailabilityCalendar";
@@ -219,7 +219,7 @@ export default function TransferDetail() {
         structuredType="TouristAttraction"
         productName={transfer.title}
         productDescription={Array.isArray(transfer.description) ? transfer.description[0] : transfer.description}
-        offer={transfer.adultPriceCents ? { price: transfer.adultPriceCents, currency: "VUV", availability: "InStock" } : undefined}
+        offer={getDisplayPrice(transfer).amount ? { price: getDisplayPrice(transfer).amount, currency: "VUV", availability: "InStock" } : undefined}
         aggregateRating={reviews.length > 0 ? { ratingValue: averageRating, reviewCount: reviews.length } : undefined}
         reviews={reviews.slice(0, 5).map((r: any) => ({ author: r.userName || "Guest", rating: r.rating, body: r.comment, datePublished: r.createdAt?.slice(0, 10) }))}
         faqs={transferFaqs}

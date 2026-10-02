@@ -9,7 +9,7 @@ import { motion } from "framer-motion";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useCurrency } from "@/lib/currency-context";
-import { type ProductCategory, formatPriceDisplay } from "@/lib/product.types";
+import { type ProductCategory, formatPriceDisplay, getDisplayPrice } from "@/lib/product.types";
 import { getProductImage } from "@/lib/product-images";
 import { cloudinaryOpt } from "@/components/seo";
 
@@ -31,6 +31,8 @@ export interface ProductRouteProps {
   image: string;
   category?: ProductCategory;
   contactForPrice?: boolean;
+  pricingType?: string | null;
+  groupPriceCents?: number | null;
 }
 
 export function TourCard({ tour, index }: { tour: ProductRouteProps; index: number }) {
@@ -38,6 +40,7 @@ export function TourCard({ tour, index }: { tour: ProductRouteProps; index: numb
   const { t } = useTranslation();
   const { currency } = useCurrency();
   const displayImage = getProductImage(tour.image);
+  const shownPrice = getDisplayPrice(tour);
   const detailHref = `/${tour.category === "transfer" ? "transfers" : "tours"}/${tour.id}`;
 
   return (
@@ -69,7 +72,7 @@ export function TourCard({ tour, index }: { tour: ProductRouteProps; index: numb
             </div>
             <div className="absolute top-4 right-4 z-20">
               <Badge className="bg-background/90 text-foreground hover:bg-background text-sm font-bold px-3 py-1 shadow-sm backdrop-blur-sm border border-border/50">
-                {tour.contactForPrice ? t("tour.contactForPrice", "Contact for Price") : formatPriceDisplay(tour.adultPriceCents, currency as any)}
+                {tour.contactForPrice ? t("tour.contactForPrice", "Contact for Price") : formatPriceDisplay(shownPrice.amount, currency as any)}
               </Badge>
             </div>
             <div className="absolute inset-0 flex items-center justify-center z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -110,9 +113,9 @@ export function TourCard({ tour, index }: { tour: ProductRouteProps; index: numb
           <CardFooter className="pt-4 border-t border-border/50 bg-muted/30" onClick={(e) => e.stopPropagation()}>
             <div className="w-full space-y-2">
               <div className="flex justify-between items-center text-sm text-muted-foreground mb-2">
-                <span>{tour.contactForPrice ? '' : t("tour.startingFrom", "Starting from")}</span>
+                <span>{tour.contactForPrice ? '' : shownPrice.isPackage ? t("tour.packageRate", "Package rate") : t("tour.startingFrom", "Starting from")}</span>
                 <span className="font-bold text-foreground">
-                  {tour.contactForPrice ? '' : formatPriceDisplay(tour.adultPriceCents || 0, currency as any)}
+                  {tour.contactForPrice ? '' : formatPriceDisplay(shownPrice.amount, currency as any)}
                 </span>
               </div>
 
