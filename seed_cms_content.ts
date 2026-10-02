@@ -9,7 +9,7 @@ async function main() {
   const heroContent = [
     { blockSlug: "home-page", contentKey: "hero_title_part1", value: "Experience Vanuatu's", contentType: "text" },
     { blockSlug: "home-page", contentKey: "hero_title_part2", value: "Natural Beauty", contentType: "text" },
-    { blockSlug: "home-page", contentKey: "hero_subtitle", value: "Your trusted partner for premium airport transfers, reliable vehicle hire, and unforgettable guided island tours in Port Vila.", contentType: "text" }
+    { blockSlug: "home-page", contentKey: "hero_subtitle", value: "Your trusted partner for premium airport transfers and unforgettable guided island tours in Port Vila.", contentType: "text" }
   ];
 
   for (const item of heroContent) {

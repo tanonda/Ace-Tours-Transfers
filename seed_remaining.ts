@@ -7,7 +7,7 @@ async function main() {
 
   const heroData = {
     headline: 'Experience Vanuatu’s Natural Beauty',
-    subheadline: 'Your trusted partner for premium airport transfers, reliable vehicle hire, and unforgettable guided island tours in Port Vila.',
+    subheadline: 'Your trusted partner for premium airport transfers and unforgettable guided island tours in Port Vila.',
     primaryButtonText: 'Book a Tour',
     primaryButtonLink: '/tours',
     secondaryButtonText: 'Airport Transfers',

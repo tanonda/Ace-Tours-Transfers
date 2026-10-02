@@ -47,7 +47,7 @@ async function main() {
   const settingsToSeed = [
     { key: 'seo_site_name', value: "Ace Tours & Transfers Vanuatu" },
     { key: 'seo_title_template', value: "{page} | Ace Tours Vanuatu" },
-    { key: 'seo_default_description', value: "Experience the best of Vanuatu with Ace Tours & Transfers. We offer premium airport transfers, guided island tours, and reliable vehicle hire in Port Vila." },
+    { key: 'seo_default_description', value: "Experience the best of Vanuatu with Ace Tours & Transfers. We offer premium airport transfers and guided island tours in Port Vila." },
     { key: 'seo_default_keywords', value: "vanuatu tours, port vila transfers, efate island tours, vanuatu airport shuttle, car hire port vila" },
     { key: 'seo_canonical_url', value: "https://acetours.vu" }
   ];
