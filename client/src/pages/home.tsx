@@ -13,6 +13,30 @@ import { useTranslation } from "react-i18next";
 import React, { useMemo } from "react";
 import { useCmsText } from "@/hooks/use-cms-text";
 import type { Product } from "@shared/schema";
+import { SectionBackdrop, PropLayer, type BackdropProp } from "@/components/section-backdrop";
+import { IMAGE_CREDITS } from "@/lib/image-credits";
+
+// Decorative cut-outs per section. Positions are relative to the card grid
+// (or CTA content); props sit behind the content and peek out around it.
+const TOURS_PROPS: BackdropProp[] = [
+  // Tablet: fills the empty cell beside the lone 3rd card. Desktop: under the first card.
+  { src: "/assets/home/pandanus-basket.webp", className: "md:right-0 md:bottom-16 md:w-[44%] md:rotate-6 lg:right-auto lg:-bottom-16 lg:-left-32 lg:w-80 lg:-rotate-12" },
+  { src: "/assets/home/snorkel-gear.webp", className: "-top-20 -right-16 lg:-right-24 w-48 lg:w-60 rotate-[18deg]" },
+];
+
+const TRANSFERS_PROPS: BackdropProp[] = [
+  // Tucked under the first card's bottom-left corner on tablet and desktop.
+  { src: "/assets/home/straw-hat.webp", className: "-bottom-12 -left-10 lg:-left-28 w-64 lg:w-80 -rotate-6" },
+  // Vanuatu island basket (Port Vila market). Tablet: fills the gap beside the lone 3rd card, its
+  // photo-cropped left edge hidden behind that card. Desktop: peeks out behind the last card.
+  { src: "/assets/home/island-basket.webp", className: "md:left-[44%] md:bottom-8 md:w-[34%] md:-rotate-3 lg:left-auto lg:bottom-auto lg:-top-16 lg:-right-20 lg:w-52 lg:rotate-12" },
+];
+
+const CTA_PROPS: BackdropProp[] = [
+  { src: "/assets/home/frangipani.webp", className: "-top-40 left-[4%] w-36 lg:w-44 rotate-12", showOnMobile: false },
+  { src: "/assets/home/frangipani.webp", className: "-top-28 left-[13%] w-24 lg:w-28 -rotate-[25deg]" },
+  { src: "/assets/home/frangipani.webp", className: "-top-36 right-[6%] w-28 lg:w-36 rotate-45" },
+];
 
 export default function Home() {
   const { t, i18n } = useTranslation();
@@ -177,110 +201,97 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Tours Section — washed-out Blue Lagoon fading into reef blue, beach props tucked behind the cards */}
-      <section className="relative overflow-hidden py-16 md:py-24 bg-reef-light">
-        <div aria-hidden className="absolute inset-x-0 top-0 h-[420px] md:h-[560px]">
-          <img
-            src="/assets/home/blue-lagoon-efate.webp"
-            alt=""
-            loading="lazy"
-            className="w-full h-full object-cover object-[50%_60%]"
+      {/* Tours Section: washed-out Blue Lagoon fading into reef blue, beach props tucked behind the cards */}
+      <SectionBackdrop
+        tone="wash"
+        photo="/assets/home/blue-lagoon-efate.webp"
+        photoPosition="50% 60%"
+        washClassName="from-background/70 via-reef-light/75 to-reef-light"
+        credits={[IMAGE_CREDITS.blueLagoon, IMAGE_CREDITS.pandanusBag, IMAGE_CREDITS.snorkelGear]}
+        className="py-16 md:py-24 bg-reef-light"
+      >
+        <div className="text-center max-w-3xl mx-auto mb-8 md:mb-16">
+          <span className="text-primary font-semibold uppercase tracking-wider text-sm mb-2 block">{cms.text("tours_label", t("home.toursLabel"))}</span>
+          <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-6">{cms.text("tours_title", t("home.toursTitle"))}</h2>
+          <div
+            className="text-lg text-muted-foreground prose prose-lg prose-p:my-1 mx-auto"
+            dangerouslySetInnerHTML={{ __html: cms.html("tours_desc", t("home.toursDesc")) }}
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-background/70 via-reef-light/75 to-reef-light" />
         </div>
 
-        <div className="container mx-auto px-4 relative">
-          <div className="text-center max-w-3xl mx-auto mb-8 md:mb-16">
-            <span className="text-primary font-semibold uppercase tracking-wider text-sm mb-2 block">{cms.text("tours_label", t("home.toursLabel"))}</span>
-            <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-6">{cms.text("tours_title", t("home.toursTitle"))}</h2>
-            <div
-              className="text-lg text-muted-foreground prose prose-lg prose-p:my-1 mx-auto"
-              dangerouslySetInnerHTML={{ __html: cms.html("tours_desc", t("home.toursDesc")) }}
-            />
+        <PropLayer props={TOURS_PROPS} className="mb-10">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {toursList.slice(0, 3).map((tour: any, index: number) => (
+              <TourCard key={tour.id} tour={{ ...tour, category: tour.category as any }} index={index} />
+            ))}
           </div>
+        </PropLayer>
 
-          <div className="relative mb-10">
-            {/* Props sit behind the grid and peek out between/below the cards */}
-            <img
-              src="/assets/home/pandanus-basket.webp"
-              alt=""
-              aria-hidden
-              loading="lazy"
-              className="hidden md:block pointer-events-none select-none absolute drop-shadow-xl md:right-0 md:bottom-16 md:w-[44%] md:rotate-6 lg:right-auto lg:-bottom-16 lg:-left-32 lg:w-80 lg:-rotate-12"
-            />
-            <img
-              src="/assets/home/snorkel-gear.webp"
-              alt=""
-              aria-hidden
-              loading="lazy"
-              className="hidden md:block pointer-events-none select-none absolute -top-20 -right-16 lg:-right-24 w-48 lg:w-60 rotate-[18deg] drop-shadow-xl"
-            />
-            <div className="relative grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {toursList.slice(0, 3).map((tour: any, index: number) => (
-                <TourCard key={tour.id} tour={{ ...tour, category: tour.category as any }} index={index} />
-              ))}
-            </div>
-          </div>
-
-          <div className="text-center">
-            <Link href="/tours">
-              <Button variant="outline" size="lg" className="border-primary text-primary hover:bg-primary hover:text-white bg-background/80">
-                View All Tours
-              </Button>
-            </Link>
-          </div>
-
-          <p className="mt-10 text-center text-[11px] leading-snug text-foreground/50 [&_a]:text-[11px]">
-            Photos:{" "}
-            <a className="underline" href="https://commons.wikimedia.org/wiki/File:Blue_Lagoon_swimming_spot_-_panoramio.jpg" target="_blank" rel="noopener noreferrer">Blue Lagoon, Efate</a>, DB Thats-Me (CC BY-SA 3.0);{" "}
-            <a className="underline" href="https://commons.wikimedia.org/wiki/File:Sac_-_vue_d%27ensemble_11-o.lau-F001.LA1058-01.jpg" target="_blank" rel="noopener noreferrer">pandanus bag</a>, Simon Pierre Barrette, Université Laval (CC BY-SA 4.0);{" "}
-            <a className="underline" href="https://www.flickr.com/photos/87242149@N00/3820542741" target="_blank" rel="noopener noreferrer">snorkel gear</a>, Smart Destinations (CC BY-SA 2.0). Adapted.
-          </p>
+        <div className="text-center">
+          <Link href="/tours">
+            <Button variant="outline" size="lg" className="border-primary text-primary hover:bg-primary hover:text-white bg-background/80">
+              View All Tours
+            </Button>
+          </Link>
         </div>
-      </section>
+      </SectionBackdrop>
 
-      {/* Transfers Section */}
-      <section className="py-16 md:py-24 bg-muted/30">
-        <div className="container mx-auto px-4">
-          <div className="text-center max-w-3xl mx-auto mb-8 md:mb-16">
-            <span className="text-primary font-semibold uppercase tracking-wider text-sm mb-2 block">{cms.text("transfers_label", t("home.transfersLabel", "Airport & Hotel"))}</span>
-            <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-6">{cms.text("transfers_title", t("home.transfersTitle"))}</h2>
-            <div
-              className="text-lg text-muted-foreground prose prose-lg prose-p:my-1 mx-auto"
-              dangerouslySetInnerHTML={{ __html: cms.html("transfers_desc", t("home.transfersDesc")) }}
-            />
-          </div>
+      {/* Transfers Section: washed-out Iririki ferry crossing, on cream so it alternates with the reef-blue Tours section */}
+      <SectionBackdrop
+        tone="wash"
+        photo="/assets/home/iririki-port-vila.webp"
+        photoPosition="50% 55%"
+        washClassName="from-background/70 via-background/80 to-background"
+        credits={[IMAGE_CREDITS.iririki, IMAGE_CREDITS.strawHat, IMAGE_CREDITS.islandBasket]}
+        className="py-16 md:py-24 bg-background"
+      >
+        <div className="text-center max-w-3xl mx-auto mb-8 md:mb-16">
+          <span className="text-primary font-semibold uppercase tracking-wider text-sm mb-2 block">{cms.text("transfers_label", t("home.transfersLabel", "Airport & Hotel"))}</span>
+          <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-6">{cms.text("transfers_title", t("home.transfersTitle"))}</h2>
+          <div
+            className="text-lg text-muted-foreground prose prose-lg prose-p:my-1 mx-auto"
+            dangerouslySetInnerHTML={{ __html: cms.html("transfers_desc", t("home.transfersDesc")) }}
+          />
+        </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-10">
+        <PropLayer props={TRANSFERS_PROPS} className="mb-10">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {transfers.slice(0, 3).map((transfer: any, index: number) => (
               <TourCard key={transfer.id} tour={{ ...transfer, category: transfer.category as any }} index={index} />
             ))}
           </div>
+        </PropLayer>
 
-          <div className="text-center">
-            <Link href="/transfers">
-              <Button variant="outline" size="lg" className="border-primary text-primary hover:bg-primary hover:text-white">
-                View All Transfers
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-12 md:py-20 bg-primary relative overflow-hidden">
-        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
-        <div className="container mx-auto px-4 relative text-center text-white">
-          <h2 className="text-4xl md:text-6xl font-bold mb-8 font-serif">{cms.text("cta_title", t("home.ctaTitle"))}</h2>
-          <div
-            className="text-xl md:text-2xl mb-10 max-w-2xl mx-auto opacity-90 prose prose-xl prose-invert prose-p:my-2"
-            dangerouslySetInnerHTML={{ __html: cms.html("cta_desc", t("home.ctaDesc")) }}
-          />
-          <Link href="/tours">
-            <Button size="lg" variant="secondary" className="text-primary font-bold px-10 py-8 text-xl shadow-2xl">{cms.text("cta_button", t("home.ctaButton"))}</Button>
+        <div className="text-center">
+          <Link href="/transfers">
+            <Button variant="outline" size="lg" className="border-primary text-primary hover:bg-primary hover:text-white bg-background/80">
+              View All Transfers
+            </Button>
           </Link>
         </div>
-      </section>
+      </SectionBackdrop>
+
+      {/* CTA Section: Erakor Bridge at sunset under a dark scrim, frangipani spilling over the top edge */}
+      <SectionBackdrop
+        tone="dark"
+        photo="/assets/home/erakor-sunset.webp"
+        photoPosition="50% 65%"
+        credits={[IMAGE_CREDITS.erakorSunset, IMAGE_CREDITS.frangipani]}
+        className="py-16 md:py-24 bg-neutral-900"
+      >
+        <PropLayer props={CTA_PROPS}>
+          <div className="text-center text-white">
+            <h2 className="text-4xl md:text-6xl font-bold mb-8 font-serif drop-shadow-lg">{cms.text("cta_title", t("home.ctaTitle"))}</h2>
+            <div
+              className="text-xl md:text-2xl mb-10 max-w-2xl mx-auto opacity-90 prose prose-xl prose-invert prose-p:my-2"
+              dangerouslySetInnerHTML={{ __html: cms.html("cta_desc", t("home.ctaDesc")) }}
+            />
+            <Link href="/tours">
+              <Button size="lg" className="font-bold px-10 py-8 text-xl shadow-2xl">{cms.text("cta_button", t("home.ctaButton"))}</Button>
+            </Link>
+          </div>
+        </PropLayer>
+      </SectionBackdrop>
     </Layout>
   );
 }
