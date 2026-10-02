@@ -1,4 +1,5 @@
 import { Helmet } from "react-helmet-async";
+import { buildOfferJsonLd } from "@/lib/product-jsonld";
 import { useLocation } from "wouter";
 import { useTranslation } from "react-i18next";
 
@@ -163,7 +164,6 @@ export function SEO({
 
   // ── Product / TouristAttraction (detail pages) ──
   if (structuredType && productName) {
-    const priceInMajor = offer ? offer.price / 100 : undefined;
     const productSchema: Record<string, unknown> = {
       "@context": "https://schema.org",
       "@type": structuredType === "TouristAttraction" ? "TouristAttraction" : "Product",
@@ -174,14 +174,7 @@ export function SEO({
       brand: { "@type": "Brand", name: SITE_NAME },
     };
     if (offer) {
-      productSchema.offers = {
-        "@type": "Offer",
-        price: priceInMajor?.toFixed(2),
-        priceCurrency: offer.currency,
-        availability: `https://schema.org/${offer.availability ?? "InStock"}`,
-        url: fullUrl,
-        seller: { "@type": "Organization", name: SITE_NAME },
-      };
+      productSchema.offers = buildOfferJsonLd(offer, fullUrl, SITE_NAME);
     }
     if (aggregateRating) {
       productSchema.aggregateRating = {

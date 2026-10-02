@@ -11,7 +11,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useCart } from "@/lib/cart-context";
 import { useBookingDraft } from "@/lib/booking-state-context";
 import { useAvailabilityToast } from "@/hooks/useAvailabilityToast";
-import { formatPriceDisplay, estimateBookingTotal, type ProductCategory } from "@/lib/product.types";
+import { formatPriceDisplay, estimateBookingTotal, type ProductCategory, getDisplayPrice } from "@/lib/product.types";
 import { getProductImage } from "@/lib/product-images";
 import { useCurrency } from "@/lib/currency-context";
 import { AvailabilityCalendar } from "@/components/AvailabilityCalendar";
@@ -490,7 +490,7 @@ export default function TourDetail() {
         structuredType="TouristAttraction"
         productName={tour.title}
         productDescription={Array.isArray(tour.description) ? tour.description[0] : tour.description}
-        offer={tour.adultPriceCents ? { price: tour.adultPriceCents, currency: "VUV", availability: "InStock" } : undefined}
+        offer={getDisplayPrice(tour).amount ? { price: getDisplayPrice(tour).amount, currency: "VUV", availability: "InStock" } : undefined}
         aggregateRating={reviews.length > 0 ? { ratingValue: avgRating, reviewCount: reviews.length } : undefined}
         reviews={reviews.slice(0, 5).map((r: any) => ({ author: r.userName || "Guest", rating: r.rating, body: r.comment, datePublished: r.createdAt?.slice(0, 10) }))}
         faqs={tourFaqs}
