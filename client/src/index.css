@@ -28,6 +28,8 @@
   --color-chart-3: hsl(var(--chart-3));
   --color-chart-4: hsl(var(--chart-4));
   --color-chart-5: hsl(var(--chart-5));
+  --color-reef: hsl(var(--reef));
+  --color-reef-light: hsl(var(--reef-light));
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -78,6 +80,10 @@
   --chart-3: 40 20% 80%;
   --chart-4: 48 30% 90%;
   --chart-5: 30 90% 70%;
+
+  /* Reef blue: Efate lagoon water, the base tone for photo-led sections */
+  --reef: 188 78% 30%;
+  --reef-light: 186 55% 90%;
 }
 
 .dark {
@@ -108,6 +114,9 @@
   --border: 25 20% 20%;
   --input: 25 20% 20%;
   --ring: 30 90% 50%;
+
+  --reef: 186 60% 55%;
+  --reef-light: 192 45% 14%;
 }
 
 /* Mobile App-Like Experience Utilities */
