@@ -10,6 +10,13 @@ export interface ImageCredit {
 }
 
 export const IMAGE_CREDITS = {
+  // CC0, no attribution required; recorded for provenance (not rendered on the trust strip).
+  pentecostMat: {
+    label: "sese mat, Pentecost Island",
+    author: "Honolulu Museum of Art",
+    license: "CC0",
+    href: "https://commons.wikimedia.org/wiki/File:Red_mat_from_Pentecost_Island,_Vanuatu,_Honolulu_Museum_of_Art_accession_(detail).jpg",
+  },
   toniliu: {
     label: "Toniliu village, Efate",
     author: "Phillip Capper",

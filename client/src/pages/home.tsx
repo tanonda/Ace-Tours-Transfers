@@ -97,11 +97,12 @@ export default function Home() {
       />
       <Hero />
 
-      {/* Trust Indicators - Why Choose Us */}
-      <section className="py-8 md:py-12 bg-primary/5 border-b border-primary/10">
-        <div className="container mx-auto px-4">
+      {/* Trust Indicators: calm reef-blue band with a faint woven-pandanus texture (Pentecost sese mat) */}
+      <section className="relative py-8 md:py-12 bg-reef-light border-b border-reef/15">
+        <PhotoWash tone="texture" photo="/assets/home/pandanus-weave.webp" className="inset-0" />
+        <div className="container mx-auto px-4 relative">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-8">
-            <div className="flex items-center gap-4 p-4 bg-background rounded-xl shadow-sm border border-border/50">
+            <div className="flex items-center gap-4 p-4 bg-background rounded-xl shadow-sm border border-border/50 md:flex-col md:text-center md:gap-3 lg:flex-row lg:text-left lg:gap-4">
               <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
                 <Shield className="w-6 h-6 text-primary" />
               </div>
@@ -111,7 +112,7 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="flex items-center gap-4 p-4 bg-background rounded-xl shadow-sm border border-border/50">
+            <div className="flex items-center gap-4 p-4 bg-background rounded-xl shadow-sm border border-border/50 md:flex-col md:text-center md:gap-3 lg:flex-row lg:text-left lg:gap-4">
               <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
                 <Star className="w-6 h-6 text-primary" />
               </div>
@@ -121,7 +122,7 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="flex items-center gap-4 p-4 bg-background rounded-xl shadow-sm border border-border/50">
+            <div className="flex items-center gap-4 p-4 bg-background rounded-xl shadow-sm border border-border/50 md:flex-col md:text-center md:gap-3 lg:flex-row lg:text-left lg:gap-4">
               <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
                 <CheckCircle className="w-6 h-6 text-primary" />
               </div>

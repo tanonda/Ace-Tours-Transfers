@@ -9,6 +9,8 @@ import type { ImageCredit } from "@/lib/image-credits";
  *   `washClassName`) into the section's base colour, so cards stay readable.
  * - "dark": the photo fills the whole section under a dark scrim, for
  *   white-text call-to-action strips.
+ * - "texture": a greyscale surface photo (e.g. woven pandanus) multiplied
+ *   faintly into the section's base colour, for calm bands between busy ones.
  *
  * The section clips horizontally only (overflow-x-clip), so decorative
  * props can break out over the top/bottom edge without causing sideways
@@ -16,7 +18,7 @@ import type { ImageCredit } from "@/lib/image-credits";
  */
 interface SectionBackdropProps {
   photo: string;
-  tone: "wash" | "dark";
+  tone: "wash" | "dark" | "texture";
   /** CSS object-position for the photo, e.g. "50% 60%". */
   photoPosition?: string;
   /** Gradient classes for the wash overlay (tone="wash" only). */
@@ -71,10 +73,13 @@ export function PhotoWash({
         src={photo}
         alt=""
         loading="lazy"
-        className="w-full h-full object-cover"
+        className={cn(
+          "w-full h-full object-cover",
+          tone === "texture" && "mix-blend-multiply opacity-20 dark:mix-blend-soft-light dark:opacity-40",
+        )}
         style={{ objectPosition: photoPosition }}
       />
-      {tone === "wash" ? (
+      {tone === "texture" ? null : tone === "wash" ? (
         <div className={cn("absolute inset-0 bg-gradient-to-b", washClassName)} />
       ) : (
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-black/30" />
@@ -114,7 +119,7 @@ export function PropLayer({ props, children, className }: { props: BackdropProp[
   );
 }
 
-export function PhotoCredits({ credits, tone }: { credits: ImageCredit[]; tone: "wash" | "dark" }) {
+export function PhotoCredits({ credits, tone }: { credits: ImageCredit[]; tone: SectionBackdropProps["tone"] }) {
   if (credits.length === 0) return null;
   return (
     <p
