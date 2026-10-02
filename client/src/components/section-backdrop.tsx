@@ -37,32 +37,49 @@ export function SectionBackdrop({
 }: SectionBackdropProps) {
   return (
     <section className={cn("relative overflow-x-clip", className)}>
-      <div
-        aria-hidden
-        className={cn(
-          "absolute inset-x-0 top-0 overflow-hidden",
-          tone === "wash" ? "h-[420px] md:h-[560px]" : "bottom-0",
-        )}
-      >
-        <img
-          src={photo}
-          alt=""
-          loading="lazy"
-          className="w-full h-full object-cover"
-          style={{ objectPosition: photoPosition }}
-        />
-        {tone === "wash" ? (
-          <div className={cn("absolute inset-0 bg-gradient-to-b", washClassName)} />
-        ) : (
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-black/30" />
-        )}
-      </div>
+      <PhotoWash
+        photo={photo}
+        tone={tone}
+        photoPosition={photoPosition}
+        washClassName={washClassName}
+        className={tone === "wash" ? "inset-x-0 top-0 h-[420px] md:h-[560px]" : "inset-0"}
+      />
 
       <div className="container mx-auto px-4 relative">
         {children}
         <PhotoCredits credits={credits} tone={tone} />
       </div>
     </section>
+  );
+}
+
+/**
+ * The photo + overlay layer on its own, for areas that aren't a full
+ * SectionBackdrop (e.g. one half of a split section). `className` sets its
+ * absolute placement; the parent must be `relative`.
+ */
+export function PhotoWash({
+  photo,
+  tone,
+  photoPosition = "50% 50%",
+  washClassName = "from-background/70 via-background/80 to-background",
+  className,
+}: Pick<SectionBackdropProps, "photo" | "tone" | "photoPosition" | "washClassName" | "className">) {
+  return (
+    <div aria-hidden className={cn("absolute overflow-hidden", className)}>
+      <img
+        src={photo}
+        alt=""
+        loading="lazy"
+        className="w-full h-full object-cover"
+        style={{ objectPosition: photoPosition }}
+      />
+      {tone === "wash" ? (
+        <div className={cn("absolute inset-0 bg-gradient-to-b", washClassName)} />
+      ) : (
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-black/30" />
+      )}
+    </div>
   );
 }
 
@@ -97,7 +114,7 @@ export function PropLayer({ props, children, className }: { props: BackdropProp[
   );
 }
 
-function PhotoCredits({ credits, tone }: { credits: ImageCredit[]; tone: "wash" | "dark" }) {
+export function PhotoCredits({ credits, tone }: { credits: ImageCredit[]; tone: "wash" | "dark" }) {
   if (credits.length === 0) return null;
   return (
     <p

@@ -13,7 +13,7 @@ import { useTranslation } from "react-i18next";
 import React, { useMemo } from "react";
 import { useCmsText } from "@/hooks/use-cms-text";
 import type { Product } from "@shared/schema";
-import { SectionBackdrop, PropLayer, type BackdropProp } from "@/components/section-backdrop";
+import { SectionBackdrop, PropLayer, PhotoWash, PhotoCredits, type BackdropProp } from "@/components/section-backdrop";
 import { IMAGE_CREDITS } from "@/lib/image-credits";
 
 // Decorative cut-outs per section. Positions are relative to the card grid
@@ -156,15 +156,29 @@ export default function Home() {
             </div>
           </motion.div>
 
-          {/* Text Container Half */}
+          {/* Text Container Half: washed-out Toniliu village road (Efate), carved tamtam rising from the bottom edge */}
           <motion.div
-            className="w-full lg:w-1/2 flex items-center justify-center py-16 px-6 sm:px-12 lg:px-20 xl:px-28"
+            className="relative overflow-hidden w-full lg:w-1/2 flex items-center justify-center py-16 px-6 sm:px-12 lg:px-20 xl:px-28"
             initial={{ opacity: 0, x: 30 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
           >
-            <div className="w-full max-w-xl">
+            <PhotoWash
+              tone="wash"
+              photo="/assets/home/toniliu-village.webp"
+              photoPosition="50% 40%"
+              washClassName="from-background/75 via-background/85 to-background/90"
+              className="inset-0"
+            />
+            <img
+              src="/assets/home/tamtam.webp"
+              alt=""
+              aria-hidden
+              loading="lazy"
+              className="hidden md:block pointer-events-none select-none absolute -bottom-10 -right-3 xl:right-0 h-[320px] lg:h-[380px] drop-shadow-xl"
+            />
+            <div className="relative w-full max-w-xl">
               <div className="flex items-center gap-2 mb-4">
                 <span className="h-px w-12 bg-primary"></span>
                 <span className="text-primary font-semibold uppercase tracking-wider text-sm">{cms.text("about_label", t("home.aboutLabel"))}</span>
@@ -194,8 +208,10 @@ export default function Home() {
               </div>
 
               <Link href="/about">
-                <Button variant="outline" className="border-primary text-primary hover:bg-primary hover:text-white">{t("home.learnMore")}</Button>
+                <Button variant="outline" className="border-primary text-primary hover:bg-primary hover:text-white bg-background/80">{t("home.learnMore")}</Button>
               </Link>
+
+              <PhotoCredits credits={[IMAGE_CREDITS.toniliu, IMAGE_CREDITS.tamtam]} tone="wash" />
             </div>
           </motion.div>
         </div>

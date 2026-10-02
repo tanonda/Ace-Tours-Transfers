@@ -10,6 +10,18 @@ export interface ImageCredit {
 }
 
 export const IMAGE_CREDITS = {
+  toniliu: {
+    label: "Toniliu village, Efate",
+    author: "Phillip Capper",
+    license: "CC BY 2.0",
+    href: "https://commons.wikimedia.org/wiki/File:Toniliu_village,_Efate,_Vanuatu,_November_2006_-_Flickr_-_PhillipC.jpg",
+  },
+  tamtam: {
+    label: "tamtam",
+    author: "Graham Crumb",
+    license: "CC BY-SA 3.0",
+    href: "https://commons.wikimedia.org/wiki/File:Tamtam_(Imagicity_58).jpg",
+  },
   blueLagoon: {
     label: "Blue Lagoon, Efate",
     author: "DB Thats-Me",
