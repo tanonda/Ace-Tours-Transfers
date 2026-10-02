@@ -310,7 +310,7 @@ export default function ManageBooking() {
     if (!session) {
         return (
             <Layout>
-                <div className="bg-muted/30 min-h-screen pt-40 md:pt-44 pb-20">
+                <div className="bg-muted/30 min-h-screen pt-header-page pb-20">
                     <div className="container mx-auto px-4 flex justify-center">
                         <Card className="w-full max-w-md shadow-xl overflow-hidden">
                             <div className="h-1.5 bg-gradient-to-r from-[#f4a830] via-[#e6c97a] to-[#f4a830]" />
@@ -377,7 +377,7 @@ export default function ManageBooking() {
 
     return (
         <Layout>
-            <div className="bg-muted/30 min-h-screen pt-40 md:pt-44 pb-20">
+            <div className="bg-muted/30 min-h-screen pt-header-page pb-20">
                 <div className="container mx-auto px-4 max-w-3xl">
 
                     {/* Session Expiry Banner */}

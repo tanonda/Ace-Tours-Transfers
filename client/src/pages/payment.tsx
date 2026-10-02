@@ -383,7 +383,7 @@ export default function Payment() {
   if (isLoadingMethods || (bookingId && isLoadingBooking)) {
     return (
       <Layout>
-        <div className="min-h-screen flex flex-col items-center justify-center p-4 pt-40">
+        <div className="min-h-screen flex flex-col items-center justify-center p-4 pt-header-page">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           <p className="text-sm text-muted-foreground mt-3">Loading checkout…</p>
         </div>
@@ -393,7 +393,7 @@ export default function Payment() {
 
   return (
     <Layout>
-      <div className="min-h-screen pt-36 md:pt-40 pb-16 relative overflow-hidden">
+      <div className="min-h-screen pt-header-page pb-16 relative overflow-hidden">
         {/* Subtle background */}
         <div className="absolute inset-0 bg-gradient-to-br from-primary/3 via-background to-primary/5 pointer-events-none" />
 

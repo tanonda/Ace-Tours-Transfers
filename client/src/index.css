@@ -157,6 +157,29 @@
   padding-right: var(--safe-area-inset-right);
 }
 
+/* Fixed-header clearance.
+   --header-h is measured at runtime by <Layout> (un-scrolled header height);
+   these fallbacks cover first paint and prerendered snapshots. */
+:root {
+  --header-h: 192px;
+}
+
+@media (min-width: 768px) {
+  :root {
+    --header-h: 144px;
+  }
+}
+
+/* Flush under the header (pages that open with a full-bleed hero) */
+@utility pt-header {
+  padding-top: var(--header-h);
+}
+
+/* Under the header plus breathing room (pages that open with a heading) */
+@utility pt-header-page {
+  padding-top: calc(var(--header-h) + 2rem);
+}
+
 /* Bottom nav spacing for content */
 @media (max-width: 767px) {
   .has-bottom-nav {

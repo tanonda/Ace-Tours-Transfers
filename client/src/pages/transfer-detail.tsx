@@ -164,7 +164,7 @@ export default function TransferDetail() {
   if (error || !transfer) {
     return (
       <Layout>
-        <div className="container mx-auto px-4 pt-40 pb-20 text-center bg-[#0f0d09] min-h-screen">
+        <div className="container mx-auto px-4 pt-header-page pb-20 text-center bg-[#0f0d09] min-h-screen">
           <h1 className="text-4xl font-bold mb-4 text-[#f0ece4]">{t("common.error", "Error")}</h1>
           <p className="text-[#8a826e] mb-8">{t("common.productNotFound", "Transfer not found")}</p>
           <Button onClick={() => window.history.back()} className="bg-[#f4a830] text-[#0f0d09]">
@@ -231,10 +231,10 @@ export default function TransferDetail() {
         policy={transfer.cancellationPolicy ?? undefined}
       />
 
-      <div className="min-h-screen bg-[#0f0d09] text-[#f0ece4] font-sans pt-28 md:pt-32">
+      <div className="min-h-screen bg-[#0f0d09] text-[#f0ece4] font-sans pt-header">
 
         {/* ── HERO ── */}
-        <div className="relative aspect-video lg:aspect-[21/9] max-h-[60vh] overflow-hidden bg-[#0f0d09]">
+        <div className="relative w-full aspect-video lg:aspect-[21/9] min-h-[320px] max-h-[60vh] overflow-hidden bg-[#0f0d09]">
           <img
             src={cloudinaryOpt(displayImage, 1400)}
             className="w-full h-full object-cover filter brightness-[0.45] object-center"
@@ -243,7 +243,7 @@ export default function TransferDetail() {
             fetchPriority="high"
           />
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0f0d09]" />
-          <div className="absolute bottom-7 left-0 right-0 max-w-[1320px] mx-auto px-8">
+          <div className="absolute bottom-7 left-0 right-0 max-w-[1320px] mx-auto px-4 md:px-8">
             <div className="flex items-center gap-2 text-[0.78rem] text-[#8a826e] mb-3">
               <a href="/" className="text-[#f4a830] hover:underline">Home</a>
               <span>›</span>

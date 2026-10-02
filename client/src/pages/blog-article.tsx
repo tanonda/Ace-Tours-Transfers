@@ -99,7 +99,7 @@ export default function BlogArticle() {
   if (isLoading) {
     return (
       <Layout>
-        <main className="min-h-screen bg-[#f7f3e9] px-4 pt-40 dark:bg-[#160f0a]" aria-live="polite">
+        <main className="min-h-screen bg-[#f7f3e9] px-4 pt-header-page dark:bg-[#160f0a]" aria-live="polite">
           <div className="container mx-auto max-w-5xl animate-pulse">
             <div className="h-[55vh] min-h-[28rem] rounded-3xl bg-[#e3d9c7] dark:bg-white/10" />
           </div>
@@ -138,7 +138,7 @@ export default function BlogArticle() {
 
       <main className="overflow-hidden bg-[#f7f3e9] text-[#281c13] dark:bg-[#160f0a] dark:text-[#f7f0df]">
         <article>
-          <header className="relative isolate flex min-h-[42rem] items-end overflow-hidden pt-36 sm:min-h-[48rem] lg:min-h-[52rem]">
+          <header className="relative isolate flex min-h-[42rem] items-end overflow-hidden pt-header-page sm:min-h-[48rem] lg:min-h-[52rem]">
             <img
               src={visual.image}
               alt={article.imageAlt || article.title}

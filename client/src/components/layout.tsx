@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { useState, useEffect, forwardRef } from "react";
+import { useState, useEffect, useRef, forwardRef } from "react";
 import { Menu, Phone, Mail, Instagram, Facebook, X, ChevronRight, ShoppingCart, User, LogIn, LogOut, UserPlus, Home, Map, Car, Info, MessageSquare, Calendar, ChevronDown, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -156,6 +156,24 @@ export function Layout({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // Publish the header's real height as --header-h so pages can clear the fixed
+  // header at every breakpoint instead of guessing with hard-coded padding.
+  // Only the un-scrolled height is recorded: the header shrinks once scrolled,
+  // and feeding that back into page padding would make the content jump.
+  const headerRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const header = headerRef.current;
+    if (!header) return;
+    const publish = () => {
+      if (window.scrollY > 50) return;
+      document.documentElement.style.setProperty("--header-h", `${Math.ceil(header.getBoundingClientRect().height)}px`);
+    };
+    publish();
+    const observer = new ResizeObserver(publish);
+    observer.observe(header);
+    return () => observer.disconnect();
+  }, []);
+
   const isTransparent = isHome && !isScrolled;
 
   const navTextColor = isTransparent ? "text-white hover:text-white/80" : "text-foreground hover:text-primary";
@@ -167,6 +185,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <SkipLinks />
 
       <header
+        ref={headerRef}
         id="main-navigation"
         role="banner"
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled
@@ -204,11 +223,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </div>
         </div>
 
-        <div className={`container mx-auto px-4 flex flex-wrap lg:flex-nowrap items-center justify-between transition-all duration-300 ${isScrolled ? "py-2" : "py-3"}`}>
-          <div className="flex items-center justify-center w-full lg:w-auto relative mb-2 lg:mb-0">
+        <div className={`container mx-auto px-4 flex flex-wrap xl:flex-nowrap items-center justify-between transition-all duration-300 ${isScrolled ? "py-2" : "py-3"}`}>
+          <div className="flex items-center justify-center w-full xl:w-auto relative">
           {/* Mobile hamburger - absolute left so logo stays centered on mobile */}
           <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-            <SheetTrigger asChild className="md:hidden">
+            <SheetTrigger asChild className="xl:hidden">
               <Button
                 variant="ghost"
                 size="icon"
@@ -493,9 +512,21 @@ export function Layout({ children }: { children: React.ReactNode }) {
               Ace Tours & Transfers
             </span>
           </Link>
+
+          {/* Tablet cart shortcut - phones use the bottom nav, desktop the full nav */}
+          <Link href="/cart" className="hidden md:block xl:hidden absolute right-0">
+            <Button variant="ghost" size="icon" className={`${mobileButtonColor} relative`} aria-label="Cart">
+              <ShoppingCart className="h-6 w-6" aria-hidden="true" />
+              {itemCount > 0 && (
+                <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-[#f4a830] text-[#0f0d09] text-[10px] font-black flex items-center justify-center">
+                  {itemCount}
+                </span>
+              )}
+            </Button>
+          </Link>
           </div>
 
-          <nav className="hidden md:flex flex-wrap justify-center lg:justify-end items-center gap-2 lg:gap-5" aria-label="Main navigation">
+          <nav className="hidden xl:flex justify-end items-center gap-5" aria-label="Main navigation">
             <NavigationMenu className="relative z-50">
               <NavigationMenuList>
                 <NavigationMenuItem>
@@ -617,7 +648,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
               </NavigationMenuList>
             </NavigationMenu>
 
-            <div className="ml-1 lg:ml-4 flex items-center shrink-0">
+            <div className="ml-4 flex items-center shrink-0">
               <Link href="/cart">
                 <Button size="default" className="font-semibold shadow-md relative" variant={itemCount > 0 ? "default" : "secondary"}>
                   <ShoppingCart className="h-4 w-4 mr-2" />
@@ -640,7 +671,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
       <footer role="contentinfo" className="bg-[#291B12] text-white pt-16 pb-24 md:pb-8">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
             <div>
               <div className="flex items-center gap-2 mb-6">
                 <img src={logo} alt="Ace Tours Logo" className="h-10 w-auto rounded-full border-2 border-white/20" />
@@ -704,7 +735,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 </li>
                 <li className="flex items-start gap-3">
                   <Mail className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                  <a href={`mailto:${contactEmail}`} className="text-white/70 hover:text-white">
+                  <a href={`mailto:${contactEmail}`} className="text-white/70 hover:text-white break-all min-w-0">
                     {contactEmail}
                   </a>
                 </li>

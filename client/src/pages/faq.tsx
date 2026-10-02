@@ -61,7 +61,7 @@ export default function FAQ() {
                 keywords={["Vanuatu tour FAQ", "Port Vila transfer questions", "vehicle hire Vanuatu FAQ", "Ace Tours help"]}
                 faqs={faqs}
             />
-            <div className="bg-muted/30 pt-32 md:pt-40 pb-16 md:pb-24">
+            <div className="bg-muted/30 pt-header-page pb-16 md:pb-24">
                 <div className="container mx-auto px-4 max-w-4xl">
                     <div className="text-center mb-12">
                         <h1 className="text-4xl font-serif font-bold text-primary mb-4">Frequently Asked Questions</h1>

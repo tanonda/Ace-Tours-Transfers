@@ -64,7 +64,7 @@ export default function Contact() {
         description="Get in touch with Ace Tours & Transfers in Port Vila, Vanuatu. Call, email, or send us a message — our team is available 24/7 for bookings and inquiries."
         keywords={["contact Ace Tours", "Vanuatu tour contact", "Port Vila tour booking", "Vanuatu transfer inquiry"]}
       />
-      <div className="pt-40 pb-10 bg-primary/5">
+      <div className="pt-header-page pb-10 bg-primary/5">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-4xl md:text-5xl font-serif font-bold mb-4">{cms.text("page_title", t("contact.title"))}</h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
@@ -99,9 +99,9 @@ export default function Contact() {
                 <div className="bg-primary/10 p-3 rounded-full text-primary shrink-0">
                   <Mail className="h-6 w-6" />
                 </div>
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <h3 className="font-bold text-lg mb-1">{t("contact.email")}</h3>
-                  <a href={`mailto:${contactEmail}`} className="text-primary hover:underline text-lg font-semibold">
+                  <a href={`mailto:${contactEmail}`} className="text-primary hover:underline text-lg font-semibold break-all">
                     {typeof contactEmail === 'string' ? contactEmail : "acetoursvanuatu@outlook.com"}
                   </a>
                   <p className="text-sm text-muted-foreground mt-1">{cms.text("email_reply_time", t("contact.emailReply"))}</p>

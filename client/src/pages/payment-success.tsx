@@ -137,7 +137,7 @@ export default function PaymentSuccess() {
   if (isLoading) {
     return (
       <Layout>
-        <div className="min-h-[60vh] flex items-center justify-center p-4 pt-40">
+        <div className="min-h-[60vh] flex items-center justify-center p-4 pt-header-page">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       </Layout>
@@ -146,7 +146,7 @@ export default function PaymentSuccess() {
 
   return (
     <Layout>
-      <div className="min-h-[60vh] flex items-center justify-center p-4 pt-40 pb-16">
+      <div className="min-h-[60vh] flex items-center justify-center p-4 pt-header-page pb-16">
         <div className="w-full max-w-lg space-y-4">
 
           {/* Ace Tours Brand Identity */}

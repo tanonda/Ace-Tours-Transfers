@@ -45,7 +45,7 @@ export default function PaymentCancel() {
 
   return (
     <Layout>
-      <div className="min-h-[60vh] flex items-center justify-center p-4 pt-40">
+      <div className="min-h-[60vh] flex items-center justify-center p-4 pt-header-page">
         <div className="w-full max-w-md space-y-4">
           {/* Ace Tours Brand Identity */}
           <div className="flex items-center justify-center gap-3 mb-2">

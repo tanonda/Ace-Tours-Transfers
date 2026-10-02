@@ -66,7 +66,7 @@ export default function LandingPage() {
 
       {/* Hero */}
       <section
-        className="relative bg-cover bg-center pt-40 pb-20"
+        className="relative bg-cover bg-center pt-header-page pb-20"
         style={{ backgroundImage: `linear-gradient(rgba(15,13,9,0.55),rgba(15,13,9,0.55)), url(${config.heroImage})` }}
       >
         <div className="container mx-auto px-4 text-center text-white">

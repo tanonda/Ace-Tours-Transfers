@@ -20,7 +20,7 @@ export default function Blog() {
         keywords={["Vanuatu travel guide", "things to do Port Vila", "Vanuatu travel tips", "Efate Island guide"]}
       />
       <main className="overflow-hidden bg-[#f7f3e9] text-[#251a11] dark:bg-[#160f0a] dark:text-[#f7f0df]">
-        <section className="relative isolate min-h-[36rem] overflow-hidden pt-36 sm:min-h-[42rem] sm:pt-44" aria-labelledby="travel-guides-title">
+        <section className="relative isolate min-h-[36rem] overflow-hidden pt-header-page sm:min-h-[42rem]" aria-labelledby="travel-guides-title">
           <img
             src="/assets/guides/vanuatu-coast-field-guide.webp"
             alt="Aerial view of a tropical Vanuatu coastline and coral lagoon"

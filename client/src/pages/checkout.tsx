@@ -95,7 +95,7 @@ export default function Checkout() {
 
     return (
         <Layout>
-            <div className="min-h-screen pt-36 md:pt-40 pb-16 relative overflow-hidden bg-muted/10">
+            <div className="min-h-screen pt-header-page pb-16 relative overflow-hidden bg-muted/10">
                 <div className="container mx-auto px-4 relative z-10">
 
                     <div className="max-w-3xl mx-auto mb-6">

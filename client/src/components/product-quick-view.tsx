@@ -81,7 +81,7 @@ export function ProductQuickView({ isOpen, onClose, product }: ProductQuickViewP
     <AnimatePresence>
       {isOpen && (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-          <DialogContent className="max-w-5xl w-[95vw] p-0 overflow-hidden gap-0 bg-[#141210] border-[rgba(244,168,48,0.15)] rounded-2xl shadow-2xl">
+          <DialogContent hideCloseButton className="max-w-5xl w-[95vw] p-0 overflow-hidden gap-0 bg-[#141210] border-[rgba(244,168,48,0.15)] rounded-2xl shadow-2xl">
             <div className="flex flex-col lg:flex-row h-full max-h-[90vh]">
 
               {/* ── Image panel ── */}
@@ -103,7 +103,7 @@ export function ProductQuickView({ isOpen, onClose, product }: ProductQuickViewP
                 </div>
 
                 {/* Close button */}
-                <button onClick={onClose}
+                <button onClick={onClose} aria-label={t("common.close", "Close")}
                   className="absolute top-4 right-4 h-9 w-9 rounded-full bg-black/40 hover:bg-black/70 border border-white/10 flex items-center justify-center text-white/80 hover:text-white transition-all backdrop-blur-sm">
                   <X className="h-4 w-4" />
                 </button>

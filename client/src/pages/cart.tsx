@@ -60,7 +60,7 @@ export default function Cart() {
   if (items.length === 0) {
     return (
       <Layout>
-        <div className="min-h-[60vh] flex flex-col items-center justify-center p-4 pt-40">
+        <div className="min-h-[60vh] flex flex-col items-center justify-center p-4 pt-header-page">
           <div className="bg-muted/30 p-8 rounded-full mb-6">
             <ShoppingBag className="h-12 w-12 text-muted-foreground" />
           </div>
@@ -83,7 +83,7 @@ export default function Cart() {
 
   return (
     <Layout>
-      <div className="pt-40 pb-12 bg-muted/30 min-h-screen">
+      <div className="pt-header-page pb-12 bg-muted/30 min-h-screen">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between mb-6">
             <div>

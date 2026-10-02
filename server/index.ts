@@ -117,6 +117,7 @@ app.use(helmet({
         "https://*.stripe.com",
         "https://www.googletagmanager.com",
         "https://www.transparenttextures.com", // Background texture patterns
+        "https://images.unsplash.com", // About page default story image
       ],
       connectSrc: [
         "'self'",
