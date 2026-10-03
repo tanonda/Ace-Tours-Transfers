@@ -53,7 +53,7 @@ A production-grade booking and management platform for [Ace Tours Vanuatu](https
    cd Ace-Tours-Transfers
    npm install
    ```
-2. **Environment Setup**: Create a `.env` file based on the template in `deployment_guide.md`.
+2. **Environment Setup**: Create a `.env` file based on the template in `docs/deployment_guide.md`.
 3. **Database Migration**: `npm run db:push`
 4. **Development Server**: `npm run dev`
 
@@ -62,8 +62,8 @@ A production-grade booking and management platform for [Ace Tours Vanuatu](https
 ## 🚢 Deployment & QA
 
 Refer to the following documents for production protocols:
-- **[Deployment Guide](./deployment_guide.md)**: Infrastructure and environment configuration.
-- **[Fixes Changelog](./FIXES_CHANGELOG.md)**: Audit record and reliability improvements.
+- **[Deployment Guide](./docs/deployment_guide.md)**: Infrastructure and environment configuration.
+- **[Fixes Changelog](./docs/FIXES_CHANGELOG.md)**: Audit record and reliability improvements.
 
 ### Verification Suite
 - **Architecture Audit**: `npm run check-architecture`

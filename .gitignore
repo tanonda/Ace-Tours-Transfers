@@ -10,3 +10,14 @@ env.txt
 .vscode
 .replit
 replit.nix
+
+# Tool/agent state
+.local
+.kilo
+
+# Scratch output and backups — keep one-off scripts out of the repo root
+*.dump
+*.bak
+*.orig
+output*.txt
+*.zip

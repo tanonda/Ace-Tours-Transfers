@@ -232,16 +232,7 @@ export function registerBookingEngineRoutes(
     });
 
     // ─── OBSERVABILITY (Phase 8) ──────────────────────────────────────
-
-    // Get system metrics
-    app.get("/api/admin/metrics", requireAdmin, async (req, res) => {
-        try {
-            const metrics = await metricsService.getMetrics();
-            res.json(metrics);
-        } catch (error: any) {
-            res.status(500).json({ error: error.message });
-        }
-    });
+    // GET /api/admin/metrics lives in server/routes.ts (registered first).
 
     // Get system alerts
     app.get("/api/admin/alerts", requireAdmin, async (req, res) => {

@@ -1,10 +1,10 @@
 import "dotenv/config";
 import fs from "fs";
 import path from "path";
-import { db } from "./server/db.js";
-import { cmsContent } from "./shared/schema.js";
+import { db } from "../../server/db.js";
+import { cmsContent } from "../../shared/schema.js";
 import { eq, and } from "drizzle-orm";
-import { translateText } from "./server/lib/translate.js";
+import { translateText } from "../../server/lib/translate.js";
 
 const LOCALES_DIR = path.join(process.cwd(), "client/src/locales");
 const AUTO_LANGS = ["fr", "es", "zh"];
