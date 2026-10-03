@@ -246,7 +246,8 @@ export default function FieldServiceDashboard() {
 
                   {/* Quick actions */}
                   <div className="flex flex-col gap-1.5 shrink-0">
-                    {b.status === "pending" && (
+                    {/* Confirming means checking payment — admins only (server enforces this too) */}
+                    {b.status === "pending" && user?.role === "admin" && (
                       <Button
                         size="sm"
                         className="h-8 text-xs bg-green-600 hover:bg-green-700 text-white"

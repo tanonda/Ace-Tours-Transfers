@@ -17,19 +17,32 @@ export type BookingUpdateScreen =
   | { ok: true; updates: Record<string, unknown> }
   | { ok: false; error: string };
 
-export function screenBookingUpdate(body: Record<string, unknown>, isAdmin: boolean): BookingUpdateScreen {
+export type BookingUpdateActor = "admin" | "staff" | "owner";
+
+export function screenBookingUpdate(
+  body: Record<string, unknown>,
+  actor: BookingUpdateActor,
+  currentStatus: string,
+): BookingUpdateScreen {
   if (!body || typeof body !== "object" || Array.isArray(body)) {
     return { ok: false, error: "Invalid update." };
   }
 
-  const isAllowed = isAdmin
-    ? (field: string) => !IMMUTABLE_FIELDS.includes(field)
+  // Field service (drivers/guides) may only mark a trip done; confirming a pending
+  // booking means checking payment, which stays with admins.
+  const isAllowed =
+    actor === "admin" ? (field: string) => !IMMUTABLE_FIELDS.includes(field)
+    : actor === "staff" ? (field: string) => field === "status"
     : (field: string) => OWNER_EDITABLE_FIELDS.includes(field);
 
   for (const [field, value] of Object.entries(body)) {
     if (value !== undefined && !isAllowed(field)) {
       return { ok: false, error: `Field '${field}' cannot be modified.` };
     }
+  }
+
+  if (actor === "staff" && !(currentStatus === "confirmed" && body.status === "completed")) {
+    return { ok: false, error: "Field service can only mark confirmed bookings as completed." };
   }
 
   return { ok: true, updates: { ...body } };

@@ -1317,7 +1317,8 @@ ${p.lastmod ? `    <lastmod>${escapeXml(p.lastmod)}</lastmod>\n` : ""}    <chang
   });
 
   // Bookings API
-  app.get("/api/bookings", requireAdmin, async (req, res) => {
+  // Staff (field service) need the list for their daily run sheet.
+  app.get("/api/bookings", requireStaff, async (req, res) => {
     try {
       const includeArchived = req.query.includeArchived === 'true';
       const bookings = await storage.getBookings(includeArchived);
@@ -1346,7 +1347,10 @@ ${p.lastmod ? `    <lastmod>${escapeXml(p.lastmod)}</lastmod>\n` : ""}    <chang
         confirmedAt: b.confirmedAt ? b.confirmedAt.toISOString() : null,
         paymentMethod: bookingPaymentMap.get(b.id) || null,
       }));
-      res.json(enrichedBookings);
+      if (req.session.userRole === "admin") return res.json(enrichedBookings);
+
+      // Drivers/guides don't need fraud review data.
+      res.json(enrichedBookings.map(({ fraudScore, fraudLevel, fraudSignals, fraudReviewedAt, fraudReviewedBy, ...rest }) => rest));
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch bookings" });
     }
@@ -2037,14 +2041,22 @@ ${p.lastmod ? `    <lastmod>${escapeXml(p.lastmod)}</lastmod>\n` : ""}    <chang
     try {
       const existing = await storage.getBooking(req.params.id);
       if (!existing) return res.status(404).json({ error: "Booking not found" });
-      const isAdmin = req.session.userRole === 'admin';
-      if (!isAdmin && existing.userId !== req.session.userId) {
+      // Fresh role from the DB (not the session) so demotions apply immediately.
+      const actingUser = await storage.getUser(req.session.userId!);
+      if (!actingUser || actingUser.isActive === false) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+      const actor = actingUser.role === 'admin' ? 'admin'
+        : actingUser.role === 'field_service' ? 'staff'
+        : existing.userId === actingUser.id ? 'owner'
+        : null;
+      if (!actor) {
         return res.status(403).json({ error: "Access denied" });
       }
 
-      // Customers may only edit contact/pickup details; status, dates, guests,
-      // payment and fraud fields are admin-only (see booking-update-policy.ts).
-      const screened = screenBookingUpdate(req.body, isAdmin);
+      // Customers may only edit contact/pickup details, field service may only mark
+      // trips done; everything else is admin-only (see booking-update-policy.ts).
+      const screened = screenBookingUpdate(req.body, actor, existing.status);
       if (!screened.ok) {
         return res.status(400).json({ error: screened.error });
       }
