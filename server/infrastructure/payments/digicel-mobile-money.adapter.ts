@@ -177,20 +177,20 @@ export class DigicelMobileMoneyAdapter implements PaymentGatewayService {
 
     try {
       // 1. Verify signature
-      if (this.config.signatureVerificationKey || event.signature) {
-        const rawBody = typeof event.rawEvent === 'string'
-          ? event.rawEvent
-          : JSON.stringify(event.rawEvent);
+      // Always verify: verifySignature falls back to apiSecret, so a key always
+      // exists. Skipping when no signature is sent would accept forged callbacks.
+      const rawBody = typeof event.rawEvent === 'string'
+        ? event.rawEvent
+        : JSON.stringify(event.rawEvent);
 
-        const sig = event.signature
-          || event.headers?.['x-signature']
-          || event.headers?.['x-digicel-signature']
-          || '';
+      const sig = event.signature
+        || event.headers?.['x-signature']
+        || event.headers?.['x-digicel-signature']
+        || '';
 
-        if (!this.verifySignature(rawBody, sig)) {
-          console.error('[DIGICEL] Webhook signature verification failed');
-          return { success: false, message: 'Signature verification failed.' };
-        }
+      if (!this.verifySignature(rawBody, sig)) {
+        console.error('[DIGICEL] Webhook signature verification failed');
+        return { success: false, message: 'Signature verification failed.' };
       }
 
       // 2. Extract transaction data

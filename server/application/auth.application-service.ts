@@ -14,7 +14,7 @@ export class AuthApplicationService {
   public async login(email: string, password: string, mfaToken?: string) {
     const authResult = await this.authDomainService.login(email, password, mfaToken);
     if (authResult?.user && !authResult.requiresMfa) {
-      this.sessionAdapter.setSession(authResult.user.id, authResult.user.role);
+      await this.sessionAdapter.setSession(authResult.user.id, authResult.user.role);
     }
     return authResult;
   }
@@ -22,7 +22,7 @@ export class AuthApplicationService {
   public async register(name: string, email: string, password: string) {
     const authResult = await this.authDomainService.register(name, email, password);
     if (authResult) {
-      this.sessionAdapter.setSession(authResult.id, authResult.role);
+      await this.sessionAdapter.setSession(authResult.id, authResult.role);
     }
     return authResult;
   }

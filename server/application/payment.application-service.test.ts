@@ -131,6 +131,20 @@ describe('PaymentApplicationService — handlePaymentWebhook', () => {
     expect(sendAdminEmailMock).not.toHaveBeenCalled();
   });
 
+  it('ignores callbacks for an inactive gateway', async () => {
+    // Gateways are seeded inactive on every boot; a callback naming one must not move money.
+    storageMock.getPaymentGatewayBySlug.mockResolvedValue({ ...MOCK_GATEWAY, active: false });
+
+    const result = await service.handlePaymentWebhook({
+      gatewaySlug: 'bred-bank',
+      rawEvent: { vpc_TxnResponseCode: '0', vpc_MerchTxnRef: 'txn-123' },
+    });
+
+    expect(result.success).toBe(false);
+    expect(storageMock.updatePayment).not.toHaveBeenCalled();
+    expect(mockReceive).not.toHaveBeenCalled();
+  });
+
   it('places payment in manual_review_required on amount mismatch and emails admin', async () => {
     const event: WebhookEvent = {
       gatewaySlug: 'bred-bank',

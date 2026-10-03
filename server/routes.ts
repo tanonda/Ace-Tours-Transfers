@@ -34,6 +34,8 @@ import { registerRecoveryRoutes } from "./routes/recovery.js";
 import { registerBookingEngineRoutes } from "./routes/booking-engine.js";
 import { BackupIntegrityGuard } from "./infrastructure/recovery/integrity-guard.js";
 import { ExpressSessionAdapter } from "./infrastructure/session.adapter.js";
+import { isPrivateSettingKey, visibleSettings } from "./lib/public-settings.js";
+import { requireRole } from "./middleware/role-guard.js";
 import { AvailabilityDomainService } from "./domain/services/availability.domain-service.js";
 import { BookingApplicationService } from "./application/booking.application-service.js";
 import { PaymentReconciliationService } from "./application/payment-reconciliation.service.js";
@@ -288,26 +290,17 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
   next();
 }
 
+// Kept as hoisted function declarations: other route modules import these from
+// this file in a circular import, so a `const` export could be read before init.
+const adminGuard = requireRole((id) => storage.getUser(id), ["admin"]);
+const staffGuard = requireRole((id) => storage.getUser(id), ["admin", "field_service"]);
+
 export function requireAdmin(req: Request, res: Response, next: NextFunction) {
-  if (!req.session.userId) {
-    return res.status(401).json({ error: "Authentication required" });
-  }
-  if (req.session.userRole !== "admin") {
-    console.log(`[ADMIN] 403 Forbidden: ${req.method} ${req.path}`);
-    return res.status(403).json({ error: "Admin access required" });
-  }
-  next();
+  return adminGuard(req, res, next);
 }
 
 export function requireStaff(req: Request, res: Response, next: NextFunction) {
-  if (!req.session.userId) {
-    return res.status(401).json({ error: "Authentication required" });
-  }
-  const userRole = req.session.userRole;
-  if (userRole !== "admin" && userRole !== "field_service") {
-    return res.status(403).json({ error: "Staff access required" });
-  }
-  next();
+  return staffGuard(req, res, next);
 }
 
 /**
@@ -2187,10 +2180,12 @@ ${p.lastmod ? `    <lastmod>${escapeXml(p.lastmod)}</lastmod>\n` : ""}    <chang
   });
 
   // Settings API
-  app.get("/api/settings", async (_req, res) => {
+  app.get("/api/settings", async (req, res) => {
     try {
       const settings = await storage.getSiteSettings();
-      res.json(settings);
+      // Admins and visitors get different bodies; never let a shared cache mix them.
+      res.set("Cache-Control", "private, no-cache");
+      res.json(visibleSettings(settings, req.session.userRole === "admin"));
     } catch (error: any) {
       const ref = Date.now().toString();
       console.error(`[SETTINGS ERROR][${ref}]`, error?.message, error?.code);
@@ -2201,8 +2196,10 @@ ${p.lastmod ? `    <lastmod>${escapeXml(p.lastmod)}</lastmod>\n` : ""}    <chang
 
   app.get("/api/settings/:key", async (req, res) => {
     try {
-      const setting = await storage.getSiteSetting(req.params.key);
+      const hidden = isPrivateSettingKey(req.params.key) && req.session.userRole !== "admin";
+      const setting = hidden ? undefined : await storage.getSiteSetting(req.params.key);
       if (!setting) return res.status(404).json({ error: "Setting not found" });
+      res.set("Cache-Control", "private, no-cache");
       res.json(setting);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch setting" });

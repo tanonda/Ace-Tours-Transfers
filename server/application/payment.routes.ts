@@ -7,6 +7,7 @@ import { config } from "../config.js";
 import { rateLimit } from "express-rate-limit";
 import { z } from "zod";
 import { adminAudit } from "../infrastructure/audit/admin-audit-log.service.js";
+import { toPublicGateway } from "./public-gateway.js";
 
 const paymentLimiter = rateLimit({
   windowMs: 60 * 1000,
@@ -326,7 +327,7 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
       if (!gateway) {
         return res.status(404).json({ error: "No active payment gateway" });
       }
-      res.json(gateway);
+      res.json(toPublicGateway(gateway));
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch active payment gateway" });
     }
@@ -354,15 +355,7 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
         return true;
       });
 
-      res.json(visibleGateways.map((g: any) => ({
-        id: g.id,
-        slug: g.slug,
-        displayName: g.displayName,
-        description: g.description,
-        active: g.active,
-        isDefault: g.isDefault,
-        supportedCurrencies: g.supportedCurrencies
-      })));
+      res.json(visibleGateways.map(toPublicGateway));
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch payment gateways" });
     }

@@ -280,6 +280,12 @@ export class PaymentApplicationService {
   async handlePaymentWebhook(event: WebhookEvent): Promise<WebhookResponse> {
     const gateway = await this.storage.getPaymentGatewayBySlug(event.gatewaySlug);
     if (!gateway) return { success: false, message: "Gateway not found" };
+    // Every gateway row is seeded on boot (inactive), so a callback naming one
+    // the admin never switched on must not be able to complete a payment.
+    if (!gateway.active) {
+      console.warn(`[WEBHOOK] Ignored callback for inactive gateway ${event.gatewaySlug}; reconcile manually if a payment was in flight`);
+      return { success: false, message: "Gateway is not active" };
+    }
 
     const adapter = PaymentFactory.getPaymentGatewayService(gateway);
     const result = await adapter.handleWebhook(event);

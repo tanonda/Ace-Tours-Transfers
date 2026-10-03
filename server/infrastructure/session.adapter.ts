@@ -4,9 +4,12 @@ import { Request } from "express";
 export interface ISessionAdapter {
   getUserId(): string | undefined;
   getUserRole(): string | undefined;
-  setSession(userId: string, userRole: string): void;
+  setSession(userId: string, userRole: string): Promise<void>;
   destroySession(): Promise<void>;
 }
+
+// Guest checkout state that must survive login, or the booking just made becomes unviewable.
+const CARRIED_OVER_ON_LOGIN = ["recentBookingIds", "bookingSessionId", "bookingSessionExpiresAt"] as const;
 
 // Concrete implementation for Express.js sessions
 export class ExpressSessionAdapter implements ISessionAdapter {
@@ -24,11 +27,21 @@ export class ExpressSessionAdapter implements ISessionAdapter {
     return this.req.session?.userRole;
   }
 
-  setSession(userId: string, userRole: string): void {
-    if (this.req.session) {
-      this.req.session.userId = userId;
-      this.req.session.userRole = userRole;
-    }
+  // Issues a fresh session ID before authenticating it, so an ID planted
+  // before login (session fixation) never becomes a logged-in session.
+  async setSession(userId: string, userRole: string): Promise<void> {
+    const old = this.req.session as any;
+    if (!old) return;
+
+    const carried = Object.fromEntries(
+      CARRIED_OVER_ON_LOGIN.filter((k) => old[k] !== undefined).map((k) => [k, old[k]]),
+    );
+
+    await new Promise<void>((resolve, reject) =>
+      old.regenerate((err?: Error) => (err ? reject(err) : resolve())),
+    );
+
+    Object.assign(this.req.session, carried, { userId, userRole });
   }
 
   destroySession(): Promise<void> {
