@@ -92,6 +92,47 @@ async function waitForRouteContent(page: Page, route: string, timeoutMs: number)
   throw new Error(`route-specific content did not become ready within ${timeoutMs}ms`);
 }
 
+/**
+ * Load the app once, then move between routes in-app (history.pushState +
+ * popstate, which wouter follows) instead of a full page load per route.
+ *
+ * On Render's half-CPU instance most of each full load was re-parsing the JS
+ * bundles and re-booting the app (settings, flags, translations) before the
+ * page itself started: ~22–32s per route. In-app navigation pays that once;
+ * later routes take a few seconds and reuse the already-loaded settings.
+ * If an in-app navigation does not settle, fall back to a full load.
+ */
+async function openRoute(page: Page, base: string, route: string, booted: boolean): Promise<void> {
+  if (booted) {
+    await page.evaluate((target) => {
+      window.history.pushState({}, '', target);
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    }, route);
+    try {
+      await waitForRouteContent(page, route, CONTENT_TIMEOUT_MS);
+      return;
+    } catch {
+      console.warn(`[prerender] ${route}: in-app navigation did not settle; retrying with a full page load`);
+    }
+  }
+  // Use 'load' (not 'networkidle'): this SPA holds persistent connections
+  // (Trustpilot widget, live currency API, Sentry) so networkidle rarely
+  // fires and each page would stall near NAV_TIMEOUT. Mirrors the proven
+  // approach in scripts/capture-user-manual-screenshots.ts.
+  await page.goto(`${base}${route}`, { timeout: NAV_TIMEOUT_MS, waitUntil: 'load' });
+  // Wait until React has mounted *something* into #root. Use state:'attached'
+  // (DOM presence) — NOT the default 'visible': the first child React renders is
+  // the toast region (pointer-events:none, zero-size), which Playwright deems
+  // invisible, so a visibility wait would time out even though the app mounted.
+  await page.waitForSelector('#root > *', { state: 'attached', timeout: NAV_TIMEOUT_MS });
+  // A generic JSON-LD marker is not enough: the SPA shell already contains
+  // homepage schema and previously caused article URLs to be snapshotted as
+  // the homepage. Require this route's canonical plus real heading content;
+  // article routes must additionally expose article-specific JSON-LD.
+  // The first load also boots the whole app, so it gets double the budget.
+  await waitForRouteContent(page, route, booted ? CONTENT_TIMEOUT_MS : CONTENT_TIMEOUT_MS * 2);
+}
+
 async function renderAll(
   base: string,
   routes: string[],
@@ -105,23 +146,11 @@ async function renderAll(
   let ok = 0;
   const writtenRoutes: string[] = [];
   const failedRoutes: Array<{ route: string; error: string }> = [];
+  let booted = false;
   for (const route of orderRoutesForPrerender(routes)) {
     try {
-      // Use 'load' (not 'networkidle'): this SPA holds persistent connections
-      // (Trustpilot widget, live currency API, Sentry) so networkidle rarely
-      // fires and each page would stall near NAV_TIMEOUT. Mirrors the proven
-      // approach in scripts/capture-user-manual-screenshots.ts.
-      await page.goto(`${base}${route}`, { timeout: NAV_TIMEOUT_MS, waitUntil: 'load' });
-      // Wait until React has mounted *something* into #root. Use state:'attached'
-      // (DOM presence) — NOT the default 'visible': the first child React renders is
-      // the toast region (pointer-events:none, zero-size), which Playwright deems
-      // invisible, so a visibility wait would time out even though the app mounted.
-      await page.waitForSelector('#root > *', { state: 'attached', timeout: NAV_TIMEOUT_MS });
-      // A generic JSON-LD marker is not enough: the SPA shell already contains
-      // homepage schema and previously caused article URLs to be snapshotted as
-      // the homepage. Require this route's canonical plus real heading content;
-      // article routes must additionally expose article-specific JSON-LD.
-      await waitForRouteContent(page, route, CONTENT_TIMEOUT_MS);
+      await openRoute(page, base, route, booted);
+      booted = true;
       await page.waitForTimeout(RENDER_DELAY_MS);
       const html = await page.content();
       const validation = validateSnapshotHtml(html, route);
