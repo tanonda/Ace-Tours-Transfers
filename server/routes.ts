@@ -36,6 +36,7 @@ import { BackupIntegrityGuard } from "./infrastructure/recovery/integrity-guard.
 import { ExpressSessionAdapter } from "./infrastructure/session.adapter.js";
 import { isPrivateSettingKey, visibleSettings } from "./lib/public-settings.js";
 import { requireRole } from "./middleware/role-guard.js";
+import { screenBookingUpdate } from "./lib/booking-update-policy.js";
 import { AvailabilityDomainService } from "./domain/services/availability.domain-service.js";
 import { BookingApplicationService } from "./application/booking.application-service.js";
 import { PaymentReconciliationService } from "./application/payment-reconciliation.service.js";
@@ -2036,26 +2037,21 @@ ${p.lastmod ? `    <lastmod>${escapeXml(p.lastmod)}</lastmod>\n` : ""}    <chang
     try {
       const existing = await storage.getBooking(req.params.id);
       if (!existing) return res.status(404).json({ error: "Booking not found" });
-      if (req.session.userRole !== 'admin' && existing.userId !== req.session.userId) {
+      const isAdmin = req.session.userRole === 'admin';
+      if (!isAdmin && existing.userId !== req.session.userId) {
         return res.status(403).json({ error: "Access denied" });
       }
 
-      const updates = { ...req.body } as any;
-
-      // FIX (HIGH-8 / audit report section 3.3): Enforce an immutable-field whitelist.
-      // Financial and identity fields must never be overwritten via this route.
-      const IMMUTABLE_FIELDS = [
-        'totalAmountCents', 'amount', 'tourId', 'customerEmail',
-        'idempotencyKey', 'holdId', 'bookingSessionId', 'id', 'createdAt',
-      ];
-      for (const field of IMMUTABLE_FIELDS) {
-        if (Object.prototype.hasOwnProperty.call(updates, field) && updates[field] !== undefined) {
-          return res.status(400).json({ error: `Field '${field}' cannot be modified.` });
-        }
+      // Customers may only edit contact/pickup details; status, dates, guests,
+      // payment and fraud fields are admin-only (see booking-update-policy.ts).
+      const screened = screenBookingUpdate(req.body, isAdmin);
+      if (!screened.ok) {
+        return res.status(400).json({ error: screened.error });
       }
+      const updates = screened.updates as any;
 
       // FIX: Enforce booking status state machine.
-      // Only admin users are allowed to drive status transitions.
+      // Only admins reach this with a status (screenBookingUpdate rejects it for customers).
       const ALLOWED_TRANSITIONS: Record<string, string[]> = {
         'pending': ['confirmed', 'cancelled'],
         'confirmed': ['completed', 'cancelled'],
