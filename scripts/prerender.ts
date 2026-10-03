@@ -7,6 +7,8 @@ import { writeFile } from 'node:fs/promises';
 import { chromium, type Browser, type Page } from 'playwright';
 import { orderRoutesForPrerender, parseSitemapRoutes, PRERENDER_BYPASS_COOKIE, writeSnapshot } from '../server/prerender-paths.js';
 import { validatePrerenderSnapshots, validateSnapshotHtml } from '../server/prerender-validation.js';
+import { readContainerStats, type ContainerStats } from '../server/prerender-metrics.js';
+import os from 'node:os';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(HERE, '..');
@@ -102,7 +104,9 @@ async function waitForRouteContent(page: Page, route: string, timeoutMs: number)
  * later routes take a few seconds and reuse the already-loaded settings.
  * If an in-app navigation does not settle, fall back to a full load.
  */
-async function openRoute(page: Page, base: string, route: string, booted: boolean): Promise<void> {
+type OpenMethod = 'boot' | 'in-app' | 'in-app-fallback' | 'full-load';
+
+async function openRoute(page: Page, base: string, route: string, booted: boolean): Promise<OpenMethod> {
   if (booted) {
     await page.evaluate((target) => {
       window.history.pushState({}, '', target);
@@ -110,7 +114,7 @@ async function openRoute(page: Page, base: string, route: string, booted: boolea
     }, route);
     try {
       await waitForRouteContent(page, route, CONTENT_TIMEOUT_MS);
-      return;
+      return 'in-app';
     } catch {
       console.warn(`[prerender] ${route}: in-app navigation did not settle; retrying with a full page load`);
     }
@@ -131,6 +135,32 @@ async function openRoute(page: Page, base: string, route: string, booted: boolea
   // article routes must additionally expose article-specific JSON-LD.
   // The first load also boots the whole app, so it gets double the budget.
   await waitForRouteContent(page, route, booted ? CONTENT_TIMEOUT_MS : CONTENT_TIMEOUT_MS * 2);
+  return booted ? 'in-app-fallback' : 'boot';
+}
+
+/** Per-route diagnostics, published in the manifest (see /api/seo/prerender-status). */
+interface RouteTiming {
+  route: string;
+  method: OpenMethod | 'failed';
+  /** From starting navigation to the route's content being ready. */
+  readyMs: number;
+  /** Whole route, including the settle delay and writing the snapshot. */
+  totalMs: number;
+  browserHeapMb?: number;
+  containerMemoryMb?: number;
+  /** CPU time the container used, and time it was held back by its CPU quota, during this route. */
+  cpuMs?: number;
+  throttledMs?: number;
+}
+
+const delta = (after?: number, before?: number) =>
+  after !== undefined && before !== undefined ? Math.round(after - before) : undefined;
+
+async function browserHeapMb(page: Page): Promise<number | undefined> {
+  const bytes = await page
+    .evaluate(() => (performance as unknown as { memory?: { usedJSHeapSize: number } }).memory?.usedJSHeapSize)
+    .catch(() => undefined);
+  return bytes ? Math.round(bytes / (1024 * 1024)) : undefined;
 }
 
 async function renderAll(
@@ -146,10 +176,17 @@ async function renderAll(
   let ok = 0;
   const writtenRoutes: string[] = [];
   const failedRoutes: Array<{ route: string; error: string }> = [];
+  const timings: RouteTiming[] = [];
+  const startStats = readContainerStats();
   let booted = false;
   for (const route of orderRoutesForPrerender(routes)) {
+    const t0 = Date.now();
+    const before: ContainerStats = readContainerStats();
+    let method: RouteTiming['method'] = 'failed';
+    let readyMs = 0;
     try {
-      await openRoute(page, base, route, booted);
+      method = await openRoute(page, base, route, booted);
+      readyMs = Date.now() - t0;
       booted = true;
       await page.waitForTimeout(RENDER_DELAY_MS);
       const html = await page.content();
@@ -166,7 +203,25 @@ async function renderAll(
       console.error(`[fail] ${route}: ${error}`);
       failedRoutes.push({ route, error });
     }
+    const after = readContainerStats();
+    const timing: RouteTiming = {
+      route,
+      method,
+      readyMs: readyMs || Date.now() - t0,
+      totalMs: Date.now() - t0,
+      browserHeapMb: await browserHeapMb(page),
+      containerMemoryMb: after.memoryMb,
+      cpuMs: delta(after.cpuUsageMs, before.cpuUsageMs),
+      throttledMs: delta(after.throttledMs, before.throttledMs),
+    };
+    timings.push(timing);
+    console.log(
+      `[timing] ${route} ${timing.method} ready=${timing.readyMs}ms total=${timing.totalMs}ms` +
+        ` heap=${timing.browserHeapMb ?? '?'}MB mem=${timing.containerMemoryMb ?? '?'}/${after.memoryLimitMb ?? '?'}MB` +
+        ` cpu=${timing.cpuMs ?? '?'}ms throttled=${timing.throttledMs ?? '?'}ms`,
+    );
   }
+  const endStats = readContainerStats();
   await writeFile(
     path.join(DIST_PUBLIC, '.prerender-manifest.json'),
     JSON.stringify({
@@ -176,6 +231,14 @@ async function renderAll(
       writtenRoutes,
       failedRoutes,
       coverage: routes.length > 0 ? writtenRoutes.length / routes.length : 0,
+      environment: {
+        hostCpus: os.cpus().length,
+        hostMemoryMb: Math.round(os.totalmem() / (1024 * 1024)),
+        loadAverage1m: os.loadavg()[0],
+        containerAtStart: startStats,
+        containerAtEnd: endStats,
+      },
+      timings,
     }, null, 2),
     'utf-8',
   );
