@@ -4,15 +4,29 @@ import { describe, expect, it } from "vitest";
 
 describe("API route registration order", () => {
   it("registers the public article routes before the API catch-all", () => {
-    const routesPath = fileURLToPath(new URL("./routes.ts", import.meta.url));
-    const source = readFileSync(routesPath, "utf8");
-    const publicArticles = source.indexOf('app.get("/api/articles"');
-    const articleBySlug = source.indexOf('app.get("/api/articles/:slug"');
-    const catchAll = source.indexOf('app.all("/api/*any"');
+    const read = (rel: string) => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), "utf8");
+    const content = read("./routes/content.routes.ts");
+    const publicArticles = content.indexOf('app.get("/api/articles"');
+    const articleBySlug = content.indexOf('app.get("/api/articles/:slug"');
 
     expect(publicArticles).toBeGreaterThan(-1);
     expect(articleBySlug).toBeGreaterThan(publicArticles);
-    expect(catchAll).toBeGreaterThan(articleBySlug);
+
+    const routes = read("./routes.ts");
+    const contentRegistered = routes.indexOf("registerContentRoutes(app);");
+    const catchAll = routes.indexOf('app.all("/api/*any"');
+
+    expect(contentRegistered).toBeGreaterThan(-1);
+    expect(catchAll).toBeGreaterThan(contentRegistered);
+  });
+
+  it("registers every route module before the API catch-all", () => {
+    const routes = readFileSync(fileURLToPath(new URL("./routes.ts", import.meta.url)), "utf8");
+    const catchAll = routes.indexOf('app.all("/api/*any"');
+    const calls = [...routes.matchAll(/^\s+(?:await )?register\w+Routes\(app\b/gm)];
+
+    expect(calls.length).toBeGreaterThanOrEqual(12);
+    for (const call of calls) expect(call.index!).toBeLessThan(catchAll);
   });
 
   it("registers prerender diagnostics before the API catch-all is installed", () => {
