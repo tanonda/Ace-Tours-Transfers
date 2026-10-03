@@ -37,9 +37,10 @@ npm run prerender
 prerender_status=$?
 
 if [ "$prerender_status" -ne 0 ]; then
-  echo "[startup] prerender failed with exit code $prerender_status; refusing to keep the service online" >&2
-  stop_server
-  exit "$prerender_status"
+  # Pages that failed to render fresh keep the snapshot copied from the previous
+  # deploy (or fall back to the app shell). Taking the whole site down over one
+  # page would be worse, and on Render a failing startup becomes a restart loop.
+  echo "[startup] WARNING: prerender exited with code $prerender_status (see [fail]/[keep] lines above); keeping the service online" >&2
 fi
 
 if ! kill -0 "$server_pid" 2>/dev/null; then
@@ -48,7 +49,11 @@ if ! kill -0 "$server_pid" 2>/dev/null; then
   exit $?
 fi
 
-echo "[startup] prerender complete and validated; service is ready"
+if [ "$prerender_status" -eq 0 ]; then
+  echo "[startup] prerender complete and validated; service is ready"
+else
+  echo "[startup] service is ready (some pages are using copied or shell HTML until the next deploy)"
+fi
 wait "$server_pid"
 server_status=$?
 server_pid=""

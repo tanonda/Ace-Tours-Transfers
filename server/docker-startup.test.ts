@@ -12,10 +12,18 @@ describe("Docker prerender startup supervision", () => {
     expect(dockerfile).not.toContain("npm run prerender || true");
   });
 
-  it("stops the server and exits non-zero when prerender fails", () => {
+  // Every route already has a snapshot seeded from the previous deploy (or falls back
+  // to the app shell), so a page that fails its fresh render must not take the whole
+  // site down — and on Render a failing startup becomes a restart loop.
+  it("logs a prerender failure but keeps the server online", () => {
     expect(startupScript).toContain('if [ "$prerender_status" -ne 0 ]');
+    expect(startupScript).toContain("keeping the service online");
+    expect(startupScript).not.toContain('exit "$prerender_status"');
+  });
+
+  it("still stops the server on termination signals", () => {
+    expect(startupScript).toContain("trap handle_signal INT TERM HUP");
     expect(startupScript).toContain("stop_server");
-    expect(startupScript).toContain('exit "$prerender_status"');
   });
 
   it("keeps the server supervised after successful validation", () => {

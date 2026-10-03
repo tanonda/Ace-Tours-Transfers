@@ -92,7 +92,11 @@ async function waitForRouteContent(page: Page, route: string, timeoutMs: number)
   throw new Error(`route-specific content did not become ready within ${timeoutMs}ms`);
 }
 
-async function renderAll(base: string, routes: string[], browser: Browser): Promise<number> {
+async function renderAll(
+  base: string,
+  routes: string[],
+  browser: Browser,
+): Promise<{ written: number; failedRoutes: Array<{ route: string; error: string }> }> {
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   // Always render from the bare app shell, never on top of an existing (possibly
   // seeded-from-previous-deploy) snapshot. Same-origin cookie, so third parties never see it.
@@ -147,7 +151,7 @@ async function renderAll(base: string, routes: string[], browser: Browser): Prom
     'utf-8',
   );
   await context.close();
-  return ok;
+  return { written: ok, failedRoutes };
 }
 
 /** Orchestrate a full prerender pass. Resolves true if at least one page was written. */
@@ -167,15 +171,20 @@ export async function runPrerender(): Promise<boolean> {
     const executablePath = browserExecutable();
     console.log(`[prerender] browser: ${executablePath ?? 'Playwright default'}`);
     browser = await chromium.launch({ headless: true, ...(executablePath && { executablePath }) });
-    const written = await renderAll(BASE_URL, routes, browser);
+    const { written, failedRoutes } = await renderAll(BASE_URL, routes, browser);
     console.log(`[prerender] wrote ${written}/${routes.length} snapshots`);
-    // Snapshots seeded from the previous deploy would satisfy the file validation
-    // below, so a route that failed to render fresh must be caught here instead.
-    if (written < routes.length) {
-      throw new Error(`Fresh prerender failed for ${routes.length - written}/${routes.length} sitemap routes (see [fail] lines above)`);
-    }
     const validation = await validatePrerenderSnapshots(routes, DIST_PUBLIC);
     const invalid = validation.filter((result) => result.issues.length > 0);
+    // A route that failed to render fresh but still has a valid snapshot is serving
+    // the copy seeded from the previous deploy: say so, then still report failure.
+    const invalidRoutes = new Set(invalid.map((result) => result.route));
+    const kept = failedRoutes.filter(({ route }) => !invalidRoutes.has(route));
+    for (const { route } of kept) {
+      console.warn(`[keep] ${route}: fresh render failed; serving the snapshot copied from the previous deploy`);
+    }
+    if (kept.length > 0 && invalid.length === 0) {
+      throw new Error(`Fresh prerender failed for ${kept.length}/${routes.length} sitemap routes; previous snapshots kept for all of them`);
+    }
     if (invalid.length > 0) {
       const details = invalid.map((result) => `${result.route}: ${result.issues.join('; ')}`).join('\n');
       throw new Error(`Prerender validation failed for ${invalid.length}/${routes.length} sitemap routes:\n${details}`);
