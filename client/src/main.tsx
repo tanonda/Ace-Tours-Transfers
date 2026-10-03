@@ -2,6 +2,16 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
 import "./lib/i18n";
+import { withCsrf } from "./lib/csrf-fetch";
+import { ensureCsrfToken, getCsrfToken } from "./lib/queryClient";
+
+// Every state-changing /api/ call must carry the CSRF header, including pages that
+// call fetch() directly instead of apiRequest(). Installed before anything renders.
+window.fetch = withCsrf(window.fetch.bind(window), {
+  getToken: getCsrfToken,
+  ensureToken: ensureCsrfToken,
+  origin: window.location.origin,
+});
 
 (function () {
   const handler = {
