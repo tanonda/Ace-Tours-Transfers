@@ -40,7 +40,12 @@ export function registerPrerenderStatusRoute(
     let manifest: unknown = null;
     if (fs.existsSync(manifestPath)) {
       try {
-        manifest = JSON.parse(fs.readFileSync(manifestPath, "utf-8"));
+        // Per-route timings and container resource stats are for the server logs
+        // only; this endpoint is public, so don't advertise infrastructure details.
+        const { environment: _environment, timings: _timings, ...publicManifest } = JSON.parse(
+          fs.readFileSync(manifestPath, "utf-8"),
+        );
+        manifest = publicManifest;
       } catch (error) {
         manifest = {
           error: error instanceof Error ? error.message : String(error),

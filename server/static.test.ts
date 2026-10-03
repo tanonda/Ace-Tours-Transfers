@@ -33,7 +33,12 @@ describe("serveStatic (prerender-aware)", () => {
     await writeFile(path.join(dist, "robots.txt"), "User-agent: *\nAllow: /\n");
     await writeFile(
       path.join(dist, ".prerender-manifest.json"),
-      JSON.stringify({ expectedRoutes: ["/", "/tours/abc-123"], writtenRoutes: ["/", "/tours/abc-123"] }),
+      JSON.stringify({
+        expectedRoutes: ["/", "/tours/abc-123"],
+        writtenRoutes: ["/", "/tours/abc-123"],
+        environment: { hostCpus: 8, hostMemoryMb: 31387, containerAtEnd: { cpuQuotaCores: 0.15 } },
+        timings: [{ route: "/", method: "boot", readyMs: 30000, containerMemoryMb: 512 }],
+      }),
     );
 
     app = express();
@@ -92,5 +97,14 @@ describe("serveStatic (prerender-aware)", () => {
     expect(res.body.snapshots.htmlFiles).toBe(2);
     expect(res.body.manifest.writtenRoutes).toEqual(["/", "/tours/abc-123"]);
     expect(res.body).not.toHaveProperty("distPath");
+  });
+
+  it("keeps container and timing diagnostics out of the public status response", async () => {
+    const res = await request(app).get("/api/seo/prerender-status");
+
+    expect(res.body.manifest.writtenRoutes).toEqual(["/", "/tours/abc-123"]);
+    expect(res.body.manifest).not.toHaveProperty("environment");
+    expect(res.body.manifest).not.toHaveProperty("timings");
+    expect(JSON.stringify(res.body)).not.toMatch(/cpuQuota|hostMemory|containerMemory/);
   });
 });
