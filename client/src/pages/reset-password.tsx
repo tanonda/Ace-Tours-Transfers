@@ -5,6 +5,7 @@ import { resetPassword } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { KeyRound, ShieldCheck, Loader2 } from "lucide-react";
@@ -132,9 +133,9 @@ export default function ResetPassword() {
                                     <CardContent className="space-y-4 pt-4">
                                         <div className="space-y-2">
                                             <Label htmlFor="password">New Password</Label>
-                                            <Input
+                                            <PasswordInput
+                                                toggleClassName="text-white/70 hover:text-white"
                                                 id="password"
-                                                type="password"
                                                 required
                                                 className="bg-white/5 border-white/20 text-white placeholder:text-white/30 focus:border-white/40 focus:ring-white/20"
                                                 placeholder="••••••••"
@@ -145,9 +146,9 @@ export default function ResetPassword() {
                                         </div>
                                         <div className="space-y-2">
                                             <Label htmlFor="confirmPassword">Confirm Password</Label>
-                                            <Input
+                                            <PasswordInput
+                                                toggleClassName="text-white/70 hover:text-white"
                                                 id="confirmPassword"
-                                                type="password"
                                                 required
                                                 className="bg-white/5 border-white/20 text-white placeholder:text-white/30 focus:border-white/40 focus:ring-white/20"
                                                 placeholder="••••••••"

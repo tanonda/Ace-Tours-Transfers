@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Link, useLocation } from "wouter";
@@ -186,9 +187,9 @@ export default function Register() {
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="password" className="text-white">{t("auth.password")}</Label>
-                        <Input
+                        <PasswordInput
+                          toggleClassName="text-white/70 hover:text-white"
                           id="password"
-                          type="password"
                           placeholder="At least 8 characters"
                           required
                           value={formData.password}
@@ -198,9 +199,9 @@ export default function Register() {
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="confirmPassword" className="text-white">{t("auth.confirmPassword")}</Label>
-                        <Input
+                        <PasswordInput
+                          toggleClassName="text-white/70 hover:text-white"
                           id="confirmPassword"
-                          type="password"
                           placeholder="Repeat your password"
                           required
                           value={formData.confirmPassword}

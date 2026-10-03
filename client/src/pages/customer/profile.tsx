@@ -2,6 +2,7 @@ import { DashboardLayout } from "@/components/dashboard-layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
@@ -61,15 +62,15 @@ export default function CustomerProfile() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label>Current Password</Label>
-              <Input type="password" />
+              <PasswordInput />
             </div>
             <div className="space-y-2">
               <Label>New Password</Label>
-              <Input type="password" />
+              <PasswordInput />
             </div>
             <div className="space-y-2">
               <Label>Confirm New Password</Label>
-              <Input type="password" />
+              <PasswordInput />
             </div>
             <Button variant="outline" className="mt-2" onClick={() => toast({ title: "Password Updated", description: "Your password has been changed successfully." })}>Update Password</Button>
           </CardContent>

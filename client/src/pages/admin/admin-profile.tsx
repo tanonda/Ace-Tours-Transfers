@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -55,7 +56,7 @@ export default function AdminProfile() {
     mutationFn: async () => {
       if (!user?.id) throw new Error("Not authenticated");
       if (newPassword !== confirmPassword) throw new Error("Passwords do not match");
-      if (newPassword.length < 6) throw new Error("Password must be at least 6 characters");
+      if (newPassword.length < 8) throw new Error("Password must be at least 8 characters");
       const res = await fetch(`/api/users/${user.id}/change-password`, {
         method: "PATCH",
         credentials: "include",
@@ -214,14 +215,13 @@ export default function AdminProfile() {
               <KeyRound className="h-5 w-5" />
               Change Password
             </CardTitle>
-            <CardDescription>Use a strong password of at least 6 characters.</CardDescription>
+            <CardDescription>Use a strong password of at least 8 characters.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="current-password">Current Password</Label>
-              <Input
+              <PasswordInput
                 id="current-password"
-                type="password"
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
                 placeholder="Enter current password"
@@ -230,19 +230,17 @@ export default function AdminProfile() {
             <Separator />
             <div className="space-y-2">
               <Label htmlFor="new-password">New Password</Label>
-              <Input
+              <PasswordInput
                 id="new-password"
-                type="password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="Min. 6 characters"
+                placeholder="Min. 8 characters"
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="confirm-password">Confirm New Password</Label>
-              <Input
+              <PasswordInput
                 id="confirm-password"
-                type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Repeat new password"

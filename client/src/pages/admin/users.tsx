@@ -2,6 +2,7 @@ import { DashboardLayout } from "@/components/dashboard-layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -26,7 +27,7 @@ const userFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().email("Invalid email address"),
   phone: z.string().optional(),
-  password: z.string().min(6, "Password must be at least 6 characters").max(50, "Password too long"),
+  password: z.string().min(8, "Password must be at least 8 characters").max(50, "Password too long"),
   role: z.enum(["customer"]),
 });
 
@@ -712,7 +713,7 @@ export default function AdminUsers() {
                 <FormField control={form.control} name="password" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Password *</FormLabel>
-                    <FormControl><Input type="password" placeholder="Min. 6 characters" {...field} /></FormControl>
+                    <FormControl><PasswordInput placeholder="Min. 8 characters" {...field} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />
@@ -755,9 +756,8 @@ export default function AdminUsers() {
                 <Label htmlFor="new-password" className="text-right">
                   New Password
                 </Label>
-                <Input
+                <PasswordInput
                   id="new-password"
-                  type="password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   className="col-span-3"
