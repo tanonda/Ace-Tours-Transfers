@@ -125,28 +125,6 @@ async function main() {
                 "Light refreshments provided",
                 "You take care of your entrance fees"
             ]
-        },
-        {
-            title: "Vehicle Rental",
-            adultPriceCents: 0,
-            childPriceCents: 0,
-            groupPriceCents: 0,
-            price: "Contact for prices",
-            childPrice: null,
-            duration: "24 hour +",
-            minPax: null,
-            defaultCapacity: 5,
-            category: "vehicle",
-            pricingType: "per_person",
-            image: "/attached_assets/stock_images/vanuatu_4wd_vehicle.jpg",
-            description: [
-                "24 hour + vehicle hire",
-                "Affordable price",
-                "0 deposit",
-                "Adequate Insurance cover",
-                "Let us help you enjoy your stay in Port Vila. Travel safe.",
-                "Inbox us for prices or call numbers listed (7737787 or 5907813)."
-            ]
         }
     ];
 

@@ -18,7 +18,7 @@ async function main() {
             },
             {
                 key: "seo_default_description",
-                value: "Experience the best of Vanuatu with Ace Tours & Transfers. Reliable airport transfers, scenic Efate island tours, and premium vehicle hire in Port Vila."
+                value: "Experience the best of Vanuatu with Ace Tours & Transfers. Reliable airport transfers and scenic Efate island tours from Port Vila."
             },
             {
                 key: "seo_default_keywords",

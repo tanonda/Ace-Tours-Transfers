@@ -10,7 +10,7 @@ export default function TermsOfService() {
     <Layout>
       <SEO
         title="Terms of Service — Ace Tours & Transfers Vanuatu"
-        description="Terms and conditions for booking tours, transfers and vehicle hire with Ace Tours & Transfers in Vanuatu."
+        description="Terms and conditions for booking tours and transfers with Ace Tours & Transfers in Vanuatu."
       />
 
       {/* Page Header */}
@@ -34,7 +34,7 @@ export default function TermsOfService() {
           {/* Intro */}
           <div className="bg-card border border-border rounded-xl p-6">
             <p className="text-muted-foreground leading-relaxed">
-              {cms.text("intro", "By booking a tour, transfer, or vehicle hire service with Ace Tours & Transfers, you agree to the following terms and conditions. Please read them carefully before completing your booking.")}
+              {cms.text("intro", "By booking a tour or transfer service with Ace Tours & Transfers, you agree to the following terms and conditions. Please read them carefully before completing your booking.")}
             </p>
           </div>
 

@@ -18,7 +18,7 @@ export default function Tours() {
         title={t("tours.seoTitle", "Our Tours - Explore Vanuatu's Best Attractions")}
         description={t(
           "tours.seoDesc",
-          "Discover our range of meticulously planned tours in Vanuatu. From scenic cultural tours to vehicle hire for large groups.",
+          "Discover our range of meticulously planned tours in Vanuatu. From scenic cultural tours to full-day private charters for groups.",
         )}
       />
       <div className="bg-muted/30 pt-header-page pb-20">

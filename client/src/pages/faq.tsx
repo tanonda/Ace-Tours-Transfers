@@ -57,8 +57,8 @@ export default function FAQ() {
         <Layout>
             <SEO
                 title="Frequently Asked Questions - Ace Tours & Transfers"
-                description="Find answers to common questions about our Vanuatu tours, airport transfers, vehicle hire, payments, cancellations, and pickup locations in Port Vila."
-                keywords={["Vanuatu tour FAQ", "Port Vila transfer questions", "vehicle hire Vanuatu FAQ", "Ace Tours help"]}
+                description="Find answers to common questions about our Vanuatu tours, airport transfers, payments, cancellations, and pickup locations in Port Vila."
+                keywords={["Vanuatu tour FAQ", "Port Vila transfer questions", "Ace Tours help"]}
                 faqs={faqs}
             />
             <div className="bg-muted/30 pt-header-page pb-16 md:pb-24">
