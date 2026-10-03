@@ -1,7 +1,7 @@
 import express, { type Express } from "express";
 import fs from "fs";
 import path from "path";
-import { prerenderFileFor } from "./prerender-paths.js";
+import { hasPrerenderBypass, prerenderFileFor, SPA_SHELL_FILE } from "./prerender-paths.js";
 
 let prerenderHits = 0;
 let prerenderMisses = 0;
@@ -77,8 +77,10 @@ export function serveStatic(app: Express, distPath: string = path.resolve(__dirn
   app.use(express.static(distPath, { index: false, redirect: false }));
 
   // Serve a prerendered HTML snapshot for matching GET routes, if one exists.
+  // The prerenderer's own browser bypasses snapshots so it always renders fresh.
   app.use((req, res, next) => {
     if (req.method !== "GET" && req.method !== "HEAD") return next();
+    if (hasPrerenderBypass(req.headers.cookie)) return next();
     const snapshot = prerenderFileFor(req.path, distPath);
     if (snapshot && fs.existsSync(snapshot)) {
       prerenderHits++;
@@ -88,8 +90,10 @@ export function serveStatic(app: Express, distPath: string = path.resolve(__dirn
     next();
   });
 
-  // SPA fallback: serve the app shell (or prerendered home) for anything else.
+  // SPA fallback: the pristine app shell. index.html holds the homepage snapshot
+  // once prerendered, so it is only used if the build predates spa-shell.html.
+  const shellFile = path.resolve(distPath, SPA_SHELL_FILE);
   app.use((_req, res) => {
-    res.sendFile(path.resolve(distPath, "index.html"));
+    res.sendFile(fs.existsSync(shellFile) ? shellFile : path.resolve(distPath, "index.html"));
   });
 }

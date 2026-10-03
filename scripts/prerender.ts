@@ -5,7 +5,7 @@ import { spawn, type ChildProcess } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { writeFile } from 'node:fs/promises';
 import { chromium, type Browser, type Page } from 'playwright';
-import { orderRoutesForPrerender, parseSitemapRoutes, writeSnapshot } from '../server/prerender-paths.js';
+import { orderRoutesForPrerender, parseSitemapRoutes, PRERENDER_BYPASS_COOKIE, writeSnapshot } from '../server/prerender-paths.js';
 import { validatePrerenderSnapshots, validateSnapshotHtml } from '../server/prerender-validation.js';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -74,6 +74,9 @@ async function waitForRouteContent(page: Page, route: string, timeoutMs: number)
     const canonical = await page.locator('link[rel="canonical"]').first().getAttribute('href', { timeout: 500 }).catch(() => null);
     const h1 = await page.locator('h1').first().textContent({ timeout: 500 }).catch(() => null);
     const schemas = await page.locator('script[type="application/ld+json"]').allTextContents().catch(() => []);
+    // The SEO component marks <html data-seo-ready="true"> once admin SEO settings
+    // have loaded; snapshotting earlier would capture the built-in fallback titles.
+    const seoReady = await page.evaluate(() => document.documentElement.getAttribute('data-seo-ready') === 'true').catch(() => false);
     let canonicalPath: string | null = null;
     try {
       const pathname = new URL(canonical ?? '', page.url()).pathname;
@@ -82,7 +85,7 @@ async function waitForRouteContent(page: Page, route: string, timeoutMs: number)
       canonicalPath = null;
     }
     const hasArticleSchema = schemas.some((schema) => /"@type"\s*:\s*"(?:BlogPosting|Article)"/i.test(schema));
-    if (canonicalPath === expectedRoute && Boolean(h1?.trim()) && (!requireArticleSchema || hasArticleSchema)) return;
+    if (canonicalPath === expectedRoute && Boolean(h1?.trim()) && seoReady && (!requireArticleSchema || hasArticleSchema)) return;
     await page.waitForTimeout(250);
   }
 
@@ -91,6 +94,9 @@ async function waitForRouteContent(page: Page, route: string, timeoutMs: number)
 
 async function renderAll(base: string, routes: string[], browser: Browser): Promise<number> {
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  // Always render from the bare app shell, never on top of an existing (possibly
+  // seeded-from-previous-deploy) snapshot. Same-origin cookie, so third parties never see it.
+  await context.addCookies([{ name: PRERENDER_BYPASS_COOKIE, value: '1', url: base }]);
   const page = await context.newPage();
   let ok = 0;
   const writtenRoutes: string[] = [];
@@ -163,6 +169,11 @@ export async function runPrerender(): Promise<boolean> {
     browser = await chromium.launch({ headless: true, ...(executablePath && { executablePath }) });
     const written = await renderAll(BASE_URL, routes, browser);
     console.log(`[prerender] wrote ${written}/${routes.length} snapshots`);
+    // Snapshots seeded from the previous deploy would satisfy the file validation
+    // below, so a route that failed to render fresh must be caught here instead.
+    if (written < routes.length) {
+      throw new Error(`Fresh prerender failed for ${routes.length - written}/${routes.length} sitemap routes (see [fail] lines above)`);
+    }
     const validation = await validatePrerenderSnapshots(routes, DIST_PUBLIC);
     const invalid = validation.filter((result) => result.issues.length > 0);
     if (invalid.length > 0) {

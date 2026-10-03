@@ -57,7 +57,7 @@ describe('prerenderFileFor', () => {
 
 import os from 'node:os';
 import { mkdtemp, rm, readFile } from 'node:fs/promises';
-import { orderRoutesForPrerender, parseSitemapRoutes, writeSnapshot } from './prerender-paths.js';
+import { hasPrerenderBypass, orderRoutesForPrerender, parseSitemapRoutes, swapAssetTags, writeSnapshot } from './prerender-paths.js';
 
 describe('parseSitemapRoutes', () => {
   it('extracts unique pathnames from sitemap <loc> entries', () => {
@@ -73,12 +73,58 @@ describe('parseSitemapRoutes', () => {
 });
 
 describe('orderRoutesForPrerender', () => {
-  it('renders the root snapshot last so it cannot contaminate the SPA fallback', () => {
-    expect(orderRoutesForPrerender(['/', '/blog', '/blog/guide'])).toEqual([
-      '/blog',
-      '/blog/guide',
-      '/',
-    ]);
+  // Safe now that the SPA fallback is a separate spa-shell.html: the homepage is the
+  // most important page for crawlers, so it gets a fresh snapshot first.
+  it('renders the homepage first', () => {
+    expect(orderRoutesForPrerender(['/blog', '/', '/blog/guide'])).toEqual(['/', '/blog', '/blog/guide']);
+  });
+
+  it('leaves the order alone when there is no homepage', () => {
+    expect(orderRoutesForPrerender(['/blog', '/tours'])).toEqual(['/blog', '/tours']);
+  });
+});
+
+describe('hasPrerenderBypass', () => {
+  it('detects the prerender bypass cookie among others', () => {
+    expect(hasPrerenderBypass('a=1; prerender_bypass=1; b=2')).toBe(true);
+    expect(hasPrerenderBypass('prerender_bypass=1')).toBe(true);
+  });
+
+  it('ignores missing or look-alike cookies', () => {
+    expect(hasPrerenderBypass(undefined)).toBe(false);
+    expect(hasPrerenderBypass('xprerender_bypass=1')).toBe(false);
+    expect(hasPrerenderBypass('prerender_bypass=0')).toBe(false);
+  });
+});
+
+describe('swapAssetTags', () => {
+  const shell = `<html><head>
+<script type="module" crossorigin src="/assets/index-NEW.js"></script>
+<link rel="modulepreload" crossorigin href="/assets/vendor-NEW.js">
+<link rel="stylesheet" crossorigin href="/assets/index-NEW.css">
+</head><body><div id="root"></div></body></html>`;
+
+  const oldSnapshot = `<html><head><title>Tours | Ace</title>
+<script type="module" crossorigin src="/assets/index-OLD.js"></script>
+<link rel="modulepreload" crossorigin href="/assets/vendor-OLD.js">
+<link rel="stylesheet" crossorigin href="/assets/index-OLD.css">
+<link rel="stylesheet" href="/assets/tours-OLD.css">
+<link rel="canonical" href="https://acetoursvanuatu.com/tours">
+</head><body><div id="root"><h1>Tours</h1><img src="https://res.cloudinary.com/x.jpg"></div></body></html>`;
+
+  it("replaces the previous build's bundles with the current build's", () => {
+    const out = swapAssetTags(oldSnapshot, shell);
+    expect(out).not.toMatch(/-OLD\.(js|css)/);
+    expect(out).toContain('src="/assets/index-NEW.js"');
+    expect(out).toContain('href="/assets/vendor-NEW.js"');
+    expect(out).toContain('href="/assets/index-NEW.css"');
+  });
+
+  it('keeps the page content, title and canonical', () => {
+    const out = swapAssetTags(oldSnapshot, shell);
+    expect(out).toContain('<title>Tours | Ace</title>');
+    expect(out).toContain('<link rel="canonical" href="https://acetoursvanuatu.com/tours">');
+    expect(out).toContain('<h1>Tours</h1><img src="https://res.cloudinary.com/x.jpg">');
   });
 });
 

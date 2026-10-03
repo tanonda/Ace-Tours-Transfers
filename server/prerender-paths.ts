@@ -73,14 +73,43 @@ export function parseSitemapRoutes(xml: string): string[] {
 }
 
 /**
- * Keep the root route last. Once `/` is snapshotted it replaces the SPA shell
- * at dist/public/index.html, which is also the fallback used while rendering
- * routes that do not have snapshots yet.
+ * Pristine copy of the built app shell. The `/` snapshot overwrites index.html,
+ * so the SPA fallback (and the prerenderer itself) uses this file instead.
+ */
+export const SPA_SHELL_FILE = 'spa-shell.html';
+
+/**
+ * Cookie the prerenderer's browser carries so the server hands it the bare app
+ * shell rather than an existing snapshot (fresh snapshots must never be rendered
+ * on top of old ones). A cookie, not a header, so it never reaches third parties.
+ */
+export const PRERENDER_BYPASS_COOKIE = 'prerender_bypass';
+
+export function hasPrerenderBypass(cookieHeader: string | undefined): boolean {
+  return (cookieHeader ?? '').split(';').some((c) => c.trim() === `${PRERENDER_BYPASS_COOKIE}=1`);
+}
+
+/**
+ * Homepage first: it is the page crawlers care about most. Safe because the SPA
+ * fallback is SPA_SHELL_FILE, not the index.html that the `/` snapshot replaces.
  */
 export function orderRoutesForPrerender(routes: string[]): string[] {
-  return [...routes.filter((route) => cleanRoute(route) !== '/')].concat(
-    routes.some((route) => cleanRoute(route) === '/') ? ['/'] : [],
-  );
+  const isRoot = (route: string) => cleanRoute(route) === '/';
+  return [...routes.filter(isRoot).slice(0, 1).map(() => '/'), ...routes.filter((route) => !isRoot(route))];
+}
+
+// <script src="/assets/…"></script> and <link href="/assets/…"> (stylesheets, modulepreloads)
+const ASSET_SCRIPT = /<script\b[^>]*\bsrc="\/assets\/[^"]*"[^>]*>\s*<\/script>/gi;
+const ASSET_LINK = /<link\b[^>]*\bhref="\/assets\/[^"]*"[^>]*>/gi;
+
+/**
+ * Re-point a snapshot taken from a previous deploy at the current build's bundles.
+ * Vite file names are content-hashed, so the old ones 404 after a deploy.
+ */
+export function swapAssetTags(snapshotHtml: string, shellHtml: string): string {
+  const current = [...(shellHtml.match(ASSET_SCRIPT) ?? []), ...(shellHtml.match(ASSET_LINK) ?? [])];
+  const stripped = snapshotHtml.replace(ASSET_SCRIPT, '').replace(ASSET_LINK, '');
+  return stripped.replace(/<\/head>/i, `${current.join('\n')}\n</head>`);
 }
 
 /** Write a snapshot HTML string to its computed path, creating parent dirs. Returns the path written. */

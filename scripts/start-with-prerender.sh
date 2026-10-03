@@ -20,6 +20,12 @@ handle_signal() {
 
 trap handle_signal INT TERM HUP
 
+# Copy the previous deploy's snapshots before the server starts, so this instance
+# never serves crawlers the empty app shell while its own prerender runs below.
+# Best-effort and time-boxed; the server starts regardless.
+echo "[startup] seeding crawler snapshots from the previous deploy"
+timeout 120 npx tsx scripts/seed-snapshots.ts || echo "[startup] snapshot seeding skipped"
+
 echo "[startup] starting application server on port $app_port"
 NODE_ENV=production PORT="$app_port" node --import ./dist/instrument.cjs dist/index.cjs &
 server_pid=$!
