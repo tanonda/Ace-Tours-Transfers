@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { NewsletterForm } from "@/components/newsletter-form";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
-const logo = "https://res.cloudinary.com/dwro1dh5q/image/upload/v1765063924/ace-tours-assets/ace_tours_logo_official.jpg";
+// Shown at 32–64px: let Cloudinary resize and pick WebP/AVIF (~9 KB instead of a 105 KB JPEG).
+const logo = "https://res.cloudinary.com/dwro1dh5q/image/upload/f_auto,q_auto,w_256/v1765063924/ace-tours-assets/ace_tours_logo_official.jpg";
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -164,12 +165,16 @@ export function Layout({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const header = headerRef.current;
     if (!header) return;
-    const publish = () => {
+    const publish = (height: number) => {
       if (window.scrollY > 50) return;
-      document.documentElement.style.setProperty("--header-h", `${Math.ceil(header.getBoundingClientRect().height)}px`);
+      document.documentElement.style.setProperty("--header-h", `${Math.ceil(height)}px`);
     };
-    publish();
-    const observer = new ResizeObserver(publish);
+    publish(header.getBoundingClientRect().height);
+    // Use the size the observer already measured; calling getBoundingClientRect()
+    // here forced an extra synchronous layout on every resize.
+    const observer = new ResizeObserver(([entry]) => {
+      publish(entry.borderBoxSize?.[0]?.blockSize ?? entry.contentRect.height);
+    });
     observer.observe(header);
     return () => observer.disconnect();
   }, []);

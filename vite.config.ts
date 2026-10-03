@@ -56,7 +56,10 @@ export default defineConfig({
             '@radix-ui/react-tooltip',
             '@radix-ui/react-popover',
           ],
-          'vendor-charts': ['recharts', 'chart.js', 'react-chartjs-2'],
+          // No 'vendor-charts' chunk on purpose: charts are only used by lazy admin
+          // pages, and forcing recharts into a named chunk also dragged its shared
+          // deps (clsx, used by cn() everywhere) in with it, so every public page
+          // loaded and executed the whole ~420 KB chart library.
           'vendor-forms': ['react-hook-form', '@hookform/resolvers', 'zod'],
           'vendor-query': ['@tanstack/react-query'],
           'vendor-pdf': ['qrcode'],

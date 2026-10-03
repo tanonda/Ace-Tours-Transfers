@@ -1,7 +1,7 @@
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
-import "./lib/i18n";
+import i18n, { syncLanguage } from "./lib/i18n";
 import { withCsrf } from "./lib/csrf-fetch";
 import { ensureCsrfToken, getCsrfToken } from "./lib/queryClient";
 
@@ -36,4 +36,7 @@ window.fetch = withCsrf(window.fetch.bind(window), {
   }, true);
 })();
 
-createRoot(document.getElementById("root")!).render(<App />);
+// Non-English visitors wait for their (small, lazily loaded) language file so the
+// first render is already translated; English renders immediately.
+const render = () => createRoot(document.getElementById("root")!).render(<App />);
+syncLanguage(i18n.language).then(render, render);

@@ -42,7 +42,8 @@ import { NotificationsPopover } from "@/components/notifications-popover";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LanguageSelector } from "@/components/language-selector";
 
-const logo = "https://res.cloudinary.com/dwro1dh5q/image/upload/v1765063924/ace-tours-assets/ace_tours_logo_official.jpg";
+// Shown at 32–64px: let Cloudinary resize and pick WebP/AVIF (~9 KB instead of a 105 KB JPEG).
+const logo = "https://res.cloudinary.com/dwro1dh5q/image/upload/f_auto,q_auto,w_256/v1765063924/ace-tours-assets/ace_tours_logo_official.jpg";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;

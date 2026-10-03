@@ -13,7 +13,6 @@ import { CurrencyProvider } from "@/lib/currency-context";
 import { AuthProvider, ProtectedRoute, useAuth } from "@/lib/auth-context";
 import { ThemeProvider } from "@/lib/theme-context";
 import { CMSProvider } from "@/lib/cms-context";
-import { WhatsAppWidget } from "@/components/whatsapp-widget";
 import { NProgressRouter } from "@/components/nprogress-router";
 
 // Coming soon gate — controlled via Admin Dashboard > Settings > Feature Flags
@@ -371,7 +370,8 @@ function App() {
                         <AnalyticsInjector />
                         <NProgressRouter />
                         <Router />
-                        <WhatsAppWidget />
+                        {/* WhatsAppWidget is rendered by the public <Layout>; mounting it here too
+                            stacked two copies on every public page. */}
                       </BookingStateProvider>
                     </CartProvider>
                   </CurrencyProvider>

@@ -1,27 +1,25 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
+import { createLanguageLoader, createLanguageSync } from './language-loader';
 
-// Import translation resources
+// English is bundled: it is the default, the fallback, and what crawlers get.
+// Other languages load on demand (see language-loader.ts).
 import enTranslations from '@/locales/en.json';
-import frTranslations from '@/locales/fr.json';
-import esTranslations from '@/locales/es.json';
-import biTranslations from '@/locales/bi.json';
-import zhTranslations from '@/locales/zh.json';
 
-const resources = {
-  en: { translation: enTranslations },
-  fr: { translation: frTranslations },
-  es: { translation: esTranslations },
-  bi: { translation: biTranslations },
-  zh: { translation: zhTranslations },
-};
+export const ensureLanguage = createLanguageLoader(i18n, {
+  fr: () => import('@/locales/fr.json'),
+  es: () => import('@/locales/es.json'),
+  bi: () => import('@/locales/bi.json'),
+  zh: () => import('@/locales/zh.json'),
+});
 
 i18n
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
-    resources,
+    resources: { en: { translation: enTranslations } },
+    partialBundledLanguages: true,
     fallbackLng: 'en',
     supportedLngs: ['en', 'fr', 'es', 'bi', 'zh'],
     load: 'languageOnly',
@@ -32,6 +30,16 @@ i18n
       order: ['localStorage', 'navigator'],
       caches: ['localStorage'],
     },
+    // Re-render when a lazily loaded language arrives.
+    react: { bindI18nStore: 'added' },
   });
+
+// Load a language's translations and make i18next re-resolve it (see language-loader.ts).
+export const syncLanguage = createLanguageSync(i18n, ensureLanguage);
+
+// Covers every language switch (e.g. the language selector).
+i18n.on('languageChanged', (lng) => {
+  syncLanguage(lng).catch((err) => console.warn(`[i18n] could not load ${lng}:`, err));
+});
 
 export default i18n;
