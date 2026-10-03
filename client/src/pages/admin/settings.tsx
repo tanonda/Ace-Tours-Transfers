@@ -1272,7 +1272,10 @@ export default function AdminSettings() {
               <CardHeader>
                 <CardTitle>SEO &amp; Metadata</CardTitle>
                 <CardDescription>
-                  Control page titles, meta descriptions, and Open Graph tags. Changes take effect on next page load.
+                  Control page titles, meta descriptions, keywords and the default share image. Visitors see
+                  changes on their next page load; search-engine snapshots refresh on the next deploy.
+                  The title template must contain <code>{"{page}"}</code>. The default description is used on the
+                  homepage and on any page without its own.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -1281,7 +1284,6 @@ export default function AdminSettings() {
                   { key: "seo_title_template", label: "Title Template", placeholder: "{page} | Ace Tours Vanuatu" },
                   { key: "seo_default_description", label: "Default Meta Description", placeholder: "Experience the best of Vanuatu with Ace Tours & Transfers..." },
                   { key: "seo_default_keywords", label: "Default Keywords", placeholder: "vanuatu tours, port vila transfers, efate island" },
-                  { key: "seo_canonical_url", label: "Canonical URL Prefix", placeholder: "https://acetours.vu" },
                   { key: "seo_og_image", label: "Default OG Image URL", placeholder: "https://res.cloudinary.com/..." },
                 ].map((item) => (
                   <SettingItem
@@ -1294,6 +1296,10 @@ export default function AdminSettings() {
                     onSave={() => updateMutation.mutateAsync({ key: item.key, value: formData[item.key] || "" })}
                   />
                 ))}
+                <p className="text-xs text-muted-foreground">
+                  The canonical domain (https://acetoursvanuatu.com) is fixed at deploy time on purpose: a typo
+                  there would tell Google every page belongs to another site.
+                </p>
               </CardContent>
             </Card>
 

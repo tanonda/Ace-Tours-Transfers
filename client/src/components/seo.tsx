@@ -2,6 +2,8 @@ import { Helmet } from "react-helmet-async";
 import { buildOfferJsonLd } from "@/lib/product-jsonld";
 import { useLocation } from "wouter";
 import { useTranslation } from "react-i18next";
+import { useOptionalCMS } from "@/lib/cms-context";
+import { readSeoSettings, resolveSeo } from "@/lib/seo-settings";
 
 // Canonical site URL for client-rendered SEO tags (canonical link, OG, JSON-LD).
 // Override via VITE_APP_URL at build time — Vite bakes it into the client bundle.
@@ -14,6 +16,10 @@ const SITE_URL =
 const SITE_NAME = "Ace Tours & Transfers Vanuatu";
 const DEFAULT_DESC =
   "Experience the best of Efate Island with Ace Tours & Transfers. Meticulously pre-planned and custom-designed tour packages and airport transfers in Port Vila and across Efate Island, Vanuatu.";
+const DEFAULT_KEYWORDS = [
+  "Ace Tours Vanuatu", "Ace Transfers", "Efate Island Day Tours", "Port Vila Airport Transfer",
+  "Vanuatu tourism", "Efate tours", "Blue Lagoon tour Vanuatu",
+];
 const DEFAULT_IMAGE =
   "https://res.cloudinary.com/dwro1dh5q/image/upload/f_auto,q_auto,w_1200/v1765063053605/ace-tours-assets/vanuatu_beach_hero_1765063053605.png";
 
@@ -71,8 +77,8 @@ interface SEOProps {
 
 export function SEO({
   title,
-  description = DEFAULT_DESC,
-  image = DEFAULT_IMAGE,
+  description,
+  image,
   imageAlt,
   type = "website",
   keywords = [],
@@ -93,15 +99,25 @@ export function SEO({
   // canonical pages. Wouter exposes the query string as part of the location.
   const canonicalPath = loc.split("?")[0].split("#")[0].replace(/\/+$/, "") || "/";
   const fullUrl = `${SITE_URL}${canonicalPath === "/" ? "/" : canonicalPath}`;
-  const fullTitle = `${title} | ${SITE_NAME}`;
-  const ogImage = cloudinaryOpt(image, 1200, "auto");
+  // Admin → Settings → SEO & Metadata feeds titles, descriptions, keywords and the
+  // default share image. `seoReady` tells the prerenderer settings have arrived.
+  const cms = useOptionalCMS();
+  const seoReady = !cms?.isLoading;
+  const seo = resolveSeo(
+    { title, description, keywords, image, isHomePage },
+    readSeoSettings((key) => cms?.getSetting(key) ?? null),
+    { siteName: SITE_NAME, description: DEFAULT_DESC, image: DEFAULT_IMAGE, keywords: DEFAULT_KEYWORDS },
+  );
+  const { fullTitle, siteName } = seo;
+  description = seo.description;
+  const ogImage = cloudinaryOpt(seo.image, 1200, "auto");
   // Browser detection can return values such as en-US@posix. Only emit one of
   // the languages the site actually supports in the document metadata.
   const documentLanguage = (i18n.resolvedLanguage || i18n.language || "en")
     .toLowerCase()
     .split(/[-_@]/)[0];
   const ogLocale = OG_LOCALE_MAP[documentLanguage] ?? "en_AU";
-  const resolvedImageAlt = imageAlt || `${title} — Ace Tours & Transfers Vanuatu`;
+  const resolvedImageAlt = imageAlt || `${title} — ${siteName}`;
 
   const jsonLdBlocks: object[] = [];
 
@@ -109,9 +125,9 @@ export function SEO({
   const localBusiness: Record<string, unknown> = {
     "@context": "https://schema.org",
     "@type": ["TouristInformationCenter", "LocalBusiness"],
-    name: SITE_NAME,
+    name: siteName,
     url: SITE_URL,
-    description: DEFAULT_DESC,
+    description: seo.businessDescription,
     telephone: "+678-711-4045",
     email: "acetoursvanuatu@outlook.com",
     image: DEFAULT_IMAGE,
@@ -157,7 +173,7 @@ export function SEO({
     jsonLdBlocks.push({
       "@context": "https://schema.org",
       "@type": "WebSite",
-      name: SITE_NAME,
+      name: siteName,
       url: SITE_URL,
     });
   }
@@ -171,10 +187,10 @@ export function SEO({
       description: productDescription || description,
       image: ogImage,
       url: fullUrl,
-      brand: { "@type": "Brand", name: SITE_NAME },
+      brand: { "@type": "Brand", name: siteName },
     };
     if (offer) {
-      productSchema.offers = buildOfferJsonLd(offer, fullUrl, SITE_NAME);
+      productSchema.offers = buildOfferJsonLd(offer, fullUrl, siteName);
     }
     if (aggregateRating) {
       productSchema.aggregateRating = {
@@ -213,15 +229,11 @@ export function SEO({
     });
   }
 
-  const allKeywords = [
-    "Ace Tours Vanuatu", "Ace Transfers", "Efate Island Day Tours", "Port Vila Airport Transfer",
-    "Vanuatu tourism", "Efate tours", "Blue Lagoon tour Vanuatu",
-    ...keywords,
-  ].join(", ");
+  const allKeywords = seo.keywords;
 
   return (
     <Helmet>
-      <html lang={documentLanguage} />
+      <html lang={documentLanguage} data-seo-ready={seoReady ? "true" : "false"} />
       <title>{fullTitle}</title>
       <meta name="description" content={description} />
       <meta name="keywords" content={allKeywords} />
@@ -234,7 +246,7 @@ export function SEO({
       <meta property="og:image:width" content="1200" />
       <meta property="og:image:height" content="630" />
       <meta property="og:image:alt" content={resolvedImageAlt} />
-      <meta property="og:site_name" content={SITE_NAME} />
+      <meta property="og:site_name" content={siteName} />
       <meta property="og:locale" content={ogLocale} />
       <meta name="twitter:card" content="summary_large_image" />
       <meta name="twitter:url" content={fullUrl} />

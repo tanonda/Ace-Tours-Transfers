@@ -114,6 +114,11 @@ export function CMSProvider({ children }: { children: ReactNode }) {
   );
 }
 
+/** Like useCMS, but returns undefined outside a CMSProvider instead of throwing. */
+export function useOptionalCMS() {
+  return useContext(CMSContext);
+}
+
 export function useCMS() {
   const context = useContext(CMSContext);
   if (context === undefined) {
