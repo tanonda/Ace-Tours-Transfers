@@ -16,6 +16,8 @@ import {
     CalendarDays, Users, MapPin, Phone, FileText, CreditCard, Edit3, Ban, Printer
 } from "lucide-react";
 import { Layout } from "@/components/layout";
+import { PageHero } from "@/components/page-hero";
+import { IMAGE_CREDITS } from "@/lib/image-credits";
 import { format } from "date-fns";
 
 const PrintItinerary = lazy(() =>
@@ -310,22 +312,23 @@ export default function ManageBooking() {
     if (!session) {
         return (
             <Layout>
-                <div className="bg-muted/30 min-h-screen pt-header-page pb-20">
-                    <div className="container mx-auto px-4 flex justify-center">
-                        <Card className="w-full max-w-md shadow-xl overflow-hidden">
-                            <div className="h-1.5 bg-gradient-to-r from-[#f4a830] via-[#e6c97a] to-[#f4a830]" />
+                {/* Lookup sits in the photo hero, like the booking widget on Home. */}
+                <PageHero
+                    priority
+                    photo="/assets/home/erakor-lagoon.webp"
+                    photoPosition="50% 55%"
+                    kicker="Your trip"
+                    title="Manage Booking"
+                    credit={IMAGE_CREDITS.erakorLagoon}
+                >
+                    <div className="flex justify-center">
+                        <Card className="w-full max-w-md overflow-hidden border-none bg-paper shadow-[0_24px_60px_-20px_rgba(18,50,74,0.55)]">
+                            <div className="h-1.5 bg-[repeating-linear-gradient(90deg,hsl(var(--primary))_0_14px,transparent_14px_22px,hsl(var(--reef))_22px_36px,transparent_36px_44px)]" aria-hidden />
                             <CardHeader className="text-center">
-                                <div className="flex items-center justify-center gap-3 mb-3">
-                                    <img src="/assets/logo.png" alt="Ace Tours & Transfers" className="h-10 w-10 rounded-full border border-[#f4a830]/30" />
-                                    <div className="text-left">
-                                        <p className="text-sm font-semibold text-[#f4a830] tracking-wide">Ace Tours & Transfers</p>
-                                        <p className="text-[10px] text-muted-foreground">Vanuatu</p>
-                                    </div>
-                                </div>
-                                <div className="mx-auto mb-3 w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                                <div className="mx-auto mb-3 w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center ring-1 ring-primary/20">
                                     <Search className="h-6 w-6 text-primary" />
                                 </div>
-                                <CardTitle className="text-2xl font-serif">Manage Your Booking</CardTitle>
+                                <CardTitle className="text-2xl font-serif text-navy">Find your booking</CardTitle>
                                 <CardDescription>
                                     Enter your booking reference and email to view and manage your reservation.
                                 </CardDescription>
@@ -362,12 +365,13 @@ export default function ManageBooking() {
                                     </Button>
                                 </form>
                                 <div className="mt-6 text-center text-sm text-muted-foreground">
-                                    <Link href="/" className="hover:underline">← Back to Home</Link>
+                                    <Link href="/" className="inline-flex items-center gap-1 hover:underline"><ArrowLeft className="h-3.5 w-3.5" /> Back to Home</Link>
                                 </div>
                             </CardContent>
                         </Card>
                     </div>
-                </div>
+                </PageHero>
+                <div className="bg-background pb-8" />
             </Layout>
         );
     }
@@ -377,7 +381,14 @@ export default function ManageBooking() {
 
     return (
         <Layout>
-            <div className="bg-muted/30 min-h-screen pt-header-page pb-20">
+            <PageHero
+                photo="/assets/home/erakor-lagoon.webp"
+                photoPosition="50% 55%"
+                kicker={`Booking ACT-${booking.id.replace(/^book_/i, '').replace(/-/g, '').slice(0, 8).toUpperCase()}`}
+                title="Your Booking"
+                credit={IMAGE_CREDITS.erakorLagoon}
+            />
+            <div className="bg-background pt-10 pb-24 md:pt-14">
                 <div className="container mx-auto px-4 max-w-3xl">
 
                     {/* Session Expiry Banner */}
@@ -397,9 +408,8 @@ export default function ManageBooking() {
 
                     {/* Header */}
                     <div className="flex items-center gap-3 mb-6">
-                        <img src="/assets/logo.png" alt="Ace Tours & Transfers" className="h-10 w-10 rounded-full border border-[#f4a830]/30" />
                         <div className="flex-1">
-                            <h1 className="text-2xl md:text-3xl font-serif font-bold">Your Booking</h1>
+                            <h2 className="text-2xl md:text-3xl text-navy">Booking details</h2>
                             <p className="text-muted-foreground text-sm mt-1">
                                 Ref: <span className="font-mono">ACT-{booking.id.replace(/^book_/i, '').replace(/-/g, '').slice(0, 8).toUpperCase()}</span>
                             </p>

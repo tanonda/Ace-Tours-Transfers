@@ -136,7 +136,20 @@
     "send": "发送消息",
     "sending": "发送中...",
     "messageSent": "消息已发送！",
-    "messageSuccess": "我们会尽快回复您。"
+    "messageSuccess": "我们会尽快回复您。",
+    "kicker": "Ace Tours & Transfers",
+    "reachLabel": "直接联系我们",
+    "reachTitle": "我们随时为您服务",
+    "writeLabel": "给我们留言",
+    "writeTitle": "给我们写几句",
+    "whatsappTitle": "通过 WhatsApp 与我们聊天",
+    "whatsappStart": "开始对话",
+    "whatsappQuote": "索取报价",
+    "formTitle": "给我们发送消息",
+    "formNote": "更喜欢邮件？我们会回复到您的邮箱。",
+    "sentTitle": "消息已发送！",
+    "sentBody": "感谢您的来信。我们会尽快回复，通常在几小时内。",
+    "sendAnother": "再发送一条消息"
   },
   "auth": {
     "signIn": "登录",

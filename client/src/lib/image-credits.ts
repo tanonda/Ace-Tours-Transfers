@@ -126,4 +126,16 @@ export const IMAGE_CREDITS = {
     license: "CC BY 2.0",
     href: "https://commons.wikimedia.org/wiki/File:The_jetty_(16556252640).jpg",
   },
+  vilaHarbourDay: {
+    label: "Port Vila harbour",
+    author: "Phillip Capper",
+    license: "CC BY 2.0",
+    href: "https://commons.wikimedia.org/wiki/File:Port_Vila_harbour,_Vanuatu,_June_2009_(3653339680).jpg",
+  },
+  erakorLagoon: {
+    label: "Erakor Lagoon",
+    author: "Simon_sees",
+    license: "CC BY 2.0",
+    href: "https://commons.wikimedia.org/wiki/File:Vanuatu_Erakor_Lagoon_(16555872768).jpg",
+  },
 } satisfies Record<string, ImageCredit>;

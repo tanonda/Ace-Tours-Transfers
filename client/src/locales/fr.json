@@ -136,7 +136,20 @@
     "send": "Envoyer le message",
     "sending": "Envoi en cours...",
     "messageSent": "Message envoyé!",
-    "messageSuccess": "Nous vous répondrons dès que possible."
+    "messageSuccess": "Nous vous répondrons dès que possible.",
+    "kicker": "Ace Tours & Transfers",
+    "reachLabel": "Contactez-nous directement",
+    "reachTitle": "Nous sommes là pour vous aider",
+    "writeLabel": "Écrivez-nous",
+    "writeTitle": "Laissez-nous un mot",
+    "whatsappTitle": "Discutez avec nous sur WhatsApp",
+    "whatsappStart": "Démarrer une conversation",
+    "whatsappQuote": "Demander un devis",
+    "formTitle": "Envoyez-nous un message",
+    "formNote": "Vous préférez l'e-mail ? Nous répondrons dans votre boîte de réception.",
+    "sentTitle": "Message envoyé !",
+    "sentBody": "Merci de nous avoir contactés. Nous vous répondrons dès que possible, généralement en quelques heures.",
+    "sendAnother": "Envoyer un autre message"
   },
   "auth": {
     "signIn": "Connexion",

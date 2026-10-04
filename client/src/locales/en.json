@@ -528,5 +528,18 @@
   "social.facebook": "Facebook",
   "social.instagram": "Instagram",
   "social.call": "Call us",
-  "social.email": "Email us"
+  "social.email": "Email us",
+  "contact.kicker": "Ace Tours & Transfers",
+  "contact.reachLabel": "Reach us directly",
+  "contact.reachTitle": "We're here to help",
+  "contact.writeLabel": "Write to us",
+  "contact.writeTitle": "Drop us a line",
+  "contact.whatsappTitle": "Chat with us on WhatsApp",
+  "contact.whatsappStart": "Start a Conversation",
+  "contact.whatsappQuote": "Request a Quote",
+  "contact.formTitle": "Send us a message",
+  "contact.formNote": "Prefer email? We'll reply to your inbox.",
+  "contact.sentTitle": "Message sent!",
+  "contact.sentBody": "Thanks for reaching out. We'll get back to you as soon as possible, usually within a few hours.",
+  "contact.sendAnother": "Send another message"
 }
