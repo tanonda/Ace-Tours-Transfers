@@ -12,23 +12,20 @@ import { useTranslation } from "react-i18next";
 import React, { useMemo } from "react";
 import { useCmsText } from "@/hooks/use-cms-text";
 import type { Product } from "@shared/schema";
-import { PhotoCredits } from "@/components/section-backdrop";
 import { PaperEdge, Polaroid, SectionLabel } from "@/components/postcard";
-import { IMAGE_CREDITS } from "@/lib/image-credits";
 import { keepAcrossLanguageSwitch } from "@/lib/language-placeholder";
+import { useSitePhoto } from "@/hooks/use-site-photo";
 
-// Postcard photos: openly licensed Efate images (credits in image-credits.ts).
-// The about polaroid and hero can be swapped in Admin → CMS (about_image / hero_image).
-const PHOTOS = {
-  aboutWaterfall: "/assets/home/mele-cascades.webp",
-  aboutBeach: "/assets/home/eratap-beach.webp",
-  toursBackdrop: "/assets/home/vila-bay-ship-sunset.webp",
-};
 
 export default function Home() {
   const { t, i18n } = useTranslation();
   const cms = useCmsText("home-page");
-  const aboutImg = cms.text("about_image") || PHOTOS.aboutWaterfall;
+  // Photos are editable in Admin → CMS → Home Page (built-in Efate photos by default).
+  const aboutImg = useSitePhoto("homeAbout1");
+  const aboutImg2 = useSitePhoto("homeAbout2");
+  const toursBackdrop = useSitePhoto("homeTours");
+  const craftImg1 = useSitePhoto("homeCraft1");
+  const craftImg2 = useSitePhoto("homeCraft2");
   const { data: allTours = [] } = useQuery({
     queryKey: ["products", i18n.language],
     queryFn: fetchProducts,
@@ -82,8 +79,8 @@ export default function Home() {
 
   // Brochure: the Efate Scenic Tour includes a local chocolate factory visit.
   const craft = [
-    { src: "/assets/home/cocoa-pods-vila-market.webp", caption: t("home.craftCocoa", "Cocoa from the market"), rotate: -3 },
-    { src: "/assets/home/port-vila-market-baskets.webp", caption: t("home.craftMarket", "Port Vila market"), rotate: 2.5 },
+    { src: craftImg1, caption: t("home.craftCocoa", "Cocoa from the market"), rotate: -3 },
+    { src: craftImg2, caption: t("home.craftMarket", "Port Vila market"), rotate: 2.5 },
   ];
 
   // Closing call-to-action: sits on the footer's dusk photo (Layout footerLead).
@@ -156,7 +153,7 @@ export default function Home() {
               className="absolute left-0 top-0 w-[62%]"
             />
             <Polaroid
-              src={PHOTOS.aboutBeach}
+              src={aboutImg2}
               alt={t("home.aboutPhoto2Alt", "Eratap beach on Efate's south coast")}
               caption={t("home.aboutCaption2", "Efate's south coast")}
               rotate={4}
@@ -197,7 +194,6 @@ export default function Home() {
               {t("home.learnMore")}
               <ArrowRight className="h-4 w-4" />
             </Link>
-            <PhotoCredits credits={[IMAGE_CREDITS.meleCascades, IMAGE_CREDITS.eratap]} tone="wash" />
           </motion.div>
         </div>
       </section>
@@ -205,7 +201,7 @@ export default function Home() {
       {/* 02 · Tours: postcards scattered over a sunset on Vila Bay; torn cream paper above and teal below */}
       <section className="relative overflow-x-clip bg-harbour pt-28 pb-32 md:pt-36 md:pb-40">
         <div aria-hidden className="absolute inset-0">
-          <img src={PHOTOS.toursBackdrop} alt="" loading="lazy" className="h-full w-full object-cover" />
+          <img src={toursBackdrop} alt="" loading="lazy" className="h-full w-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-b from-background/35 via-black/35 to-black/55" />
           <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-b from-transparent to-reef-light/25" />
         </div>
@@ -235,7 +231,6 @@ export default function Home() {
               </Button>
             </Link>
           </div>
-          <PhotoCredits credits={[IMAGE_CREDITS.vilaBayShip]} tone="dark" />
         </div>
         <PaperEdge position="bottom" seed={23} color="hsl(var(--reef-light))" />
       </section>
@@ -276,7 +271,6 @@ export default function Home() {
             <p className="text-lg text-muted-foreground leading-relaxed">
               {t("home.craftDesc", "Island chocolate, cacao and hand-woven baskets. Our Efate Scenic Tour stops at a local chocolate factory, and on a private tour you choose the stops: ask us to add a local maker to your day.")}
             </p>
-            <PhotoCredits credits={[IMAGE_CREDITS.cocoaPods, IMAGE_CREDITS.vilaMarket]} tone="wash" />
           </div>
           <div className="grid grid-cols-2 gap-6 md:gap-10">
             {craft.map((item, i) => (

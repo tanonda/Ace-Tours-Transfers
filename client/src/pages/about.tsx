@@ -7,10 +7,9 @@ import { useTranslation } from "react-i18next";
 import { useCmsText } from "@/hooks/use-cms-text";
 import { PageHero } from "@/components/page-hero";
 import { PaperEdge, Polaroid, SectionLabel } from "@/components/postcard";
-import { PhotoCredits } from "@/components/section-backdrop";
-import { IMAGE_CREDITS } from "@/lib/image-credits";
 import { useSiteSettings } from "@/lib/site-settings";
 import { vanuatuPhone } from "@/lib/phone";
+import { useSitePhoto } from "@/hooks/use-site-photo";
 
 function settingText(rows: { key: string; value: unknown }[] | undefined, key: string, fallback: string): string {
   const v = rows?.find((r) => r.key === key)?.value;
@@ -18,6 +17,9 @@ function settingText(rows: { key: string; value: unknown }[] | undefined, key: s
 }
 
 export default function About() {
+  const heroPhoto = useSitePhoto("aboutHero"); // Admin → CMS → About
+  const storyImg1 = useSitePhoto("aboutStory1");
+  const storyImg2 = useSitePhoto("aboutStory2");
   const { t } = useTranslation();
   const cms = useCmsText("about");
   const { data: settings } = useSiteSettings();
@@ -45,12 +47,11 @@ export default function About() {
 
       <PageHero
         priority
-        photo="/assets/home/erakor-sunset.webp"
+        photo={heroPhoto}
         photoPosition="50% 60%"
         kicker={cms.text("page_title", t("about.title"))}
         title={t("about.heroTitle", "Travel made easy")}
         subtitle={cms.text("page_subtitle", t("about.subtitle"))}
-        credit={IMAGE_CREDITS.erakorSunset}
       />
 
       {/* 01 · Our story: polaroids beside the story, badges as pills */}
@@ -58,7 +59,7 @@ export default function About() {
         <div className="container mx-auto grid grid-cols-1 items-center gap-14 px-4 pt-10 pb-24 md:pt-14 lg:grid-cols-2 lg:gap-20">
           <div className="relative mx-auto h-[420px] w-full max-w-md sm:h-[480px] lg:max-w-none">
             <Polaroid
-              src={cms.text("story_image", "/assets/home/mele-cascades.webp")}
+              src={storyImg1}
               alt={t("about.storyPhotoAlt", "Ace Tours on Efate")}
               caption={t("about.storyCaption1", "Our island")}
               rotate={-4}
@@ -67,7 +68,7 @@ export default function About() {
               className="absolute left-0 top-0 w-[60%]"
             />
             <Polaroid
-              src="/assets/home/toniliu-village.webp"
+              src={storyImg2}
               alt={t("about.storyPhoto2Alt", "Toniliu village road, Efate")}
               caption={t("about.storyCaption2", "Village roads of Efate")}
               rotate={3.5}
@@ -101,7 +102,6 @@ export default function About() {
                 </li>
               ))}
             </ul>
-            <PhotoCredits credits={[IMAGE_CREDITS.toniliu]} tone="wash" />
           </div>
         </div>
       </section>

@@ -380,7 +380,8 @@
     "copyright": "All rights reserved.",
     "description": "Experiensem beauty blong Efate Island wetem mifala. Mifala i offerem ol tour packages we oli plan gud mo customize.",
     "privacyPolicy": "Privacy Policy",
-    "termsOfService": "Terms of Service"
+    "termsOfService": "Terms of Service",
+    "photoCredits": "Ol man blong foto"
   },
   "newsletter": {
     "title": "Subscribem long newsletter blong mifala",
@@ -601,5 +602,10 @@
     "instagram": "Instagram",
     "call": "Ringim mifala",
     "email": "Imelem mifala"
+  },
+  "credits": {
+    "label": "Tangkyu tumas",
+    "title": "Ol man blong foto",
+    "intro": "Ol foto blong Efate long websaet ia, ol man blong tekem foto oli serem andanit long Creative Commons laesens. Samfala oli katem o jenisim kala."
   }
 }

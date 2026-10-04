@@ -6,10 +6,11 @@ import { useLocalizedTours } from "@/hooks/useLocalizedProducts";
 import { cleanProductList } from "@/lib/product-filters";
 import { PageHero } from "@/components/page-hero";
 import { SectionLabel } from "@/components/postcard";
-import { IMAGE_CREDITS } from "@/lib/image-credits";
 import { CalendarCheck, ShieldCheck, Users } from "lucide-react";
+import { useSitePhoto } from "@/hooks/use-site-photo";
 
 export default function Tours() {
+  const heroPhoto = useSitePhoto("toursHero"); // Admin → CMS
   const { t } = useTranslation();
   const { data: allTours = [], isLoading } = useLocalizedTours();
 
@@ -26,12 +27,11 @@ export default function Tours() {
       />
       <PageHero
         priority
-        photo="/assets/home/blue-lagoon-efate.webp"
+        photo={heroPhoto}
         photoPosition="50% 55%"
         kicker={t("tours.kicker", "Efate Island")}
         title={t("tours.heroTitle", "Day Tours")}
         subtitle={t("home.toursDesc")}
-        credit={IMAGE_CREDITS.blueLagoon}
       />
 
       <section className="bg-background pt-10 pb-24 md:pt-14">

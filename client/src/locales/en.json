@@ -541,5 +541,9 @@
   "contact.formNote": "Prefer email? We'll reply to your inbox.",
   "contact.sentTitle": "Message sent!",
   "contact.sentBody": "Thanks for reaching out. We'll get back to you as soon as possible, usually within a few hours.",
-  "contact.sendAnother": "Send another message"
+  "contact.sendAnother": "Send another message",
+  "footer.photoCredits": "Photo credits",
+  "credits.label": "Thank you",
+  "credits.title": "Photo credits",
+  "credits.intro": "Photos of Efate used on this site are shared by their photographers under Creative Commons licences. Some have been cropped or colour-graded."
 }

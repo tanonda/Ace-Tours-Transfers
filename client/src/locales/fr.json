@@ -380,7 +380,8 @@
     "copyright": "Tous droits réservés.",
     "description": "Découvrez la beauté de l'île d'Efate avec nous. Nous offrons des forfaits touristiques méticuleusement planifiés et personnalisés.",
     "privacyPolicy": "Politique de confidentialité",
-    "termsOfService": "Conditions d'utilisation"
+    "termsOfService": "Conditions d'utilisation",
+    "photoCredits": "Crédits photo"
   },
   "newsletter": {
     "title": "Abonnez-vous à notre newsletter",
@@ -601,5 +602,10 @@
     "instagram": "Instagram",
     "call": "Appelez-nous",
     "email": "Écrivez-nous"
+  },
+  "credits": {
+    "label": "Merci",
+    "title": "Crédits photo",
+    "intro": "Les photos d'Efaté utilisées sur ce site sont partagées par leurs photographes sous licences Creative Commons. Certaines ont été recadrées ou retouchées."
   }
 }

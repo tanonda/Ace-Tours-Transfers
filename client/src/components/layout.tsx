@@ -39,6 +39,7 @@ import {
 } from "@/components/ui/collapsible";
 import { keepAcrossLanguageSwitch } from "@/lib/language-placeholder";
 import { htmlToText } from "@/lib/html-text";
+import { useSitePhoto } from "@/hooks/use-site-photo";
 
 const ListItem = forwardRef<
   HTMLDivElement,
@@ -808,13 +809,12 @@ const SiteFooter = memo(function SiteFooter() {
 
           <div className="border-t border-white/10 pt-8 text-center text-white/40 text-sm">
             <p>&copy; {new Date().getFullYear()} {t("app.title")}. {footerCms.text("copyright", t("footer.copyright"))}</p>
-            <p className="mt-1 text-xs text-white/35">
-              Photo: <a href="https://commons.wikimedia.org/wiki/File:Port_Vila_Harbour_(Imagicity_816).jpg" target="_blank" rel="noopener noreferrer" className="underline hover:text-white/60">Port Vila Harbour at dusk</a>, Graham Crumb (CC BY-SA 3.0)
-            </p>
             <div className="flex items-center justify-center gap-4 mt-2">
               <a href="/privacy-policy" className="hover:text-white/70 transition-colors">Privacy Policy</a>
               <span>·</span>
               <a href="/terms-of-service" className="hover:text-white/70 transition-colors">Terms of Service</a>
+              <span>·</span>
+              <Link href="/photo-credits" className="hover:text-white/70 transition-colors">{t("footer.photoCredits", "Photo credits")}</Link>
             </div>
           </div>
         </div>
@@ -878,8 +878,6 @@ const SiteFooter = memo(function SiteFooter() {
   );
 });
 
-// Port Vila Harbour at dusk (Graham Crumb, CC BY-SA 3.0; credited in the footer).
-const FOOTER_PHOTO = "/assets/home/vila-harbour-dusk.webp";
 
 /**
  * Postcard footer: one dusk photo runs behind the footer (and the page's
@@ -887,13 +885,14 @@ const FOOTER_PHOTO = "/assets/home/vila-harbour-dusk.webp";
  * so the page ends on a picture rather than a hard-edged block.
  */
 function FooterScene({ children }: { children: ReactNode }) {
+  const photo = useSitePhoto("footer"); // Admin → CMS → Footer → background_image
   return (
     // No `isolate` here: the floating buttons and mobile nav render inside the footer,
     // and an isolated stacking context would trap their z-index below the hero widget.
     // The photo is simply the first positioned child; later relative children paint over it.
     <div className="relative overflow-hidden bg-[#0c1f2e]">
       <div aria-hidden className="absolute inset-0">
-        <img src={FOOTER_PHOTO} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover object-[50%_35%]" />
+        <img src={photo} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover object-[50%_35%]" />
         {/* A dark navy wash for legible white text, a fixed-height fade from the page colour
             at the top (a percentage would stretch on tall phone footers), and deeper navy
             where the footer links sit. */}

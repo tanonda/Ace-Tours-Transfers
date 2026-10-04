@@ -380,7 +380,8 @@
     "copyright": "Todos los derechos reservados.",
     "description": "Experimenta la belleza de la Isla Efate con nosotros. Ofrecemos paquetes turísticos meticulosamente planificados y personalizados.",
     "privacyPolicy": "Política de Privacidad",
-    "termsOfService": "Términos de Servicio"
+    "termsOfService": "Términos de Servicio",
+    "photoCredits": "Créditos fotográficos"
   },
   "newsletter": {
     "title": "Suscríbete a nuestro boletín",
@@ -601,5 +602,10 @@
     "instagram": "Instagram",
     "call": "Llámenos",
     "email": "Escríbanos"
+  },
+  "credits": {
+    "label": "Gracias",
+    "title": "Créditos fotográficos",
+    "intro": "Las fotos de Efate de este sitio las comparten sus fotógrafos bajo licencias Creative Commons. Algunas se han recortado o retocado."
   }
 }

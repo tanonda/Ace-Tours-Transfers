@@ -17,8 +17,8 @@ import {
 } from "lucide-react";
 import { Layout } from "@/components/layout";
 import { PageHero } from "@/components/page-hero";
-import { IMAGE_CREDITS } from "@/lib/image-credits";
 import { format } from "date-fns";
+import { useSitePhoto } from "@/hooks/use-site-photo";
 
 const PrintItinerary = lazy(() =>
     import("@/components/print-itinerary").then(m => ({ default: m.PrintItinerary }))
@@ -32,6 +32,7 @@ interface BookingSession {
 }
 
 export default function ManageBooking() {
+  const heroPhoto = useSitePhoto("manageHero"); // Admin → CMS
     const { toast } = useToast();
 
     // Pre-fill booking ref from URL query param (?ref=...) — set by email deep-links
@@ -315,11 +316,10 @@ export default function ManageBooking() {
                 {/* Lookup sits in the photo hero, like the booking widget on Home. */}
                 <PageHero
                     priority
-                    photo="/assets/home/erakor-lagoon.webp"
+        photo={heroPhoto}
                     photoPosition="50% 55%"
                     kicker="Your trip"
                     title="Manage Booking"
-                    credit={IMAGE_CREDITS.erakorLagoon}
                 >
                     <div className="flex justify-center">
                         <Card className="w-full max-w-md overflow-hidden border-none bg-paper shadow-[0_24px_60px_-20px_rgba(18,50,74,0.55)]">
@@ -382,11 +382,10 @@ export default function ManageBooking() {
     return (
         <Layout>
             <PageHero
-                photo="/assets/home/erakor-lagoon.webp"
+        photo={heroPhoto}
                 photoPosition="50% 55%"
                 kicker={`Booking ACT-${booking.id.replace(/^book_/i, '').replace(/-/g, '').slice(0, 8).toUpperCase()}`}
                 title="Your Booking"
-                credit={IMAGE_CREDITS.erakorLagoon}
             />
             <div className="bg-background pt-10 pb-24 md:pt-14">
                 <div className="container mx-auto px-4 max-w-3xl">

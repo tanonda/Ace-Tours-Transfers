@@ -21,6 +21,7 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
 import TextAlign from '@tiptap/extension-text-align';
+import { PHOTO_SLOTS } from "@/lib/site-photos";
 
 // ─── Rich Text Editor (TipTap) ────────────────────────
 
@@ -312,22 +313,41 @@ export default function AdminCMS() {
     return item ? { ...item, value: item.value } : { key, value: "", type: "text" };
   };
 
+  // Photo fields come from the shared slot list (client/src/lib/site-photos.ts), so the
+  // admin, the pages and the Photo credits page always agree. Leave a photo empty to
+  // use the built-in Efate photo.
+  const photoFields = (block: string) =>
+    Object.values(PHOTO_SLOTS)
+      .filter((slot) => slot.block === block)
+      .flatMap((slot) => [
+        {
+          key: slot.key,
+          label: `Photo — ${slot.label}`,
+          type: "image",
+          description: "Leave empty to use the built-in Efate photo. Uploading your own replaces it and removes its credit.",
+        },
+        {
+          key: `${slot.key}_credit`,
+          label: `Photo credit — ${slot.label} (optional)`,
+          type: "text",
+          description: "Only if your replacement photo's licence requires a credit, e.g. \"Photo: Jane Doe (CC BY 4.0)\". Shown on the Photo credits page, never on this page.",
+        },
+      ]);
+
   const SECTIONS = {
     "home-page": {
       label: "Home Page",
       fields: [
         // Hero
-        { key: "hero_title_part1", label: "Hero Title — Line 1", type: "text", description: "White text: e.g. \"Time for your\"" },
-        { key: "hero_title_part2", label: "Hero Title — Line 2", type: "text", description: "Orange italic text: e.g. \"next adventure\"" },
-        { key: "hero_subtitle", label: "Hero Subtitle", type: "text", description: "Sentence below the headline in the hero" },
-        { key: "hero_image", label: "Hero Background Image", type: "image", description: "1920×1080 recommended" },
+        { key: "hero_title_part1", label: "Hero — Small Line", type: "text", description: "Wide-spaced line above the big headline, e.g. \"Experience Vanuatu's\"" },
+        { key: "hero_title_part2", label: "Hero — Big Headline", type: "text", description: "Large word(s) that fade into the photo, e.g. \"Natural Beauty\". Keep it short." },
+        { key: "hero_subtitle", label: "Hero Subtitle (not shown)", type: "text", description: "Not shown in the current design: the top bar already carries the tagline." },
         // About
-        { key: "about_image", label: "About Section Image", type: "image", description: "Image next to the about text" },
         { key: "about_label", label: "About Label", type: "text", description: "Small uppercase label above the about heading" },
         { key: "about_title", label: "About Heading", type: "text", description: "Main about section heading" },
         { key: "about_desc1", label: "About Body — Paragraph 1", type: "rich", description: "First paragraph in the about section" },
         { key: "about_desc2", label: "About Body — Paragraph 2", type: "rich", description: "Second paragraph in the about section" },
-        { key: "about_quote", label: "About Pull Quote", type: "text", description: "Italic quote card overlaid on the photo" },
+        { key: "about_quote", label: "About Pull Quote (not shown)", type: "text", description: "Not shown in the current design." },
         { key: "about_badge1", label: "Trust Badge 1", type: "text", description: "e.g. Fully Insured" },
         { key: "about_badge2", label: "Trust Badge 2", type: "text", description: "e.g. Experienced Drivers" },
         { key: "about_badge3", label: "Trust Badge 3", type: "text", description: "e.g. Custom Itineraries" },
@@ -345,7 +365,7 @@ export default function AdminCMS() {
         { key: "vehicles_title", label: "Vehicles Section Heading", type: "text", description: "" },
         { key: "vehicles_desc", label: "Vehicles Description", type: "rich", description: "" },
         // CTA
-        { key: "cta_title", label: "CTA Banner Heading", type: "text", description: "Large text in the orange CTA banner" },
+        { key: "cta_title", label: "Closing Banner Heading", type: "text", description: "Large text under \"Wish you were here…\", above the footer" },
         { key: "cta_desc", label: "CTA Banner Subtext", type: "text", description: "" },
         { key: "cta_button", label: "CTA Button Text", type: "text", description: "" },
         // Trust indicators
@@ -355,6 +375,7 @@ export default function AdminCMS() {
         { key: "trust_rated_desc", label: "Trust: Top Rated Description", type: "text", description: "" },
         { key: "trust_secure", label: "Trust: Secure Title", type: "text", description: "" },
         { key: "trust_secure_desc", label: "Trust: Secure Description", type: "text", description: "" },
+        ...photoFields("home-page"),
       ]
     },
     about: {
@@ -363,7 +384,6 @@ export default function AdminCMS() {
         { key: "page_title", label: "Page Title", type: "text", description: "H1 at top of the about page" },
         { key: "page_subtitle", label: "Page Subtitle", type: "text", description: "Subheading under the page title" },
         { key: "story_title", label: "Our Story — Heading", type: "text", description: "" },
-        { key: "story_image", label: "Our Story — Image", type: "image", description: "Image displayed alongside our story" },
         { key: "story_desc1", label: "Our Story — Paragraph 1", type: "rich", description: "" },
         { key: "story_desc2", label: "Our Story — Paragraph 2", type: "rich", description: "" },
         { key: "badge1", label: "Credential Badge 1", type: "text", description: "e.g. Locally Owned & Operated" },
@@ -379,6 +399,7 @@ export default function AdminCMS() {
         { key: "feature2_desc", label: "Feature 2 Description", type: "rich", description: "" },
         { key: "feature3_title", label: "Feature 3 Title", type: "text", description: "" },
         { key: "feature3_desc", label: "Feature 3 Description", type: "rich", description: "" },
+        ...photoFields("about"),
       ]
     },
     contact: {
@@ -391,6 +412,7 @@ export default function AdminCMS() {
         { key: "email_reply_time", label: "Email Reply Time Note", type: "text", description: "e.g. We usually reply within 24 hours" },
         { key: "office_hours", label: "Office Hours Note", type: "rich", description: "" },
         { key: "whatsapp_desc", label: "WhatsApp CTA Description", type: "text", description: "Text under the WhatsApp chat button" },
+        ...photoFields("contact"),
       ]
     },
     footer: {
@@ -398,8 +420,12 @@ export default function AdminCMS() {
       fields: [
         { key: "description", label: "Footer Description", type: "text", description: "2–3 sentences shown below the logo in the footer" },
         { key: "copyright", label: "Copyright Text", type: "text", description: "Text after the year and company name, e.g. All rights reserved." },
+        ...photoFields("footer"),
       ]
     },
+    "tours-page": { label: "Tours Page", fields: photoFields("tours-page") },
+    "transfers-page": { label: "Transfers Page", fields: photoFields("transfers-page") },
+    "manage-booking": { label: "Manage Booking", fields: photoFields("manage-booking") },
     faq: {
       label: "FAQ",
       fields: Array.from({ length: 20 }, (_, i) => [
@@ -559,11 +585,18 @@ export default function AdminCMS() {
                               onChange={(html) => setRichContent(prev => ({ ...prev, [richKey]: html }))}
                               placeholder={`Enter ${field.label.toLowerCase()}...`}
                             />
-                          ) : field.type === 'image' ? (
+                          ) : field.type === 'image' ? (() => {
+                            // Built-in Efate photo for this slot, shown when nothing has been uploaded.
+                            const builtIn = Object.values(PHOTO_SLOTS).find((ps) => ps.block === activeTab && ps.key === field.key)?.src;
+                            const shown = item.value || builtIn;
+                            return (
                             <div className="space-y-3">
-                              {item.value ? (
+                              {shown ? (
                                 <div className="relative group rounded-xl overflow-hidden border border-border bg-muted/20">
-                                  <img src={item.value} alt={field.label} className="w-full h-48 md:h-56 object-cover transition-transform duration-500 group-hover:scale-105" />
+                                  <img src={shown} alt={field.label} className="w-full h-48 md:h-56 object-cover transition-transform duration-500 group-hover:scale-105" />
+                                  {!item.value && (
+                                    <span className="absolute left-3 top-3 rounded-full bg-black/60 px-3 py-1 text-xs font-semibold text-white">Built-in Efate photo</span>
+                                  )}
                                   <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center gap-3">
                                     <label className="cursor-pointer bg-white text-black hover:bg-gray-100 px-5 py-2.5 rounded-full font-semibold flex items-center gap-2 transition-all transform hover:scale-105 shadow-xl">
                                       {isUploading ? <Loader2 className="animate-spin h-4 w-4" /> : <Upload className="h-4 w-4" />}
@@ -592,12 +625,18 @@ export default function AdminCMS() {
                                   <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e, item)} disabled={isUploading} />
                                 </label>
                               )}
+                              {item.value && builtIn && (
+                                <Button type="button" variant="outline" size="sm" onClick={() => handleSave(item, "")}>
+                                  <ImageIcon className="mr-2 h-4 w-4" /> Use built-in photo
+                                </Button>
+                              )}
                               <div className="flex items-center gap-2 p-3 bg-blue-50/50 text-blue-700 rounded-lg border border-blue-100 object-contain">
                                 <ImageIcon className="h-4 w-4 shrink-0 text-blue-500" />
                                 <p className="text-xs font-medium content-center">Uploads to Cloudinary — replaces magically & instantly.</p>
                               </div>
                             </div>
-                          ) : (
+                            );
+                          })() : (
                             <Input
                               defaultValue={displayValue}
                               placeholder={`Enter ${field.label.toLowerCase()}...`}

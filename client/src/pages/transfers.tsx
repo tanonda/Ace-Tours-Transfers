@@ -6,10 +6,11 @@ import { useTranslation } from "react-i18next";
 import { useLocalizedTransfers } from "@/hooks/useLocalizedProducts";
 import { PageHero } from "@/components/page-hero";
 import { PaperEdge, SectionLabel } from "@/components/postcard";
-import { IMAGE_CREDITS } from "@/lib/image-credits";
 import { Clock, Plane, Users } from "lucide-react";
+import { useSitePhoto } from "@/hooks/use-site-photo";
 
 export default function Transfers() {
+  const heroPhoto = useSitePhoto("transfersHero"); // Admin → CMS
   const { t } = useTranslation();
   const { data: allTransfers = [], isLoading } = useLocalizedTransfers();
 
@@ -52,12 +53,11 @@ export default function Transfers() {
       />
       <PageHero
         priority
-        photo="/assets/home/iririki-port-vila.webp"
+        photo={heroPhoto}
         photoPosition="50% 55%"
         kicker={t("transfers.kicker", "Port Vila")}
         title={t("transfers.heroTitle", "Transfers")}
         subtitle={t("home.transfersDesc")}
-        credit={IMAGE_CREDITS.iririki}
       />
 
       {/* Calm lagoon-teal band, as on the home page; it tears back into the cream page above the footer. */}

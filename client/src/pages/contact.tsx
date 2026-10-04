@@ -9,16 +9,17 @@ import { Phone, Mail, MapPin, MessageCircle, ExternalLink, Send, CheckCircle } f
 import { PageHero } from "@/components/page-hero";
 import { PaperEdge, SectionLabel } from "@/components/postcard";
 import { WhatsAppGlyph } from "@/components/brand-icons";
-import { IMAGE_CREDITS } from "@/lib/image-credits";
 import { useTranslation } from "react-i18next";
 import { useCMS } from "@/lib/cms-context";
 import { useCmsText } from "@/hooks/use-cms-text";
 import { useToast } from "@/hooks/use-toast";
 import { vanuatuPhone } from "@/lib/phone";
+import { useSitePhoto } from "@/hooks/use-site-photo";
 
 const WHATSAPP_NUMBER = "6787114045";
 
 export default function Contact() {
+  const heroPhoto = useSitePhoto("contactHero"); // Admin → CMS
   const { t } = useTranslation();
   const { getSetting } = useCMS();
   const cms = useCmsText("contact");
@@ -72,12 +73,11 @@ export default function Contact() {
       />
       <PageHero
         priority
-        photo="/assets/home/port-vila-harbour-day.webp"
+        photo={heroPhoto}
         photoPosition="50% 60%"
         kicker={t("contact.kicker", "Ace Tours & Transfers")}
         title={cms.text("page_title", t("contact.title"))}
         subtitle={cms.text("page_subtitle", t("contact.subtitle"))}
-        credit={IMAGE_CREDITS.vilaHarbourDay}
       />
 
       {/* 01 · Reach us: three pinned paper cards */}

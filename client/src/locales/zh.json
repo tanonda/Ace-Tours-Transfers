@@ -380,7 +380,8 @@
     "copyright": "版权所有。",
     "description": "与我们一起体验埃法特岛的美丽。我们提供精心规划和定制设计的旅游套餐。",
     "privacyPolicy": "隐私政策",
-    "termsOfService": "服务条款"
+    "termsOfService": "服务条款",
+    "photoCredits": "图片来源"
   },
   "newsletter": {
     "title": "订阅我们的时事通讯",
@@ -601,5 +602,10 @@
     "instagram": "Instagram",
     "call": "致电我们",
     "email": "发邮件给我们"
+  },
+  "credits": {
+    "label": "致谢",
+    "title": "图片来源",
+    "intro": "本网站使用的埃法特照片由摄影师以知识共享许可分享，部分照片经过裁剪或调色。"
   }
 }

@@ -14,9 +14,6 @@
  * - All search logic delegated to useAvailabilitySearch()
  */
 
-// Sunset over the yachts at Mele, Efate (DB Thats-Me, CC BY-SA 3.0; see image-credits.ts).
-// Admin → CMS "hero_image" overrides it.
-const heroBg = "/assets/home/mele-sunset-yachts.webp";
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
@@ -48,6 +45,7 @@ import { format, addDays } from "date-fns";
 import { cn } from "@/lib/utils";
 import { PageHero } from "@/components/page-hero";
 import { useAvailabilitySearch, SearchTab } from "@/hooks/useAvailabilitySearch";
+import { useSitePhoto } from "@/hooks/use-site-photo";
 
 // ─── Bar height constant ──────────────────────────────────────────────────────
 // 64px — matches Skyscanner's search bar proportions
@@ -688,7 +686,7 @@ export function Hero() {
   const { t } = useTranslation();
   const cms = useCmsText("home-page");
   const search = useAvailabilitySearch();
-  const bgUrl = cms.text("hero_image") || heroBg;
+  const bgUrl = useSitePhoto("homeHero"); // Admin → CMS → Home Page → hero_image
   const bgSrc = bgUrl.includes("res.cloudinary.com")
     ? bgUrl.replace("/upload/", "/upload/ar_16:9,c_fill,g_auto,f_auto,q_auto,w_1600/")
     : bgUrl;

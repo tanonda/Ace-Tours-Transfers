@@ -10,7 +10,7 @@ import type { ReactNode } from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { PaperEdge } from "@/components/postcard";
-import type { ImageCredit } from "@/lib/image-credits";
+import { cloudinaryOpt } from "@/components/seo";
 
 export function PageHero({
   photo,
@@ -18,7 +18,6 @@ export function PageHero({
   kicker,
   title,
   subtitle,
-  credit,
   children,
   size = "page",
   as: Heading = "h1",
@@ -29,7 +28,6 @@ export function PageHero({
   kicker?: ReactNode;
   title: ReactNode;
   subtitle?: ReactNode;
-  credit?: ImageCredit;
   /** Content under the headline: the booking widget on Home, nothing on inner pages. */
   children?: ReactNode;
   /** "home" fills the screen (capped so the booking widget stays in view); "page" is a shorter banner. */
@@ -47,7 +45,7 @@ export function PageHero({
     >
       <div aria-hidden className="absolute inset-0">
         <img
-          src={photo}
+          src={photo.includes("res.cloudinary.com") ? cloudinaryOpt(photo, 1920) : photo}
           alt=""
           className="h-full w-full object-cover"
           style={{ objectPosition: photoPosition }}
@@ -106,11 +104,6 @@ export function PageHero({
         )}
       </div>
 
-      {credit && (
-        <p className="absolute inset-x-4 bottom-10 z-20 text-center text-[10px] text-white/70 md:inset-x-auto md:right-4 md:bottom-12 md:text-right">
-          Photo: <a href={credit.href} target="_blank" rel="noopener noreferrer" className="text-[10px] underline">{credit.label}</a>, {credit.author} ({credit.license})
-        </p>
-      )}
       <PaperEdge position="bottom" seed={3} />
     </section>
   );
