@@ -13,6 +13,7 @@ import { CurrencyProvider } from "@/lib/currency-context";
 import { AuthProvider, ProtectedRoute, useAuth } from "@/lib/auth-context";
 import { ThemeProvider } from "@/lib/theme-context";
 import { CMSProvider } from "@/lib/cms-context";
+import { useSiteSettings } from "@/lib/site-settings";
 import { NProgressRouter } from "@/components/nprogress-router";
 
 // Coming soon gate — controlled via Admin Dashboard > Settings > Feature Flags
@@ -163,20 +164,7 @@ function Router() {
   });
 
   // Also fetch the launch date from settings to support auto-off
-  const { data: settings = [], isLoading: isSettingsLoading } = useQuery<{ key: string; value: string }[]>({
-    queryKey: ["site-settings-public"],
-    queryFn: async () => {
-      try {
-        const res = await fetch("/api/settings");
-        if (!res.ok) return [];
-        const data = await res.json();
-        return Array.isArray(data) ? data : [];
-      } catch (e) {
-        return [];
-      }
-    },
-    staleTime: 60_000,
-  });
+  const { data: settings = [], isLoading: isSettingsLoading } = useSiteSettings();
 
   const launchDateVal = settings.find(s => s.key === 'launch_date')?.value;
   const isPastLaunchDate = launchDateVal ? new Date() >= new Date(`${launchDateVal}T00:00:00`) : false;

@@ -6,6 +6,7 @@
  */
 
 import { useState, useEffect, useRef } from "react";
+import { useSiteSettings } from "@/lib/site-settings";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import {
@@ -379,11 +380,7 @@ type GoogleReviewsPayload = {
 };
 
 function useReviewProvider() {
-  const { data: settings } = useQuery<any[]>({
-    queryKey: ["/api/settings"],
-    queryFn: () => apiRequest("GET", "/api/settings").then(r => r.json()),
-    staleTime: 5 * 60 * 1000,
-  });
+  const { data: settings } = useSiteSettings();
   const setting = settings?.find((s: any) => s.key === "review_provider");
   return (setting?.value as string | undefined) ?? "trustpilot";
 }

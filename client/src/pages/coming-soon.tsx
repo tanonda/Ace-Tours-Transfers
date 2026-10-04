@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSiteSettings } from "@/lib/site-settings";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -57,20 +58,7 @@ function StarRating({ rating }: { rating: number }) {
 }
 
 export default function ComingSoon() {
-  const { data: settings = [] } = useQuery<{ key: string; value: string }[]>({
-    queryKey: ["settings"],
-    queryFn: async () => {
-      try {
-        const res = await fetch("/api/settings");
-        if (!res.ok) return [];
-        const data = await res.json();
-        return Array.isArray(data) ? data : [];
-      } catch (e) {
-        return [];
-      }
-    },
-    staleTime: 60_000,
-  });
+  const { data: settings = [] } = useSiteSettings();
 
   const { data: approvedReviews = [] } = useQuery<any[]>({
     queryKey: ["approved-reviews"],

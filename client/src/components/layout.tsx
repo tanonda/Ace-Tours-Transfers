@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { useState, useEffect, useRef, forwardRef } from "react";
+import { useState, useEffect, useRef, forwardRef, memo } from "react";
 import { Menu, Phone, Mail, Instagram, Facebook, X, ChevronRight, ShoppingCart, User, LogIn, LogOut, UserPlus, Home, Map, Car, Info, MessageSquare, Calendar, ChevronDown, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -17,7 +17,8 @@ import {
 } from "@/components/ui/navigation-menu";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
-import { fetchProducts, fetchSiteSettings } from "@/lib/api";
+import { fetchProducts } from "@/lib/api";
+import { useSiteSettings } from "@/lib/site-settings";
 import { useCart } from "@/lib/cart-context";
 import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -62,17 +63,15 @@ const ListItem = forwardRef<
 })
 ListItem.displayName = "ListItem"
 
-export function Layout({ children }: { children: React.ReactNode }) {
+/** Site-wide data used by both the header and the footer (queries are cached, so calling it twice is free). */
+function useSiteChrome() {
   const { i18n } = useTranslation();
   const { data: allTours = [] } = useQuery({
     queryKey: ["products", i18n.language],
     queryFn: fetchProducts,
   });
 
-  const { data: settings = [] } = useQuery({
-    queryKey: ["settings"],
-    queryFn: fetchSiteSettings,
-  });
+  const { data: settings = [] } = useSiteSettings();
 
   const getSetting = (key: string, fallback: string = "") => {
     const setting = settings.find((s) => s.key === key);
@@ -128,6 +127,18 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const tours = uniqueTours.filter((t: Product) => t.category === "tour" && t.isActive !== false);
   const transfers = uniqueTours.filter((t: Product) => t.category === "transfer" && t.isActive !== false);
 
+  const { t } = useTranslation();
+
+  return { settings, contactEmail, contactPhone, whatsappNumber, facebookUrl, instagramUrl, contactAddress, footerBacklinks, landingLinks, tours, transfers, t };
+}
+
+/**
+ * The header is memoized and takes no props, so it re-renders only when its own state
+ * or the contexts it reads change. Inline in Layout, it re-rendered (all 14 navigation
+ * menus) every time the page below it did — several times per page load.
+ */
+const SiteHeader = memo(function SiteHeader() {
+  const { settings, contactEmail, contactPhone, whatsappNumber, facebookUrl, instagramUrl, contactAddress, footerBacklinks, landingLinks, tours, transfers, t } = useSiteChrome();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [toursOpen, setToursOpen] = useState(false);
@@ -135,12 +146,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const [bookingsOpen, setBookingsOpen] = useState(false);
   const [location] = useLocation();
   const { itemCount } = useCart();
-  const { t } = useTranslation();
-  const { isBlockEnabled } = useCMS();
-  const footerCms = useCmsText("footer");
   const { user, logout } = useAuth();
   const isHome = location === "/";
-  const showNewsletter = isBlockEnabled('newsletter');
 
   const closeMobileMenu = () => {
     setMobileMenuOpen(false);
@@ -185,495 +192,500 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const logoTextColor = isTransparent ? "text-white" : "text-foreground";
   const mobileButtonColor = isTransparent ? "text-white" : "text-foreground";
 
-  return (
-    <div className="min-h-screen flex flex-col bg-background font-sans text-foreground">
-      <SkipLinks />
 
-      <header
-        ref={headerRef}
-        id="main-navigation"
-        role="banner"
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled
-          ? "bg-background/95 backdrop-blur-md shadow-sm border-b border-border/50"
-          : isHome
-            ? "bg-transparent"
-            : "bg-background/95 backdrop-blur-md"
-          }`}
-      >
-        <div className={`transition-all duration-300 ${isScrolled ? "hidden" : "block"}`}>
-          <div className={`container mx-auto px-4 py-2 flex flex-col md:flex-row items-center justify-between text-sm ${isTransparent ? "text-white/90" : "text-muted-foreground"}`}>
-            <p className={`italic font-medium ${isTransparent ? "text-white" : "text-foreground"}`}>
-              "{t("app.tagline")}"
-            </p>
-            <div className="flex flex-wrap justify-center md:justify-end items-center gap-3 mt-2 md:mt-0">
-              <div className="hidden lg:flex items-center gap-4">
-                <a href={`tel:+678${contactPhone.replace(/\D/g, '')}`} className={`flex items-center gap-1.5 hover:text-primary transition-colors ${isTransparent ? "hover:text-white" : ""}`}>
-                  <Phone className="h-3.5 w-3.5" />
-                  <span>{contactPhone}</span>
-                </a>
-                <span className={isTransparent ? "text-white/50" : "text-muted-foreground/50"}>|</span>
-                <a href={`mailto:${contactEmail}`} className={`flex items-center gap-1.5 hover:text-primary transition-colors ${isTransparent ? "hover:text-white" : ""}`}>
-                  <Mail className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">{contactEmail}</span>
-                  <span className="sm:hidden">{t("nav.emailUs", "Email Us")}</span>
-                </a>
-              </div>
-              <div className="hidden lg:block w-px h-4 bg-border/50 mx-1"></div>
-              <div className={`flex items-center gap-1 ${isTransparent ? '[&_button]:text-white/90 [&_button:hover]:text-white [&_button:hover]:bg-white/10' : ''}`}>
-                <CurrencySelector />
-                <LanguageSelector />
-                <ThemeToggle size="sm" />
-              </div>
+  return (
+    <header
+      ref={headerRef}
+      id="main-navigation"
+      role="banner"
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled
+        ? "bg-background/95 backdrop-blur-md shadow-sm border-b border-border/50"
+        : isHome
+          ? "bg-transparent"
+          : "bg-background/95 backdrop-blur-md"
+        }`}
+    >
+      <div className={`transition-all duration-300 ${isScrolled ? "hidden" : "block"}`}>
+        <div className={`container mx-auto px-4 py-2 flex flex-col md:flex-row items-center justify-between text-sm ${isTransparent ? "text-white/90" : "text-muted-foreground"}`}>
+          <p className={`italic font-medium ${isTransparent ? "text-white" : "text-foreground"}`}>
+            "{t("app.tagline")}"
+          </p>
+          <div className="flex flex-wrap justify-center md:justify-end items-center gap-3 mt-2 md:mt-0">
+            <div className="hidden lg:flex items-center gap-4">
+              <a href={`tel:+678${contactPhone.replace(/\D/g, '')}`} className={`flex items-center gap-1.5 hover:text-primary transition-colors ${isTransparent ? "hover:text-white" : ""}`}>
+                <Phone className="h-3.5 w-3.5" />
+                <span>{contactPhone}</span>
+              </a>
+              <span className={isTransparent ? "text-white/50" : "text-muted-foreground/50"}>|</span>
+              <a href={`mailto:${contactEmail}`} className={`flex items-center gap-1.5 hover:text-primary transition-colors ${isTransparent ? "hover:text-white" : ""}`}>
+                <Mail className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">{contactEmail}</span>
+                <span className="sm:hidden">{t("nav.emailUs", "Email Us")}</span>
+              </a>
+            </div>
+            <div className="hidden lg:block w-px h-4 bg-border/50 mx-1"></div>
+            <div className={`flex items-center gap-1 ${isTransparent ? '[&_button]:text-white/90 [&_button:hover]:text-white [&_button:hover]:bg-white/10' : ''}`}>
+              <CurrencySelector />
+              <LanguageSelector />
+              <ThemeToggle size="sm" />
             </div>
           </div>
         </div>
+      </div>
 
-        <div className={`container mx-auto px-4 flex flex-wrap xl:flex-nowrap items-center justify-between transition-all duration-300 ${isScrolled ? "py-2" : "py-3"}`}>
-          <div className="flex items-center justify-center w-full xl:w-auto relative">
-          {/* Mobile hamburger - absolute left so logo stays centered on mobile */}
-          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-            <SheetTrigger asChild className="xl:hidden">
-              <Button
-                variant="ghost"
-                size="icon"
-                className={`${mobileButtonColor} absolute left-0`}
-                aria-label={t("accessibility.menuOpen")}
-                data-testid="button-mobile-menu"
-              >
-                <Menu className="h-6 w-6" aria-hidden="true" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent
-              side="left"
-              className="w-[85vw] max-w-[320px] p-0 overflow-hidden"
-              data-testid="mobile-menu-panel"
+      <div className={`container mx-auto px-4 flex flex-wrap xl:flex-nowrap items-center justify-between transition-all duration-300 ${isScrolled ? "py-2" : "py-3"}`}>
+        <div className="flex items-center justify-center w-full xl:w-auto relative">
+        {/* Mobile hamburger - absolute left so logo stays centered on mobile */}
+        <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+          <SheetTrigger asChild className="xl:hidden">
+            <Button
+              variant="ghost"
+              size="icon"
+              className={`${mobileButtonColor} absolute left-0`}
+              aria-label={t("accessibility.menuOpen")}
+              data-testid="button-mobile-menu"
             >
-              <div className="bg-primary text-white p-4 flex items-center justify-between">
+              <Menu className="h-6 w-6" aria-hidden="true" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent
+            side="left"
+            className="w-[85vw] max-w-[320px] p-0 overflow-hidden"
+            data-testid="mobile-menu-panel"
+          >
+            <div className="bg-primary text-white p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <img
+                  src={logo}
+                  alt="Ace Tours Logo"
+                  className="h-10 w-10 rounded-full border-2 border-white/30"
+                />
+                <span className="font-serif font-bold text-lg">{t("app.shortTitle", "Ace Tours")}</span>
+              </div>
+              <SheetClose asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-white hover:bg-white/20"
+                  data-testid="button-close-mobile-menu"
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </SheetClose>
+            </div>
+
+            <div className="bg-muted/50 p-4 border-b border-border">
+              {user ? (
                 <div className="flex items-center gap-3">
-                  <img
-                    src={logo}
-                    alt="Ace Tours Logo"
-                    className="h-10 w-10 rounded-full border-2 border-white/30"
-                  />
-                  <span className="font-serif font-bold text-lg">{t("app.shortTitle", "Ace Tours")}</span>
+                  <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
+                    <User className="h-5 w-5 text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-foreground truncate">{user.name}</p>
+                    <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                  </div>
+                  <Link href={user.role === 'admin' ? '/admin/dashboard' : '/dashboard'} onClick={closeMobileMenu}>
+                    <Button variant="outline" size="sm" data-testid="button-mobile-dashboard">
+                      {t("nav.dashboard")}
+                    </Button>
+                  </Link>
                 </div>
-                <SheetClose asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-white hover:bg-white/20"
-                    data-testid="button-close-mobile-menu"
-                  >
-                    <X className="h-5 w-5" />
-                  </Button>
-                </SheetClose>
-              </div>
+              ) : (
+                <div className="flex gap-2">
+                  {/* Guest accounts are disabled. Guests access via reference ID in Manage Bookings. */}
+                </div>
+              )}
+            </div>
 
-              <div className="bg-muted/50 p-4 border-b border-border">
-                {user ? (
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
-                      <User className="h-5 w-5 text-primary" />
+            <div className="overflow-y-auto h-[calc(100vh-200px)]">
+              <nav className="p-2">
+                <Link
+                  href="/"
+                  onClick={closeMobileMenu}
+                  className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors"
+                  data-testid="mobile-nav-home"
+                >
+                  <Home className="h-5 w-5 text-primary" />
+                  <span className="font-medium">{t("nav.home")}</span>
+                </Link>
+
+                <Collapsible open={toursOpen} onOpenChange={setToursOpen}>
+                  <CollapsibleTrigger className="flex items-center justify-between w-full px-4 py-3 rounded-lg hover:bg-muted transition-colors">
+                    <div className="flex items-center gap-3">
+                      <Map className="h-5 w-5 text-primary" />
+                      <span className="font-medium">{t("nav.tours")}</span>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-foreground truncate">{user.name}</p>
-                      <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-                    </div>
-                    <Link href={user.role === 'admin' ? '/admin/dashboard' : '/dashboard'} onClick={closeMobileMenu}>
-                      <Button variant="outline" size="sm" data-testid="button-mobile-dashboard">
-                        {t("nav.dashboard")}
-                      </Button>
-                    </Link>
-                  </div>
-                ) : (
-                  <div className="flex gap-2">
-                    {/* Guest accounts are disabled. Guests access via reference ID in Manage Bookings. */}
-                  </div>
-                )}
-              </div>
-
-              <div className="overflow-y-auto h-[calc(100vh-200px)]">
-                <nav className="p-2">
-                  <Link
-                    href="/"
-                    onClick={closeMobileMenu}
-                    className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors"
-                    data-testid="mobile-nav-home"
-                  >
-                    <Home className="h-5 w-5 text-primary" />
-                    <span className="font-medium">{t("nav.home")}</span>
-                  </Link>
-
-                  <Collapsible open={toursOpen} onOpenChange={setToursOpen}>
-                    <CollapsibleTrigger className="flex items-center justify-between w-full px-4 py-3 rounded-lg hover:bg-muted transition-colors">
-                      <div className="flex items-center gap-3">
-                        <Map className="h-5 w-5 text-primary" />
-                        <span className="font-medium">{t("nav.tours")}</span>
-                      </div>
-                      <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform duration-200", toursOpen && "rotate-180")} />
-                    </CollapsibleTrigger>
-                    <CollapsibleContent className="pl-12 pr-4 pb-2 space-y-1">
-                      {tours.map((tour: Product) => (
-                        <Link
-                          key={tour.id}
-                          href={`/tours/${tour.id}`}
-                          onClick={closeMobileMenu}
-                          className="flex items-center gap-2 py-2 px-3 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
-                        >
-                          <ChevronRight className="h-3 w-3" />
-                          {tour.title}
-                        </Link>
-                      ))}
+                    <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform duration-200", toursOpen && "rotate-180")} />
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="pl-12 pr-4 pb-2 space-y-1">
+                    {tours.map((tour: Product) => (
                       <Link
-                        href="/tours"
-                        onClick={closeMobileMenu}
-                        className="flex items-center gap-2 py-2 px-3 rounded-md text-sm font-medium text-primary hover:bg-primary/10 transition-colors"
-                      >
-                        {t("nav.viewAllTours")}
-                      </Link>
-                    </CollapsibleContent>
-                  </Collapsible>
-
-                  <Collapsible open={transfersOpen} onOpenChange={setTransfersOpen}>
-                    <CollapsibleTrigger className="flex items-center justify-between w-full px-4 py-3 rounded-lg hover:bg-muted transition-colors">
-                      <div className="flex items-center gap-3">
-                        <Car className="h-5 w-5 text-primary" />
-                        <span className="font-medium">{t("nav.transfers")}</span>
-                      </div>
-                      <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform duration-200", transfersOpen && "rotate-180")} />
-                    </CollapsibleTrigger>
-                    <CollapsibleContent className="pl-12 pr-4 pb-2 space-y-1">
-                      {transfers.map((transfer: Product) => (
-                        <Link
-                          key={transfer.id}
-                          href={`/transfers/${transfer.id}`}
-                          onClick={closeMobileMenu}
-                          className="flex items-center gap-2 py-2 px-3 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
-                        >
-                          <ChevronRight className="h-3 w-3" />
-                          {transfer.title}
-                        </Link>
-                      ))}
-                      <Link
-                        href="/transfers"
-                        onClick={closeMobileMenu}
-                        className="flex items-center gap-2 py-2 px-3 rounded-md text-sm font-medium text-primary hover:bg-primary/10 transition-colors"
-                      >
-                        {t("nav.viewAllTransfers")}
-                      </Link>
-                    </CollapsibleContent>
-                  </Collapsible>
-                  <Link
-                    href="/about"
-                    onClick={closeMobileMenu}
-                    className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors"
-                    data-testid="mobile-nav-about"
-                  >
-                    <Info className="h-5 w-5 text-primary" />
-                    <span className="font-medium">{t("nav.about")}</span>
-                  </Link>
-
-                  <Link
-                    href="/blog"
-                    onClick={closeMobileMenu}
-                    className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors"
-                    data-testid="mobile-nav-blog"
-                  >
-                    <BookOpen className="h-5 w-5 text-primary" />
-                    <span className="font-medium">{t("nav.blog", "Blog")}</span>
-                  </Link>
-
-                  <Link
-                    href="/contact"
-                    onClick={closeMobileMenu}
-                    className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors"
-                    data-testid="mobile-nav-contact"
-                  >
-                    <MessageSquare className="h-5 w-5 text-primary" />
-                    <span className="font-medium">{t("nav.contact")}</span>
-                  </Link>
-
-                  <Collapsible open={bookingsOpen} onOpenChange={setBookingsOpen}>
-                    <CollapsibleTrigger className="flex items-center justify-between w-full px-4 py-3 rounded-lg hover:bg-muted transition-colors">
-                      <div className="flex items-center gap-3">
-                        <Calendar className="h-5 w-5 text-primary" />
-                        <span className="font-medium">{t("nav.myBookings")}</span>
-                      </div>
-                      <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform duration-200", bookingsOpen && "rotate-180")} />
-                    </CollapsibleTrigger>
-                    <CollapsibleContent className="pl-12 pr-4 pb-2 space-y-1">
-                      <Link
-                        href="/manage-booking"
+                        key={tour.id}
+                        href={`/tours/${tour.id}`}
                         onClick={closeMobileMenu}
                         className="flex items-center gap-2 py-2 px-3 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
                       >
                         <ChevronRight className="h-3 w-3" />
-                        {t("nav.editTrip")}
+                        {tour.title}
                       </Link>
-
-                    </CollapsibleContent>
-                  </Collapsible>
-
-                  <Link
-                    href="/cart"
-                    onClick={closeMobileMenu}
-                    className="flex items-center justify-between px-4 py-3 rounded-lg hover:bg-muted transition-colors"
-                    data-testid="mobile-nav-cart"
-                  >
-                    <div className="flex items-center gap-3">
-                      <ShoppingCart className="h-5 w-5 text-primary" />
-                      <span className="font-medium">{t("cart.title")}</span>
-                    </div>
-                    {itemCount > 0 && (
-                      <Badge variant="default" className="bg-primary text-white">
-                        {itemCount}
-                      </Badge>
-                    )}
-                  </Link>
-
-                  <div className="my-3 border-t border-border" />
-
-                  <div className="px-4 py-2">
-                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-                      {t("common.settings", "Settings")}
-                    </p>
-                  </div>
-
-                  <div className="flex items-center justify-between px-4 py-3 rounded-lg hover:bg-muted transition-colors">
-                    <span className="font-medium">Currency</span>
-                    <CurrencySelector />
-                  </div>
-
-                  <div className="flex items-center justify-between px-4 py-3 rounded-lg hover:bg-muted transition-colors">
-                    <span className="font-medium">{t("common.language")}</span>
-                    <LanguageSelector />
-                  </div>
-
-                  <div className="flex items-center justify-between px-4 py-3 rounded-lg hover:bg-muted transition-colors">
-                    <span className="font-medium">{t("common.theme")}</span>
-                    <ThemeToggle size="md" />
-                  </div>
-
-                  {user && (
-                    <button
-                      onClick={() => {
-                        logout();
-                        closeMobileMenu();
-                      }}
-                      className="flex items-center gap-3 w-full px-4 py-3 rounded-lg hover:bg-destructive/10 text-destructive transition-colors"
-                      data-testid="button-mobile-logout"
+                    ))}
+                    <Link
+                      href="/tours"
+                      onClick={closeMobileMenu}
+                      className="flex items-center gap-2 py-2 px-3 rounded-md text-sm font-medium text-primary hover:bg-primary/10 transition-colors"
                     >
-                      {/* Fix #28: Use LogOut icon (not rotated LogIn) for correct semantic meaning */}
-                      <LogOut className="h-5 w-5" />
-                      <span className="font-medium">{t("nav.logout")}</span>
-                    </button>
-                  )}
-                </nav>
+                      {t("nav.viewAllTours")}
+                    </Link>
+                  </CollapsibleContent>
+                </Collapsible>
 
-                <div className="p-4 border-t border-border">
-                  <Link href="/tours" onClick={closeMobileMenu}>
-                    <Button size="lg" className="w-full font-semibold shadow-lg" data-testid="button-mobile-browse-tours">
-                      Browse Tours & Transfers
-                    </Button>
-                  </Link>
+                <Collapsible open={transfersOpen} onOpenChange={setTransfersOpen}>
+                  <CollapsibleTrigger className="flex items-center justify-between w-full px-4 py-3 rounded-lg hover:bg-muted transition-colors">
+                    <div className="flex items-center gap-3">
+                      <Car className="h-5 w-5 text-primary" />
+                      <span className="font-medium">{t("nav.transfers")}</span>
+                    </div>
+                    <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform duration-200", transfersOpen && "rotate-180")} />
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="pl-12 pr-4 pb-2 space-y-1">
+                    {transfers.map((transfer: Product) => (
+                      <Link
+                        key={transfer.id}
+                        href={`/transfers/${transfer.id}`}
+                        onClick={closeMobileMenu}
+                        className="flex items-center gap-2 py-2 px-3 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                      >
+                        <ChevronRight className="h-3 w-3" />
+                        {transfer.title}
+                      </Link>
+                    ))}
+                    <Link
+                      href="/transfers"
+                      onClick={closeMobileMenu}
+                      className="flex items-center gap-2 py-2 px-3 rounded-md text-sm font-medium text-primary hover:bg-primary/10 transition-colors"
+                    >
+                      {t("nav.viewAllTransfers")}
+                    </Link>
+                  </CollapsibleContent>
+                </Collapsible>
+                <Link
+                  href="/about"
+                  onClick={closeMobileMenu}
+                  className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors"
+                  data-testid="mobile-nav-about"
+                >
+                  <Info className="h-5 w-5 text-primary" />
+                  <span className="font-medium">{t("nav.about")}</span>
+                </Link>
+
+                <Link
+                  href="/blog"
+                  onClick={closeMobileMenu}
+                  className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors"
+                  data-testid="mobile-nav-blog"
+                >
+                  <BookOpen className="h-5 w-5 text-primary" />
+                  <span className="font-medium">{t("nav.blog", "Blog")}</span>
+                </Link>
+
+                <Link
+                  href="/contact"
+                  onClick={closeMobileMenu}
+                  className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors"
+                  data-testid="mobile-nav-contact"
+                >
+                  <MessageSquare className="h-5 w-5 text-primary" />
+                  <span className="font-medium">{t("nav.contact")}</span>
+                </Link>
+
+                <Collapsible open={bookingsOpen} onOpenChange={setBookingsOpen}>
+                  <CollapsibleTrigger className="flex items-center justify-between w-full px-4 py-3 rounded-lg hover:bg-muted transition-colors">
+                    <div className="flex items-center gap-3">
+                      <Calendar className="h-5 w-5 text-primary" />
+                      <span className="font-medium">{t("nav.myBookings")}</span>
+                    </div>
+                    <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform duration-200", bookingsOpen && "rotate-180")} />
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="pl-12 pr-4 pb-2 space-y-1">
+                    <Link
+                      href="/manage-booking"
+                      onClick={closeMobileMenu}
+                      className="flex items-center gap-2 py-2 px-3 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                    >
+                      <ChevronRight className="h-3 w-3" />
+                      {t("nav.editTrip")}
+                    </Link>
+
+                  </CollapsibleContent>
+                </Collapsible>
+
+                <Link
+                  href="/cart"
+                  onClick={closeMobileMenu}
+                  className="flex items-center justify-between px-4 py-3 rounded-lg hover:bg-muted transition-colors"
+                  data-testid="mobile-nav-cart"
+                >
+                  <div className="flex items-center gap-3">
+                    <ShoppingCart className="h-5 w-5 text-primary" />
+                    <span className="font-medium">{t("cart.title")}</span>
+                  </div>
+                  {itemCount > 0 && (
+                    <Badge variant="default" className="bg-primary text-white">
+                      {itemCount}
+                    </Badge>
+                  )}
+                </Link>
+
+                <div className="my-3 border-t border-border" />
+
+                <div className="px-4 py-2">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                    {t("common.settings", "Settings")}
+                  </p>
                 </div>
 
-                <div className="p-4 bg-muted/30 border-t border-border">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-                    {t("footer.contactUs")}
-                  </p>
-                  <div className="space-y-2 text-sm text-muted-foreground">
-                    <a href={`tel:+678${contactPhone.replace(/\D/g, '')}`} className="flex items-center gap-2 hover:text-primary transition-colors">
-                      <Phone className="h-4 w-4" />
-                      <span>{contactPhone}</span>
-                    </a>
-                    <a href={`mailto:${contactEmail}`} className="flex items-center gap-2 hover:text-primary transition-colors">
-                      <Mail className="h-4 w-4" />
-                      <span className="truncate">{contactEmail}</span>
-                    </a>
-                  </div>
-                  <div className="flex gap-3 mt-4">
-                    <a href={facebookUrl} target="_blank" rel="noopener noreferrer" className="bg-muted p-2 rounded-full hover:bg-primary hover:text-white transition-colors">
-                      <Facebook className="h-4 w-4" />
-                    </a>
-                    <a href={instagramUrl} target="_blank" rel="noopener noreferrer" aria-label="Follow us on Instagram" className="bg-muted p-2 rounded-full hover:bg-primary hover:text-white transition-colors">
-                      <Instagram className="h-4 w-4" />
-                    </a>
-                  </div>
+                <div className="flex items-center justify-between px-4 py-3 rounded-lg hover:bg-muted transition-colors">
+                  <span className="font-medium">Currency</span>
+                  <CurrencySelector />
+                </div>
+
+                <div className="flex items-center justify-between px-4 py-3 rounded-lg hover:bg-muted transition-colors">
+                  <span className="font-medium">{t("common.language")}</span>
+                  <LanguageSelector />
+                </div>
+
+                <div className="flex items-center justify-between px-4 py-3 rounded-lg hover:bg-muted transition-colors">
+                  <span className="font-medium">{t("common.theme")}</span>
+                  <ThemeToggle size="md" />
+                </div>
+
+                {user && (
+                  <button
+                    onClick={() => {
+                      logout();
+                      closeMobileMenu();
+                    }}
+                    className="flex items-center gap-3 w-full px-4 py-3 rounded-lg hover:bg-destructive/10 text-destructive transition-colors"
+                    data-testid="button-mobile-logout"
+                  >
+                    {/* Fix #28: Use LogOut icon (not rotated LogIn) for correct semantic meaning */}
+                    <LogOut className="h-5 w-5" />
+                    <span className="font-medium">{t("nav.logout")}</span>
+                  </button>
+                )}
+              </nav>
+
+              <div className="p-4 border-t border-border">
+                <Link href="/tours" onClick={closeMobileMenu}>
+                  <Button size="lg" className="w-full font-semibold shadow-lg" data-testid="button-mobile-browse-tours">
+                    Browse Tours & Transfers
+                  </Button>
+                </Link>
+              </div>
+
+              <div className="p-4 bg-muted/30 border-t border-border">
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+                  {t("footer.contactUs")}
+                </p>
+                <div className="space-y-2 text-sm text-muted-foreground">
+                  <a href={`tel:+678${contactPhone.replace(/\D/g, '')}`} className="flex items-center gap-2 hover:text-primary transition-colors">
+                    <Phone className="h-4 w-4" />
+                    <span>{contactPhone}</span>
+                  </a>
+                  <a href={`mailto:${contactEmail}`} className="flex items-center gap-2 hover:text-primary transition-colors">
+                    <Mail className="h-4 w-4" />
+                    <span className="truncate">{contactEmail}</span>
+                  </a>
+                </div>
+                <div className="flex gap-3 mt-4">
+                  <a href={facebookUrl} target="_blank" rel="noopener noreferrer" className="bg-muted p-2 rounded-full hover:bg-primary hover:text-white transition-colors">
+                    <Facebook className="h-4 w-4" />
+                  </a>
+                  <a href={instagramUrl} target="_blank" rel="noopener noreferrer" aria-label="Follow us on Instagram" className="bg-muted p-2 rounded-full hover:bg-primary hover:text-white transition-colors">
+                    <Instagram className="h-4 w-4" />
+                  </a>
                 </div>
               </div>
-            </SheetContent>
-          </Sheet>
-
-          <Link href="/" className="flex items-center gap-3">
-            <img
-              src={logo}
-              alt="Ace Tours Logo"
-              className={`rounded-full shadow-lg border-2 transition-all duration-300 ${isTransparent ? "border-white/30" : "border-primary/30"
-                } ${isScrolled ? "h-10 w-10" : "h-14 w-14 md:h-16 md:w-16"}`}
-            />
-            <span className={`font-serif font-bold tracking-tight transition-all duration-300 ${logoTextColor} ${isScrolled ? "text-base" : "text-lg md:text-xl"
-              }`}>
-              Ace Tours & Transfers
-            </span>
-          </Link>
-
-          {/* Tablet cart shortcut - phones use the bottom nav, desktop the full nav */}
-          <Link href="/cart" className="hidden md:block xl:hidden absolute right-0">
-            <Button variant="ghost" size="icon" className={`${mobileButtonColor} relative`} aria-label="Cart">
-              <ShoppingCart className="h-6 w-6" aria-hidden="true" />
-              {itemCount > 0 && (
-                <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-[#f4a830] text-[#0f0d09] text-[10px] font-black flex items-center justify-center">
-                  {itemCount}
-                </span>
-              )}
-            </Button>
-          </Link>
-          </div>
-
-          <nav className="hidden xl:flex justify-end items-center gap-5" aria-label="Main navigation">
-            <NavigationMenu className="relative z-50">
-              <NavigationMenuList>
-                <NavigationMenuItem>
-                  <Link href="/" className={cn(
-                    "group inline-flex h-9 w-max items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors focus:outline-none disabled:pointer-events-none disabled:opacity-50",
-                    navTextColor
-                  )}>
-                    {t("nav.home")}
-                  </Link>
-                </NavigationMenuItem>
-              </NavigationMenuList>
-            </NavigationMenu>
-
-            <NavigationMenu className="relative z-50">
-              <NavigationMenuList>
-                <NavigationMenuItem>
-                  <NavigationMenuTrigger className={cn("bg-transparent hover:bg-transparent focus:bg-transparent data-[state=open]:bg-transparent", navTextColor)}>
-                    {t("nav.tours")}
-                  </NavigationMenuTrigger>
-                  <NavigationMenuContent>
-                    <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
-                      {tours.map((tour: Product) => (
-                        <ListItem
-                          key={tour.id}
-                          title={tour.title}
-                          href={`/tours/${tour.id}`}
-                        >
-                          {tour.description[0]}
-                        </ListItem>
-                      ))}
-                      <ListItem href="/tours" title={t("nav.viewAllTours")} className="bg-muted/50">
-                        {t("nav.seeAllTours")}
-                      </ListItem>
-                    </ul>
-                  </NavigationMenuContent>
-                </NavigationMenuItem>
-              </NavigationMenuList>
-            </NavigationMenu>
-
-            <NavigationMenu className="relative z-50">
-              <NavigationMenuList>
-                <NavigationMenuItem>
-                  <NavigationMenuTrigger className={cn("bg-transparent hover:bg-transparent focus:bg-transparent data-[state=open]:bg-transparent", navTextColor)}>
-                    {t("nav.transfers")}
-                  </NavigationMenuTrigger>
-                  <NavigationMenuContent>
-                    <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
-                      {transfers.map((transfer: Product) => (
-                        <ListItem
-                          key={transfer.id}
-                          title={transfer.title}
-                          href={`/transfers/${transfer.id}`}
-                        >
-                          {Array.isArray(transfer.description) ? transfer.description[0] : transfer.description}
-                        </ListItem>
-                      ))}
-                      <ListItem href="/transfers" title={t("nav.viewAllTransfers")} className="bg-muted/50">
-                        {t("nav.seeAllTransfers")}
-                      </ListItem>
-                    </ul>
-                  </NavigationMenuContent>
-                </NavigationMenuItem>
-              </NavigationMenuList>
-            </NavigationMenu>
-
-            <NavigationMenu className="relative z-50">
-              <NavigationMenuList>
-                <NavigationMenuItem>
-                  <Link href="/about" className={cn(
-                    "group inline-flex h-9 w-max items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors focus:outline-none disabled:pointer-events-none disabled:opacity-50",
-                    navTextColor
-                  )}>
-                    {t("nav.about")}
-                  </Link>
-                </NavigationMenuItem>
-              </NavigationMenuList>
-            </NavigationMenu>
-
-            <NavigationMenu className="relative z-50">
-              <NavigationMenuList>
-                <NavigationMenuItem>
-                  <Link href="/blog" className={cn(
-                    "group inline-flex h-9 w-max items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors focus:outline-none disabled:pointer-events-none disabled:opacity-50",
-                    navTextColor
-                  )}>
-                    {t("nav.blog", "Blog")}
-                  </Link>
-                </NavigationMenuItem>
-              </NavigationMenuList>
-            </NavigationMenu>
-
-            <NavigationMenu className="relative z-50">
-              <NavigationMenuList>
-                <NavigationMenuItem>
-                  <Link href="/contact" className={cn(
-                    "group inline-flex h-9 w-max items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors focus:outline-none disabled:pointer-events-none disabled:opacity-50",
-                    navTextColor
-                  )}>
-                    {t("nav.contact")}
-                  </Link>
-                </NavigationMenuItem>
-              </NavigationMenuList>
-            </NavigationMenu>
-
-            <NavigationMenu className="relative z-50">
-              <NavigationMenuList>
-                <NavigationMenuItem>
-                  <NavigationMenuTrigger className={cn("bg-transparent hover:bg-transparent focus:bg-transparent data-[state=open]:bg-transparent", navTextColor)}>
-                    {t("nav.myBookings")}
-                  </NavigationMenuTrigger>
-                  <NavigationMenuContent>
-                    <ul className="grid w-[200px] gap-2 p-4">
-                      <ListItem href="/manage-booking" title={t("nav.editTrip")}>
-                        {t("nav.manageBookings", "Manage or cancel existing bookings")}
-                      </ListItem>
-                    </ul>
-                  </NavigationMenuContent>
-                </NavigationMenuItem>
-              </NavigationMenuList>
-            </NavigationMenu>
-
-            <div className="ml-4 flex items-center shrink-0">
-              <Link href="/cart">
-                <Button size="default" className="font-semibold shadow-md relative" variant={itemCount > 0 ? "default" : "secondary"}>
-                  <ShoppingCart className="h-4 w-4 mr-2" />
-                  {itemCount > 0 ? `Cart (${itemCount})` : "Cart"}
-                  {itemCount > 0 && (
-                    <span className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-[#f4a830] text-[#0f0d09] text-[10px] font-black flex items-center justify-center">
-                      {itemCount}
-                    </span>
-                  )}
-                </Button>
-              </Link>
             </div>
-          </nav>
+          </SheetContent>
+        </Sheet>
+
+        <Link href="/" className="flex items-center gap-3">
+          <img
+            src={logo}
+            alt="Ace Tours Logo"
+            className={`rounded-full shadow-lg border-2 transition-all duration-300 ${isTransparent ? "border-white/30" : "border-primary/30"
+              } ${isScrolled ? "h-10 w-10" : "h-14 w-14 md:h-16 md:w-16"}`}
+          />
+          <span className={`font-serif font-bold tracking-tight transition-all duration-300 ${logoTextColor} ${isScrolled ? "text-base" : "text-lg md:text-xl"
+            }`}>
+            Ace Tours & Transfers
+          </span>
+        </Link>
+
+        {/* Tablet cart shortcut - phones use the bottom nav, desktop the full nav */}
+        <Link href="/cart" className="hidden md:block xl:hidden absolute right-0">
+          <Button variant="ghost" size="icon" className={`${mobileButtonColor} relative`} aria-label="Cart">
+            <ShoppingCart className="h-6 w-6" aria-hidden="true" />
+            {itemCount > 0 && (
+              <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-[#f4a830] text-[#0f0d09] text-[10px] font-black flex items-center justify-center">
+                {itemCount}
+              </span>
+            )}
+          </Button>
+        </Link>
         </div>
-      </header>
 
-      <main id="main-content" role="main" className="flex-grow has-bottom-nav" tabIndex={-1}>
-        {children}
-      </main>
+        <nav className="hidden xl:flex justify-end items-center gap-5" aria-label="Main navigation">
+          <NavigationMenu className="relative z-50">
+            <NavigationMenuList>
+              <NavigationMenuItem>
+                <Link href="/" className={cn(
+                  "group inline-flex h-9 w-max items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors focus:outline-none disabled:pointer-events-none disabled:opacity-50",
+                  navTextColor
+                )}>
+                  {t("nav.home")}
+                </Link>
+              </NavigationMenuItem>
+            </NavigationMenuList>
+          </NavigationMenu>
 
+          <NavigationMenu className="relative z-50">
+            <NavigationMenuList>
+              <NavigationMenuItem>
+                <NavigationMenuTrigger className={cn("bg-transparent hover:bg-transparent focus:bg-transparent data-[state=open]:bg-transparent", navTextColor)}>
+                  {t("nav.tours")}
+                </NavigationMenuTrigger>
+                <NavigationMenuContent>
+                  <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
+                    {tours.map((tour: Product) => (
+                      <ListItem
+                        key={tour.id}
+                        title={tour.title}
+                        href={`/tours/${tour.id}`}
+                      >
+                        {tour.description[0]}
+                      </ListItem>
+                    ))}
+                    <ListItem href="/tours" title={t("nav.viewAllTours")} className="bg-muted/50">
+                      {t("nav.seeAllTours")}
+                    </ListItem>
+                  </ul>
+                </NavigationMenuContent>
+              </NavigationMenuItem>
+            </NavigationMenuList>
+          </NavigationMenu>
+
+          <NavigationMenu className="relative z-50">
+            <NavigationMenuList>
+              <NavigationMenuItem>
+                <NavigationMenuTrigger className={cn("bg-transparent hover:bg-transparent focus:bg-transparent data-[state=open]:bg-transparent", navTextColor)}>
+                  {t("nav.transfers")}
+                </NavigationMenuTrigger>
+                <NavigationMenuContent>
+                  <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
+                    {transfers.map((transfer: Product) => (
+                      <ListItem
+                        key={transfer.id}
+                        title={transfer.title}
+                        href={`/transfers/${transfer.id}`}
+                      >
+                        {Array.isArray(transfer.description) ? transfer.description[0] : transfer.description}
+                      </ListItem>
+                    ))}
+                    <ListItem href="/transfers" title={t("nav.viewAllTransfers")} className="bg-muted/50">
+                      {t("nav.seeAllTransfers")}
+                    </ListItem>
+                  </ul>
+                </NavigationMenuContent>
+              </NavigationMenuItem>
+            </NavigationMenuList>
+          </NavigationMenu>
+
+          <NavigationMenu className="relative z-50">
+            <NavigationMenuList>
+              <NavigationMenuItem>
+                <Link href="/about" className={cn(
+                  "group inline-flex h-9 w-max items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors focus:outline-none disabled:pointer-events-none disabled:opacity-50",
+                  navTextColor
+                )}>
+                  {t("nav.about")}
+                </Link>
+              </NavigationMenuItem>
+            </NavigationMenuList>
+          </NavigationMenu>
+
+          <NavigationMenu className="relative z-50">
+            <NavigationMenuList>
+              <NavigationMenuItem>
+                <Link href="/blog" className={cn(
+                  "group inline-flex h-9 w-max items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors focus:outline-none disabled:pointer-events-none disabled:opacity-50",
+                  navTextColor
+                )}>
+                  {t("nav.blog", "Blog")}
+                </Link>
+              </NavigationMenuItem>
+            </NavigationMenuList>
+          </NavigationMenu>
+
+          <NavigationMenu className="relative z-50">
+            <NavigationMenuList>
+              <NavigationMenuItem>
+                <Link href="/contact" className={cn(
+                  "group inline-flex h-9 w-max items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors focus:outline-none disabled:pointer-events-none disabled:opacity-50",
+                  navTextColor
+                )}>
+                  {t("nav.contact")}
+                </Link>
+              </NavigationMenuItem>
+            </NavigationMenuList>
+          </NavigationMenu>
+
+          <NavigationMenu className="relative z-50">
+            <NavigationMenuList>
+              <NavigationMenuItem>
+                <NavigationMenuTrigger className={cn("bg-transparent hover:bg-transparent focus:bg-transparent data-[state=open]:bg-transparent", navTextColor)}>
+                  {t("nav.myBookings")}
+                </NavigationMenuTrigger>
+                <NavigationMenuContent>
+                  <ul className="grid w-[200px] gap-2 p-4">
+                    <ListItem href="/manage-booking" title={t("nav.editTrip")}>
+                      {t("nav.manageBookings", "Manage or cancel existing bookings")}
+                    </ListItem>
+                  </ul>
+                </NavigationMenuContent>
+              </NavigationMenuItem>
+            </NavigationMenuList>
+          </NavigationMenu>
+
+          <div className="ml-4 flex items-center shrink-0">
+            <Link href="/cart">
+              <Button size="default" className="font-semibold shadow-md relative" variant={itemCount > 0 ? "default" : "secondary"}>
+                <ShoppingCart className="h-4 w-4 mr-2" />
+                {itemCount > 0 ? `Cart (${itemCount})` : "Cart"}
+                {itemCount > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-[#f4a830] text-[#0f0d09] text-[10px] font-black flex items-center justify-center">
+                    {itemCount}
+                  </span>
+                )}
+              </Button>
+            </Link>
+          </div>
+        </nav>
+      </div>
+    </header>
+  );
+});
+
+const SiteFooter = memo(function SiteFooter() {
+  // Footer-only data lives here so its arrival doesn't re-render the header.
+  const { isBlockEnabled } = useCMS();
+  const footerCms = useCmsText("footer");
+  const showNewsletter = isBlockEnabled('newsletter');
+  const { settings, contactEmail, contactPhone, whatsappNumber, facebookUrl, instagramUrl, contactAddress, footerBacklinks, landingLinks, tours, transfers, t } = useSiteChrome();
+
+  return (
+    <>
       <footer role="contentinfo" className="bg-[#291B12] text-white pt-16 pb-24 md:pb-8">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
@@ -831,6 +843,22 @@ export function Layout({ children }: { children: React.ReactNode }) {
         }
       />
       <WhatsAppWidget />
+    </>
+  );
+});
+
+export function Layout({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="min-h-screen flex flex-col bg-background font-sans text-foreground">
+      <SkipLinks />
+
+      <SiteHeader />
+
+      <main id="main-content" role="main" className="flex-grow has-bottom-nav" tabIndex={-1}>
+        {children}
+      </main>
+
+      <SiteFooter />
     </div>
   );
 }

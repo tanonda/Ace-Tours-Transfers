@@ -1,5 +1,6 @@
 import { createContext, useContext, ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useSiteSettings } from "@/lib/site-settings";
 
 interface ContentBlock {
   id: string;
@@ -50,11 +51,6 @@ async function fetchFeatureBlocks(): Promise<ContentBlock[]> {
   }
 }
 
-async function fetchSiteSettings(): Promise<SiteSetting[]> {
-  const response = await fetch("/api/settings");
-  if (!response.ok) throw new Error("Failed to fetch site settings");
-  return response.json();
-}
 
 export function CMSProvider({ children }: { children: ReactNode }) {
   const {
@@ -71,11 +67,7 @@ export function CMSProvider({ children }: { children: ReactNode }) {
     data: siteSettings = [],
     isLoading: settingsLoading,
     refetch: refetchSettings
-  } = useQuery({
-    queryKey: ["site-settings"],
-    queryFn: fetchSiteSettings,
-    staleTime: 5 * 60 * 1000,
-  });
+  } = useSiteSettings() as { data?: SiteSetting[]; isLoading: boolean; refetch: () => unknown };
 
   const isBlockEnabled = (slug: string): boolean => {
     const block = contentBlocks.find(b => b.slug === slug);
