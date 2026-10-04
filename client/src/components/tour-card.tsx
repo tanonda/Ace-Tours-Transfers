@@ -14,11 +14,10 @@ import { getProductImage } from "@/lib/product-images";
 import { cloudinaryOpt } from "@/components/seo";
 import { PriceStamp } from "@/components/postcard";
 import { shortDuration } from "@/lib/postcard-format";
+import { htmlToText } from "@/lib/html-text";
 
-// Simple utility to strip HTML but keep text content
-function stripHtml(html: string): string {
-  return html.replace(/<[^>]*>?/gm, '');
-}
+// Descriptions are stored as HTML; cards show plain text (tags removed, &amp; etc. decoded).
+const stripHtml = htmlToText;
 
 export interface ProductRouteProps {
   id: string;
@@ -212,7 +211,7 @@ function DefaultTourCard({ tour, index }: { tour: ProductRouteProps; index: numb
               />
             )}
             <div className="absolute top-4 left-4 z-20">
-              <ShareButton title={tour.title} description={tour.description[0]} />
+              <ShareButton title={tour.title} description={firstDescription(tour.description)} />
             </div>
             <div className="absolute top-4 right-4 z-20">
               <Badge className="bg-background/90 text-foreground hover:bg-background text-sm font-bold px-3 py-1 shadow-sm backdrop-blur-sm border border-border/50">

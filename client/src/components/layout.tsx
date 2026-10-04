@@ -38,6 +38,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { keepAcrossLanguageSwitch } from "@/lib/language-placeholder";
+import { htmlToText } from "@/lib/html-text";
 
 const ListItem = forwardRef<
   HTMLDivElement,
@@ -583,10 +584,10 @@ export const SiteHeader = memo(function SiteHeader() {
                     {tours.map((tour: Product) => (
                       <ListItem
                         key={tour.id}
-                        title={tour.title}
+                        title={tour.title.split(" | ")[0]}
                         href={`/tours/${tour.id}`}
                       >
-                        {tour.description[0]}
+                        {htmlToText(Array.isArray(tour.description) ? tour.description[0] : tour.description)}
                       </ListItem>
                     ))}
                     <ListItem href="/tours" title={t("nav.viewAllTours")} className="bg-muted/50">
@@ -609,10 +610,10 @@ export const SiteHeader = memo(function SiteHeader() {
                     {transfers.map((transfer: Product) => (
                       <ListItem
                         key={transfer.id}
-                        title={transfer.title}
+                        title={transfer.title.split(" | ")[0]}
                         href={`/transfers/${transfer.id}`}
                       >
-                        {Array.isArray(transfer.description) ? transfer.description[0] : transfer.description}
+                        {htmlToText(Array.isArray(transfer.description) ? transfer.description[0] : transfer.description)}
                       </ListItem>
                     ))}
                     <ListItem href="/transfers" title={t("nav.viewAllTransfers")} className="bg-muted/50">

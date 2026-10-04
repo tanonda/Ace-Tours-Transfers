@@ -169,7 +169,7 @@ export function CancellationModal({ isOpen, onClose, policy }: CancellationModal
           </button>
         </div>
         <div
-          className="px-6 py-5 text-[0.9rem] leading-[1.75] text-muted-foreground prose prose-invert prose-sm max-w-none [&_h3]:text-foreground [&_h3]:font-semibold [&_h3]:text-base [&_h3]:mt-4 [&_h3]:mb-1 [&_strong]:text-primary"
+          className="px-6 py-5 text-[0.9rem] leading-[1.75] text-muted-foreground prose dark:prose-invert prose-sm max-w-none [&_h3]:text-foreground [&_h3]:font-semibold [&_h3]:text-base [&_h3]:mt-4 [&_h3]:mb-1 [&_strong]:text-primary"
           dangerouslySetInnerHTML={{
             __html: sanitizeHtml(policy || defaultPolicy),
           }}
@@ -581,7 +581,7 @@ export function WhatsIncludedSection({
             item.startsWith("<") ? (
               <div
                 key={i}
-                className="col-span-2 text-[0.88rem] text-muted-foreground prose prose-invert prose-sm max-w-none [&_ul]:list-disc [&_ul]:pl-5 [&_li]:text-muted-foreground [&_p]:my-1"
+                className="col-span-2 text-[0.88rem] text-muted-foreground prose dark:prose-invert prose-sm max-w-none [&_ul]:list-disc [&_ul]:pl-5 [&_li]:text-muted-foreground [&_p]:my-1"
                 dangerouslySetInnerHTML={{ __html: sanitizeHtml(item) }}
               />
             ) : (

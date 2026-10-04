@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { htmlToText } from "@/lib/html-text";
 
 export default function CustomerSaved() {
   const { toast } = useToast();
@@ -46,7 +47,7 @@ export default function CustomerSaved() {
                   </div>
                 </div>
                 <p className="text-sm text-muted-foreground mb-4 line-clamp-2 flex-1">
-                  {tour.description[0]}
+                  {htmlToText(Array.isArray(tour.description) ? tour.description[0] : tour.description)}
                 </p>
                 <div className="flex items-center justify-between mt-auto pt-4 border-t border-border">
                   <span className="font-bold text-foreground">{tour.price}</span>

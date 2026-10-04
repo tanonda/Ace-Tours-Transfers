@@ -34,6 +34,7 @@ import {
 import { keepAcrossLanguageSwitch } from "@/lib/language-placeholder";
 import { usePricingRules } from "@/lib/site-settings";
 import { groupDiscountApplies, vatLabel } from "@shared/pricing-rules";
+import { htmlToText } from "@/lib/html-text";
 
 // ─── Star rating display ────────────────────────────────────────────────────
 function StarRating({ value, max = 5, size = "sm" }: { value: number; max?: number; size?: "sm" | "md" }) {
@@ -200,7 +201,7 @@ export default function TransferDetail() {
       i === 2 ? "Where does the transfer pick me up?" :
         i === 3 ? "What is the cancellation policy?" :
           i === 4 ? "Can I book a private transfer?" : "";
-    const defaultA = i === 1 ? (Array.isArray(transfer.description) ? transfer.description[0] : transfer.description)?.slice(0, 300) || "Please contact us for full inclusions." :
+    const defaultA = i === 1 ? htmlToText(Array.isArray(transfer.description) ? transfer.description[0] : transfer.description).slice(0, 300) || "Please contact us for full inclusions." :
       i === 2 ? (transfer.meetingPoint || "We pick up from your hotel, cruise terminal, or the airport. Please provide your location at booking.") :
         i === 3 ? `Free cancellation up to ${cutoffHours} hours before your scheduled transfer time.` :
           i === 4 ? "Yes, all our transfers can be arranged as private service. Contact us via WhatsApp for private transfer pricing." : "";
@@ -208,7 +209,7 @@ export default function TransferDetail() {
     const q = cms.text(`faq${i}_q`, defaultQ);
     const a = cms.text(`faq${i}_a`, defaultA);
     if (q && a) {
-      transferFaqs.push({ question: q, answer: a.replace(/<[^>]+>/g, '') });
+      transferFaqs.push({ question: q, answer: htmlToText(a) });
     }
   }
 
@@ -218,13 +219,13 @@ export default function TransferDetail() {
     <Layout>
       <SEO
         title={transfer.seoTitle || transfer.title}
-        description={transfer.seoDescription || (Array.isArray(transfer.description) ? transfer.description[0] : transfer.description)?.replace(/<[^>]+>/g, '').slice(0, 155) || `Book ${transfer.title} in Port Vila, Vanuatu.`}
+        description={transfer.seoDescription || htmlToText(Array.isArray(transfer.description) ? transfer.description[0] : transfer.description).slice(0, 155) || `Book ${transfer.title} in Port Vila, Vanuatu.`}
         image={displayImage}
         type="product"
         keywords={[...(transfer.seoKeywords ? transfer.seoKeywords.split(',').map((k: string) => k.trim()) : []), transfer.title, "Vanuatu transfer", "Port Vila transport", "airport transfer Vanuatu"]}
         structuredType="TouristAttraction"
         productName={transfer.title}
-        productDescription={Array.isArray(transfer.description) ? transfer.description[0] : transfer.description}
+        productDescription={htmlToText(Array.isArray(transfer.description) ? transfer.description[0] : transfer.description)}
         offer={getDisplayPrice(transfer).amount ? { price: getDisplayPrice(transfer).amount, currency: "VUV", availability: "InStock" } : undefined}
         aggregateRating={reviews.length > 0 ? { ratingValue: averageRating, reviewCount: reviews.length } : undefined}
         reviews={reviews.slice(0, 5).map((r: any) => ({ author: r.userName || "Guest", rating: r.rating, body: r.comment, datePublished: r.createdAt?.slice(0, 10) }))}
@@ -301,7 +302,7 @@ export default function TransferDetail() {
             <section className="bg-card border border-primary/18 rounded-[14px] p-6 md:p-7">
               <SectionHeading>Transfer Details</SectionHeading>
               <div
-                className="text-[0.92rem] leading-[1.8] text-muted-foreground prose prose-invert prose-sm max-w-none [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_a]:text-primary [&_a]:underline [&_li]:my-1 [&_p]:my-2"
+                className="text-[0.92rem] leading-[1.8] text-muted-foreground prose dark:prose-invert prose-sm max-w-none [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_a]:text-primary [&_a]:underline [&_li]:my-1 [&_p]:my-2"
                 dangerouslySetInnerHTML={{
                   __html: sanitizeHtml(typeof transfer.description === "string"
                     ? transfer.description

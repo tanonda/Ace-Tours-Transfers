@@ -32,6 +32,7 @@ import {
 import { keepAcrossLanguageSwitch } from "@/lib/language-placeholder";
 import { usePricingRules } from "@/lib/site-settings";
 import { groupDiscountApplies, vatLabel } from "@shared/pricing-rules";
+import { htmlToText } from "@/lib/html-text";
 
 
 // ─── Countdown Timer Component ─────────────────────────────────────────────────
@@ -131,7 +132,7 @@ function CancellationModal({ isOpen, onClose, policy, t }: { isOpen: boolean; on
           </button>
         </div>
         <div
-          className="px-6 py-5 text-[0.9rem] leading-[1.75] text-muted-foreground prose prose-invert prose-sm max-w-none [&_h3]:text-foreground [&_h3]:font-semibold [&_h3]:text-base [&_h3]:mt-4 [&_h3]:mb-1 [&_strong]:text-primary"
+          className="px-6 py-5 text-[0.9rem] leading-[1.75] text-muted-foreground prose dark:prose-invert prose-sm max-w-none [&_h3]:text-foreground [&_h3]:font-semibold [&_h3]:text-base [&_h3]:mt-4 [&_h3]:mb-1 [&_strong]:text-primary"
           dangerouslySetInnerHTML={{ __html: sanitizeHtml(policy || defaultPolicy) }}
         />
       </div>
@@ -201,7 +202,7 @@ function ItineraryTrack({ stops }: { stops: Array<{ id: string; name: string; du
                 </button>
                 {isExpanded && stop.description && (
                   <div
-                    className="px-5 pb-4 pt-0 text-[0.87rem] text-muted-foreground leading-[1.7] border-t border-primary/10 prose prose-invert prose-sm max-w-none [&_ul]:list-disc [&_ul]:pl-4 [&_a]:text-primary"
+                    className="px-5 pb-4 pt-0 text-[0.87rem] text-muted-foreground leading-[1.7] border-t border-primary/10 prose dark:prose-invert prose-sm max-w-none [&_ul]:list-disc [&_ul]:pl-4 [&_a]:text-primary"
                     dangerouslySetInnerHTML={{ __html: sanitizeHtml(stop.description) }}
                   />
                 )}
@@ -471,7 +472,7 @@ export default function TourDetail() {
       i === 2 ? "Is this tour suitable for children?" :
         i === 3 ? "What is the cancellation policy?" :
           i === 4 ? "Where does the tour depart from?" : "";
-    const defaultA = i === 1 ? (Array.isArray(tour.description) ? tour.description[0] : tour.description)?.slice(0, 300) || "Please contact us for full inclusions." :
+    const defaultA = i === 1 ? htmlToText(Array.isArray(tour.description) ? tour.description[0] : tour.description).slice(0, 300) || "Please contact us for full inclusions." :
       i === 2 ? "Yes, this tour accommodates children. Child pricing is available at checkout." :
         i === 3 ? "Free cancellation up to 24 hours before your scheduled tour. Contact us for late cancellations." :
           i === 4 ? (tour.meetingPoint || "Pick-up is available from most Port Vila hotels. Please confirm your location at booking.") : "";
@@ -479,7 +480,7 @@ export default function TourDetail() {
     const q = cms.text(`faq${i}_q`, defaultQ);
     const a = cms.text(`faq${i}_a`, defaultA); // Note we use .text here since seo takes plain text
     if (q && a) {
-      tourFaqs.push({ question: q, answer: a.replace(/<[^>]+>/g, '') });
+      tourFaqs.push({ question: q, answer: htmlToText(a) });
     }
   }
 
@@ -489,13 +490,13 @@ export default function TourDetail() {
     <Layout>
       <SEO
         title={tour.seoTitle || tour.title}
-        description={tour.seoDescription || (Array.isArray(tour.description) ? tour.description[0] : tour.description)?.replace(/<[^>]+>/g, '').slice(0, 155) || `Book ${tour.title} in Port Vila, Vanuatu.`}
+        description={tour.seoDescription || htmlToText(Array.isArray(tour.description) ? tour.description[0] : tour.description).slice(0, 155) || `Book ${tour.title} in Port Vila, Vanuatu.`}
         image={displayImage}
         type="product"
         keywords={[...(tour.seoKeywords ? tour.seoKeywords.split(',').map((k: string) => k.trim()) : []), tour.title, "Vanuatu tour", "Port Vila tour", tour.category || ""]}
         structuredType="TouristAttraction"
         productName={tour.title}
-        productDescription={Array.isArray(tour.description) ? tour.description[0] : tour.description}
+        productDescription={htmlToText(Array.isArray(tour.description) ? tour.description[0] : tour.description)}
         offer={getDisplayPrice(tour).amount ? { price: getDisplayPrice(tour).amount, currency: "VUV", availability: "InStock" } : undefined}
         aggregateRating={reviews.length > 0 ? { ratingValue: avgRating, reviewCount: reviews.length } : undefined}
         reviews={reviews.slice(0, 5).map((r: any) => ({ author: r.userName || "Guest", rating: r.rating, body: r.comment, datePublished: r.createdAt?.slice(0, 10) }))}
@@ -576,7 +577,7 @@ export default function TourDetail() {
             <section className="bg-card border border-primary/18 rounded-[14px] p-6 md:p-7">
               <SectionHeading>Overview</SectionHeading>
               <div
-                className="text-[0.92rem] leading-[1.8] text-muted-foreground prose prose-invert prose-sm max-w-none [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_a]:text-primary [&_a]:underline [&_li]:my-1 [&_p]:my-2"
+                className="text-[0.92rem] leading-[1.8] text-muted-foreground prose dark:prose-invert prose-sm max-w-none [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_a]:text-primary [&_a]:underline [&_li]:my-1 [&_p]:my-2"
                 dangerouslySetInnerHTML={{
                   __html: sanitizeHtml(typeof tour.description === "string"
                     ? tour.description
@@ -603,7 +604,7 @@ export default function TourDetail() {
                     : /* Fallback: old description[1] approach */
                     Array.isArray(tour.description) && tour.description.slice(1).map((item: string, i: number) => (
                       item.startsWith('<') ? (
-                        <div key={i} className="col-span-2 text-[0.88rem] text-muted-foreground prose prose-invert prose-sm max-w-none [&_ul]:list-disc [&_ul]:pl-5 [&_li]:text-muted-foreground" dangerouslySetInnerHTML={{ __html: sanitizeHtml(item) }} />
+                        <div key={i} className="col-span-2 text-[0.88rem] text-muted-foreground prose dark:prose-invert prose-sm max-w-none [&_ul]:list-disc [&_ul]:pl-5 [&_li]:text-muted-foreground" dangerouslySetInnerHTML={{ __html: sanitizeHtml(item) }} />
                       ) : (
                         <div key={i} className="flex items-start gap-3 text-[0.88rem] text-muted-foreground">
                           <CheckCircle2 className="w-[18px] h-[18px] text-reef shrink-0 mt-0.5" />
