@@ -16,6 +16,7 @@ import { CMSProvider } from "@/lib/cms-context";
 import { useSiteSettings } from "@/lib/site-settings";
 import { NProgressRouter } from "@/components/nprogress-router";
 import { lazyWithPreload, matchesRoutePattern, type PreloadableComponent } from "@/lib/preloadable";
+import { RouteCommitted } from "@/lib/route-committed";
 
 // Coming soon gate — controlled via Admin Dashboard > Settings > Feature Flags
 // Falls back to VITE_COMING_SOON env var if the DB flag hasn't been seeded yet.
@@ -172,6 +173,152 @@ const Loader = () => (
   </div>
 );
 
+// Created once: when Router re-renders (sign-in check finishing, feature flags
+// loading) it returns this same element, so React skips the whole page instead of
+// re-rendering it.
+const SITE_ROUTES = (
+  <Suspense fallback={<Loader />}>
+    <Switch>
+      <Route path="/" component={Home} />
+      <Route path="/tours" component={Tours} />
+      <Route path="/tours/:id" component={TourDetail} />
+      <Route path="/transfers" component={Transfers} />
+      <Route path="/transfers/:id" component={TransferDetail} />
+      <Route path="/about" component={About} />
+      <Route path="/contact" component={Contact} />
+      <Route path="/cart" component={Cart} />
+      <Route path="/checkout" component={Checkout} />
+      <Route path="/payment" component={Payment} />
+      <Route path="/payment/success" component={PaymentSuccess} />
+      <Route path="/payment/cancel" component={PaymentCancel} />
+      <Route path="/manage-booking" component={ManageBooking} />
+      <Route path="/confirmation" component={Confirmation} />
+      <Route path="/staff-access" component={Login} />
+      <Route path="/register" component={Register} />
+      <Route path="/privacy-policy" component={PrivacyPolicy} />
+      <Route path="/terms-of-service" component={TermsOfService} />
+      <Route path="/faq" component={FAQ} />
+      <Route path="/blog" component={Blog} />
+      <Route path="/blog/:slug" component={BlogArticle} />
+      <Route path="/reset-password" component={ResetPassword} />
+
+      {/* SEO category landing pages */}
+      <Route path="/port-vila-airport-transfers" component={LandingPage} />
+      <Route path="/efate-island-day-tours" component={LandingPage} />
+      <Route path="/blue-lagoon-vanuatu-tour" component={LandingPage} />
+      <Route path="/mele-cascades-tour" component={LandingPage} />
+      <Route path="/vanuatu-cultural-tours" component={LandingPage} />
+      <Route path="/port-vila-private-transfers" component={LandingPage} />
+
+      {/* Admin Routes - Protected */}
+      <Route path="/admin/dashboard">
+        <ProtectedRoute requireStaff><AdminDashboard /></ProtectedRoute>
+      </Route>
+      <Route path="/admin/bookings">
+        <ProtectedRoute requireStaff><AdminBookings /></ProtectedRoute>
+      </Route>
+      <Route path="/admin/products">
+        <ProtectedRoute requireAdmin><AdminProducts /></ProtectedRoute>
+      </Route>
+      <Route path="/admin/blog">
+        <ProtectedRoute requireAdmin><AdminBlog /></ProtectedRoute>
+      </Route>
+      <Route path="/admin/customers">
+        <ProtectedRoute requireAdmin><AdminUsers /></ProtectedRoute>
+      </Route>
+      <Route path="/admin/settings">
+        <ProtectedRoute requireAdmin><AdminSettings /></ProtectedRoute>
+      </Route>
+      <Route path="/admin/analytics">
+        <ProtectedRoute requireAdmin><AdminAnalytics /></ProtectedRoute>
+      </Route>
+      <Route path="/admin/reports">
+        <ProtectedRoute requireAdmin><AdminReports /></ProtectedRoute>
+      </Route>
+      <Route path="/admin/promotions">
+        <ProtectedRoute requireAdmin><AdminPromotions /></ProtectedRoute>
+      </Route>
+      <Route path="/admin/calendar">
+        <ProtectedRoute requireStaff><AdminCalendar /></ProtectedRoute>
+      </Route>
+      <Route path="/admin/recovery">
+        <ProtectedRoute requireAdmin><AdminRecovery /></ProtectedRoute>
+      </Route>
+      <Route path="/admin/staff">
+        <ProtectedRoute requireAdmin><AdminStaff /></ProtectedRoute>
+      </Route>
+      <Route path="/admin/cms">
+        <ProtectedRoute requireAdmin><AdminCMS /></ProtectedRoute>
+      </Route>
+      <Route path="/admin/reconciliation">
+        <ProtectedRoute requireAdmin><AdminReconciliation /></ProtectedRoute>
+      </Route>
+      <Route path="/admin/payments">
+        <ProtectedRoute requireAdmin><AdminPayments /></ProtectedRoute>
+      </Route>
+      {/* Availability management routes */}
+      <Route path="/admin/pricing">
+        <ProtectedRoute requireAdmin><AdminPricing /></ProtectedRoute>
+      </Route>
+      <Route path="/admin/blackouts">
+        <ProtectedRoute requireAdmin><AdminBlackouts /></ProtectedRoute>
+      </Route>
+      <Route path="/admin/capacity">
+        <ProtectedRoute requireAdmin><AdminCapacity /></ProtectedRoute>
+      </Route>
+      <Route path="/admin/audit-logs">
+        <ProtectedRoute requireAdmin><AdminAuditLogs /></ProtectedRoute>
+      </Route>
+      <Route path="/admin/reviews">
+        <ProtectedRoute requireAdmin><AdminReviews /></ProtectedRoute>
+      </Route>
+      <Route path="/admin/fraud">
+        <ProtectedRoute requireAdmin><AdminFraud /></ProtectedRoute>
+      </Route>
+      <Route path="/admin/newsletter">
+        <ProtectedRoute requireAdmin><AdminNewsletter /></ProtectedRoute>
+      </Route>
+      <Route path="/admin/notifications">
+        <ProtectedRoute requireAdmin><AdminNotifications /></ProtectedRoute>
+      </Route>
+      <Route path="/admin/profile">
+        <ProtectedRoute requireStaff><AdminProfile /></ProtectedRoute>
+      </Route>
+      <Route path="/admin/external-services">
+        <ProtectedRoute requireAdmin><AdminExternalServices /></ProtectedRoute>
+      </Route>
+
+      {/* Field Service Routes */}
+      <Route path="/field-service/dashboard">
+        <ProtectedRoute requireStaff><FieldServiceDashboard /></ProtectedRoute>
+      </Route>
+
+      {/* Customer Routes - Protected */}
+      <Route path="/dashboard">
+        <ProtectedRoute><CustomerDashboard /></ProtectedRoute>
+      </Route>
+      <Route path="/customer/dashboard">
+        <ProtectedRoute><CustomerDashboard /></ProtectedRoute>
+      </Route>
+      <Route path="/dashboard/bookings">
+        <ProtectedRoute><CustomerBookings /></ProtectedRoute>
+      </Route>
+      <Route path="/customer/bookings">
+        <ProtectedRoute><CustomerBookings /></ProtectedRoute>
+      </Route>
+      <Route path="/dashboard/saved">
+        <ProtectedRoute><CustomerSaved /></ProtectedRoute>
+      </Route>
+      <Route path="/dashboard/profile">
+        <ProtectedRoute><CustomerProfile /></ProtectedRoute>
+      </Route>
+
+      <Route component={NotFound} />
+    </Switch>
+    <RouteCommitted />
+  </Suspense>
+);
+
 function Router() {
   const { isStaff, isLoading } = useAuth();
 
@@ -220,152 +367,13 @@ function Router() {
           <Route path="/staff-access" component={Login} />
           <Route component={ComingSoon} />
         </Switch>
+        <RouteCommitted />
       </Suspense>
     );
   }
 
   // Staff/admin (or coming soon is off): render the full site.
-  return (
-    <Suspense fallback={<Loader />}>
-      <Switch>
-        <Route path="/" component={Home} />
-        <Route path="/tours" component={Tours} />
-        <Route path="/tours/:id" component={TourDetail} />
-        <Route path="/transfers" component={Transfers} />
-        <Route path="/transfers/:id" component={TransferDetail} />
-        <Route path="/about" component={About} />
-        <Route path="/contact" component={Contact} />
-        <Route path="/cart" component={Cart} />
-        <Route path="/checkout" component={Checkout} />
-        <Route path="/payment" component={Payment} />
-        <Route path="/payment/success" component={PaymentSuccess} />
-        <Route path="/payment/cancel" component={PaymentCancel} />
-        <Route path="/manage-booking" component={ManageBooking} />
-        <Route path="/confirmation" component={Confirmation} />
-        <Route path="/staff-access" component={Login} />
-        <Route path="/register" component={Register} />
-        <Route path="/privacy-policy" component={PrivacyPolicy} />
-        <Route path="/terms-of-service" component={TermsOfService} />
-        <Route path="/faq" component={FAQ} />
-        <Route path="/blog" component={Blog} />
-        <Route path="/blog/:slug" component={BlogArticle} />
-        <Route path="/reset-password" component={ResetPassword} />
-
-        {/* SEO category landing pages */}
-        <Route path="/port-vila-airport-transfers" component={LandingPage} />
-        <Route path="/efate-island-day-tours" component={LandingPage} />
-        <Route path="/blue-lagoon-vanuatu-tour" component={LandingPage} />
-        <Route path="/mele-cascades-tour" component={LandingPage} />
-        <Route path="/vanuatu-cultural-tours" component={LandingPage} />
-        <Route path="/port-vila-private-transfers" component={LandingPage} />
-
-        {/* Admin Routes - Protected */}
-        <Route path="/admin/dashboard">
-          <ProtectedRoute requireStaff><AdminDashboard /></ProtectedRoute>
-        </Route>
-        <Route path="/admin/bookings">
-          <ProtectedRoute requireStaff><AdminBookings /></ProtectedRoute>
-        </Route>
-        <Route path="/admin/products">
-          <ProtectedRoute requireAdmin><AdminProducts /></ProtectedRoute>
-        </Route>
-        <Route path="/admin/blog">
-          <ProtectedRoute requireAdmin><AdminBlog /></ProtectedRoute>
-        </Route>
-        <Route path="/admin/customers">
-          <ProtectedRoute requireAdmin><AdminUsers /></ProtectedRoute>
-        </Route>
-        <Route path="/admin/settings">
-          <ProtectedRoute requireAdmin><AdminSettings /></ProtectedRoute>
-        </Route>
-        <Route path="/admin/analytics">
-          <ProtectedRoute requireAdmin><AdminAnalytics /></ProtectedRoute>
-        </Route>
-        <Route path="/admin/reports">
-          <ProtectedRoute requireAdmin><AdminReports /></ProtectedRoute>
-        </Route>
-        <Route path="/admin/promotions">
-          <ProtectedRoute requireAdmin><AdminPromotions /></ProtectedRoute>
-        </Route>
-        <Route path="/admin/calendar">
-          <ProtectedRoute requireStaff><AdminCalendar /></ProtectedRoute>
-        </Route>
-        <Route path="/admin/recovery">
-          <ProtectedRoute requireAdmin><AdminRecovery /></ProtectedRoute>
-        </Route>
-        <Route path="/admin/staff">
-          <ProtectedRoute requireAdmin><AdminStaff /></ProtectedRoute>
-        </Route>
-        <Route path="/admin/cms">
-          <ProtectedRoute requireAdmin><AdminCMS /></ProtectedRoute>
-        </Route>
-        <Route path="/admin/reconciliation">
-          <ProtectedRoute requireAdmin><AdminReconciliation /></ProtectedRoute>
-        </Route>
-        <Route path="/admin/payments">
-          <ProtectedRoute requireAdmin><AdminPayments /></ProtectedRoute>
-        </Route>
-        {/* Availability management routes */}
-        <Route path="/admin/pricing">
-          <ProtectedRoute requireAdmin><AdminPricing /></ProtectedRoute>
-        </Route>
-        <Route path="/admin/blackouts">
-          <ProtectedRoute requireAdmin><AdminBlackouts /></ProtectedRoute>
-        </Route>
-        <Route path="/admin/capacity">
-          <ProtectedRoute requireAdmin><AdminCapacity /></ProtectedRoute>
-        </Route>
-        <Route path="/admin/audit-logs">
-          <ProtectedRoute requireAdmin><AdminAuditLogs /></ProtectedRoute>
-        </Route>
-        <Route path="/admin/reviews">
-          <ProtectedRoute requireAdmin><AdminReviews /></ProtectedRoute>
-        </Route>
-        <Route path="/admin/fraud">
-          <ProtectedRoute requireAdmin><AdminFraud /></ProtectedRoute>
-        </Route>
-        <Route path="/admin/newsletter">
-          <ProtectedRoute requireAdmin><AdminNewsletter /></ProtectedRoute>
-        </Route>
-        <Route path="/admin/notifications">
-          <ProtectedRoute requireAdmin><AdminNotifications /></ProtectedRoute>
-        </Route>
-        <Route path="/admin/profile">
-          <ProtectedRoute requireStaff><AdminProfile /></ProtectedRoute>
-        </Route>
-        <Route path="/admin/external-services">
-          <ProtectedRoute requireAdmin><AdminExternalServices /></ProtectedRoute>
-        </Route>
-
-        {/* Field Service Routes */}
-        <Route path="/field-service/dashboard">
-          <ProtectedRoute requireStaff><FieldServiceDashboard /></ProtectedRoute>
-        </Route>
-
-        {/* Customer Routes - Protected */}
-        <Route path="/dashboard">
-          <ProtectedRoute><CustomerDashboard /></ProtectedRoute>
-        </Route>
-        <Route path="/customer/dashboard">
-          <ProtectedRoute><CustomerDashboard /></ProtectedRoute>
-        </Route>
-        <Route path="/dashboard/bookings">
-          <ProtectedRoute><CustomerBookings /></ProtectedRoute>
-        </Route>
-        <Route path="/customer/bookings">
-          <ProtectedRoute><CustomerBookings /></ProtectedRoute>
-        </Route>
-        <Route path="/dashboard/saved">
-          <ProtectedRoute><CustomerSaved /></ProtectedRoute>
-        </Route>
-        <Route path="/dashboard/profile">
-          <ProtectedRoute><CustomerProfile /></ProtectedRoute>
-        </Route>
-
-        <Route component={NotFound} />
-      </Switch>
-    </Suspense>
-  );
+  return SITE_ROUTES;
 }
 
 function App() {

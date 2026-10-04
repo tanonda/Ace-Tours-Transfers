@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, ShoppingCart, MapPin, Clock, CheckCircle2, XCircle, ChevronDown, ChevronUp, Shield, Star, Image as ImageIcon, X, ExternalLink, MessageSquare, Mail, Phone } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useCart } from "@/lib/cart-context";
+import { useCartActions } from "@/lib/cart-context";
 import { useBookingDraft } from "@/lib/booking-state-context";
 import { useAvailabilityToast } from "@/hooks/useAvailabilityToast";
 import { formatPriceDisplay, estimateBookingTotal, type ProductCategory, getDisplayPrice } from "@/lib/product.types";
@@ -327,7 +327,7 @@ export default function TourDetail() {
   const cms = useCmsText("faq");
   const { id } = useParams<{ id: string }>();
   const { t, i18n } = useTranslation();
-  const { addToCart } = useCart();
+  const { addToCart } = useCartActions();
   const { updateDraft } = useBookingDraft();
   const { currency } = useCurrency();
 

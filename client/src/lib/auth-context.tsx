@@ -1,5 +1,6 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from "react";
 import { useLocation } from "wouter";
+import { navigate } from "wouter/use-browser-location";
 import { ensureCsrfToken } from "./queryClient";
 
 interface User {
@@ -25,7 +26,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [, setLocation] = useLocation();
 
   useEffect(() => {
     checkAuth();
@@ -47,7 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const login = async (email: string, password: string, mfaToken?: string) => {
+  const login = useCallback(async (email: string, password: string, mfaToken?: string) => {
     try {
       await ensureCsrfToken();
       const match = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]+)/);
@@ -90,9 +90,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error("Login error:", err);
       return { success: false, error: "Network error" };
     }
-  };
+  }, []);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try {
       await ensureCsrfToken();
       const match = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]+)/);
@@ -108,22 +108,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
     } finally {
       setUser(null);
-      setLocation("/staff-access");
+      navigate("/staff-access");
     }
-  };
+  }, []);
+
+  // Memoized: consumers (header, booking form, wishlist buttons) re-render only when
+  // the signed-in user or loading state actually changes.
+  const value = useMemo(
+    () => ({
+      user,
+      isLoading,
+      login,
+      logout,
+      isAuthenticated: !!user,
+      isAdmin: user?.role === "admin",
+      isStaff: user?.role === "admin" || user?.role === "field_service",
+    }),
+    [user, isLoading, login, logout],
+  );
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isLoading,
-        login,
-        logout,
-        isAuthenticated: !!user,
-        isAdmin: user?.role === "admin",
-        isStaff: user?.role === "admin" || user?.role === "field_service",
-      }}
-    >
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

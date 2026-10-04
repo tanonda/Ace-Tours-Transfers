@@ -6,7 +6,7 @@
  * They are passed through to the backend booking service for manifesting.
  */
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { type ProductCategory } from "./product.types";
 import { fetchPricing, type PricingSnapshot } from "./api";
@@ -40,22 +40,29 @@ interface PersistedCart {
   timestamp: number;
 }
 
-interface CartContextType {
-  items: CartItem[];
+interface CartActions {
   addToCart: (item: Omit<CartItem, "quantity" | "cartItemId"> & { quantity?: number }) => void;
   removeFromCart: (cartItemId: string) => void;
   updateCartItem: (cartItemId: string, updates: Partial<CartItem>) => void;
   clearCart: () => void;
+}
+
+interface CartState {
+  items: CartItem[];
   total: number;
   itemCount: number;
-  isHydrated: boolean;
   expiresAt: number | null;
   isExpiringSoon: boolean;
   pricingSnapshot: PricingSnapshot | null;
   isLoadingPricing: boolean;
 }
 
-const CartContext = createContext<CartContextType | undefined>(undefined);
+type CartContextType = CartState & CartActions;
+
+// Two contexts: the actions never change, so components that only add to the cart
+// (tour and transfer pages) don't re-render whenever the cart's contents change.
+const CartStateContext = createContext<CartState | undefined>(undefined);
+const CartActionsContext = createContext<CartActions | undefined>(undefined);
 
 function loadCartFromStorage(): { items: CartItem[]; expiresAt: number | null } {
   if (typeof window === "undefined") return { items: [], expiresAt: null };
@@ -243,32 +250,39 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const total = pricingSnapshot?.totalCents ?? 0;
   const itemCount = items.length;
 
+  const actions = useMemo<CartActions>(
+    () => ({ addToCart, removeFromCart, updateCartItem, clearCart }),
+    [addToCart, removeFromCart, updateCartItem, clearCart],
+  );
+  // Memoized so restoring an empty cart on mount (or any render that changes
+  // nothing here) doesn't re-render every cart reader.
+  const state = useMemo<CartState>(
+    () => ({ items, total, itemCount, expiresAt, isExpiringSoon, pricingSnapshot, isLoadingPricing }),
+    [items, total, itemCount, expiresAt, isExpiringSoon, pricingSnapshot, isLoadingPricing],
+  );
+
   return (
-    <CartContext.Provider
-      value={{
-        items,
-        addToCart,
-        removeFromCart,
-        updateCartItem,
-        clearCart,
-        total,
-        itemCount,
-        isHydrated,
-        expiresAt,
-        isExpiringSoon,
-        pricingSnapshot,
-        isLoadingPricing,
-      }}
-    >
-      {children}
-    </CartContext.Provider>
+    <CartActionsContext.Provider value={actions}>
+      <CartStateContext.Provider value={state}>{children}</CartStateContext.Provider>
+    </CartActionsContext.Provider>
   );
 }
 
-export function useCart() {
-  const context = useContext(CartContext);
-  if (context === undefined) {
+/** Cart contents and actions; re-renders whenever the cart changes. */
+export function useCart(): CartContextType {
+  const state = useContext(CartStateContext);
+  const actions = useContext(CartActionsContext);
+  if (state === undefined || actions === undefined) {
     throw new Error("useCart must be used within a CartProvider");
   }
-  return context;
+  return useMemo(() => ({ ...state, ...actions }), [state, actions]);
+}
+
+/** Just the cart actions; never re-renders because of cart changes. */
+export function useCartActions(): CartActions {
+  const actions = useContext(CartActionsContext);
+  if (actions === undefined) {
+    throw new Error("useCartActions must be used within a CartProvider");
+  }
+  return actions;
 }

@@ -13,7 +13,7 @@ import {
   serializeSnapshotState,
   shouldDehydrateQuery,
 } from "./lib/hydration";
-import { hydrationTree } from "./lib/hydration-tree";
+import { routeContentCommitted } from "./lib/route-committed";
 import { SNAPSHOT_STATE_ID } from "@shared/snapshot-state";
 
 // Every state-changing /api/ call must carry the CSRF header, including pages that
@@ -72,19 +72,17 @@ async function boot() {
     // A route boundary still waiting for its chunk would be client-rendered (blank
     // fallback) as soon as a provider above it updates; load the chunk first.
     await preloadPrerenderedPage(window.location.pathname).catch(() => {});
-    // The visitor's language is applied once hydration has committed; switching
-    // mid-hydration would make the text differ from the English HTML.
-    const hydrated = new Promise<void>((resolve) => {
-      // As a transition, hydration yields to the browser every few ms instead of
-      // adopting the whole page in one long task.
-      startTransition(() => {
-        hydrateRoot(rootElement, hydrationTree(<App />, resolve), {
-          onRecoverableError: (error) => console.warn("[hydration]", error),
-        });
+    // As a transition, hydration yields to the browser every few ms instead of
+    // adopting the whole page in one long task.
+    startTransition(() => {
+      hydrateRoot(rootElement, <App />, {
+        onRecoverableError: (error) => console.warn("[hydration]", error),
       });
     });
+    // The visitor's language is applied once the route content has hydrated;
+    // switching earlier makes the text differ from the English HTML.
     if (translations) {
-      await Promise.all([translations, hydrated]);
+      await Promise.all([translations, routeContentCommitted]);
       void i18n.changeLanguage(visitorLanguage);
     }
     return;

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Clock, Users, Check, ShoppingCart, X, Star, MapPin } from "lucide-react";
 import { useState, useEffect } from "react";
-import { useCart } from "@/lib/cart-context";
+import { useCartActions } from "@/lib/cart-context";
 import { usePrefillFromCart } from "@/lib/booking-state-context";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -35,7 +35,7 @@ interface ProductQuickViewProps {
 }
 
 export function ProductQuickView({ isOpen, onClose, product }: ProductQuickViewProps) {
-  const { addToCart } = useCart();
+  const { addToCart } = useCartActions();
   const { t } = useTranslation();
   const { currency } = useCurrency();
 

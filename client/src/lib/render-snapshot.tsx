@@ -1,7 +1,6 @@
 import type { ReactElement } from "react";
 import { renderToString } from "react-dom/server";
 import { HelmetProvider } from "react-helmet-async";
-import { hydrationTree } from "./hydration-tree";
 import { snapshotDocumentHtml } from "./snapshot-document";
 
 /**
@@ -18,8 +17,8 @@ export function renderSnapshot(app: ReactElement): string {
   HelmetProvider.canUseDOM = false;
   let rootHtml: string;
   try {
-    // The same tree shape main.tsx hydrates, or every useId would differ.
-    rootHtml = renderToString(hydrationTree(app, () => {}));
+    // Exactly the element main.tsx hydrates, or every useId would differ.
+    rootHtml = renderToString(app);
   } finally {
     HelmetProvider.canUseDOM = canUseDOM;
   }
