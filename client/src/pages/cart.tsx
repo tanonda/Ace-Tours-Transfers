@@ -16,6 +16,8 @@ import type { Addon } from "@shared/schema";
 import { useQuery } from "@tanstack/react-query";
 import { fetchAddons } from "@/lib/api";
 import { PricingBreakdown } from "@/components";
+import { usePricingRules } from "@/lib/site-settings";
+import { estimateWithRules } from "@shared/pricing-rules";
 
 const CATEGORY_LABELS: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
   tour: { label: "Tour", color: "bg-blue-500/15 text-blue-400 border-blue-500/30", icon: <MapPin className="h-3 w-3" /> },
@@ -24,17 +26,13 @@ const CATEGORY_LABELS: Record<string, { label: string; color: string; icon: Reac
 
 export default function Cart() {
   const { t } = useTranslation();
+  const pricingRules = usePricingRules();
   const { items, removeFromCart, total, clearCart, isExpiringSoon, expiresAt, pricingSnapshot, isLoadingPricing } = useCart();
 
   // Client-side fallback total when pricing service is unavailable
   const clientSideTotal = items.reduce((sum, item) => {
-    let subtotal = (item.price * item.adultPax) + (item.childPrice * item.childPax) + (item.addonTotal || 0);
-    if (item.adultPax >= 7) subtotal = Math.round(subtotal * 0.9);
-    if (item.date) {
-      const m = (item.date instanceof Date ? item.date : new Date(item.date)).getMonth();
-      if (m === 11 || m === 0) subtotal = Math.round(subtotal * 1.2);
-    }
-    return sum + subtotal * item.quantity;
+    const subtotal = (item.price * item.adultPax) + (item.childPrice * item.childPax) + (item.addonTotal || 0);
+    return sum + estimateWithRules(pricingRules, subtotal, item).total * item.quantity;
   }, 0);
   const displayTotal = pricingSnapshot ? total : clientSideTotal;
   const [, setLocation] = useLocation();
@@ -131,17 +129,8 @@ export default function Cart() {
                     appliedRules = pricedItem.breakdown?.appliedRules ?? [];
                   } else {
                     finalItemSubtotal = (item.price * item.adultPax) + (item.childPrice * item.childPax) + (item.addonTotal || 0);
-                    if (item.adultPax >= 7) {
-                      appliedRules.push('10% group discount (7+ adults)');
-                      finalItemSubtotal = Math.round(finalItemSubtotal * 0.9);
-                    }
-                    if (item.date) {
-                      const dateObj = item.date instanceof Date ? item.date : new Date(item.date);
-                      if (dateObj.getMonth() === 11 || dateObj.getMonth() === 0) {
-                        appliedRules.push('20% peak season surcharge (Dec/Jan)');
-                        finalItemSubtotal = Math.round(finalItemSubtotal * 1.2);
-                      }
-                    }
+                    // Estimate until the server quote arrives, using the same Admin → Pricing rules.
+                    ({ total: finalItemSubtotal, appliedRules } = estimateWithRules(pricingRules, finalItemSubtotal, item));
                   }
 
                   const dateKey = item.date ? (item.date instanceof Date ? item.date.getTime() : new Date(item.date).getTime()) : 'no-date';

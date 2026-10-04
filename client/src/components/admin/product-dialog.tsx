@@ -51,6 +51,7 @@ import TextAlign from '@tiptap/extension-text-align';
 import { useState, useEffect, useRef } from 'react';
 import { ProductTranslationEditor } from '@/components/admin/ProductTranslationEditor';
 import { ChevronDown, Languages } from 'lucide-react';
+import { usePricingRules } from '@/lib/site-settings';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -318,6 +319,7 @@ interface ProductDialogProps {
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export function ProductDialog({ tour, open, onOpenChange, onSave }: ProductDialogProps) {
+  const pricingRules = usePricingRules();
   const { t } = useTranslation();
   const [isUploading, setIsUploading] = useState(false);
   const [showTranslations, setShowTranslations] = useState(false);
@@ -1482,7 +1484,9 @@ export function ProductDialog({ tour, open, onOpenChange, onSave }: ProductDialo
                       }} />
                       <p className="text-[0.65rem] text-muted-foreground flex gap-1">
                         <Info className="h-3 w-3 shrink-0 mt-0.5" />
-                        7+ adults get 10% group discount automatically at checkout.
+                        {pricingRules.groupDiscount.enabled
+                          ? `${pricingRules.groupDiscount.minAdults}+ adults get ${pricingRules.groupDiscount.percent}% group discount automatically at checkout (Admin → Pricing).`
+                          : 'No group discount is active (Admin → Pricing).'}
                       </p>
                     </div>
                   )}

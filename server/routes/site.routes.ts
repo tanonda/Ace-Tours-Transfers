@@ -5,6 +5,8 @@ import { db } from "../db.js";
 import { sql, eq } from "drizzle-orm";
 import { insertWishlistItemSchema, insertCmsContentSchema, newsletterSubscribers } from "../../shared/schema.js";
 import { isPrivateSettingKey, visibleSettings } from "../lib/public-settings.js";
+import { PRICING_RULES_SETTING_KEY, parsePricingRules } from "../../shared/pricing-rules.js";
+import { invalidatePricingRulesCache } from "../domain/pricing/PricingEngine.js";
 
 import crypto from "crypto";
 import { sendEmail, sendAdminEmail, getNewsletterConfirmationTemplate, getContactFormTemplate, sendNewsletterEmail, getContactAutoReplyTemplate } from "../lib/mail.js";
@@ -56,10 +58,11 @@ export function registerSiteRoutes(app: Express) {
   app.put("/api/admin/settings/:key", requireAdmin, async (req, res) => {
     try {
       const before = await storage.getSiteSetting(req.params.key).catch(() => null);
-      const setting = await storage.upsertSiteSetting({
-        key: req.params.key,
-        value: req.body.value,
-      });
+      const isPricingRules = req.params.key === PRICING_RULES_SETTING_KEY;
+      // Pricing rules drive checkout totals: store only a normalised, in-range copy.
+      const value = isPricingRules ? parsePricingRules(req.body.value) : req.body.value;
+      const setting = await storage.upsertSiteSetting({ key: req.params.key, value });
+      if (isPricingRules) invalidatePricingRulesCache();
       await adminAudit.log({
         action: "settings.update",
         entityType: "site_settings",
@@ -67,7 +70,7 @@ export function registerSiteRoutes(app: Express) {
         entityName: req.params.key,
         performedBy: req.session.userId,
         previousValue: before ? { value: (before as any).value } : null,
-        newValue: { value: req.body.value },
+        newValue: { value },
         req,
       });
       res.json(setting);

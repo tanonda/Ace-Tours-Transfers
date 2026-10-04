@@ -30,6 +30,8 @@ import {
   sanitizeHtml,
 } from "@/components/shared-detail-components";
 import { keepAcrossLanguageSwitch } from "@/lib/language-placeholder";
+import { usePricingRules } from "@/lib/site-settings";
+import { groupDiscountApplies } from "@shared/pricing-rules";
 
 
 // ─── Countdown Timer Component ─────────────────────────────────────────────────
@@ -324,6 +326,7 @@ function StarRating({ value, max = 5, size = "sm" }: { value: number; max?: numb
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function TourDetail() {
+  const pricingRules = usePricingRules();
   const cms = useCmsText("faq");
   const { id } = useParams<{ id: string }>();
   const { t, i18n } = useTranslation();
@@ -998,9 +1001,9 @@ export default function TourDetail() {
                             <span className="text-[0.9rem] font-semibold text-[#f0ece4]">{tour.childPriceCents > 0 ? formatPriceDisplay(tour.childPriceCents * childPax, currency) : <span className="text-[#4caf7d]">VT 0</span>}</span>
                           </div>
                         )}
-                        {adultPax >= 7 && (
+                        {groupDiscountApplies(pricingRules, tour.pricingType, adultPax) && (
                           <div className="flex items-center justify-between text-[#4caf7d] text-[0.78rem]">
-                            <span>🎉 Group discount (10%)</span>
+                            <span>🎉 Group discount ({pricingRules.groupDiscount.percent}%)</span>
                             <span>−applied</span>
                           </div>
                         )}
@@ -1018,7 +1021,7 @@ export default function TourDetail() {
                         <span className="text-[1.1rem] font-black text-[#f4a830]">
                           {formatPriceDisplay((() => {
                             const base = estimateBookingTotal(tour as any, adultPax, childPax);
-                            const productTotal = tour.pricingType === "group" ? base : (adultPax >= 7 ? Math.round(base * 0.9) : base);
+                            const productTotal = groupDiscountApplies(pricingRules, tour.pricingType, adultPax) ? Math.round(base * (1 - pricingRules.groupDiscount.percent / 100)) : base;
                             return productTotal + ((tour as any).addons ? calcAddonTotal((tour as any).addons as ProductAddonEntry[], addonSelections) : 0);
                           })(), currency)}
                         </span>

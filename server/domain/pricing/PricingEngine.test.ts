@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { PricingEngine, formatVUVInCurrency, TourRate } from './PricingEngine.js';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { PricingEngine, formatVUVInCurrency, invalidatePricingRulesCache, TourRate } from './PricingEngine.js';
 
 // Create an engine with a mock storage (pure calculation tests don't use storage)
 const mockStorage = {} as any;
@@ -69,6 +69,48 @@ describe('PricingEngine', () => {
             const result = await engine.calculateLineItem(12, 2, busHire);
             expect(result.breakdown.finalTotalCents).toBe(32000);
             expect(result.breakdown.discountsCents).toBe(0);
+        });
+    });
+
+    describe('rules from Admin → Pricing', () => {
+        const tour: TourRate = { pricingType: 'per_person', groupPriceCents: 0, adultPriceCents: 1000, childPriceCents: 500 };
+        const storageWith = (value: unknown) => ({
+            getSiteSetting: async (key: string) => (key === 'pricing_rules' ? { key, value } : undefined),
+        }) as any;
+
+        beforeEach(() => invalidatePricingRulesCache());
+
+        it('uses the saved discount size and threshold', async () => {
+            const engine = new PricingEngine(storageWith({ groupDiscount: { enabled: true, minAdults: 4, percent: 15 } }));
+            const { breakdown } = await engine.calculateLineItem(4, 0, tour);
+            expect(breakdown.finalTotalCents).toBe(3400); // 4000 - 15%
+            expect(breakdown.appliedRules).toEqual(['15% group discount (4+ adults)']);
+        });
+
+        it('applies no discount when the admin switches it off', async () => {
+            const engine = new PricingEngine(storageWith({ groupDiscount: { enabled: false } }));
+            const { breakdown } = await engine.calculateLineItem(10, 0, tour);
+            expect(breakdown.finalTotalCents).toBe(10000);
+        });
+
+        it('uses the saved peak-season months and rate', async () => {
+            const engine = new PricingEngine(storageWith({ peakSeason: { enabled: true, months: [6], percent: 5 } }));
+            expect((await engine.calculateLineItem(1, 0, tour, '2026-07-15')).breakdown.finalTotalCents).toBe(1050);
+            expect((await engine.calculateLineItem(1, 0, tour, '2026-12-15')).breakdown.finalTotalCents).toBe(1000);
+        });
+
+        it('falls back to the default rules when the settings read fails', async () => {
+            const engine = new PricingEngine({ getSiteSetting: async () => { throw new Error('db down'); } } as any);
+            expect((await engine.calculateLineItem(7, 0, tour)).breakdown.finalTotalCents).toBe(6300);
+        });
+
+        it('picks up a new save after the cache is invalidated', async () => {
+            let saved: unknown = { groupDiscount: { enabled: true, minAdults: 7, percent: 10 } };
+            const engine = new PricingEngine({ getSiteSetting: async () => ({ value: saved }) } as any);
+            expect((await engine.calculateLineItem(7, 0, tour)).breakdown.finalTotalCents).toBe(6300);
+            saved = { groupDiscount: { enabled: false } };
+            invalidatePricingRulesCache();
+            expect((await engine.calculateLineItem(7, 0, tour)).breakdown.finalTotalCents).toBe(7000);
         });
     });
 

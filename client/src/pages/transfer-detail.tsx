@@ -32,6 +32,8 @@ import {
   sanitizeHtml,
 } from "@/components/shared-detail-components";
 import { keepAcrossLanguageSwitch } from "@/lib/language-placeholder";
+import { usePricingRules } from "@/lib/site-settings";
+import { groupDiscountApplies } from "@shared/pricing-rules";
 
 // ─── Star rating display ────────────────────────────────────────────────────
 function StarRating({ value, max = 5, size = "sm" }: { value: number; max?: number; size?: "sm" | "md" }) {
@@ -52,6 +54,7 @@ function StarRating({ value, max = 5, size = "sm" }: { value: number; max?: numb
 // ─── Main Page ──────────────────────────────────────────────────────────────
 
 export default function TransferDetail() {
+  const pricingRules = usePricingRules();
   const cms = useCmsText("faq");
   const { id } = useParams<{ id: string }>();
   const { t, i18n } = useTranslation();
@@ -182,7 +185,7 @@ export default function TransferDetail() {
   const isBooked = !availability?.isAvailable && !!date;
   const isGroupPricing = transfer.pricingType === "group";
   const baseTotal = estimateBookingTotal(transfer as any, adultPax, childPax);
-  const instantTotal = isGroupPricing ? baseTotal : (adultPax >= 7 ? Math.round(baseTotal * 0.9) : baseTotal);
+  const instantTotal = groupDiscountApplies(pricingRules, transfer.pricingType, adultPax) ? Math.round(baseTotal * (1 - pricingRules.groupDiscount.percent / 100)) : baseTotal;
   const addonTotal = (transfer as any).addons ? calcAddonTotal((transfer as any).addons as ProductAddonEntry[], addonSelections) : 0;
   const grandTotal = instantTotal + addonTotal;
 
@@ -563,9 +566,9 @@ export default function TransferDetail() {
                             <span className="text-[0.9rem] font-semibold text-[#f0ece4]">{transfer.childPriceCents > 0 ? formatPriceDisplay(transfer.childPriceCents * childPax, currency) : <span className="text-[#4caf7d]">VT 0</span>}</span>
                           </div>
                         )}
-                        {adultPax >= 7 && (
+                        {groupDiscountApplies(pricingRules, transfer.pricingType, adultPax) && (
                           <div className="flex items-center justify-between text-[#4caf7d] text-[0.78rem]">
-                            <span>🎉 Group discount (10%)</span>
+                            <span>🎉 Group discount ({pricingRules.groupDiscount.percent}%)</span>
                             <span>−applied</span>
                           </div>
                         )}

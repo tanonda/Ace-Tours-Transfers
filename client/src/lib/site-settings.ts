@@ -1,4 +1,6 @@
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { pricingRulesFromSettings, type PricingRules } from "@shared/pricing-rules";
 
 export interface SiteSettingRow {
   id?: string;
@@ -33,4 +35,10 @@ export function useSiteSettings() {
     queryFn: fetchPublicSiteSettings,
     staleTime: 5 * 60 * 1000,
   });
+}
+
+/** Discount/surcharge rules from Admin → Pricing, as the server applies them at checkout. */
+export function usePricingRules(): PricingRules {
+  const { data } = useSiteSettings();
+  return useMemo(() => pricingRulesFromSettings(data), [data]);
 }
