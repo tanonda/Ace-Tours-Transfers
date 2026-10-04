@@ -77,4 +77,53 @@ export const IMAGE_CREDITS = {
     license: "CC0",
     href: "https://commons.wikimedia.org/wiki/File:Star-shaped_plumeria_(Unsplash).jpg",
   },
+  // Postcard redesign (2026-10-05): Efate photos standing in for the mockup's stock images.
+  meleSunset: {
+    label: "sunset at Mele",
+    author: "DB Thats-Me",
+    license: "CC BY-SA 3.0",
+    href: "https://commons.wikimedia.org/wiki/File:Mele_Sunset_-_panoramio.jpg",
+  },
+  meleBeachSunset: {
+    label: "sunset on Mele Beach",
+    author: "DB Thats-Me",
+    license: "CC BY-SA 3.0",
+    href: "https://commons.wikimedia.org/wiki/File:Sunset_Mele_Beach_-_panoramio.jpg",
+  },
+  vilaBayShip: {
+    label: "ship leaving Vila Bay at sunset",
+    author: "Graham Crumb",
+    license: "CC BY-SA 3.0",
+    href: "https://commons.wikimedia.org/wiki/File:Ship_Leaving_Port_at_Sunset_(Imagicity_141).jpg",
+  },
+  meleCascades: {
+    label: "Mele Cascades",
+    author: "gérard from Nouméa",
+    license: "CC BY-SA 2.0",
+    href: "https://commons.wikimedia.org/wiki/File:Cascade_de_M%C3%A9l%C3%A9_(38876748484).jpg",
+  },
+  eratap: {
+    label: "Eratap beach, Efate",
+    author: "Phillip Capper",
+    license: "CC BY 2.0",
+    href: "https://commons.wikimedia.org/wiki/File:Eratap,_Efate,_Vanuatu,_13_April_2008.jpg",
+  },
+  cocoaPods: {
+    label: "cocoa pods, Port Vila market",
+    author: "Jean Van Jean",
+    license: "CC BY 3.0",
+    href: "https://commons.wikimedia.org/wiki/File:Cocoa_Fruits_-_panoramio.jpg",
+  },
+  vilaMarket: {
+    label: "Port Vila market",
+    author: "Phillip Capper",
+    license: "CC BY 2.0",
+    href: "https://commons.wikimedia.org/wiki/File:Port_Vila_market,_Vanuatu,_1_June_2006_-_Flickr_-_PhillipC_(1).jpg",
+  },
+  leLagonJetty: {
+    label: "jetty at Le Lagon, Port Vila",
+    author: "Simon_sees",
+    license: "CC BY 2.0",
+    href: "https://commons.wikimedia.org/wiki/File:The_jetty_(16556252640).jpg",
+  },
 } satisfies Record<string, ImageCredit>;
