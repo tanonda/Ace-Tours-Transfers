@@ -100,7 +100,19 @@
     "reliableService": "Servicio Confiable",
     "reliableServiceDesc": "La puntualidad y la confiabilidad son nuestro sello distintivo. Puedes contar con nosotros.",
     "safetyFirst": "La Seguridad Primero",
-    "safetyFirstDesc": "Tu seguridad es nuestra prioridad. Nuestros vehículos reciben mantenimiento regular y nuestros conductores están capacitados profesionalmente."
+    "safetyFirstDesc": "Tu seguridad es nuestra prioridad. Nuestros vehículos reciben mantenimiento regular y nuestros conductores están capacitados profesionalmente.",
+    "heroTitle": "Viajar es fácil",
+    "tagline": "El principal operador de transporte y tours de Vanuatu",
+    "storyPhotoAlt": "Ace Tours en Efate",
+    "storyCaption1": "Nuestra isla",
+    "storyPhoto2Alt": "Camino de la aldea de Toniliu, Efate",
+    "storyCaption2": "Caminos de aldea de Efate",
+    "whyLabel": "Por qué viajar con nosotros",
+    "planLabel": "Planifiquemos sus próximas vacaciones",
+    "planNote": "Es hora de su próxima aventura. ¡Déjenos ayudarle con sus planes de viaje!",
+    "planCta": "Planificar mi viaje",
+    "stampTop": "Aprobado",
+    "stampBottom": "Operador"
   },
   "contact": {
     "title": "Contáctanos",
@@ -547,5 +559,23 @@
   "landingPage": {
     "faq": "Preguntas Frecuentes",
     "readyToBook": "¿Listo para reservar?"
+  },
+  "tours": {
+    "kicker": "Isla de Efate",
+    "heroTitle": "Excursiones",
+    "packagesLabel": "Nuestros paquetes",
+    "pickYourDay": "Elija su día en Efate",
+    "factGuides": "Guías locales",
+    "factInsured": "Totalmente asegurados",
+    "factInstant": "Confirmación inmediata"
+  },
+  "transfers": {
+    "kicker": "Port Vila",
+    "heroTitle": "Traslados",
+    "label": "Moverse por Efate",
+    "heading": "Le esperamos allí",
+    "factFlights": "Seguimiento de vuelos",
+    "factGreet": "Recepción personalizada",
+    "fact247": "Disponible 24/7"
   }
 }

@@ -100,7 +100,19 @@
     "reliableService": "Reliable Service",
     "reliableServiceDesc": "Punctuality mo reliability i ol hallmarks blong mifala. Yu save depend long mifala.",
     "safetyFirst": "Safety First",
-    "safetyFirstDesc": "Safety blong yu i priority blong mifala. Ol vehicles i regularly maintained mo ol drivers i professionally trained."
+    "safetyFirstDesc": "Safety blong yu i priority blong mifala. Ol vehicles i regularly maintained mo ol drivers i professionally trained.",
+    "heroTitle": "Travel i isi",
+    "tagline": "Namba wan transpot mo tour kampani blong Vanuatu",
+    "storyPhotoAlt": "Ace Tours long Efate",
+    "storyCaption1": "Aelan blong mifala",
+    "storyPhoto2Alt": "Rod long vilej blong Toniliu, Efate",
+    "storyCaption2": "Ol rod blong vilej long Efate",
+    "whyLabel": "From wanem yu travel wetem mifala",
+    "planLabel": "Yumi plan holide blong yu",
+    "planNote": "Taem blong nekst adventure blong yu. Letem mifala i helpem yu long plan blong travel!",
+    "planCta": "Plan trip blong mi",
+    "stampTop": "Oli agri",
+    "stampBottom": "Kampani"
   },
   "contact": {
     "title": "Contact Mifala",
@@ -547,5 +559,23 @@
   "landingPage": {
     "faq": "Ol Kwestin We Ol Man Oli Askem Plante Taem",
     "readyToBook": "Redi blong bukim?"
+  },
+  "tours": {
+    "kicker": "Aelan blong Efate",
+    "heroTitle": "Day Tours",
+    "packagesLabel": "Ol pakij blong mifala",
+    "pickYourDay": "Jusum dei blong yu long Efate",
+    "factGuides": "Lokol gaed",
+    "factInsured": "Fulwan insurens",
+    "factInstant": "Konfemesen kwiktaem"
+  },
+  "transfers": {
+    "kicker": "Port Vila",
+    "heroTitle": "Transfers",
+    "label": "Raon long Efate",
+    "heading": "Bae mifala mitim yu long ples ia",
+    "factFlights": "Mifala i folem plen",
+    "factGreet": "Mitim mo welkamem",
+    "fact247": "Oltaem i open 24/7"
   }
 }

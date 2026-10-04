@@ -46,7 +46,7 @@ import {
 } from "lucide-react";
 import { format, addDays } from "date-fns";
 import { cn } from "@/lib/utils";
-import { PaperEdge } from "@/components/postcard";
+import { PageHero } from "@/components/page-hero";
 import { useAvailabilitySearch, SearchTab } from "@/hooks/useAvailabilitySearch";
 
 // ─── Bar height constant ──────────────────────────────────────────────────────
@@ -682,9 +682,8 @@ function SearchBar({ search }: SearchBarProps) {
 }
 
 // ─── Hero ─────────────────────────────────────────────────────────────────────
-// Postcard layout sized for a booking site: the hero never grows taller than the
-// screen, so the search widget is in view on load (down to ~600px-tall laptop
-// windows). Handwritten greeting, extruded headline, torn-paper bottom edge.
+// Home hero: the shared PageHero (reference-style fading headline) with the booking
+// widget beneath. Height is capped to the screen so the widget is in view on load.
 export function Hero() {
   const { t } = useTranslation();
   const cms = useCmsText("home-page");
@@ -695,55 +694,17 @@ export function Hero() {
     : bgUrl;
 
   return (
-    <section
-      className="relative w-full overflow-hidden bg-harbour md:h-[100svh] md:min-h-[600px] md:max-h-[880px]"
-      aria-label="Hero — search for tours and transfers"
+    <PageHero
+      size="home"
+      priority
+      photo={bgSrc}
+      photoPosition="50% 40%"
+      kicker={cms.text("hero_title_part1", t("hero.titlePart1"))}
+      title={cms.text("hero_title_part2", t("hero.titlePart2"))}
     >
-      {/* Background image — real <img> tag enables fetchpriority=high for LCP */}
-      <div className="absolute inset-0 overflow-hidden" aria-hidden="true">
-        <img
-          src={bgSrc}
-          alt=""
-          className="w-full h-full object-cover object-[50%_40%]"
-          loading="eager"
-          fetchPriority="high"
-          decoding="async"
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/55 via-black/20 to-transparent" />
-        <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-black/45 to-transparent" />
-        <div className="absolute inset-x-0 bottom-0 h-1/4 bg-gradient-to-b from-transparent to-background/70" />
+      <div className="bg-paper rounded-xl p-3 md:p-4 border border-border/60 shadow-[0_24px_60px_-20px_rgba(18,50,74,0.5)]">
+        <SearchBar search={search} />
       </div>
-
-      <div className="relative container mx-auto px-4 flex h-full flex-col justify-end pt-52 pb-14 md:pt-32 md:pb-16">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
-          className="text-white mb-6 md:mb-8"
-        >
-          <p className="font-script text-2xl md:text-[clamp(1.6rem,4vh,2.4rem)] text-[#ffe3c6] -rotate-2 origin-left mb-1 drop-shadow">
-            {cms.text("hero_greeting", t("hero.greeting", "Greetings from Port Vila!"))}
-          </p>
-          {/* h1 preserved for SEO */}
-          <h1 className="hero-3d font-serif text-[2.6rem] sm:text-6xl md:text-[clamp(3rem,min(6.4vw,9vh),5.5rem)] leading-[1.02]">
-            <span className="block">{cms.text("hero_title_part1", t("hero.titlePart1"))}</span>
-            <span className="block">{cms.text("hero_title_part2", t("hero.titlePart2"))}</span>
-          </h1>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.9, delay: 0.25, ease: [0.23, 1, 0.32, 1] }}
-          className="w-full z-20"
-        >
-          <div className="bg-paper rounded-xl p-3 md:p-4 border border-border/60 shadow-[0_24px_60px_-20px_rgba(18,50,74,0.5)]">
-            <SearchBar search={search} />
-          </div>
-        </motion.div>
-      </div>
-
-      <PaperEdge position="bottom" seed={3} />
-    </section>
+    </PageHero>
   );
 }

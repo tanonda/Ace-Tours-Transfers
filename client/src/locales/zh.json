@@ -100,7 +100,19 @@
     "reliableService": "可靠的服务",
     "reliableServiceDesc": "准时和可靠是我们的标志。您可以信赖我们在您需要时出现。",
     "safetyFirst": "安全第一",
-    "safetyFirstDesc": "您的安全是我们的首要任务。我们的车辆定期维护，司机受过专业培训。"
+    "safetyFirstDesc": "您的安全是我们的首要任务。我们的车辆定期维护，司机受过专业培训。",
+    "heroTitle": "轻松出行",
+    "tagline": "瓦努阿图首屈一指的交通与旅游服务商",
+    "storyPhotoAlt": "Ace Tours 在埃法特",
+    "storyCaption1": "我们的岛屿",
+    "storyPhoto2Alt": "埃法特托尼柳村道路",
+    "storyCaption2": "埃法特的乡村小路",
+    "whyLabel": "为何选择我们",
+    "planLabel": "一起规划您的下一次假期",
+    "planNote": "下一次冒险即将开始，让我们帮您规划行程！",
+    "planCta": "规划我的行程",
+    "stampTop": "认证",
+    "stampBottom": "运营商"
   },
   "contact": {
     "title": "联系我们",
@@ -547,5 +559,23 @@
   "landingPage": {
     "faq": "常见问题",
     "readyToBook": "准备预订了吗？"
+  },
+  "tours": {
+    "kicker": "埃法特岛",
+    "heroTitle": "一日游",
+    "packagesLabel": "我们的套餐",
+    "pickYourDay": "选择您在埃法特的一天",
+    "factGuides": "本地导游",
+    "factInsured": "全面投保",
+    "factInstant": "即时确认"
+  },
+  "transfers": {
+    "kicker": "维拉港",
+    "heroTitle": "接送服务",
+    "label": "畅行埃法特",
+    "heading": "我们在那里等您",
+    "factFlights": "航班跟踪",
+    "factGreet": "接机问候",
+    "fact247": "全天候服务"
   }
 }
