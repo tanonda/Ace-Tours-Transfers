@@ -168,7 +168,9 @@ async function renderAll(
   routes: string[],
   browser: Browser,
 ): Promise<{ written: number; failedRoutes: Array<{ route: string; error: string }> }> {
-  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  // Plain "en": query keys include i18n.language, and the client hydrates in "en"
+  // (client/src/main.tsx), so an "en-US" snapshot would miss for every visitor.
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, locale: 'en' });
   // Always render from the bare app shell, never on top of an existing (possibly
   // seeded-from-previous-deploy) snapshot. Same-origin cookie, so third parties never see it.
   await context.addCookies([{ name: PRERENDER_BYPASS_COOKIE, value: '1', url: base }]);
