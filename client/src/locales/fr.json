@@ -41,11 +41,14 @@
     "pickDate": "Choisir une date",
     "guests": "Combien de personnes?",
     "guestsPlaceholder": "2 personnes",
-    "checkAvailability": "Vérifier la Disponibilité",
+    "checkAvailability": "Vérifier les disponibilités",
     "popularSearches": "Populaires:",
     "airportTransfer": "Transfert Aéroport",
     "dayTours": "Excursions d'une Journée",
-    "greeting": "Bons baisers de Port-Vila !"
+    "greeting": "Bons baisers de Port-Vila !",
+    "bookTransfer": "Réserver un transfert",
+    "searchTours": "Rechercher",
+    "searchTransfers": "Rechercher"
   },
   "home": {
     "aboutLabel": "À propos de nous",

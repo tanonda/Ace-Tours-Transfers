@@ -15,6 +15,7 @@ import { cloudinaryOpt } from "@/components/seo";
 export function PageHero({
   photo,
   photoPosition = "50% 50%",
+  greeting,
   kicker,
   title,
   subtitle,
@@ -25,6 +26,8 @@ export function PageHero({
 }: {
   photo: string;
   photoPosition?: string;
+  /** Brush-lettered greeting above the heading, e.g. "Greetings from Port Vila!". */
+  greeting?: ReactNode;
   kicker?: ReactNode;
   title: ReactNode;
   subtitle?: ReactNode;
@@ -61,7 +64,7 @@ export function PageHero({
       <div
         className={cn(
           "relative container mx-auto flex h-full flex-col items-center px-4 text-center",
-          size === "home" ? "justify-end pt-52 pb-14 md:pt-32 md:pb-16" : "justify-center pt-48 pb-28 md:pt-44 md:pb-24",
+          size === "home" ? "justify-end pt-48 pb-12 md:pt-32 md:pb-16" : "justify-center pt-48 pb-28 md:pt-44 md:pb-24",
         )}
       >
         <motion.div
@@ -72,6 +75,11 @@ export function PageHero({
         >
           {/* Kicker and headline form ONE heading, so search engines read the full phrase
               ("Efate Island Day Tours") while the eye sees a small line over a big word. */}
+          {greeting && (
+            <p className="mb-3 -rotate-3 font-brush text-[2rem] leading-tight text-[#ffe3c6] [text-shadow:0_3px_14px_rgba(0,0,0,0.45)] sm:text-[2.4rem] md:mb-5 md:text-[clamp(2.6rem,min(4.6vw,7vh),4.25rem)]">
+              {greeting}
+            </p>
+          )}
           <Heading className="font-sans">
             {kicker && (
               <span className="mb-1 block text-sm font-semibold uppercase tracking-[0.28em] text-white drop-shadow md:text-xl">
@@ -82,7 +90,7 @@ export function PageHero({
               className={cn(
                 "hero-fade-text block font-bold tracking-tight leading-[0.95]",
                 size === "home"
-                  ? "text-[3.4rem] sm:text-7xl md:text-[clamp(4rem,min(9vw,13vh),8.5rem)]"
+                  ? "text-[3.4rem] sm:text-7xl md:text-[clamp(3.6rem,min(8vw,11vh),8rem)]"
                   : "text-6xl sm:text-7xl md:text-[clamp(4.5rem,9vw,8rem)]",
               )}
             >
@@ -97,7 +105,9 @@ export function PageHero({
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.9, delay: 0.25, ease: [0.23, 1, 0.32, 1] }}
-            className="z-20 mt-8 w-full text-left md:mt-10"
+            // On laptops the floating social/WhatsApp buttons sit at the right edge; keep the
+            // widget clear of them until the screen is wide enough to leave a natural margin.
+            className="z-20 mt-8 w-full text-left md:mt-10 md:pr-20 min-[1500px]:pr-0"
           >
             {children}
           </motion.div>

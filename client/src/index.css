@@ -43,6 +43,8 @@
   --font-serif: "DM Serif Display", Georgia, serif;
   /* Handwritten postcard accents ("Greetings from Port Vila!", photo captions) */
   --font-script: "Caveat", cursive;
+  /* Bold brush lettering for the hero greeting */
+  --font-brush: "Kaushan Script", "Caveat", cursive;
 }
 
 :root {

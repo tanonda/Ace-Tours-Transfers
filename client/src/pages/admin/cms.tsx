@@ -339,6 +339,7 @@ export default function AdminCMS() {
       label: "Home Page",
       fields: [
         // Hero
+        { key: "hero_greeting", label: "Hero — Brush Greeting", type: "text", description: "Hand-lettered line at the top, e.g. \"Greetings from Port Vila!\"" },
         { key: "hero_title_part1", label: "Hero — Small Line", type: "text", description: "Wide-spaced line above the big headline, e.g. \"Experience Vanuatu's\"" },
         { key: "hero_title_part2", label: "Hero — Big Headline", type: "text", description: "Large word(s) that fade into the photo, e.g. \"Natural Beauty\". Keep it short." },
         { key: "hero_subtitle", label: "Hero Subtitle (not shown)", type: "text", description: "Not shown in the current design: the top bar already carries the tagline." },

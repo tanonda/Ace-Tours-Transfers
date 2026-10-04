@@ -4,7 +4,7 @@
  * Hero — Skyscanner-inspired Redesign
  *
  * Design principles drawn from reference screenshots:
- * - Single unified white bar with hard vertical dividers between fields (no gaps/islands)
+ * - Frosted-glass panel: white labels above separate translucent fields (user reference)
  * - Field labels sit above values inside the same cell
  * - Dark backdrop panel behind the search bar
  * - CTA button flush-right, same height as the bar, orange fill
@@ -40,6 +40,9 @@ import {
   Car,
   Minus,
   Plus,
+  CalendarDays,
+  Users,
+  ChevronDown,
 } from "lucide-react";
 import { format, addDays } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -50,6 +53,13 @@ import { useSitePhoto } from "@/hooks/use-site-photo";
 // ─── Bar height constant ──────────────────────────────────────────────────────
 // 64px — matches Skyscanner's search bar proportions
 const BAR_H = "h-16";
+
+// Glass widget fields (user's reference): white label above a translucent rounded box.
+const FIELD_LABEL = "mb-1.5 block text-[13px] font-semibold leading-none text-white";
+const FIELD_BOX = cn(
+  "flex h-12 w-full items-center gap-2 rounded-lg border border-white/30 bg-white/10 px-4 text-left text-[15px] text-white",
+  "backdrop-blur-sm transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60",
+);
 
 // ─── DateCell ────────────────────────────────────────────────────────────────
 // Opens a calendar popover. Renders as a flush bar segment with vertical divider.
@@ -75,33 +85,21 @@ function DateCell({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <button
-          type="button"
-          aria-label={`${label}: ${value ? format(value, "dd/MM/yyyy") : placeholder}`}
-          className={cn(
-            "relative flex flex-col justify-center px-4 py-3 text-left h-full w-full",
-            "transition-colors duration-150 hover:bg-gray-50 focus-visible:outline-none focus-visible:bg-gray-50",
-            open && "bg-blue-50/50",
-            // Right divider on desktop, bottom divider on mobile
-            divider &&
-            "md:after:absolute md:after:right-0 md:after:top-[20%] md:after:bottom-[20%] md:after:w-px md:after:h-auto md:after:bg-gray-200 after:absolute after:bottom-0 after:left-[5%] after:right-[5%] after:h-px after:w-auto after:bg-gray-200 md:after:left-auto md:after:right-0",
-            className
-          )}
-        >
-          <span className="text-[11px] font-semibold text-gray-500 leading-none mb-[6px]">
-            {label}
-          </span>
-          <span
-            className={cn(
-              "text-[15px] font-semibold leading-tight",
-              value ? "text-gray-900" : "text-gray-400 font-normal"
-            )}
+      <div className={cn("flex min-w-0 flex-col", className)}>
+        <span className={FIELD_LABEL}>{label}</span>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            aria-label={`${label}: ${value ? format(value, "dd/MM/yyyy") : placeholder}`}
+            className={cn(FIELD_BOX, open && "bg-white/20")}
           >
-            {value ? format(value, "dd/MM/yyyy") : placeholder}
-          </span>
-        </button>
-      </PopoverTrigger>
+            <span className={cn("flex-1 truncate", !value && "text-white/70")}>
+              {value ? format(value, "dd/MM/yyyy") : placeholder}
+            </span>
+            <CalendarDays className="h-4 w-4 shrink-0 text-white/70" />
+          </button>
+        </PopoverTrigger>
+      </div>
       <PopoverContent
         className="w-auto p-0 rounded-xl border-gray-200 shadow-2xl"
         align="start"
@@ -233,27 +231,20 @@ function GuestsCell({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <button
-          type="button"
-          aria-label={`${label}: ${summary}`}
-          className={cn(
-            "relative flex flex-col justify-center px-4 py-3 text-left h-full w-full",
-            "transition-colors duration-150 hover:bg-gray-50 focus-visible:outline-none focus-visible:bg-gray-50",
-            open && "bg-blue-50/50",
-            divider &&
-            "md:after:absolute md:after:right-0 md:after:top-[20%] md:after:bottom-[20%] md:after:w-px md:after:h-auto md:after:bg-gray-200 after:absolute after:bottom-0 after:left-[5%] after:right-[5%] after:h-px after:w-auto after:bg-gray-200 md:after:left-auto md:after:right-0",
-            className
-          )}
-        >
-          <span className="text-[11px] font-semibold text-gray-500 leading-none mb-[6px]">
-            {label}
-          </span>
-          <span className="text-[15px] font-semibold text-gray-900 leading-tight truncate">
-            {summary}
-          </span>
-        </button>
-      </PopoverTrigger>
+      <div className={cn("flex min-w-0 flex-col", className)}>
+        <span className={FIELD_LABEL}>{label}</span>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            aria-label={`${label}: ${summary}`}
+            className={cn(FIELD_BOX, open && "bg-white/20")}
+          >
+            <Users className="h-4 w-4 shrink-0 text-white/70" />
+            <span className="flex-1 truncate font-medium">{summary}</span>
+            <ChevronDown className="h-4 w-4 shrink-0 text-white/70" />
+          </button>
+        </PopoverTrigger>
+      </div>
       <PopoverContent
         className="w-80 p-0 rounded-xl border-gray-200 shadow-2xl"
         align="end"
@@ -336,23 +327,14 @@ function BarInput({
   className,
 }: BarInputProps) {
   return (
-    <div
-      className={cn(
-        "relative flex flex-col justify-center px-4 py-3 h-full",
-        "transition-colors duration-150 hover:bg-gray-50 focus-within:bg-gray-50",
-        divider &&
-        "md:after:absolute md:after:right-0 md:after:top-[20%] md:after:bottom-[20%] md:after:w-px md:after:h-auto md:after:bg-gray-200 after:absolute after:bottom-0 after:left-[5%] after:right-[5%] after:h-px after:w-auto after:bg-gray-200 md:after:left-auto md:after:right-0",
-        className
-      )}
-    >
-      <label className="text-[11px] font-semibold text-gray-500 leading-none mb-[6px]">
-        {label}
-      </label>
+    <div className={cn("flex min-w-0 flex-col", className)}>
+      <label className={FIELD_LABEL}>{label}</label>
       <Input
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="border-0 bg-transparent shadow-none p-0 h-auto text-[15px] font-semibold text-gray-900 placeholder:text-gray-400 placeholder:font-normal focus-visible:ring-0 leading-tight"
+        aria-label={label}
+        className={cn(FIELD_BOX, "shadow-none placeholder:text-white/70 focus-visible:ring-offset-0")}
       />
     </div>
   );
@@ -375,23 +357,15 @@ function TimeCell({
   className,
 }: TimeCellProps) {
   return (
-    <div
-      className={cn(
-        "relative flex flex-col justify-center px-4 py-3 h-full",
-        "transition-colors duration-150 hover:bg-gray-50 focus-within:bg-gray-50",
-        divider &&
-        "md:after:absolute md:after:right-0 md:after:top-[20%] md:after:bottom-[20%] md:after:w-px md:after:h-auto md:after:bg-gray-200 after:absolute after:bottom-0 after:left-[5%] after:right-[5%] after:h-px after:w-auto after:bg-gray-200 md:after:left-auto md:after:right-0",
-        className
-      )}
-    >
-      <label className="text-[11px] font-semibold text-gray-500 leading-none mb-[6px]">
-        {label}
-      </label>
+    <div className={cn("flex min-w-0 flex-col", className)}>
+      <label className={FIELD_LABEL}>{label}</label>
       <Input
         type="time"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="border-0 bg-transparent shadow-none p-0 h-auto text-[15px] font-semibold text-gray-900 focus-visible:ring-0 leading-tight [&::-webkit-calendar-picker-indicator]:ml-auto [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-50 hover:[&::-webkit-calendar-picker-indicator]:opacity-100"
+        aria-label={label}
+        // color-scheme: dark keeps the browser's clock icon visible on the glass.
+        className={cn(FIELD_BOX, "shadow-none [color-scheme:dark] focus-visible:ring-offset-0 [&::-webkit-calendar-picker-indicator]:ml-auto [&::-webkit-calendar-picker-indicator]:cursor-pointer")}
       />
     </div>
   );
@@ -422,36 +396,18 @@ function ProductCell({
   const isEmpty = !selected;
 
   return (
-    <div
-      className={cn(
-        "relative flex-1 min-w-0",
-        divider &&
-        "md:after:absolute md:after:right-0 md:after:top-[20%] md:after:bottom-[20%] md:after:w-px md:after:h-auto md:after:bg-gray-200 md:after:z-10 after:absolute after:bottom-0 after:left-[5%] after:right-[5%] after:h-px after:w-auto after:bg-gray-200 md:after:left-auto md:after:right-0",
-        className
-      )}
-    >
+    <div className={cn("flex min-w-0 flex-col", className)}>
+      <span className={FIELD_LABEL}>{label}</span>
       <Select
         value={value ?? "all"}
         onValueChange={(v) => onChange(v === "all" ? null : v)}
       >
         <SelectTrigger
           aria-label={label}
-          className={cn(
-            "h-full w-full border-0 bg-transparent shadow-none rounded-none px-4",
-            "flex flex-col items-start justify-center gap-0 [&>svg]:hidden",
-            "hover:bg-gray-50 focus:ring-0 transition-colors duration-150"
-          )}
+          className={cn(FIELD_BOX, "justify-between shadow-none focus:ring-2 focus:ring-white/60 focus:ring-offset-0 [&>svg]:text-white [&>svg]:opacity-70")}
         >
-          <span className="text-[11px] font-semibold text-gray-500 leading-none mb-[6px]">
-            {label}
-          </span>
-          <span
-            className={cn(
-              "text-[15px] leading-tight",
-              isEmpty ? "text-gray-400 font-normal" : "text-gray-900 font-semibold"
-            )}
-          >
-            {displayText}
+          <span className={cn("truncate", isEmpty ? "text-white/70" : "font-medium")}>
+            {displayText.split(" | ")[0]}
           </span>
         </SelectTrigger>
         <SelectContent className="rounded-xl border-gray-200 shadow-2xl p-1">
@@ -491,7 +447,7 @@ interface SearchTabsProps {
 }
 function SearchTabs({ activeTab, onTabChange }: SearchTabsProps) {
   return (
-    <div role="tablist" aria-label="Search type" className="flex items-center gap-1 mb-3">
+    <div role="tablist" aria-label="Search type" className="flex items-center gap-1 rounded-full bg-black/20 p-1">
       {TABS.map((tab) => (
         <button
           key={tab.id}
@@ -502,8 +458,8 @@ function SearchTabs({ activeTab, onTabChange }: SearchTabsProps) {
           className={cn(
             "flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-semibold transition-all duration-200",
             activeTab === tab.id
-              ? "bg-harbour text-white shadow-sm"
-              : "text-muted-foreground hover:text-foreground hover:bg-muted"
+              ? "bg-white text-[#12324a] shadow-sm"
+              : "text-white/90 hover:text-white hover:bg-white/15"
           )}
         >
           {tab.icon}
@@ -519,12 +475,16 @@ interface SearchBarProps {
   search: ReturnType<typeof useAvailabilitySearch>;
 }
 function SearchBar({ search }: SearchBarProps) {
+  const { t } = useTranslation();
   return (
     <div className="w-full">
-      <SearchTabs
-        activeTab={search.activeTab}
-        onTabChange={search.setActiveTab}
-      />
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+        <p className="font-script text-2xl text-[#ffe3c6] md:text-3xl">{search.activeTab === "transfer" ? t("hero.bookTransfer", "Book a transfer") : t("hero.checkAvailability", "Check availability")}</p>
+        <SearchTabs
+          activeTab={search.activeTab}
+          onTabChange={search.setActiveTab}
+        />
+      </div>
 
       {/*
        * The unified white bar.
@@ -535,11 +495,7 @@ function SearchBar({ search }: SearchBarProps) {
       <div
         role="search"
         aria-label="Availability search"
-        className={cn(
-          "flex flex-col md:flex-row md:items-stretch bg-white rounded-xl overflow-hidden",
-          "border border-border",
-          "md:h-16"
-        )}
+        className="flex flex-col gap-3 md:flex-row md:items-end"
       >
         {/* Animated field panel */}
         <AnimatePresence mode="wait" initial={false}>
@@ -549,7 +505,7 @@ function SearchBar({ search }: SearchBarProps) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.12 }}
-            className="flex flex-col md:flex-row flex-1 md:items-stretch min-w-0 overflow-hidden"
+            className="grid min-w-0 flex-1 grid-cols-2 gap-3 md:flex md:flex-row md:items-end"
           >
 
             {/* ── Tours ── */}
@@ -562,7 +518,7 @@ function SearchBar({ search }: SearchBarProps) {
                   products={search.tours}
                   placeholder="All tours"
                   divider
-                  className="flex-[1.8] min-w-0 md:min-w-[200px]"
+                  className="col-span-2 md:flex-[1.8] md:min-w-[200px]"
                 />
                 <DateCell
                   label="Date"
@@ -570,14 +526,14 @@ function SearchBar({ search }: SearchBarProps) {
                   onChange={search.setTourDate}
                   placeholder="Add date"
                   divider
-                  className="flex-1 min-w-0 md:min-w-[140px]"
+                  className="md:flex-1 md:min-w-[140px]"
                 />
                 <TimeCell
                   label="Pickup time"
                   value={search.tour.time}
                   onChange={search.setTourTime}
                   divider
-                  className="flex-1 min-w-0 md:min-w-[110px]"
+                  className="md:flex-1 md:min-w-[110px]"
                 />
                 <GuestsCell
                   label="Guests"
@@ -590,7 +546,7 @@ function SearchBar({ search }: SearchBarProps) {
                   onChildrenChange={search.setTourChildren}
                   onInfantsChange={search.setTourInfants}
                   onPetsChange={search.setTourPets}
-                  className="flex-1 min-w-0 md:min-w-[160px]"
+                  className="col-span-2 md:flex-1 md:min-w-[160px]"
                 />
               </>
             )}
@@ -605,7 +561,7 @@ function SearchBar({ search }: SearchBarProps) {
                   products={search.transfers}
                   placeholder="All transfers"
                   divider
-                  className="flex-[1.5] min-w-0 md:min-w-[180px]"
+                  className="col-span-2 md:flex-[1.5] md:min-w-[180px]"
                 />
                 <BarInput
                   label="To"
@@ -613,7 +569,7 @@ function SearchBar({ search }: SearchBarProps) {
                   onChange={search.setTransferTo}
                   placeholder="Drop-off point"
                   divider
-                  className="flex-[1.5] min-w-0 md:min-w-[180px]"
+                  className="col-span-2 md:flex-[1.5] md:min-w-[180px]"
                 />
                 <DateCell
                   label="Transfer date"
@@ -621,14 +577,14 @@ function SearchBar({ search }: SearchBarProps) {
                   onChange={search.setTransferDate}
                   placeholder="Add date"
                   divider
-                  className="flex-1 min-w-0 md:min-w-[140px]"
+                  className="md:flex-1 md:min-w-[140px]"
                 />
                 <TimeCell
                   label="Pickup time"
                   value={search.transfer.time}
                   onChange={search.setTransferTime}
                   divider
-                  className="flex-1 min-w-0 md:min-w-[110px]"
+                  className="md:flex-1 md:min-w-[110px]"
                 />
                 <GuestsCell
                   label="Passengers"
@@ -641,7 +597,7 @@ function SearchBar({ search }: SearchBarProps) {
                   onChildrenChange={search.setTransferChildren}
                   onInfantsChange={search.setTransferInfants}
                   onPetsChange={search.setTransferPets}
-                  className="flex-1 min-w-0 md:min-w-[160px]"
+                  className="col-span-2 md:flex-1 md:min-w-[160px]"
                 />
               </>
             )}
@@ -661,18 +617,13 @@ function SearchBar({ search }: SearchBarProps) {
           aria-disabled={!search.isValid}
           title={!search.isValid ? search.validationMessage : undefined}
           className={cn(
-            "flex items-center justify-center gap-2 px-7 shrink-0",
-            "font-bold text-[15px] text-white",
-            "transition-colors duration-150",
-            // Full width on mobile, flush-right on desktop
-            "rounded-none w-full md:w-auto py-4 md:py-0",
-            search.isValid
-              ? "bg-primary hover:bg-primary/90 cursor-pointer"
-              : "bg-gray-200 text-gray-400 cursor-not-allowed"
+            "flex h-12 w-full shrink-0 items-center justify-center gap-2 rounded-lg px-8 text-[15px] font-bold text-white shadow-lg transition-colors md:w-auto",
+            // Stays orange (dimmed) until the form is complete, so it still reads as the action on the glass.
+            search.isValid ? "bg-primary hover:bg-primary/90 cursor-pointer" : "bg-primary/60 cursor-not-allowed"
           )}
         >
           <Search className="h-4 w-4" />
-          <span>Search</span>
+          <span>{search.activeTab === "transfer" ? t("hero.searchTransfers", "Search transfers") : t("hero.searchTours", "Search tours")}</span>
         </button>
       </div>
     </div>
@@ -697,10 +648,12 @@ export function Hero() {
       priority
       photo={bgSrc}
       photoPosition="50% 40%"
+      greeting={cms.text("hero_greeting", t("hero.greeting", "Greetings from Port Vila!"))}
       kicker={cms.text("hero_title_part1", t("hero.titlePart1"))}
       title={cms.text("hero_title_part2", t("hero.titlePart2"))}
     >
-      <div className="bg-paper rounded-xl p-3 md:p-4 border border-border/60 shadow-[0_24px_60px_-20px_rgba(18,50,74,0.5)]">
+      {/* Frosted glass over the photo (user's reference). */}
+      <div className="rounded-2xl border border-white/25 bg-[#0c1f2e]/45 p-4 shadow-[0_24px_60px_-20px_rgba(0,0,0,0.55)] backdrop-blur-md md:p-5">
         <SearchBar search={search} />
       </div>
     </PageHero>

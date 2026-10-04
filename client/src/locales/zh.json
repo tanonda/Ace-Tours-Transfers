@@ -41,11 +41,14 @@
     "pickDate": "选择日期",
     "guests": "多少人?",
     "guestsPlaceholder": "2人",
-    "checkAvailability": "查看可用性",
+    "checkAvailability": "查询空位",
     "popularSearches": "热门:",
     "airportTransfer": "机场接送",
     "dayTours": "一日游",
-    "greeting": "来自维拉港的问候！"
+    "greeting": "来自维拉港的问候！",
+    "bookTransfer": "预订接送",
+    "searchTours": "搜索行程",
+    "searchTransfers": "搜索接送"
   },
   "home": {
     "aboutLabel": "关于我们",

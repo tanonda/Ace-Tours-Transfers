@@ -470,7 +470,7 @@
   "hero.pickDate": "Pick a date",
   "hero.guests": "How many?",
   "hero.guestsPlaceholder": "2 guests",
-  "hero.checkAvailability": "Check Availability",
+  "hero.checkAvailability": "Check availability",
   "hero.popularSearches": "Popular:",
   "hero.airportTransfer": "Airport Transfer",
   "hero.dayTours": "Day Tours",
@@ -545,5 +545,8 @@
   "footer.photoCredits": "Photo credits",
   "credits.label": "Thank you",
   "credits.title": "Photo credits",
-  "credits.intro": "Photos of Efate used on this site are shared by their photographers under Creative Commons licences. Some have been cropped or colour-graded."
+  "credits.intro": "Photos of Efate used on this site are shared by their photographers under Creative Commons licences. Some have been cropped or colour-graded.",
+  "hero.bookTransfer": "Book a transfer",
+  "hero.searchTours": "Search tours",
+  "hero.searchTransfers": "Search transfers"
 }

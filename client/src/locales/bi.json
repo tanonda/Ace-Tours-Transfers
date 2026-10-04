@@ -41,11 +41,14 @@
     "pickDate": "Choosem date",
     "guests": "Hamas man?",
     "guestsPlaceholder": "2 man",
-    "checkAvailability": "Checkem Availability",
+    "checkAvailability": "Lukim sipos i gat ples",
     "popularSearches": "Popular:",
     "airportTransfer": "Airport Transfer",
     "dayTours": "Day Tours",
-    "greeting": "Halo i kam long Port Vila!"
+    "greeting": "Halo i kam long Port Vila!",
+    "bookTransfer": "Bookem wan transfer",
+    "searchTours": "Lukaotem tours",
+    "searchTransfers": "Lukaotem transfers"
   },
   "home": {
     "aboutLabel": "About Mifala",

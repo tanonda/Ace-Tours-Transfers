@@ -41,11 +41,14 @@
     "pickDate": "Elegir fecha",
     "guests": "¿Cuántos?",
     "guestsPlaceholder": "2 personas",
-    "checkAvailability": "Verificar Disponibilidad",
+    "checkAvailability": "Consultar disponibilidad",
     "popularSearches": "Populares:",
     "airportTransfer": "Traslado al Aeropuerto",
     "dayTours": "Tours de Día",
-    "greeting": "¡Saludos desde Port Vila!"
+    "greeting": "¡Saludos desde Port Vila!",
+    "bookTransfer": "Reservar un traslado",
+    "searchTours": "Buscar tours",
+    "searchTransfers": "Buscar traslados"
   },
   "home": {
     "aboutLabel": "Sobre Nosotros",
