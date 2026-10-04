@@ -130,6 +130,14 @@ export function SEO({
     description: seo.businessDescription,
     telephone: "+678-711-4045",
     email: "acetoursvanuatu@outlook.com",
+    // Both bookings lines from the brochure.
+    contactPoint: ["+678-711-4045", "+678-734-2389"].map((telephone) => ({
+      "@type": "ContactPoint",
+      telephone,
+      contactType: "reservations",
+      areaServed: "VU",
+      availableLanguage: ["English", "French", "Bislama"],
+    })),
     image: DEFAULT_IMAGE,
     address: {
       "@type": "PostalAddress",

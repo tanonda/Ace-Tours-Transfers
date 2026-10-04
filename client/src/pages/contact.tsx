@@ -11,6 +11,7 @@ import { useTranslation } from "react-i18next";
 import { useCMS } from "@/lib/cms-context";
 import { useCmsText } from "@/hooks/use-cms-text";
 import { useToast } from "@/hooks/use-toast";
+import { vanuatuPhone } from "@/lib/phone";
 
 const WHATSAPP_NUMBER = "6787114045";
 
@@ -21,7 +22,9 @@ export default function Contact() {
   const { toast } = useToast();
 
   const contactEmail = getSetting("contact_email") || "acetoursvanuatu@outlook.com";
-  const contactPhone = getSetting("contact_phone") || "7114045";
+  const contactPhones = [getSetting("contact_phone") || "7114045", getSetting("contact_phone_2") || "7342389"]
+    .map((v) => vanuatuPhone(String(v)))
+    .filter((p): p is NonNullable<typeof p> => p !== null);
   const whatsappSettings = getSetting("whatsapp") as any;
   const whatsappNumber = (whatsappSettings?.phoneNumber || getSetting("whatsapp_number") || WHATSAPP_NUMBER).replace(/[^0-9]/g, '');
 
@@ -86,7 +89,9 @@ export default function Contact() {
                 <div className="flex-1">
                   <h3 className="font-bold text-lg mb-1">{t("contact.phone")}</h3>
                   <div className="space-y-1">
-                    <a href={`tel:+678${String(contactPhone).replace(/\D/g, '')}`} className="block text-lg font-semibold text-primary hover:underline">+678 {String(contactPhone)}</a>
+                    {contactPhones.map((phone) => (
+                      <a key={phone.tel} href={phone.tel} className="block text-lg font-semibold text-primary hover:underline">{phone.display}</a>
+                    ))}
                   </div>
                   <p className="text-sm text-muted-foreground mt-1">{cms.text("phone_availability", t("contact.phoneAvailable"))}</p>
                 </div>

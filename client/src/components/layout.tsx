@@ -1,5 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { useState, useEffect, useRef, forwardRef, memo, type ReactNode } from "react";
+import { vanuatuPhone } from "@/lib/phone";
 import { Menu, Phone, Mail, Instagram, Facebook, X, ChevronRight, ShoppingCart, User, LogIn, LogOut, UserPlus, Home, Map, Car, Info, MessageSquare, Calendar, ChevronDown, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -88,6 +89,10 @@ function useSiteChrome() {
 
   const contactEmail = getSetting("contact_email", "acetoursvanuatu@outlook.com");
   const contactPhone = getSetting("contact_phone", "7114045");
+  // Bookings line(s) from the brochure; each setting may hold "+678 …" or a bare local number.
+  const contactPhones = [contactPhone, getSetting("contact_phone_2", "7342389")]
+    .map(vanuatuPhone)
+    .filter((p): p is NonNullable<typeof p> => p !== null);
   
   // Prefer structured whatsapp object, fallback to legacy key
   const whatsappRecord = settings.find(s => s.key === "whatsapp");
@@ -131,7 +136,7 @@ function useSiteChrome() {
 
   const { t } = useTranslation();
 
-  return { settings, contactEmail, contactPhone, whatsappNumber, facebookUrl, instagramUrl, contactAddress, footerBacklinks, landingLinks, tours, transfers, t };
+  return { settings, contactEmail, contactPhone, contactPhones, whatsappNumber, facebookUrl, instagramUrl, contactAddress, footerBacklinks, landingLinks, tours, transfers, t };
 }
 
 /**
@@ -153,7 +158,7 @@ function CartCount({ children }: { children: (itemCount: number) => ReactNode })
  * menus) every time the page below it did — several times per page load.
  */
 export const SiteHeader = memo(function SiteHeader() {
-  const { settings, contactEmail, contactPhone, whatsappNumber, facebookUrl, instagramUrl, contactAddress, footerBacklinks, landingLinks, tours, transfers, t } = useSiteChrome();
+  const { settings, contactEmail, contactPhones, whatsappNumber, facebookUrl, instagramUrl, contactAddress, footerBacklinks, landingLinks, tours, transfers, t } = useSiteChrome();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [toursOpen, setToursOpen] = useState(false);
@@ -225,10 +230,12 @@ export const SiteHeader = memo(function SiteHeader() {
           </p>
           <div className="flex flex-wrap justify-center md:justify-end items-center gap-3 mt-2 md:mt-0">
             <div className="hidden lg:flex items-center gap-4">
-              <a href={`tel:+678${contactPhone.replace(/\D/g, '')}`} className={`flex items-center gap-1.5 hover:text-primary transition-colors ${isTransparent ? "hover:text-white" : ""}`}>
-                <Phone className="h-3.5 w-3.5" />
-                <span>{contactPhone}</span>
-              </a>
+              {contactPhones[0] && (
+                <a href={contactPhones[0].tel} className={`flex items-center gap-1.5 hover:text-primary transition-colors ${isTransparent ? "hover:text-white" : ""}`}>
+                  <Phone className="h-3.5 w-3.5" />
+                  <span>{contactPhones[0].display}</span>
+                </a>
+              )}
               <span className={isTransparent ? "text-white/50" : "text-muted-foreground/50"}>|</span>
               <a href={`mailto:${contactEmail}`} className={`flex items-center gap-1.5 hover:text-primary transition-colors ${isTransparent ? "hover:text-white" : ""}`}>
                 <Mail className="h-3.5 w-3.5" />
@@ -501,10 +508,12 @@ export const SiteHeader = memo(function SiteHeader() {
                   {t("footer.contactUs")}
                 </p>
                 <div className="space-y-2 text-sm text-muted-foreground">
-                  <a href={`tel:+678${contactPhone.replace(/\D/g, '')}`} className="flex items-center gap-2 hover:text-primary transition-colors">
-                    <Phone className="h-4 w-4" />
-                    <span>{contactPhone}</span>
-                  </a>
+                  {contactPhones.map((phone) => (
+                    <a key={phone.tel} href={phone.tel} className="flex items-center gap-2 hover:text-primary transition-colors">
+                      <Phone className="h-4 w-4" />
+                      <span>{phone.display}</span>
+                    </a>
+                  ))}
                   <a href={`mailto:${contactEmail}`} className="flex items-center gap-2 hover:text-primary transition-colors">
                     <Mail className="h-4 w-4" />
                     <span className="truncate">{contactEmail}</span>
@@ -697,7 +706,7 @@ const SiteFooter = memo(function SiteFooter() {
   const { isBlockEnabled } = useCMS();
   const footerCms = useCmsText("footer");
   const showNewsletter = isBlockEnabled('newsletter');
-  const { settings, contactEmail, contactPhone, whatsappNumber, facebookUrl, instagramUrl, contactAddress, footerBacklinks, landingLinks, tours, transfers, t } = useSiteChrome();
+  const { settings, contactEmail, contactPhones, whatsappNumber, facebookUrl, instagramUrl, contactAddress, footerBacklinks, landingLinks, tours, transfers, t } = useSiteChrome();
 
   return (
     <>
@@ -758,9 +767,12 @@ const SiteFooter = memo(function SiteFooter() {
                   <Phone className="h-5 w-5 text-primary shrink-0 mt-0.5" />
                   <div className="text-white/70">
                     <p>
-                      <a href={`tel:+678${contactPhone.replace(/\D/g, '')}`} className="hover:text-white transition-colors">{contactPhone}</a>
-                      {" / "}
-                      <a href={`tel:+678${whatsappNumber.replace(/\D/g, '')}`} className="hover:text-white transition-colors">{whatsappNumber}</a>
+                      {contactPhones.map((phone, i) => (
+                        <span key={phone.tel}>
+                          {i > 0 && " / "}
+                          <a href={phone.tel} className="hover:text-white transition-colors">{phone.display}</a>
+                        </span>
+                      ))}
                     </p>
                     <p className="text-sm opacity-60">{t("footer.available247", "Available 24/7")}</p>
                   </div>
