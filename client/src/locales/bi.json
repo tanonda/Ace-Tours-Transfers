@@ -44,7 +44,8 @@
     "checkAvailability": "Checkem Availability",
     "popularSearches": "Popular:",
     "airportTransfer": "Airport Transfer",
-    "dayTours": "Day Tours"
+    "dayTours": "Day Tours",
+    "greeting": "Halo i kam long Port Vila!"
   },
   "home": {
     "aboutLabel": "About Mifala",
@@ -65,7 +66,21 @@
     "bookTransfer": "Bookem Transfer",
     "ctaTitle": "Ready blong next adventure blong yu?",
     "ctaDesc": "Lego mifala i handle ol details taem yu mekem ol memories.",
-    "ctaButton": "Start Planning Nao"
+    "ctaButton": "Start Planning Nao",
+    "aboutCaption1": "Ol wotafol blong Efate",
+    "aboutCaption2": "Saot kos blong Efate",
+    "aboutPhotoAlt": "Wotafol blong Mele, Efate",
+    "aboutPhoto2Alt": "Sanbij blong Eratap long saot kos blong Efate",
+    "viewAllTours": "Lukim olgeta tours",
+    "viewAllTransfers": "Lukim olgeta transfers",
+    "craftLabel": "Ol lokol meka",
+    "craftTitle": "Tes mo hanwok blong Vanuatu",
+    "craftDesc": "Joklet blong aelan, kakao mo ol basket we oli wivim long han. Efate Scenic Tour blong mifala i stop long wan lokol faktri blong joklet, mo long wan praevet tour, yu nao yu jusum ol ples blong stop: askem mifala blong putum wan lokol meka long dei blong yu.",
+    "craftCocoa": "Kakao blong maket",
+    "craftMarket": "Maket blong Port Vila",
+    "craftBasket": "Basket blong aelan",
+    "craftWoven": "Oli wivim long han",
+    "ctaScript": "Mi wantem yu stap long ples ia..."
   },
   "about": {
     "title": "About Ace Tours",
@@ -230,7 +245,10 @@
     "bookNow": "Bookem Nao",
     "viewDetails": "Lukim Details",
     "quickView": "Quick View",
-    "startingFrom": "Start from"
+    "startingFrom": "Start from",
+    "from": "Stat long",
+    "package": "Pakij",
+    "bookTransfer": "Bookem transfer"
   },
   "dashboard": {
     "welcome": "Welcome bak",
