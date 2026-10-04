@@ -31,7 +31,7 @@ import {
 } from "@/components/shared-detail-components";
 import { keepAcrossLanguageSwitch } from "@/lib/language-placeholder";
 import { usePricingRules } from "@/lib/site-settings";
-import { groupDiscountApplies } from "@shared/pricing-rules";
+import { groupDiscountApplies, vatLabel } from "@shared/pricing-rules";
 
 
 // ─── Countdown Timer Component ─────────────────────────────────────────────────
@@ -1025,7 +1025,7 @@ export default function TourDetail() {
                             return productTotal + ((tour as any).addons ? calcAddonTotal((tour as any).addons as ProductAddonEntry[], addonSelections) : 0);
                           })(), currency)}
                         </span>
-                        <span className="block text-[0.6rem] text-[#8a826e] uppercase font-bold tracking-tight">Incl. 15% VAT</span>
+                        <span className="block text-[0.6rem] text-[#8a826e] uppercase font-bold tracking-tight">{vatLabel(pricingRules)}</span>
                       </div>
                     </div>
                     {!date && <p className="text-[0.68rem] text-[#8a826e] italic text-center">Select a date to confirm pricing</p>}

@@ -17,7 +17,7 @@ import { useQuery } from "@tanstack/react-query";
 import { fetchAddons } from "@/lib/api";
 import { PricingBreakdown } from "@/components";
 import { usePricingRules } from "@/lib/site-settings";
-import { estimateWithRules } from "@shared/pricing-rules";
+import { estimateWithRules, vatLabel } from "@shared/pricing-rules";
 
 const CATEGORY_LABELS: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
   tour: { label: "Tour", color: "bg-blue-500/15 text-blue-400 border-blue-500/30", icon: <MapPin className="h-3 w-3" /> },
@@ -212,7 +212,7 @@ export default function Cart() {
                               {/* Price column */}
                               <div className="text-right shrink-0">
                                 <p className="font-bold text-lg">{formatPriceDisplay(finalItemSubtotal * item.quantity, currency)}</p>
-                                <p className="text-[0.65rem] text-muted-foreground uppercase tracking-tight">Incl. 15% VAT</p>
+                                <p className="text-[0.65rem] text-muted-foreground uppercase tracking-tight">{vatLabel(pricingRules)}</p>
                                 {appliedRules.length > 0 && (
                                   <div className="text-xs space-y-0.5 mt-1">
                                     {appliedRules.map((rule, i) => (
@@ -341,7 +341,7 @@ export default function Cart() {
                       <p className="text-xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
                         {formatPriceDisplay(displayTotal, currency)}
                       </p>
-                      <p className="text-[0.6rem] text-muted-foreground">Incl. 15% VAT</p>
+                      <p className="text-[0.6rem] text-muted-foreground">{vatLabel(pricingRules)}</p>
                     </div>
                   </div>
 

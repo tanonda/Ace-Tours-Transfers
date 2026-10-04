@@ -13,11 +13,14 @@ export interface PricingRules {
   groupDiscount: { enabled: boolean; minAdults: number; percent: number };
   /** Percentage added for bookings dated in `months` (0 = January … 11 = December). */
   peakSeason: { enabled: boolean; months: number[]; percent: number };
+  /** Vanuatu VAT. `included`: advertised prices already contain it (the brochure and site labels say so). */
+  vat: { percent: number; included: boolean };
 }
 
 export const DEFAULT_PRICING_RULES: PricingRules = {
   groupDiscount: { enabled: true, minAdults: 7, percent: 10 },
   peakSeason: { enabled: true, months: [0, 11], percent: 20 },
+  vat: { percent: 15, included: true },
 };
 
 export const MONTH_NAMES = [
@@ -44,6 +47,7 @@ export function parsePricingRules(value: unknown): PricingRules {
   const root = obj(value);
   const gd = obj(root.groupDiscount);
   const ps = obj(root.peakSeason);
+  const vat = obj(root.vat);
   const d = DEFAULT_PRICING_RULES;
 
   const months = Array.isArray(ps.months)
@@ -60,6 +64,10 @@ export function parsePricingRules(value: unknown): PricingRules {
       enabled: bool(ps.enabled, d.peakSeason.enabled),
       months,
       percent: num(ps.percent, d.peakSeason.percent, 0, 100),
+    },
+    vat: {
+      percent: num(vat.percent, d.vat.percent, 0, 50),
+      included: bool(vat.included, d.vat.included),
     },
   };
 }
@@ -108,4 +116,25 @@ export function estimateWithRules(
     appliedRules.push(peakSeasonLabel(rules));
   }
   return { total, appliedRules };
+}
+
+/**
+ * Split a charged amount into net + VAT. With VAT-inclusive pricing the customer
+ * pays the advertised amount and the VAT is the share inside it; otherwise VAT
+ * is added on top.
+ */
+export function vatBreakdown(rules: PricingRules, amountCents: number): { netCents: number; vatCents: number; totalCents: number } {
+  const rate = rules.vat.percent / 100;
+  if (rules.vat.included) {
+    const vatCents = Math.round((amountCents * rate) / (1 + rate));
+    return { netCents: amountCents - vatCents, vatCents, totalCents: amountCents };
+  }
+  const vatCents = Math.round(amountCents * rate);
+  return { netCents: amountCents, vatCents, totalCents: amountCents + vatCents };
+}
+
+/** "Incl. 15% VAT" or "+ 15% VAT" (empty when VAT is 0%). */
+export function vatLabel(rules: PricingRules): string {
+  if (rules.vat.percent <= 0) return '';
+  return rules.vat.included ? `Incl. ${rules.vat.percent}% VAT` : `+ ${rules.vat.percent}% VAT`;
 }

@@ -119,7 +119,6 @@ export function formatVUVInCurrency(vuvAmount: number, targetCurrency: string): 
 interface PricingEngineOptions {
   /** Fixed rules (tests). Without them the engine reads the admin's `pricing_rules` setting. */
   rules?: PricingRules;
-  vatRate?: number;
 }
 
 // Admin edits reach checkout within this window even without an explicit invalidation.
@@ -136,12 +135,10 @@ export function invalidatePricingRulesCache(): void {
 export class PricingEngine {
   private storage: IStorage;
   private fixedRules?: PricingRules;
-  private vatRate: number;
 
   constructor(storage: IStorage, options: PricingEngineOptions = {}) {
     this.storage = storage;
     this.fixedRules = options.rules;
-    this.vatRate = options.vatRate ?? 0.15;
   }
 
   /** Discount/surcharge rules as set in Admin → Pricing (defaults if never saved or unreadable). */
@@ -297,14 +294,6 @@ export class PricingEngine {
     }
 
     return total;
-  }
-
-  calculateVAT(amountCents: number): number {
-    return Math.round(amountCents * this.vatRate);
-  }
-
-  calculateTotalWithVAT(amountCents: number): number {
-    return amountCents + this.calculateVAT(amountCents);
   }
 
   // ─── Internal ───────────────────────────────────────────────────────────────

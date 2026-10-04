@@ -33,7 +33,7 @@ import {
 } from "@/components/shared-detail-components";
 import { keepAcrossLanguageSwitch } from "@/lib/language-placeholder";
 import { usePricingRules } from "@/lib/site-settings";
-import { groupDiscountApplies } from "@shared/pricing-rules";
+import { groupDiscountApplies, vatLabel } from "@shared/pricing-rules";
 
 // ─── Star rating display ────────────────────────────────────────────────────
 function StarRating({ value, max = 5, size = "sm" }: { value: number; max?: number; size?: "sm" | "md" }) {
@@ -586,7 +586,7 @@ export default function TransferDetail() {
                         <span className="text-[1.1rem] font-black text-[#f4a830]">
                           {formatPriceDisplay(grandTotal, currency)}
                         </span>
-                        <span className="block text-[0.6rem] text-[#8a826e] uppercase font-bold tracking-tight">Incl. 15% VAT</span>
+                        <span className="block text-[0.6rem] text-[#8a826e] uppercase font-bold tracking-tight">{vatLabel(pricingRules)}</span>
                       </div>
                     </div>
                     {!date && <p className="text-[0.68rem] text-[#8a826e] italic text-center">Select a date to confirm pricing</p>}

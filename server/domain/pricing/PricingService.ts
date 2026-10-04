@@ -10,7 +10,7 @@ export interface PricedItem {
 }
 
 import { CurrencyService } from "./CurrencyService.js";
-import { config } from "../../config.js";
+import { DEFAULT_PRICING_RULES, vatBreakdown, type PricingRules } from "../../../shared/pricing-rules.js";
 
 export interface PriceSnapshot {
   items: PricedItem[];
@@ -23,14 +23,13 @@ export interface PriceSnapshot {
 }
 
 export class PricingService {
-  private static readonly VAT_RATE = config.ddd.vatRateOverride || 0.15;
-
   public static calculatePrice(unitPrice: number, quantity: number): number {
     return unitPrice * quantity;
   }
 
-  public static calculateVAT(amountCents: number): number {
-    return Math.round(amountCents * this.VAT_RATE);
+  /** VAT inside (or on top of) an amount, per the admin's VAT setting. */
+  public static calculateVAT(amountCents: number, rules: PricingRules = DEFAULT_PRICING_RULES): number {
+    return vatBreakdown(rules, amountCents).vatCents;
   }
 
   public static createSnapshot(items: {
@@ -40,7 +39,7 @@ export class PricingService {
     productId: string;
     name: string;
     quantity?: number; // fallback for legacy
-  }[], currency: string = 'VUV'): PriceSnapshot {
+  }[], currency: string = 'VUV', rules: PricingRules = DEFAULT_PRICING_RULES): PriceSnapshot {
     const pricedItems: PricedItem[] = items.map(item => {
       const quantity = item.quantity || (item.adultPax + item.childPax);
       const subtotalCents = item.unitPriceCents * quantity;
@@ -56,9 +55,11 @@ export class PricingService {
       };
     });
 
-    const baseAmountCents = pricedItems.reduce((sum, item) => sum + item.subtotalCents, 0);
-    const vatAmountCents = this.calculateVAT(baseAmountCents);
-    const totalCents = baseAmountCents + vatAmountCents;
+    // Item prices are the advertised prices. With VAT-inclusive pricing (the default,
+    // and what the site and brochure say) the customer pays exactly that and the VAT
+    // is the share inside it; only VAT-exclusive pricing adds it on top.
+    const itemsTotalCents = pricedItems.reduce((sum, item) => sum + item.subtotalCents, 0);
+    const { netCents: baseAmountCents, vatCents: vatAmountCents, totalCents } = vatBreakdown(rules, itemsTotalCents);
 
     const snapshot: PriceSnapshot = {
       items: pricedItems,

@@ -29,11 +29,14 @@ export function PricingRulesCard() {
   const dirty = JSON.stringify(draft) !== JSON.stringify(saved);
   const gd = draft.groupDiscount;
   const ps = draft.peakSeason;
+  const vat = draft.vat;
 
   const setGroup = (patch: Partial<PricingRules["groupDiscount"]>) =>
     setDraft((d) => ({ ...d, groupDiscount: { ...d.groupDiscount, ...patch } }));
   const setPeak = (patch: Partial<PricingRules["peakSeason"]>) =>
     setDraft((d) => ({ ...d, peakSeason: { ...d.peakSeason, ...patch } }));
+  const setVat = (patch: Partial<PricingRules["vat"]>) =>
+    setDraft((d) => ({ ...d, vat: { ...d.vat, ...patch } }));
   const toggleMonth = (m: number) =>
     setPeak({ months: ps.months.includes(m) ? ps.months.filter((x) => x !== m) : [...ps.months, m].sort((a, b) => a - b) });
 
@@ -54,13 +57,13 @@ export function PricingRulesCard() {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Percent className="h-4 w-4" /> Discounts &amp; Surcharges
+          <Percent className="h-4 w-4" /> Discounts, Surcharges &amp; VAT
         </CardTitle>
         <CardDescription>
           Applied automatically at checkout. Flat-price group packages are never discounted.
         </CardDescription>
       </CardHeader>
-      <CardContent className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <CardContent className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Group discount */}
         <div className="space-y-4">
           <div className="flex items-center justify-between gap-4">
@@ -119,7 +122,31 @@ export function PricingRulesCard() {
           </div>
         </div>
 
-        <div className="lg:col-span-2 flex justify-end gap-2">
+        {/* VAT */}
+        <div className="space-y-4">
+          <div>
+            <Label className="text-base">VAT</Label>
+            <p className="text-sm text-muted-foreground">Shown on prices, the cart and payment pages</p>
+          </div>
+          <div className="space-y-1.5 max-w-[50%]">
+            <Label htmlFor="rule-vat-pct">VAT %</Label>
+            <Input id="rule-vat-pct" type="number" min={0} max={50} step={0.5}
+              value={vat.percent} onChange={(e) => setVat({ percent: Number(e.target.value) })} />
+          </div>
+          <div className="flex items-center justify-between gap-4 rounded-lg border p-3">
+            <div>
+              <Label htmlFor="rule-vat-included">Prices include VAT</Label>
+              <p className="text-xs text-muted-foreground">
+                {vat.included
+                  ? `Customers pay the listed price; ${vat.percent}% VAT is part of it.`
+                  : `${vat.percent}% VAT is added on top of the listed price at checkout.`}
+              </p>
+            </div>
+            <Switch id="rule-vat-included" checked={vat.included} onCheckedChange={(included) => setVat({ included })} />
+          </div>
+        </div>
+
+        <div className="lg:col-span-3 flex justify-end gap-2">
           <Button variant="outline" disabled={!dirty || isSaving} onClick={() => setDraft(saved)}>Reset</Button>
           <Button disabled={!dirty || isSaving} onClick={handleSave}>{isSaving ? "Saving…" : "Save rules"}</Button>
         </div>

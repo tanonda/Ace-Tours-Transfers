@@ -67,7 +67,7 @@ export class PriceCartService {
       };
     }));
 
-    const snapshot = PricingService.createSnapshot(pricedItems);
+    const snapshot = PricingService.createSnapshot(pricedItems, 'VUV', await this.pricingEngine.getPricingRules());
 
     // Emit Domain Event
     await eventDispatcher.dispatch(new CartPriced(cartId, snapshot.totalCents, snapshot.vatAmountCents));

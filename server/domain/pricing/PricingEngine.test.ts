@@ -114,22 +114,6 @@ describe('PricingEngine', () => {
         });
     });
 
-    describe('calculateVAT', () => {
-        const engine = new PricingEngine(mockStorage);
-
-        it('calculates 15% VAT correctly', () => {
-            expect(engine.calculateVAT(10000)).toBe(1500);
-        });
-
-        it('rounds to nearest integer', () => {
-            expect(engine.calculateVAT(100)).toBe(15);
-        });
-
-        it('handles 0', () => {
-            expect(engine.calculateVAT(0)).toBe(0);
-        });
-    });
-
     describe('formatVUVInCurrency', () => {
         it('formats simple amount', () => {
             expect(formatVUVInCurrency(15000, 'VUV')).toBe('VT 15,000');

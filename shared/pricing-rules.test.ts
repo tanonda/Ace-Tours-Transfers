@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { DEFAULT_PRICING_RULES, PRICING_RULES_SETTING_KEY, estimateWithRules, parsePricingRules, pricingRulesFromSettings } from './pricing-rules.js';
+import { DEFAULT_PRICING_RULES, PRICING_RULES_SETTING_KEY, estimateWithRules, parsePricingRules, pricingRulesFromSettings, vatBreakdown, vatLabel } from './pricing-rules.js';
 
 describe('parsePricingRules', () => {
   it('falls back to defaults when nothing is saved', () => {
@@ -12,6 +12,7 @@ describe('parsePricingRules', () => {
     const saved = {
       groupDiscount: { enabled: false, minAdults: 10, percent: 15 },
       peakSeason: { enabled: true, months: [6, 7], percent: 5 },
+      vat: { percent: 12.5, included: false },
     };
     expect(parsePricingRules(saved)).toEqual(saved);
   });
@@ -76,5 +77,32 @@ describe('estimateWithRules', () => {
   it('respects rules the admin switched off', () => {
     const off = parsePricingRules({ groupDiscount: { enabled: false }, peakSeason: { enabled: false } });
     expect(estimateWithRules(off, 7000, { adultPax: 7, date: '2026-12-20' }).total).toBe(7000);
+  });
+});
+
+describe('VAT rules', () => {
+  it('defaults to 15% included in the advertised price', () => {
+    expect(DEFAULT_PRICING_RULES.vat).toEqual({ percent: 15, included: true });
+  });
+
+  it('splits the VAT out of a VAT-inclusive price instead of adding it', () => {
+    // VT 1,200 airport transfer: the customer pays 1,200, of which 157 is VAT.
+    expect(vatBreakdown(DEFAULT_PRICING_RULES, 1200)).toEqual({ netCents: 1043, vatCents: 157, totalCents: 1200 });
+  });
+
+  it('adds VAT on top when the admin says prices exclude it', () => {
+    const rules = parsePricingRules({ vat: { percent: 15, included: false } });
+    expect(vatBreakdown(rules, 1200)).toEqual({ netCents: 1200, vatCents: 180, totalCents: 1380 });
+  });
+
+  it('labels the price the way it is charged', () => {
+    expect(vatLabel(DEFAULT_PRICING_RULES)).toBe('Incl. 15% VAT');
+    expect(vatLabel(parsePricingRules({ vat: { percent: 12.5, included: false } }))).toBe('+ 12.5% VAT');
+    expect(vatLabel(parsePricingRules({ vat: { percent: 0 } }))).toBe('');
+  });
+
+  it('keeps the VAT rate in range', () => {
+    expect(parsePricingRules({ vat: { percent: 80 } }).vat.percent).toBe(50);
+    expect(parsePricingRules({ vat: { percent: -1, included: 'yes' } }).vat).toEqual({ percent: 0, included: true });
   });
 });
