@@ -1,3 +1,4 @@
+import { startTransition, useEffect } from "react";
 import { createRoot, hydrateRoot } from "react-dom/client";
 import { dehydrate, hydrate } from "@tanstack/react-query";
 import App, { preloadPrerenderedPage } from "./App";
@@ -53,6 +54,12 @@ window.__ACE_RENDER_SNAPSHOT__ = async () => {
   return renderSnapshot(<App />);
 };
 
+/** Renders nothing; its effect runs once the tree it is part of has committed. */
+function OnCommitted({ callback }: { callback: () => void }) {
+  useEffect(callback, [callback]);
+  return null;
+}
+
 const rootElement = document.getElementById("root")!;
 const snapshotState = parseSnapshotState(document.getElementById(SNAPSHOT_STATE_ID)?.textContent);
 
@@ -70,12 +77,25 @@ async function boot() {
     // A route boundary still waiting for its chunk would be client-rendered (blank
     // fallback) as soon as a provider above it updates; load the chunk first.
     await preloadPrerenderedPage(window.location.pathname).catch(() => {});
-    hydrateRoot(rootElement, <App />, {
-      onRecoverableError: (error) => console.warn("[hydration]", error),
+    // The visitor's language is applied once hydration has committed; switching
+    // mid-hydration would make the text differ from the English HTML.
+    const hydrated = new Promise<void>((resolve) => {
+      // As a transition, hydration yields to the browser every few ms instead of
+      // adopting the whole page in one long task.
+      startTransition(() => {
+        hydrateRoot(
+          rootElement,
+          <>
+            <App />
+            <OnCommitted callback={resolve} />
+          </>,
+          { onRecoverableError: (error) => console.warn("[hydration]", error) },
+        );
+      });
     });
     if (translations) {
-      await translations;
-      setTimeout(() => void i18n.changeLanguage(visitorLanguage), 0);
+      await Promise.all([translations, hydrated]);
+      void i18n.changeLanguage(visitorLanguage);
     }
     return;
   }
