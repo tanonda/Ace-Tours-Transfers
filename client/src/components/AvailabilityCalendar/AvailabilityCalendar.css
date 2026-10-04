@@ -20,7 +20,7 @@
 }
 
 .availability-calendar {
-  font-family: 'DM Sans', sans-serif;
+  font-family: var(--font-sans);
   padding: 18px 16px 16px;
   background: var(--cal-bg);
   border-radius: var(--cal-radius);
@@ -38,7 +38,7 @@
 }
 
 .calendar-title {
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-serif);
   font-size: 1rem;
   font-weight: 700;
   color: var(--cal-gold);

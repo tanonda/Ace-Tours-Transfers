@@ -44,7 +44,8 @@
     "checkAvailability": "查看可用性",
     "popularSearches": "热门:",
     "airportTransfer": "机场接送",
-    "dayTours": "一日游"
+    "dayTours": "一日游",
+    "greeting": "来自维拉港的问候！"
   },
   "home": {
     "aboutLabel": "关于我们",
@@ -65,7 +66,21 @@
     "bookTransfer": "预订接送",
     "ctaTitle": "准备好您的下一次冒险了吗？",
     "ctaDesc": "让我们处理细节，而您创造回忆。",
-    "ctaButton": "开始计划"
+    "ctaButton": "开始计划",
+    "aboutCaption1": "埃法特瀑布",
+    "aboutCaption2": "埃法特南海岸",
+    "aboutPhotoAlt": "埃法特梅莱瀑布",
+    "aboutPhoto2Alt": "埃法特南海岸的埃拉塔普海滩",
+    "viewAllTours": "查看全部行程",
+    "viewAllTransfers": "查看全部接送服务",
+    "craftLabel": "本地手作",
+    "craftTitle": "瓦努阿图的风味与手艺",
+    "craftDesc": "海岛巧克力、可可和手工编织篮。我们的埃法特风光之旅会途经一家本地巧克力工坊；参加私人行程时，停靠站点由您决定，欢迎让我们为您加入一位本地手艺人。",
+    "craftCocoa": "市场上的可可",
+    "craftMarket": "维拉港市场",
+    "craftBasket": "海岛编篮",
+    "craftWoven": "手工编织",
+    "ctaScript": "真希望你也在这里……"
   },
   "about": {
     "title": "关于Ace旅游",
@@ -230,7 +245,10 @@
     "bookNow": "立即预订",
     "viewDetails": "查看详情",
     "quickView": "快速预览",
-    "startingFrom": "起价"
+    "startingFrom": "起价",
+    "from": "起价",
+    "package": "套餐",
+    "bookTransfer": "预订接送"
   },
   "dashboard": {
     "welcome": "欢迎回来",

@@ -84,11 +84,11 @@ export const IMAGE_CREDITS = {
     license: "CC BY-SA 3.0",
     href: "https://commons.wikimedia.org/wiki/File:Mele_Sunset_-_panoramio.jpg",
   },
-  meleBeachSunset: {
-    label: "sunset on Mele Beach",
-    author: "DB Thats-Me",
+  vilaHarbourDusk: {
+    label: "Port Vila Harbour at dusk",
+    author: "Graham Crumb",
     license: "CC BY-SA 3.0",
-    href: "https://commons.wikimedia.org/wiki/File:Sunset_Mele_Beach_-_panoramio.jpg",
+    href: "https://commons.wikimedia.org/wiki/File:Port_Vila_Harbour_(Imagicity_816).jpg",
   },
   vilaBayShip: {
     label: "ship leaving Vila Bay at sunset",

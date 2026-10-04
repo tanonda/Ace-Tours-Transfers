@@ -710,7 +710,7 @@ const SiteFooter = memo(function SiteFooter() {
 
   return (
     <>
-      <footer role="contentinfo" className="bg-[#291B12] text-white pt-16 pb-24 md:pb-8">
+      <footer role="contentinfo" className="bg-[#0c1f2e] text-white pt-16 pb-24 md:pb-8">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
             <div>
@@ -732,7 +732,7 @@ const SiteFooter = memo(function SiteFooter() {
             </div>
 
             <div>
-              <h3 className="font-serif text-lg font-semibold mb-6 text-primary">{t("footer.quickLinks")}</h3>
+              <h3 className="font-sans text-sm font-semibold uppercase tracking-wider mb-6 text-[#f3c9a8]">{t("footer.quickLinks")}</h3>
               <ul className="space-y-3">
                 <li><Link href="/" className="text-white/70 hover:text-white transition-colors">{t("nav.home")}</Link></li>
                 <li><Link href="/tours" className="text-white/70 hover:text-white transition-colors">{t("nav.tours")}</Link></li>
@@ -748,7 +748,7 @@ const SiteFooter = memo(function SiteFooter() {
             </div>
 
             <div>
-              <h3 className="font-serif text-lg font-semibold mb-6 text-primary">Popular Searches</h3>
+              <h3 className="font-sans text-sm font-semibold uppercase tracking-wider mb-6 text-[#f3c9a8]">Popular Searches</h3>
               <ul className="space-y-3">
                 {landingLinks.map((link) => (
                   <li key={link.href}>
@@ -761,10 +761,10 @@ const SiteFooter = memo(function SiteFooter() {
             </div>
 
             <div>
-              <h3 className="font-serif text-lg font-semibold mb-6 text-primary">{t("footer.contactUs", "Contact Us")}</h3>
+              <h3 className="font-sans text-sm font-semibold uppercase tracking-wider mb-6 text-[#f3c9a8]">{t("footer.contactUs", "Contact Us")}</h3>
               <ul className="space-y-4">
                 <li className="flex items-start gap-3">
-                  <Phone className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                  <Phone className="h-5 w-5 text-[#f3c9a8] shrink-0 mt-0.5" />
                   <div className="text-white/70">
                     <p>
                       {contactPhones.map((phone, i) => (
@@ -778,7 +778,7 @@ const SiteFooter = memo(function SiteFooter() {
                   </div>
                 </li>
                 <li className="flex items-start gap-3">
-                  <Mail className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                  <Mail className="h-5 w-5 text-[#f3c9a8] shrink-0 mt-0.5" />
                   <a href={`mailto:${contactEmail}`} className="text-white/70 hover:text-white break-all min-w-0">
                     {contactEmail}
                   </a>

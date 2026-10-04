@@ -14,15 +14,14 @@
  * - All search logic delegated to useAvailabilitySearch()
  */
 
-const heroBg =
-  "https://res.cloudinary.com/dwro1dh5q/image/upload/v1765063929/ace-tours-assets/ace_tours_hero_beach.jpg";
+// Sunset over the yachts at Mele, Efate (DB Thats-Me, CC BY-SA 3.0; see image-credits.ts).
+// Admin → CMS "hero_image" overrides it.
+const heroBg = "/assets/home/mele-sunset-yachts.webp";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { Link } from "wouter";
 import { useTranslation } from "react-i18next";
 import { useCmsText } from "@/hooks/use-cms-text";
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
@@ -309,7 +308,7 @@ function GuestsCell({
           <button
             type="button"
             onClick={() => setOpen(false)}
-            className="w-full h-10 bg-[#f2800d] hover:bg-[#e07008] text-white font-bold rounded-lg text-sm transition-colors"
+            className="w-full h-10 bg-primary hover:bg-primary/90 text-white font-bold rounded-lg text-sm transition-colors"
           >
             Apply
           </button>
@@ -504,8 +503,8 @@ function SearchTabs({ activeTab, onTabChange }: SearchTabsProps) {
           className={cn(
             "flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-semibold transition-all duration-200",
             activeTab === tab.id
-              ? "bg-white text-gray-900 shadow-sm"
-              : "text-white/75 hover:text-white hover:bg-white/10"
+              ? "bg-navy text-white shadow-sm"
+              : "text-muted-foreground hover:text-foreground hover:bg-muted"
           )}
         >
           {tab.icon}
@@ -539,7 +538,7 @@ function SearchBar({ search }: SearchBarProps) {
         aria-label="Availability search"
         className={cn(
           "flex flex-col md:flex-row md:items-stretch bg-white rounded-xl overflow-hidden",
-          "shadow-[0_2px_24px_rgba(0,0,0,0.22)]",
+          "border border-border",
           "md:h-16"
         )}
       >
@@ -669,7 +668,7 @@ function SearchBar({ search }: SearchBarProps) {
             // Full width on mobile, flush-right on desktop
             "rounded-none w-full md:w-auto py-4 md:py-0",
             search.isValid
-              ? "bg-[#f2800d] hover:bg-[#e07008] cursor-pointer"
+              ? "bg-primary hover:bg-primary/90 cursor-pointer"
               : "bg-gray-200 text-gray-400 cursor-not-allowed"
           )}
         >
@@ -682,106 +681,64 @@ function SearchBar({ search }: SearchBarProps) {
 }
 
 // ─── Hero ─────────────────────────────────────────────────────────────────────
+// Postcard layout: handwritten greeting over a full-bleed Efate photo that fades
+// into the cream page, with the search bar on a paper card at the bottom edge.
 export function Hero() {
   const { t } = useTranslation();
   const cms = useCmsText("home-page");
   const search = useAvailabilitySearch();
   const bgUrl = cms.text("hero_image") || heroBg;
+  const bgSrc = bgUrl.includes("res.cloudinary.com")
+    ? bgUrl.replace("/upload/", "/upload/ar_16:9,c_fill,g_auto,f_auto,q_auto,w_1600/")
+    : bgUrl;
 
   return (
     <section
-      className="relative min-h-[85vh] md:min-h-screen w-full overflow-hidden"
+      className="relative min-h-[92vh] w-full overflow-hidden bg-navy"
       aria-label="Hero — search for tours and transfers"
     >
-      {/* Background image + gradient — real <img> tag enables fetchpriority=high for LCP */}
-      <div
-        className="absolute inset-0 overflow-hidden"
-        aria-hidden="true"
-      >
+      {/* Background image — real <img> tag enables fetchpriority=high for LCP */}
+      <div className="absolute inset-0 overflow-hidden" aria-hidden="true">
         <img
-          src={bgUrl.replace("/upload/", "/upload/ar_16:9,c_fill,g_auto,f_auto,q_auto,w_1600/")}
+          src={bgSrc}
           alt=""
-          className="w-full h-full object-cover object-center"
+          className="w-full h-full object-cover object-[50%_40%]"
           loading="eager"
           fetchPriority="high"
           decoding="async"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/20 to-black/65" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/25 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-b from-transparent to-background" />
       </div>
 
-      <div className="relative container mx-auto px-4 flex flex-col justify-center items-center text-center text-white pt-44 pb-16 md:pt-52 md:pb-24 min-h-[85vh] md:min-h-screen">
-
-        {/* Headline — h1 preserved for SEO */}
+      <div className="relative container mx-auto px-4 flex flex-col justify-end min-h-[92vh] pt-52 pb-10 md:pt-44 md:pb-14">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, ease: "easeOut" }}
-          className="max-w-4xl mb-6 md:mb-10"
+          className="max-w-3xl text-white mb-10 md:mb-14"
         >
-          <h1 className="font-serif text-4xl md:text-7xl lg:text-8xl mb-4 md:mb-5 leading-[1.1] drop-shadow-[0_4px_8px_rgba(0,0,0,0.55)]">
-            <span className="text-white font-bold block md:inline">
-              {cms.text("hero_title_part1", t("hero.titlePart1"))}{" "}
-            </span>
-            <span className="text-[#f2800d] italic font-normal lowercase">
-              {cms.text("hero_title_part2", t("hero.titlePart2"))}
-            </span>
+          <p className="font-script text-3xl md:text-4xl text-white/90 -rotate-3 origin-left mb-3 drop-shadow">
+            {cms.text("hero_greeting", t("hero.greeting", "Greetings from Port Vila!"))}
+          </p>
+          {/* h1 preserved for SEO */}
+          <h1 className="font-serif text-5xl sm:text-6xl md:text-7xl lg:text-[5.25rem] leading-[1.02] drop-shadow-[0_2px_14px_rgba(0,0,0,0.35)]">
+            {cms.text("hero_title_part1", t("hero.titlePart1"))}{" "}
+            {cms.text("hero_title_part2", t("hero.titlePart2"))}
           </h1>
-          <p className="text-lg md:text-xl text-white/80 drop-shadow-md max-w-2xl mx-auto font-medium leading-relaxed">
+          <p className="mt-6 text-lg md:text-xl text-white/90 max-w-xl leading-relaxed drop-shadow">
             {cms.text("hero_subtitle", t("home.toursDesc"))}
           </p>
         </motion.div>
 
-        {/* Dark backing panel + search bar */}
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.9, delay: 0.25, ease: [0.23, 1, 0.32, 1] }}
-          className="w-full max-w-5xl z-10"
+          className="w-full z-10"
         >
-          {/*
-           * Dark semi-transparent backing panel — mirrors the navy/dark panel
-           * Skyscanner uses behind its search bar, giving the white bar visual lift.
-           */}
-          <div className="bg-black/35 backdrop-blur-xl rounded-2xl p-4 md:p-5 border border-white/10 shadow-[0_16px_48px_rgba(0,0,0,0.35)]">
+          <div className="bg-paper rounded-xl p-3 md:p-4 border border-border/60 shadow-[0_24px_60px_-20px_rgba(18,50,74,0.45)]">
             <SearchBar search={search} />
-          </div>
-
-          {/* Popular searches */}
-          <div className="flex flex-wrap items-center justify-center gap-2.5 mt-7">
-            <span className="text-xs text-white/50 font-bold uppercase tracking-widest">
-              {t("hero.popularSearches", "Popular:")}
-            </span>
-            {[
-              { label: t("nav.tours"), href: "/tours" },
-              { label: t("hero.airportTransfer", "Airport Transfer"), href: "/transfers" },
-              { label: t("hero.dayTours", "Day Tours"), href: "/tours" },
-            ].map((link) => (
-              <Link key={link.label} href={link.href}>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  className="bg-white/10 hover:bg-white/20 text-white/80 hover:text-white font-semibold rounded-full border border-white/15 transition-all backdrop-blur-md text-xs"
-                >
-                  {link.label}
-                </Button>
-              </Link>
-            ))}
-          </div>
-        </motion.div>
-
-        {/* Scroll indicator */}
-        <motion.div
-          className="absolute bottom-10 left-1/2 -translate-x-1/2 text-white/40"
-          animate={{ y: [0, 8, 0] }}
-          transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
-          aria-hidden="true"
-        >
-          <div className="w-5 h-9 border border-white/20 rounded-full flex justify-center p-1">
-            <motion.div
-              className="w-1 h-2 bg-[#f2800d]/70 rounded-full"
-              animate={{ opacity: [1, 0.3, 1] }}
-              transition={{ duration: 1.5, repeat: Infinity }}
-            />
           </div>
         </motion.div>
       </div>

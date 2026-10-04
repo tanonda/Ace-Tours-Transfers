@@ -44,7 +44,8 @@
     "checkAvailability": "Verificar Disponibilidad",
     "popularSearches": "Populares:",
     "airportTransfer": "Traslado al Aeropuerto",
-    "dayTours": "Tours de Día"
+    "dayTours": "Tours de Día",
+    "greeting": "¡Saludos desde Port Vila!"
   },
   "home": {
     "aboutLabel": "Sobre Nosotros",
@@ -65,7 +66,21 @@
     "bookTransfer": "Reservar Traslado",
     "ctaTitle": "¿Listo para tu próxima aventura?",
     "ctaDesc": "Déjanos manejar los detalles mientras tú creas los recuerdos.",
-    "ctaButton": "Empezar a Planificar"
+    "ctaButton": "Empezar a Planificar",
+    "aboutCaption1": "Cascadas de Efate",
+    "aboutCaption2": "La costa sur de Efate",
+    "aboutPhotoAlt": "Cascada de Mele, Efate",
+    "aboutPhoto2Alt": "Playa de Eratap, en la costa sur de Efate",
+    "viewAllTours": "Ver todos los tours",
+    "viewAllTransfers": "Ver todos los traslados",
+    "craftLabel": "Artesanos locales",
+    "craftTitle": "Sabores y artesanía de Vanuatu",
+    "craftDesc": "Chocolate de la isla, cacao y cestas tejidas a mano. Nuestro Efate Scenic Tour se detiene en una fábrica de chocolate local, y en un tour privado usted elige las paradas: pídanos que añadamos un artesano local a su día.",
+    "craftCocoa": "Cacao del mercado",
+    "craftMarket": "Mercado de Port Vila",
+    "craftBasket": "Cesta isleña",
+    "craftWoven": "Tejido a mano",
+    "ctaScript": "Ojalá estuvieras aquí..."
   },
   "about": {
     "title": "Sobre Ace Tours",
@@ -230,7 +245,10 @@
     "bookNow": "Reservar Ahora",
     "viewDetails": "Ver Detalles",
     "quickView": "Vista Rápida",
-    "startingFrom": "Desde"
+    "startingFrom": "Desde",
+    "from": "Desde",
+    "package": "Paquete",
+    "bookTransfer": "Reservar traslado"
   },
   "dashboard": {
     "welcome": "Bienvenido de nuevo",
