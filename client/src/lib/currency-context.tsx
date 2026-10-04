@@ -42,17 +42,31 @@ export type CurrencyCode = keyof typeof CURRENCIES;
 
 // ─── Formatting Utility ──────────────────────────────────────────────────────
 
+// Building an Intl.NumberFormat is expensive and every displayed price is formatted
+// on each render, so keep one per currency. The options never depend on the live
+// exchange rate (applied to the amount), so the cache needs no invalidation.
+const formatters = new Map<string, Intl.NumberFormat>();
+
+function currencyFormatter(def: CurrencyDef): Intl.NumberFormat {
+  let formatter = formatters.get(def.code);
+  if (!formatter) {
+    formatter = new Intl.NumberFormat(def.locale, {
+      style: 'currency',
+      currency: def.code,
+      minimumFractionDigits: def.isWholeUnit ? 0 : 2,
+      maximumFractionDigits: def.isWholeUnit ? 0 : 2,
+    });
+    formatters.set(def.code, formatter);
+  }
+  return formatter;
+}
+
 export function formatInCurrency(vuvAmount: number, currency: CurrencyCode | string = 'VUV'): string {
   const def = CURRENCIES[currency.toUpperCase()] ?? CURRENCIES.VUV;
   const displayAmount = vuvAmount * def.rateFromVUV;
 
   try {
-    return new Intl.NumberFormat(def.locale, {
-      style: 'currency',
-      currency: def.code,
-      minimumFractionDigits: def.isWholeUnit ? 0 : 2,
-      maximumFractionDigits: def.isWholeUnit ? 0 : 2,
-    }).format(displayAmount);
+    return currencyFormatter(def).format(displayAmount);
   } catch {
     const fixed = def.isWholeUnit ? Math.round(displayAmount).toString() : displayAmount.toFixed(2);
     return `${def.symbol} ${fixed}`;
