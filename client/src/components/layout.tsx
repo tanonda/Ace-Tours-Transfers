@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { useState, useEffect, useRef, forwardRef, memo } from "react";
+import { useState, useEffect, useRef, forwardRef, memo, type ReactNode } from "react";
 import { Menu, Phone, Mail, Instagram, Facebook, X, ChevronRight, ShoppingCart, User, LogIn, LogOut, UserPlus, Home, Map, Car, Info, MessageSquare, Calendar, ChevronDown, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -135,11 +135,24 @@ function useSiteChrome() {
 }
 
 /**
+ * The header holds ~420 components (14 navigation menus). These two read the auth and
+ * cart contexts on its behalf, so signing in or changing the cart re-renders only the
+ * bit of the header that shows it.
+ */
+function AuthState({ children }: { children: (auth: ReturnType<typeof useAuth>) => ReactNode }) {
+  return <>{children(useAuth())}</>;
+}
+
+function CartCount({ children }: { children: (itemCount: number) => ReactNode }) {
+  return <>{children(useCart().itemCount)}</>;
+}
+
+/**
  * The header is memoized and takes no props, so it re-renders only when its own state
  * or the contexts it reads change. Inline in Layout, it re-rendered (all 14 navigation
  * menus) every time the page below it did — several times per page load.
  */
-const SiteHeader = memo(function SiteHeader() {
+export const SiteHeader = memo(function SiteHeader() {
   const { settings, contactEmail, contactPhone, whatsappNumber, facebookUrl, instagramUrl, contactAddress, footerBacklinks, landingLinks, tours, transfers, t } = useSiteChrome();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -147,8 +160,6 @@ const SiteHeader = memo(function SiteHeader() {
   const [transfersOpen, setTransfersOpen] = useState(false);
   const [bookingsOpen, setBookingsOpen] = useState(false);
   const [location] = useLocation();
-  const { itemCount } = useCart();
-  const { user, logout } = useAuth();
   const isHome = location === "/";
 
   const closeMobileMenu = () => {
@@ -277,7 +288,7 @@ const SiteHeader = memo(function SiteHeader() {
             </div>
 
             <div className="bg-muted/50 p-4 border-b border-border">
-              {user ? (
+              <AuthState>{({ user }) => user ? (
                 <div className="flex items-center gap-3">
                   <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
                     <User className="h-5 w-5 text-primary" />
@@ -296,7 +307,7 @@ const SiteHeader = memo(function SiteHeader() {
                 <div className="flex gap-2">
                   {/* Guest accounts are disabled. Guests access via reference ID in Manage Bookings. */}
                 </div>
-              )}
+              )}</AuthState>
             </div>
 
             <div className="overflow-y-auto h-[calc(100vh-200px)]">
@@ -431,11 +442,11 @@ const SiteHeader = memo(function SiteHeader() {
                     <ShoppingCart className="h-5 w-5 text-primary" />
                     <span className="font-medium">{t("cart.title")}</span>
                   </div>
-                  {itemCount > 0 && (
+                  <CartCount>{(itemCount) => itemCount > 0 && (
                     <Badge variant="default" className="bg-primary text-white">
                       {itemCount}
                     </Badge>
-                  )}
+                  )}</CartCount>
                 </Link>
 
                 <div className="my-3 border-t border-border" />
@@ -461,7 +472,7 @@ const SiteHeader = memo(function SiteHeader() {
                   <ThemeToggle size="md" />
                 </div>
 
-                {user && (
+                <AuthState>{({ user, logout }) => user && (
                   <button
                     onClick={() => {
                       logout();
@@ -474,7 +485,7 @@ const SiteHeader = memo(function SiteHeader() {
                     <LogOut className="h-5 w-5" />
                     <span className="font-medium">{t("nav.logout")}</span>
                   </button>
-                )}
+                )}</AuthState>
               </nav>
 
               <div className="p-4 border-t border-border">
@@ -529,11 +540,11 @@ const SiteHeader = memo(function SiteHeader() {
         <Link href="/cart" className="hidden md:block xl:hidden absolute right-0">
           <Button variant="ghost" size="icon" className={`${mobileButtonColor} relative`} aria-label="Cart">
             <ShoppingCart className="h-6 w-6" aria-hidden="true" />
-            {itemCount > 0 && (
+            <CartCount>{(itemCount) => itemCount > 0 && (
               <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-[#f4a830] text-[#0f0d09] text-[10px] font-black flex items-center justify-center">
                 {itemCount}
               </span>
-            )}
+            )}</CartCount>
           </Button>
         </Link>
         </div>
@@ -662,15 +673,17 @@ const SiteHeader = memo(function SiteHeader() {
 
           <div className="ml-4 flex items-center shrink-0">
             <Link href="/cart">
-              <Button size="default" className="font-semibold shadow-md relative" variant={itemCount > 0 ? "default" : "secondary"}>
-                <ShoppingCart className="h-4 w-4 mr-2" />
-                {itemCount > 0 ? `Cart (${itemCount})` : "Cart"}
-                {itemCount > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-[#f4a830] text-[#0f0d09] text-[10px] font-black flex items-center justify-center">
-                    {itemCount}
-                  </span>
-                )}
-              </Button>
+              <CartCount>{(itemCount) => (
+                <Button size="default" className="font-semibold shadow-md relative" variant={itemCount > 0 ? "default" : "secondary"}>
+                  <ShoppingCart className="h-4 w-4 mr-2" />
+                  {itemCount > 0 ? `Cart (${itemCount})` : "Cart"}
+                  {itemCount > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-[#f4a830] text-[#0f0d09] text-[10px] font-black flex items-center justify-center">
+                      {itemCount}
+                    </span>
+                  )}
+                </Button>
+              )}</CartCount>
             </Link>
           </div>
         </nav>
