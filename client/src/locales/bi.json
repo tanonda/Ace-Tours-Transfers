@@ -577,5 +577,16 @@
     "factFlights": "Mifala i folem plen",
     "factGreet": "Mitim mo welkamem",
     "fact247": "Oltaem i open 24/7"
+  },
+  "social": {
+    "menu": "Ace Tours long sosol midia",
+    "open": "Folem o kontaktem Ace Tours",
+    "close": "Klosem ol link blong sosol midia",
+    "dismiss": "Haedem baten blong sosol midia",
+    "whatsapp": "WhatsApp",
+    "facebook": "Facebook",
+    "instagram": "Instagram",
+    "call": "Ringim mifala",
+    "email": "Imelem mifala"
   }
 }

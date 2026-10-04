@@ -519,5 +519,14 @@
   "about.planNote": "Time for your next adventure. Let us help you with your travel plans!",
   "about.planCta": "Plan my trip",
   "about.stampTop": "Approved",
-  "about.stampBottom": "Operator"
+  "about.stampBottom": "Operator",
+  "social.menu": "Ace Tours on social media",
+  "social.open": "Follow or contact Ace Tours",
+  "social.close": "Close social media links",
+  "social.dismiss": "Hide social media button",
+  "social.whatsapp": "WhatsApp",
+  "social.facebook": "Facebook",
+  "social.instagram": "Instagram",
+  "social.call": "Call us",
+  "social.email": "Email us"
 }

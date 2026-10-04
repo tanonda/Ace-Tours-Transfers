@@ -29,7 +29,7 @@ import { useTranslation } from "react-i18next";
 import { SkipLinks } from "@/components/skip-links";
 import { useCMS } from "@/lib/cms-context";
 import { useCmsText } from "@/hooks/use-cms-text";
-import { WhatsAppWidget } from "@/components/whatsapp-widget";
+import { FloatingDock } from "@/components/social-widget";
 import { useAuth } from "@/lib/auth-context";
 import type { Product } from "@shared/schema";
 import {
@@ -872,7 +872,7 @@ const SiteFooter = memo(function SiteFooter() {
           </div>
         }
       />
-      <WhatsAppWidget />
+      <FloatingDock />
     </>
   );
 });
@@ -887,8 +887,11 @@ const FOOTER_PHOTO = "/assets/home/vila-harbour-dusk.webp";
  */
 function FooterScene({ children }: { children: ReactNode }) {
   return (
-    <div className="relative isolate overflow-hidden bg-[#0c1f2e]">
-      <div aria-hidden className="absolute inset-0 -z-10">
+    // No `isolate` here: the floating buttons and mobile nav render inside the footer,
+    // and an isolated stacking context would trap their z-index below the hero widget.
+    // The photo is simply the first positioned child; later relative children paint over it.
+    <div className="relative overflow-hidden bg-[#0c1f2e]">
+      <div aria-hidden className="absolute inset-0">
         <img src={FOOTER_PHOTO} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover object-[50%_35%]" />
         {/* A dark navy wash for legible white text, a fixed-height fade from the page colour
             at the top (a percentage would stretch on tall phone footers), and deeper navy

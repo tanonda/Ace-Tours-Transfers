@@ -577,5 +577,16 @@
     "factFlights": "航班跟踪",
     "factGreet": "接机问候",
     "fact247": "全天候服务"
+  },
+  "social": {
+    "menu": "Ace Tours 社交媒体",
+    "open": "关注或联系 Ace Tours",
+    "close": "关闭社交媒体链接",
+    "dismiss": "隐藏社交媒体按钮",
+    "whatsapp": "WhatsApp",
+    "facebook": "Facebook",
+    "instagram": "Instagram",
+    "call": "致电我们",
+    "email": "发邮件给我们"
   }
 }

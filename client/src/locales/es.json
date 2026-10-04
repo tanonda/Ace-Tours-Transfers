@@ -577,5 +577,16 @@
     "factFlights": "Seguimiento de vuelos",
     "factGreet": "Recepción personalizada",
     "fact247": "Disponible 24/7"
+  },
+  "social": {
+    "menu": "Ace Tours en redes sociales",
+    "open": "Seguir o contactar a Ace Tours",
+    "close": "Cerrar enlaces de redes sociales",
+    "dismiss": "Ocultar el botón de redes sociales",
+    "whatsapp": "WhatsApp",
+    "facebook": "Facebook",
+    "instagram": "Instagram",
+    "call": "Llámenos",
+    "email": "Escríbanos"
   }
 }
