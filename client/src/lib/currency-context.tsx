@@ -10,7 +10,7 @@
  * - When displaying in a foreign currency, multiply by exchange rate then format.
  */
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 
 // ─── Currency Definitions ────────────────────────────────────────────────────
 
@@ -154,8 +154,17 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
     [currency]
   );
 
+  // Live rates are written into CURRENCIES in place, so prices pick them up by
+  // re-rendering. VUV is the base currency (rate 1): its prices never change when
+  // rates arrive, so VUV visitors' prices don't need to re-render.
+  const ratesVersion = currency === 'VUV' ? 0 : Number(ratesLoaded);
+  const value = useMemo(
+    () => ({ currency, currencyDef, setCurrency, format, convert }),
+    [currency, currencyDef, setCurrency, format, convert, ratesVersion],
+  );
+
   return (
-    <CurrencyContext.Provider value={{ currency, currencyDef, setCurrency, format, convert }}>
+    <CurrencyContext.Provider value={value}>
       {children}
     </CurrencyContext.Provider>
   );

@@ -2,11 +2,10 @@ import { describe, it, expect, beforeAll } from "vitest";
 import { createElement, useId } from "react";
 // @ts-ignore - jsdom ships no type declarations
 import { JSDOM } from "jsdom";
-import { hydrationTree } from "./hydration-tree";
 
 // The prerender's renderToString output and the client's hydrateRoot tree must have
 // the same shape, or every useId (Radix aria-controls, labels, …) differs.
-describe("renderSnapshot + hydrationTree", () => {
+describe("renderSnapshot", () => {
   beforeAll(() => {
     const dom = new JSDOM('<!DOCTYPE html><html><head></head><body><div id="root"></div></body></html>');
     Object.assign(globalThis, {
@@ -18,7 +17,7 @@ describe("renderSnapshot + hydrationTree", () => {
     });
   });
 
-  it("hydrates the snapshot with matching useId values and signals the commit", async () => {
+  it("produces markup that hydrates with matching useId values", async () => {
     let clientId = "";
     const Probe = () => {
       const id = useId();
@@ -35,10 +34,9 @@ describe("renderSnapshot + hydrationTree", () => {
     const serverId = root.querySelector("p")!.id;
 
     const errors: unknown[] = [];
-    await new Promise<void>((resolve) => {
-      hydrateRoot(root, hydrationTree(createElement(Probe), resolve), {
-        onRecoverableError: (error) => errors.push(error),
-      });
+    const { act } = await import("react");
+    await act(async () => {
+      hydrateRoot(root, createElement(Probe), { onRecoverableError: (error) => errors.push(error) });
     });
 
     expect(errors).toEqual([]);

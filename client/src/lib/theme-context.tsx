@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useLayoutEffect, useState, ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useState, ReactNode } from "react";
 import { INITIAL_THEME, resolveStoredTheme, THEME_STORAGE_KEY, type Theme } from "./theme";
 
 interface ThemeContextType {
@@ -36,16 +36,20 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     if (storedThemeApplied) localStorage.setItem(THEME_STORAGE_KEY, theme);
   }, [theme, storedThemeApplied]);
 
-  const toggleTheme = () => {
+  const toggleTheme = useCallback(() => {
     setThemeState((prev) => (prev === "light" ? "dark" : "light"));
-  };
+  }, []);
 
-  const setTheme = (newTheme: Theme) => {
+  const setTheme = useCallback((newTheme: Theme) => {
     setThemeState(newTheme);
-  };
+  }, []);
+
+  // Memoized: applying a stored theme that equals the prerendered one changes nothing
+  // for readers, so they don't re-render.
+  const value = useMemo(() => ({ theme, toggleTheme, setTheme }), [theme, toggleTheme, setTheme]);
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme, setTheme }}>
+    <ThemeContext.Provider value={value}>
       {children}
     </ThemeContext.Provider>
   );

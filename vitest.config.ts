@@ -2,6 +2,8 @@ import { defineConfig } from 'vitest/config';
 import path from 'path';
 
 export default defineConfig({
+    // Same JSX runtime as the app (Vite's React plugin): components don't import React.
+    esbuild: { jsx: 'automatic' },
     test: {
         include: ['server/**/*.test.ts', 'shared/**/*.test.ts', 'client/src/lib/**/*.test.ts'],
         exclude: ['node_modules', 'dist', 'build'],

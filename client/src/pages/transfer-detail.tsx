@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, ShoppingCart, Shield, MapPin, Clock, ExternalLink } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useState, useEffect, useCallback } from "react";
-import { useCart } from "@/lib/cart-context";
+import { useCartActions } from "@/lib/cart-context";
 import { useBookingDraft } from "@/lib/booking-state-context";
 import { formatPriceDisplay, estimateBookingTotal, getDisplayPrice, type ProductCategory } from "@/lib/product.types";
 import { getProductImage } from "@/lib/product-images";
@@ -55,7 +55,7 @@ export default function TransferDetail() {
   const cms = useCmsText("faq");
   const { id } = useParams<{ id: string }>();
   const { t, i18n } = useTranslation();
-  const { addToCart } = useCart();
+  const { addToCart } = useCartActions();
   const { updateDraft } = useBookingDraft();
   const { currency } = useCurrency();
 

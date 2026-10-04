@@ -6,12 +6,12 @@ import { XCircle, ArrowLeft, ShoppingCart } from "lucide-react";
 import { Layout } from "@/components/layout";
 import { useTranslation } from "react-i18next";
 import { Link } from "wouter";
-import { useCart } from "@/lib/cart-context";
+import { useCartActions } from "@/lib/cart-context";
 
 export default function PaymentCancel() {
   const { t } = useTranslation();
   const [, setLocation] = useLocation();
-  const { addToCart } = useCart();
+  const { addToCart } = useCartActions();
   const searchString = useSearch();
   const params = new URLSearchParams(searchString);
   const bookingId = params.get("booking");
