@@ -102,6 +102,7 @@ export function orderRoutesForPrerender(routes: string[]): string[] {
 // <script src="/assets/…"></script> and <link href="/assets/…"> (stylesheets, modulepreloads)
 const ASSET_SCRIPT = /<script\b[^>]*\bsrc="\/assets\/[^"]*"[^>]*>\s*<\/script>/gi;
 const ASSET_LINK = /<link\b[^>]*\bhref="\/assets\/[^"]*"[^>]*>/gi;
+const SNAPSHOT_STATE_BLOCK = new RegExp(`<script type="application/json" id="${SNAPSHOT_STATE_ID}">[\\s\\S]*?</script>`, 'g');
 
 /**
  * Re-point a snapshot taken from a previous deploy at the current build's bundles.
@@ -109,7 +110,12 @@ const ASSET_LINK = /<link\b[^>]*\bhref="\/assets\/[^"]*"[^>]*>/gi;
  */
 export function swapAssetTags(snapshotHtml: string, shellHtml: string): string {
   const current = [...(shellHtml.match(ASSET_SCRIPT) ?? []), ...(shellHtml.match(ASSET_LINK) ?? [])];
-  const stripped = snapshotHtml.replace(ASSET_SCRIPT, '').replace(ASSET_LINK, '');
+  // The previous deploy's query state was rendered by its code; this build's code may
+  // expect different data, so seeded pages boot from scratch until re-prerendered.
+  const stripped = snapshotHtml
+    .replace(ASSET_SCRIPT, '')
+    .replace(ASSET_LINK, '')
+    .replace(SNAPSHOT_STATE_BLOCK, '');
   return stripped.replace(/<\/head>/i, `${current.join('\n')}\n</head>`);
 }
 

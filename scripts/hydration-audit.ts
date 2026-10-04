@@ -64,20 +64,28 @@ async function audit(browser: Browser, route: string, scenario: Scenario) {
   await page.addInitScript(`
     window.__minLen = Infinity;
     window.__seen = false;
+    window.__h1Seen = false;
+    window.__h1Lost = false;
     (function tick() {
       const root = document.getElementById('root');
       const len = root ? root.innerText.length : 0;
       if (len > 0) window.__seen = true;
       if (window.__seen) window.__minLen = Math.min(window.__minLen, len);
+      // The header and footer keep the text length up on their own; the page's main
+      // content disappearing (e.g. a loading spinner) shows up as its <h1> going away.
+      const h1 = document.querySelector('#root h1');
+      if (h1 && h1.textContent.trim()) window.__h1Seen = true;
+      else if (window.__h1Seen) window.__h1Lost = true;
       setTimeout(tick, 20);
     })();
   `);
 
   await page.goto(`${BASE}${route}`, { waitUntil: 'load' });
   await page.waitForTimeout(SETTLE_MS);
-  const result: { minLen: number; lang: string; dark: boolean; hasState: boolean; finalLen: number } =
+  const result: { minLen: number; h1Lost: boolean; lang: string; dark: boolean; hasState: boolean; finalLen: number } =
     await page.evaluate(`({
       minLen: window.__minLen,
+      h1Lost: window.__h1Lost,
       lang: document.documentElement.lang,
       dark: document.documentElement.classList.contains('dark'),
       hasState: Boolean(document.getElementById('__ACE_QUERY_STATE__')),
@@ -87,6 +95,7 @@ async function audit(browser: Browser, route: string, scenario: Scenario) {
 
   // The stateless path rebuilds from scratch (today's behaviour), so it may blank.
   if (scenario !== 'stateless' && result.minLen === 0) problems.push('root went blank during load');
+  if (scenario !== 'stateless' && result.h1Lost) problems.push('page content (h1) disappeared during load');
   if (result.finalLen === 0) problems.push('page empty after load');
   if (scenario === 'fr' && !result.lang.startsWith('fr')) problems.push(`expected lang fr, got "${result.lang}"`);
   if (scenario === 'dark' && !result.dark) problems.push('expected dark theme');

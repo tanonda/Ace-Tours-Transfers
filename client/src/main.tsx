@@ -1,4 +1,4 @@
-import { startTransition, useEffect } from "react";
+import { startTransition } from "react";
 import { createRoot, hydrateRoot } from "react-dom/client";
 import { dehydrate, hydrate } from "@tanstack/react-query";
 import App, { preloadPrerenderedPage } from "./App";
@@ -13,6 +13,7 @@ import {
   serializeSnapshotState,
   shouldDehydrateQuery,
 } from "./lib/hydration";
+import { hydrationTree } from "./lib/hydration-tree";
 import { SNAPSHOT_STATE_ID } from "@shared/snapshot-state";
 
 // Every state-changing /api/ call must carry the CSRF header, including pages that
@@ -54,12 +55,6 @@ window.__ACE_RENDER_SNAPSHOT__ = async () => {
   return renderSnapshot(<App />);
 };
 
-/** Renders nothing; its effect runs once the tree it is part of has committed. */
-function OnCommitted({ callback }: { callback: () => void }) {
-  useEffect(callback, [callback]);
-  return null;
-}
-
 const rootElement = document.getElementById("root")!;
 const snapshotState = parseSnapshotState(document.getElementById(SNAPSHOT_STATE_ID)?.textContent);
 
@@ -83,14 +78,9 @@ async function boot() {
       // As a transition, hydration yields to the browser every few ms instead of
       // adopting the whole page in one long task.
       startTransition(() => {
-        hydrateRoot(
-          rootElement,
-          <>
-            <App />
-            <OnCommitted callback={resolve} />
-          </>,
-          { onRecoverableError: (error) => console.warn("[hydration]", error) },
-        );
+        hydrateRoot(rootElement, hydrationTree(<App />, resolve), {
+          onRecoverableError: (error) => console.warn("[hydration]", error),
+        });
       });
     });
     if (translations) {

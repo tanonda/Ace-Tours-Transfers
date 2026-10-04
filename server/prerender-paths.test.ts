@@ -162,9 +162,12 @@ describe('attachSnapshotState', () => {
     expect(result.skipped).toMatch(/too large/);
   });
 
-  it('survives swapAssetTags when snapshots are re-pointed at a new build', () => {
+  it('is dropped by swapAssetTags: data from the previous deploy must not hydrate this build', () => {
     const withState = attachSnapshotState(page, '{"queries":[],"mutations":[]}').html;
     const shell = '<html><head><script type="module" crossorigin src="/assets/index-NEW.js"></script></head><body></body></html>';
-    expect(swapAssetTags(withState, shell)).toContain(`id="${SNAPSHOT_STATE_ID}"`);
+    const seeded = swapAssetTags(withState, shell);
+    expect(seeded).not.toContain(SNAPSHOT_STATE_ID);
+    expect(seeded).toContain('<h1>Tour</h1>');
+    expect(seeded).toContain('/assets/index-NEW.js');
   });
 });

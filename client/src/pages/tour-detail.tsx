@@ -29,6 +29,7 @@ import {
   GoogleReviewsSection,
   sanitizeHtml,
 } from "@/components/shared-detail-components";
+import { keepAcrossLanguageSwitch } from "@/lib/language-placeholder";
 
 
 // ─── Countdown Timer Component ─────────────────────────────────────────────────
@@ -344,6 +345,8 @@ export default function TourDetail() {
   const { data: tour, isLoading, error } = useQuery({
     queryKey: ["tour", id, i18n.language],
     queryFn: () => fetchTour(id!),
+    // Keep the page while a language switch refetches it (e.g. just after hydrating).
+    placeholderData: keepAcrossLanguageSwitch(["tour", id]),
     enabled: !!id,
   });
 

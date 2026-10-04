@@ -36,6 +36,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { keepAcrossLanguageSwitch } from "@/lib/language-placeholder";
 
 const ListItem = forwardRef<
   HTMLDivElement,
@@ -69,6 +70,7 @@ function useSiteChrome() {
   const { data: allTours = [] } = useQuery({
     queryKey: ["products", i18n.language],
     queryFn: fetchProducts,
+    placeholderData: keepAcrossLanguageSwitch(["products"]),
   });
 
   const { data: settings = [] } = useSiteSettings();
