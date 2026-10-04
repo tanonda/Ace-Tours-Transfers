@@ -46,6 +46,7 @@ import {
 } from "lucide-react";
 import { format, addDays } from "date-fns";
 import { cn } from "@/lib/utils";
+import { PaperEdge } from "@/components/postcard";
 import { useAvailabilitySearch, SearchTab } from "@/hooks/useAvailabilitySearch";
 
 // ─── Bar height constant ──────────────────────────────────────────────────────
@@ -503,7 +504,7 @@ function SearchTabs({ activeTab, onTabChange }: SearchTabsProps) {
           className={cn(
             "flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-semibold transition-all duration-200",
             activeTab === tab.id
-              ? "bg-navy text-white shadow-sm"
+              ? "bg-harbour text-white shadow-sm"
               : "text-muted-foreground hover:text-foreground hover:bg-muted"
           )}
         >
@@ -681,8 +682,9 @@ function SearchBar({ search }: SearchBarProps) {
 }
 
 // ─── Hero ─────────────────────────────────────────────────────────────────────
-// Postcard layout: handwritten greeting over a full-bleed Efate photo that fades
-// into the cream page, with the search bar on a paper card at the bottom edge.
+// Postcard layout sized for a booking site: the hero never grows taller than the
+// screen, so the search widget is in view on load (down to ~600px-tall laptop
+// windows). Handwritten greeting, extruded headline, torn-paper bottom edge.
 export function Hero() {
   const { t } = useTranslation();
   const cms = useCmsText("home-page");
@@ -694,7 +696,7 @@ export function Hero() {
 
   return (
     <section
-      className="relative min-h-[92vh] w-full overflow-hidden bg-navy"
+      className="relative w-full overflow-hidden bg-harbour md:h-[100svh] md:min-h-[600px] md:max-h-[880px]"
       aria-label="Hero — search for tours and transfers"
     >
       {/* Background image — real <img> tag enables fetchpriority=high for LCP */}
@@ -707,41 +709,41 @@ export function Hero() {
           fetchPriority="high"
           decoding="async"
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/25 to-transparent" />
-        <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-b from-transparent to-background" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/55 via-black/20 to-transparent" />
+        <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-black/45 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-1/4 bg-gradient-to-b from-transparent to-background/70" />
       </div>
 
-      <div className="relative container mx-auto px-4 flex flex-col justify-end min-h-[92vh] pt-52 pb-10 md:pt-44 md:pb-14">
+      <div className="relative container mx-auto px-4 flex h-full flex-col justify-end pt-52 pb-14 md:pt-32 md:pb-16">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, ease: "easeOut" }}
-          className="max-w-3xl text-white mb-10 md:mb-14"
+          className="text-white mb-6 md:mb-8"
         >
-          <p className="font-script text-3xl md:text-4xl text-white/90 -rotate-3 origin-left mb-3 drop-shadow">
+          <p className="font-script text-2xl md:text-[clamp(1.6rem,4vh,2.4rem)] text-[#ffe3c6] -rotate-2 origin-left mb-1 drop-shadow">
             {cms.text("hero_greeting", t("hero.greeting", "Greetings from Port Vila!"))}
           </p>
           {/* h1 preserved for SEO */}
-          <h1 className="font-serif text-5xl sm:text-6xl md:text-7xl lg:text-[5.25rem] leading-[1.02] drop-shadow-[0_2px_14px_rgba(0,0,0,0.35)]">
-            {cms.text("hero_title_part1", t("hero.titlePart1"))}{" "}
-            {cms.text("hero_title_part2", t("hero.titlePart2"))}
+          <h1 className="hero-3d font-serif text-[2.6rem] sm:text-6xl md:text-[clamp(3rem,min(6.4vw,9vh),5.5rem)] leading-[1.02]">
+            <span className="block">{cms.text("hero_title_part1", t("hero.titlePart1"))}</span>
+            <span className="block">{cms.text("hero_title_part2", t("hero.titlePart2"))}</span>
           </h1>
-          <p className="mt-6 text-lg md:text-xl text-white/90 max-w-xl leading-relaxed drop-shadow">
-            {cms.text("hero_subtitle", t("home.toursDesc"))}
-          </p>
         </motion.div>
 
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.9, delay: 0.25, ease: [0.23, 1, 0.32, 1] }}
-          className="w-full z-10"
+          className="w-full z-20"
         >
-          <div className="bg-paper rounded-xl p-3 md:p-4 border border-border/60 shadow-[0_24px_60px_-20px_rgba(18,50,74,0.45)]">
+          <div className="bg-paper rounded-xl p-3 md:p-4 border border-border/60 shadow-[0_24px_60px_-20px_rgba(18,50,74,0.5)]">
             <SearchBar search={search} />
           </div>
         </motion.div>
       </div>
+
+      <PaperEdge position="bottom" seed={3} />
     </section>
   );
 }

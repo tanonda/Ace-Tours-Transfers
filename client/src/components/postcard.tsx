@@ -74,8 +74,9 @@ export function Polaroid({
       <div className={cn("overflow-hidden", contain ? "bg-white p-4" : "bg-muted", aspect)}>
         <img src={src} alt={alt} loading="lazy" decoding="async" className={cn("h-full w-full", contain ? "object-contain" : "object-cover")} style={{ objectPosition }} />
       </div>
+      {/* The frame is always white, so the caption keeps dark ink in both themes. */}
       {caption && (
-        <figcaption className="font-script text-xl md:text-2xl text-navy mt-3 px-1 leading-none">{caption}</figcaption>
+        <figcaption className="font-script text-xl md:text-2xl text-[#12324a] mt-3 px-1 leading-none">{caption}</figcaption>
       )}
     </figure>
   );
@@ -97,5 +98,73 @@ export function PriceStamp({ label, price, className }: { label: string; price: 
         <span key={line} className="block font-serif text-xl leading-tight">{line}</span>
       ))}
     </div>
+  );
+}
+
+// ─── Torn paper edges ─────────────────────────────────────────────────────────
+
+/** Small deterministic PRNG: the same seed draws the same tear on the server and in the browser. */
+function seededRandom(seed: number) {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+const EDGE_W = 1440;
+const EDGE_H = 48;
+
+/** A jagged line across the edge: small fibres plus the odd deeper rip, filled down to the bottom. */
+export function tornEdgePath(seed: number, baseline = 22, roughness = 9): string {
+  const rand = seededRandom(seed);
+  let x = 0;
+  let d = `M0,${EDGE_H} L0,${baseline}`;
+  while (x < EDGE_W) {
+    x = Math.min(EDGE_W, x + 6 + rand() * 18);
+    const rip = rand() < 0.08 ? (rand() - 0.3) * roughness * 2.2 : 0;
+    const y = baseline + (rand() - 0.5) * roughness + rip;
+    d += ` L${x.toFixed(1)},${Math.max(2, Math.min(EDGE_H - 2, y)).toFixed(1)}`;
+  }
+  return `${d} L${EDGE_W},${EDGE_H} Z`;
+}
+
+/**
+ * Torn-paper boundary between two sections. Place it inside the section it
+ * overlaps (which must be `relative`): `position="bottom"` tears the NEXT
+ * section's paper up over this one; `position="top"` hangs the PREVIOUS
+ * section's paper down into this one. `color` is that neighbouring paper.
+ */
+export function PaperEdge({
+  position,
+  color = "hsl(var(--background))",
+  seed = 1,
+  className,
+}: {
+  position: "top" | "bottom";
+  color?: string;
+  seed?: number;
+  className?: string;
+}) {
+  const fibre = tornEdgePath(seed, 20, 10);
+  const paper = tornEdgePath(seed + 101, 25, 8);
+  return (
+    <svg
+      aria-hidden
+      viewBox={`0 0 ${EDGE_W} ${EDGE_H}`}
+      preserveAspectRatio="none"
+      className={cn(
+        "pointer-events-none absolute inset-x-0 z-10 h-7 w-full md:h-10",
+        position === "bottom" ? "bottom-0 translate-y-px" : "top-0 -translate-y-px -scale-y-100",
+        className,
+      )}
+    >
+      {/* The torn fibre: a pale ragged strip just beyond the coloured paper. */}
+      <path d={fibre} fill="hsl(var(--paper))" opacity={0.85} style={{ filter: "drop-shadow(0 -2px 3px rgba(0,0,0,0.18))" }} />
+      <path d={paper} fill={color} />
+    </svg>
   );
 }

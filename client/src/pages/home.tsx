@@ -4,7 +4,7 @@ import { SEO } from "@/components/seo";
 import { Hero } from "@/components/hero";
 import { TourCard } from "@/components/tour-card";
 import { motion } from "framer-motion";
-import { Lock, ShieldCheck, Star } from "lucide-react";
+import { ArrowRight, CalendarCheck, Car, CheckCircle, Lock, Map as MapIcon, ShieldCheck, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { fetchProducts } from "@/lib/api";
@@ -13,7 +13,7 @@ import React, { useMemo } from "react";
 import { useCmsText } from "@/hooks/use-cms-text";
 import type { Product } from "@shared/schema";
 import { PhotoCredits } from "@/components/section-backdrop";
-import { Polaroid, SectionLabel } from "@/components/postcard";
+import { PaperEdge, Polaroid, SectionLabel } from "@/components/postcard";
 import { IMAGE_CREDITS } from "@/lib/image-credits";
 import { keepAcrossLanguageSwitch } from "@/lib/language-placeholder";
 
@@ -23,7 +23,6 @@ const PHOTOS = {
   aboutWaterfall: "/assets/home/mele-cascades.webp",
   aboutBeach: "/assets/home/eratap-beach.webp",
   toursBackdrop: "/assets/home/vila-bay-ship-sunset.webp",
-  ctaBackdrop: "/assets/home/vila-harbour-dusk.webp",
 };
 
 export default function Home() {
@@ -81,15 +80,34 @@ export default function Home() {
     { icon: Lock, title: cms.text("trust_secure", t("trust.secure")), desc: cms.text("trust_secure_desc", t("trust.secureDesc")) },
   ];
 
+  // Brochure: the Efate Scenic Tour includes a local chocolate factory visit.
   const craft = [
     { src: "/assets/home/cocoa-pods-vila-market.webp", caption: t("home.craftCocoa", "Cocoa from the market"), rotate: -3 },
-    { src: "/assets/home/port-vila-market-baskets.webp", caption: t("home.craftMarket", "Port Vila market"), rotate: 2 },
-    { src: "/assets/home/island-basket.webp", caption: t("home.craftBasket", "Island basket"), rotate: -1.5, contain: true },
-    { src: "/assets/home/pentecost-mat.webp", caption: t("home.craftWoven", "Woven by hand"), rotate: 3 },
+    { src: "/assets/home/port-vila-market-baskets.webp", caption: t("home.craftMarket", "Port Vila market"), rotate: 2.5 },
   ];
 
+  // Closing call-to-action: sits on the footer's dusk photo (Layout footerLead).
+  const closingCta = (
+    <section className="relative pt-32 pb-20 md:pt-48 md:pb-28">
+      <div className="container mx-auto px-4 text-center text-white">
+        <p className="font-script text-3xl md:text-4xl text-[#ffe3c6] -rotate-2 mb-2 drop-shadow">{t("home.ctaScript", "Wish you were here...")}</p>
+        <h2 className="text-4xl md:text-6xl mb-6 drop-shadow-lg">{cms.text("cta_title", t("home.ctaTitle"))}</h2>
+        <div
+          className="text-lg md:text-xl mb-10 max-w-2xl mx-auto text-white/90 prose prose-lg prose-invert prose-p:my-2"
+          dangerouslySetInnerHTML={{ __html: cms.html("cta_desc", t("home.ctaDesc")) }}
+        />
+        <Link href="/tours">
+          <Button size="lg" className="rounded-full bg-sunset px-10 py-7 text-lg font-semibold text-white shadow-2xl ring-2 ring-white/20 hover:bg-sunset/90">
+            <CalendarCheck className="mr-2 h-5 w-5" />
+            {cms.text("cta_button", t("home.ctaButton"))}
+          </Button>
+        </Link>
+      </div>
+    </section>
+  );
+
   return (
-    <Layout>
+    <Layout footerLead={closingCta}>
       <SEO
         title={t("home.seoTitle", "Ace Tours & Transfers - Private Tours in Vanuatu")}
         description={t("home.seoDesc", "Experience the best of Vanuatu with Ace Tours & Transfers. Meticulously pre-planned and custom-designed tour packages in Port Vila.")}
@@ -105,7 +123,9 @@ export default function Home() {
           <ul className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             {trust.map(({ icon: Icon, title, desc }) => (
               <li key={title} className="flex items-center gap-4">
-                <Icon className="h-8 w-8 shrink-0 text-primary" strokeWidth={1.75} />
+                <span className="grid size-12 shrink-0 place-items-center rounded-full bg-primary/10 text-primary ring-1 ring-primary/20">
+                  <Icon className="h-6 w-6" strokeWidth={1.9} />
+                </span>
                 <div>
                   <h3 className="font-sans text-base font-semibold text-navy">{title}</h3>
                   <p className="text-sm text-muted-foreground">{desc}</p>
@@ -117,8 +137,8 @@ export default function Home() {
       </section>
 
       {/* 01 · About: two taped polaroids beside the brochure's welcome text */}
-      <section className="bg-background overflow-x-clip">
-        <div className="container mx-auto px-4 pt-8 pb-16 md:pt-12 md:pb-24 grid grid-cols-1 lg:grid-cols-2 gap-14 lg:gap-20 items-center">
+      <section className="relative bg-background overflow-x-clip">
+        <div className="container mx-auto px-4 pt-8 pb-28 md:pt-12 md:pb-36 grid grid-cols-1 lg:grid-cols-2 gap-14 lg:gap-20 items-center">
           <motion.div
             className="relative mx-auto w-full max-w-md lg:max-w-none h-[420px] sm:h-[480px]"
             initial={{ opacity: 0, y: 20 }}
@@ -167,23 +187,29 @@ export default function Home() {
                 cms.text("about_badge3", t("home.customItineraries")),
                 cms.text("about_badge4", t("home.safetyFirst")),
               ].map((item) => (
-                <li key={item} className="rounded-full border border-border bg-paper/60 px-4 py-1.5 text-sm text-navy">{item}</li>
+                <li key={item} className="flex items-center gap-1.5 rounded-full border border-border bg-paper/70 px-3.5 py-1.5 text-sm text-navy">
+                  <CheckCircle className="h-4 w-4 text-primary" />
+                  {item}
+                </li>
               ))}
             </ul>
-            <Link href="/about" className="text-sm font-semibold text-primary underline underline-offset-4">
-              {t("home.learnMore")} →
+            <Link href="/about" className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary underline underline-offset-4">
+              {t("home.learnMore")}
+              <ArrowRight className="h-4 w-4" />
             </Link>
             <PhotoCredits credits={[IMAGE_CREDITS.meleCascades, IMAGE_CREDITS.eratap]} tone="wash" />
           </motion.div>
         </div>
       </section>
 
-      {/* 02 · Tours: postcards scattered over a sunset on Vila Bay */}
-      <section className="relative overflow-x-clip bg-navy py-20 md:py-28">
+      {/* 02 · Tours: postcards scattered over a sunset on Vila Bay; torn cream paper above and teal below */}
+      <section className="relative overflow-x-clip bg-harbour pt-28 pb-32 md:pt-36 md:pb-40">
         <div aria-hidden className="absolute inset-0">
           <img src={PHOTOS.toursBackdrop} alt="" loading="lazy" className="h-full w-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/35 to-black/60" />
+          <div className="absolute inset-0 bg-gradient-to-b from-background/35 via-black/35 to-black/55" />
+          <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-b from-transparent to-reef-light/25" />
         </div>
+        <PaperEdge position="top" seed={11} />
         <div className="container relative mx-auto px-4">
           <div className="mx-auto mb-14 max-w-2xl text-center text-white">
             <SectionLabel index={2} tone="light" centered className="mb-4">{cms.text("tours_label", t("home.toursLabel"))}</SectionLabel>
@@ -202,15 +228,20 @@ export default function Home() {
 
           <div className="text-center">
             <Link href="/tours">
-              <Button size="lg" className="rounded-full bg-navy px-8 text-white hover:bg-navy/90">{t("home.viewAllTours", "View all tours")}</Button>
+              <Button size="lg" className="rounded-full bg-harbour px-8 text-white ring-2 ring-white/25 hover:bg-harbour/90">
+                <MapIcon className="mr-2 h-4 w-4" />
+                {t("home.viewAllTours", "View all tours")}
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
             </Link>
           </div>
           <PhotoCredits credits={[IMAGE_CREDITS.vilaBayShip]} tone="dark" />
         </div>
+        <PaperEdge position="bottom" seed={23} color="hsl(var(--reef-light))" />
       </section>
 
       {/* 03 · Transfers: calm lagoon-teal band with ticket cards */}
-      <section className="bg-reef-light py-20 md:py-24">
+      <section className="relative bg-reef-light pt-16 pb-28 md:pt-20 md:pb-36">
         <div className="container mx-auto px-4">
           <div className="mb-12 max-w-2xl">
             <SectionLabel index={3} tone="reef" className="mb-4">{cms.text("transfers_label", t("home.transfersLabel", "Airport & Hotel"))}</SectionLabel>
@@ -227,61 +258,40 @@ export default function Home() {
             ))}
           </div>
 
-          <Link href="/transfers" className="text-sm font-semibold text-primary underline underline-offset-4">
-            {t("home.viewAllTransfers", "View all transfers")} →
+          <Link href="/transfers" className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary underline underline-offset-4">
+            <Car className="h-4 w-4" />
+            {t("home.viewAllTransfers", "View all transfers")}
+            <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
+        <PaperEdge position="bottom" seed={37} />
       </section>
 
-      {/* 04 · Local makers: Efate Scenic Tour visits a chocolate factory; private tours can add a maker */}
-      <section className="bg-background overflow-x-clip py-20 md:py-24">
-        <div className="container mx-auto px-4">
-          <div className="mb-14 grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-16 items-end">
-            <div>
-              <SectionLabel index={4} className="mb-4">{t("home.craftLabel", "Local makers")}</SectionLabel>
-              <h2 className="text-4xl md:text-5xl text-navy">{t("home.craftTitle", "Taste & craft of Vanuatu")}</h2>
-            </div>
+      {/* 04 · Local makers: cacao (the Efate Scenic Tour's chocolate factory stop) and the Port Vila market */}
+      <section className="bg-background overflow-x-clip pt-16 pb-8 md:pt-20">
+        <div className="container mx-auto px-4 grid grid-cols-1 lg:grid-cols-[1fr_1.15fr] gap-12 lg:gap-16 items-center">
+          <div>
+            <SectionLabel index={4} className="mb-4">{t("home.craftLabel", "Local makers")}</SectionLabel>
+            <h2 className="text-4xl md:text-5xl text-navy mb-6">{t("home.craftTitle", "Taste & craft of Vanuatu")}</h2>
             <p className="text-lg text-muted-foreground leading-relaxed">
               {t("home.craftDesc", "Island chocolate, cacao and hand-woven baskets. Our Efate Scenic Tour stops at a local chocolate factory, and on a private tour you choose the stops: ask us to add a local maker to your day.")}
             </p>
+            <PhotoCredits credits={[IMAGE_CREDITS.cocoaPods, IMAGE_CREDITS.vilaMarket]} tone="wash" />
           </div>
-
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 md:gap-10">
-            {craft.map((item) => (
+          <div className="grid grid-cols-2 gap-6 md:gap-10">
+            {craft.map((item, i) => (
               <Polaroid
                 key={item.src}
                 src={item.src}
                 alt={item.caption}
                 caption={item.caption}
                 rotate={item.rotate}
-                contain={item.contain}
-                aspect="aspect-square"
+                tape={i === 0}
+                aspect="aspect-[4/5]"
+                className={i === 1 ? "mt-10" : undefined}
               />
             ))}
           </div>
-          <PhotoCredits credits={[IMAGE_CREDITS.cocoaPods, IMAGE_CREDITS.vilaMarket, IMAGE_CREDITS.islandBasket, IMAGE_CREDITS.pentecostMat]} tone="wash" />
-        </div>
-      </section>
-
-      {/* CTA: "Wish you were here..." over Port Vila Harbour at dusk */}
-      <section className="relative overflow-x-clip bg-navy py-24 md:py-36">
-        <div aria-hidden className="absolute inset-0">
-          <img src={PHOTOS.ctaBackdrop} alt="" loading="lazy" className="h-full w-full object-cover object-[50%_45%]" />
-          <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-black/45 to-black/75" />
-        </div>
-        <div className="container relative mx-auto px-4 text-center text-white">
-          <p className="font-script text-3xl md:text-4xl text-[#f3c9a8] -rotate-2 mb-2">{t("home.ctaScript", "Wish you were here...")}</p>
-          <h2 className="text-4xl md:text-6xl mb-6 drop-shadow-lg">{cms.text("cta_title", t("home.ctaTitle"))}</h2>
-          <div
-            className="text-lg md:text-xl mb-10 max-w-2xl mx-auto text-white/90 prose prose-lg prose-invert prose-p:my-2"
-            dangerouslySetInnerHTML={{ __html: cms.html("cta_desc", t("home.ctaDesc")) }}
-          />
-          <Link href="/tours">
-            <Button size="lg" className="rounded-full bg-sunset px-10 py-7 text-lg font-semibold text-white shadow-2xl hover:bg-sunset/90">
-              {cms.text("cta_button", t("home.ctaButton"))}
-            </Button>
-          </Link>
-          <PhotoCredits credits={[IMAGE_CREDITS.vilaHarbourDusk]} tone="dark" />
         </div>
       </section>
     </Layout>

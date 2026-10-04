@@ -16,6 +16,7 @@ describe("shortDuration", () => {
     expect(shortDuration("30 minutes to 1 hour")).toBeNull();
     expect(shortDuration("Evening (4-5 Hours)")).toBeNull();
     expect(shortDuration("Two destinations")).toBeNull();
+    expect(shortDuration("Variable")).toBeNull();
     expect(shortDuration("")).toBeNull();
     expect(shortDuration(undefined)).toBeNull();
   });
@@ -32,5 +33,14 @@ describe("splitPriceForStamp", () => {
 
   it("keeps symbol-attached currencies on one line", () => {
     expect(splitPriceForStamp("A$124.80")).toEqual(["A$124.80"]);
+  });
+});
+
+describe("tornEdgePath", () => {
+  it("draws the same tear for the same seed (server and browser must match)", async () => {
+    const { tornEdgePath } = await import("@/components/postcard");
+    expect(tornEdgePath(7)).toBe(tornEdgePath(7));
+    expect(tornEdgePath(7)).not.toBe(tornEdgePath(8));
+    expect(tornEdgePath(7)).toMatch(/^M0,48 L0,22 .* L1440,48 Z$/);
   });
 });

@@ -31,6 +31,8 @@
   --color-reef: hsl(var(--reef));
   --color-reef-light: hsl(var(--reef-light));
   --color-navy: hsl(var(--navy));
+  /* Deep harbour navy for dark surfaces; unlike --navy (ink) it does not flip in dark mode. */
+  --color-harbour: hsl(206 61% 18%);
   --color-paper: hsl(var(--paper));
   --color-sunset: hsl(var(--sunset));
   --radius-sm: calc(var(--radius) - 4px);
@@ -95,39 +97,40 @@
 }
 
 .dark {
-  --background: 25 30% 10%;
-  --foreground: 48 30% 95%;
+  /* Night harbour: navy paper, warm cream ink, the same burnt-orange stamps lifted for contrast */
+  --background: 206 45% 9%;
+  --foreground: 38 45% 92%;
 
-  --card: 25 30% 12%;
-  --card-foreground: 48 30% 95%;
+  --card: 206 40% 13%;
+  --card-foreground: 38 45% 92%;
 
-  --popover: 25 30% 12%;
-  --popover-foreground: 48 30% 95%;
+  --popover: 206 40% 13%;
+  --popover-foreground: 38 45% 92%;
 
-  --primary: 21 90% 52%;
+  --primary: 21 90% 56%;
   --primary-foreground: 0 0% 100%;
 
-  --secondary: 25 20% 20%;
-  --secondary-foreground: 48 30% 95%;
+  --secondary: 206 30% 18%;
+  --secondary-foreground: 38 45% 92%;
 
-  --muted: 25 20% 20%;
-  --muted-foreground: 40 10% 60%;
+  --muted: 206 30% 18%;
+  --muted-foreground: 206 18% 72%;
 
-  --accent: 25 20% 20%;
-  --accent-foreground: 48 30% 95%;
+  --accent: 206 30% 20%;
+  --accent-foreground: 38 45% 92%;
 
   --destructive: 0 62.8% 30.6%;
   --destructive-foreground: 0 0% 98%;
 
-  --border: 25 20% 20%;
-  --input: 25 20% 20%;
-  --ring: 21 90% 52%;
+  --border: 206 25% 22%;
+  --input: 206 25% 22%;
+  --ring: 21 90% 56%;
 
-  --reef: 176 50% 50%;
+  --reef: 176 50% 55%;
   --reef-light: 190 40% 13%;
 
-  --navy: 206 40% 88%;
-  --paper: 25 30% 13%;
+  --navy: 38 45% 92%;
+  --paper: 206 40% 13%;
   --sunset: 21 90% 52%;
 }
 
@@ -255,6 +258,23 @@
     font-size: max(0.9375rem, 1em); /* 15px minimum */
     letter-spacing: 0.01em;
   }
+}
+
+/* Hero headline: extruded lettering lit by the sunset behind it. The extrusion
+   layers are translucent warm tones, so the photo glows through the depth and
+   the type sits in the scene instead of on top of it. Offsets are in em so the
+   depth scales with the font size. */
+.hero-3d {
+  color: #fffaf3;
+  text-shadow:
+    0 0.012em 0 rgba(255, 222, 186, 0.95),
+    0.012em 0.024em 0 rgba(214, 120, 62, 0.7),
+    0.024em 0.036em 0 rgba(176, 86, 40, 0.58),
+    0.036em 0.048em 0 rgba(138, 62, 30, 0.48),
+    0.048em 0.06em 0 rgba(98, 42, 22, 0.4),
+    0.06em 0.072em 0 rgba(62, 28, 18, 0.32),
+    0.07em 0.1em 0.18em rgba(0, 0, 0, 0.38),
+    0 0.25em 0.6em rgba(12, 31, 46, 0.45);
 }
 
 /* Accessibility - Enhanced Focus Styles */

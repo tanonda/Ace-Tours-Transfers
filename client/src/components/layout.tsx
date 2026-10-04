@@ -710,7 +710,7 @@ const SiteFooter = memo(function SiteFooter() {
 
   return (
     <>
-      <footer role="contentinfo" className="bg-[#0c1f2e] text-white pt-16 pb-24 md:pb-8">
+      <footer role="contentinfo" className="relative text-white pt-16 pb-24 md:pb-8">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
             <div>
@@ -807,6 +807,9 @@ const SiteFooter = memo(function SiteFooter() {
 
           <div className="border-t border-white/10 pt-8 text-center text-white/40 text-sm">
             <p>&copy; {new Date().getFullYear()} {t("app.title")}. {footerCms.text("copyright", t("footer.copyright"))}</p>
+            <p className="mt-1 text-xs text-white/35">
+              Photo: <a href="https://commons.wikimedia.org/wiki/File:Port_Vila_Harbour_(Imagicity_816).jpg" target="_blank" rel="noopener noreferrer" className="underline hover:text-white/60">Port Vila Harbour at dusk</a>, Graham Crumb (CC BY-SA 3.0)
+            </p>
             <div className="flex items-center justify-center gap-4 mt-2">
               <a href="/privacy-policy" className="hover:text-white/70 transition-colors">Privacy Policy</a>
               <span>·</span>
@@ -874,7 +877,29 @@ const SiteFooter = memo(function SiteFooter() {
   );
 });
 
-export function Layout({ children }: { children: React.ReactNode }) {
+// Port Vila Harbour at dusk (Graham Crumb, CC BY-SA 3.0; credited in the footer).
+const FOOTER_PHOTO = "/assets/home/vila-harbour-dusk.webp";
+
+/**
+ * Postcard footer: one dusk photo runs behind the footer (and the page's
+ * closing call-to-action, when given) and fades up into the page above,
+ * so the page ends on a picture rather than a hard-edged block.
+ */
+function FooterScene({ children }: { children: ReactNode }) {
+  return (
+    <div className="relative isolate overflow-hidden bg-[#0c1f2e]">
+      <div aria-hidden className="absolute inset-0 -z-10">
+        <img src={FOOTER_PHOTO} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover object-[50%_35%]" />
+        {/* Fade from the page colour at the top, darkening to navy where the footer text sits. */}
+        <div className="absolute inset-0 bg-gradient-to-b from-background via-[#0c1f2e]/45 via-25% to-[#0c1f2e]/95" />
+        <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-[#0c1f2e] to-transparent" />
+      </div>
+      {children}
+    </div>
+  );
+}
+
+export function Layout({ children, footerLead }: { children: React.ReactNode; footerLead?: ReactNode }) {
   return (
     <div className="min-h-screen flex flex-col bg-background font-sans text-foreground">
       <SkipLinks />
@@ -885,7 +910,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
         {children}
       </main>
 
-      <SiteFooter />
+      <FooterScene>
+        {footerLead}
+        <SiteFooter />
+      </FooterScene>
     </div>
   );
 }
