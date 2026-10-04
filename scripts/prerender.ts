@@ -191,12 +191,22 @@ async function renderAll(
       readyMs = Date.now() - t0;
       booted = true;
       await page.waitForTimeout(RENDER_DELAY_MS);
-      const captured = await page.content();
-      // Same moment as the HTML, so the data matches what was rendered.
-      const stateJson = await page
-        .evaluate(() => window.__ACE_DEHYDRATE__?.() ?? null)
-        .catch(() => null);
-      const { html, stateBytes, skipped } = attachSnapshotState(captured, stateJson);
+      // The page as React's server renderer writes it, plus the data it was rendered
+      // with, so hydrateRoot can adopt it (client/src/lib/render-snapshot.tsx). Older
+      // bundles or a render error: save the live DOM without state; the client then
+      // renders from scratch as before.
+      const rendered = await page
+        .evaluate(() => window.__ACE_RENDER_SNAPSHOT__?.() ?? null)
+        .catch((err: unknown) => {
+          console.warn(`[hydration] ${route} server render failed: ${err instanceof Error ? err.message : String(err)}`);
+          return null;
+        });
+      const stateJson = rendered
+        ? await page.evaluate(() => window.__ACE_DEHYDRATE__?.() ?? null).catch(() => null)
+        : null;
+      const { html, stateBytes, skipped } = rendered
+        ? attachSnapshotState(rendered, stateJson)
+        : { html: await page.content(), stateBytes: 0, skipped: 'no server render' };
       console.log(
         skipped
           ? `[hydration] ${route} state skipped: ${skipped}`

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect } from "react";
+import { lazy, Suspense, useEffect, type ComponentType } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Switch, Route } from "wouter";
 import { queryClient, ensureCsrfToken } from "./lib/queryClient";
@@ -15,6 +15,7 @@ import { ThemeProvider } from "@/lib/theme-context";
 import { CMSProvider } from "@/lib/cms-context";
 import { useSiteSettings } from "@/lib/site-settings";
 import { NProgressRouter } from "@/components/nprogress-router";
+import { lazyWithPreload, matchesRoutePattern, type PreloadableComponent } from "@/lib/preloadable";
 
 // Coming soon gate — controlled via Admin Dashboard > Settings > Feature Flags
 // Falls back to VITE_COMING_SOON env var if the DB flag hasn't been seeded yet.
@@ -22,30 +23,58 @@ const ENV_COMING_SOON = import.meta.env.VITE_COMING_SOON === "true";
 const ComingSoon = lazy(() => import("@/pages/coming-soon"));
 
 // Lazy-loaded pages
-const Home = lazy(() => import("@/pages/home"));
-const Tours = lazy(() => import("@/pages/tours"));
-const Transfers = lazy(() => import("@/pages/transfers"));
+const Home = lazyWithPreload(() => import("@/pages/home"));
+const Tours = lazyWithPreload(() => import("@/pages/tours"));
+const Transfers = lazyWithPreload(() => import("@/pages/transfers"));
 const Payment = lazy(() => import("@/pages/payment"));
 const PaymentSuccess = lazy(() => import("@/pages/payment-success"));
 const PaymentCancel = lazy(() => import("@/pages/payment-cancel"));
-const About = lazy(() => import("@/pages/about"));
-const Contact = lazy(() => import("@/pages/contact"));
+const About = lazyWithPreload(() => import("@/pages/about"));
+const Contact = lazyWithPreload(() => import("@/pages/contact"));
 const Cart = lazy(() => import("@/pages/cart"));
 const Checkout = lazy(() => import("@/pages/checkout"));
 const ManageBooking = lazy(() => import("@/pages/manage-booking"));
 const Login = lazy(() => import("@/pages/login"));
 const Register = lazy(() => import("@/pages/register"));
 const NotFound = lazy(() => import("@/pages/not-found"));
-const PrivacyPolicy = lazy(() => import("@/pages/privacy-policy"));
-const TermsOfService = lazy(() => import("@/pages/terms-of-service"));
-const TourDetail = lazy(() => import("@/pages/tour-detail"));
-const TransferDetail = lazy(() => import("@/pages/transfer-detail"));
+const PrivacyPolicy = lazyWithPreload(() => import("@/pages/privacy-policy"));
+const TermsOfService = lazyWithPreload(() => import("@/pages/terms-of-service"));
+const TourDetail = lazyWithPreload(() => import("@/pages/tour-detail"));
+const TransferDetail = lazyWithPreload(() => import("@/pages/transfer-detail"));
 const Confirmation = lazy(() => import("@/pages/confirmation"));
-const FAQ = lazy(() => import("@/pages/faq"));
+const FAQ = lazyWithPreload(() => import("@/pages/faq"));
 const ResetPassword = lazy(() => import("@/pages/reset-password"));
-const LandingPage = lazy(() => import("@/pages/landing-page"));
-const Blog = lazy(() => import("@/pages/blog"));
-const BlogArticle = lazy(() => import("@/pages/blog-article"));
+const LandingPage = lazyWithPreload(() => import("@/pages/landing-page"));
+const Blog = lazyWithPreload(() => import("@/pages/blog"));
+const BlogArticle = lazyWithPreload(() => import("@/pages/blog-article"));
+
+// Prerendered pages. Before hydrating a snapshot, main.tsx loads the page's chunk so
+// the route boundary hydrates in one pass instead of being client-rendered.
+const PRERENDERED_PAGES: Array<[string, PreloadableComponent<ComponentType<any>>]> = [
+  ["/", Home],
+  ["/tours", Tours],
+  ["/tours/:id", TourDetail],
+  ["/transfers", Transfers],
+  ["/transfers/:id", TransferDetail],
+  ["/about", About],
+  ["/contact", Contact],
+  ["/privacy-policy", PrivacyPolicy],
+  ["/terms-of-service", TermsOfService],
+  ["/faq", FAQ],
+  ["/blog", Blog],
+  ["/blog/:slug", BlogArticle],
+  ["/port-vila-airport-transfers", LandingPage],
+  ["/efate-island-day-tours", LandingPage],
+  ["/blue-lagoon-vanuatu-tour", LandingPage],
+  ["/mele-cascades-tour", LandingPage],
+  ["/vanuatu-cultural-tours", LandingPage],
+  ["/port-vila-private-transfers", LandingPage],
+];
+
+export function preloadPrerenderedPage(path: string): Promise<void> {
+  const page = PRERENDERED_PAGES.find(([pattern]) => matchesRoutePattern(pattern, path));
+  return page ? page[1].preload() : Promise.resolve();
+}
 
 // Admin pages
 const AdminDashboard = lazy(() => import("@/pages/admin/dashboard"));

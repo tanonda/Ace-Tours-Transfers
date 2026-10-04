@@ -1,6 +1,6 @@
 import { createRoot, hydrateRoot } from "react-dom/client";
 import { dehydrate, hydrate } from "@tanstack/react-query";
-import App from "./App";
+import App, { preloadPrerenderedPage } from "./App";
 import "./index.css";
 import i18n, { ensureLanguage, syncLanguage } from "./lib/i18n";
 import { withCsrf } from "./lib/csrf-fetch";
@@ -48,6 +48,10 @@ window.fetch = withCsrf(window.fetch.bind(window), {
 // scripts/prerender.ts calls this just before saving each page, so the snapshot
 // carries the data it was rendered with (see client/src/lib/hydration.ts).
 window.__ACE_DEHYDRATE__ = () => serializeSnapshotState(dehydrate(queryClient, { shouldDehydrateQuery }));
+window.__ACE_RENDER_SNAPSHOT__ = async () => {
+  const { renderSnapshot } = await import("./lib/render-snapshot");
+  return renderSnapshot(<App />);
+};
 
 const rootElement = document.getElementById("root")!;
 const snapshotState = parseSnapshotState(document.getElementById(SNAPSHOT_STATE_ID)?.textContent);
@@ -63,6 +67,9 @@ async function boot() {
     const switchLanguage = !isEnglish(visitorLanguage);
     const translations = switchLanguage ? ensureLanguage(visitorLanguage).catch(() => {}) : null;
     if (visitorLanguage !== "en") await i18n.changeLanguage("en");
+    // A route boundary still waiting for its chunk would be client-rendered (blank
+    // fallback) as soon as a provider above it updates; load the chunk first.
+    await preloadPrerenderedPage(window.location.pathname).catch(() => {});
     hydrateRoot(rootElement, <App />, {
       onRecoverableError: (error) => console.warn("[hydration]", error),
     });

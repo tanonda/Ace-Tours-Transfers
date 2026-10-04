@@ -4,6 +4,8 @@ declare global {
   interface Window {
     /** Called by scripts/prerender.ts just before a page is saved. */
     __ACE_DEHYDRATE__?: () => string;
+    /** Called by scripts/prerender.ts: the page as React's server renderer writes it. */
+    __ACE_RENDER_SNAPSHOT__?: () => Promise<string>;
   }
 }
 
