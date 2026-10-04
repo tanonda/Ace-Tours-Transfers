@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import path from 'node:path';
-import { routeToRelFile, outputPathFor } from './prerender-paths.js';
+import { routeToRelFile, outputPathFor, attachSnapshotState } from './prerender-paths.js';
+import { MAX_STATE_BYTES, SNAPSHOT_STATE_ID } from '../shared/snapshot-state.js';
 
 describe('routeToRelFile', () => {
   it('maps root to index.html', () => {
@@ -135,5 +136,38 @@ describe('writeSnapshot', () => {
     expect(file).toBe(path.join(dir, 'tours', 'xyz', 'index.html'));
     expect(await readFile(file, 'utf-8')).toContain('<body>hi</body>');
     await rm(dir, { recursive: true, force: true });
+  });
+});
+
+describe('attachSnapshotState', () => {
+  const page = '<html><head></head><body><div id="root"><h1>Tour</h1></div></body></html>';
+
+  it('inserts the state block just before </body>', () => {
+    const result = attachSnapshotState(page, '{"queries":[],"mutations":[]}');
+    expect(result.skipped).toBeUndefined();
+    expect(result.stateBytes).toBe(29);
+    expect(result.html).toContain(
+      `<script type="application/json" id="${SNAPSHOT_STATE_ID}">{"queries":[],"mutations":[]}</script></body>`,
+    );
+  });
+
+  it('leaves the page unchanged when the app exposed no hook', () => {
+    expect(attachSnapshotState(page, null)).toEqual({ html: page, stateBytes: 0, skipped: 'no dehydrate hook' });
+  });
+
+  it('leaves the page unchanged when the state is over the size cap', () => {
+    const big = `{"queries":[{"x":"${'a'.repeat(MAX_STATE_BYTES)}"}],"mutations":[]}`;
+    const result = attachSnapshotState(page, big);
+    expect(result.html).toBe(page);
+    expect(result.skipped).toMatch(/too large/);
+  });
+
+  it('is dropped by swapAssetTags: data from the previous deploy must not hydrate this build', () => {
+    const withState = attachSnapshotState(page, '{"queries":[],"mutations":[]}').html;
+    const shell = '<html><head><script type="module" crossorigin src="/assets/index-NEW.js"></script></head><body></body></html>';
+    const seeded = swapAssetTags(withState, shell);
+    expect(seeded).not.toContain(SNAPSHOT_STATE_ID);
+    expect(seeded).toContain('<h1>Tour</h1>');
+    expect(seeded).toContain('/assets/index-NEW.js');
   });
 });

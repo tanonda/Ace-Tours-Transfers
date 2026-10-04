@@ -25,6 +25,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { fetchProducts, fetchProduct } from "@/lib/api";
 import type { Product } from "@shared/schema";
+import { keepAcrossLanguageSwitch } from "@/lib/language-placeholder";
 
 // ─── All products (tours, transfers) ──────────────────────────────────────────
 
@@ -35,6 +36,7 @@ export function useLocalizedProducts() {
     // Language in the key → React Query treats each locale as a distinct cache entry.
     queryKey: ["products", i18n.language],
     queryFn:  fetchProducts,
+    placeholderData: keepAcrossLanguageSwitch(["products"]),
     staleTime: 5 * 60 * 1000, // 5 min — translations don't change mid-session
   });
 }
@@ -47,6 +49,7 @@ export function useLocalizedProduct(id: string | undefined) {
   return useQuery<Product>({
     queryKey:  ["product", id, i18n.language],
     queryFn:   () => fetchProduct(id!),
+    placeholderData: keepAcrossLanguageSwitch(["product", id]),
     enabled:   !!id,
     staleTime: 5 * 60 * 1000,
   });

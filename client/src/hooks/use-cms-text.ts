@@ -20,6 +20,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import type { CmsContent } from "@shared/schema";
+import { keepAcrossLanguageSwitch } from "@/lib/language-placeholder";
 
 type CmsBlock = Record<string, CmsContent[]>; // block_slug → rows
 
@@ -37,6 +38,7 @@ export function useCmsText(blockSlug: string) {
   const { data = {}, isLoading } = useQuery<CmsBlock>({
     queryKey: ["cms-content-blocks", locale],
     queryFn: () => fetchCmsBlock(locale),
+    placeholderData: keepAcrossLanguageSwitch(["cms-content-blocks"]),
     staleTime: 5 * 60 * 1000, // cache for 5 minutes
   });
 

@@ -15,6 +15,7 @@ import { useCmsText } from "@/hooks/use-cms-text";
 import type { Product } from "@shared/schema";
 import { SectionBackdrop, PropLayer, PhotoWash, PhotoCredits, type BackdropProp } from "@/components/section-backdrop";
 import { IMAGE_CREDITS } from "@/lib/image-credits";
+import { keepAcrossLanguageSwitch } from "@/lib/language-placeholder";
 
 // Decorative cut-outs per section. Positions are relative to the card grid
 // (or CTA content); props sit behind the content and peek out around it.
@@ -45,6 +46,7 @@ export default function Home() {
   const { data: allTours = [] } = useQuery({
     queryKey: ["products", i18n.language],
     queryFn: fetchProducts,
+    placeholderData: keepAcrossLanguageSwitch(["products"]),
   });
 
   // Deduplicate tours by normalized title

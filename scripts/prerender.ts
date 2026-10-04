@@ -5,7 +5,7 @@ import { spawn, type ChildProcess } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { writeFile } from 'node:fs/promises';
 import { chromium, type Browser, type Page } from 'playwright';
-import { orderRoutesForPrerender, parseSitemapRoutes, PRERENDER_BYPASS_COOKIE, writeSnapshot } from '../server/prerender-paths.js';
+import { attachSnapshotState, orderRoutesForPrerender, parseSitemapRoutes, PRERENDER_BYPASS_COOKIE, writeSnapshot } from '../server/prerender-paths.js';
 import { validatePrerenderSnapshots, validateSnapshotHtml } from '../server/prerender-validation.js';
 import { readContainerStats, type ContainerStats } from '../server/prerender-metrics.js';
 import os from 'node:os';
@@ -168,7 +168,9 @@ async function renderAll(
   routes: string[],
   browser: Browser,
 ): Promise<{ written: number; failedRoutes: Array<{ route: string; error: string }> }> {
-  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  // Plain "en": query keys include i18n.language, and the client hydrates in "en"
+  // (client/src/main.tsx), so an "en-US" snapshot would miss for every visitor.
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, locale: 'en' });
   // Always render from the bare app shell, never on top of an existing (possibly
   // seeded-from-previous-deploy) snapshot. Same-origin cookie, so third parties never see it.
   await context.addCookies([{ name: PRERENDER_BYPASS_COOKIE, value: '1', url: base }]);
@@ -189,7 +191,27 @@ async function renderAll(
       readyMs = Date.now() - t0;
       booted = true;
       await page.waitForTimeout(RENDER_DELAY_MS);
-      const html = await page.content();
+      // The page as React's server renderer writes it, plus the data it was rendered
+      // with, so hydrateRoot can adopt it (client/src/lib/render-snapshot.tsx). Older
+      // bundles or a render error: save the live DOM without state; the client then
+      // renders from scratch as before.
+      const rendered = await page
+        .evaluate(() => window.__ACE_RENDER_SNAPSHOT__?.() ?? null)
+        .catch((err: unknown) => {
+          console.warn(`[hydration] ${route} server render failed: ${err instanceof Error ? err.message : String(err)}`);
+          return null;
+        });
+      const stateJson = rendered
+        ? await page.evaluate(() => window.__ACE_DEHYDRATE__?.() ?? null).catch(() => null)
+        : null;
+      const { html, stateBytes, skipped } = rendered
+        ? attachSnapshotState(rendered, stateJson)
+        : { html: await page.content(), stateBytes: 0, skipped: 'no server render' };
+      console.log(
+        skipped
+          ? `[hydration] ${route} state skipped: ${skipped}`
+          : `[hydration] ${route} state=${Math.round(stateBytes / 1024)}KB`,
+      );
       const validation = validateSnapshotHtml(html, route);
       if (validation.issues.length > 0) {
         throw new Error(validation.issues.join('; '));

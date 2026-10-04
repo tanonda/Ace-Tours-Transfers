@@ -31,6 +31,7 @@ import {
   GoogleReviewsSection,
   sanitizeHtml,
 } from "@/components/shared-detail-components";
+import { keepAcrossLanguageSwitch } from "@/lib/language-placeholder";
 
 // ─── Star rating display ────────────────────────────────────────────────────
 function StarRating({ value, max = 5, size = "sm" }: { value: number; max?: number; size?: "sm" | "md" }) {
@@ -72,6 +73,8 @@ export default function TransferDetail() {
   const { data: transfer, isLoading, error } = useQuery({
     queryKey: ["tour", id, i18n.language],
     queryFn: () => fetchTour(id!),
+    // Keep the page while a language switch refetches it (e.g. just after hydrating).
+    placeholderData: keepAcrossLanguageSwitch(["tour", id]),
     enabled: !!id,
   });
 

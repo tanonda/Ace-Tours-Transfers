@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { mkdir, writeFile } from 'node:fs/promises';
+import { MAX_STATE_BYTES, SNAPSHOT_STATE_ID } from '../shared/snapshot-state.js';
 
 /** Strip query/hash, normalise trailing slash. '/tours/abc/?x=1' -> '/tours/abc' */
 function cleanRoute(route: string): string {
@@ -101,6 +102,7 @@ export function orderRoutesForPrerender(routes: string[]): string[] {
 // <script src="/assets/…"></script> and <link href="/assets/…"> (stylesheets, modulepreloads)
 const ASSET_SCRIPT = /<script\b[^>]*\bsrc="\/assets\/[^"]*"[^>]*>\s*<\/script>/gi;
 const ASSET_LINK = /<link\b[^>]*\bhref="\/assets\/[^"]*"[^>]*>/gi;
+const SNAPSHOT_STATE_BLOCK = new RegExp(`<script type="application/json" id="${SNAPSHOT_STATE_ID}">[\\s\\S]*?</script>`, 'g');
 
 /**
  * Re-point a snapshot taken from a previous deploy at the current build's bundles.
@@ -108,8 +110,34 @@ const ASSET_LINK = /<link\b[^>]*\bhref="\/assets\/[^"]*"[^>]*>/gi;
  */
 export function swapAssetTags(snapshotHtml: string, shellHtml: string): string {
   const current = [...(shellHtml.match(ASSET_SCRIPT) ?? []), ...(shellHtml.match(ASSET_LINK) ?? [])];
-  const stripped = snapshotHtml.replace(ASSET_SCRIPT, '').replace(ASSET_LINK, '');
+  // The previous deploy's query state was rendered by its code; this build's code may
+  // expect different data, so seeded pages boot from scratch until re-prerendered.
+  const stripped = snapshotHtml
+    .replace(ASSET_SCRIPT, '')
+    .replace(ASSET_LINK, '')
+    .replace(SNAPSHOT_STATE_BLOCK, '');
   return stripped.replace(/<\/head>/i, `${current.join('\n')}\n</head>`);
+}
+
+/**
+ * Embed the page's react-query state so the client can hydrate instead of rebuilding.
+ * `stateJson` must already be script-safe (client/src/lib/hydration.ts
+ * serializeSnapshotState). Without it the snapshot still works; the client renders
+ * from scratch as before.
+ */
+export function attachSnapshotState(
+  html: string,
+  stateJson: string | null,
+): { html: string; stateBytes: number; skipped?: string } {
+  if (stateJson === null) return { html, stateBytes: 0, skipped: 'no dehydrate hook' };
+  const stateBytes = Buffer.byteLength(stateJson, 'utf-8');
+  if (stateBytes > MAX_STATE_BYTES) {
+    return { html, stateBytes, skipped: `state too large (${stateBytes} > ${MAX_STATE_BYTES} bytes)` };
+  }
+  const end = html.lastIndexOf('</body>');
+  if (end === -1) return { html, stateBytes, skipped: 'no </body>' };
+  const tag = `<script type="application/json" id="${SNAPSHOT_STATE_ID}">${stateJson}</script>`;
+  return { html: html.slice(0, end) + tag + html.slice(end), stateBytes };
 }
 
 /** Write a snapshot HTML string to its computed path, creating parent dirs. Returns the path written. */
