@@ -890,8 +890,11 @@ function FooterScene({ children }: { children: ReactNode }) {
     <div className="relative isolate overflow-hidden bg-[#0c1f2e]">
       <div aria-hidden className="absolute inset-0 -z-10">
         <img src={FOOTER_PHOTO} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover object-[50%_35%]" />
-        {/* Fade from the page colour at the top, darkening to navy where the footer text sits. */}
-        <div className="absolute inset-0 bg-gradient-to-b from-background via-[#0c1f2e]/45 via-25% to-[#0c1f2e]/95" />
+        {/* A dark navy wash for legible white text, a fixed-height fade from the page colour
+            at the top (a percentage would stretch on tall phone footers), and deeper navy
+            where the footer links sit. */}
+        <div className="absolute inset-0 bg-[#0c1f2e]/50" />
+        <div className="absolute inset-x-0 top-0 h-32 md:h-44 bg-gradient-to-b from-background to-transparent" />
         <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-[#0c1f2e] to-transparent" />
       </div>
       {children}
@@ -911,7 +914,8 @@ export function Layout({ children, footerLead }: { children: React.ReactNode; fo
       </main>
 
       <FooterScene>
-        {footerLead}
+        {/* Without a closing section, leave room for the photo to fade in above the footer text. */}
+        {footerLead ?? <div aria-hidden className="h-28 md:h-40" />}
         <SiteFooter />
       </FooterScene>
     </div>

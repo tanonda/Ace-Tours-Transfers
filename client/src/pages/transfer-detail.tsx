@@ -44,7 +44,7 @@ function StarRating({ value, max = 5, size = "sm" }: { value: number; max?: numb
         const filled = i < Math.floor(value);
         const half = !filled && i < value;
         return (
-          <span key={i} className={filled ? "text-[#f4a830]" : half ? "text-[#f4a830]/50" : "text-[#3d3830]"}>★</span>
+          <span key={i} className={filled ? "text-primary" : half ? "text-primary/50" : "text-border"}>★</span>
         );
       })}
     </span>
@@ -160,8 +160,8 @@ export default function TransferDetail() {
   if (isLoading) {
     return (
       <Layout>
-        <div className="flex items-center justify-center min-h-screen bg-[#0f0d09]">
-          <div className="w-8 h-8 border-4 border-[#f4a830] border-t-transparent rounded-full animate-spin" />
+        <div className="flex items-center justify-center min-h-screen bg-background">
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
         </div>
       </Layout>
     );
@@ -170,10 +170,10 @@ export default function TransferDetail() {
   if (error || !transfer) {
     return (
       <Layout>
-        <div className="container mx-auto px-4 pt-header-page pb-20 text-center bg-[#0f0d09] min-h-screen">
-          <h1 className="text-4xl font-bold mb-4 text-[#f0ece4]">{t("common.error", "Error")}</h1>
-          <p className="text-[#8a826e] mb-8">{t("common.productNotFound", "Transfer not found")}</p>
-          <Button onClick={() => window.history.back()} className="bg-[#f4a830] text-[#0f0d09]">
+        <div className="container mx-auto px-4 pt-header-page pb-20 text-center bg-background min-h-screen">
+          <h1 className="text-4xl font-bold mb-4 text-foreground">{t("common.error", "Error")}</h1>
+          <p className="text-muted-foreground mb-8">{t("common.productNotFound", "Transfer not found")}</p>
+          <Button onClick={() => window.history.back()} className="bg-primary text-background">
             <ArrowLeft className="mr-2 h-4 w-4" /> {t("common.goBack", "Go Back")}
           </Button>
         </div>
@@ -237,10 +237,10 @@ export default function TransferDetail() {
         policy={transfer.cancellationPolicy ?? undefined}
       />
 
-      <div className="min-h-screen bg-[#0f0d09] text-[#f0ece4] font-sans pt-header">
+      <div className="min-h-screen bg-background text-foreground font-sans pt-header">
 
         {/* ── HERO ── */}
-        <div className="relative w-full aspect-video lg:aspect-[21/9] min-h-[320px] max-h-[60vh] overflow-hidden bg-[#0f0d09]">
+        <div className="relative w-full aspect-video lg:aspect-[21/9] min-h-[320px] max-h-[60vh] overflow-hidden bg-background">
           <img
             src={cloudinaryOpt(displayImage, 1400)}
             className="w-full h-full object-cover filter brightness-[0.45] object-center"
@@ -248,33 +248,33 @@ export default function TransferDetail() {
             loading="eager"
             fetchPriority="high"
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0f0d09]" />
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background" />
           <div className="absolute bottom-7 left-0 right-0 max-w-[1320px] mx-auto px-4 md:px-8">
-            <div className="flex items-center gap-2 text-[0.78rem] text-[#8a826e] mb-3">
-              <a href="/" className="text-[#f4a830] hover:underline">Home</a>
+            <div className="flex items-center gap-2 text-[0.78rem] text-muted-foreground mb-3">
+              <a href="/" className="text-primary hover:underline">Home</a>
               <span>›</span>
-              <a href="/transfers" className="text-[#f4a830] hover:underline">{t("nav.transfers", "Transfers")}</a>
+              <a href="/transfers" className="text-primary hover:underline">{t("nav.transfers", "Transfers")}</a>
               <span>›</span>
-              <span className="text-[#f0ece4] opacity-50 truncate max-w-[200px]">{transfer.title}</span>
+              <span className="text-foreground opacity-50 truncate max-w-[200px]">{transfer.title}</span>
             </div>
             <h1 className="font-serif text-3xl md:text-4xl font-bold leading-tight mb-3 max-w-2xl">
               {transfer.title}
             </h1>
             <div className="flex flex-wrap gap-2">
               {reviews.length > 0 && (
-                <span className="px-3 py-1 rounded-full border border-[#f4a830] bg-[#f4a830]/15 text-[#f4a830] text-[0.78rem] font-medium">
+                <span className="px-3 py-1 rounded-full border border-primary bg-primary/15 text-primary text-[0.78rem] font-medium">
                   {"★".repeat(starsDisplay)} {averageRating.toFixed(1)} · {reviews.length} reviews
                 </span>
               )}
               {transfer.duration && (
-                <span className="px-3 py-1 rounded-full border border-[rgba(244,168,48,0.2)] bg-[#1a1710]/80 text-[#8a826e] text-[0.78rem] font-medium">
+                <span className="px-3 py-1 rounded-full border border-primary/20 bg-card/80 text-muted-foreground text-[0.78rem] font-medium">
                   ⏱ {transfer.duration}
                 </span>
               )}
-              <span className="px-3 py-1 rounded-full border border-[#4caf7d]/30 bg-[#4caf7d]/10 text-[#4caf7d] text-[0.78rem] font-medium">
+              <span className="px-3 py-1 rounded-full border border-reef/30 bg-reef/10 text-reef text-[0.78rem] font-medium">
                 ✓ Available Now
               </span>
-              <span className="px-3 py-1 rounded-full border border-[#f4a830]/40 bg-[#f4a830]/10 text-[#f4a830] text-[0.78rem] font-medium">
+              <span className="px-3 py-1 rounded-full border border-primary/40 bg-primary/10 text-primary text-[0.78rem] font-medium">
                 🚐 Transfer Service
               </span>
             </div>
@@ -288,7 +288,7 @@ export default function TransferDetail() {
           <div className="flex flex-col gap-6">
 
             {/* 1. Photo */}
-            <div className="rounded-[14px] overflow-hidden bg-[#211e18] aspect-[16/9]">
+            <div className="rounded-[14px] overflow-hidden bg-muted aspect-[16/9]">
               <img
                 src={cloudinaryOpt(displayImage, 900)}
                 className="w-full h-full object-cover object-center block"
@@ -298,10 +298,10 @@ export default function TransferDetail() {
             </div>
 
             {/* 2. Overview */}
-            <section className="bg-[#1a1710] border border-[rgba(244,168,48,0.18)] rounded-[14px] p-6 md:p-7">
+            <section className="bg-card border border-primary/18 rounded-[14px] p-6 md:p-7">
               <SectionHeading>Transfer Details</SectionHeading>
               <div
-                className="text-[0.92rem] leading-[1.8] text-[#ccc6b8] prose prose-invert prose-sm max-w-none [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_a]:text-[#f4a830] [&_a]:underline [&_li]:my-1 [&_p]:my-2"
+                className="text-[0.92rem] leading-[1.8] text-muted-foreground prose prose-invert prose-sm max-w-none [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_a]:text-primary [&_a]:underline [&_li]:my-1 [&_p]:my-2"
                 dangerouslySetInnerHTML={{
                   __html: sanitizeHtml(typeof transfer.description === "string"
                     ? transfer.description
@@ -325,29 +325,29 @@ export default function TransferDetail() {
 
             {/* 4. Meeting & Pickup */}
             {(transfer.meetingPoint || transfer.pickupInstructions) && (
-              <section className="bg-[#1a1710] border border-[rgba(244,168,48,0.18)] rounded-[14px] p-6 md:p-7">
+              <section className="bg-card border border-primary/18 rounded-[14px] p-6 md:p-7">
                 <SectionHeading>
-                  <MapPin className="w-5 h-5 text-[#f4a830] shrink-0" />
+                  <MapPin className="w-5 h-5 text-primary shrink-0" />
                   Meeting & Pickup
                 </SectionHeading>
-                <div className="bg-[#211e18] border border-[rgba(244,168,48,0.15)] rounded-[12px] p-5 mb-4">
+                <div className="bg-muted border border-primary/15 rounded-[12px] p-5 mb-4">
                   <div className="flex items-start gap-3 mb-4">
-                    <div className="w-9 h-9 rounded-full bg-[#f4a830]/15 border border-[#f4a830]/30 flex items-center justify-center shrink-0">
-                      <MapPin className="w-4 h-4 text-[#f4a830]" />
+                    <div className="w-9 h-9 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center shrink-0">
+                      <MapPin className="w-4 h-4 text-primary" />
                     </div>
                     <div className="flex-1">
-                      <div className="text-[0.7rem] text-[#8a826e] uppercase tracking-wider font-semibold mb-1">Pickup Point</div>
-                      <div className="text-[0.95rem] font-semibold text-[#f0ece4]">{transfer.meetingPoint || "Your accommodation in Port Vila"}</div>
+                      <div className="text-[0.7rem] text-muted-foreground uppercase tracking-wider font-semibold mb-1">Pickup Point</div>
+                      <div className="text-[0.95rem] font-semibold text-foreground">{transfer.meetingPoint || "Your accommodation in Port Vila"}</div>
                       {transfer.meetingPointMapUrl && (
                         <a href={transfer.meetingPointMapUrl} target="_blank" rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 text-[#f4a830] text-[0.82rem] mt-2 hover:underline">
+                          className="inline-flex items-center gap-1.5 text-primary text-[0.82rem] mt-2 hover:underline">
                           <ExternalLink className="w-3.5 h-3.5" /> Open in Google Maps
                         </a>
                       )}
                     </div>
                   </div>
                   {transfer.meetingPoint && import.meta.env.VITE_GOOGLE_MAPS_EMBED_KEY && (
-                    <div className="rounded-[10px] overflow-hidden border border-[rgba(244,168,48,0.12)] mb-4 bg-[#1a1710]" style={{ height: 180 }}>
+                    <div className="rounded-[10px] overflow-hidden border border-primary/12 mb-4 bg-card" style={{ height: 180 }}>
                       <iframe
                         title="Meeting point map"
                         width="100%" height="180"
@@ -359,18 +359,18 @@ export default function TransferDetail() {
                     </div>
                   )}
                   {transfer.pickupInstructions && (
-                    <div className="border-t border-[rgba(244,168,48,0.1)] pt-4">
-                      <div className="text-[0.7rem] text-[#8a826e] uppercase tracking-wider font-semibold mb-2">Pickup Details</div>
-                      <p className="text-[0.87rem] text-[#b8b0a0] leading-[1.7]">{transfer.pickupInstructions}</p>
+                    <div className="border-t border-primary/10 pt-4">
+                      <div className="text-[0.7rem] text-muted-foreground uppercase tracking-wider font-semibold mb-2">Pickup Details</div>
+                      <p className="text-[0.87rem] text-muted-foreground leading-[1.7]">{transfer.pickupInstructions}</p>
                     </div>
                   )}
                 </div>
                 {transfer.operatingHours && (
-                  <div className="flex items-center gap-3 px-5 py-3 bg-[#211e18] border border-[rgba(244,168,48,0.15)] rounded-[12px]">
-                    <Clock className="w-4 h-4 text-[#f4a830] shrink-0" />
+                  <div className="flex items-center gap-3 px-5 py-3 bg-muted border border-primary/15 rounded-[12px]">
+                    <Clock className="w-4 h-4 text-primary shrink-0" />
                     <div>
-                      <div className="text-[0.7rem] text-[#8a826e] uppercase tracking-wider font-semibold">Operating Hours</div>
-                      <div className="text-[0.88rem] text-[#ccc6b8] font-medium">{transfer.operatingHours}</div>
+                      <div className="text-[0.7rem] text-muted-foreground uppercase tracking-wider font-semibold">Operating Hours</div>
+                      <div className="text-[0.88rem] text-muted-foreground font-medium">{transfer.operatingHours}</div>
                     </div>
                   </div>
                 )}
@@ -392,23 +392,23 @@ export default function TransferDetail() {
             </section>
 
             {/* 6. Reviews */}
-            <section className="bg-[#1a1710] border border-[rgba(244,168,48,0.18)] rounded-[14px] p-6 md:p-7">
+            <section className="bg-card border border-primary/18 rounded-[14px] p-6 md:p-7">
               <SectionHeading>Guest Reviews</SectionHeading>
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 pb-6 mb-6 border-b border-[rgba(244,168,48,0.15)]">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 pb-6 mb-6 border-b border-primary/15">
                 <div className="text-center">
-                  <div className="font-serif text-5xl font-bold text-[#f4a830]">{reviews.length > 0 ? averageRating.toFixed(1) : "–"}</div>
+                  <div className="font-serif text-5xl font-bold text-primary">{reviews.length > 0 ? averageRating.toFixed(1) : "–"}</div>
                   <StarRating value={averageRating} size="md" />
-                  <div className="text-[0.78rem] text-[#8a826e] mt-1">{reviews.length} reviews</div>
+                  <div className="text-[0.78rem] text-muted-foreground mt-1">{reviews.length} reviews</div>
                 </div>
                 <div className="flex-1 w-full space-y-1.5">
                   {ratingCounts.map(({ star, count }) => (
                     <div key={star} className="flex items-center gap-2">
-                      <span className="text-[0.72rem] text-[#8a826e] w-10 shrink-0">{star} stars</span>
-                      <div className="flex-1 h-2 bg-[#2d2920] rounded-full overflow-hidden">
-                        <div className="h-full bg-[#f4a830] rounded-full transition-all"
+                      <span className="text-[0.72rem] text-muted-foreground w-10 shrink-0">{star} stars</span>
+                      <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                        <div className="h-full bg-primary rounded-full transition-all"
                           style={{ width: reviews.length > 0 ? `${(count / reviews.length) * 100}%` : "0%" }} />
                       </div>
-                      <span className="text-[0.72rem] text-[#8a826e] w-6 text-right">{count}</span>
+                      <span className="text-[0.72rem] text-muted-foreground w-6 text-right">{count}</span>
                     </div>
                   ))}
                 </div>
@@ -416,30 +416,30 @@ export default function TransferDetail() {
               <div className="space-y-3">
                 {reviews.length > 0 ? (
                   displayedReviews.map((r: any) => (
-                    <div key={r.id} className="bg-[#211e18] rounded-[12px] p-5">
+                    <div key={r.id} className="bg-muted rounded-[12px] p-5">
                       <div className="flex justify-between items-start mb-3">
                         <div>
                           <div className="font-semibold text-[0.9rem]">{r.userName || "Guest"}</div>
                           <StarRating value={r.rating} />
                         </div>
-                        <div className="text-[0.72rem] text-[#8a826e]">{new Date(r.createdAt).toLocaleDateString("en-US", { month: "short", year: "numeric" })}</div>
+                        <div className="text-[0.72rem] text-muted-foreground">{new Date(r.createdAt).toLocaleDateString("en-US", { month: "short", year: "numeric" })}</div>
                       </div>
-                      <p className="text-[0.875rem] text-[#b8b0a0] leading-[1.65]">"{r.comment}"</p>
+                      <p className="text-[0.875rem] text-muted-foreground leading-[1.65]">"{r.comment}"</p>
                     </div>
                   ))
                 ) : (
-                  <p className="text-[0.88rem] text-[#8a826e] italic">No reviews yet. Be the first to leave one!</p>
+                  <p className="text-[0.88rem] text-muted-foreground italic">No reviews yet. Be the first to leave one!</p>
                 )}
               </div>
               {reviews.length > 5 && (
                 <button
                   onClick={() => setShowAllReviews(v => !v)}
-                  className="mt-4 w-full py-3 border border-[rgba(244,168,48,0.2)] rounded-[10px] text-[#8a826e] text-[0.85rem] hover:border-[#f4a830] hover:text-[#f4a830] transition-colors"
+                  className="mt-4 w-full py-3 border border-primary/20 rounded-[10px] text-muted-foreground text-[0.85rem] hover:border-primary hover:text-primary transition-colors"
                 >
                   {showAllReviews ? "Show fewer reviews" : `Show all ${reviews.length} reviews`}
                 </button>
               )}
-              <div className="mt-6 pt-6 border-t border-[rgba(244,168,48,0.12)]">
+              <div className="mt-6 pt-6 border-t border-primary/12">
                 <GuestReviewForm
                   productId={id!}
                   productTitle={transfer.title}
@@ -451,33 +451,33 @@ export default function TransferDetail() {
 
           {/* ── RIGHT: STICKY BOOKING PANEL ── */}
           <div id="booking-panel" className="sticky top-[82px] flex flex-col gap-4">
-            <div className="bg-[#1a1710] border border-[rgba(244,168,48,0.22)] rounded-[14px] overflow-hidden shadow-[0_8px_40px_rgba(0,0,0,0.5)]">
+            <div className="bg-card border border-primary/22 rounded-[14px] overflow-hidden shadow-[0_8px_40px_rgba(0,0,0,0.5)]">
 
               {/* Price header */}
-              <div className="bg-[#211e18] px-6 py-5 border-b border-[rgba(244,168,48,0.15)]">
+              <div className="bg-muted px-6 py-5 border-b border-primary/15">
                 {isGroupPricing ? (
                   <div>
-                    <div className="text-[0.72rem] text-[#8a826e] uppercase tracking-wider mb-1">Package rate</div>
+                    <div className="text-[0.72rem] text-muted-foreground uppercase tracking-wider mb-1">Package rate</div>
                     <div className="flex items-baseline gap-2">
-                      <span className="font-serif text-[2.1rem] font-bold text-[#f4a830]">
+                      <span className="font-serif text-[2.1rem] font-bold text-primary">
                         {formatPriceDisplay(transfer.groupPriceCents, currency)}
                       </span>
                       {transfer.groupMaxPax && (
-                        <span className="text-[0.78rem] text-[#8a826e]">up to {transfer.groupMaxPax} people</span>
+                        <span className="text-[0.78rem] text-muted-foreground">up to {transfer.groupMaxPax} people</span>
                       )}
                     </div>
                   </div>
                 ) : (
                   <div>
-                    <div className="text-[0.72rem] text-[#8a826e] uppercase tracking-wider mb-1">From</div>
+                    <div className="text-[0.72rem] text-muted-foreground uppercase tracking-wider mb-1">From</div>
                     <div className="flex items-baseline gap-2">
-                      <span className="font-serif text-[2.1rem] font-bold text-[#f4a830]">
+                      <span className="font-serif text-[2.1rem] font-bold text-primary">
                         {formatPriceDisplay(transfer.adultPriceCents, currency)}
                       </span>
-                      <span className="text-[0.82rem] text-[#8a826e]">/ adult</span>
+                      <span className="text-[0.82rem] text-muted-foreground">/ adult</span>
                     </div>
                     {transfer.childPriceCents > 0 && (
-                      <div className="text-[0.75rem] text-[#8a826e] mt-0.5">
+                      <div className="text-[0.75rem] text-muted-foreground mt-0.5">
                         Child: {formatPriceDisplay(transfer.childPriceCents, currency)}
                       </div>
                     )}
@@ -492,7 +492,7 @@ export default function TransferDetail() {
                   <BookingCountdownTimer cutoffHours={cutoffHours} serviceDate={date} serviceTime={selectedTime} />
                   <button
                     onClick={() => setCancellationModalOpen(true)}
-                    className="text-[0.75rem] text-[#8a826e] hover:text-[#f4a830] flex items-center gap-1.5 transition-colors self-start"
+                    className="text-[0.75rem] text-muted-foreground hover:text-primary flex items-center gap-1.5 transition-colors self-start"
                   >
                     <Shield className="w-3.5 h-3.5" />
                     Free cancellation · {cutoffHours}h before start
@@ -502,7 +502,7 @@ export default function TransferDetail() {
                 {/* Guest counters */}
                 {!isGroupPricing && (
                   <div>
-                    <label className="text-[0.72rem] font-semibold text-[#8a826e] tracking-[0.08em] uppercase mb-2 block">
+                    <label className="text-[0.72rem] font-semibold text-muted-foreground tracking-[0.08em] uppercase mb-2 block">
                       Passengers
                     </label>
                     <div className="flex flex-col gap-2">
@@ -512,20 +512,20 @@ export default function TransferDetail() {
                         { label: "Infants", price: 0, value: infantPax, min: 0, max: 10, set: setInfantPax, freeLabel: "Free" },
                         { label: "Pets", price: 0, value: petPax, min: 0, max: 5, set: setPetPax, freeLabel: "Free" },
                       ].map(({ label, price, value, min, max, set, freeLabel }) => (
-                        <div key={label} className="flex items-center justify-between bg-[#211e18] border border-[rgba(244,168,48,0.12)] rounded-[10px] px-4 py-2.5">
+                        <div key={label} className="flex items-center justify-between bg-muted border border-primary/12 rounded-[10px] px-4 py-2.5">
                           <div>
-                            <span className="text-[0.85rem] text-[#f0ece4] font-medium">{label}</span>
+                            <span className="text-[0.85rem] text-foreground font-medium">{label}</span>
                             {price > 0
-                              ? <span className="text-[0.7rem] text-[#8a826e] ml-2">{formatPriceDisplay(price, currency)} ea</span>
-                              : freeLabel && <span className="text-[0.7rem] text-[#4caf7d] ml-2">{freeLabel}</span>
+                              ? <span className="text-[0.7rem] text-muted-foreground ml-2">{formatPriceDisplay(price, currency)} ea</span>
+                              : freeLabel && <span className="text-[0.7rem] text-reef ml-2">{freeLabel}</span>
                             }
                           </div>
                           <div className="flex items-center gap-3">
                             <button onClick={() => set((prev: number) => Math.max(min, prev - 1))}
-                              className="w-7 h-7 rounded-full bg-[#1a1710] border border-[rgba(244,168,48,0.18)] text-[#f0ece4] hover:border-[#f4a830] hover:bg-[#f4a830]/15 transition-all text-lg leading-none flex items-center justify-center">−</button>
-                            <span className="w-5 text-center font-bold text-[#f4a830] text-[0.95rem]">{value}</span>
+                              className="w-7 h-7 rounded-full bg-card border border-primary/18 text-foreground hover:border-primary hover:bg-primary/15 transition-all text-lg leading-none flex items-center justify-center">−</button>
+                            <span className="w-5 text-center font-bold text-primary text-[0.95rem]">{value}</span>
                             <button onClick={() => set((prev: number) => Math.min(max, prev + 1))}
-                              className="w-7 h-7 rounded-full bg-[#1a1710] border border-[rgba(244,168,48,0.18)] text-[#f0ece4] hover:border-[#f4a830] hover:bg-[#f4a830]/15 transition-all text-lg leading-none flex items-center justify-center">+</button>
+                              className="w-7 h-7 rounded-full bg-card border border-primary/18 text-foreground hover:border-primary hover:bg-primary/15 transition-all text-lg leading-none flex items-center justify-center">+</button>
                           </div>
                         </div>
                       ))}
@@ -544,30 +544,30 @@ export default function TransferDetail() {
                 )}
 
                 {/* Price breakdown */}
-                <div className="bg-[#211e18] border border-[rgba(244,168,48,0.15)] rounded-[12px] overflow-hidden">
-                  <div className="px-4 py-2.5 border-b border-[rgba(244,168,48,0.08)]">
-                    <span className="text-[0.68rem] font-black uppercase tracking-[0.12em] text-[#8a826e]">Price Breakdown</span>
+                <div className="bg-muted border border-primary/15 rounded-[12px] overflow-hidden">
+                  <div className="px-4 py-2.5 border-b border-primary/8">
+                    <span className="text-[0.68rem] font-black uppercase tracking-[0.12em] text-muted-foreground">Price Breakdown</span>
                   </div>
                   <div className="px-4 py-3 space-y-2">
                     {isGroupPricing ? (
                       <div className="flex items-center justify-between">
-                        <span className="text-[0.82rem] text-[#ccc6b8]">Package rate{transfer.groupMaxPax ? ` (up to ${transfer.groupMaxPax})` : ""}</span>
-                        <span className="text-[0.9rem] font-semibold text-[#f0ece4]">{formatPriceDisplay(transfer.groupPriceCents, currency)}</span>
+                        <span className="text-[0.82rem] text-muted-foreground">Package rate{transfer.groupMaxPax ? ` (up to ${transfer.groupMaxPax})` : ""}</span>
+                        <span className="text-[0.9rem] font-semibold text-foreground">{formatPriceDisplay(transfer.groupPriceCents, currency)}</span>
                       </div>
                     ) : (
                       <>
                         <div className="flex items-center justify-between">
-                          <span className="text-[0.82rem] text-[#ccc6b8]">{adultPax} × Adult <span className="text-[#6a6055]">@ {formatPriceDisplay(transfer.adultPriceCents, currency)}</span></span>
-                          <span className="text-[0.9rem] font-semibold text-[#f0ece4]">{formatPriceDisplay(transfer.adultPriceCents * adultPax, currency)}</span>
+                          <span className="text-[0.82rem] text-muted-foreground">{adultPax} × Adult <span className="text-muted-foreground">@ {formatPriceDisplay(transfer.adultPriceCents, currency)}</span></span>
+                          <span className="text-[0.9rem] font-semibold text-foreground">{formatPriceDisplay(transfer.adultPriceCents * adultPax, currency)}</span>
                         </div>
                         {childPax > 0 && (
                           <div className="flex items-center justify-between">
-                            <span className="text-[0.82rem] text-[#ccc6b8]">{childPax} × Child {transfer.childPriceCents > 0 ? <span className="text-[#6a6055]">@ {formatPriceDisplay(transfer.childPriceCents, currency)}</span> : <span className="text-[#4caf7d]">Free</span>}</span>
-                            <span className="text-[0.9rem] font-semibold text-[#f0ece4]">{transfer.childPriceCents > 0 ? formatPriceDisplay(transfer.childPriceCents * childPax, currency) : <span className="text-[#4caf7d]">VT 0</span>}</span>
+                            <span className="text-[0.82rem] text-muted-foreground">{childPax} × Child {transfer.childPriceCents > 0 ? <span className="text-muted-foreground">@ {formatPriceDisplay(transfer.childPriceCents, currency)}</span> : <span className="text-reef">Free</span>}</span>
+                            <span className="text-[0.9rem] font-semibold text-foreground">{transfer.childPriceCents > 0 ? formatPriceDisplay(transfer.childPriceCents * childPax, currency) : <span className="text-reef">VT 0</span>}</span>
                           </div>
                         )}
                         {groupDiscountApplies(pricingRules, transfer.pricingType, adultPax) && (
-                          <div className="flex items-center justify-between text-[#4caf7d] text-[0.78rem]">
+                          <div className="flex items-center justify-between text-reef text-[0.78rem]">
                             <span>🎉 Group discount ({pricingRules.groupDiscount.percent}%)</span>
                             <span>−applied</span>
                           </div>
@@ -575,27 +575,27 @@ export default function TransferDetail() {
                       </>
                     )}
                     {addonTotal > 0 && (
-                      <div className="flex items-center justify-between text-[#ccc6b8]">
+                      <div className="flex items-center justify-between text-muted-foreground">
                         <span className="text-[0.82rem]">Add-ons</span>
                         <span className="text-[0.9rem] font-semibold">+{formatPriceDisplay(addonTotal, currency)}</span>
                       </div>
                     )}
-                    <div className="border-t border-[rgba(244,168,48,0.15)] pt-2 flex items-center justify-between">
-                      <span className="text-[0.75rem] font-bold text-[#8a826e] uppercase tracking-wider">{date ? "Total" : "Est. Total"}</span>
+                    <div className="border-t border-primary/15 pt-2 flex items-center justify-between">
+                      <span className="text-[0.75rem] font-bold text-muted-foreground uppercase tracking-wider">{date ? "Total" : "Est. Total"}</span>
                       <div className="text-right">
-                        <span className="text-[1.1rem] font-black text-[#f4a830]">
+                        <span className="text-[1.1rem] font-black text-primary">
                           {formatPriceDisplay(grandTotal, currency)}
                         </span>
-                        <span className="block text-[0.6rem] text-[#8a826e] uppercase font-bold tracking-tight">{vatLabel(pricingRules)}</span>
+                        <span className="block text-[0.6rem] text-muted-foreground uppercase font-bold tracking-tight">{vatLabel(pricingRules)}</span>
                       </div>
                     </div>
-                    {!date && <p className="text-[0.68rem] text-[#8a826e] italic text-center">Select a date to confirm pricing</p>}
+                    {!date && <p className="text-[0.68rem] text-muted-foreground italic text-center">Select a date to confirm pricing</p>}
                   </div>
                 </div>
 
                 {/* Calendar */}
                 <div>
-                  <label className="text-[0.72rem] font-semibold text-[#8a826e] tracking-[0.08em] uppercase mb-2 block">Select Date</label>
+                  <label className="text-[0.72rem] font-semibold text-muted-foreground tracking-[0.08em] uppercase mb-2 block">Select Date</label>
                   <AvailabilityCalendar
                     tourId={transfer.id}
                     selectedDate={date}
@@ -608,12 +608,12 @@ export default function TransferDetail() {
 
                 {/* Selected date confirmation */}
                 {date && (
-                  <div className="bg-[#f4a830]/12 border border-[rgba(244,168,48,0.28)] rounded-[10px] px-4 py-3">
-                    <div className="text-[0.7rem] text-[#f4a830] font-semibold uppercase tracking-wider mb-1">Selected Date</div>
+                  <div className="bg-primary/12 border border-primary/28 rounded-[10px] px-4 py-3">
+                    <div className="text-[0.7rem] text-primary font-semibold uppercase tracking-wider mb-1">Selected Date</div>
                     <div className="text-[0.95rem] font-semibold">
                       {new Date(date).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
                     </div>
-                    {selectedTime && <div className="text-[0.8rem] text-[#f4a830] mt-1 font-medium">⏱ {selectedTime}</div>}
+                    {selectedTime && <div className="text-[0.8rem] text-primary mt-1 font-medium">⏱ {selectedTime}</div>}
                   </div>
                 )}
 
@@ -635,8 +635,8 @@ export default function TransferDetail() {
                   <Button
                     disabled={!date || isBooked || availLoading}
                     className={`w-full h-14 rounded-[10px] text-[0.95rem] font-bold tracking-[0.02em] ${date && !isBooked
-                      ? "bg-[#f4a830] text-[#0f0d09] hover:bg-[#fdc96a] shadow-[0_6px_24px_rgba(244,168,48,0.35)]"
-                      : "bg-[#211e18] text-[#4a4438] cursor-not-allowed border border-[rgba(244,168,48,0.18)]"
+                      ? "bg-primary text-background hover:bg-primary shadow-[0_6px_24px_hsl(var(--primary) / 0.35)]"
+                      : "bg-muted text-border cursor-not-allowed border border-primary/18"
                       }`}
                     onClick={handleAddToCart}
                   >
@@ -659,7 +659,7 @@ export default function TransferDetail() {
                   💬 Ask a Question via WhatsApp
                 </a>
 
-                <div className="flex gap-4 pt-3 border-t border-[rgba(244,168,48,0.12)] text-[0.72rem] text-[#8a826e]">
+                <div className="flex gap-4 pt-3 border-t border-primary/12 text-[0.72rem] text-muted-foreground">
                   <div className="flex items-center gap-1.5">
                     <Shield className="w-3.5 h-3.5" />
                     Free cancellation {cutoffHours}h before

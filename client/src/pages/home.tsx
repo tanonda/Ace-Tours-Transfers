@@ -88,7 +88,7 @@ export default function Home() {
 
   // Closing call-to-action: sits on the footer's dusk photo (Layout footerLead).
   const closingCta = (
-    <section className="relative pt-32 pb-20 md:pt-48 md:pb-28">
+    <section className="relative pt-40 pb-20 md:pt-52 md:pb-28">
       <div className="container mx-auto px-4 text-center text-white">
         <p className="font-script text-3xl md:text-4xl text-[#ffe3c6] -rotate-2 mb-2 drop-shadow">{t("home.ctaScript", "Wish you were here...")}</p>
         <h2 className="text-4xl md:text-6xl mb-6 drop-shadow-lg">{cms.text("cta_title", t("home.ctaTitle"))}</h2>

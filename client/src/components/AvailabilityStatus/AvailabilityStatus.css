@@ -1,8 +1,8 @@
 .availability-status {
   border-radius: 12px;
   padding: 14px 16px;
-  border: 1px solid rgba(244, 168, 48, 0.2);
-  background: rgba(244, 168, 48, 0.04);
+  border: 1px solid hsl(var(--primary) / 0.2);
+  background: hsl(var(--primary) / 0.04);
   transition: border-color 0.3s ease, background 0.3s ease;
 }
 
@@ -12,21 +12,21 @@
   justify-content: center;
   gap: 10px;
   min-height: 72px;
-  border-color: rgba(244, 168, 48, 0.12);
-  background: rgba(244, 168, 48, 0.03);
+  border-color: hsl(var(--primary) / 0.12);
+  background: hsl(var(--primary) / 0.03);
 }
 
 .availability-status.loading .spinner {
   width: 16px;
   height: 16px;
-  border: 2px solid rgba(244, 168, 48, 0.2);
-  border-top-color: #f4a830;
+  border: 2px solid hsl(var(--primary) / 0.2);
+  border-top-color: hsl(var(--primary));
   border-radius: 50%;
   animation: as-spin 0.6s linear infinite;
 }
 
 .availability-status.loading p {
-  color: #8a826e;
+  color: hsl(var(--muted-foreground));
   font-size: 12px;
   margin: 0;
 }
@@ -39,8 +39,8 @@
 .availability-status.error p { color: #e05555; margin: 0; font-size: 12px; }
 
 .availability-status.available {
-  border-color: rgba(76, 175, 125, 0.3);
-  background: rgba(76, 175, 125, 0.05);
+  border-color: hsl(var(--reef) / 0.3);
+  background: hsl(var(--reef) / 0.05);
 }
 
 .availability-status.full {
@@ -60,7 +60,7 @@
   margin: 0;
   font-size: 10px;
   font-weight: 700;
-  color: #8a826e;
+  color: hsl(var(--muted-foreground));
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
@@ -86,11 +86,11 @@
 }
 
 .status-badge.open {
-  background: rgba(76, 175, 125, 0.14);
-  color: #4caf7d;
-  border: 1px solid rgba(76, 175, 125, 0.28);
+  background: hsl(var(--reef) / 0.14);
+  color: hsl(var(--reef));
+  border: 1px solid hsl(var(--reef) / 0.28);
 }
-.status-badge.open .badge-dot { background: #4caf7d; }
+.status-badge.open .badge-dot { background: hsl(var(--reef)); }
 
 .status-badge.full {
   background: rgba(224, 85, 85, 0.12);
@@ -107,18 +107,18 @@
   justify-content: space-between;
   font-size: 11px;
   margin-bottom: 5px;
-  color: #8a826e;
+  color: hsl(var(--muted-foreground));
 }
 
 .capacity-label .numbers {
   font-weight: 700;
-  color: #f0ece4;
+  color: hsl(var(--foreground));
   font-size: 11px;
 }
 
 .progress-bar {
   height: 5px;
-  background: rgba(244, 168, 48, 0.1);
+  background: hsl(var(--primary) / 0.1);
   border-radius: 3px;
   overflow: hidden;
 }
@@ -131,8 +131,8 @@
 
 /* Messages */
 .status-message { margin-top: 6px; }
-.status-message p { margin: 0; font-size: 11px; color: #8a826e; line-height: 1.4; }
-.status-message .warning { color: #f4a830; font-weight: 600; margin-top: 4px; }
+.status-message p { margin: 0; font-size: 11px; color: hsl(var(--muted-foreground)); line-height: 1.4; }
+.status-message .warning { color: hsl(var(--primary)); font-weight: 600; margin-top: 4px; }
 
 .fully-booked {
   margin-top: 6px;
