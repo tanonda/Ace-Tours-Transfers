@@ -1,6 +1,5 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-
-type Theme = "light" | "dark";
+import { createContext, useContext, useEffect, useLayoutEffect, useState, ReactNode } from "react";
+import { INITIAL_THEME, resolveStoredTheme, THEME_STORAGE_KEY, type Theme } from "./theme";
 
 interface ThemeContextType {
   theme: Theme;
@@ -11,14 +10,20 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>(() => {
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("ace-theme") as Theme;
-      if (stored) return stored;
-      return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-    }
-    return "light";
-  });
+  // Start from the prerender's theme so hydration matches, then apply the visitor's
+  // choice before the browser paints (layout effect).
+  const [theme, setThemeState] = useState<Theme>(INITIAL_THEME);
+  const [storedThemeApplied, setStoredThemeApplied] = useState(false);
+
+  useLayoutEffect(() => {
+    setThemeState(
+      resolveStoredTheme(
+        localStorage.getItem(THEME_STORAGE_KEY),
+        window.matchMedia("(prefers-color-scheme: dark)").matches,
+      ),
+    );
+    setStoredThemeApplied(true);
+  }, []);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -27,8 +32,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     } else {
       root.classList.remove("dark");
     }
-    localStorage.setItem("ace-theme", theme);
-  }, [theme]);
+    // Don't overwrite the stored choice with the initial value before it is read.
+    if (storedThemeApplied) localStorage.setItem(THEME_STORAGE_KEY, theme);
+  }, [theme, storedThemeApplied]);
 
   const toggleTheme = () => {
     setThemeState((prev) => (prev === "light" ? "dark" : "light"));
