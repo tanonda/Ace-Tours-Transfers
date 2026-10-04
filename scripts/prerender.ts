@@ -5,7 +5,7 @@ import { spawn, type ChildProcess } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { writeFile } from 'node:fs/promises';
 import { chromium, type Browser, type Page } from 'playwright';
-import { orderRoutesForPrerender, parseSitemapRoutes, PRERENDER_BYPASS_COOKIE, writeSnapshot } from '../server/prerender-paths.js';
+import { attachSnapshotState, orderRoutesForPrerender, parseSitemapRoutes, PRERENDER_BYPASS_COOKIE, writeSnapshot } from '../server/prerender-paths.js';
 import { validatePrerenderSnapshots, validateSnapshotHtml } from '../server/prerender-validation.js';
 import { readContainerStats, type ContainerStats } from '../server/prerender-metrics.js';
 import os from 'node:os';
@@ -189,7 +189,17 @@ async function renderAll(
       readyMs = Date.now() - t0;
       booted = true;
       await page.waitForTimeout(RENDER_DELAY_MS);
-      const html = await page.content();
+      const captured = await page.content();
+      // Same moment as the HTML, so the data matches what was rendered.
+      const stateJson = await page
+        .evaluate(() => window.__ACE_DEHYDRATE__?.() ?? null)
+        .catch(() => null);
+      const { html, stateBytes, skipped } = attachSnapshotState(captured, stateJson);
+      console.log(
+        skipped
+          ? `[hydration] ${route} state skipped: ${skipped}`
+          : `[hydration] ${route} state=${Math.round(stateBytes / 1024)}KB`,
+      );
       const validation = validateSnapshotHtml(html, route);
       if (validation.issues.length > 0) {
         throw new Error(validation.issues.join('; '));
