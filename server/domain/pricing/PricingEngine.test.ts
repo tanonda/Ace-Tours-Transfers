@@ -55,6 +55,23 @@ describe('PricingEngine', () => {
         });
     });
 
+    describe('group (flat) pricing', () => {
+        // A flat package price is the advertised price: the 7+ adult discount is for per-person tours only.
+        const engine = new PricingEngine(mockStorage);
+        const busHire: TourRate = { pricingType: 'group', groupPriceCents: 32000, adultPriceCents: 32000, childPriceCents: 0 };
+
+        it('charges the flat price with no discount (calculateSimple)', () => {
+            expect(engine.calculateSimple(1, 0, busHire)).toBe(32000);
+            expect(engine.calculateSimple(12, 2, busHire)).toBe(32000);
+        });
+
+        it('charges the flat price with no discount (calculateLineItem)', async () => {
+            const result = await engine.calculateLineItem(12, 2, busHire);
+            expect(result.breakdown.finalTotalCents).toBe(32000);
+            expect(result.breakdown.discountsCents).toBe(0);
+        });
+    });
+
     describe('calculateVAT', () => {
         const engine = new PricingEngine(mockStorage);
 

@@ -4,7 +4,7 @@
  * CHANGES vs. original:
  *  - Added `pricingType` support: 'per_person' | 'group'
  *  - Group pricing: flat groupPriceCents regardless of pax count
- *  - Rules (group discount, seasonal surcharge) still apply to group price
+ *  - Seasonal surcharge applies to group price; the 7+ adult discount does not
  *  - Currency conversion helpers added (view-layer only, DB always VUV)
  */
 
@@ -202,21 +202,12 @@ export class PricingEngine {
     let surchargesCents = 0;
     const appliedRules: string[] = [];
 
-    // ── 3. Group discount (7+ adults for per_person; always for group pricing) ─
-    const paxForDiscount = rates.pricingType === 'group' ? adultPax + childPax : adultPax;
-    const discountThreshold = rates.pricingType === 'group'
-      ? 1
-      : this.config.groupDiscountThreshold;
-
-    if (paxForDiscount >= discountThreshold) {
+    // ── 3. Group discount (7+ adults, per_person only: a flat group price is the advertised price) ─
+    if (rates.pricingType !== 'group' && adultPax >= this.config.groupDiscountThreshold) {
       const discountAmount = Math.round(totalCents * (this.config.groupDiscountPercent / 100));
       totalCents -= discountAmount;
       discountsCents -= discountAmount;
-      appliedRules.push(
-        rates.pricingType === 'group'
-          ? `${this.config.groupDiscountPercent}% group discount`
-          : `${this.config.groupDiscountPercent}% group discount (${this.config.groupDiscountThreshold}+ adults)`
-      );
+      appliedRules.push(`${this.config.groupDiscountPercent}% group discount (${this.config.groupDiscountThreshold}+ adults)`);
     }
 
     // ── 4. Seasonal surcharge ───────────────────────────────────────────────
@@ -269,9 +260,7 @@ export class PricingEngine {
       total = adultPax * rates.adultPriceCents + childPax * rates.childPriceCents;
     }
 
-    const paxForDiscount = rates.pricingType === 'group' ? adultPax + childPax : adultPax;
-    const discountThreshold = rates.pricingType === 'group' ? 1 : this.config.groupDiscountThreshold;
-    if (paxForDiscount >= discountThreshold) {
+    if (rates.pricingType !== 'group' && adultPax >= this.config.groupDiscountThreshold) {
       total = Math.round(total * (1 - this.config.groupDiscountPercent / 100));
     }
 
