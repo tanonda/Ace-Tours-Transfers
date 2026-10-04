@@ -63,5 +63,6 @@ describe("SiteHeader", () => {
     expect(container.textContent).toContain("Cart (1)");
     expect(afterSignInCheck).toBe(0);
     expect(headerRenders()).toBe(0);
-  });
+    // Loads the whole header (Radix menus): ~3 s alone, longer when the suite runs in parallel.
+  }, 30_000);
 });
