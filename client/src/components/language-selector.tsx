@@ -1,8 +1,17 @@
-// Fix #24: Replaced native <select> with Shadcn Select component for visual consistency
-// with the rest of the UI, especially in dark mode and custom-themed deployments.
+// A Radix DropdownMenu styled like the Shadcn Select it replaced (which itself replaced
+// a native <select> for dark-mode consistency, Fix #24). A Select has to mount every
+// option just to show the chosen one's label, so it re-rendered on every page load and
+// prerendered with an empty button. Here the label comes straight from i18n and the
+// options mount only when the menu opens.
 import { useTranslation } from 'react-i18next';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Globe } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ChevronDown, Globe } from "lucide-react";
 
 const languages = [
   { code: 'en', name: 'English' },
@@ -14,27 +23,30 @@ const languages = [
 
 export function LanguageSelector() {
   const { i18n } = useTranslation();
+  const current = languages.find((l) => l.code === i18n.language)
+    ?? languages.find((l) => i18n.language?.startsWith(l.code))
+    ?? languages[0];
 
   return (
-    <Select
-      value={i18n.language}
-      onValueChange={(value) => i18n.changeLanguage(value)}
-    >
-      <SelectTrigger
-        className="w-auto gap-1.5 h-9 px-3 text-sm border-border bg-background"
+    <DropdownMenu modal={false}>
+      <DropdownMenuTrigger
+        className="flex w-auto items-center gap-1.5 h-9 px-3 whitespace-nowrap rounded-md border border-border bg-background text-sm shadow-sm ring-offset-background focus:outline-none focus:ring-1 focus:ring-ring"
         aria-label="Select language"
         data-testid="select-language"
       >
         <Globe className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        {languages.map(lang => (
-          <SelectItem key={lang.code} value={lang.code}>
-            {lang.name}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+        <span>{current.name}</span>
+        <ChevronDown className="h-4 w-4 opacity-50" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuRadioGroup value={current.code} onValueChange={(value) => i18n.changeLanguage(value)}>
+          {languages.map((lang) => (
+            <DropdownMenuRadioItem key={lang.code} value={lang.code}>
+              {lang.name}
+            </DropdownMenuRadioItem>
+          ))}
+        </DropdownMenuRadioGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
