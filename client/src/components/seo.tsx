@@ -2,6 +2,7 @@ import { Helmet } from "react-helmet-async";
 import { buildOfferJsonLd } from "@/lib/product-jsonld";
 import { useLocation } from "wouter";
 import { useTranslation } from "react-i18next";
+import i18n from "@/lib/i18n";
 import { useOptionalCMS } from "@/lib/cms-context";
 import { readSeoSettings, resolveSeo } from "@/lib/seo-settings";
 
@@ -94,7 +95,9 @@ export function SEO({
   isHomePage = false,
 }: SEOProps) {
   const [loc] = useLocation();
-  const { i18n } = useTranslation();
+  // Subscribes to language changes; the language itself is read from the shared
+  // instance below (see documentLanguage).
+  useTranslation();
   // Search engines should never see filters or tracking parameters as separate
   // canonical pages. Wouter exposes the query string as part of the location.
   const canonicalPath = loc.split("?")[0].split("#")[0].replace(/\/+$/, "") || "/";
@@ -113,6 +116,9 @@ export function SEO({
   const ogImage = cloudinaryOpt(seo.image, 1200, "auto");
   // Browser detection can return values such as en-US@posix. Only emit one of
   // the languages the site actually supports in the document metadata.
+  // Read from the shared i18n instance, not useTranslation()'s: react-i18next hands
+  // components a copy that it refreshes only when `language` changes, and an in-page
+  // switch sets "fr" first and only later (translations loaded) resolvedLanguage "fr".
   const documentLanguage = (i18n.resolvedLanguage || i18n.language || "en")
     .toLowerCase()
     .split(/[-_@]/)[0];
