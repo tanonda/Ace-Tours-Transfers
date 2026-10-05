@@ -179,6 +179,7 @@ export class BookingEventHandler {
     console.log(`[EVENT][HANDLER] Handling PaymentFailed for Booking ${booking.id}`);
 
     await this.storage.updateBooking(booking.id, { status: 'failed' });
+    await this.releaseBookingHolds(booking);
 
     // Non-blocking email
     mailingService.sendPaymentFailure(booking.customerEmail, {
@@ -190,6 +191,27 @@ export class BookingEventHandler {
       reason: event.reason,
       locale: booking.locale || 'en'
     }).catch(err => console.error(`[EVENT][EMAIL] PaymentFailed email failed for ${booking.id}:`, err));
+  }
+
+  /**
+   * Frees a failed booking's seats now instead of when its holds time out, so the
+   * guest can retry straight away. Bookings created before holds were keyed per
+   * booking may share a group (the browser session) with other bookings; then only
+   * the booking's own hold is released, never a sibling's.
+   */
+  private async releaseBookingHolds(booking: { id: string; holdId: string | null; bookingSessionId: string }): Promise<void> {
+    const holdIds = new Set<string>(booking.holdId ? [booking.holdId] : []);
+    if (booking.bookingSessionId) {
+      const groupBookings = await this.storage.getBookingsBySession(booking.bookingSessionId);
+      const sharedWithOthers = groupBookings.some((b) => b.id !== booking.id);
+      if (!sharedWithOthers) {
+        for (const hold of await this.storage.getHoldsBySession(booking.bookingSessionId)) holdIds.add(hold.id);
+      }
+    }
+    for (const holdId of holdIds) {
+      await this.availabilityService.releaseHold(holdId)
+        .catch((err) => console.warn(`[EVENT][HANDLER] Could not release hold ${holdId} for failed booking ${booking.id}:`, err?.message || err));
+    }
   }
 
   private async onPaymentExpired(event: PaymentExpired): Promise<void> {

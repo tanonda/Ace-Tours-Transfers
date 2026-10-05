@@ -112,7 +112,6 @@ async function runConcurrentBookingTest(): Promise<TestResult> {
           const booking = await bookingService.execute({
             customerName: `Test Customer ${i + 1}`,
             customerEmail: `customer${i + 1}@test.local`,
-            sessionId: `session_concurrent_test_${i}`,
             idempotencyKey: `idempotency_${i}_${Date.now()}`,
             items: [
               {

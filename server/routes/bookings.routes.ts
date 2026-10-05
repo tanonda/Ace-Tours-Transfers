@@ -660,7 +660,6 @@ export function registerBookingsRoutes(app: Express, deps: RouteDeps) {
         customerName,
         customerEmail,
         items,
-        sessionId: req.sessionID,
         idempotencyKey,
         pickupLocation: pickupLocation ?? undefined
       });

@@ -16,7 +16,6 @@ export interface CreateBookingRequest {
   customerName: string;
   customerEmail: string;
   customerPhone?: string;
-  sessionId?: string;
   idempotencyKey?: string;
   pickupLocation?: string;
   items: {
@@ -53,7 +52,12 @@ export class CreateBookingFromCartService {
 
     const startTime = Date.now();
 
-    const cartId = request.sessionId || `cart_${crypto.randomUUID()}`;
+    // Each booking owns its holds: the booking ID is the hold-group key
+    // (bookings.bookingSessionId / availability_holds.bookingSessionId). Using the
+    // browser session here made a guest's separate bookings share holds, so paying
+    // for one confirmed or released the others.
+    const bookingId = `book_${crypto.randomUUID()}`;
+    const cartId = bookingId;
     const cart = new Cart(cartId);
 
     // Phase 4: Wrap EVERYTHING in a single atomic transaction
@@ -140,7 +144,6 @@ export class CreateBookingFromCartService {
         cart.setPricedSnapshot(snapshot);
 
         // 3. Create Booking Aggregate
-        const bookingId = `book_${crypto.randomUUID()}`;
         const domainBooking = DomainBooking.createFromCart(bookingId, cart, {
           name: request.customerName,
           email: request.customerEmail,
