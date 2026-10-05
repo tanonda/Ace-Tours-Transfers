@@ -93,9 +93,10 @@ async function audit(browser: Browser, route: string, scenario: Scenario) {
     })`);
   await context.close();
 
-  // The stateless path rebuilds from scratch (today's behaviour), so it may blank.
-  if (scenario !== 'stateless' && result.minLen === 0) problems.push('root went blank during load');
-  if (scenario !== 'stateless' && result.h1Lost) problems.push('page content (h1) disappeared during load');
+  // The stateless path (a snapshot without state, e.g. copied from the previous deploy)
+  // keeps the snapshot on screen while the app renders behind it, so it must not blank either.
+  if (result.minLen === 0) problems.push('root went blank during load');
+  if (result.h1Lost) problems.push('page content (h1) disappeared during load');
   if (result.finalLen === 0) problems.push('page empty after load');
   if (scenario === 'fr' && !result.lang.startsWith('fr')) problems.push(`expected lang fr, got "${result.lang}"`);
   if (scenario === 'dark' && !result.dark) problems.push('expected dark theme');

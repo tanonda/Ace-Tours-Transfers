@@ -14,6 +14,7 @@ import {
   shouldDehydrateQuery,
 } from "./lib/hydration";
 import { routeContentCommitted } from "./lib/route-committed";
+import { renderBehindSnapshot } from "./lib/render-behind-snapshot";
 import { SNAPSHOT_STATE_ID } from "@shared/snapshot-state";
 
 // Every state-changing /api/ call must carry the CSRF header, including pages that
@@ -90,8 +91,19 @@ async function boot() {
 
   // SPA shell or snapshot without state: render from scratch. Non-English visitors
   // wait for their (small, lazily loaded) language file so the first render is
-  // already translated; English renders immediately.
-  const render = () => createRoot(rootElement).render(<App />);
+  // already translated; English renders immediately. A snapshot without state (e.g.
+  // copied from the previous deploy while this one's prerender runs) stays on screen
+  // while the app renders out of sight, instead of being wiped to a blank page.
+  const render = () => {
+    if (rootElement.childElementCount > 0) {
+      void renderBehindSnapshot(rootElement, (container) => createRoot(container).render(<App />), {
+        routeReady: routeContentCommitted,
+        timeoutMs: 15_000,
+      });
+    } else {
+      createRoot(rootElement).render(<App />);
+    }
+  };
   syncLanguage(i18n.language).then(render, render);
 }
 
