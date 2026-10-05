@@ -30,6 +30,9 @@ import {
   sanitizeHtml,
 } from "@/components/shared-detail-components";
 import { keepAcrossLanguageSwitch } from "@/lib/language-placeholder";
+import { usePricingRules } from "@/lib/site-settings";
+import { groupDiscountApplies, vatLabel } from "@shared/pricing-rules";
+import { htmlToText } from "@/lib/html-text";
 
 
 // ─── Countdown Timer Component ─────────────────────────────────────────────────
@@ -75,12 +78,12 @@ function BookingCountdownTimer({ cutoffHours = 24, tourDate, tourTime }: { cutof
   }
 
   const isUrgent = timeLeft.hours < 2;
-  const color = isUrgent ? "text-red-400 border-red-500/30 bg-red-500/10" : "text-[#f4a830] border-[rgba(244,168,48,0.3)] bg-[rgba(244,168,48,0.08)]";
+  const color = isUrgent ? "text-red-400 border-red-500/30 bg-red-500/10" : "text-primary border-primary/30 bg-primary/8";
 
   return (
     <div className={`flex items-center gap-3 ${color} border rounded-[10px] px-4 py-3`}>
       <div className="flex items-center gap-1.5">
-        <div className={`w-2 h-2 rounded-full ${isUrgent ? "bg-red-400 animate-pulse" : "bg-[#f4a830] animate-pulse"}`} />
+        <div className={`w-2 h-2 rounded-full ${isUrgent ? "bg-red-400 animate-pulse" : "bg-primary animate-pulse"}`} />
         <span className="text-[0.78rem] font-semibold uppercase tracking-wider">Booking closes in</span>
       </div>
       <div className="flex items-center gap-1.5 font-mono font-bold text-[1rem] ml-auto">
@@ -116,20 +119,20 @@ function CancellationModal({ isOpen, onClose, policy, t }: { isOpen: boolean; on
     <div className="fixed inset-0 z-[999] flex items-center justify-center p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
       <div
-        className="relative bg-[#1a1710] border border-[rgba(244,168,48,0.25)] rounded-[18px] max-w-lg w-full max-h-[80vh] overflow-y-auto shadow-2xl"
+        className="relative bg-card border border-primary/25 rounded-[18px] max-w-lg w-full max-h-[80vh] overflow-y-auto shadow-2xl"
         onClick={e => e.stopPropagation()}
       >
-        <div className="sticky top-0 bg-[#1a1710] border-b border-[rgba(244,168,48,0.15)] px-6 py-4 flex items-center justify-between">
+        <div className="sticky top-0 bg-card border-b border-primary/15 px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Shield className="w-5 h-5 text-[#f4a830]" />
+            <Shield className="w-5 h-5 text-primary" />
             <h3 className="font-serif text-lg font-bold">Cancellation Policy</h3>
           </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-full hover:bg-[#2d2920] flex items-center justify-center text-[#8a826e] hover:text-[#f0ece4] transition-colors">
+          <button onClick={onClose} className="w-8 h-8 rounded-full hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
         <div
-          className="px-6 py-5 text-[0.9rem] leading-[1.75] text-[#ccc6b8] prose prose-invert prose-sm max-w-none [&_h3]:text-[#f0ece4] [&_h3]:font-semibold [&_h3]:text-base [&_h3]:mt-4 [&_h3]:mb-1 [&_strong]:text-[#f4a830]"
+          className="px-6 py-5 text-[0.9rem] leading-[1.75] text-muted-foreground prose dark:prose-invert prose-sm max-w-none [&_h3]:text-foreground [&_h3]:font-semibold [&_h3]:text-base [&_h3]:mt-4 [&_h3]:mb-1 [&_strong]:text-primary"
           dangerouslySetInnerHTML={{ __html: sanitizeHtml(policy || defaultPolicy) }}
         />
       </div>
@@ -156,7 +159,7 @@ function ItineraryTrack({ stops }: { stops: Array<{ id: string; name: string; du
   return (
     <div className="relative">
       {/* Vertical line */}
-      <div className="absolute left-5 top-6 bottom-6 w-[2px] bg-gradient-to-b from-[#f4a830] via-[rgba(244,168,48,0.4)] to-transparent" />
+      <div className="absolute left-5 top-6 bottom-6 w-[2px] bg-gradient-to-b from-primary via-primary/40 to-transparent" />
 
       <div className="space-y-0">
         {stops.map((stop, i) => {
@@ -166,40 +169,40 @@ function ItineraryTrack({ stops }: { stops: Array<{ id: string; name: string; du
             <div key={stop.id} className="relative pl-12">
               {/* Circle marker */}
               <div className={`absolute left-[14px] top-[18px] w-[22px] h-[22px] rounded-full border-2 flex items-center justify-center text-[0.7rem] font-bold z-10 ${i === 0
-                ? "bg-[#f4a830] border-[#f4a830] text-[#0f0d09]"
+                ? "bg-primary border-primary text-background"
                 : isLast
-                  ? "bg-[#4caf7d] border-[#4caf7d] text-[#0f0d09]"
-                  : "bg-[#1a1710] border-[rgba(244,168,48,0.5)] text-[#f4a830]"
+                  ? "bg-reef border-reef text-background"
+                  : "bg-card border-primary/50 text-primary"
                 }`}>
                 {i + 1}
               </div>
 
-              <div className={`mb-4 bg-[#211e18] border rounded-[12px] overflow-hidden transition-all ${isExpanded ? "border-[rgba(244,168,48,0.35)]" : "border-[rgba(244,168,48,0.15)]"}`}>
+              <div className={`mb-4 bg-muted border rounded-[12px] overflow-hidden transition-all ${isExpanded ? "border-primary/35" : "border-primary/15"}`}>
                 <button
                   onClick={() => toggle(stop.id)}
-                  className="w-full text-left px-5 py-4 flex items-start justify-between gap-3 hover:bg-[#2d2920] transition-colors"
+                  className="w-full text-left px-5 py-4 flex items-start justify-between gap-3 hover:bg-muted transition-colors"
                 >
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-semibold text-[#f0ece4] text-[0.95rem]">{stop.name}</span>
+                      <span className="font-semibold text-foreground text-[0.95rem]">{stop.name}</span>
                       {stop.admissionIncluded && (
-                        <span className="text-[0.68rem] px-2 py-0.5 rounded-full bg-[#4caf7d]/15 border border-[#4caf7d]/30 text-[#4caf7d] font-medium">Admission Included</span>
+                        <span className="text-[0.68rem] px-2 py-0.5 rounded-full bg-reef/15 border border-reef/30 text-reef font-medium">Admission Included</span>
                       )}
                     </div>
                     {stop.duration && (
-                      <div className="flex items-center gap-1 mt-1 text-[0.78rem] text-[#8a826e]">
+                      <div className="flex items-center gap-1 mt-1 text-[0.78rem] text-muted-foreground">
                         <Clock className="w-3 h-3" />
                         <span>{stop.duration}</span>
                       </div>
                     )}
                   </div>
-                  <div className="text-[#8a826e] shrink-0 mt-1">
+                  <div className="text-muted-foreground shrink-0 mt-1">
                     {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                   </div>
                 </button>
                 {isExpanded && stop.description && (
                   <div
-                    className="px-5 pb-4 pt-0 text-[0.87rem] text-[#b8b0a0] leading-[1.7] border-t border-[rgba(244,168,48,0.1)] prose prose-invert prose-sm max-w-none [&_ul]:list-disc [&_ul]:pl-4 [&_a]:text-[#f4a830]"
+                    className="px-5 pb-4 pt-0 text-[0.87rem] text-muted-foreground leading-[1.7] border-t border-primary/10 prose dark:prose-invert prose-sm max-w-none [&_ul]:list-disc [&_ul]:pl-4 [&_a]:text-primary"
                     dangerouslySetInnerHTML={{ __html: sanitizeHtml(stop.description) }}
                   />
                 )}
@@ -297,7 +300,7 @@ function PhotoGallery({ images, title }: { images: string[]; title: string }) {
         ))}
         {/* If fewer than 4 thumbs, fill with placeholder */}
         {Array.from({ length: Math.max(0, 4 - thumbs.length) }).map((_, i) => (
-          <div key={`ph-${i}`} className="bg-[#211e18]" />
+          <div key={`ph-${i}`} className="bg-muted" />
         ))}
       </div>
     </>
@@ -314,7 +317,7 @@ function StarRating({ value, max = 5, size = "sm" }: { value: number; max?: numb
         const filled = i < Math.floor(value);
         const half = !filled && i < value;
         return (
-          <span key={i} className={filled ? "text-[#f4a830]" : half ? "text-[#f4a830]/50" : "text-[#3d3830]"}>★</span>
+          <span key={i} className={filled ? "text-primary" : half ? "text-primary/50" : "text-border"}>★</span>
         );
       })}
     </span>
@@ -324,6 +327,7 @@ function StarRating({ value, max = 5, size = "sm" }: { value: number; max?: numb
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function TourDetail() {
+  const pricingRules = usePricingRules();
   const cms = useCmsText("faq");
   const { id } = useParams<{ id: string }>();
   const { t, i18n } = useTranslation();
@@ -435,8 +439,8 @@ export default function TourDetail() {
   if (isLoading) {
     return (
       <Layout>
-        <div className="flex items-center justify-center min-h-screen bg-[#0f0d09]">
-          <div className="w-8 h-8 border-4 border-[#f4a830] border-t-transparent rounded-full animate-spin" />
+        <div className="flex items-center justify-center min-h-screen bg-background">
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
         </div>
       </Layout>
     );
@@ -445,10 +449,10 @@ export default function TourDetail() {
   if (error || !tour) {
     return (
       <Layout>
-        <div className="container mx-auto px-4 pt-header-page pb-20 text-center bg-[#0f0d09] min-h-screen">
-          <h1 className="text-4xl font-bold mb-4 text-[#f0ece4]">{t("common.error", "Error")}</h1>
-          <p className="text-[#8a826e] mb-8">{t("common.productNotFound", "Tour not found")}</p>
-          <Button onClick={() => window.history.back()} className="bg-[#f4a830] text-[#0f0d09]">
+        <div className="container mx-auto px-4 pt-header-page pb-20 text-center bg-background min-h-screen">
+          <h1 className="text-4xl font-bold mb-4 text-foreground">{t("common.error", "Error")}</h1>
+          <p className="text-muted-foreground mb-8">{t("common.productNotFound", "Tour not found")}</p>
+          <Button onClick={() => window.history.back()} className="bg-primary text-background">
             <ArrowLeft className="mr-2 h-4 w-4" /> {t("common.goBack", "Go Back")}
           </Button>
         </div>
@@ -468,7 +472,7 @@ export default function TourDetail() {
       i === 2 ? "Is this tour suitable for children?" :
         i === 3 ? "What is the cancellation policy?" :
           i === 4 ? "Where does the tour depart from?" : "";
-    const defaultA = i === 1 ? (Array.isArray(tour.description) ? tour.description[0] : tour.description)?.slice(0, 300) || "Please contact us for full inclusions." :
+    const defaultA = i === 1 ? htmlToText(Array.isArray(tour.description) ? tour.description[0] : tour.description).slice(0, 300) || "Please contact us for full inclusions." :
       i === 2 ? "Yes, this tour accommodates children. Child pricing is available at checkout." :
         i === 3 ? "Free cancellation up to 24 hours before your scheduled tour. Contact us for late cancellations." :
           i === 4 ? (tour.meetingPoint || "Pick-up is available from most Port Vila hotels. Please confirm your location at booking.") : "";
@@ -476,7 +480,7 @@ export default function TourDetail() {
     const q = cms.text(`faq${i}_q`, defaultQ);
     const a = cms.text(`faq${i}_a`, defaultA); // Note we use .text here since seo takes plain text
     if (q && a) {
-      tourFaqs.push({ question: q, answer: a.replace(/<[^>]+>/g, '') });
+      tourFaqs.push({ question: q, answer: htmlToText(a) });
     }
   }
 
@@ -486,13 +490,13 @@ export default function TourDetail() {
     <Layout>
       <SEO
         title={tour.seoTitle || tour.title}
-        description={tour.seoDescription || (Array.isArray(tour.description) ? tour.description[0] : tour.description)?.replace(/<[^>]+>/g, '').slice(0, 155) || `Book ${tour.title} in Port Vila, Vanuatu.`}
+        description={tour.seoDescription || htmlToText(Array.isArray(tour.description) ? tour.description[0] : tour.description).slice(0, 155) || `Book ${tour.title} in Port Vila, Vanuatu.`}
         image={displayImage}
         type="product"
         keywords={[...(tour.seoKeywords ? tour.seoKeywords.split(',').map((k: string) => k.trim()) : []), tour.title, "Vanuatu tour", "Port Vila tour", tour.category || ""]}
         structuredType="TouristAttraction"
         productName={tour.title}
-        productDescription={Array.isArray(tour.description) ? tour.description[0] : tour.description}
+        productDescription={htmlToText(Array.isArray(tour.description) ? tour.description[0] : tour.description)}
         offer={getDisplayPrice(tour).amount ? { price: getDisplayPrice(tour).amount, currency: "VUV", availability: "InStock" } : undefined}
         aggregateRating={reviews.length > 0 ? { ratingValue: avgRating, reviewCount: reviews.length } : undefined}
         reviews={reviews.slice(0, 5).map((r: any) => ({ author: r.userName || "Guest", rating: r.rating, body: r.comment, datePublished: r.createdAt?.slice(0, 10) }))}
@@ -506,10 +510,10 @@ export default function TourDetail() {
         t={t}
       />
 
-      <div className="min-h-screen bg-[#0f0d09] text-[#f0ece4] font-sans pt-header">
+      <div className="min-h-screen bg-background text-foreground font-sans pt-header">
 
         {/* ── HERO ── */}
-        <div className="relative w-full aspect-video lg:aspect-[21/9] min-h-[320px] max-h-[60vh] overflow-hidden bg-[#0f0d09]">
+        <div className="relative w-full aspect-video lg:aspect-[21/9] min-h-[320px] max-h-[60vh] overflow-hidden bg-background">
           <img
             src={cloudinaryOpt(displayImage, 1400)}
             className="w-full h-full object-cover filter brightness-[0.45] object-center"
@@ -517,30 +521,30 @@ export default function TourDetail() {
             loading="eager"
             fetchPriority="high"
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0f0d09]" />
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background" />
           <div className="absolute bottom-7 left-0 right-0 max-w-[1320px] mx-auto px-4 md:px-8">
-            <div className="flex items-center gap-2 text-[0.78rem] text-[#8a826e] mb-3">
-              <a href="/" className="text-[#f4a830] hover:underline">Home</a>
+            <div className="flex items-center gap-2 text-[0.78rem] text-muted-foreground mb-3">
+              <a href="/" className="text-primary hover:underline">Home</a>
               <span>›</span>
-              <a href="/tours" className="text-[#f4a830] hover:underline">{t("nav.tours", "Tours")}</a>
+              <a href="/tours" className="text-primary hover:underline">{t("nav.tours", "Tours")}</a>
               <span>›</span>
-              <span className="text-[#f0ece4] opacity-50 truncate max-w-[200px]">{tour.title}</span>
+              <span className="text-foreground opacity-50 truncate max-w-[200px]">{tour.title}</span>
             </div>
             <h1 className="font-serif text-3xl md:text-4xl font-bold leading-tight mb-3 max-w-2xl">
               {tour.title}
             </h1>
             <div className="flex flex-wrap gap-2">
               {reviews.length > 0 && (
-                <span className="px-3 py-1 rounded-full border border-[#f4a830] bg-[#f4a830]/15 text-[#f4a830] text-[0.78rem] font-medium">
+                <span className="px-3 py-1 rounded-full border border-primary bg-primary/15 text-primary text-[0.78rem] font-medium">
                   {"★".repeat(starsDisplay)} {averageRating.toFixed(1)} · {reviews.length} reviews
                 </span>
               )}
               {tour.duration && (
-                <span className="px-3 py-1 rounded-full border border-[rgba(244,168,48,0.2)] bg-[#1a1710]/80 text-[#8a826e] text-[0.78rem] font-medium">
+                <span className="px-3 py-1 rounded-full border border-primary/20 bg-card/80 text-muted-foreground text-[0.78rem] font-medium">
                   ⏱ {tour.duration}
                 </span>
               )}
-              <span className="px-3 py-1 rounded-full border border-[#4caf7d]/30 bg-[#4caf7d]/10 text-[#4caf7d] text-[0.78rem] font-medium">
+              <span className="px-3 py-1 rounded-full border border-reef/30 bg-reef/10 text-reef text-[0.78rem] font-medium">
                 ✓ Available Now
               </span>
             </div>
@@ -559,7 +563,7 @@ export default function TourDetail() {
                 <PhotoGallery images={allPhotos} title={tour.title} />
               </section>
             ) : (
-              <div className="rounded-[14px] overflow-hidden bg-[#211e18] aspect-[16/9]">
+              <div className="rounded-[14px] overflow-hidden bg-muted aspect-[16/9]">
                 <img
                   src={cloudinaryOpt(displayImage, 900)}
                   className="w-full h-full object-cover object-center block"
@@ -570,10 +574,10 @@ export default function TourDetail() {
             )}
 
             {/* 2. Overview */}
-            <section className="bg-[#1a1710] border border-[rgba(244,168,48,0.18)] rounded-[14px] p-6 md:p-7">
+            <section className="bg-card border border-primary/18 rounded-[14px] p-6 md:p-7">
               <SectionHeading>Overview</SectionHeading>
               <div
-                className="text-[0.92rem] leading-[1.8] text-[#ccc6b8] prose prose-invert prose-sm max-w-none [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_a]:text-[#f4a830] [&_a]:underline [&_li]:my-1 [&_p]:my-2"
+                className="text-[0.92rem] leading-[1.8] text-muted-foreground prose dark:prose-invert prose-sm max-w-none [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_a]:text-primary [&_a]:underline [&_li]:my-1 [&_p]:my-2"
                 dangerouslySetInnerHTML={{
                   __html: sanitizeHtml(typeof tour.description === "string"
                     ? tour.description
@@ -586,24 +590,24 @@ export default function TourDetail() {
 
             {/* 3. What's Included */}
             {(includedItems.length > 0 || excludedItems.length > 0 || (Array.isArray(tour.description) && tour.description.length > 1)) && (
-              <section className="bg-[#1a1710] border border-[rgba(244,168,48,0.18)] rounded-[14px] p-6 md:p-7">
+              <section className="bg-card border border-primary/18 rounded-[14px] p-6 md:p-7">
                 <SectionHeading>What's Included</SectionHeading>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {/* New structured included items */}
                   {includedItems.length > 0
                     ? includedItems.map((item, i) => (
-                      <div key={i} className="flex items-start gap-3 text-[0.88rem] text-[#ccc6b8]">
-                        <CheckCircle2 className="w-[18px] h-[18px] text-[#4caf7d] shrink-0 mt-0.5" />
+                      <div key={i} className="flex items-start gap-3 text-[0.88rem] text-muted-foreground">
+                        <CheckCircle2 className="w-[18px] h-[18px] text-reef shrink-0 mt-0.5" />
                         <span>{item}</span>
                       </div>
                     ))
                     : /* Fallback: old description[1] approach */
                     Array.isArray(tour.description) && tour.description.slice(1).map((item: string, i: number) => (
                       item.startsWith('<') ? (
-                        <div key={i} className="col-span-2 text-[0.88rem] text-[#8a826e] prose prose-invert prose-sm max-w-none [&_ul]:list-disc [&_ul]:pl-5 [&_li]:text-[#8a826e]" dangerouslySetInnerHTML={{ __html: sanitizeHtml(item) }} />
+                        <div key={i} className="col-span-2 text-[0.88rem] text-muted-foreground prose dark:prose-invert prose-sm max-w-none [&_ul]:list-disc [&_ul]:pl-5 [&_li]:text-muted-foreground" dangerouslySetInnerHTML={{ __html: sanitizeHtml(item) }} />
                       ) : (
-                        <div key={i} className="flex items-start gap-3 text-[0.88rem] text-[#ccc6b8]">
-                          <CheckCircle2 className="w-[18px] h-[18px] text-[#4caf7d] shrink-0 mt-0.5" />
+                        <div key={i} className="flex items-start gap-3 text-[0.88rem] text-muted-foreground">
+                          <CheckCircle2 className="w-[18px] h-[18px] text-reef shrink-0 mt-0.5" />
                           <span>{item}</span>
                         </div>
                       )
@@ -611,8 +615,8 @@ export default function TourDetail() {
                   }
                   {/* Excluded items */}
                   {excludedItems.map((item, i) => (
-                    <div key={`ex-${i}`} className="flex items-start gap-3 text-[0.88rem] text-[#8a826e]">
-                      <XCircle className="w-[18px] h-[18px] text-[#6a6055] shrink-0 mt-0.5" />
+                    <div key={`ex-${i}`} className="flex items-start gap-3 text-[0.88rem] text-muted-foreground">
+                      <XCircle className="w-[18px] h-[18px] text-muted-foreground shrink-0 mt-0.5" />
                       <span>{item}</span>
                     </div>
                   ))}
@@ -622,26 +626,26 @@ export default function TourDetail() {
 
             {/* 4. Meeting & Pickup */}
             {(tour.meetingPoint || tour.pickupInstructions) && (
-              <section className="bg-[#1a1710] border border-[rgba(244,168,48,0.18)] rounded-[14px] p-6 md:p-7">
+              <section className="bg-card border border-primary/18 rounded-[14px] p-6 md:p-7">
                 <SectionHeading>
-                  <MapPin className="w-5 h-5 text-[#f4a830] shrink-0" />
+                  <MapPin className="w-5 h-5 text-primary shrink-0" />
                   Meeting & Pickup
                 </SectionHeading>
 
-                <div className="bg-[#211e18] border border-[rgba(244,168,48,0.15)] rounded-[12px] p-5 mb-4">
+                <div className="bg-muted border border-primary/15 rounded-[12px] p-5 mb-4">
                   <div className="flex items-start gap-3 mb-4">
-                    <div className="w-9 h-9 rounded-full bg-[#f4a830]/15 border border-[#f4a830]/30 flex items-center justify-center shrink-0">
-                      <MapPin className="w-4 h-4 text-[#f4a830]" />
+                    <div className="w-9 h-9 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center shrink-0">
+                      <MapPin className="w-4 h-4 text-primary" />
                     </div>
                     <div className="flex-1">
-                      <div className="text-[0.7rem] text-[#8a826e] uppercase tracking-wider font-semibold mb-1">Pickup Point</div>
-                      <div className="text-[0.95rem] font-semibold text-[#f0ece4]">{tour.meetingPoint || "Your accommodation in Port Vila"}</div>
+                      <div className="text-[0.7rem] text-muted-foreground uppercase tracking-wider font-semibold mb-1">Pickup Point</div>
+                      <div className="text-[0.95rem] font-semibold text-foreground">{tour.meetingPoint || "Your accommodation in Port Vila"}</div>
                       {tour.meetingPointMapUrl && (
                         <a
                           href={tour.meetingPointMapUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 text-[#f4a830] text-[0.82rem] mt-2 hover:underline"
+                          className="inline-flex items-center gap-1.5 text-primary text-[0.82rem] mt-2 hover:underline"
                         >
                           <ExternalLink className="w-3.5 h-3.5" />
                           Open in Google Maps
@@ -653,7 +657,7 @@ export default function TourDetail() {
                   {/* Google Maps embed — uses meetingPoint text as the place query.
                       Falls back gracefully if the Maps Embed API is unavailable. */}
                   {tour.meetingPoint && import.meta.env.VITE_GOOGLE_MAPS_EMBED_KEY && (
-                    <div className="rounded-[10px] overflow-hidden border border-[rgba(244,168,48,0.12)] mb-4 bg-[#1a1710]" style={{ height: 180 }}>
+                    <div className="rounded-[10px] overflow-hidden border border-primary/12 mb-4 bg-card" style={{ height: 180 }}>
                       <iframe
                         title="Meeting point map"
                         width="100%"
@@ -667,19 +671,19 @@ export default function TourDetail() {
                   )}
 
                   {tour.pickupInstructions && (
-                    <div className="border-t border-[rgba(244,168,48,0.1)] pt-4">
-                      <div className="text-[0.7rem] text-[#8a826e] uppercase tracking-wider font-semibold mb-2">Pickup Details</div>
-                      <p className="text-[0.87rem] text-[#b8b0a0] leading-[1.7]">{tour.pickupInstructions}</p>
+                    <div className="border-t border-primary/10 pt-4">
+                      <div className="text-[0.7rem] text-muted-foreground uppercase tracking-wider font-semibold mb-2">Pickup Details</div>
+                      <p className="text-[0.87rem] text-muted-foreground leading-[1.7]">{tour.pickupInstructions}</p>
                     </div>
                   )}
                 </div>
 
                 {tour.operatingHours && (
-                  <div className="flex items-center gap-3 px-5 py-3 bg-[#211e18] border border-[rgba(244,168,48,0.15)] rounded-[12px]">
-                    <Clock className="w-4 h-4 text-[#f4a830] shrink-0" />
+                  <div className="flex items-center gap-3 px-5 py-3 bg-muted border border-primary/15 rounded-[12px]">
+                    <Clock className="w-4 h-4 text-primary shrink-0" />
                     <div>
-                      <div className="text-[0.7rem] text-[#8a826e] uppercase tracking-wider font-semibold">Operating Hours</div>
-                      <div className="text-[0.88rem] text-[#ccc6b8] font-medium">{tour.operatingHours}</div>
+                      <div className="text-[0.7rem] text-muted-foreground uppercase tracking-wider font-semibold">Operating Hours</div>
+                      <div className="text-[0.88rem] text-muted-foreground font-medium">{tour.operatingHours}</div>
                     </div>
                   </div>
                 )}
@@ -688,10 +692,10 @@ export default function TourDetail() {
 
             {/* 5. Itinerary */}
             {itineraryStops.length > 0 && (
-              <section className="bg-[#1a1710] border border-[rgba(244,168,48,0.18)] rounded-[14px] p-6 md:p-7">
+              <section className="bg-card border border-primary/18 rounded-[14px] p-6 md:p-7">
                 <SectionHeading>Itinerary</SectionHeading>
                 {tour.itineraryIntro && (
-                  <p className="text-[0.9rem] text-[#8a826e] leading-[1.7] mb-6">
+                  <p className="text-[0.9rem] text-muted-foreground leading-[1.7] mb-6">
                     {tour.itineraryIntro}
                   </p>
                 )}
@@ -701,12 +705,12 @@ export default function TourDetail() {
 
             {/* 6. Additional Information */}
             {additionalInfoItems.length > 0 && (
-              <section className="bg-[#1a1710] border border-[rgba(244,168,48,0.18)] rounded-[14px] p-6 md:p-7">
+              <section className="bg-card border border-primary/18 rounded-[14px] p-6 md:p-7">
                 <SectionHeading>Additional Information</SectionHeading>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {additionalInfoItems.map((item, i) => (
-                    <div key={i} className="flex items-start gap-3 text-[0.87rem] text-[#b8b0a0]">
-                      <div className="w-1.5 h-1.5 rounded-full bg-[#f4a830]/60 shrink-0 mt-[7px]" />
+                    <div key={i} className="flex items-start gap-3 text-[0.87rem] text-muted-foreground">
+                      <div className="w-1.5 h-1.5 rounded-full bg-primary/60 shrink-0 mt-[7px]" />
                       <span>{item}</span>
                     </div>
                   ))}
@@ -717,29 +721,29 @@ export default function TourDetail() {
             {/* 7. Cancellation Policy + Questions — side by side */}
             <section className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Cancellation Policy Card */}
-              <div className="bg-[#1a1710] border border-[rgba(244,168,48,0.18)] rounded-[14px] p-5 flex flex-col gap-3">
+              <div className="bg-card border border-primary/18 rounded-[14px] p-5 flex flex-col gap-3">
                 <div className="flex items-center gap-2">
-                  <Shield className="w-5 h-5 text-[#f4a830]" />
+                  <Shield className="w-5 h-5 text-primary" />
                   <span className="font-semibold text-[1rem]">Cancellation Policy</span>
                 </div>
-                <p className="text-[0.87rem] text-[#8a826e] leading-[1.6] flex-1">
-                  You can cancel up to <strong className="text-[#f0ece4]">{cutoffHours} hours</strong> in advance of the experience for a full refund.
+                <p className="text-[0.87rem] text-muted-foreground leading-[1.6] flex-1">
+                  You can cancel up to <strong className="text-foreground">{cutoffHours} hours</strong> in advance of the experience for a full refund.
                 </p>
                 <button
                   onClick={() => setCancellationModalOpen(true)}
-                  className="text-[#f4a830] text-[0.82rem] font-medium hover:underline flex items-center gap-1 self-start"
+                  className="text-primary text-[0.82rem] font-medium hover:underline flex items-center gap-1 self-start"
                 >
                   Show full policy →
                 </button>
               </div>
 
               {/* Questions Card */}
-              <div className="bg-[#1a1710] border border-[rgba(244,168,48,0.18)] rounded-[14px] p-5 flex flex-col gap-3">
+              <div className="bg-card border border-primary/18 rounded-[14px] p-5 flex flex-col gap-3">
                 <div className="flex items-center gap-2">
-                  <MessageSquare className="w-5 h-5 text-[#f4a830]" />
+                  <MessageSquare className="w-5 h-5 text-primary" />
                   <span className="font-semibold text-[1rem]">Questions?</span>
                 </div>
-                <p className="text-[0.87rem] text-[#8a826e] leading-[1.6]">
+                <p className="text-[0.87rem] text-muted-foreground leading-[1.6]">
                   {tour.productCode ? `Product code: ${tour.productCode}` : "Contact us for any queries about this tour."}
                 </p>
                 <div className="flex flex-col gap-2 mt-auto">
@@ -753,13 +757,13 @@ export default function TourDetail() {
                     WhatsApp
                   </a>
                   {tour.supportEmail && (
-                    <a href={`mailto:${tour.supportEmail}`} className="flex items-center gap-2 text-[#f4a830] text-[0.82rem] hover:underline">
+                    <a href={`mailto:${tour.supportEmail}`} className="flex items-center gap-2 text-primary text-[0.82rem] hover:underline">
                       <Mail className="w-3.5 h-3.5" />
                       {tour.supportEmail}
                     </a>
                   )}
                   {tour.supportPhone && (
-                    <a href={`tel:${tour.supportPhone}`} className="flex items-center gap-2 text-[#ccc6b8] text-[0.82rem] hover:underline">
+                    <a href={`tel:${tour.supportPhone}`} className="flex items-center gap-2 text-muted-foreground text-[0.82rem] hover:underline">
                       <Phone className="w-3.5 h-3.5" />
                       {tour.supportPhone}
                     </a>
@@ -770,14 +774,14 @@ export default function TourDetail() {
 
             {/* 8. Traveler Photos */}
             {travelerPhotos.length > 0 && (
-              <section className="bg-[#1a1710] border border-[rgba(244,168,48,0.18)] rounded-[14px] p-6 md:p-7">
+              <section className="bg-card border border-primary/18 rounded-[14px] p-6 md:p-7">
                 <SectionHeading>
-                  <ImageIcon className="w-5 h-5 text-[#f4a830] shrink-0" />
+                  <ImageIcon className="w-5 h-5 text-primary shrink-0" />
                   Traveler Photos
                 </SectionHeading>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
                   {travelerPhotos.map((photo, i) => (
-                    <div key={i} className="rounded-[10px] overflow-hidden aspect-square bg-[#211e18] cursor-pointer group">
+                    <div key={i} className="rounded-[10px] overflow-hidden aspect-square bg-muted cursor-pointer group">
                       <img
                         src={cloudinaryOpt(photo, 400)}
                         alt={`Traveler photo ${i + 1}`}
@@ -791,32 +795,32 @@ export default function TourDetail() {
             )}
 
             {/* 9. Reviews */}
-            <section className="bg-[#1a1710] border border-[rgba(244,168,48,0.18)] rounded-[14px] p-6 md:p-7">
+            <section className="bg-card border border-primary/18 rounded-[14px] p-6 md:p-7">
               <SectionHeading>Guest Reviews</SectionHeading>
 
               {/* Rating summary */}
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 pb-6 mb-6 border-b border-[rgba(244,168,48,0.15)]">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 pb-6 mb-6 border-b border-primary/15">
                 <div className="text-center">
-                  <div className="font-serif text-5xl font-bold text-[#f4a830]">{averageRating.toFixed(1)}</div>
+                  <div className="font-serif text-5xl font-bold text-primary">{averageRating.toFixed(1)}</div>
                   <StarRating value={averageRating} size="md" />
-                  <div className="text-[0.78rem] text-[#8a826e] mt-1">{reviews.length} reviews</div>
+                  <div className="text-[0.78rem] text-muted-foreground mt-1">{reviews.length} reviews</div>
                   {/* Viator / Tripadvisor note */}
                   {reviews.length > 0 && (
-                    <div className="text-[0.68rem] text-[#6a6055] mt-1">via Viator & Tripadvisor</div>
+                    <div className="text-[0.68rem] text-muted-foreground mt-1">via Viator & Tripadvisor</div>
                   )}
                 </div>
                 {/* Star breakdown bars */}
                 <div className="flex-1 w-full space-y-1.5">
                   {ratingCounts.map(({ star, count }) => (
                     <div key={star} className="flex items-center gap-2">
-                      <span className="text-[0.72rem] text-[#8a826e] w-10 shrink-0">{star} stars</span>
-                      <div className="flex-1 h-2 bg-[#2d2920] rounded-full overflow-hidden">
+                      <span className="text-[0.72rem] text-muted-foreground w-10 shrink-0">{star} stars</span>
+                      <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-[#f4a830] rounded-full transition-all"
+                          className="h-full bg-primary rounded-full transition-all"
                           style={{ width: reviews.length > 0 ? `${(count / reviews.length) * 100}%` : "0%" }}
                         />
                       </div>
-                      <span className="text-[0.72rem] text-[#8a826e] w-6 text-right">{count}</span>
+                      <span className="text-[0.72rem] text-muted-foreground w-6 text-right">{count}</span>
                     </div>
                   ))}
                 </div>
@@ -829,31 +833,31 @@ export default function TourDetail() {
               <div className="space-y-3">
                 {reviews.length > 0 ? (
                   displayedReviews.map((r: any) => (
-                    <div key={r.id} className="bg-[#211e18] rounded-[12px] p-5">
+                    <div key={r.id} className="bg-muted rounded-[12px] p-5">
                       <div className="flex justify-between items-start mb-3">
                         <div>
                           <div className="font-semibold text-[0.9rem] flex items-center gap-2">
                             {r.userName || t("common.guest", "Guest")}
-                            <span className="w-5 h-5 rounded-full bg-[#4caf7d]/20 border border-[#4caf7d]/40 flex items-center justify-center">
-                              <CheckCircle2 className="w-3 h-3 text-[#4caf7d]" />
+                            <span className="w-5 h-5 rounded-full bg-reef/20 border border-reef/40 flex items-center justify-center">
+                              <CheckCircle2 className="w-3 h-3 text-reef" />
                             </span>
                           </div>
                           <StarRating value={r.rating} />
                         </div>
-                        <div className="text-[0.72rem] text-[#8a826e]">{new Date(r.createdAt).toLocaleDateString("en-US", { month: "short", year: "numeric" })}</div>
+                        <div className="text-[0.72rem] text-muted-foreground">{new Date(r.createdAt).toLocaleDateString("en-US", { month: "short", year: "numeric" })}</div>
                       </div>
-                      <p className="text-[0.875rem] text-[#b8b0a0] leading-[1.65]">"{r.comment}"</p>
+                      <p className="text-[0.875rem] text-muted-foreground leading-[1.65]">"{r.comment}"</p>
                     </div>
                   ))
                 ) : (
-                  <p className="text-[0.88rem] text-[#8a826e] italic">{t("quickView.noReviews", "No reviews yet. Be the first to leave one!")}</p>
+                  <p className="text-[0.88rem] text-muted-foreground italic">{t("quickView.noReviews", "No reviews yet. Be the first to leave one!")}</p>
                 )}
               </div>
 
               {reviews.length > 5 && (
                 <button
                   onClick={() => setShowAllReviews(v => !v)}
-                  className="mt-4 w-full py-3 border border-[rgba(244,168,48,0.2)] rounded-[10px] text-[#8a826e] text-[0.85rem] hover:border-[#f4a830] hover:text-[#f4a830] transition-colors"
+                  className="mt-4 w-full py-3 border border-primary/20 rounded-[10px] text-muted-foreground text-[0.85rem] hover:border-primary hover:text-primary transition-colors"
                 >
                   {showAllReviews ? "Show fewer reviews" : `Show all ${reviews.length} reviews`}
                 </button>
@@ -863,7 +867,7 @@ export default function TourDetail() {
               <GoogleReviewsSection />
 
               {/* Review submission form */}
-              <div className="mt-6 pt-6 border-t border-[rgba(244,168,48,0.12)]">
+              <div className="mt-6 pt-6 border-t border-primary/12">
                 <GuestReviewForm
                   productId={id!}
                   productTitle={tour.title}
@@ -879,33 +883,33 @@ export default function TourDetail() {
           <div id="booking-panel" className="sticky top-[82px] flex flex-col gap-4">
 
             {/* Main booking card */}
-            <div className="bg-[#1a1710] border border-[rgba(244,168,48,0.22)] rounded-[14px] overflow-hidden shadow-[0_8px_40px_rgba(0,0,0,0.5)]">
+            <div className="bg-card border border-primary/22 rounded-[14px] overflow-hidden shadow-[0_8px_40px_rgba(0,0,0,0.5)]">
 
               {/* Price header */}
-              <div className="bg-[#211e18] px-6 py-5 border-b border-[rgba(244,168,48,0.15)]">
+              <div className="bg-muted px-6 py-5 border-b border-primary/15">
                 {tour.pricingType === "group" ? (
                   <div>
-                    <div className="text-[0.72rem] text-[#8a826e] uppercase tracking-wider mb-1">Package rate</div>
+                    <div className="text-[0.72rem] text-muted-foreground uppercase tracking-wider mb-1">Package rate</div>
                     <div className="flex items-baseline gap-2">
-                      <span className="font-serif text-[2.1rem] font-bold text-[#f4a830]">
+                      <span className="font-serif text-[2.1rem] font-bold text-primary">
                         {formatPriceDisplay(tour.groupPriceCents, currency)}
                       </span>
                       {tour.groupMaxPax && (
-                        <span className="text-[0.78rem] text-[#8a826e]">up to {tour.groupMaxPax} people</span>
+                        <span className="text-[0.78rem] text-muted-foreground">up to {tour.groupMaxPax} people</span>
                       )}
                     </div>
                   </div>
                 ) : (
                   <div>
-                    <div className="text-[0.72rem] text-[#8a826e] uppercase tracking-wider mb-1">From</div>
+                    <div className="text-[0.72rem] text-muted-foreground uppercase tracking-wider mb-1">From</div>
                     <div className="flex items-baseline gap-2">
-                      <span className="font-serif text-[2.1rem] font-bold text-[#f4a830]">
+                      <span className="font-serif text-[2.1rem] font-bold text-primary">
                         {formatPriceDisplay(tour.adultPriceCents, currency)}
                       </span>
-                      <span className="text-[0.82rem] text-[#8a826e]">/ adult</span>
+                      <span className="text-[0.82rem] text-muted-foreground">/ adult</span>
                     </div>
                     {tour.childPriceCents > 0 && (
-                      <div className="text-[0.75rem] text-[#8a826e] mt-0.5">
+                      <div className="text-[0.75rem] text-muted-foreground mt-0.5">
                         Child: {formatPriceDisplay(tour.childPriceCents, currency)}
                       </div>
                     )}
@@ -920,7 +924,7 @@ export default function TourDetail() {
                   <BookingCountdownTimer cutoffHours={cutoffHours} tourDate={date} tourTime={selectedTime} />
                   <button
                     onClick={() => setCancellationModalOpen(true)}
-                    className="text-[0.75rem] text-[#8a826e] hover:text-[#f4a830] flex items-center gap-1.5 transition-colors self-start"
+                    className="text-[0.75rem] text-muted-foreground hover:text-primary flex items-center gap-1.5 transition-colors self-start"
                   >
                     <Shield className="w-3.5 h-3.5" />
                     Free cancellation · {cutoffHours}h before start
@@ -930,7 +934,7 @@ export default function TourDetail() {
                 {/* Guest counters */}
                 {tour.pricingType !== "group" && (
                   <div>
-                    <label className="text-[0.72rem] font-semibold text-[#8a826e] tracking-[0.08em] uppercase mb-2 block">
+                    <label className="text-[0.72rem] font-semibold text-muted-foreground tracking-[0.08em] uppercase mb-2 block">
                       Guests
                     </label>
                     <div className="flex flex-col gap-2">
@@ -940,23 +944,23 @@ export default function TourDetail() {
                         { label: "Infants", price: 0, value: infantPax, min: 0, max: 10, set: setInfantPax, freeLabel: "Free" },
                         { label: "Pets", price: 0, value: petPax, min: 0, max: 5, set: setPetPax, freeLabel: "Free" },
                       ].map(({ label, price, value, min, max, set, freeLabel }) => (
-                        <div key={label} className="flex items-center justify-between bg-[#211e18] border border-[rgba(244,168,48,0.12)] rounded-[10px] px-4 py-2.5">
+                        <div key={label} className="flex items-center justify-between bg-muted border border-primary/12 rounded-[10px] px-4 py-2.5">
                           <div>
-                            <span className="text-[0.85rem] text-[#f0ece4] font-medium">{label}</span>
+                            <span className="text-[0.85rem] text-foreground font-medium">{label}</span>
                             {price > 0
-                              ? <span className="text-[0.7rem] text-[#8a826e] ml-2">{formatPriceDisplay(price, currency)} ea</span>
-                              : freeLabel && <span className="text-[0.7rem] text-[#4caf7d] ml-2">{freeLabel}</span>
+                              ? <span className="text-[0.7rem] text-muted-foreground ml-2">{formatPriceDisplay(price, currency)} ea</span>
+                              : freeLabel && <span className="text-[0.7rem] text-reef ml-2">{freeLabel}</span>
                             }
                           </div>
                           <div className="flex items-center gap-3">
                             <button
                               onClick={() => set((prev: number) => Math.max(min, prev - 1))}
-                              className="w-7 h-7 rounded-full bg-[#1a1710] border border-[rgba(244,168,48,0.18)] text-[#f0ece4] hover:border-[#f4a830] hover:bg-[#f4a830]/15 transition-all text-lg leading-none flex items-center justify-center"
+                              className="w-7 h-7 rounded-full bg-card border border-primary/18 text-foreground hover:border-primary hover:bg-primary/15 transition-all text-lg leading-none flex items-center justify-center"
                             >−</button>
-                            <span className="w-5 text-center font-bold text-[#f4a830] text-[0.95rem]">{value}</span>
+                            <span className="w-5 text-center font-bold text-primary text-[0.95rem]">{value}</span>
                             <button
                               onClick={() => set((prev: number) => Math.min(max, prev + 1))}
-                              className="w-7 h-7 rounded-full bg-[#1a1710] border border-[rgba(244,168,48,0.18)] text-[#f0ece4] hover:border-[#f4a830] hover:bg-[#f4a830]/15 transition-all text-lg leading-none flex items-center justify-center"
+                              className="w-7 h-7 rounded-full bg-card border border-primary/18 text-foreground hover:border-primary hover:bg-primary/15 transition-all text-lg leading-none flex items-center justify-center"
                             >+</button>
                           </div>
                         </div>
@@ -976,62 +980,62 @@ export default function TourDetail() {
                 )}
 
                 {/* Price breakdown */}
-                <div className="bg-[#211e18] border border-[rgba(244,168,48,0.15)] rounded-[12px] overflow-hidden">
-                  <div className="px-4 py-2.5 border-b border-[rgba(244,168,48,0.08)]">
-                    <span className="text-[0.68rem] font-black uppercase tracking-[0.12em] text-[#8a826e]">Price Breakdown</span>
+                <div className="bg-muted border border-primary/15 rounded-[12px] overflow-hidden">
+                  <div className="px-4 py-2.5 border-b border-primary/8">
+                    <span className="text-[0.68rem] font-black uppercase tracking-[0.12em] text-muted-foreground">Price Breakdown</span>
                   </div>
                   <div className="px-4 py-3 space-y-2">
                     {tour.pricingType === "group" ? (
                       <div className="flex items-center justify-between">
-                        <span className="text-[0.82rem] text-[#ccc6b8]">Package rate{tour.groupMaxPax ? ` (up to ${tour.groupMaxPax})` : ""}</span>
-                        <span className="text-[0.9rem] font-semibold text-[#f0ece4]">{formatPriceDisplay(tour.groupPriceCents, currency)}</span>
+                        <span className="text-[0.82rem] text-muted-foreground">Package rate{tour.groupMaxPax ? ` (up to ${tour.groupMaxPax})` : ""}</span>
+                        <span className="text-[0.9rem] font-semibold text-foreground">{formatPriceDisplay(tour.groupPriceCents, currency)}</span>
                       </div>
                     ) : (
                       <>
                         <div className="flex items-center justify-between">
-                          <span className="text-[0.82rem] text-[#ccc6b8]">{adultPax} × Adult <span className="text-[#6a6055]">@ {formatPriceDisplay(tour.adultPriceCents, currency)}</span></span>
-                          <span className="text-[0.9rem] font-semibold text-[#f0ece4]">{formatPriceDisplay(tour.adultPriceCents * adultPax, currency)}</span>
+                          <span className="text-[0.82rem] text-muted-foreground">{adultPax} × Adult <span className="text-muted-foreground">@ {formatPriceDisplay(tour.adultPriceCents, currency)}</span></span>
+                          <span className="text-[0.9rem] font-semibold text-foreground">{formatPriceDisplay(tour.adultPriceCents * adultPax, currency)}</span>
                         </div>
                         {childPax > 0 && (
                           <div className="flex items-center justify-between">
-                            <span className="text-[0.82rem] text-[#ccc6b8]">{childPax} × Child {tour.childPriceCents > 0 ? <span className="text-[#6a6055]">@ {formatPriceDisplay(tour.childPriceCents, currency)}</span> : <span className="text-[#4caf7d]">Free</span>}</span>
-                            <span className="text-[0.9rem] font-semibold text-[#f0ece4]">{tour.childPriceCents > 0 ? formatPriceDisplay(tour.childPriceCents * childPax, currency) : <span className="text-[#4caf7d]">VT 0</span>}</span>
+                            <span className="text-[0.82rem] text-muted-foreground">{childPax} × Child {tour.childPriceCents > 0 ? <span className="text-muted-foreground">@ {formatPriceDisplay(tour.childPriceCents, currency)}</span> : <span className="text-reef">Free</span>}</span>
+                            <span className="text-[0.9rem] font-semibold text-foreground">{tour.childPriceCents > 0 ? formatPriceDisplay(tour.childPriceCents * childPax, currency) : <span className="text-reef">VT 0</span>}</span>
                           </div>
                         )}
-                        {adultPax >= 7 && (
-                          <div className="flex items-center justify-between text-[#4caf7d] text-[0.78rem]">
-                            <span>🎉 Group discount (10%)</span>
+                        {groupDiscountApplies(pricingRules, tour.pricingType, adultPax) && (
+                          <div className="flex items-center justify-between text-reef text-[0.78rem]">
+                            <span>🎉 Group discount ({pricingRules.groupDiscount.percent}%)</span>
                             <span>−applied</span>
                           </div>
                         )}
                       </>
                     )}
                     {(tour as any).addons && calcAddonTotal((tour as any).addons as ProductAddonEntry[], addonSelections) > 0 && (
-                      <div className="flex items-center justify-between text-[#ccc6b8]">
+                      <div className="flex items-center justify-between text-muted-foreground">
                         <span className="text-[0.82rem]">Add-ons</span>
                         <span className="text-[0.9rem] font-semibold">+{formatPriceDisplay(calcAddonTotal((tour as any).addons as ProductAddonEntry[], addonSelections), currency)}</span>
                       </div>
                     )}
-                    <div className="border-t border-[rgba(244,168,48,0.15)] pt-2 flex items-center justify-between">
-                      <span className="text-[0.75rem] font-bold text-[#8a826e] uppercase tracking-wider">{date ? "Total" : "Est. Total"}</span>
+                    <div className="border-t border-primary/15 pt-2 flex items-center justify-between">
+                      <span className="text-[0.75rem] font-bold text-muted-foreground uppercase tracking-wider">{date ? "Total" : "Est. Total"}</span>
                       <div className="text-right">
-                        <span className="text-[1.1rem] font-black text-[#f4a830]">
+                        <span className="text-[1.1rem] font-black text-primary">
                           {formatPriceDisplay((() => {
                             const base = estimateBookingTotal(tour as any, adultPax, childPax);
-                            const productTotal = tour.pricingType === "group" ? base : (adultPax >= 7 ? Math.round(base * 0.9) : base);
+                            const productTotal = groupDiscountApplies(pricingRules, tour.pricingType, adultPax) ? Math.round(base * (1 - pricingRules.groupDiscount.percent / 100)) : base;
                             return productTotal + ((tour as any).addons ? calcAddonTotal((tour as any).addons as ProductAddonEntry[], addonSelections) : 0);
                           })(), currency)}
                         </span>
-                        <span className="block text-[0.6rem] text-[#8a826e] uppercase font-bold tracking-tight">Incl. 15% VAT</span>
+                        <span className="block text-[0.6rem] text-muted-foreground uppercase font-bold tracking-tight">{vatLabel(pricingRules)}</span>
                       </div>
                     </div>
-                    {!date && <p className="text-[0.68rem] text-[#8a826e] italic text-center">Select a date to confirm pricing</p>}
+                    {!date && <p className="text-[0.68rem] text-muted-foreground italic text-center">Select a date to confirm pricing</p>}
                   </div>
                 </div>
 
                 {/* Calendar */}
                 <div>
-                  <label className="text-[0.72rem] font-semibold text-[#8a826e] tracking-[0.08em] uppercase mb-2 block">
+                  <label className="text-[0.72rem] font-semibold text-muted-foreground tracking-[0.08em] uppercase mb-2 block">
                     Select Date
                   </label>
                   <AvailabilityCalendar
@@ -1046,12 +1050,12 @@ export default function TourDetail() {
 
                 {/* Selected date confirmation */}
                 {date && (
-                  <div className="bg-[#f4a830]/12 border border-[rgba(244,168,48,0.28)] rounded-[10px] px-4 py-3">
-                    <div className="text-[0.7rem] text-[#f4a830] font-semibold uppercase tracking-wider mb-1">Selected Date</div>
+                  <div className="bg-primary/12 border border-primary/28 rounded-[10px] px-4 py-3">
+                    <div className="text-[0.7rem] text-primary font-semibold uppercase tracking-wider mb-1">Selected Date</div>
                     <div className="text-[0.95rem] font-semibold">
                       {new Date(date).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
                     </div>
-                    {selectedTime && <div className="text-[0.8rem] text-[#f4a830] mt-1 font-medium">⏱ {selectedTime}</div>}
+                    {selectedTime && <div className="text-[0.8rem] text-primary mt-1 font-medium">⏱ {selectedTime}</div>}
                   </div>
                 )}
 
@@ -1073,8 +1077,8 @@ export default function TourDetail() {
                   <Button
                     disabled={!date || isBooked || availLoading}
                     className={`w-full h-14 rounded-[10px] text-[0.95rem] font-bold tracking-[0.02em] ${date && !isBooked
-                      ? "bg-[#f4a830] text-[#0f0d09] hover:bg-[#fdc96a] shadow-[0_6px_24px_rgba(244,168,48,0.35)]"
-                      : "bg-[#211e18] text-[#4a4438] cursor-not-allowed border border-[rgba(244,168,48,0.18)]"
+                      ? "bg-primary text-background hover:bg-primary shadow-[0_6px_24px_hsl(var(--primary) / 0.35)]"
+                      : "bg-muted text-border cursor-not-allowed border border-primary/18"
                       }`}
                     onClick={handleAddToCart}
                   >
@@ -1096,7 +1100,7 @@ export default function TourDetail() {
                   💬 Ask a Question via WhatsApp
                 </a>
 
-                <div className="flex gap-4 pt-3 border-t border-[rgba(244,168,48,0.12)] text-[0.72rem] text-[#8a826e]">
+                <div className="flex gap-4 pt-3 border-t border-primary/12 text-[0.72rem] text-muted-foreground">
                   <div className="flex items-center gap-1.5">
                     <Shield className="w-3.5 h-3.5" />
                     Free cancellation {cutoffHours}h before

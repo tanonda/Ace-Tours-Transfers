@@ -27,6 +27,7 @@ import { format } from "date-fns";
 import { formatPriceDisplay } from "@/lib/product.types";
 import { useCurrency } from "@/lib/currency-context";
 import { Badge } from "@/components/ui/badge";
+import { usePricingRules } from "@/lib/site-settings";
 
 const methodIcons: Record<string, React.ElementType> = {
   'card': CreditCard,
@@ -82,6 +83,7 @@ type BookingDetails = {
 };
 
 export default function Payment() {
+  const pricingRules = usePricingRules();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { total, clearCart, items } = useCart();
@@ -608,7 +610,7 @@ export default function Payment() {
                     <span className="font-semibold">Total</span>
                     <span className="text-xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">{formatPriceDisplay(total, currency)}</span>
                   </div>
-                  <p className="text-[0.65rem] text-muted-foreground text-center">All prices include 15% VAT</p>
+                  <p className="text-[0.65rem] text-muted-foreground text-center">{pricingRules.vat.included ? `All prices include ${pricingRules.vat.percent}% VAT` : `Prices exclude ${pricingRules.vat.percent}% VAT`}</p>
                 </CardContent>
               </Card>
             )}

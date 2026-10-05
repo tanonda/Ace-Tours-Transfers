@@ -1,12 +1,16 @@
-
 import { Layout } from "@/components/layout";
 import { SEO } from "@/components/seo";
 import { TourCard } from "@/components/tour-card";
 import { useTranslation } from "react-i18next";
 import { useLocalizedTours } from "@/hooks/useLocalizedProducts";
 import { cleanProductList } from "@/lib/product-filters";
+import { PageHero } from "@/components/page-hero";
+import { SectionLabel } from "@/components/postcard";
+import { CalendarCheck, ShieldCheck, Users } from "lucide-react";
+import { useSitePhoto } from "@/hooks/use-site-photo";
 
 export default function Tours() {
+  const heroPhoto = useSitePhoto("toursHero"); // Admin → CMS
   const { t } = useTranslation();
   const { data: allTours = [], isLoading } = useLocalizedTours();
 
@@ -21,29 +25,53 @@ export default function Tours() {
           "Discover our range of meticulously planned tours in Vanuatu. From scenic cultural tours to full-day private charters for groups.",
         )}
       />
-      <div className="bg-muted/30 pt-header-page pb-20">
+      <PageHero
+        priority
+        photo={heroPhoto}
+        photoPosition="50% 55%"
+        kicker={t("tours.kicker", "Efate Island")}
+        title={t("tours.heroTitle", "Day Tours")}
+        subtitle={t("home.toursDesc")}
+      />
+
+      <section className="bg-background pt-10 pb-24 md:pt-14">
         <div className="container mx-auto px-4">
-          <h1 className="text-5xl font-serif font-bold text-center mb-6">
-            {t("home.toursTitle")}
-          </h1>
-          <p className="text-center text-muted-foreground max-w-2xl mx-auto mb-12 text-lg">
-            {t("home.toursDesc")}
-          </p>
+          <div className="mb-14 grid grid-cols-1 items-end gap-6 lg:grid-cols-2">
+            <div>
+              <SectionLabel index={1} className="mb-4">{t("tours.packagesLabel", "Our packages")}</SectionLabel>
+              <h2 className="text-4xl text-navy md:text-5xl">{t("tours.pickYourDay", "Pick your day on Efate")}</h2>
+            </div>
+            <ul className="flex flex-wrap gap-2 lg:justify-end">
+              {[
+                // Claims the site already makes (About badges, trust strip); nothing new.
+                { icon: Users, text: t("tours.factGuides", "Local guides") },
+                { icon: ShieldCheck, text: t("tours.factInsured", "Fully insured") },
+                { icon: CalendarCheck, text: t("tours.factInstant", "Instant confirmation") },
+              ].map(({ icon: Icon, text }) => (
+                <li key={text} className="flex items-center gap-1.5 rounded-full border border-border bg-paper/70 px-3.5 py-1.5 text-sm text-navy">
+                  <Icon className="h-4 w-4 text-primary" />
+                  {text}
+                </li>
+              ))}
+            </ul>
+          </div>
+
           {isLoading ? (
             <div className="text-center py-12">{t("common.loading")}</div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 gap-x-8 gap-y-12 md:grid-cols-2 lg:grid-cols-3">
               {toursList.map((tour: any, index: number) => (
                 <TourCard
                   key={tour.id}
                   tour={{ ...tour, category: tour.category as any }}
                   index={index}
+                  variant="postcard"
                 />
               ))}
             </div>
           )}
         </div>
-      </div>
+      </section>
     </Layout>
   );
 }

@@ -30,93 +30,110 @@
   --color-chart-5: hsl(var(--chart-5));
   --color-reef: hsl(var(--reef));
   --color-reef-light: hsl(var(--reef-light));
+  --color-navy: hsl(var(--navy));
+  /* Deep harbour navy for dark surfaces; unlike --navy (ink) it does not flip in dark mode. */
+  --color-harbour: hsl(206 61% 18%);
+  --color-paper: hsl(var(--paper));
+  --color-sunset: hsl(var(--sunset));
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
-  --font-sans: "DM Sans", sans-serif;
-  --font-serif: "Playfair Display", serif;
+  --font-sans: "Work Sans", sans-serif;
+  --font-serif: "DM Serif Display", Georgia, serif;
+  /* Handwritten postcard accents ("Greetings from Port Vila!", photo captions) */
+  --font-script: "Caveat", cursive;
+  /* Bold brush lettering for the hero greeting */
+  --font-brush: "Kaushan Script", "Caveat", cursive;
 }
 
 :root {
-  /* Warm Cream Background */
-  --background: 48 30% 98%;
-  /* Dark Earthy Brown Text */
-  --foreground: 25 30% 15%;
+  /* Postcard palette (design mock-up "A · Postcard"): cream page, paper cards,
+     harbour-navy ink, burnt-orange stamps, lagoon teal. */
+  --background: 38 52% 93%;
+  --foreground: 206 61% 18%;
 
-  /* Card background - slightly darker cream */
-  --card: 48 30% 95%;
-  --card-foreground: 25 30% 15%;
+  /* Card background - postcard paper */
+  --card: 43 100% 99%;
+  --card-foreground: 206 61% 18%;
 
-  --popover: 48 30% 98%;
-  --popover-foreground: 25 30% 15%;
+  --popover: 43 100% 99%;
+  --popover-foreground: 206 61% 18%;
 
-  /* Vibrant Orange for CTAs (from brochure) */
-  --primary: 30 90% 50%;
+  /* Burnt orange for CTAs and stamps */
+  --primary: 17 88% 40%;
   --primary-foreground: 0 0% 100%;
 
-  /* Soft Beige for secondary elements */
-  --secondary: 40 20% 90%;
-  --secondary-foreground: 25 30% 15%;
+  --secondary: 38 35% 88%;
+  --secondary-foreground: 206 61% 18%;
 
-  --muted: 40 10% 90%;
-  --muted-foreground: 25 10% 40%;
+  --muted: 38 30% 89%;
+  --muted-foreground: 206 28% 30%;
 
-  --accent: 30 90% 96%;
-  /* Very light orange for hover */
-  --accent-foreground: 30 90% 40%;
+  --accent: 25 80% 94%;
+  --accent-foreground: 17 88% 35%;
 
   --destructive: 0 84.2% 60.2%;
   --destructive-foreground: 0 0% 98%;
 
-  --border: 40 20% 85%;
-  --input: 40 20% 85%;
-  --ring: 30 90% 50%;
+  --border: 38 25% 82%;
+  --input: 38 25% 82%;
+  --ring: 17 88% 40%;
 
   --radius: 0.5rem;
 
-  --chart-1: 30 90% 50%;
-  --chart-2: 25 30% 30%;
-  --chart-3: 40 20% 80%;
-  --chart-4: 48 30% 90%;
-  --chart-5: 30 90% 70%;
+  --chart-1: 17 88% 40%;
+  --chart-2: 206 61% 18%;
+  --chart-3: 177 75% 24%;
+  --chart-4: 38 35% 80%;
+  --chart-5: 21 90% 60%;
 
-  /* Reef blue: Efate lagoon water, the base tone for photo-led sections */
-  --reef: 188 78% 30%;
-  --reef-light: 186 55% 90%;
+  /* Lagoon teal: transfers band, duration badges, photo-led sections */
+  --reef: 177 75% 24%;
+  --reef-light: 166 27% 94%;
+
+  --navy: 206 61% 18%;
+  --paper: 43 100% 99%;
+  /* Brighter sunset orange for the big CTA */
+  --sunset: 21 90% 48%;
 }
 
 .dark {
-  --background: 25 30% 10%;
-  --foreground: 48 30% 95%;
+  /* Night harbour: navy paper, warm cream ink, the same burnt-orange stamps lifted for contrast */
+  --background: 206 45% 9%;
+  --foreground: 38 45% 92%;
 
-  --card: 25 30% 12%;
-  --card-foreground: 48 30% 95%;
+  --card: 206 40% 13%;
+  --card-foreground: 38 45% 92%;
 
-  --popover: 25 30% 12%;
-  --popover-foreground: 48 30% 95%;
+  --popover: 206 40% 13%;
+  --popover-foreground: 38 45% 92%;
 
-  --primary: 30 90% 50%;
+  --primary: 21 90% 56%;
   --primary-foreground: 0 0% 100%;
 
-  --secondary: 25 20% 20%;
-  --secondary-foreground: 48 30% 95%;
+  --secondary: 206 30% 18%;
+  --secondary-foreground: 38 45% 92%;
 
-  --muted: 25 20% 20%;
-  --muted-foreground: 40 10% 60%;
+  --muted: 206 30% 18%;
+  --muted-foreground: 206 18% 72%;
 
-  --accent: 25 20% 20%;
-  --accent-foreground: 48 30% 95%;
+  --accent: 206 30% 20%;
+  --accent-foreground: 38 45% 92%;
 
   --destructive: 0 62.8% 30.6%;
   --destructive-foreground: 0 0% 98%;
 
-  --border: 25 20% 20%;
-  --input: 25 20% 20%;
-  --ring: 30 90% 50%;
+  --border: 206 25% 22%;
+  --input: 206 25% 22%;
+  --ring: 21 90% 56%;
 
-  --reef: 186 60% 55%;
-  --reef-light: 192 45% 14%;
+  --reef: 176 50% 55%;
+  --reef-light: 190 40% 13%;
+
+  --navy: 38 45% 92%;
+  --paper: 206 40% 13%;
+  --sunset: 21 90% 52%;
 }
 
 /* Mobile App-Like Experience Utilities */
@@ -213,8 +230,9 @@
   h4,
   h5,
   h6 {
-    @apply font-serif font-bold;
-    line-height: 1.2;
+    /* DM Serif Display ships one weight; a forced bold would be faux-bolded. */
+    @apply font-serif font-normal;
+    line-height: 1.15;
   }
   
   /* Typography Scale - Luxury Travel Standard */
@@ -242,6 +260,20 @@
     font-size: max(0.9375rem, 1em); /* 15px minimum */
     letter-spacing: 0.01em;
   }
+}
+
+/* Hero headline (user's reference): solid white at the top of the letters,
+   fading into the photo toward the baseline. The bottom padding keeps
+   descenders inside the clipped background; the soft shadow keeps the
+   solid part legible over bright skies. */
+.hero-fade-text {
+  background-image: linear-gradient(180deg, #ffffff 0%, #ffffff 42%, rgba(255, 255, 255, 0.55) 74%, rgba(255, 255, 255, 0.05) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  padding-bottom: 0.12em;
+  filter: drop-shadow(0 6px 22px rgba(12, 31, 46, 0.28));
 }
 
 /* Accessibility - Enhanced Focus Styles */
@@ -336,9 +368,9 @@
 .travel-prose > :first-child {
   margin-top: 0;
   color: #2b1d13;
-  font-family: "Playfair Display", serif;
+  font-family: var(--font-serif);
   font-size: clamp(1.32rem, 1.2rem + 0.45vw, 1.65rem);
-  font-weight: 600;
+  font-weight: 400;
   line-height: 1.55;
 }
 
@@ -354,9 +386,9 @@
   padding-top: 1.2rem;
   border-top: 1px solid #d7c9b3;
   color: #281b12;
-  font-family: "Playfair Display", serif;
+  font-family: var(--font-serif);
   font-size: clamp(2rem, 1.65rem + 1.25vw, 3rem);
-  font-weight: 700;
+  font-weight: 400;
   letter-spacing: -0.025em;
   line-height: 1.08;
   text-wrap: balance;
@@ -378,7 +410,7 @@
   margin-top: 2.35rem;
   margin-bottom: 0.65rem;
   color: #342318;
-  font-family: "DM Sans", sans-serif;
+  font-family: var(--font-sans);
   font-size: clamp(1.2rem, 1.12rem + 0.35vw, 1.45rem);
   font-weight: 750;
   line-height: 1.32;
@@ -422,7 +454,7 @@
   padding: 0.25rem 0 0.25rem 1.5rem;
   border-left: 4px solid #2d8f88;
   color: #35271c;
-  font-family: "Playfair Display", serif;
+  font-family: var(--font-serif);
   font-size: 1.3em;
   font-style: italic;
   line-height: 1.55;

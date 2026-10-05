@@ -2,7 +2,7 @@ import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Users, Eye } from "lucide-react";
+import { ArrowRight, Car, Clock, Eye, Users } from "lucide-react";
 import { ProductQuickView } from "@/components/product-quick-view";
 import { ShareButton } from "@/components/share-button";
 import { motion } from "framer-motion";
@@ -12,11 +12,12 @@ import { useCurrency } from "@/lib/currency-context";
 import { type ProductCategory, formatPriceDisplay, getDisplayPrice } from "@/lib/product.types";
 import { getProductImage } from "@/lib/product-images";
 import { cloudinaryOpt } from "@/components/seo";
+import { PriceStamp } from "@/components/postcard";
+import { shortDuration } from "@/lib/postcard-format";
+import { htmlToText } from "@/lib/html-text";
 
-// Simple utility to strip HTML but keep text content
-function stripHtml(html: string): string {
-  return html.replace(/<[^>]*>?/gm, '');
-}
+// Descriptions are stored as HTML; cards show plain text (tags removed, &amp; etc. decoded).
+const stripHtml = htmlToText;
 
 export interface ProductRouteProps {
   id: string;
@@ -35,7 +36,149 @@ export interface ProductRouteProps {
   groupPriceCents?: number | null;
 }
 
-export function TourCard({ tour, index }: { tour: ProductRouteProps; index: number }) {
+function firstDescription(description: ProductRouteProps["description"]): string {
+  if (Array.isArray(description) && description.length > 0) return stripHtml(description[0]);
+  return typeof description === "string" ? stripHtml(description) : "";
+}
+
+// SEO titles carry " | keyword" tails; cards show the product name only.
+function cardTitle(title: string): string {
+  return title.split(" | ")[0];
+}
+
+const POSTCARD_TILT = [-2, 1.5, -1];
+
+/**
+ * - "default": the catalogue card (listing pages).
+ * - "postcard": tilted paper card with a stamp price tag (home tours).
+ * - "ticket": flat paper card with a round duration badge (home transfers).
+ */
+export type TourCardVariant = "default" | "postcard" | "ticket";
+
+export function TourCard({ tour, index, variant = "default" }: { tour: ProductRouteProps; index: number; variant?: TourCardVariant }) {
+  if (variant === "postcard") return <PostcardTourCard tour={tour} index={index} />;
+  if (variant === "ticket") return <TicketTourCard tour={tour} index={index} />;
+  return <DefaultTourCard tour={tour} index={index} />;
+}
+
+function PostcardTourCard({ tour, index }: { tour: ProductRouteProps; index: number }) {
+  const { t } = useTranslation();
+  const { currency } = useCurrency();
+  const displayImage = getProductImage(tour.image);
+  const shownPrice = getDisplayPrice(tour);
+  const detailHref = `/${tour.category === "transfer" ? "transfers" : "tours"}/${tour.id}`;
+  const meta = [tour.duration, tour.minPax].filter(Boolean).join(" · ");
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay: index * 0.1 }}
+      viewport={{ once: true }}
+      className="h-full"
+    >
+      <Link href={detailHref} className="group block h-full">
+        <article
+          className="relative h-full bg-paper p-3 pb-7 shadow-[0_22px_50px_-18px_rgba(0,0,0,0.55)] transition-transform duration-500 group-hover:-translate-y-1.5"
+          style={{ rotate: `${POSTCARD_TILT[index % POSTCARD_TILT.length]}deg` }}
+        >
+          <div className="aspect-[4/3] overflow-hidden bg-muted">
+            {displayImage && (
+              <img
+                src={cloudinaryOpt(displayImage, 600)}
+                alt={(tour as any).imageAlt || tour.title}
+                className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                loading="lazy"
+                decoding="async"
+              />
+            )}
+          </div>
+          {!tour.contactForPrice && (
+            <PriceStamp
+              className="absolute -top-2 right-3"
+              label={shownPrice.isPackage ? t("tour.package", "Package") : t("tour.from", "From")}
+              price={formatPriceDisplay(shownPrice.amount, currency as any)}
+            />
+          )}
+          <div className="px-3 pt-5">
+            {meta && <p className="font-script text-xl text-primary leading-none">{meta}</p>}
+            <h3 className="mt-2 font-serif text-2xl md:text-[1.65rem] text-navy leading-tight">{cardTitle(tour.title)}</h3>
+            <p className="mt-3 text-sm text-muted-foreground line-clamp-2">{firstDescription(tour.description)}</p>
+            <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-primary underline underline-offset-4">
+              {tour.contactForPrice ? t("tour.inquireNow", "View Details & Contact") : t("tour.viewDetails", "View Details")}
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+            </span>
+          </div>
+        </article>
+      </Link>
+    </motion.div>
+  );
+}
+
+function TicketTourCard({ tour, index }: { tour: ProductRouteProps; index: number }) {
+  const { t } = useTranslation();
+  const { currency } = useCurrency();
+  const displayImage = getProductImage(tour.image);
+  const shownPrice = getDisplayPrice(tour);
+  const detailHref = `/${tour.category === "transfer" ? "transfers" : "tours"}/${tour.id}`;
+  const badge = shortDuration(tour.duration);
+  const tagline = firstDescription(tour.description).split(/(?<=[.!?])\s/)[0];
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay: index * 0.1 }}
+      viewport={{ once: true }}
+      className="h-full"
+    >
+      <Link href={detailHref} className="group block h-full">
+        <article className="flex h-full flex-col bg-paper border-l-2 border-dashed border-reef/30 shadow-[0_18px_40px_-20px_rgba(18,50,74,0.35)] transition-transform duration-500 group-hover:-translate-y-1">
+          <div className="aspect-[16/10] overflow-hidden bg-muted">
+            {displayImage && (
+              <img
+                src={cloudinaryOpt(displayImage, 600)}
+                alt={(tour as any).imageAlt || tour.title}
+                className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                loading="lazy"
+                decoding="async"
+              />
+            )}
+          </div>
+          <div className="flex flex-1 flex-col p-6">
+            <div className="flex items-start justify-between gap-4">
+              <h3 className="font-serif text-2xl text-navy leading-tight">{cardTitle(tour.title)}</h3>
+              {badge && (
+                <span className="grid size-16 shrink-0 place-content-center rounded-full border-2 border-reef text-center text-[0.65rem] font-bold leading-tight text-reef">
+                  {badge.split(" ").map((part) => <span key={part} className="block">{part}</span>)}
+                </span>
+              )}
+            </div>
+            {tagline && (
+              // Padding/border on a wrapper: on the clamped element they would reveal part of line 2.
+              <div className="mt-3 border-b border-border pb-3">
+                <p className="font-script text-xl text-navy/80 line-clamp-1">{tagline}</p>
+              </div>
+            )}
+            {!tour.contactForPrice && (
+              <p className="mt-3 text-sm text-muted-foreground">
+                {shownPrice.isPackage ? t("tour.packageRate", "Package rate") : t("tour.startingFrom", "Starting from")}{" "}
+                <strong className="text-navy">{formatPriceDisplay(shownPrice.amount, currency as any)}</strong>
+              </p>
+            )}
+            <span className="mt-auto pt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-primary underline underline-offset-4">
+              <Car className="h-4 w-4" />
+              {t("tour.bookTransfer", "Book transfer")}
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+            </span>
+          </div>
+        </article>
+      </Link>
+    </motion.div>
+  );
+}
+
+function DefaultTourCard({ tour, index }: { tour: ProductRouteProps; index: number }) {
   const [showQuickView, setShowQuickView] = useState(false);
   const { t } = useTranslation();
   const { currency } = useCurrency();
@@ -68,7 +211,7 @@ export function TourCard({ tour, index }: { tour: ProductRouteProps; index: numb
               />
             )}
             <div className="absolute top-4 left-4 z-20">
-              <ShareButton title={tour.title} description={tour.description[0]} />
+              <ShareButton title={tour.title} description={firstDescription(tour.description)} />
             </div>
             <div className="absolute top-4 right-4 z-20">
               <Badge className="bg-background/90 text-foreground hover:bg-background text-sm font-bold px-3 py-1 shadow-sm backdrop-blur-sm border border-border/50">
@@ -83,8 +226,8 @@ export function TourCard({ tour, index }: { tour: ProductRouteProps; index: numb
           </div>
 
           <CardHeader className="pb-2">
-            <h3 className="font-serif text-2xl font-bold text-foreground group-hover:text-primary transition-colors">
-              {tour.title}
+            <h3 className="font-serif text-2xl text-foreground group-hover:text-primary transition-colors">
+              {cardTitle(tour.title)}
             </h3>
             <div className="flex items-center gap-4 text-muted-foreground text-sm mt-2">
               <div className="flex items-center gap-1">

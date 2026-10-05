@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { DollarSign, Plus, TrendingUp, Info, Star, Package, User } from "lucide-react";
 import { useCurrency, CURRENCIES, formatInCurrency } from "@/lib/currency-context";
 import type { CurrencyCode } from "@/lib/currency-context";
+import { PricingRulesCard } from "@/components/admin/pricing-rules-card";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -164,11 +165,13 @@ export default function AdminPricing() {
               <DollarSign className="h-5 w-5 text-green-600" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-[#004165]">Pricing Versions</h1>
-              <p className="text-muted-foreground text-sm">Schedule price changes for future dates</p>
+              <h1 className="text-3xl font-bold text-[#004165]">Pricing</h1>
+              <p className="text-muted-foreground text-sm">Checkout rules and scheduled price changes</p>
             </div>
           </div>
         </div>
+
+        <PricingRulesCard />
 
         {/* Info banner */}
         <div className="flex items-start gap-3 p-4 bg-blue-50 border border-blue-200 rounded-xl text-sm text-blue-800">

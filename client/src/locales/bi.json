@@ -41,10 +41,14 @@
     "pickDate": "Choosem date",
     "guests": "Hamas man?",
     "guestsPlaceholder": "2 man",
-    "checkAvailability": "Checkem Availability",
+    "checkAvailability": "Lukim sipos i gat ples",
     "popularSearches": "Popular:",
     "airportTransfer": "Airport Transfer",
-    "dayTours": "Day Tours"
+    "dayTours": "Day Tours",
+    "greeting": "Halo i kam long Port Vila!",
+    "bookTransfer": "Bookem wan transfer",
+    "searchTours": "Lukaotem tours",
+    "searchTransfers": "Lukaotem transfers"
   },
   "home": {
     "aboutLabel": "About Mifala",
@@ -65,7 +69,21 @@
     "bookTransfer": "Bookem Transfer",
     "ctaTitle": "Ready blong next adventure blong yu?",
     "ctaDesc": "Lego mifala i handle ol details taem yu mekem ol memories.",
-    "ctaButton": "Start Planning Nao"
+    "ctaButton": "Start Planning Nao",
+    "aboutCaption1": "Ol wotafol blong Efate",
+    "aboutCaption2": "Saot kos blong Efate",
+    "aboutPhotoAlt": "Wotafol blong Mele, Efate",
+    "aboutPhoto2Alt": "Sanbij blong Eratap long saot kos blong Efate",
+    "viewAllTours": "Lukim olgeta tours",
+    "viewAllTransfers": "Lukim olgeta transfers",
+    "craftLabel": "Ol lokol meka",
+    "craftTitle": "Tes mo hanwok blong Vanuatu",
+    "craftDesc": "Joklet blong aelan, kakao mo ol basket we oli wivim long han. Efate Scenic Tour blong mifala i stop long wan lokol faktri blong joklet, mo long wan praevet tour, yu nao yu jusum ol ples blong stop: askem mifala blong putum wan lokol meka long dei blong yu.",
+    "craftCocoa": "Kakao blong maket",
+    "craftMarket": "Maket blong Port Vila",
+    "craftBasket": "Basket blong aelan",
+    "craftWoven": "Oli wivim long han",
+    "ctaScript": "Mi wantem yu stap long ples ia..."
   },
   "about": {
     "title": "About Ace Tours",
@@ -85,7 +103,19 @@
     "reliableService": "Reliable Service",
     "reliableServiceDesc": "Punctuality mo reliability i ol hallmarks blong mifala. Yu save depend long mifala.",
     "safetyFirst": "Safety First",
-    "safetyFirstDesc": "Safety blong yu i priority blong mifala. Ol vehicles i regularly maintained mo ol drivers i professionally trained."
+    "safetyFirstDesc": "Safety blong yu i priority blong mifala. Ol vehicles i regularly maintained mo ol drivers i professionally trained.",
+    "heroTitle": "Travel i isi",
+    "tagline": "Namba wan transpot mo tour kampani blong Vanuatu",
+    "storyPhotoAlt": "Ace Tours long Efate",
+    "storyCaption1": "Aelan blong mifala",
+    "storyPhoto2Alt": "Rod long vilej blong Toniliu, Efate",
+    "storyCaption2": "Ol rod blong vilej long Efate",
+    "whyLabel": "From wanem yu travel wetem mifala",
+    "planLabel": "Yumi plan holide blong yu",
+    "planNote": "Taem blong nekst adventure blong yu. Letem mifala i helpem yu long plan blong travel!",
+    "planCta": "Plan trip blong mi",
+    "stampTop": "Oli agri",
+    "stampBottom": "Kampani"
   },
   "contact": {
     "title": "Contact Mifala",
@@ -106,10 +136,23 @@
     "subjectPlaceholder": "Olsem wanem mifala i save helpem yu?",
     "message": "Message",
     "messagePlaceholder": "Talem mifala moa about inquiry blong yu...",
-    "send": "Send Message",
+    "send": "Sendem mesej",
     "sending": "Sending...",
     "messageSent": "Message i bin Send!",
-    "messageSuccess": "Bambai mifala i get back long yu soon."
+    "messageSuccess": "Bambai mifala i get back long yu soon.",
+    "kicker": "Ace Tours & Transfers",
+    "reachLabel": "Kontaktem mifala stret",
+    "reachTitle": "Mifala i stap blong helpem yu",
+    "writeLabel": "Raetem long mifala",
+    "writeTitle": "Sendem wan toktok long mifala",
+    "whatsappTitle": "Toktok wetem mifala long WhatsApp",
+    "whatsappStart": "Statem wan toktok",
+    "whatsappQuote": "Askem praes",
+    "formTitle": "Sendem wan mesej long mifala",
+    "formNote": "Yu laekem imel? Bae mifala i ansa long imel blong yu.",
+    "sentTitle": "Mesej i go finis!",
+    "sentBody": "Tangkyu tumas. Bae mifala i ansa kwiktaem, plante taem insaed long smol aoa nomo.",
+    "sendAnother": "Sendem narafala mesej"
   },
   "auth": {
     "signIn": "Sign in",
@@ -230,7 +273,10 @@
     "bookNow": "Bookem Nao",
     "viewDetails": "Lukim Details",
     "quickView": "Quick View",
-    "startingFrom": "Start from"
+    "startingFrom": "Start from",
+    "from": "Stat long",
+    "package": "Pakij",
+    "bookTransfer": "Bookem transfer"
   },
   "dashboard": {
     "welcome": "Welcome bak",
@@ -337,7 +383,8 @@
     "copyright": "All rights reserved.",
     "description": "Experiensem beauty blong Efate Island wetem mifala. Mifala i offerem ol tour packages we oli plan gud mo customize.",
     "privacyPolicy": "Privacy Policy",
-    "termsOfService": "Terms of Service"
+    "termsOfService": "Terms of Service",
+    "photoCredits": "Ol man blong foto"
   },
   "newsletter": {
     "title": "Subscribem long newsletter blong mifala",
@@ -529,5 +576,39 @@
   "landingPage": {
     "faq": "Ol Kwestin We Ol Man Oli Askem Plante Taem",
     "readyToBook": "Redi blong bukim?"
+  },
+  "tours": {
+    "kicker": "Aelan blong Efate",
+    "heroTitle": "Day Tours",
+    "packagesLabel": "Ol pakij blong mifala",
+    "pickYourDay": "Jusum dei blong yu long Efate",
+    "factGuides": "Lokol gaed",
+    "factInsured": "Fulwan insurens",
+    "factInstant": "Konfemesen kwiktaem"
+  },
+  "transfers": {
+    "kicker": "Port Vila",
+    "heroTitle": "Transfers",
+    "label": "Raon long Efate",
+    "heading": "Bae mifala mitim yu long ples ia",
+    "factFlights": "Mifala i folem plen",
+    "factGreet": "Mitim mo welkamem",
+    "fact247": "Oltaem i open 24/7"
+  },
+  "social": {
+    "menu": "Ace Tours long sosol midia",
+    "open": "Folem o kontaktem Ace Tours",
+    "close": "Klosem ol link blong sosol midia",
+    "dismiss": "Haedem baten blong sosol midia",
+    "whatsapp": "WhatsApp",
+    "facebook": "Facebook",
+    "instagram": "Instagram",
+    "call": "Ringim mifala",
+    "email": "Imelem mifala"
+  },
+  "credits": {
+    "label": "Tangkyu tumas",
+    "title": "Ol man blong foto",
+    "intro": "Ol foto blong Efate long websaet ia, ol man blong tekem foto oli serem andanit long Creative Commons laesens. Samfala oli katem o jenisim kala."
   }
 }

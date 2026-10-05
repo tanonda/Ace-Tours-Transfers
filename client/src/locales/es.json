@@ -41,10 +41,14 @@
     "pickDate": "Elegir fecha",
     "guests": "¿Cuántos?",
     "guestsPlaceholder": "2 personas",
-    "checkAvailability": "Verificar Disponibilidad",
+    "checkAvailability": "Consultar disponibilidad",
     "popularSearches": "Populares:",
     "airportTransfer": "Traslado al Aeropuerto",
-    "dayTours": "Tours de Día"
+    "dayTours": "Tours de Día",
+    "greeting": "¡Saludos desde Port Vila!",
+    "bookTransfer": "Reservar un traslado",
+    "searchTours": "Buscar tours",
+    "searchTransfers": "Buscar traslados"
   },
   "home": {
     "aboutLabel": "Sobre Nosotros",
@@ -65,7 +69,21 @@
     "bookTransfer": "Reservar Traslado",
     "ctaTitle": "¿Listo para tu próxima aventura?",
     "ctaDesc": "Déjanos manejar los detalles mientras tú creas los recuerdos.",
-    "ctaButton": "Empezar a Planificar"
+    "ctaButton": "Empezar a Planificar",
+    "aboutCaption1": "Cascadas de Efate",
+    "aboutCaption2": "La costa sur de Efate",
+    "aboutPhotoAlt": "Cascada de Mele, Efate",
+    "aboutPhoto2Alt": "Playa de Eratap, en la costa sur de Efate",
+    "viewAllTours": "Ver todos los tours",
+    "viewAllTransfers": "Ver todos los traslados",
+    "craftLabel": "Artesanos locales",
+    "craftTitle": "Sabores y artesanía de Vanuatu",
+    "craftDesc": "Chocolate de la isla, cacao y cestas tejidas a mano. Nuestro Efate Scenic Tour se detiene en una fábrica de chocolate local, y en un tour privado usted elige las paradas: pídanos que añadamos un artesano local a su día.",
+    "craftCocoa": "Cacao del mercado",
+    "craftMarket": "Mercado de Port Vila",
+    "craftBasket": "Cesta isleña",
+    "craftWoven": "Tejido a mano",
+    "ctaScript": "Ojalá estuvieras aquí..."
   },
   "about": {
     "title": "Sobre Ace Tours",
@@ -85,7 +103,19 @@
     "reliableService": "Servicio Confiable",
     "reliableServiceDesc": "La puntualidad y la confiabilidad son nuestro sello distintivo. Puedes contar con nosotros.",
     "safetyFirst": "La Seguridad Primero",
-    "safetyFirstDesc": "Tu seguridad es nuestra prioridad. Nuestros vehículos reciben mantenimiento regular y nuestros conductores están capacitados profesionalmente."
+    "safetyFirstDesc": "Tu seguridad es nuestra prioridad. Nuestros vehículos reciben mantenimiento regular y nuestros conductores están capacitados profesionalmente.",
+    "heroTitle": "Viajar es fácil",
+    "tagline": "El principal operador de transporte y tours de Vanuatu",
+    "storyPhotoAlt": "Ace Tours en Efate",
+    "storyCaption1": "Nuestra isla",
+    "storyPhoto2Alt": "Camino de la aldea de Toniliu, Efate",
+    "storyCaption2": "Caminos de aldea de Efate",
+    "whyLabel": "Por qué viajar con nosotros",
+    "planLabel": "Planifiquemos sus próximas vacaciones",
+    "planNote": "Es hora de su próxima aventura. ¡Déjenos ayudarle con sus planes de viaje!",
+    "planCta": "Planificar mi viaje",
+    "stampTop": "Aprobado",
+    "stampBottom": "Operador"
   },
   "contact": {
     "title": "Contáctanos",
@@ -106,10 +136,23 @@
     "subjectPlaceholder": "¿Cómo podemos ayudarte?",
     "message": "Mensaje",
     "messagePlaceholder": "Cuéntanos más sobre tu consulta...",
-    "send": "Enviar Mensaje",
+    "send": "Enviar mensaje",
     "sending": "Enviando...",
     "messageSent": "¡Mensaje Enviado!",
-    "messageSuccess": "Te responderemos lo antes posible."
+    "messageSuccess": "Te responderemos lo antes posible.",
+    "kicker": "Ace Tours & Transfers",
+    "reachLabel": "Contáctenos directamente",
+    "reachTitle": "Estamos aquí para ayudarle",
+    "writeLabel": "Escríbanos",
+    "writeTitle": "Envíenos unas líneas",
+    "whatsappTitle": "Chatee con nosotros por WhatsApp",
+    "whatsappStart": "Iniciar una conversación",
+    "whatsappQuote": "Solicitar un presupuesto",
+    "formTitle": "Envíenos un mensaje",
+    "formNote": "¿Prefiere el correo? Le responderemos a su bandeja de entrada.",
+    "sentTitle": "¡Mensaje enviado!",
+    "sentBody": "Gracias por escribirnos. Le responderemos lo antes posible, normalmente en pocas horas.",
+    "sendAnother": "Enviar otro mensaje"
   },
   "auth": {
     "signIn": "Iniciar Sesión",
@@ -230,7 +273,10 @@
     "bookNow": "Reservar Ahora",
     "viewDetails": "Ver Detalles",
     "quickView": "Vista Rápida",
-    "startingFrom": "Desde"
+    "startingFrom": "Desde",
+    "from": "Desde",
+    "package": "Paquete",
+    "bookTransfer": "Reservar traslado"
   },
   "dashboard": {
     "welcome": "Bienvenido de nuevo",
@@ -337,7 +383,8 @@
     "copyright": "Todos los derechos reservados.",
     "description": "Experimenta la belleza de la Isla Efate con nosotros. Ofrecemos paquetes turísticos meticulosamente planificados y personalizados.",
     "privacyPolicy": "Política de Privacidad",
-    "termsOfService": "Términos de Servicio"
+    "termsOfService": "Términos de Servicio",
+    "photoCredits": "Créditos fotográficos"
   },
   "newsletter": {
     "title": "Suscríbete a nuestro boletín",
@@ -529,5 +576,39 @@
   "landingPage": {
     "faq": "Preguntas Frecuentes",
     "readyToBook": "¿Listo para reservar?"
+  },
+  "tours": {
+    "kicker": "Isla de Efate",
+    "heroTitle": "Excursiones",
+    "packagesLabel": "Nuestros paquetes",
+    "pickYourDay": "Elija su día en Efate",
+    "factGuides": "Guías locales",
+    "factInsured": "Totalmente asegurados",
+    "factInstant": "Confirmación inmediata"
+  },
+  "transfers": {
+    "kicker": "Port Vila",
+    "heroTitle": "Traslados",
+    "label": "Moverse por Efate",
+    "heading": "Le esperamos allí",
+    "factFlights": "Seguimiento de vuelos",
+    "factGreet": "Recepción personalizada",
+    "fact247": "Disponible 24/7"
+  },
+  "social": {
+    "menu": "Ace Tours en redes sociales",
+    "open": "Seguir o contactar a Ace Tours",
+    "close": "Cerrar enlaces de redes sociales",
+    "dismiss": "Ocultar el botón de redes sociales",
+    "whatsapp": "WhatsApp",
+    "facebook": "Facebook",
+    "instagram": "Instagram",
+    "call": "Llámenos",
+    "email": "Escríbanos"
+  },
+  "credits": {
+    "label": "Gracias",
+    "title": "Créditos fotográficos",
+    "intro": "Las fotos de Efate de este sitio las comparten sus fotógrafos bajo licencias Creative Commons. Algunas se han recortado o retocado."
   }
 }

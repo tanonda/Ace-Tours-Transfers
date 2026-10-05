@@ -25,7 +25,7 @@ function StarPicker({ value, onChange }: { value: number; onChange: (v: number) 
           className="text-2xl transition-transform hover:scale-110"
           aria-label={`${n} star${n !== 1 ? "s" : ""}`}
         >
-          <span className={(hover || value) >= n ? "text-[#f4a830]" : "text-[#2a2620]"}>★</span>
+          <span className={(hover || value) >= n ? "text-primary" : "text-muted"}>★</span>
         </button>
       ))}
     </div>
@@ -95,9 +95,9 @@ export function GuestReviewForm({ productId, productTitle, reviewQueryKey }: Gue
   if (submitted) {
     return (
       <div className="flex flex-col items-center gap-3 py-8 text-center">
-        <CheckCircle2 className="h-12 w-12 text-[#4caf7d]" />
-        <p className="font-semibold text-[#f0ece4]">Thank you for your review!</p>
-        <p className="text-sm text-[#8a826e]">
+        <CheckCircle2 className="h-12 w-12 text-reef" />
+        <p className="font-semibold text-foreground">Thank you for your review!</p>
+        <p className="text-sm text-muted-foreground">
           {isAuthenticated ? "Your review has been posted." : "Your review will appear after it's approved by our team."}
         </p>
       </div>
@@ -108,7 +108,7 @@ export function GuestReviewForm({ productId, productTitle, reviewQueryKey }: Gue
     return (
       <button
         onClick={() => setOpen(true)}
-        className="w-full py-3 border border-[rgba(244,168,48,0.25)] rounded-[10px] text-[0.88rem] font-semibold text-[#f4a830] hover:bg-[rgba(244,168,48,0.06)] transition-all flex items-center justify-center gap-2"
+        className="w-full py-3 border border-primary/25 rounded-[10px] text-[0.88rem] font-semibold text-primary hover:bg-primary/6 transition-all flex items-center justify-center gap-2"
       >
         <Star className="h-4 w-4" />
         Write a Review for {productTitle}
@@ -117,20 +117,20 @@ export function GuestReviewForm({ productId, productTitle, reviewQueryKey }: Gue
   }
 
   return (
-    <form onSubmit={handleSubmit} className="bg-[#211e18] border border-[rgba(244,168,48,0.18)] rounded-[14px] p-6 space-y-4">
-      <div className="font-serif text-[1rem] font-bold text-[#f0ece4] flex items-center gap-2">
-        <Star className="h-4 w-4 text-[#f4a830] fill-[#f4a830]" />
+    <form onSubmit={handleSubmit} className="bg-muted border border-primary/18 rounded-[14px] p-6 space-y-4">
+      <div className="font-serif text-[1rem] font-bold text-foreground flex items-center gap-2">
+        <Star className="h-4 w-4 text-primary fill-primary" />
         Leave a Review
       </div>
 
       {/* Star picker */}
       <div>
-        <label className="text-[0.68rem] font-bold uppercase tracking-widest text-[#8a826e] mb-2 block">
+        <label className="text-[0.68rem] font-bold uppercase tracking-widest text-muted-foreground mb-2 block">
           Your Rating <span className="text-[#e05555]">*</span>
         </label>
         <StarPicker value={rating} onChange={setRating} />
         {rating > 0 && (
-          <p className="text-[0.72rem] text-[#8a826e] mt-1">
+          <p className="text-[0.72rem] text-muted-foreground mt-1">
             {["", "Poor", "Below Average", "Average", "Good", "Excellent"][rating]}
           </p>
         )}
@@ -138,7 +138,7 @@ export function GuestReviewForm({ productId, productTitle, reviewQueryKey }: Gue
 
       {/* Comment */}
       <div>
-        <label className="text-[0.68rem] font-bold uppercase tracking-widest text-[#8a826e] mb-1.5 block">
+        <label className="text-[0.68rem] font-bold uppercase tracking-widest text-muted-foreground mb-1.5 block">
           Your Experience
         </label>
         <textarea
@@ -146,21 +146,21 @@ export function GuestReviewForm({ productId, productTitle, reviewQueryKey }: Gue
           onChange={(e) => setComment(e.target.value.slice(0, 2000))}
           rows={4}
           placeholder="Tell other travellers about your experience..."
-          className="w-full bg-[#1a1710] border border-[rgba(244,168,48,0.18)] rounded-[10px] px-4 py-3 text-[0.88rem] text-[#f0ece4] placeholder-[#3a342c] resize-none focus:outline-none focus:border-[#f4a830] transition-colors"
+          className="w-full bg-card border border-primary/18 rounded-[10px] px-4 py-3 text-[0.88rem] text-foreground placeholder:text-muted-foreground/70 resize-none focus:outline-none focus:border-primary transition-colors"
         />
-        <p className="text-right text-[0.62rem] text-[#3a342c] mt-0.5">{comment.length}/2000</p>
+        <p className="text-right text-[0.62rem] text-muted-foreground mt-0.5">{comment.length}/2000</p>
       </div>
 
       {/* Guest fields (only shown when not logged in) */}
       {!isAuthenticated && (
         <div className="space-y-3">
-          <div className="flex items-center gap-2 text-[0.72rem] text-[#4a4438]">
+          <div className="flex items-center gap-2 text-[0.72rem] text-border">
             <Lock className="h-3 w-3" />
             Not logged in — your review will be posted as a guest and reviewed before publishing
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="text-[0.68rem] font-bold uppercase tracking-widest text-[#8a826e] mb-1.5 block">
+              <label className="text-[0.68rem] font-bold uppercase tracking-widest text-muted-foreground mb-1.5 block">
                 Name <span className="text-[#e05555]">*</span>
               </label>
               <input
@@ -168,11 +168,11 @@ export function GuestReviewForm({ productId, productTitle, reviewQueryKey }: Gue
                 value={guestName}
                 onChange={(e) => setGuestName(e.target.value.slice(0, 100))}
                 placeholder="Your name"
-                className="w-full bg-[#1a1710] border border-[rgba(244,168,48,0.18)] rounded-[10px] px-4 py-2.5 text-[0.88rem] text-[#f0ece4] placeholder-[#3a342c] focus:outline-none focus:border-[#f4a830] transition-colors"
+                className="w-full bg-card border border-primary/18 rounded-[10px] px-4 py-2.5 text-[0.88rem] text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus:border-primary transition-colors"
               />
             </div>
             <div>
-              <label className="text-[0.68rem] font-bold uppercase tracking-widest text-[#8a826e] mb-1.5 block">
+              <label className="text-[0.68rem] font-bold uppercase tracking-widest text-muted-foreground mb-1.5 block">
                 Email (optional)
               </label>
               <input
@@ -180,7 +180,7 @@ export function GuestReviewForm({ productId, productTitle, reviewQueryKey }: Gue
                 value={guestEmail}
                 onChange={(e) => setGuestEmail(e.target.value.slice(0, 254))}
                 placeholder="email@example.com"
-                className="w-full bg-[#1a1710] border border-[rgba(244,168,48,0.18)] rounded-[10px] px-4 py-2.5 text-[0.88rem] text-[#f0ece4] placeholder-[#3a342c] focus:outline-none focus:border-[#f4a830] transition-colors"
+                className="w-full bg-card border border-primary/18 rounded-[10px] px-4 py-2.5 text-[0.88rem] text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus:border-primary transition-colors"
               />
             </div>
           </div>
@@ -188,7 +188,7 @@ export function GuestReviewForm({ productId, productTitle, reviewQueryKey }: Gue
       )}
 
       {isAuthenticated && (
-        <p className="text-[0.72rem] text-[#4caf7d] flex items-center gap-1.5">
+        <p className="text-[0.72rem] text-reef flex items-center gap-1.5">
           <CheckCircle2 className="h-3.5 w-3.5" />
           Posting as {user?.name} (verified guest)
         </p>
@@ -198,14 +198,14 @@ export function GuestReviewForm({ productId, productTitle, reviewQueryKey }: Gue
         <button
           type="button"
           onClick={() => setOpen(false)}
-          className="flex-1 py-2.5 border border-[rgba(244,168,48,0.18)] rounded-[10px] text-[0.85rem] text-[#8a826e] hover:border-[rgba(244,168,48,0.4)] transition-colors"
+          className="flex-1 py-2.5 border border-primary/18 rounded-[10px] text-[0.85rem] text-muted-foreground hover:border-primary/40 transition-colors"
         >
           Cancel
         </button>
         <button
           type="submit"
           disabled={submitting || rating === 0}
-          className="flex-1 py-2.5 bg-[#f4a830] text-[#0f0d09] rounded-[10px] text-[0.85rem] font-bold hover:bg-[#fdc96a] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          className="flex-1 py-2.5 bg-primary text-background rounded-[10px] text-[0.85rem] font-bold hover:bg-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
           {submitting ? "Submitting..." : "Submit Review"}

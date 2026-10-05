@@ -1,18 +1,18 @@
 :root {
-  --cal-gold: #f4a830;
-  --cal-gold-dim: rgba(244, 168, 48, 0.12);
-  --cal-gold-glow: rgba(244, 168, 48, 0.25);
-  --cal-bg: #1a1710;
-  --cal-surface: #211e18;
-  --cal-surface-hover: #2a2620;
-  --cal-border: rgba(244, 168, 48, 0.18);
-  --cal-text: #f0ece4;
-  --cal-text-muted: #8a826e;
-  --cal-text-dim: #4a4438;
-  --cal-green: #4caf7d;
-  --cal-green-dim: rgba(76, 175, 125, 0.12);
-  --cal-amber: #f4a830;
-  --cal-amber-dim: rgba(244, 168, 48, 0.1);
+  --cal-gold: hsl(var(--primary));
+  --cal-gold-dim: hsl(var(--primary) / 0.12);
+  --cal-gold-glow: hsl(var(--primary) / 0.25);
+  --cal-bg: hsl(var(--card));
+  --cal-surface: hsl(var(--muted));
+  --cal-surface-hover: hsl(var(--muted));
+  --cal-border: hsl(var(--primary) / 0.18);
+  --cal-text: hsl(var(--foreground));
+  --cal-text-muted: hsl(var(--muted-foreground));
+  --cal-text-dim: hsl(var(--border));
+  --cal-green: hsl(var(--reef));
+  --cal-green-dim: hsl(var(--reef) / 0.12);
+  --cal-amber: hsl(var(--primary));
+  --cal-amber-dim: hsl(var(--primary) / 0.1);
   --cal-red: #e05555;
   --cal-red-dim: rgba(224, 85, 85, 0.08);
   --cal-radius: 12px;
@@ -20,7 +20,7 @@
 }
 
 .availability-calendar {
-  font-family: 'DM Sans', sans-serif;
+  font-family: var(--font-sans);
   padding: 18px 16px 16px;
   background: var(--cal-bg);
   border-radius: var(--cal-radius);
@@ -38,7 +38,7 @@
 }
 
 .calendar-title {
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-serif);
   font-size: 1rem;
   font-weight: 700;
   color: var(--cal-gold);
@@ -186,7 +186,7 @@
 
 .calendar-day.available:hover:not(.disabled) {
   border-color: var(--cal-green);
-  box-shadow: 0 0 0 1px rgba(76, 175, 125, 0.15);
+  box-shadow: 0 0 0 1px hsl(var(--reef) / 0.15);
 }
 .calendar-day.limited:hover:not(.disabled) {
   border-color: var(--cal-amber);
@@ -211,17 +211,17 @@
 .calendar-day.selected {
   background: var(--cal-gold) !important;
   border-color: var(--cal-gold) !important;
-  box-shadow: 0 0 0 3px var(--cal-gold-dim), 0 4px 12px rgba(244, 168, 48, 0.3) !important;
+  box-shadow: 0 0 0 3px var(--cal-gold-dim), 0 4px 12px hsl(var(--primary) / 0.3) !important;
 }
 
 .calendar-day.selected .day-number,
 .calendar-day.selected .day-capacity {
-  color: #0f0d09 !important;
+  color: hsl(var(--background)) !important;
   font-weight: 800 !important;
   opacity: 1 !important;
 }
 
-.calendar-day.selected .day-status-dot { background: rgba(15, 13, 9, 0.5) !important; }
+.calendar-day.selected .day-status-dot { background: rgba(18, 50, 74, 0.25) !important; }
 
 .calendar-loading {
   display: flex;

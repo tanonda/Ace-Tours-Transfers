@@ -1,5 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { useState, useEffect, useRef, forwardRef, memo, type ReactNode } from "react";
+import { vanuatuPhone } from "@/lib/phone";
 import { Menu, Phone, Mail, Instagram, Facebook, X, ChevronRight, ShoppingCart, User, LogIn, LogOut, UserPlus, Home, Map, Car, Info, MessageSquare, Calendar, ChevronDown, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -28,7 +29,7 @@ import { useTranslation } from "react-i18next";
 import { SkipLinks } from "@/components/skip-links";
 import { useCMS } from "@/lib/cms-context";
 import { useCmsText } from "@/hooks/use-cms-text";
-import { WhatsAppWidget } from "@/components/whatsapp-widget";
+import { FloatingDock } from "@/components/social-widget";
 import { useAuth } from "@/lib/auth-context";
 import type { Product } from "@shared/schema";
 import {
@@ -37,6 +38,8 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { keepAcrossLanguageSwitch } from "@/lib/language-placeholder";
+import { htmlToText } from "@/lib/html-text";
+import { useSitePhoto } from "@/hooks/use-site-photo";
 
 const ListItem = forwardRef<
   HTMLDivElement,
@@ -88,6 +91,10 @@ function useSiteChrome() {
 
   const contactEmail = getSetting("contact_email", "acetoursvanuatu@outlook.com");
   const contactPhone = getSetting("contact_phone", "7114045");
+  // Bookings line(s) from the brochure; each setting may hold "+678 …" or a bare local number.
+  const contactPhones = [contactPhone, getSetting("contact_phone_2", "7342389")]
+    .map(vanuatuPhone)
+    .filter((p): p is NonNullable<typeof p> => p !== null);
   
   // Prefer structured whatsapp object, fallback to legacy key
   const whatsappRecord = settings.find(s => s.key === "whatsapp");
@@ -131,7 +138,7 @@ function useSiteChrome() {
 
   const { t } = useTranslation();
 
-  return { settings, contactEmail, contactPhone, whatsappNumber, facebookUrl, instagramUrl, contactAddress, footerBacklinks, landingLinks, tours, transfers, t };
+  return { settings, contactEmail, contactPhone, contactPhones, whatsappNumber, facebookUrl, instagramUrl, contactAddress, footerBacklinks, landingLinks, tours, transfers, t };
 }
 
 /**
@@ -153,7 +160,7 @@ function CartCount({ children }: { children: (itemCount: number) => ReactNode })
  * menus) every time the page below it did — several times per page load.
  */
 export const SiteHeader = memo(function SiteHeader() {
-  const { settings, contactEmail, contactPhone, whatsappNumber, facebookUrl, instagramUrl, contactAddress, footerBacklinks, landingLinks, tours, transfers, t } = useSiteChrome();
+  const { settings, contactEmail, contactPhones, whatsappNumber, facebookUrl, instagramUrl, contactAddress, footerBacklinks, landingLinks, tours, transfers, t } = useSiteChrome();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [toursOpen, setToursOpen] = useState(false);
@@ -225,10 +232,12 @@ export const SiteHeader = memo(function SiteHeader() {
           </p>
           <div className="flex flex-wrap justify-center md:justify-end items-center gap-3 mt-2 md:mt-0">
             <div className="hidden lg:flex items-center gap-4">
-              <a href={`tel:+678${contactPhone.replace(/\D/g, '')}`} className={`flex items-center gap-1.5 hover:text-primary transition-colors ${isTransparent ? "hover:text-white" : ""}`}>
-                <Phone className="h-3.5 w-3.5" />
-                <span>{contactPhone}</span>
-              </a>
+              {contactPhones[0] && (
+                <a href={contactPhones[0].tel} className={`flex items-center gap-1.5 hover:text-primary transition-colors ${isTransparent ? "hover:text-white" : ""}`}>
+                  <Phone className="h-3.5 w-3.5" />
+                  <span>{contactPhones[0].display}</span>
+                </a>
+              )}
               <span className={isTransparent ? "text-white/50" : "text-muted-foreground/50"}>|</span>
               <a href={`mailto:${contactEmail}`} className={`flex items-center gap-1.5 hover:text-primary transition-colors ${isTransparent ? "hover:text-white" : ""}`}>
                 <Mail className="h-3.5 w-3.5" />
@@ -501,10 +510,12 @@ export const SiteHeader = memo(function SiteHeader() {
                   {t("footer.contactUs")}
                 </p>
                 <div className="space-y-2 text-sm text-muted-foreground">
-                  <a href={`tel:+678${contactPhone.replace(/\D/g, '')}`} className="flex items-center gap-2 hover:text-primary transition-colors">
-                    <Phone className="h-4 w-4" />
-                    <span>{contactPhone}</span>
-                  </a>
+                  {contactPhones.map((phone) => (
+                    <a key={phone.tel} href={phone.tel} className="flex items-center gap-2 hover:text-primary transition-colors">
+                      <Phone className="h-4 w-4" />
+                      <span>{phone.display}</span>
+                    </a>
+                  ))}
                   <a href={`mailto:${contactEmail}`} className="flex items-center gap-2 hover:text-primary transition-colors">
                     <Mail className="h-4 w-4" />
                     <span className="truncate">{contactEmail}</span>
@@ -574,10 +585,10 @@ export const SiteHeader = memo(function SiteHeader() {
                     {tours.map((tour: Product) => (
                       <ListItem
                         key={tour.id}
-                        title={tour.title}
+                        title={tour.title.split(" | ")[0]}
                         href={`/tours/${tour.id}`}
                       >
-                        {tour.description[0]}
+                        {htmlToText(Array.isArray(tour.description) ? tour.description[0] : tour.description)}
                       </ListItem>
                     ))}
                     <ListItem href="/tours" title={t("nav.viewAllTours")} className="bg-muted/50">
@@ -600,10 +611,10 @@ export const SiteHeader = memo(function SiteHeader() {
                     {transfers.map((transfer: Product) => (
                       <ListItem
                         key={transfer.id}
-                        title={transfer.title}
+                        title={transfer.title.split(" | ")[0]}
                         href={`/transfers/${transfer.id}`}
                       >
-                        {Array.isArray(transfer.description) ? transfer.description[0] : transfer.description}
+                        {htmlToText(Array.isArray(transfer.description) ? transfer.description[0] : transfer.description)}
                       </ListItem>
                     ))}
                     <ListItem href="/transfers" title={t("nav.viewAllTransfers")} className="bg-muted/50">
@@ -697,11 +708,11 @@ const SiteFooter = memo(function SiteFooter() {
   const { isBlockEnabled } = useCMS();
   const footerCms = useCmsText("footer");
   const showNewsletter = isBlockEnabled('newsletter');
-  const { settings, contactEmail, contactPhone, whatsappNumber, facebookUrl, instagramUrl, contactAddress, footerBacklinks, landingLinks, tours, transfers, t } = useSiteChrome();
+  const { settings, contactEmail, contactPhones, whatsappNumber, facebookUrl, instagramUrl, contactAddress, footerBacklinks, landingLinks, tours, transfers, t } = useSiteChrome();
 
   return (
     <>
-      <footer role="contentinfo" className="bg-[#291B12] text-white pt-16 pb-24 md:pb-8">
+      <footer role="contentinfo" className="relative text-white pt-16 pb-24 md:pb-8">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
             <div>
@@ -723,7 +734,7 @@ const SiteFooter = memo(function SiteFooter() {
             </div>
 
             <div>
-              <h3 className="font-serif text-lg font-semibold mb-6 text-primary">{t("footer.quickLinks")}</h3>
+              <h3 className="font-sans text-sm font-semibold uppercase tracking-wider mb-6 text-[#f3c9a8]">{t("footer.quickLinks")}</h3>
               <ul className="space-y-3">
                 <li><Link href="/" className="text-white/70 hover:text-white transition-colors">{t("nav.home")}</Link></li>
                 <li><Link href="/tours" className="text-white/70 hover:text-white transition-colors">{t("nav.tours")}</Link></li>
@@ -739,7 +750,7 @@ const SiteFooter = memo(function SiteFooter() {
             </div>
 
             <div>
-              <h3 className="font-serif text-lg font-semibold mb-6 text-primary">Popular Searches</h3>
+              <h3 className="font-sans text-sm font-semibold uppercase tracking-wider mb-6 text-[#f3c9a8]">Popular Searches</h3>
               <ul className="space-y-3">
                 {landingLinks.map((link) => (
                   <li key={link.href}>
@@ -752,21 +763,24 @@ const SiteFooter = memo(function SiteFooter() {
             </div>
 
             <div>
-              <h3 className="font-serif text-lg font-semibold mb-6 text-primary">{t("footer.contactUs", "Contact Us")}</h3>
+              <h3 className="font-sans text-sm font-semibold uppercase tracking-wider mb-6 text-[#f3c9a8]">{t("footer.contactUs", "Contact Us")}</h3>
               <ul className="space-y-4">
                 <li className="flex items-start gap-3">
-                  <Phone className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                  <Phone className="h-5 w-5 text-[#f3c9a8] shrink-0 mt-0.5" />
                   <div className="text-white/70">
                     <p>
-                      <a href={`tel:+678${contactPhone.replace(/\D/g, '')}`} className="hover:text-white transition-colors">{contactPhone}</a>
-                      {" / "}
-                      <a href={`tel:+678${whatsappNumber.replace(/\D/g, '')}`} className="hover:text-white transition-colors">{whatsappNumber}</a>
+                      {contactPhones.map((phone, i) => (
+                        <span key={phone.tel}>
+                          {i > 0 && " / "}
+                          <a href={phone.tel} className="hover:text-white transition-colors">{phone.display}</a>
+                        </span>
+                      ))}
                     </p>
                     <p className="text-sm opacity-60">{t("footer.available247", "Available 24/7")}</p>
                   </div>
                 </li>
                 <li className="flex items-start gap-3">
-                  <Mail className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                  <Mail className="h-5 w-5 text-[#f3c9a8] shrink-0 mt-0.5" />
                   <a href={`mailto:${contactEmail}`} className="text-white/70 hover:text-white break-all min-w-0">
                     {contactEmail}
                   </a>
@@ -799,6 +813,8 @@ const SiteFooter = memo(function SiteFooter() {
               <a href="/privacy-policy" className="hover:text-white/70 transition-colors">Privacy Policy</a>
               <span>·</span>
               <a href="/terms-of-service" className="hover:text-white/70 transition-colors">Terms of Service</a>
+              <span>·</span>
+              <Link href="/photo-credits" className="hover:text-white/70 transition-colors">{t("footer.photoCredits", "Photo credits")}</Link>
             </div>
           </div>
         </div>
@@ -857,12 +873,39 @@ const SiteFooter = memo(function SiteFooter() {
           </div>
         }
       />
-      <WhatsAppWidget />
+      <FloatingDock />
     </>
   );
 });
 
-export function Layout({ children }: { children: React.ReactNode }) {
+
+/**
+ * Postcard footer: one dusk photo runs behind the footer (and the page's
+ * closing call-to-action, when given) and fades up into the page above,
+ * so the page ends on a picture rather than a hard-edged block.
+ */
+function FooterScene({ children }: { children: ReactNode }) {
+  const photo = useSitePhoto("footer"); // Admin → CMS → Footer → background_image
+  return (
+    // No `isolate` here: the floating buttons and mobile nav render inside the footer,
+    // and an isolated stacking context would trap their z-index below the hero widget.
+    // The photo is simply the first positioned child; later relative children paint over it.
+    <div className="relative overflow-hidden bg-[#0c1f2e]">
+      <div aria-hidden className="absolute inset-0">
+        <img src={photo} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover object-[50%_35%]" />
+        {/* A dark navy wash for legible white text, a fixed-height fade from the page colour
+            at the top (a percentage would stretch on tall phone footers), and deeper navy
+            where the footer links sit. */}
+        <div className="absolute inset-0 bg-[#0c1f2e]/50" />
+        <div className="absolute inset-x-0 top-0 h-32 md:h-44 bg-gradient-to-b from-background to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-[#0c1f2e] to-transparent" />
+      </div>
+      {children}
+    </div>
+  );
+}
+
+export function Layout({ children, footerLead }: { children: React.ReactNode; footerLead?: ReactNode }) {
   return (
     <div className="min-h-screen flex flex-col bg-background font-sans text-foreground">
       <SkipLinks />
@@ -873,7 +916,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
         {children}
       </main>
 
-      <SiteFooter />
+      <FooterScene>
+        {/* Without a closing section, leave room for the photo to fade in above the footer text. */}
+        {footerLead ?? <div aria-hidden className="h-28 md:h-40" />}
+        <SiteFooter />
+      </FooterScene>
     </div>
   );
 }

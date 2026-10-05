@@ -21,6 +21,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import type { CmsContent } from "@shared/schema";
 import { keepAcrossLanguageSwitch } from "@/lib/language-placeholder";
+import { htmlToText, isBlankHtml } from "@/lib/html-text";
 
 type CmsBlock = Record<string, CmsContent[]>; // block_slug → rows
 
@@ -47,7 +48,9 @@ export function useCmsText(blockSlug: string) {
   /** Return the plain text value for a content key, falling back to `fallback`. */
   function text(key: string, fallback = ""): string {
     const row = rows.find((r) => r.contentKey === key);
-    const val = row?.value?.trim() ?? "";
+    // Plain-text slots: the CMS rich editor sometimes saves "<p>…</p>" or "&amp;";
+    // show the words, never the markup. Empty leftovers fall back to the translation.
+    const val = htmlToText(row?.value);
     return val !== "" ? val : fallback;
   }
 
@@ -55,7 +58,8 @@ export function useCmsText(blockSlug: string) {
   function html(key: string, fallback = ""): string {
     const row = rows.find((r) => r.contentKey === key);
     const val = row?.value?.trim() ?? "";
-    return val !== "" ? val : fallback;
+    // "<p></p>" from a cleared editor is not content: use the translation instead.
+    return isBlankHtml(val) ? fallback : val;
   }
 
   return { text, html, ready: !isLoading };

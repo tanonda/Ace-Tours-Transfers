@@ -4,12 +4,23 @@
  * CHANGES vs. original:
  *  - Added `pricingType` support: 'per_person' | 'group'
  *  - Group pricing: flat groupPriceCents regardless of pax count
- *  - Rules (group discount, seasonal surcharge) still apply to group price
+ *  - Discount/surcharge rules come from Admin → Pricing (`pricing_rules` setting);
+ *    the seasonal surcharge applies to group prices, the group discount does not
  *  - Currency conversion helpers added (view-layer only, DB always VUV)
  */
 
 import { IStorage } from '../../storage.js';
 import { Product } from '../../../shared/schema.js';
+import {
+  DEFAULT_PRICING_RULES,
+  PRICING_RULES_SETTING_KEY,
+  groupDiscountApplies,
+  groupDiscountLabel,
+  parsePricingRules,
+  peakSeasonApplies,
+  peakSeasonLabel,
+  type PricingRules,
+} from '../../../shared/pricing-rules.js';
 
 // ─── Rate and Pricing Type ────────────────────────────────────────────────────
 
@@ -105,30 +116,43 @@ export function formatVUVInCurrency(vuvAmount: number, targetCurrency: string): 
 
 // ─── Configuration ────────────────────────────────────────────────────────────
 
-interface PricingRulesConfig {
-  groupDiscountThreshold: number;
-  groupDiscountPercent: number;
-  peakSeasonMonths: number[];
-  peakSeasonSurchargePercent: number;
-  vatRate: number;
+interface PricingEngineOptions {
+  /** Fixed rules (tests). Without them the engine reads the admin's `pricing_rules` setting. */
+  rules?: PricingRules;
+}
+
+// Admin edits reach checkout within this window even without an explicit invalidation.
+const RULES_CACHE_MS = 30_000;
+let cachedRules: { rules: PricingRules; at: number } | null = null;
+
+/** Called after the admin saves `pricing_rules` so the next quote uses them immediately. */
+export function invalidatePricingRulesCache(): void {
+  cachedRules = null;
 }
 
 // ─── PricingEngine ────────────────────────────────────────────────────────────
 
 export class PricingEngine {
   private storage: IStorage;
-  private config: PricingRulesConfig;
+  private fixedRules?: PricingRules;
 
-  constructor(storage: IStorage, config?: Partial<PricingRulesConfig>) {
+  constructor(storage: IStorage, options: PricingEngineOptions = {}) {
     this.storage = storage;
-    this.config = {
-      groupDiscountThreshold: 7,
-      groupDiscountPercent: 10,
-      peakSeasonMonths: [0, 11],
-      peakSeasonSurchargePercent: 20,
-      vatRate: 0.15,
-      ...config,
-    };
+    this.fixedRules = options.rules;
+  }
+
+  /** Discount/surcharge rules as set in Admin → Pricing (defaults if never saved or unreadable). */
+  async getPricingRules(): Promise<PricingRules> {
+    if (this.fixedRules) return this.fixedRules;
+    if (cachedRules && Date.now() - cachedRules.at < RULES_CACHE_MS) return cachedRules.rules;
+    try {
+      const row = await this.storage.getSiteSetting(PRICING_RULES_SETTING_KEY);
+      const rules = parsePricingRules(row?.value);
+      cachedRules = { rules, at: Date.now() };
+      return rules;
+    } catch {
+      return DEFAULT_PRICING_RULES; // not cached: retry the database on the next quote
+    }
   }
 
   /**
@@ -175,6 +199,7 @@ export class PricingEngine {
     date?: string,
     addonIds?: string[]
   ): Promise<PricingResult> {
+    const rules = await this.getPricingRules();
 
     // ── 1. Base subtotal ────────────────────────────────────────────────────
     let adultSubtotalCents = 0;
@@ -202,35 +227,24 @@ export class PricingEngine {
     let surchargesCents = 0;
     const appliedRules: string[] = [];
 
-    // ── 3. Group discount (7+ adults for per_person; always for group pricing) ─
-    const paxForDiscount = rates.pricingType === 'group' ? adultPax + childPax : adultPax;
-    const discountThreshold = rates.pricingType === 'group'
-      ? 1
-      : this.config.groupDiscountThreshold;
-
-    if (paxForDiscount >= discountThreshold) {
-      const discountAmount = Math.round(totalCents * (this.config.groupDiscountPercent / 100));
+    // ── 3. Group discount ───────────────────────────────────────────────────
+    if (groupDiscountApplies(rules, rates.pricingType, adultPax)) {
+      const { percent } = rules.groupDiscount;
+      const discountAmount = Math.round(totalCents * (percent / 100));
       totalCents -= discountAmount;
       discountsCents -= discountAmount;
-      appliedRules.push(
-        rates.pricingType === 'group'
-          ? `${this.config.groupDiscountPercent}% group discount`
-          : `${this.config.groupDiscountPercent}% group discount (${this.config.groupDiscountThreshold}+ adults)`
-      );
+      appliedRules.push(groupDiscountLabel(rules));
     }
 
     // ── 4. Seasonal surcharge ───────────────────────────────────────────────
-    if (date) {
-      const month = new Date(date).getMonth();
-      if (this.config.peakSeasonMonths.includes(month)) {
-        const surchargeAmount = Math.round(
-          (baseTotalCents + addonsSubtotalCents + discountsCents) *
-          (this.config.peakSeasonSurchargePercent / 100)
-        );
-        totalCents += surchargeAmount;
-        surchargesCents += surchargeAmount;
-        appliedRules.push(`${this.config.peakSeasonSurchargePercent}% peak season surcharge (Dec/Jan)`);
-      }
+    if (peakSeasonApplies(rules, date)) {
+      const { percent } = rules.peakSeason;
+      const surchargeAmount = Math.round(
+        (baseTotalCents + addonsSubtotalCents + discountsCents) * (percent / 100)
+      );
+      totalCents += surchargeAmount;
+      surchargesCents += surchargeAmount;
+      appliedRules.push(peakSeasonLabel(rules));
     }
 
     const breakdown: PriceBreakdown = {
@@ -253,13 +267,15 @@ export class PricingEngine {
   }
 
   /**
-   * Quick calculation without add-ons (for legacy/simple paths).
+   * Quick synchronous calculation without add-ons (legacy paths). It can't read the
+   * database, so it uses the engine's fixed rules or the defaults.
    */
   calculateSimple(
     adultPax: number,
     childPax: number,
     rates: TourRate,
-    date?: string
+    date?: string,
+    rules: PricingRules = this.fixedRules ?? DEFAULT_PRICING_RULES
   ): number {
     let total: number;
 
@@ -269,28 +285,15 @@ export class PricingEngine {
       total = adultPax * rates.adultPriceCents + childPax * rates.childPriceCents;
     }
 
-    const paxForDiscount = rates.pricingType === 'group' ? adultPax + childPax : adultPax;
-    const discountThreshold = rates.pricingType === 'group' ? 1 : this.config.groupDiscountThreshold;
-    if (paxForDiscount >= discountThreshold) {
-      total = Math.round(total * (1 - this.config.groupDiscountPercent / 100));
+    if (groupDiscountApplies(rules, rates.pricingType, adultPax)) {
+      total = Math.round(total * (1 - rules.groupDiscount.percent / 100));
     }
 
-    if (date) {
-      const month = new Date(date).getMonth();
-      if (this.config.peakSeasonMonths.includes(month)) {
-        total = Math.round(total * (1 + this.config.peakSeasonSurchargePercent / 100));
-      }
+    if (peakSeasonApplies(rules, date)) {
+      total = Math.round(total * (1 + rules.peakSeason.percent / 100));
     }
 
     return total;
-  }
-
-  calculateVAT(amountCents: number): number {
-    return Math.round(amountCents * this.config.vatRate);
-  }
-
-  calculateTotalWithVAT(amountCents: number): number {
-    return amountCents + this.calculateVAT(amountCents);
   }
 
   // ─── Internal ───────────────────────────────────────────────────────────────

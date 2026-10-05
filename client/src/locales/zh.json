@@ -41,10 +41,14 @@
     "pickDate": "选择日期",
     "guests": "多少人?",
     "guestsPlaceholder": "2人",
-    "checkAvailability": "查看可用性",
+    "checkAvailability": "查询空位",
     "popularSearches": "热门:",
     "airportTransfer": "机场接送",
-    "dayTours": "一日游"
+    "dayTours": "一日游",
+    "greeting": "来自维拉港的问候！",
+    "bookTransfer": "预订接送",
+    "searchTours": "搜索行程",
+    "searchTransfers": "搜索接送"
   },
   "home": {
     "aboutLabel": "关于我们",
@@ -65,7 +69,21 @@
     "bookTransfer": "预订接送",
     "ctaTitle": "准备好您的下一次冒险了吗？",
     "ctaDesc": "让我们处理细节，而您创造回忆。",
-    "ctaButton": "开始计划"
+    "ctaButton": "开始计划",
+    "aboutCaption1": "埃法特瀑布",
+    "aboutCaption2": "埃法特南海岸",
+    "aboutPhotoAlt": "埃法特梅莱瀑布",
+    "aboutPhoto2Alt": "埃法特南海岸的埃拉塔普海滩",
+    "viewAllTours": "查看全部行程",
+    "viewAllTransfers": "查看全部接送服务",
+    "craftLabel": "本地手作",
+    "craftTitle": "瓦努阿图的风味与手艺",
+    "craftDesc": "海岛巧克力、可可和手工编织篮。我们的埃法特风光之旅会途经一家本地巧克力工坊；参加私人行程时，停靠站点由您决定，欢迎让我们为您加入一位本地手艺人。",
+    "craftCocoa": "市场上的可可",
+    "craftMarket": "维拉港市场",
+    "craftBasket": "海岛编篮",
+    "craftWoven": "手工编织",
+    "ctaScript": "真希望你也在这里……"
   },
   "about": {
     "title": "关于Ace旅游",
@@ -85,7 +103,19 @@
     "reliableService": "可靠的服务",
     "reliableServiceDesc": "准时和可靠是我们的标志。您可以信赖我们在您需要时出现。",
     "safetyFirst": "安全第一",
-    "safetyFirstDesc": "您的安全是我们的首要任务。我们的车辆定期维护，司机受过专业培训。"
+    "safetyFirstDesc": "您的安全是我们的首要任务。我们的车辆定期维护，司机受过专业培训。",
+    "heroTitle": "轻松出行",
+    "tagline": "瓦努阿图首屈一指的交通与旅游服务商",
+    "storyPhotoAlt": "Ace Tours 在埃法特",
+    "storyCaption1": "我们的岛屿",
+    "storyPhoto2Alt": "埃法特托尼柳村道路",
+    "storyCaption2": "埃法特的乡村小路",
+    "whyLabel": "为何选择我们",
+    "planLabel": "一起规划您的下一次假期",
+    "planNote": "下一次冒险即将开始，让我们帮您规划行程！",
+    "planCta": "规划我的行程",
+    "stampTop": "认证",
+    "stampBottom": "运营商"
   },
   "contact": {
     "title": "联系我们",
@@ -109,7 +139,20 @@
     "send": "发送消息",
     "sending": "发送中...",
     "messageSent": "消息已发送！",
-    "messageSuccess": "我们会尽快回复您。"
+    "messageSuccess": "我们会尽快回复您。",
+    "kicker": "Ace Tours & Transfers",
+    "reachLabel": "直接联系我们",
+    "reachTitle": "我们随时为您服务",
+    "writeLabel": "给我们留言",
+    "writeTitle": "给我们写几句",
+    "whatsappTitle": "通过 WhatsApp 与我们聊天",
+    "whatsappStart": "开始对话",
+    "whatsappQuote": "索取报价",
+    "formTitle": "给我们发送消息",
+    "formNote": "更喜欢邮件？我们会回复到您的邮箱。",
+    "sentTitle": "消息已发送！",
+    "sentBody": "感谢您的来信。我们会尽快回复，通常在几小时内。",
+    "sendAnother": "再发送一条消息"
   },
   "auth": {
     "signIn": "登录",
@@ -230,7 +273,10 @@
     "bookNow": "立即预订",
     "viewDetails": "查看详情",
     "quickView": "快速预览",
-    "startingFrom": "起价"
+    "startingFrom": "起价",
+    "from": "起价",
+    "package": "套餐",
+    "bookTransfer": "预订接送"
   },
   "dashboard": {
     "welcome": "欢迎回来",
@@ -337,7 +383,8 @@
     "copyright": "版权所有。",
     "description": "与我们一起体验埃法特岛的美丽。我们提供精心规划和定制设计的旅游套餐。",
     "privacyPolicy": "隐私政策",
-    "termsOfService": "服务条款"
+    "termsOfService": "服务条款",
+    "photoCredits": "图片来源"
   },
   "newsletter": {
     "title": "订阅我们的时事通讯",
@@ -529,5 +576,39 @@
   "landingPage": {
     "faq": "常见问题",
     "readyToBook": "准备预订了吗？"
+  },
+  "tours": {
+    "kicker": "埃法特岛",
+    "heroTitle": "一日游",
+    "packagesLabel": "我们的套餐",
+    "pickYourDay": "选择您在埃法特的一天",
+    "factGuides": "本地导游",
+    "factInsured": "全面投保",
+    "factInstant": "即时确认"
+  },
+  "transfers": {
+    "kicker": "维拉港",
+    "heroTitle": "接送服务",
+    "label": "畅行埃法特",
+    "heading": "我们在那里等您",
+    "factFlights": "航班跟踪",
+    "factGreet": "接机问候",
+    "fact247": "全天候服务"
+  },
+  "social": {
+    "menu": "Ace Tours 社交媒体",
+    "open": "关注或联系 Ace Tours",
+    "close": "关闭社交媒体链接",
+    "dismiss": "隐藏社交媒体按钮",
+    "whatsapp": "WhatsApp",
+    "facebook": "Facebook",
+    "instagram": "Instagram",
+    "call": "致电我们",
+    "email": "发邮件给我们"
+  },
+  "credits": {
+    "label": "致谢",
+    "title": "图片来源",
+    "intro": "本网站使用的埃法特照片由摄影师以知识共享许可分享，部分照片经过裁剪或调色。"
   }
 }

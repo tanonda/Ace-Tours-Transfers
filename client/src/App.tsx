@@ -39,6 +39,7 @@ const Login = lazy(() => import("@/pages/login"));
 const Register = lazy(() => import("@/pages/register"));
 const NotFound = lazy(() => import("@/pages/not-found"));
 const PrivacyPolicy = lazyWithPreload(() => import("@/pages/privacy-policy"));
+const PhotoCredits = lazyWithPreload(() => import("@/pages/photo-credits"));
 const TermsOfService = lazyWithPreload(() => import("@/pages/terms-of-service"));
 const TourDetail = lazyWithPreload(() => import("@/pages/tour-detail"));
 const TransferDetail = lazyWithPreload(() => import("@/pages/transfer-detail"));
@@ -60,6 +61,7 @@ const PRERENDERED_PAGES: Array<[string, PreloadableComponent<ComponentType<any>>
   ["/about", About],
   ["/contact", Contact],
   ["/privacy-policy", PrivacyPolicy],
+  ["/photo-credits", PhotoCredits],
   ["/terms-of-service", TermsOfService],
   ["/faq", FAQ],
   ["/blog", Blog],
@@ -196,6 +198,7 @@ const SITE_ROUTES = (
       <Route path="/staff-access" component={Login} />
       <Route path="/register" component={Register} />
       <Route path="/privacy-policy" component={PrivacyPolicy} />
+      <Route path="/photo-credits" component={PhotoCredits} />
       <Route path="/terms-of-service" component={TermsOfService} />
       <Route path="/faq" component={FAQ} />
       <Route path="/blog" component={Blog} />
