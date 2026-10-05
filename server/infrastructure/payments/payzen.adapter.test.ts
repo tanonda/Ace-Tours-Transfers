@@ -136,6 +136,61 @@ describe('PayzenAdapter', () => {
     });
   });
 
+  describe('signature confusion (values are joined with "+", field names are not signed)', () => {
+    it('rejects an IPN forged by re-splitting a signed checkout form whose email carries "+" tokens', async () => {
+      const adapter = makeAdapter();
+      // Attacker books a second time with an email that smuggles "<victim payment>+<shop>+AUTHORISED".
+      const { formPost } = await adapter.initiatePayment({
+        ...REQUEST,
+        customerEmail: 'pay-victim+12345678+AUTHORISED+a@b.com',
+        metadata: { paymentId: 'pay-attacker' },
+      });
+      // Re-split the same values under field names that sort into a "paid" IPN. Each
+      // filler takes the previous name plus "~" so it sorts straight after it.
+      const tokens = Object.keys(formPost!.fields).filter((k) => k.startsWith('vads_')).sort()
+        .map((k) => formPost!.fields[k]).join('+').split('+');
+      const wanted: [string, string][] = [
+        ['vads_amount', '12500'], ['vads_ctx_mode', 'TEST'], ['vads_currency', '548'],
+        ['vads_order_id', 'pay-victim'], ['vads_site_id', '12345678'], ['vads_trans_status', 'AUTHORISED'],
+      ];
+      const forged: Record<string, string> = {};
+      let prev = 'vads_0';
+      tokens.forEach((token, i) => {
+        const next = wanted[0];
+        if (next && token === next[1]) {
+          forged[next[0]] = token;
+          prev = next[0];
+          wanted.shift();
+        } else {
+          forged[`${prev}~${String(i).padStart(3, '0')}`] = token;
+        }
+      });
+      // Before the fix every "paid" field found its token and this IPN completed the victim's payment.
+      forged.signature = formPost!.fields.signature;
+
+      const result = await adapter.handleWebhook({ gatewaySlug: 'bred-bank', rawEvent: forged });
+      expect(result.newPaymentStatus).not.toBe(PaymentStatus.Completed);
+    });
+
+    it('rejects the signed checkout form replayed as an IPN', async () => {
+      const adapter = makeAdapter();
+      const { formPost } = await adapter.initiatePayment(REQUEST);
+      const result = await adapter.handleWebhook({ gatewaySlug: 'bred-bank', rawEvent: formPost!.fields });
+      expect(result.success).toBe(false);
+      expect(result.newPaymentStatus).toBeUndefined();
+    });
+
+    it('never signs a value containing "+"', async () => {
+      const result = await makeAdapter().initiatePayment({ ...REQUEST, successUrl: 'https://acetoursvanuatu.com/x+y' });
+      expect(result.success).toBe(false);
+    });
+
+    it('does not put the guest-typed email into the signed form', async () => {
+      const { formPost } = await makeAdapter().initiatePayment(REQUEST);
+      expect(formPost!.fields.vads_cust_email).toBeUndefined();
+    });
+  });
+
   describe('handleWebhook (IPN)', () => {
     const ipnEvent = (rawEvent: Record<string, string>) => ({ gatewaySlug: 'bred-bank', rawEvent });
 

@@ -37,6 +37,7 @@ function signedIpn(overrides: Record<string, string> = {}) {
     vads_trans_status: 'AUTHORISED',
     vads_trans_uuid: 'uuid-1',
     vads_url_check_src: 'PAY',
+    vads_hash: 'notification-hash',
     ...overrides,
   };
   return { ...fields, signature: computePayzenSignature(fields, TEST_KEY) };

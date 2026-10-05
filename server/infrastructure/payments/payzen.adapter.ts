@@ -122,7 +122,12 @@ export class PayzenAdapter implements PaymentGatewayService {
       vads_validation_mode: '0',
       vads_version: 'V2',
     };
-    if (request.customerEmail) fields.vads_cust_email = request.customerEmail;
+    // PayZen signs field VALUES joined with "+", not field names. A "+" inside a value
+    // lets those values be re-split under other names into a validly signed "paid"
+    // IPN, so nothing a guest types (e.g. their email) goes in, and no value may hold "+".
+    if (Object.values(fields).some((v) => v.includes('+'))) {
+      return { success: false, message: 'Refusing to sign a PayZen form value containing "+".' };
+    }
     fields.signature = computePayzenSignature(fields, this.keyFor(this.credentials.mode));
 
     return {
@@ -145,6 +150,11 @@ export class PayzenAdapter implements PaymentGatewayService {
     }
     if (!verifyPayzenSignature(ipn, this.keyFor(ipn.vads_ctx_mode))) {
       return { success: false, message: 'Invalid PayZen IPN signature.' };
+    }
+    // Only a real notification carries these (vads_hash is sent in notifications only);
+    // without them a signed checkout form could be replayed here as an "IPN".
+    if (!ipn.vads_hash || !ipn.vads_trans_status || !ipn.vads_trans_uuid) {
+      return { success: false, message: 'Not a PayZen payment notification.' };
     }
 
     const base: WebhookResponse = {
