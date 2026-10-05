@@ -9,6 +9,7 @@ import { Link } from "wouter";
 import { Payment } from "@shared/schema";
 import { QRCodeGenerator } from "@/components/QRCodeGenerator";
 import { AvailabilityStatus } from "@/components";
+import { submitHostedPaymentForm } from "@/lib/hosted-payment-form";
 
 const PrintItinerary = lazy(() => import("@/components/print-itinerary").then(m => ({ default: m.PrintItinerary })));
 
@@ -47,8 +48,9 @@ export default function ConfirmationPage() {
     setIsProcessingPayment(true);
     try {
       // In a real scenario, you might prompt user for gateway selection or card details
-      const { checkoutUrl } = await initiatePayment(bookingId);
-      window.location.href = checkoutUrl; // Redirect to payment gateway or internal payment page
+      const { checkoutUrl, checkoutForm } = await initiatePayment(bookingId);
+      if (checkoutForm) submitHostedPaymentForm(checkoutForm); // BRED Bank (PayZen) needs a form POST
+      else if (checkoutUrl) window.location.href = checkoutUrl; // Redirect to payment gateway or internal payment page
     } catch (err) {
       console.error("Failed to initiate payment", err);
       // TODO: Show a toast notification for error

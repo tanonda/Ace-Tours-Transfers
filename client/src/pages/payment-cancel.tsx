@@ -7,6 +7,7 @@ import { Layout } from "@/components/layout";
 import { useTranslation } from "react-i18next";
 import { Link } from "wouter";
 import { useCartActions } from "@/lib/cart-context";
+import { takePendingCart } from "@/lib/pending-cart";
 
 export default function PaymentCancel() {
   const { t } = useTranslation();
@@ -17,29 +18,9 @@ export default function PaymentCancel() {
   const bookingId = params.get("booking");
 
   useEffect(() => {
-    const pendingCart = localStorage.getItem('pendingCart');
-    if (pendingCart) {
-      try {
-        const items = JSON.parse(pendingCart);
-        items.forEach((item: any) => {
-          addToCart({
-            id: item.id,
-            title: item.title,
-            price: item.price,
-            childPrice: item.childPrice || 0,
-            image: item.image,
-            date: item.date,
-            adultPax: item.adultPax || item.guests || 1,
-            childPax: item.childPax || 0,
-            infantPax: item.infantPax || 0,
-            petPax: item.petPax || 0,
-            type: item.type || "tour",
-          });
-        });
-        localStorage.removeItem('pendingCart');
-      } catch (e) {
-        console.error("Failed to restore cart:", e);
-      }
+    // Put back the basket saved before the guest left for the bank's payment page
+    for (const { cartItemId, ...item } of takePendingCart()) {
+      addToCart(item);
     }
   }, [addToCart]);
 

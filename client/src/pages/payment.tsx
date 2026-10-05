@@ -28,6 +28,8 @@ import { formatPriceDisplay } from "@/lib/product.types";
 import { useCurrency } from "@/lib/currency-context";
 import { Badge } from "@/components/ui/badge";
 import { usePricingRules } from "@/lib/site-settings";
+import { submitHostedPaymentForm } from "@/lib/hosted-payment-form";
+import { stashPendingCart } from "@/lib/pending-cart";
 
 const methodIcons: Record<string, React.ElementType> = {
   'card': CreditCard,
@@ -268,10 +270,15 @@ export default function Payment() {
       return json;
     },
     onSuccess: (data) => {
-      // Clear cart only after a successful payment initiation (booking created + payment started)
+      // Clear cart only after a successful payment initiation (booking created + payment started).
+      // Leaving for a bank's page: keep a copy so /payment/cancel can restore it if the payment fails.
+      if (data.checkoutForm || data.checkoutUrl) stashPendingCart(items);
       clearCart();
       sessionStorage.removeItem('checkout_booking');
-      if (data.checkoutUrl) {
+      if (data.checkoutForm) {
+        // BRED Bank (PayZen): the hosted page must be reached by a signed form POST
+        submitHostedPaymentForm(data.checkoutForm);
+      } else if (data.checkoutUrl) {
         window.location.href = data.checkoutUrl;
       } else {
         // Manual payment (bank transfer / cash) - redirect to success page

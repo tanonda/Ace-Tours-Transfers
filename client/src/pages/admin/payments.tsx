@@ -47,7 +47,7 @@ import { Textarea } from "@/components/ui/textarea";
 const gatewaySchemas: Record<string, { credentials?: z.ZodObject<any>, config?: z.ZodObject<any> }> = {
     'anz-egate': { credentials: AnzEGateCredentialsSchema, config: LocalBankConfigSchema },
     'bsp-bank': { credentials: BspBankCredentialsSchema, config: LocalBankConfigSchema },
-    'bred-bank': { credentials: BredBankCredentialsSchema, config: LocalBankConfigSchema },
+    'bred-bank': { credentials: BredBankCredentialsSchema, config: undefined }, // Lyra PayZen: shop ID, mode, keys
     'stripe': { credentials: StripeCredentialsSchema, config: StripeConfigSchema },
     'google-pay': { credentials: GooglePayCredentialsSchema, config: DigitalWalletConfigSchema },
     'apple-pay': { credentials: ApplePayCredentialsSchema, config: DigitalWalletConfigSchema },

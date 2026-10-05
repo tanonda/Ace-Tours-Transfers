@@ -244,7 +244,7 @@ export const paymentGateways = pgTable("payment_gateways", {
   active: boolean("active").notNull().default(false),
   isDefault: boolean("is_default").notNull().default(false),
   priority: integer("priority").notNull().default(0), // NEW: Priority for failover logic
-  credentials: jsonb("credentials"), // Encrypted credentials stored as JSON
+  credentials: jsonb("credentials"), // AES-256-GCM sealed by storage ({ sealed }); see server/lib/credential-crypto.ts
   supportedCurrencies: jsonb("supported_currencies").default(sql`'["VUV"]'`),
   config: jsonb("config"), // Gateway-specific configuration
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -773,14 +773,15 @@ export const LocalBankConfigSchema = z.object({
 // Refined: ANZ eGate Credentials Schema - extends Mastercard Gateway with optional specific fields
 export const AnzEGateCredentialsSchema = MastercardGatewayCredentialsSchema;
 
-// Refined: Bred Bank Credentials Schema
+// Bred Bank Credentials Schema — BRED's hosted card page runs on Lyra PayZen
+// (signed form POST + Instant Payment Notification). Values come from the
+// PayZen Merchant Back Office: Settings > Shop > Keys.
 export const BredBankCredentialsSchema = z.object({
-  merchantId: z.string(),
-  accessCode: z.string(),
-  secureHashSecret: z.string(),
-  apiEndpoint: z.string().url(),
-  integrationType: z.enum(["HOSTED_REDIRECT", "DIRECT_API_POST"]),
-  terminalId: z.string().optional(),
+  shopId: z.string().regex(/^\d{8}$/, "Shop ID is the 8-digit number in the PayZen Back Office"),
+  mode: z.enum(["TEST", "PRODUCTION"]),
+  testKey: z.string().min(1),
+  productionKey: z.string().optional(),
+  paymentUrl: z.string().url().or(z.literal("")).optional(), // blank = https://secure.payzen.eu/vads-payment/
 });
 
 // Refined: BSP Bank Credentials Schema

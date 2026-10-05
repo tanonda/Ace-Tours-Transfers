@@ -1,5 +1,6 @@
 import { apiRequest } from "./queryClient";
 import i18n from "./i18n";
+import type { HostedFormPost } from "./hosted-payment-form";
 import type {
   Product,
   Booking,
@@ -158,7 +159,7 @@ export async function deleteBooking(id: string, hardDelete: boolean = false): Pr
   await apiRequest("DELETE", `/api/bookings/${id}${qs}`);
 }
 
-export async function initiatePayment(bookingId: string, provider?: string): Promise<{ paymentId: string; checkoutUrl: string }> {
+export async function initiatePayment(bookingId: string, provider?: string): Promise<{ paymentId: string; checkoutUrl?: string; checkoutForm?: HostedFormPost }> {
   const res = await apiRequest("POST", "/api/payments/checkout", { bookingId, provider });
   return res.json();
 }

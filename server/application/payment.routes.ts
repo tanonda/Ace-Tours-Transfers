@@ -111,6 +111,7 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
         bookingId: bookingId,
         amount: result.amount, // This matches A's weird amount parsing if I check carefully? No, A used booking_amount.
         checkoutUrl: result.redirectUrl,
+        checkoutForm: result.formPost, // PayZen: the browser must POST these fields
         status: 'pending',
         provider: result.provider,
         currency: result.currency,
@@ -132,7 +133,8 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
       // SECURITY: Ownership or Admin check
       const booking = await storage.getBooking(payment.bookingId);
       const isAdmin = req.session.userRole === 'admin';
-      const isOwner = booking && (booking.userId === req.session.userId || booking.bookingSessionId === req.sessionID);
+      const isOwner = booking && (booking.userId === req.session.userId || booking.bookingSessionId === req.sessionID
+        || (req.session as any).recentBookingIds?.includes(booking.id)); // bookings now key holds by their own ID
 
       if (!isAdmin && !isOwner) {
         return res.status(403).json({ error: "Access denied" });
@@ -157,7 +159,8 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
       const booking = await storage.getBooking(bookingId);
 
       const isAdmin = req.session.userRole === 'admin';
-      const isOwner = booking && (booking.userId === req.session.userId || booking.bookingSessionId === req.sessionID);
+      const isOwner = booking && (booking.userId === req.session.userId || booking.bookingSessionId === req.sessionID
+        || (req.session as any).recentBookingIds?.includes(booking.id)); // bookings now key holds by their own ID
 
       if (!isAdmin && !isOwner) {
         return res.status(403).json({ error: "Access denied" });
@@ -256,6 +259,25 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
   app.post("/api/payments/webhook/:gateway", async (req, res) => {
     const gatewaySlug = req.params.gateway;
     const signature = req.headers['stripe-signature'] as string;
+
+    // BRED Bank (PayZen) Instant Payment Notification: a form-encoded POST whose
+    // signature is inside the body. PayZen logs the first 256 bytes of the reply
+    // in its Back Office and retries on any non-200 status.
+    if (gatewaySlug === 'bred-bank') {
+      try {
+        const result = await paymentAppService.handlePaymentWebhook({ gatewaySlug, rawEvent: req.body });
+        if (!result.success) {
+          console.warn(`[PAYZEN IPN] Rejected: ${result.message}`);
+        }
+        return res
+          .status(result.success ? 200 : 400)
+          .type('text/plain')
+          .send(result.message || (result.success ? 'OK' : 'Rejected'));
+      } catch (error: any) {
+        console.error('[PAYZEN IPN] Error:', error);
+        return res.status(500).type('text/plain').send('Error while processing the notification');
+      }
+    }
 
     // H7 Fix: Signature verification and Method Not Allowed for manual
     if (gatewaySlug !== 'stripe') {
@@ -411,7 +433,11 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
       });
 
       res.json(gateway);
-    } catch (error) {
+    } catch (error: any) {
+      if (error?.message?.includes("PAYMENT_CREDENTIALS_KEY")) {
+        console.error("[GATEWAY] Cannot save credentials:", error.message);
+        return res.status(500).json({ error: "Gateway keys cannot be saved: the server's PAYMENT_CREDENTIALS_KEY is not configured." });
+      }
       res.status(400).json({ error: "Failed to update payment gateway" });
     }
   });

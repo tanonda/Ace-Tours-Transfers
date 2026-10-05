@@ -3,7 +3,7 @@ import { PaymentGatewayService, PaymentStatus } from "../../domain/payments/inte
 import { ManualAdapter } from "./manual.adapter.js";
 import { AnzEGateAdapter } from "./anz-egate.adapter.js";
 import { BspEGateAdapter } from "./bsp-egate.adapter.js";
-import { BredEGateAdapter } from "./bred-egate.adapter.js";
+import { PayzenAdapter } from "./payzen.adapter.js";
 import { StripeAdapter } from "./stripe.adapter.js";
 import { PayPalAdapter } from "./paypal.adapter.js";
 import { WanTokMoneyAdapter } from "./wantok-money.adapter.js";
@@ -23,10 +23,10 @@ export class PaymentFactory {
     'manual': ManualAdapter as any,
     'manual_transfer': ManualAdapter as any,   // Bank transfer (canonical slug in DB)
     'cash': ManualAdapter as any,              // Cash on delivery
-    // Local bank gateways (ANZ/BSP/BRED all delegate to MastercardGatewayAdapter for real VPC hash signing)
+    // Local bank gateways: ANZ/BSP delegate to MastercardGatewayAdapter (VPC hash signing); BRED uses Lyra PayZen
     'anz-egate': AnzEGateAdapter as any,
     'bsp-bank': BspEGateAdapter as any,
-    'bred-bank': BredEGateAdapter as any,
+    'bred-bank': PayzenAdapter as any,
     // International / digital (stub implementations — configure credentials before activating)
     'stripe': StripeAdapter as any,
     'paypal': PayPalAdapter as any,

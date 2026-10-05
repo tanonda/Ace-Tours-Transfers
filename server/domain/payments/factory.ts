@@ -3,7 +3,7 @@ import { PaymentGatewayService, PaymentStatus } from "../../domain/payments/inte
 import { ManualAdapter } from "../../infrastructure/payments/manual.adapter.js";
 import { AnzEGateAdapter } from "../../infrastructure/payments/anz-egate.adapter.js";
 import { BspEGateAdapter } from "../../infrastructure/payments/bsp-egate.adapter.js";
-import { BredEGateAdapter } from "../../infrastructure/payments/bred-egate.adapter.js";
+import { PayzenAdapter } from "../../infrastructure/payments/payzen.adapter.js";
 import { StripeAdapter } from "../../infrastructure/payments/stripe.adapter.js";
 import { PayPalAdapter } from "../../infrastructure/payments/paypal.adapter.js";
 import { WanTokMoneyAdapter } from "../../infrastructure/payments/wantok-money.adapter.js";
@@ -25,13 +25,13 @@ export class PaymentFactory {
     'cash': ManualAdapter as any,
     'bank-transfer': ManualAdapter as any,
     'bank': ManualAdapter as any,
-    // Local bank gateways (ANZ/BSP/BRED delegate to MastercardGatewayAdapter)
+    // Local bank gateways: ANZ/BSP delegate to MastercardGatewayAdapter; BRED uses Lyra PayZen
     'anz': AnzEGateAdapter as any,
     'anz-egate': AnzEGateAdapter as any,
     'bsp': BspEGateAdapter as any,
     'bsp-bank': BspEGateAdapter as any,
-    'bred': BredEGateAdapter as any,
-    'bred-bank': BredEGateAdapter as any,
+    'bred': PayzenAdapter as any,
+    'bred-bank': PayzenAdapter as any,
     // International
     'stripe': StripeAdapter as any,
     'paypal': PayPalAdapter as any,
