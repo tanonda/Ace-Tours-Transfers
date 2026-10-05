@@ -8,14 +8,6 @@ import { NewsletterForm } from "@/components/newsletter-form";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 // Shown at 32–64px: let Cloudinary resize and pick WebP/AVIF (~9 KB instead of a 105 KB JPEG).
 const logo = "https://res.cloudinary.com/dwro1dh5q/image/upload/f_auto,q_auto,w_256/v1765063924/ace-tours-assets/ace_tours_logo_official.jpg";
-import {
-  NavigationMenu,
-  NavigationMenuContent,
-  NavigationMenuItem,
-  NavigationMenuLink,
-  NavigationMenuList,
-  NavigationMenuTrigger,
-} from "@/components/ui/navigation-menu";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { fetchProducts } from "@/lib/api";
@@ -24,6 +16,7 @@ import { useCart } from "@/lib/cart-context";
 import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LanguageSelector } from "@/components/language-selector";
+import { NavDropdown } from "@/components/nav-dropdown";
 import { CurrencySelector } from "@/components/currency-selector";
 import { useTranslation } from "react-i18next";
 import { SkipLinks } from "@/components/skip-links";
@@ -571,57 +564,39 @@ export const SiteHeader = memo(function SiteHeader() {
             {t("nav.home")}
           </Link>
 
-          <NavigationMenu className="relative z-50">
-            <NavigationMenuList>
-              <NavigationMenuItem>
-                <NavigationMenuTrigger className={cn("bg-transparent hover:bg-transparent focus:bg-transparent data-[state=open]:bg-transparent", navTextColor)}>
-                  {t("nav.tours")}
-                </NavigationMenuTrigger>
-                <NavigationMenuContent>
-                  <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
-                    {tours.map((tour: Product) => (
-                      <ListItem
-                        key={tour.id}
-                        title={tour.title.split(" | ")[0]}
-                        href={`/tours/${tour.id}`}
-                      >
-                        {htmlToText(Array.isArray(tour.description) ? tour.description[0] : tour.description)}
-                      </ListItem>
-                    ))}
-                    <ListItem href="/tours" title={t("nav.viewAllTours")} className="bg-muted/50">
-                      {t("nav.seeAllTours")}
-                    </ListItem>
-                  </ul>
-                </NavigationMenuContent>
-              </NavigationMenuItem>
-            </NavigationMenuList>
-          </NavigationMenu>
+          <NavDropdown label={t("nav.tours")} triggerClassName={cn("bg-transparent hover:bg-transparent focus:bg-transparent data-[state=open]:bg-transparent", navTextColor)}>
+            <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
+              {tours.map((tour: Product) => (
+                <ListItem
+                  key={tour.id}
+                  title={tour.title.split(" | ")[0]}
+                  href={`/tours/${tour.id}`}
+                >
+                  {htmlToText(Array.isArray(tour.description) ? tour.description[0] : tour.description)}
+                </ListItem>
+              ))}
+              <ListItem href="/tours" title={t("nav.viewAllTours")} className="bg-muted/50">
+                {t("nav.seeAllTours")}
+              </ListItem>
+            </ul>
+          </NavDropdown>
 
-          <NavigationMenu className="relative z-50">
-            <NavigationMenuList>
-              <NavigationMenuItem>
-                <NavigationMenuTrigger className={cn("bg-transparent hover:bg-transparent focus:bg-transparent data-[state=open]:bg-transparent", navTextColor)}>
-                  {t("nav.transfers")}
-                </NavigationMenuTrigger>
-                <NavigationMenuContent>
-                  <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
-                    {transfers.map((transfer: Product) => (
-                      <ListItem
-                        key={transfer.id}
-                        title={transfer.title.split(" | ")[0]}
-                        href={`/transfers/${transfer.id}`}
-                      >
-                        {htmlToText(Array.isArray(transfer.description) ? transfer.description[0] : transfer.description)}
-                      </ListItem>
-                    ))}
-                    <ListItem href="/transfers" title={t("nav.viewAllTransfers")} className="bg-muted/50">
-                      {t("nav.seeAllTransfers")}
-                    </ListItem>
-                  </ul>
-                </NavigationMenuContent>
-              </NavigationMenuItem>
-            </NavigationMenuList>
-          </NavigationMenu>
+          <NavDropdown label={t("nav.transfers")} triggerClassName={cn("bg-transparent hover:bg-transparent focus:bg-transparent data-[state=open]:bg-transparent", navTextColor)}>
+            <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
+              {transfers.map((transfer: Product) => (
+                <ListItem
+                  key={transfer.id}
+                  title={transfer.title.split(" | ")[0]}
+                  href={`/transfers/${transfer.id}`}
+                >
+                  {htmlToText(Array.isArray(transfer.description) ? transfer.description[0] : transfer.description)}
+                </ListItem>
+              ))}
+              <ListItem href="/transfers" title={t("nav.viewAllTransfers")} className="bg-muted/50">
+                {t("nav.seeAllTransfers")}
+              </ListItem>
+            </ul>
+          </NavDropdown>
 
           <Link href="/about" className={cn(plainNavLinkClass, navTextColor)}>
             {t("nav.about")}
@@ -635,22 +610,13 @@ export const SiteHeader = memo(function SiteHeader() {
             {t("nav.contact")}
           </Link>
 
-          <NavigationMenu className="relative z-50">
-            <NavigationMenuList>
-              <NavigationMenuItem>
-                <NavigationMenuTrigger className={cn("bg-transparent hover:bg-transparent focus:bg-transparent data-[state=open]:bg-transparent", navTextColor)}>
-                  {t("nav.myBookings")}
-                </NavigationMenuTrigger>
-                <NavigationMenuContent>
-                  <ul className="grid w-[200px] gap-2 p-4">
-                    <ListItem href="/manage-booking" title={t("nav.editTrip")}>
-                      {t("nav.manageBookings", "Manage or cancel existing bookings")}
-                    </ListItem>
-                  </ul>
-                </NavigationMenuContent>
-              </NavigationMenuItem>
-            </NavigationMenuList>
-          </NavigationMenu>
+          <NavDropdown label={t("nav.myBookings")} triggerClassName={cn("bg-transparent hover:bg-transparent focus:bg-transparent data-[state=open]:bg-transparent", navTextColor)}>
+            <ul className="grid w-[200px] gap-2 p-4">
+              <ListItem href="/manage-booking" title={t("nav.editTrip")}>
+                {t("nav.manageBookings", "Manage or cancel existing bookings")}
+              </ListItem>
+            </ul>
+          </NavDropdown>
 
           <div className="ml-4 flex items-center shrink-0">
             <Link href="/cart">
