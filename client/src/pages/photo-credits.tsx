@@ -3,6 +3,8 @@ import { SEO } from "@/components/seo";
 import { useTranslation } from "react-i18next";
 import { useCmsText } from "@/hooks/use-cms-text";
 import { photoCredits } from "@/lib/site-photos";
+import { useQuery } from "@tanstack/react-query";
+import { fetchProducts } from "@/lib/api";
 
 /**
  * Attribution for the openly licensed photos on the site. Credits live here
@@ -22,7 +24,8 @@ export default function PhotoCredits() {
     "manage-booking": useCmsText("manage-booking"),
     footer: useCmsText("footer"),
   };
-  const credits = photoCredits((block, key) => blocks[block]?.text(key) ?? "");
+  const { data: products = [] } = useQuery({ queryKey: ["products", "en"], queryFn: fetchProducts });
+  const credits = photoCredits((block, key) => blocks[block]?.text(key) ?? "", products as any[]);
 
   return (
     <Layout>

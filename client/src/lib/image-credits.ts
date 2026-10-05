@@ -139,3 +139,101 @@ export const IMAGE_CREDITS = {
     href: "https://commons.wikimedia.org/wiki/File:Vanuatu_Erakor_Lagoon_(16555872768).jpg",
   },
 } satisfies Record<string, ImageCredit>;
+
+/**
+ * Product listing photos (real Efate photos replacing AI-generated ones, 2026-10-05).
+ * Keyed by the image path stored on the product; the Photo credits page lists
+ * whichever of these products currently use.
+ */
+export const PRODUCT_PHOTO_CREDITS: Record<string, ImageCredit> = {
+  "/assets/products/vip-port-vila-seafront.webp": {
+    label: "Port Vila seafront park",
+    author: "Torbenbrinker",
+    license: "CC BY-SA 3.0",
+    href: "https://commons.wikimedia.org/wiki/File:PortVilaSeafrontPark.jpg",
+  },
+  "/assets/products/bus-hire-efate-coast-epau.webp": {
+    label: "coast near Epau, Efate",
+    author: "Phillip Capper",
+    license: "CC BY 2.0",
+    href: "https://commons.wikimedia.org/wiki/File:Round_Efate_trip_26_Nov._2006_-_coast_near_Epau_-_Flickr_-_PhillipC.jpg",
+  },
+  "/assets/products/blue-lagoon-rope-swing.webp": {
+    label: "Blue Lagoon rope swing, Efate",
+    author: "Sheminghui.WU",
+    license: "CC BY-SA 4.0",
+    href: "https://commons.wikimedia.org/wiki/File:%E8%93%9D%E8%89%B2%E6%B3%BB%E6%B9%96BulueLagoonVanuatu_Flyman.jpg",
+  },
+  "/assets/products/pele-island-werearu-beach.webp": {
+    label: "Werearu beach, Pele Island",
+    author: "Nesta Quari",
+    license: "CC BY-SA 4.0",
+    href: "https://commons.wikimedia.org/wiki/File:Werearu_beach.jpg",
+  },
+  "/assets/products/hospitality-harbour-hotel-view.webp": {
+    label: "Port Vila harbour from the Chantilly hotel",
+    author: "Phillip Capper",
+    license: "CC BY 2.0",
+    href: "https://commons.wikimedia.org/wiki/File:Port_Vila_Harbour,_Vanuatu_from_Chantilly_Hotel,_13_April_2008_(2411564950).jpg",
+  },
+  "/assets/products/port-vila-waterfront.webp": {
+    label: "Port Vila waterfront",
+    author: "Bahnfrend",
+    license: "CC BY-SA 4.0",
+    href: "https://commons.wikimedia.org/wiki/File:Waterfront,_Port_Vila,_2007_(7).jpg",
+  },
+  "/assets/products/port-vila-market.webp": {
+    label: "Port Vila market",
+    author: "Rob Maccoll / AusAID (DFAT)",
+    license: "CC BY 2.0",
+    href: "https://commons.wikimedia.org/wiki/File:Port_Vila_vegetable_market,_Vanuatu_2007._Photo-_Rob_Maccoll_-_AusAID_(10714205816).jpg",
+  },
+  "/assets/products/mele-cascades-pools.webp": {
+    label: "Mele Cascades pools",
+    author: "gérard from Nouméa",
+    license: "CC BY-SA 2.0",
+    href: "https://commons.wikimedia.org/wiki/File:Un_des_nombreux_bassins_(38689388315).jpg",
+  },
+  "/assets/products/sunset-vila-harbour.webp": {
+    label: "sunset on Vila Harbour",
+    author: "Jean Van Jean",
+    license: "CC BY 3.0",
+    href: "https://commons.wikimedia.org/wiki/File:Sunset_on_Vila_Harbour_-_panoramio.jpg",
+  },
+  "/assets/products/port-vila-dusk.webp": {
+    label: "Port Vila at dusk",
+    author: "Graham Crumb",
+    license: "CC BY-SA 3.0",
+    href: "https://commons.wikimedia.org/wiki/File:Night_Descends_(Imagicity_342).jpg",
+  },
+  "/assets/products/ekasup-cultural-village.webp": {
+    label: "Ekasup Cultural Village",
+    author: "Simon_sees",
+    license: "CC BY 2.0",
+    href: "https://commons.wikimedia.org/wiki/File:Ekasup_Cultural_Village_(16742064331).jpg",
+  },
+  "/assets/products/cruise-ship-port-vila-wharf.webp": {
+    label: "Pacific Sun at Port Vila wharf",
+    author: "Bahnfrend",
+    license: "CC BY-SA 4.0",
+    href: "https://commons.wikimedia.org/wiki/File:Pacific_Sun,_Port_Vila,_2007_(1).jpg",
+  },
+  "/assets/products/havannah-harbour.webp": {
+    label: "Port Havannah Harbour",
+    author: "Jean Van Jean",
+    license: "CC BY 3.0",
+    href: "https://commons.wikimedia.org/wiki/File:Port_Havannah_Harbour_-_panoramio.jpg",
+  },
+  "/assets/products/hideaway-island-kayaks.webp": {
+    label: "Hideaway Island",
+    author: "Simon_sees",
+    license: "CC BY 2.0",
+    href: "https://commons.wikimedia.org/wiki/File:Hideaway_Island_(16743494485).jpg",
+  },
+  "/assets/products/port-vila-harbour-town.webp": {
+    label: "Port Vila harbour and town",
+    author: "eGuide Travel",
+    license: "CC BY 2.0",
+    href: "https://commons.wikimedia.org/wiki/File:Vanuatu_(5781260094).jpg",
+  },
+};

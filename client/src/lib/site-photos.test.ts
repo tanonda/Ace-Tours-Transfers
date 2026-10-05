@@ -46,3 +46,17 @@ describe("photoCredits", () => {
     expect(list.every((c) => c.text || c.credit)).toBe(true);
   });
 });
+
+describe("photoCredits for product photos", () => {
+  it("credits active products that use a licensed product photo", () => {
+    const list = photoCredits(() => "", [
+      { title: "Hideaway Island Resort Transfer", image: "/assets/products/hideaway-island-kayaks.webp", isActive: true },
+      { title: "Ekasup Cultural Village Tour", image: "/assets/products/ekasup-cultural-village.webp", isActive: false },
+      { title: "Roots & Routes | Kava", image: "https://res.cloudinary.com/x/owner-photo.jpg", isActive: true },
+    ]);
+    const product = list.filter((c) => c.usedOn.some((u) => u.startsWith("Product")));
+    expect(product).toHaveLength(1);
+    expect(product[0]).toMatchObject({ src: "/assets/products/hideaway-island-kayaks.webp", usedOn: ["Product — Hideaway Island Resort Transfer"] });
+    expect(product[0].credit?.author).toBe("Simon_sees");
+  });
+});

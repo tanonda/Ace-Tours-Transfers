@@ -7,7 +7,7 @@
  * for a replacement that needs one. Credits are listed on /photo-credits only,
  * never on the content pages.
  */
-import { IMAGE_CREDITS, type ImageCredit } from "./image-credits";
+import { IMAGE_CREDITS, PRODUCT_PHOTO_CREDITS, type ImageCredit } from "./image-credits";
 
 export interface PhotoSlot {
   block: string;
@@ -64,7 +64,10 @@ export interface CreditEntry {
 }
 
 /** Credits for every photo currently shown (each photo once), for the Photo credits page. */
-export function photoCredits(cms: (block: string, key: string) => string): CreditEntry[] {
+export function photoCredits(
+  cms: (block: string, key: string) => string,
+  products: ReadonlyArray<{ title: string; image?: string | null; isActive?: boolean | null }> = [],
+): CreditEntry[] {
   const bySrc = new Map<string, CreditEntry>();
   for (const s of Object.values(PHOTO_SLOTS)) {
     const r = resolvePhoto(s, cms(s.block, s.key), cms(s.block, `${s.key}_credit`));
@@ -75,6 +78,16 @@ export function photoCredits(cms: (block: string, key: string) => string): Credi
     bySrc.set(r.src, "text" in r.credit
       ? { src: r.src, usedOn: [where], text: r.credit.text }
       : { src: r.src, usedOn: [where], credit: r.credit });
+  }
+  // Product listing photos that come from openly licensed sources.
+  for (const p of products) {
+    if (p.isActive === false || !p.image) continue;
+    const credit = PRODUCT_PHOTO_CREDITS[p.image];
+    if (!credit) continue;
+    const where = `Product — ${p.title.split(" | ")[0]}`;
+    const existing = bySrc.get(p.image);
+    if (existing) existing.usedOn.push(where);
+    else bySrc.set(p.image, { src: p.image, usedOn: [where], credit });
   }
   return Array.from(bySrc.values());
 }
