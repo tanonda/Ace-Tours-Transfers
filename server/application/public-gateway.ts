@@ -16,3 +16,33 @@ export function toPublicGateway(g: PaymentGateway) {
     supportedCurrencies: g.supportedCurrencies,
   };
 }
+
+/**
+ * A gateway whose bank credentials are in TEST mode takes only test cards, whose
+ * numbers are published: a guest using one would get a booking confirmed unpaid.
+ * Such a gateway is for admins running the bank's test payments only.
+ */
+export function isTestModeGateway(g: PaymentGateway): boolean {
+  return (g.credentials as { mode?: string } | null)?.mode === "TEST";
+}
+
+/** The gateways a visitor may see and pay with, shared by every public payment list. */
+export function visibleGateways(
+  gateways: PaymentGateway[],
+  flags: { slug: string; enabled: boolean }[],
+  viewer: { isAdmin: boolean },
+): PaymentGateway[] {
+  const isFlagEnabled = (slug: string, defaultValue = true) => flags.find((f) => f.slug === slug)?.enabled ?? defaultValue;
+  const stripeExplicitlyEnabled = process.env.STRIPE_ENABLED === "true";
+
+  return gateways.filter((g) => {
+    if (!g.active) return false;
+    if (isTestModeGateway(g) && !viewer.isAdmin) return false;
+    const slug = g.slug.toLowerCase();
+
+    if (slug === "stripe") return stripeExplicitlyEnabled && isFlagEnabled("payment-stripe", false);
+    if (slug === "manual" || slug === "manual_transfer") return isFlagEnabled("payment-bank-transfer");
+    if (slug === "cash") return isFlagEnabled("payment-cash-on-delivery");
+    return true;
+  });
+}

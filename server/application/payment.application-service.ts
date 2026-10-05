@@ -13,6 +13,7 @@ import { PaymentFactory } from "../infrastructure/payments/factory.js";
 import { PaymentGateway, Booking } from '../../shared/schema.js';
 import { config } from "../config.js";
 import { PaymentIntent } from "../domain/payments/PaymentIntent.js";
+import { isTestModeGateway } from "./public-gateway.js";
 import { eventDispatcher } from "../infrastructure/events/event-dispatcher.js";
 import { BookingConfirmationService } from "./booking/BookingConfirmationService.js";
 import {
@@ -32,6 +33,7 @@ export interface PaymentOptions {
   provider?: string;
   successUrl: string;
   cancelUrl: string;
+  isAdmin?: boolean; // admins may use a gateway whose bank shop is still in TEST mode
 }
 
 export class PaymentApplicationService {
@@ -133,6 +135,12 @@ export class PaymentApplicationService {
       if (!gateway) {
         return { success: false, message: "No active payment provider found" };
       }
+    }
+
+    // A bank shop in TEST mode accepts published test cards: only admins running
+    // the bank's test payments may use it, or guests could confirm bookings unpaid.
+    if (isTestModeGateway(gateway) && !options.isAdmin) {
+      return { success: false, message: `Payment provider ${gateway.slug} is not active` };
     }
 
     // PRODUCTION GUARD: Card providers might be disabled

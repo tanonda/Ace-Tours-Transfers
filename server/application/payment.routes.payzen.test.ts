@@ -66,7 +66,11 @@ beforeEach(() => {
   app.use(express.json());
   app.use(express.urlencoded({ extended: false }));
   app.use(session({ secret: 'test', resave: false, saveUninitialized: true }));
-  app.use((req, _res, next) => { (req.session as any).recentBookingIds = ['book-123']; next(); });
+  app.use((req, _res, next) => {
+    (req.session as any).recentBookingIds = ['book-123'];
+    if (req.get('x-test-admin')) (req.session as any).userRole = 'admin';
+    next();
+  });
   registerPaymentRoutes(app, storage as any);
 });
 
@@ -102,11 +106,33 @@ describe('PayZen IPN — POST /api/payments/webhook/bred-bank', () => {
 });
 
 describe('POST /api/payments/checkout with BRED Bank', () => {
-  it('returns the signed PayZen form for the browser to post', async () => {
+  it('refuses a guest while the BRED shop is in TEST mode, so test cards cannot confirm bookings', async () => {
     const res = await request(app).post('/api/payments/checkout').send({ bookingId: 'book-123', provider: 'bred-bank' });
+    expect(res.status).toBe(400);
+    expect(storage.createPayment).not.toHaveBeenCalled();
+  });
+
+  it('returns the signed PayZen form for the browser to post (admin, TEST mode)', async () => {
+    const res = await request(app).post('/api/payments/checkout').set('x-test-admin', '1').send({ bookingId: 'book-123', provider: 'bred-bank' });
     expect(res.status).toBe(200);
     expect(res.body.checkoutForm.action).toBe('https://secure.payzen.eu/vads-payment/');
     expect(res.body.checkoutForm.fields).toMatchObject({ vads_amount: '12500', vads_order_id: 'pay-0001' });
     expect(res.body.checkoutForm.fields.signature).toBeTruthy();
+  });
+});
+
+describe('public payment lists while BRED is in TEST mode', () => {
+  beforeEach(() => {
+    storage.getPaymentGateways = vi.fn().mockResolvedValue([bredGateway]);
+  });
+
+  it('does not offer card payment to guests', async () => {
+    const res = await request(app).get('/api/payment-gateways');
+    expect(res.body).toEqual([]);
+  });
+
+  it('offers card payment to an admin running the tests', async () => {
+    const res = await request(app).get('/api/payment-gateways').set('x-test-admin', '1');
+    expect(res.body.map((g: { slug: string }) => g.slug)).toEqual(['bred-bank']);
   });
 });

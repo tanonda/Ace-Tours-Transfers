@@ -7,7 +7,7 @@ import { config } from "../config.js";
 import { rateLimit } from "express-rate-limit";
 import { z } from "zod";
 import { adminAudit } from "../infrastructure/audit/admin-audit-log.service.js";
-import { toPublicGateway } from "./public-gateway.js";
+import { toPublicGateway, visibleGateways, isTestModeGateway } from "./public-gateway.js";
 
 const paymentLimiter = rateLimit({
   windowMs: 60 * 1000,
@@ -32,32 +32,12 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
       const gateways = await storage.getPaymentGateways();
       const flags = await storage.getFeatureFlags();
 
-      const isFlagEnabled = (slug: string, defaultValue = true) => {
-        const flag = flags.find(f => f.slug === slug);
-        return flag ? flag.enabled : defaultValue;
-      };
+      const shown = visibleGateways(gateways, flags, { isAdmin: req.session.userRole === 'admin' });
 
-      // Filter gateways base logic
-      const stripeExplicitlyEnabled = process.env.STRIPE_ENABLED === 'true';
-
-      const visibleGateways = gateways.filter((g: any) => {
-        if (!g.active) return false;
-        const slug = g.slug.toLowerCase();
-
-        if (slug === 'stripe') return stripeExplicitlyEnabled && isFlagEnabled('payment-stripe', false);
-        if (slug === 'manual' || slug === 'manual_transfer') {
-          return isFlagEnabled('payment-bank-transfer');
-        }
-        if (slug === 'cash') {
-          return isFlagEnabled('payment-cash-on-delivery');
-        }
-
-        return true;
-      });
-
+      res.set('Cache-Control', 'private, no-store'); // differs for admins (TEST-mode gateways)
       res.json({
         stripePublishableKey: null, // LOW-4: Stripe removed
-        availableGateways: visibleGateways.map((g: any) => ({
+        availableGateways: shown.map((g: any) => ({
           id: g.id,
           slug: g.slug,
           displayName: g.displayName,
@@ -99,6 +79,7 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
         provider: provider,
         successUrl: `${req.protocol}://${req.get('host')}/payment/success?booking=${bookingId}`,
         cancelUrl: `${req.protocol}://${req.get('host')}/payment/cancel?booking=${bookingId}`,
+        isAdmin: req.session.userRole === 'admin',
       });
 
       if (!result.success) {
@@ -314,27 +295,10 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
       const { PaymentMethodClassifier } = await import("../domain/payments/payment-method-classifier.js");
       const gateways = await storage.getPaymentGateways();
       const flags = await storage.getFeatureFlags();
-      // Feature flag defaults: stripe=false (needs explicit env var), bank-transfer/cash=true (admin gateway toggle is the control)
-      const isFlagEnabled = (slug: string, defaultValue = true) => flags.find(f => f.slug === slug)?.enabled ?? defaultValue;
-      const stripeExplicitlyEnabled = process.env.STRIPE_ENABLED === 'true';
+      const shown = visibleGateways(gateways, flags, { isAdmin: req.session.userRole === 'admin' });
 
-      // Reuse the same feature-flag filtering as /api/payment-gateways
-      const visibleGateways = gateways.filter((g: any) => {
-        if (!g.active) return false;
-        const slug = g.slug.toLowerCase();
-
-        if (slug === 'stripe') return stripeExplicitlyEnabled && isFlagEnabled('payment-stripe', false);
-        if (slug === 'manual' || slug === 'manual_transfer') {
-          return isFlagEnabled('payment-bank-transfer', true);
-        }
-        if (slug === 'cash') {
-          return isFlagEnabled('payment-cash-on-delivery', true);
-        }
-
-        return true;
-      });
-
-      const methods = PaymentMethodClassifier.groupByMethod(visibleGateways);
+      const methods = PaymentMethodClassifier.groupByMethod(shown);
+      res.set('Cache-Control', 'private, no-store'); // differs for admins (TEST-mode gateways)
       res.json(methods);
     } catch (error) {
       console.error("Payment methods error:", error);
@@ -346,9 +310,10 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
   app.get("/api/payment-gateways/active", async (req, res) => {
     try {
       const gateway = await storage.getActivePaymentGateway();
-      if (!gateway) {
+      if (!gateway || (isTestModeGateway(gateway) && req.session.userRole !== 'admin')) {
         return res.status(404).json({ error: "No active payment gateway" });
       }
+      res.set('Cache-Control', 'private, no-store');
       res.json(toPublicGateway(gateway));
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch active payment gateway" });
@@ -359,25 +324,10 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
     try {
       const gateways = await storage.getPaymentGateways();
       const flags = await storage.getFeatureFlags();
-      const isFlagEnabled = (slug: string, defaultValue = true) => flags.find(f => f.slug === slug)?.enabled ?? defaultValue;
-      const stripeExplicitlyEnabled = process.env.STRIPE_ENABLED === 'true';
+      const shown = visibleGateways(gateways, flags, { isAdmin: req.session.userRole === 'admin' });
 
-      const visibleGateways = gateways.filter((g: any) => {
-        if (!g.active) return false;
-        const slug = g.slug.toLowerCase();
-
-        if (slug === 'stripe') return stripeExplicitlyEnabled && isFlagEnabled('payment-stripe', false);
-        if (slug === 'manual' || slug === 'manual_transfer') {
-          return isFlagEnabled('payment-bank-transfer');
-        }
-        if (slug === 'cash') {
-          return isFlagEnabled('payment-cash-on-delivery');
-        }
-
-        return true;
-      });
-
-      res.json(visibleGateways.map(toPublicGateway));
+      res.set('Cache-Control', 'private, no-store'); // differs for admins (TEST-mode gateways)
+      res.json(shown.map(toPublicGateway));
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch payment gateways" });
     }
