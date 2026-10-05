@@ -75,6 +75,11 @@ import {
 import { db } from "./db.js";
 import { eq, like, desc, and, or, isNull, sql, lte, asc, lt, inArray, gt } from "drizzle-orm";
 import { extractErrorDetails } from "./lib/error-util.js";
+import { sealGatewayWrite, openGatewayRow } from "./lib/credential-crypto.js";
+
+// Payment gateway credentials are encrypted at rest (see server/lib/credential-crypto.ts).
+const credentialsKey = () => process.env.PAYMENT_CREDENTIALS_KEY;
+const openGateway = (row: PaymentGateway): PaymentGateway => openGatewayRow(row, credentialsKey());
 
 export interface IStorage {
   // User operations
@@ -796,17 +801,18 @@ export class DatabaseStorage implements IStorage {
 
   // Payment Gateways
   async getPaymentGateways(): Promise<PaymentGateway[]> {
-    return await db.select().from(paymentGateways);
+    const rows = await db.select().from(paymentGateways);
+    return rows.map(openGateway);
   }
 
   async getPaymentGateway(id: string): Promise<PaymentGateway | undefined> {
     const [gateway] = await db.select().from(paymentGateways).where(eq(paymentGateways.id, id));
-    return gateway || undefined;
+    return gateway ? openGateway(gateway) : undefined;
   }
 
   async getPaymentGatewayBySlug(slug: string): Promise<PaymentGateway | undefined> {
     const [gateway] = await db.select().from(paymentGateways).where(eq(paymentGateways.slug, slug));
-    return gateway || undefined;
+    return gateway ? openGateway(gateway) : undefined;
   }
 
   async getActivePaymentGateway(): Promise<PaymentGateway | undefined> {
@@ -814,7 +820,7 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(paymentGateways)
       .where(and(eq(paymentGateways.active, true), eq(paymentGateways.isDefault, true)));
-    return gateway || undefined;
+    return gateway ? openGateway(gateway) : undefined;
   }
 
   async upsertPaymentGateway(gateway: InsertPaymentGateway): Promise<PaymentGateway> {
@@ -822,17 +828,17 @@ export class DatabaseStorage implements IStorage {
     if (existing) {
       return await this.updatePaymentGateway(existing.id, gateway);
     }
-    const [created] = await db.insert(paymentGateways).values(gateway).returning();
-    return created;
+    const [created] = await db.insert(paymentGateways).values(sealGatewayWrite(gateway, credentialsKey())).returning();
+    return openGateway(created);
   }
 
   async updatePaymentGateway(id: string, data: Partial<InsertPaymentGateway>): Promise<PaymentGateway> {
     const [gateway] = await db
       .update(paymentGateways)
-      .set({ ...data, updatedAt: new Date() })
+      .set({ ...sealGatewayWrite(data, credentialsKey()), updatedAt: new Date() })
       .where(eq(paymentGateways.id, id))
       .returning();
-    return gateway;
+    return openGateway(gateway);
   }
 
   async setDefaultPaymentGateway(id: string): Promise<void> {

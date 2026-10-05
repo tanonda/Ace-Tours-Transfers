@@ -11,9 +11,12 @@ const SENSITIVE_KEYS = new Set([
     "merchant_secret", "password", "token", "accessToken", "access_token",
     "privateKey", "private_key", "webhookSecret", "webhook_secret",
     "clientSecret", "client_secret", "ussdCode",
+    // A payment gateway's whole credentials object: field names differ per bank
+    // (PayZen testKey/productionKey, VPC secureHashSecret, ...).
+    "credentials",
 ]);
 
-function redact(obj: unknown): unknown {
+export function redact(obj: unknown): unknown {
     if (!obj || typeof obj !== "object") return obj;
     if (Array.isArray(obj)) return obj.map(redact);
     const out: Record<string, unknown> = {};
