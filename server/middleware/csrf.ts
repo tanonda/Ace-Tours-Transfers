@@ -45,7 +45,9 @@ export function csrfProtection(req: Request, res: Response, next: NextFunction):
   }
 
   // Exempt webhook / callback endpoints (they use signature verification instead).
-  if (EXEMPT_PREFIXES.some((p) => req.path.startsWith(p))) {
+  // Mounted with app.use("/api", ...), so req.path has "/api" stripped: match the full path.
+  const fullPath = req.baseUrl + req.path;
+  if (EXEMPT_PREFIXES.some((p) => fullPath.startsWith(p))) {
     return next();
   }
 
