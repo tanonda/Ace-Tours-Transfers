@@ -11,6 +11,8 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { ChevronDown, Globe } from "lucide-react";
 
 const languages = [
@@ -29,14 +31,18 @@ export function LanguageSelector() {
 
   return (
     <DropdownMenu modal={false}>
+      {/* Same ghost button style as the currency selector beside it: it takes the colour
+          of the bar it sits in (white over the home hero), with no box of its own.
+          The classes go straight on the trigger: wrapping it in <Button asChild> adds
+          components to Radix's mount-time anchoring re-render. */}
       <DropdownMenuTrigger
-        className="flex w-auto items-center gap-1.5 h-9 px-3 whitespace-nowrap rounded-md border border-border bg-background text-sm shadow-sm ring-offset-background focus:outline-none focus:ring-1 focus:ring-ring"
+        className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "flex items-center gap-1.5 h-9 px-2.5 font-medium text-sm")}
         aria-label="Select language"
         data-testid="select-language"
       >
-        <Globe className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+        <Globe className="h-3.5 w-3.5 shrink-0 opacity-70" />
         <span>{current.name}</span>
-        <ChevronDown className="h-4 w-4 opacity-50" />
+        <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-60" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuRadioGroup value={current.code} onValueChange={(value) => i18n.changeLanguage(value)}>

@@ -13,7 +13,7 @@ import {
   DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { Check, Globe } from 'lucide-react';
+import { Banknote, Check, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // Popular / regional groupings for the menu
@@ -37,11 +37,13 @@ export function CurrencySelector({ compact = false }: { compact?: boolean }) {
           className="flex items-center gap-1.5 h-9 px-2.5 font-medium text-sm"
           aria-label="Select display currency"
         >
-          <Globe className="h-3.5 w-3.5 shrink-0 opacity-70" />
+          <Banknote className="h-3.5 w-3.5 shrink-0 opacity-70" />
           <span>{currencyDef.symbol}</span>
           {!compact && (
-            <span className="text-muted-foreground text-xs ml-0.5">{currency}</span>
+            // Same colour as the symbol, so it stays readable over the home hero.
+            <span className="text-xs ml-0.5 opacity-80">{currency}</span>
           )}
+          <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-60" />
         </Button>
       </DropdownMenuTrigger>
 
