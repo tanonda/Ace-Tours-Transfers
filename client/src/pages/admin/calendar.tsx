@@ -1,4 +1,5 @@
 import { DashboardLayout } from "@/components/dashboard-layout";
+import { escapeHtml } from "@/lib/escape-html";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -579,10 +580,10 @@ export default function AdminCalendar() {
                           if (!w) return;
                           const rows = todayBookings.map((b: any, i: number) => `
                             <tr>
-                              <td>${i + 1}</td><td>${b.customerName || ""}</td>
-                              <td>${b.customerEmail || ""}</td><td>${b.customerPhone || ""}</td>
-                              <td>${b.tourName || ""}</td><td>${b.guests || ""}</td>
-                              <td>${b.amount || ""}</td><td>${b.status || ""}</td>
+                              <td>${i + 1}</td><td>${escapeHtml(b.customerName)}</td>
+                              <td>${escapeHtml(b.customerEmail)}</td><td>${escapeHtml(b.customerPhone)}</td>
+                              <td>${escapeHtml(b.tourName)}</td><td>${escapeHtml(b.guests)}</td>
+                              <td>${escapeHtml(b.amount)}</td><td>${escapeHtml(b.status)}</td>
                             </tr>`).join("");
                           w.document.write(`<!DOCTYPE html><html><head><title>Schedule — ${new Date().toLocaleDateString()}</title>
                             <style>body{font-family:Arial,sans-serif;padding:20px}h1{color:#004165}table{width:100%;border-collapse:collapse;font-size:12px}th{background:#004165;color:white;padding:8px;text-align:left}td{padding:7px 8px;border-bottom:1px solid #eee}tr:nth-child(even){background:#f9f9f9}@media print{button{display:none}}</style></head>

@@ -1,4 +1,5 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { escapeHtml } from "@/lib/escape-html";
 import { Button } from "@/components/ui/button";
 import { Printer, X, MapPin, Calendar, Users, Phone, Mail, Clock, DollarSign, Download } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -63,7 +64,7 @@ export function PrintItinerary({ booking, items, payments, qrCodeData, onClose }
       <!DOCTYPE html>
       <html>
         <head>
-          <title>Itinerary - ${booking.tourName}</title>
+          <title>Itinerary - ${escapeHtml(booking.tourName)}</title>
           <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
             body { 
@@ -236,7 +237,7 @@ export function PrintItinerary({ booking, items, payments, qrCodeData, onClose }
               <p>Port Vila, Vanuatu</p>
               <p style="font-size:11px;opacity:0.7;margin-top:4px;font-style:italic">Your Gateway to Vanuatu Adventures</p>
               <div class="booking-badge">
-                ${t("itinerary.confirmationNumber", "Confirmation")}: ACT-${(booking.id || '').replace(/^book_/i, '').replace(/-/g, '').slice(0, 8).toUpperCase()}
+                ${t("itinerary.confirmationNumber", "Confirmation")}: ACT-${escapeHtml((booking.id || '').replace(/^book_/i, '').replace(/-/g, '').slice(0, 8).toUpperCase())}
               </div>
             </div>
             
@@ -244,7 +245,7 @@ export function PrintItinerary({ booking, items, payments, qrCodeData, onClose }
               <div class="section">
                 <div class="section-title">${t("itinerary.tourDetails", "Tour Details")}</div>
                 <div class="tour-box">
-                  <div class="tour-title">${booking.tourName}</div>
+                  <div class="tour-title">${escapeHtml(booking.tourName)}</div>
                   <div class="tour-desc">${t("itinerary.tourDescription", "Experience the beauty of Vanuatu with our expertly guided tour.")}</div>
                 </div>
               </div>
@@ -254,25 +255,25 @@ export function PrintItinerary({ booking, items, payments, qrCodeData, onClose }
                 <div class="info-grid">
                   <div class="info-item">
                     <div class="info-label">${t("booking.customer")}</div>
-                    <div class="info-value">${booking.customerName}</div>
-                    ${booking.customerPhone ? `<div style="font-size: 13px; color: #666; margin-top: 2px;">${booking.customerPhone}</div>` : ''}
+                    <div class="info-value">${escapeHtml(booking.customerName)}</div>
+                    ${booking.customerPhone ? `<div style="font-size: 13px; color: #666; margin-top: 2px;">${escapeHtml(booking.customerPhone)}</div>` : ''}
                   </div>
                   <div class="info-item">
                     <div class="info-label">${t("booking.date")}</div>
-                    <div class="info-value">${booking.date}</div>
+                    <div class="info-value">${escapeHtml(booking.date)}</div>
                   </div>
                   <div class="info-item">
                     <div class="info-label">${t("booking.guests")}</div>
-                    <div class="info-value">${booking.guests} ${t("itinerary.travelers", "Travelers")}</div>
+                    <div class="info-value">${escapeHtml(booking.guests)} ${t("itinerary.travelers", "Travelers")}</div>
                   </div>
                   <div class="info-item">
                     <div class="info-label">${t("booking.status")}</div>
-                    <div class="info-value" style="text-transform: capitalize;">${booking.status}</div>
+                    <div class="info-value" style="text-transform: capitalize;">${escapeHtml(booking.status)}</div>
                   </div>
                   ${booking.pickupLocation ? `
                   <div class="info-item">
                     <div class="info-label">${t("booking.pickupLocation", "Pickup")}</div>
-                    <div class="info-value">${booking.pickupLocation}</div>
+                    <div class="info-value">${escapeHtml(booking.pickupLocation)}</div>
                   </div>
                   ` : ''}
                 </div>
@@ -285,21 +286,21 @@ export function PrintItinerary({ booking, items, payments, qrCodeData, onClose }
                     <div class="info-grid">
                       <div class="info-item">
                         <div class="info-label">${t("payment.status")}</div>
-                        <div class="info-value" style="text-transform: capitalize;">${latestPayment.status}</div>
+                        <div class="info-value" style="text-transform: capitalize;">${escapeHtml(latestPayment.status)}</div>
                       </div>
                       ${latestPayment.gatewayReference ? `
                         <div class="info-item">
                           <div class="info-label">${t("payment.transactionId")}</div>
-                          <div class="info-value">${latestPayment.gatewayReference}</div>
+                          <div class="info-value">${escapeHtml(latestPayment.gatewayReference)}</div>
                         </div>
                       ` : ''}
                       <div class="info-item">
                         <div class="info-label">${t("payment.method")}</div>
-                        <div class="info-value">${latestPayment.gatewayId}</div>
+                        <div class="info-value">${escapeHtml(latestPayment.gatewayId)}</div>
                       </div>
                       <div class="info-item">
                         <div class="info-label">${t("payment.amount")}</div>
-                        <div class="info-value">${latestPayment.amount?.toLocaleString()} ${latestPayment.currency}</div>
+                        <div class="info-value">${escapeHtml(latestPayment.amount?.toLocaleString())} ${escapeHtml(latestPayment.currency)}</div>
                       </div>
                     </div>
                   </div>
@@ -313,16 +314,16 @@ export function PrintItinerary({ booking, items, payments, qrCodeData, onClose }
                     ${items.map(item => `
                       <div style="display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px;">
                         <div>
-                          <div style="font-weight: bold;">${item.productName}</div>
+                          <div style="font-weight: bold;">${escapeHtml(item.productName)}</div>
                           <div style="font-size: 12px; color: #666;">
-                            ${item.adultPax > 0 ? `${item.adultPax} Adults` : ''}
+                            ${item.adultPax > 0 ? `${escapeHtml(item.adultPax)} Adults` : ''}
                             ${item.adultPax > 0 && item.childPax > 0 ? ' + ' : ''}
-                            ${item.childPax > 0 ? `${item.childPax} Children` : ''}
+                            ${item.childPax > 0 ? `${escapeHtml(item.childPax)} Children` : ''}
                           </div>
                         </div>
                         <div style="text-align: right;">
-                          <div style="font-weight: bold;">${item.subtotalCents?.toLocaleString()} VUV</div>
-                          <div style="font-size: 11px; color: #888;">${item.unitPriceCents?.toLocaleString()} / unit</div>
+                          <div style="font-weight: bold;">${escapeHtml(item.subtotalCents?.toLocaleString())} VUV</div>
+                          <div style="font-size: 11px; color: #888;">${escapeHtml(item.unitPriceCents?.toLocaleString())} / unit</div>
                         </div>
                       </div>
                     `).join('')}
@@ -332,7 +333,7 @@ export function PrintItinerary({ booking, items, payments, qrCodeData, onClose }
               
               <div class="total-section">
                 <span class="total-label">${t("itinerary.totalAmount", "Total Amount")}</span>
-                <span class="total-amount">${booking.totalAmountCents ? `${booking.totalAmountCents.toLocaleString()} VUV` : booking.amount}</span>
+                <span class="total-amount">${booking.totalAmountCents ? `${booking.totalAmountCents.toLocaleString()} VUV` : escapeHtml(booking.amount)}</span>
               </div>
               
               <div class="notes">
@@ -340,7 +341,7 @@ export function PrintItinerary({ booking, items, payments, qrCodeData, onClose }
                 ${booking.notes ? `
                   <div style="margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px dashed #e67e22; opacity: 0.9;">
                     <strong>Special Requests:</strong><br/>
-                    ${booking.notes}
+                    ${escapeHtml(booking.notes)}
                   </div>
                 ` : ''}
                 <ul>
@@ -514,9 +515,9 @@ export function PrintItinerary({ booking, items, payments, qrCodeData, onClose }
                       <div>
                         <div className="font-semibold text-foreground">{item.productName}</div>
                         <div className="text-xs text-muted-foreground mt-1">
-                          {item.adultPax > 0 && `${item.adultPax} Adults`}
+                          {item.adultPax > 0 && `${escapeHtml(item.adultPax)} Adults`}
                           {item.adultPax > 0 && item.childPax > 0 && " + "}
-                          {item.childPax > 0 && `${item.childPax} Children`}
+                          {item.childPax > 0 && `${escapeHtml(item.childPax)} Children`}
                           <span className="mx-2">•</span>
                           {item.unitPriceCents?.toLocaleString()} / unit
                         </div>

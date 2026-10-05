@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { escapeHtml } from "@/lib/escape-html";
 import { useQuery } from "@tanstack/react-query";
 import { fetchRevenue, fetchBookingStats, fetchBookings } from "@/lib/api";
 import { DashboardLayout } from "@/components/dashboard-layout";
@@ -117,13 +118,13 @@ export default function AdminReports() {
     if (!w) return;
     const rows = guestManifest.map((b: any, i: number) => `
       <tr>
-        <td>${i + 1}</td><td>${b.customerName || ""}</td><td>${b.customerEmail || ""}</td>
-        <td>${b.customerPhone || ""}</td><td>${b.tourName || ""}</td>
-        <td>${b.guests || ""} adult${(b.childGuests || 0) > 0 ? ` / ${b.childGuests} child` : ""}</td>
-        <td><span class="badge ${b.status}">${b.status}</span></td>
-        <td>${b.amount || ""}</td>
+        <td>${i + 1}</td><td>${escapeHtml(b.customerName)}</td><td>${escapeHtml(b.customerEmail)}</td>
+        <td>${escapeHtml(b.customerPhone)}</td><td>${escapeHtml(b.tourName)}</td>
+        <td>${escapeHtml(b.guests)} adult${(b.childGuests || 0) > 0 ? ` / ${escapeHtml(b.childGuests)} child` : ""}</td>
+        <td><span class="badge ${escapeHtml(b.status)}">${escapeHtml(b.status)}</span></td>
+        <td>${escapeHtml(b.amount)}</td>
       </tr>`).join("");
-    w.document.write(`<!DOCTYPE html><html><head><title>Guest Manifest — ${guestDate}</title>
+    w.document.write(`<!DOCTYPE html><html><head><title>Guest Manifest — ${escapeHtml(guestDate)}</title>
       <style>
         body{font-family:Arial,sans-serif;padding:24px;color:#222}
         h1{color:#004165;margin:0 0 4px}p{margin:0 0 16px;color:#555;font-size:13px}
