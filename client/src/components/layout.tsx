@@ -41,6 +41,12 @@ import { keepAcrossLanguageSwitch } from "@/lib/language-placeholder";
 import { htmlToText } from "@/lib/html-text";
 import { useSitePhoto } from "@/hooks/use-site-photo";
 
+// Header links without a dropdown. They are plain links, not one-item Radix
+// NavigationMenus: every NavigationMenu root sets state on mount and re-renders
+// its subtree (also on phones, where the desktop nav is mounted but hidden).
+const plainNavLinkClass =
+  "group inline-flex h-9 w-max items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors focus:outline-none disabled:pointer-events-none disabled:opacity-50";
+
 const ListItem = forwardRef<
   HTMLDivElement,
   React.ComponentPropsWithoutRef<"div"> & { href: string; title: string }
@@ -561,18 +567,9 @@ export const SiteHeader = memo(function SiteHeader() {
         </div>
 
         <nav className="hidden xl:flex justify-end items-center gap-5" aria-label="Main navigation">
-          <NavigationMenu className="relative z-50">
-            <NavigationMenuList>
-              <NavigationMenuItem>
-                <Link href="/" className={cn(
-                  "group inline-flex h-9 w-max items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors focus:outline-none disabled:pointer-events-none disabled:opacity-50",
-                  navTextColor
-                )}>
-                  {t("nav.home")}
-                </Link>
-              </NavigationMenuItem>
-            </NavigationMenuList>
-          </NavigationMenu>
+          <Link href="/" className={cn(plainNavLinkClass, navTextColor)}>
+            {t("nav.home")}
+          </Link>
 
           <NavigationMenu className="relative z-50">
             <NavigationMenuList>
@@ -626,44 +623,17 @@ export const SiteHeader = memo(function SiteHeader() {
             </NavigationMenuList>
           </NavigationMenu>
 
-          <NavigationMenu className="relative z-50">
-            <NavigationMenuList>
-              <NavigationMenuItem>
-                <Link href="/about" className={cn(
-                  "group inline-flex h-9 w-max items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors focus:outline-none disabled:pointer-events-none disabled:opacity-50",
-                  navTextColor
-                )}>
-                  {t("nav.about")}
-                </Link>
-              </NavigationMenuItem>
-            </NavigationMenuList>
-          </NavigationMenu>
+          <Link href="/about" className={cn(plainNavLinkClass, navTextColor)}>
+            {t("nav.about")}
+          </Link>
 
-          <NavigationMenu className="relative z-50">
-            <NavigationMenuList>
-              <NavigationMenuItem>
-                <Link href="/blog" className={cn(
-                  "group inline-flex h-9 w-max items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors focus:outline-none disabled:pointer-events-none disabled:opacity-50",
-                  navTextColor
-                )}>
-                  {t("nav.blog", "Blog")}
-                </Link>
-              </NavigationMenuItem>
-            </NavigationMenuList>
-          </NavigationMenu>
+          <Link href="/blog" className={cn(plainNavLinkClass, navTextColor)}>
+            {t("nav.blog", "Blog")}
+          </Link>
 
-          <NavigationMenu className="relative z-50">
-            <NavigationMenuList>
-              <NavigationMenuItem>
-                <Link href="/contact" className={cn(
-                  "group inline-flex h-9 w-max items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors focus:outline-none disabled:pointer-events-none disabled:opacity-50",
-                  navTextColor
-                )}>
-                  {t("nav.contact")}
-                </Link>
-              </NavigationMenuItem>
-            </NavigationMenuList>
-          </NavigationMenu>
+          <Link href="/contact" className={cn(plainNavLinkClass, navTextColor)}>
+            {t("nav.contact")}
+          </Link>
 
           <NavigationMenu className="relative z-50">
             <NavigationMenuList>
