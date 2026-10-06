@@ -248,6 +248,8 @@ app.get('/api/health', async (_req, res) => {
 
     res.json({
       status: 'ok',
+      // Which deploy is live (Render sets RENDER_GIT_COMMIT); the repo is public, so this reveals nothing new.
+      commit: process.env.RENDER_GIT_COMMIT?.slice(0, 7) ?? 'unknown',
       database: 'connected',
       sessionStore: sessionStore ? 'initialized' : 'pending',
       env: {
