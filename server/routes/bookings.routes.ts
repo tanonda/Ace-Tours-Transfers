@@ -747,7 +747,8 @@ export function registerBookingsRoutes(app: Express, deps: RouteDeps) {
       // Surface known domain errors as user-friendly messages; hide internal details
 
       if (error instanceof ZodError) {
-        return res.status(400).json({ error: "Invalid booking data.", details: error.errors });
+        // The first issue's own message (e.g. "Names can't contain < or >.") tells the guest what to fix.
+        return res.status(400).json({ error: error.errors[0]?.message ?? "Invalid booking data.", details: error.errors });
       }
       // Availability / capacity errors — from createHold capacity check, vehicle conflicts, blackouts
       if (

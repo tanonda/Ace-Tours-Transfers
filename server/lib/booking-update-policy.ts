@@ -1,3 +1,5 @@
+import { invalidPersonName } from "../../shared/person-name.js";
+
 /**
  * Which fields PATCH /api/bookings/:id may write.
  *
@@ -40,6 +42,9 @@ export function screenBookingUpdate(
       return { ok: false, error: `Field '${field}' cannot be modified.` };
     }
   }
+
+  const nameError = invalidPersonName(body.customerName);
+  if (nameError) return { ok: false, error: nameError };
 
   if (actor === "staff" && !(currentStatus === "confirmed" && body.status === "completed")) {
     return { ok: false, error: "Field service can only mark confirmed bookings as completed." };

@@ -1,4 +1,5 @@
 import { sql } from "drizzle-orm";
+import { invalidPersonName, PERSON_NAME_ERROR } from "./person-name.js";
 import { pgTable, text, varchar, integer, timestamp, decimal, boolean, jsonb, index, uniqueIndex } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
@@ -629,6 +630,7 @@ export const insertUserSchema = createInsertSchema(users).omit({
 });
 
 export const adminInsertUserSchema = insertUserSchema.extend({
+  name: z.string().min(1).refine((name) => !invalidPersonName(name), PERSON_NAME_ERROR),
   role: z.enum(['admin', 'field_service', 'customer']).default('customer'),
 });
 

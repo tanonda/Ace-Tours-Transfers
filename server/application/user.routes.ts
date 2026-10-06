@@ -1,5 +1,6 @@
 
 import { Express, Request, Response } from "express";
+import { invalidPersonName } from "../../shared/person-name.js";
 import { rateLimit } from "express-rate-limit";
 import { userProfileDomainService } from "../domain/users/user-profile.domain-service.js";
 import { requireAdmin } from "../routes.js";
@@ -44,7 +45,7 @@ export function registerUserRoutes(app: Express) {
     } catch (error) {
       console.error("User creation error:", error);
       if (error instanceof ZodError) {
-        res.status(400).json({ error: "Invalid user data", details: error.flatten() });
+        res.status(400).json({ error: error.errors[0]?.message ?? "Invalid user data", details: error.flatten() });
       } else if (error instanceof Error && error.message.includes("email already exists")) {
         res.status(409).json({ error: "A user with this email address already exists." });
       } else if (error instanceof Error && error.message.includes("username already exists")) {
@@ -204,6 +205,8 @@ export function registerUserRoutes(app: Express) {
         return res.status(403).json({ error: "Access denied" });
       }
       const { name, email, phone } = req.body;
+      const nameError = invalidPersonName(name);
+      if (nameError) return res.status(400).json({ error: nameError });
       const updated = await storage.updateUserProfile(req.params.id, { name, email, phone });
       if (!updated) return res.status(404).json({ error: "User not found" });
       res.json({ id: updated.id, name: updated.name, email: updated.email, phone: updated.phone, role: updated.role });

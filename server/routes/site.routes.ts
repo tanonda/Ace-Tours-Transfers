@@ -1,4 +1,5 @@
 import type { Express } from "express";
+import { invalidPersonName } from "../../shared/person-name.js";
 import { storage } from "../storage.js";
 import { config } from "../config.js";
 import { db } from "../db.js";
@@ -132,6 +133,8 @@ export function registerSiteRoutes(app: Express) {
     try {
       const { id } = req.params;
       const { confirmed, unsubscribedAt, name } = req.body;
+      const nameError = invalidPersonName(name);
+      if (nameError) return res.status(400).json({ error: nameError });
       // Build update using drizzle ORM
       const updateData: Record<string, any> = {};
       if (confirmed !== undefined) updateData.confirmed = confirmed;
@@ -205,6 +208,8 @@ export function registerSiteRoutes(app: Express) {
 
       const { email, name, locale, source } = req.body;
       if (!email) return res.status(400).json({ error: "Email is required" });
+      const nameError = invalidPersonName(name);
+      if (nameError) return res.status(400).json({ error: nameError });
 
       // Basic email format validation to prevent junk
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -255,6 +260,8 @@ export function registerSiteRoutes(app: Express) {
       if (!name || typeof name !== "string" || name.trim().length < 2) {
         return res.status(400).json({ error: "A valid name is required." });
       }
+      const nameError = invalidPersonName(name);
+      if (nameError) return res.status(400).json({ error: nameError });
       if (!email || typeof email !== "string") {
         return res.status(400).json({ error: "A valid email address is required." });
       }

@@ -1,4 +1,5 @@
 import type { Request, Response, NextFunction } from "express";
+import { invalidPersonName, PERSON_NAME_ERROR } from "../../shared/person-name.js";
 import { storage } from "../storage.js";
 import { requireRole } from "../middleware/role-guard.js";
 
@@ -89,7 +90,7 @@ export const createBookingItemSchema = z.object({
 });
 
 export const createBookingBodySchema = z.object({
-  customerName: z.string().min(1, "Name is required").max(100),
+  customerName: z.string().min(1, "Name is required").max(100).refine((name) => !invalidPersonName(name), PERSON_NAME_ERROR),
   customerEmail: z.string().email("Invalid email address"),
   items: z.array(createBookingItemSchema).min(1, "At least one item is required"),
   pickupLocation: z.string().max(500).nullable().optional(),

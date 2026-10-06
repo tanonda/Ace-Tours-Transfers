@@ -1,4 +1,5 @@
 import { Express, Request, Response } from "express";
+import { invalidPersonName } from "../../shared/person-name.js";
 import { authDomainService } from "../domain/users/auth.domain-service.js";
 import { AuthApplicationService } from "./auth.application-service.js";
 import { ExpressSessionAdapter } from "../infrastructure/session.adapter.js";
@@ -147,6 +148,8 @@ export function registerAuthRoutes(app: Express) {
       if (!name || typeof name !== "string" || name.trim().length < 2) {
         return res.status(400).json({ error: "A valid name is required." });
       }
+      const nameError = invalidPersonName(name);
+      if (nameError) return res.status(400).json({ error: nameError });
       if (!email || typeof email !== "string") {
         return res.status(400).json({ error: "A valid email is required." });
       }
