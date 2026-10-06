@@ -145,6 +145,20 @@ describe('PaymentApplicationService — handlePaymentWebhook', () => {
     expect(mockReceive).not.toHaveBeenCalled();
   });
 
+  it('ignores a callback naming a payment made through another gateway', async () => {
+    storageMock.getPayment.mockResolvedValue({ ...MOCK_PAYMENT, gatewayId: 'gw-manual-transfer', status: PaymentStatus.ManualReviewRequired });
+
+    const result = await service.handlePaymentWebhook({
+      gatewaySlug: 'anz-egate',
+      rawEvent: { order: 'pay-1', outcome: 'cancel' },
+    });
+
+    expect(result.success).toBe(false);
+    expect(storageMock.updatePayment).not.toHaveBeenCalled();
+    expect(mockReceive).not.toHaveBeenCalled();
+    expect(mockFail).not.toHaveBeenCalled();
+  });
+
   it('places payment in manual_review_required on amount mismatch and emails admin', async () => {
     const event: WebhookEvent = {
       gatewaySlug: 'bred-bank',

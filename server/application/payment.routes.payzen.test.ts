@@ -51,7 +51,7 @@ beforeEach(() => {
     getFeatureFlags: vi.fn().mockResolvedValue([]),
     getPaymentGatewayBySlug: vi.fn().mockResolvedValue(bredGateway),
     getPayment: vi.fn().mockResolvedValue({
-      id: 'pay-0001', bookingId: 'book-123', amount: 12500, currency: 'VUV',
+      id: 'pay-0001', bookingId: 'book-123', gatewayId: 'gw-bred', amount: 12500, currency: 'VUV',
       status: PaymentStatus.Processing, metadata: null,
     }),
     updatePayment: vi.fn().mockResolvedValue({}),

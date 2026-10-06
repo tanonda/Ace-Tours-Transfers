@@ -324,6 +324,14 @@ export class PaymentApplicationService {
     if (result.success && resolvedPaymentId && result.newPaymentStatus) {
       const existingPayment = await this.storage.getPayment(resolvedPaymentId);
 
+      // A callback may only move payments made through its own gateway: otherwise a
+      // return URL naming another payment's ID (e.g. a bank transfer awaiting review)
+      // could cancel it via a gateway that has no such order.
+      if (existingPayment && existingPayment.gatewayId !== gateway.id) {
+        console.warn(`[WEBHOOK] ${event.gatewaySlug} callback named payment ${resolvedPaymentId} of another gateway; ignored`);
+        return { ...result, success: false, newPaymentStatus: undefined, message: 'Payment does not belong to this gateway' };
+      }
+
       const terminalStates = [PaymentStatus.Completed, PaymentStatus.Failed, PaymentStatus.Cancelled, PaymentStatus.Expired];
       if (existingPayment && terminalStates.includes(existingPayment.status as PaymentStatus)) {
         return result;
