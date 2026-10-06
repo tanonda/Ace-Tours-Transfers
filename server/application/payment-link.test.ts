@@ -89,6 +89,13 @@ describe('PaymentApplicationService.createPaymentLink', () => {
     expect(adapter.createPaymentLink).not.toHaveBeenCalled();
   });
 
+  it('refuses a link while a bank transfer for the booking awaits review', async () => {
+    const storage = makeStorage({ getPaymentsByBooking: vi.fn().mockResolvedValue([{ id: 'p0', status: PaymentStatus.ManualReviewRequired }]) });
+    const result = await new PaymentApplicationService(storage).createPaymentLink(OPTIONS);
+    expect(result.success).toBe(false);
+    expect(adapter.createPaymentLink).not.toHaveBeenCalled();
+  });
+
   it('refuses when the seat hold has already expired', async () => {
     const storage = makeStorage({ getHold: vi.fn().mockResolvedValue({ ...HOLD, status: 'EXPIRED' }) });
     const result = await new PaymentApplicationService(storage).createPaymentLink(OPTIONS);
@@ -174,6 +181,16 @@ describe('PaymentApplicationService.handlePaymentWebhook — closed and link pay
 
     expect(storage.updatePayment).not.toHaveBeenCalled();
     expect(sendAdminEmail).not.toHaveBeenCalled();
+  });
+
+  it('does not let a later callback complete a payment held for review', async () => {
+    adapter.handleWebhook.mockResolvedValue({ success: true, paymentId: 'pay-link-1', newPaymentStatus: PaymentStatus.Completed, amount: 25000, currency: 'VUV' });
+    const held = { ...linkPayment(PaymentStatus.ManualReviewRequired), failureReason: 'paid_after_close' };
+    const storage = makeStorage({ getPayment: vi.fn().mockResolvedValue(held) });
+    const result = await new PaymentApplicationService(storage).handlePaymentWebhook({ gatewaySlug: 'anz-egate', rawEvent: {} });
+
+    expect(result.newPaymentStatus).toBeUndefined();
+    expect(storage.updatePayment).not.toHaveBeenCalled();
   });
 
   it('keeps a payment link open when the guest cancels on the bank\'s page', async () => {

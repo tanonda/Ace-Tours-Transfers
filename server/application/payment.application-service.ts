@@ -39,6 +39,9 @@ export interface PaymentOptions {
   isAdmin?: boolean; // admins may use a gateway whose bank shop is still in TEST mode
 }
 
+/** Review reasons set from a bank's report; only an admin may move these payments on. */
+const REVIEW_HOLD_REASONS = ['paid_after_close', 'amount_currency_mismatch'];
+
 export class PaymentApplicationService {
 
   private storage: IStorage;
@@ -319,9 +322,12 @@ export class PaymentApplicationService {
       return { success: false, message: `${gateway.displayName} does not offer payment links.` };
     }
 
+    // Includes a bank transfer or flagged card payment awaiting review: a link on top
+    // of either could charge the guest twice.
     const existingPayments = await this.storage.getPaymentsByBooking(booking.id);
-    if (existingPayments.some(p => [PaymentStatus.Pending, PaymentStatus.Processing].includes(p.status as PaymentStatus))) {
-      return { success: false, message: "This booking already has a payment in progress." };
+    const open = [PaymentStatus.Pending, PaymentStatus.Processing, PaymentStatus.ManualReviewRequired];
+    if (existingPayments.some(p => open.includes(p.status as PaymentStatus))) {
+      return { success: false, message: "This booking already has a payment in progress or awaiting review." };
     }
 
     const { MANUAL_PAYMENT_TTL_MINUTES } = await import("./availability/availability.application-service.js");
@@ -452,6 +458,14 @@ export class PaymentApplicationService {
           return { ...result, success: false, newPaymentStatus: PaymentStatus.ManualReviewRequired, message: 'Paid after the payment was closed; sent to manual review.' };
         }
         return result;
+      }
+
+      // A payment held for review because of what the bank reported (paid after we closed
+      // it, or the wrong amount) is settled by a person; a later callback must not
+      // complete it behind the admin's back.
+      if (existingPayment?.status === PaymentStatus.ManualReviewRequired &&
+          REVIEW_HOLD_REASONS.includes(existingPayment.failureReason ?? '')) {
+        return { ...result, success: false, newPaymentStatus: undefined, message: 'Payment is held for manual review.' };
       }
 
       // A payment link can still be paid after a cancel or decline on the bank's page,
