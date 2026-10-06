@@ -25,9 +25,19 @@ const GATEWAY_DATA = [
   {
     slug: "bsp-bank",
     displayName: "BSP Bank",
-    description: "Bank of South Pacific online payment gateway.",
+    description: "BSP Vanuatu card payments (Mastercard Payment Gateway Services, Hosted Checkout).",
     active: false,
     priority: 3,
+    supportedCurrencies: ["VUV"],
+    credentials: {},
+    config: {}
+  },
+  {
+    slug: "nbv-bank",
+    displayName: "National Bank of Vanuatu",
+    description: "NBV card payments (Mastercard Payment Gateway Services, Hosted Checkout).",
+    active: false,
+    priority: 4,
     supportedCurrencies: ["VUV"],
     credentials: {},
     config: {}

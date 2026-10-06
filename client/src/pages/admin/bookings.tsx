@@ -8,12 +8,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Search, Filter, MoreHorizontal, Eye, Download, Trash2,
-  CheckSquare, X, RefreshCw, Plus, CheckCircle2, XCircle, Clock, AlertTriangle
+  CheckSquare, X, RefreshCw, Plus, CheckCircle2, XCircle, Clock, AlertTriangle, Link2
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { BookingDetailsDialog } from "@/components/admin/booking-details-dialog";
 import { EditBookingDialog } from "@/components/admin/edit-booking-dialog";
 import { CreateBookingDialog } from "@/components/admin/create-booking-dialog";
+import { PaymentLinkDialog } from "@/components/admin/payment-link-dialog";
 import { useState, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -36,6 +37,7 @@ export default function AdminBookings() {
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isPaymentLinkOpen, setIsPaymentLinkOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -250,6 +252,9 @@ export default function AdminBookings() {
                               <DropdownMenuSeparator />
                               <DropdownMenuItem onClick={() => updateMutation.mutate({ id: booking.id, updates: { status: "confirmed" } as any })}><CheckCircle2 className="h-4 w-4 mr-2 text-green-600" />Confirm</DropdownMenuItem>
                               <DropdownMenuItem onClick={() => updateMutation.mutate({ id: booking.id, updates: { status: "cancelled" } as any })}><XCircle className="h-4 w-4 mr-2 text-orange-600" />Cancel</DropdownMenuItem>
+                              {booking.status === "pending" && (
+                                <DropdownMenuItem onClick={() => { setSelectedBooking(booking); setIsPaymentLinkOpen(true); }}><Link2 className="h-4 w-4 mr-2" />Create payment link</DropdownMenuItem>
+                              )}
                               <DropdownMenuSeparator />
                               <DropdownMenuItem className="text-red-600" onClick={() => {
                                 const isArchived = !!(booking as any).archivedAt;
@@ -276,6 +281,7 @@ export default function AdminBookings() {
 
         <BookingDetailsDialog booking={selectedBooking} open={isViewOpen} onOpenChange={setIsViewOpen} />
         <EditBookingDialog booking={selectedBooking} open={isEditOpen} onOpenChange={setIsEditOpen} onSave={b => updateMutation.mutate({ id: b.id, updates: b })} />
+        <PaymentLinkDialog booking={selectedBooking} open={isPaymentLinkOpen} onOpenChange={setIsPaymentLinkOpen} />
         <CreateBookingDialog open={isCreateOpen} onOpenChange={setIsCreateOpen} onSuccess={() => queryClient.invalidateQueries({ queryKey: ["bookings"] })} />
       </div>
     </DashboardLayout>

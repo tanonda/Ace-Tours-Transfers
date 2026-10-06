@@ -2,7 +2,6 @@ import { PaymentGateway } from "../../../shared/schema.js";
 import { PaymentGatewayService, PaymentStatus } from "../../domain/payments/interfaces.js";
 import { ManualAdapter } from "./manual.adapter.js";
 import { MpgsHostedCheckoutAdapter } from "./mpgs.adapter.js";
-import { BspEGateAdapter } from "./bsp-egate.adapter.js";
 import { PayzenAdapter } from "./payzen.adapter.js";
 import { StripeAdapter } from "./stripe.adapter.js";
 import { PayPalAdapter } from "./paypal.adapter.js";
@@ -23,9 +22,10 @@ export class PaymentFactory {
     'manual': ManualAdapter as any,
     'manual_transfer': ManualAdapter as any,   // Bank transfer (canonical slug in DB)
     'cash': ManualAdapter as any,              // Cash on delivery
-    // Local bank gateways: ANZ uses MPGS Hosted Checkout; BSP delegates to MastercardGatewayAdapter (VPC); BRED uses Lyra PayZen
+    // Local bank gateways: ANZ, BSP and NBV use MPGS Hosted Checkout; BRED uses Lyra PayZen
     'anz-egate': MpgsHostedCheckoutAdapter as any,
-    'bsp-bank': BspEGateAdapter as any,
+    'bsp-bank': MpgsHostedCheckoutAdapter as any,
+    'nbv-bank': MpgsHostedCheckoutAdapter as any,
     'bred-bank': PayzenAdapter as any,
     // International / digital (stub implementations — configure credentials before activating)
     'stripe': StripeAdapter as any,
@@ -82,6 +82,7 @@ export class PaymentFactory {
     if (slug === 'anz-egate') return 'anz-egate';
     if (slug === 'bred-bank') return 'bred-bank';
     if (slug === 'bsp-bank') return 'bsp-bank';
+    if (slug === 'nbv-bank') return 'nbv-bank';
     // All manual/offline variants map to the 'manual' config block
     if (slug === 'manual_transfer' || slug === 'cash') return 'manual';
     return slug;

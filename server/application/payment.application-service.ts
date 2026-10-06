@@ -1,6 +1,7 @@
 // server/application/payment.application-service.ts
 
 import {
+  PaymentGatewayService,
   PaymentInitiationRequest,
   PaymentInitiationResponse,
   PaymentStatus,
@@ -10,6 +11,7 @@ import {
 import { PaymentMethodClassifier } from '../domain/payments/payment-method-classifier.js';
 import { IStorage } from '../storage.js';
 import { PaymentFactory } from "../infrastructure/payments/factory.js";
+import type { MpgsHostedCheckoutAdapter } from "../infrastructure/payments/mpgs.adapter.js";
 import { PaymentGateway, Booking } from '../../shared/schema.js';
 import { config } from "../config.js";
 import { PaymentIntent } from "../domain/payments/PaymentIntent.js";
@@ -101,17 +103,7 @@ export class PaymentApplicationService {
       if (isManual) {
         const extendedExpiry = new Date();
         extendedExpiry.setMinutes(extendedExpiry.getMinutes() + MANUAL_PAYMENT_TTL_MINUTES);
-        await this.storage.updateHold(hold.id, { expiresAt: extendedExpiry });
-
-        // Also extend all session holds (multi-item bookings)
-        if (booking.bookingSessionId) {
-          const sessionHolds = await this.storage.getHoldsBySession(booking.bookingSessionId);
-          for (const sh of sessionHolds) {
-            if (sh.id !== hold.id) {
-              await this.storage.updateHold(sh.id, { expiresAt: extendedExpiry });
-            }
-          }
-        }
+        await this.extendHolds(booking, hold.id, extendedExpiry);
         console.log(`[PAYMENT] Extended hold TTL to 72h for manual payment method '${chosenSlug}', booking ${booking.id}`);
       }
     }
@@ -283,6 +275,93 @@ export class PaymentApplicationService {
       });
       return { success: false, message: error.message };
     }
+  }
+
+  /** Keeps a booking's seats (all holds in its session) until `expiresAt`. */
+  private async extendHolds(booking: Booking, holdId: string, expiresAt: Date): Promise<void> {
+    await this.storage.updateHold(holdId, { expiresAt });
+    if (booking.bookingSessionId) {
+      const sessionHolds = await this.storage.getHoldsBySession(booking.bookingSessionId);
+      for (const sh of sessionHolds) {
+        if (sh.id !== holdId) {
+          await this.storage.updateHold(sh.id, { expiresAt });
+        }
+      }
+    }
+  }
+
+  /**
+   * Admin: a bank-hosted payment link for a pending booking (phone and email bookings).
+   * The booking's seats are held, and the payment stays open, for as long as the link
+   * works (MANUAL_PAYMENT_TTL_MINUTES); the bank's notification, the guest's return or
+   * reconciliation then confirms it like any card payment.
+   */
+  async createPaymentLink(options: { bookingId: string; gatewaySlug: string; siteOrigin: string }):
+    Promise<{ success: true; url: string; paymentId: string; expiresAt: Date } | { success: false; message: string }> {
+    if (config.killSwitches.paymentsPaused) {
+      return { success: false, message: "Payments are paused for maintenance." };
+    }
+    const booking = await this.storage.getBooking(options.bookingId);
+    if (!booking) return { success: false, message: "Booking not found" };
+    if (booking.status !== 'pending') {
+      return { success: false, message: `Only pending bookings can be sent a payment link (this one is '${booking.status}').` };
+    }
+
+    const gateway = await this.storage.getPaymentGatewayBySlug(options.gatewaySlug);
+    if (!gateway || !gateway.active) {
+      return { success: false, message: `Payment provider ${options.gatewaySlug} is not active` };
+    }
+    const adapter = PaymentFactory.getPaymentGatewayService(gateway) as PaymentGatewayService & {
+      createPaymentLink?: MpgsHostedCheckoutAdapter['createPaymentLink'];
+    };
+    if (typeof adapter.createPaymentLink !== 'function') {
+      return { success: false, message: `${gateway.displayName} does not offer payment links.` };
+    }
+
+    const existingPayments = await this.storage.getPaymentsByBooking(booking.id);
+    if (existingPayments.some(p => [PaymentStatus.Pending, PaymentStatus.Processing].includes(p.status as PaymentStatus))) {
+      return { success: false, message: "This booking already has a payment in progress." };
+    }
+
+    const { MANUAL_PAYMENT_TTL_MINUTES } = await import("./availability/availability.application-service.js");
+    const expiresAt = new Date(Date.now() + MANUAL_PAYMENT_TTL_MINUTES * 60_000);
+
+    if (booking.holdId) {
+      const hold = await this.storage.getHold(booking.holdId);
+      if (!hold || hold.status !== 'ACTIVE') {
+        return { success: false, message: "The booking's seat hold has expired; check availability and re-create the booking." };
+      }
+      await this.extendHolds(booking, hold.id, expiresAt);
+    }
+
+    const payment = await this.storage.createPayment({
+      bookingId: booking.id,
+      gatewayId: gateway.id,
+      amount: booking.totalAmountCents,
+      currency: 'VUV',
+      status: PaymentStatus.Pending,
+      expiresAt,
+    });
+
+    const link = await adapter.createPaymentLink({
+      paymentId: payment.id,
+      bookingId: booking.id,
+      amount: booking.totalAmountCents,
+      currency: 'VUV',
+      expiresAt,
+      siteOrigin: options.siteOrigin,
+    });
+    if (!link.success) {
+      await this.storage.updatePayment(payment.id, { status: PaymentStatus.Failed, failureReason: 'payment_link_failed' });
+      return link;
+    }
+
+    await this.storage.updatePayment(payment.id, {
+      status: PaymentStatus.Processing,
+      gatewayReference: payment.id, // the MPGS order ID
+      metadata: { paymentLink: { url: link.url, id: link.linkId, expiresAt: expiresAt.toISOString() } },
+    });
+    return { success: true, url: link.url, paymentId: payment.id, expiresAt };
   }
 
   async handlePaymentWebhook(event: WebhookEvent): Promise<WebhookResponse> {

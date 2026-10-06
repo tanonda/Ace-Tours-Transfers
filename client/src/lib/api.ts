@@ -235,6 +235,11 @@ export async function setDefaultPaymentGateway(id: string): Promise<void> {
   await apiRequest("POST", `/api/admin/payment-gateways/${id}/set-default`);
 }
 
+export async function createPaymentLink(bookingId: string, gateway: string): Promise<{ url: string; paymentId: string; expiresAt: string }> {
+  const res = await apiRequest("POST", `/api/admin/bookings/${bookingId}/payment-link`, { gateway });
+  return res.json();
+}
+
 // CMS Content
 export async function fetchAllCmsContent(locale?: string): Promise<Record<string, CmsContent[]>> {
   const qs = locale ? `?locale=${locale}` : '';

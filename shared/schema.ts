@@ -772,11 +772,12 @@ export const LocalBankConfigSchema = z.object({
   dataPortEndpoint: z.string().url().optional(),
 });
 
-// ANZ eGate Credentials Schema — ANZ runs on Mastercard Payment Gateway Services (MPGS),
-// Hosted Checkout over the REST API. ANZ issues a separate TEST merchant (usually "TEST" +
-// the merchant ID) with its own API password; blank optional fields arrive as "" from the form.
-const mpgsMerchantId = z.string().regex(/^[A-Za-z0-9_-]{1,40}$/, "Merchant ID: letters and digits as ANZ issued it");
-export const AnzEGateCredentialsSchema = z.object({
+// MPGS Credentials Schema — banks on Mastercard Payment Gateway Services (ANZ, and BSP/NBV
+// if their merchant profiles are on MPGS), Hosted Checkout over the REST API. The bank issues a
+// separate TEST merchant (usually "TEST" + the merchant ID) with its own API password; blank
+// optional fields arrive as "" from the admin form.
+const mpgsMerchantId = z.string().regex(/^[A-Za-z0-9_-]{1,40}$/, "Merchant ID: letters and digits as the bank issued it");
+export const MpgsCredentialsSchema = z.object({
   mode: z.enum(["TEST", "PRODUCTION"]),
   gatewayUrl: z.string().url().refine((u) => u.startsWith("https://"), "Gateway URL must start with https://"), // e.g. https://anzworldline.gateway.mastercard.com
   apiVersion: z.string().regex(/^(\d{2,3})?$/, "API version is a number such as 100").optional(), // blank = 100
@@ -788,6 +789,10 @@ export const AnzEGateCredentialsSchema = z.object({
   productionNotificationSecret: z.string().optional(),
   merchantName: z.string().max(40).optional(), // shown on the hosted payment page
 });
+/** Gateways that run on MPGS Hosted Checkout and can issue payment links. */
+export const MPGS_GATEWAY_SLUGS = ['anz-egate', 'bsp-bank', 'nbv-bank'] as const;
+export const AnzEGateCredentialsSchema = MpgsCredentialsSchema;
+export const NbvBankCredentialsSchema = MpgsCredentialsSchema;
 
 // Bred Bank Credentials Schema — BRED's hosted card page runs on Lyra PayZen
 // (signed form POST + Instant Payment Notification). Values come from the
@@ -800,14 +805,8 @@ export const BredBankCredentialsSchema = z.object({
   paymentUrl: z.string().url().or(z.literal("")).optional(), // blank = https://secure.payzen.eu/vads-payment/
 });
 
-// Refined: BSP Bank Credentials Schema
-export const BspBankCredentialsSchema = z.object({
-  merchantId: z.string(),
-  password: z.string(),
-  apiEndpoint: z.string().url(),
-  integrationType: z.enum(["HOSTED_REDIRECT", "DIRECT_API_POST"]),
-  terminalId: z.string().optional(),
-});
+// BSP Bank Credentials Schema — built on MPGS like ANZ; BSP must confirm its platform.
+export const BspBankCredentialsSchema = MpgsCredentialsSchema;
 
 // NEW: Digital Wallet Common Config Schema (for Apple Pay/Google Pay specifically)
 export const DigitalWalletConfigSchema = z.object({

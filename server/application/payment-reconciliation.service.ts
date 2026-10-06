@@ -74,6 +74,24 @@ export class PaymentReconciliationService {
         ...(auditFields || {})
       });
 
+      // The gateway has nothing final and the payment's window (card checkout, or a
+      // payment link's life) is over: expire it rather than polling it forever.
+      const stillOpen = [PaymentStatus.Pending, PaymentStatus.Processing].includes(response.status);
+      if (stillOpen && payment.expiresAt && payment.expiresAt < new Date()) {
+        console.log(`[RECON][${traceId}] Payment ${paymentId} expired with no result at the gateway.`);
+        await this.storage.updatePayment(paymentId, { status: PaymentStatus.Expired, failureReason: 'expired_timeout' });
+        new PaymentIntent({
+          id: payment.id,
+          bookingId: payment.bookingId,
+          amount: payment.amount,
+          currency: payment.currency,
+          status: payment.status as any,
+          method: 'Card',
+          provider: gateway.slug,
+        }).fail('expired_timeout');
+        return;
+      }
+
       if (!ReconciliationPolicy.isTransitionSafe(payment.status as PaymentStatus, response.status)) {
         console.warn(`[RECON][${traceId}] Transition from ${payment.status} to ${response.status} rejected by policy.`);
         return;

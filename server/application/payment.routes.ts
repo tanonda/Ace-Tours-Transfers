@@ -9,7 +9,7 @@ import { z } from "zod";
 import { adminAudit } from "../infrastructure/audit/admin-audit-log.service.js";
 import { toPublicGateway, visibleGateways, isTestModeGateway } from "./public-gateway.js";
 import { PaymentStatus, WebhookResponse } from "../domain/payments/interfaces.js";
-import { MpgsHostedCheckoutAdapter, parseMpgsSessionId, renderMpgsLaunchPage } from "../infrastructure/payments/mpgs.adapter.js";
+import { MpgsHostedCheckoutAdapter, isMpgsGateway, parseMpgsSessionId, renderMpgsLaunchPage } from "../infrastructure/payments/mpgs.adapter.js";
 
 const paymentLimiter = rateLimit({
   windowMs: 60 * 1000,
@@ -173,20 +173,20 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
   // This route verifies the hash, records the payment outcome, and then
   // redirects the customer to the success or cancel page.
   // ─────────────────────────────────────────────────────────────────────────
-  const BANK_GATEWAY_SLUGS = ['anz-egate', 'bsp-bank', 'bred-bank', 'wantok-money', 'generic-local-bank'];
+  const BANK_GATEWAY_SLUGS = ['anz-egate', 'bsp-bank', 'nbv-bank', 'bred-bank', 'wantok-money', 'generic-local-bank'];
 
   // A payment is shown the success page (which polls the booking) unless the bank said no.
   const paidOrPending = (result: WebhookResponse) =>
     result.success &&
     ![PaymentStatus.Failed, PaymentStatus.Cancelled, PaymentStatus.Expired].includes(result.newPaymentStatus as PaymentStatus);
 
-  // ANZ eGate (MPGS) launch page: loads ANZ's checkout.js for the session created by
-  // initiatePayment and hands the guest to ANZ's hosted payment page.
-  app.get("/api/payments/checkout/anz-egate", callbackLimiter, async (req, res) => {
+  // MPGS launch page (ANZ, BSP, NBV): loads the bank's checkout.js for the session created
+  // by initiatePayment and hands the guest to the bank's hosted payment page.
+  app.get("/api/payments/checkout/:gateway", callbackLimiter, async (req, res) => {
     const sessionId = parseMpgsSessionId(req.query.session);
-    if (!sessionId) return res.redirect('/payment/cancel?reason=system_error');
+    if (!sessionId || !isMpgsGateway(req.params.gateway)) return res.redirect('/payment/cancel?reason=system_error');
     try {
-      const gateway = await storage.getPaymentGatewayBySlug('anz-egate');
+      const gateway = await storage.getPaymentGatewayBySlug(req.params.gateway);
       if (!gateway || !gateway.active) return res.redirect('/payment/cancel?reason=system_error');
       const adapter = new MpgsHostedCheckoutAdapter(gateway);
       const { html, csp } = renderMpgsLaunchPage(adapter.checkoutScriptUrl, sessionId, '/payment/cancel?reason=gateway_rejected');
@@ -287,9 +287,9 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
       }
     }
 
-    // ANZ eGate (MPGS) notification: JSON body, X-Notification-Secret header. The adapter
-    // re-reads the order from ANZ, so the body itself is never trusted. MPGS retries on non-200.
-    if (gatewaySlug === 'anz-egate') {
+    // MPGS notification (ANZ, BSP, NBV): JSON body, X-Notification-Secret header. The adapter
+    // re-reads the order from the bank, so the body itself is never trusted. MPGS retries on non-200.
+    if (isMpgsGateway(gatewaySlug)) {
       try {
         const result = await paymentAppService.handlePaymentWebhook({
           gatewaySlug,
@@ -433,6 +433,35 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
         return res.status(500).json({ error: "Gateway keys cannot be saved: the server's PAYMENT_CREDENTIALS_KEY is not configured." });
       }
       res.status(400).json({ error: "Failed to update payment gateway" });
+    }
+  });
+
+  // Admin: a bank-hosted payment link (ANZ/BSP/NBV on MPGS) for a pending booking,
+  // to send to the guest by email or text.
+  const paymentLinkSchema = z.object({ gateway: z.string().min(1) });
+  app.post("/api/admin/bookings/:id/payment-link", requireAdmin, async (req, res) => {
+    const parsed = paymentLinkSchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: "Choose a bank for the payment link." });
+    try {
+      const result = await paymentAppService.createPaymentLink({
+        bookingId: req.params.id,
+        gatewaySlug: parsed.data.gateway,
+        siteOrigin: `${req.protocol}://${req.get('host')}`,
+      });
+      if (!result.success) return res.status(400).json({ error: result.message });
+
+      await adminAudit.log({
+        action: "payment.link_created",
+        entityType: "booking",
+        entityId: req.params.id,
+        performedBy: (req.session as any)?.userId,
+        newValue: { gateway: parsed.data.gateway, paymentId: result.paymentId, expiresAt: result.expiresAt },
+        req,
+      });
+      res.json({ url: result.url, paymentId: result.paymentId, expiresAt: result.expiresAt });
+    } catch (error: any) {
+      console.error("[PAYMENT LINK] Error:", error);
+      res.status(500).json({ error: "Failed to create the payment link." });
     }
   });
 

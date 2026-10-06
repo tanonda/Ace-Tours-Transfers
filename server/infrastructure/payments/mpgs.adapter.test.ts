@@ -33,8 +33,8 @@ function fakeAnz(reply: (call: Call) => { status: number; json: unknown }) {
   return { calls, fetchFn };
 }
 
-function makeAdapter(fetchFn: typeof fetch, credentials: Record<string, unknown> = {}) {
-  const gateway = makePaymentGateway({ slug: 'anz-egate', credentials: { ...CREDENTIALS, ...credentials }, config: null });
+function makeAdapter(fetchFn: typeof fetch, credentials: Record<string, unknown> = {}, slug = 'anz-egate') {
+  const gateway = makePaymentGateway({ slug, displayName: 'ANZ eGate', credentials: { ...CREDENTIALS, ...credentials }, config: null });
   return new MpgsHostedCheckoutAdapter(gateway, { fetch: fetchFn });
 }
 
@@ -67,6 +67,11 @@ describe('AnzEGateCredentialsSchema', () => {
 });
 
 describe('MpgsHostedCheckoutAdapter constructor', () => {
+  it('only serves MPGS gateways', () => {
+    const { fetchFn } = fakeAnz(() => ({ status: 200, json: {} }));
+    expect(() => makeAdapter(fetchFn, {}, 'bred-bank')).toThrow(/not an MPGS gateway/);
+  });
+
   it('refuses PRODUCTION mode without production credentials', () => {
     const { fetchFn } = fakeAnz(() => ({ status: 200, json: {} }));
     expect(() => makeAdapter(fetchFn, { mode: 'PRODUCTION', productionApiPassword: '' })).toThrow(/production/i);
@@ -93,6 +98,17 @@ describe('initiatePayment', () => {
       `https://acetoursvanuatu.com/api/payments/callback/anz-egate?order=pay-0001&booking=${REQUEST.bookingId}&outcome=return`,
     );
     expect(call.body.interaction.cancelUrl).toContain('outcome=cancel');
+    expect(call.body.checkoutMode).toBe('WEBSITE');
+    // After the last declined attempt the guest is sent back rather than stuck at the bank.
+    expect(call.body.interaction.redirectMerchantUrl).toContain('outcome=failed');
+    expect(call.body.interaction.retryAttemptCount).toBe(3);
+  });
+
+  it('sends BSP and NBV guests to their own bank\'s callback and launch paths', async () => {
+    const { calls, fetchFn } = fakeAnz(() => ({ status: 201, json: { result: 'SUCCESS', session: { id: SESSION_ID } } }));
+    const res = await makeAdapter(fetchFn, {}, 'nbv-bank').initiatePayment(REQUEST);
+    expect(res.redirectUrl).toBe(`https://acetoursvanuatu.com/api/payments/checkout/nbv-bank?session=${SESSION_ID}`);
+    expect(calls[0].body.interaction.returnUrl).toContain('/api/payments/callback/nbv-bank?order=pay-0001');
   });
 
   it('uses the production merchant and password in PRODUCTION mode', async () => {
@@ -152,6 +168,12 @@ describe('handleWebhook — guest returns to the site', () => {
     const res = await makeAdapter(fetchFn).handleWebhook({ gatewaySlug: 'anz-egate', rawEvent: { order: 'pay-0001', outcome: 'return' } });
     expect(res.success).toBe(true);
     expect(res.newPaymentStatus).toBeUndefined();
+  });
+
+  it('fails the payment when the bank sends the guest back after the last declined attempt', async () => {
+    const { fetchFn } = fakeAnz(() => ({ status: 200, json: capturedOrder({ status: 'AUTHENTICATION_INITIATED', totalCapturedAmount: 0 }) }));
+    const res = await makeAdapter(fetchFn).handleWebhook({ gatewaySlug: 'anz-egate', rawEvent: { order: 'pay-0001', outcome: 'failed' } });
+    expect(res.newPaymentStatus).toBe(PaymentStatus.Failed);
   });
 
   it('ignores a forged "paid" query string: only the order lookup counts', async () => {
@@ -215,10 +237,50 @@ describe('mapMpgsOrder', () => {
 });
 
 describe('queryPaymentStatus (reconciliation)', () => {
+  it('leaves an unpaid payment link open (no order at the bank yet)', async () => {
+    const { fetchFn } = fakeAnz(() => ({ status: 400, json: { result: 'ERROR', error: { cause: 'INVALID_REQUEST', explanation: 'Unable to find order = pay-0001' } } }));
+    const res = await makeAdapter(fetchFn).queryPaymentStatus({ paymentId: 'pay-0001' });
+    expect(res.status).toBe(PaymentStatus.Processing);
+  });
+
   it('reports a captured order as completed', async () => {
     const { fetchFn } = fakeAnz(() => ({ status: 200, json: capturedOrder() }));
     const res = await makeAdapter(fetchFn).queryPaymentStatus({ paymentId: 'pay-0001' });
     expect(res.status).toBe(PaymentStatus.Completed);
+  });
+});
+
+describe('createPaymentLink', () => {
+  const LINK = {
+    paymentId: 'pay-0001', bookingId: REQUEST.bookingId, amount: 12500, currency: 'VUV',
+    expiresAt: new Date('2026-10-09T08:00:00.000Z'), siteOrigin: 'https://acetoursvanuatu.com',
+  };
+
+  it('asks the bank for a PAYMENT_LINK checkout of the same order and returns its URL', async () => {
+    const url = `${HOST}/pbl/PAYLINK0001060519617G19059484L2`;
+    const { calls, fetchFn } = fakeAnz(() => ({ status: 201, json: { result: 'SUCCESS', checkoutMode: 'PAYMENT_LINK', paymentLink: { id: 'PAYLINK0001060519617G19059484L2', url } } }));
+    const res = await makeAdapter(fetchFn).createPaymentLink(LINK);
+
+    expect(res).toEqual({ success: true, url, linkId: 'PAYLINK0001060519617G19059484L2' });
+    const body = calls[0].body;
+    expect(calls[0].url).toBe(`${HOST}/api/rest/version/100/merchant/TESTACETOURS01/session`);
+    expect(body.checkoutMode).toBe('PAYMENT_LINK');
+    expect(body.interaction.operation).toBe('PURCHASE');
+    expect(body.order).toMatchObject({ id: 'pay-0001', reference: REQUEST.bookingId, amount: '12500', currency: 'VUV' });
+    expect(body.paymentLink).toMatchObject({ expiryDateTime: '2026-10-09T08:00:00.000Z', numberOfAllowedAttempts: 25 });
+    expect(body.paymentLink.errorUrl).toContain('reason=link_unavailable');
+  });
+
+  it('refuses a link that does not point at the bank\'s own gateway', async () => {
+    const { fetchFn } = fakeAnz(() => ({ status: 201, json: { result: 'SUCCESS', paymentLink: { id: 'x', url: 'https://evil.example/pbl/x' } } }));
+    expect((await makeAdapter(fetchFn).createPaymentLink(LINK)).success).toBe(false);
+  });
+
+  it('passes on the bank\'s reason when it refuses', async () => {
+    const { fetchFn } = fakeAnz(() => ({ status: 400, json: { result: 'ERROR', error: { explanation: 'Payment links not enabled for merchant' } } }));
+    const res = await makeAdapter(fetchFn).createPaymentLink(LINK);
+    expect(res.success).toBe(false);
+    expect(!res.success && res.message).toContain('Payment links not enabled');
   });
 });
 

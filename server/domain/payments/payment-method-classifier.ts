@@ -60,6 +60,7 @@ const OFFLINE_SLUGS = new Set([
 const ONLINE_CARD_SLUGS = new Set([
   'anz-egate',
   'bsp-bank',
+  'nbv-bank',
   'bred-bank',
   'stripe',
   'paypal',
@@ -76,6 +77,7 @@ const SLUG_TO_CATEGORY: Record<string, PaymentMethodCategory> = {
   // Card processors — consolidated into one "Pay with Card" option
   'anz-egate': 'card',
   'bsp-bank': 'card',
+  'nbv-bank': 'card',
   'bred-bank': 'card',
   'stripe': 'card',
 
@@ -183,6 +185,7 @@ export class PaymentMethodClassifier {
     if (slug === 'stripe') return 'Card (Stripe)';
     if (slug === 'anz-egate') return 'ANZ eGate';
     if (slug === 'bsp-bank') return 'BSP Bank';
+    if (slug === 'nbv-bank') return 'National Bank of Vanuatu';
     if (slug === 'bred-bank') return 'BRED Bank';
     if (slug === 'paypal') return 'PayPal';
     if (slug === 'wantok-money') return 'WanTok Money';

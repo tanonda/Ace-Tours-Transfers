@@ -2,7 +2,7 @@
 
 import { randomBytes, timingSafeEqual } from 'crypto';
 import { z } from 'zod';
-import { PaymentGateway, Payment, AnzEGateCredentialsSchema } from '../../../shared/schema.js';
+import { PaymentGateway, Payment, MpgsCredentialsSchema, MPGS_GATEWAY_SLUGS } from '../../../shared/schema.js';
 import {
   PaymentGatewayService,
   PaymentInitiationRequest,
@@ -17,7 +17,9 @@ import { createLogger } from '../../lib/logger.js';
 
 const logger = createLogger('mpgs-adapter');
 
-type MpgsCredentials = z.infer<typeof AnzEGateCredentialsSchema>;
+type MpgsCredentials = z.infer<typeof MpgsCredentialsSchema>;
+
+export const isMpgsGateway = (slug: string) => (MPGS_GATEWAY_SLUGS as readonly string[]).includes(slug);
 type FetchFn = typeof fetch;
 
 const DEFAULT_API_VERSION = '100';
@@ -71,32 +73,44 @@ export function mapMpgsOrder(order: MpgsOrder): PaymentStatus | undefined {
 }
 
 /**
- * ANZ eGate on Mastercard Payment Gateway Services (MPGS), Hosted Checkout.
+ * Bank card payments on Mastercard Payment Gateway Services (MPGS), Hosted Checkout.
+ * One adapter serves every bank whose merchant profile is on MPGS (ANZ, BSP, NBV);
+ * each bank is its own gateway row with its own credentials.
  *
  * 1. initiatePayment: server calls INITIATE_CHECKOUT and gets a session ID.
- *    The guest is sent to our launch page, which loads ANZ's checkout.js and
+ *    The guest is sent to our launch page, which loads the bank's checkout.js and
  *    shows the hosted payment page. Card details never touch this site.
- * 2. The guest returns to /api/payments/callback/anz-egate?order=<paymentId>,
- *    and ANZ may also POST a notification to /api/payments/webhook/anz-egate.
+ * 2. The guest returns to /api/payments/callback/<slug>?order=<paymentId>,
+ *    and the bank may also POST a notification to /api/payments/webhook/<slug>.
  *    Neither is trusted: both only trigger a server-to-server Retrieve Order,
  *    whose answer decides the payment status.
+ *
+ * 3. createPaymentLink: the same order, but the bank hosts a link the admin
+ *    sends to the guest (phone and email bookings).
  *
  * Order ID = our payment ID; order reference = booking ID.
  */
 export class MpgsHostedCheckoutAdapter implements PaymentGatewayService {
   private credentials: MpgsCredentials;
   private fetchFn: FetchFn;
+  private slug: string;
+  private bankName: string;
 
   constructor(gatewayConfig: PaymentGateway, deps: { fetch?: FetchFn } = {}) {
-    if (!gatewayConfig.credentials) {
-      throw new Error('ANZ eGate (MPGS) credentials are not provided.');
+    this.slug = gatewayConfig.slug;
+    this.bankName = `${gatewayConfig.displayName} (MPGS)`;
+    if (!isMpgsGateway(this.slug)) {
+      throw new Error(`${gatewayConfig.slug} is not an MPGS gateway.`);
     }
-    const parsed = AnzEGateCredentialsSchema.safeParse(gatewayConfig.credentials);
+    if (!gatewayConfig.credentials) {
+      throw new Error(`${this.bankName} credentials are not provided.`);
+    }
+    const parsed = MpgsCredentialsSchema.safeParse(gatewayConfig.credentials);
     if (!parsed.success) {
-      throw new Error(`Invalid ANZ eGate (MPGS) credentials: ${parsed.error.errors.map((e: z.ZodIssue) => e.message).join(', ')}`);
+      throw new Error(`Invalid ${this.bankName} credentials: ${parsed.error.errors.map((e: z.ZodIssue) => e.message).join(', ')}`);
     }
     if (parsed.data.mode === 'PRODUCTION' && (!parsed.data.productionMerchantId || !parsed.data.productionApiPassword)) {
-      throw new Error('ANZ eGate (MPGS) is set to PRODUCTION but the production merchant ID or API password is missing.');
+      throw new Error(`${this.bankName} is set to PRODUCTION but the production merchant ID or API password is missing.`);
     }
     this.credentials = parsed.data;
     this.fetchFn = deps.fetch ?? fetch;
@@ -123,7 +137,7 @@ export class MpgsHostedCheckoutAdapter implements PaymentGatewayService {
     return new URL(this.credentials.gatewayUrl).origin;
   }
 
-  /** ANZ's checkout.js, which the launch page loads to show the hosted payment page. */
+  /** The bank's checkout.js, which the launch page loads to show the hosted payment page. */
   get checkoutScriptUrl(): string {
     return `${this.origin}/static/checkout/checkout.min.js`;
   }
@@ -148,9 +162,47 @@ export class MpgsHostedCheckoutAdapter implements PaymentGatewayService {
     return { status: response.status, json };
   }
 
+  /** Where the guest comes back to, for one of the three exits from the bank's page. */
+  private backUrl(siteOrigin: string, paymentId: string, bookingId: string, outcome: 'return' | 'cancel' | 'failed'): string {
+    return `${siteOrigin}/api/payments/callback/${this.slug}?order=${encodeURIComponent(paymentId)}` +
+      `&booking=${encodeURIComponent(bookingId)}&outcome=${outcome}`;
+  }
+
+  private checkoutRequest(
+    order: { paymentId: string; bookingId: string; amount: number; currency: string },
+    siteOrigin: string,
+  ) {
+    return {
+      apiOperation: 'INITIATE_CHECKOUT',
+      interaction: {
+        operation: 'PURCHASE',
+        returnUrl: this.backUrl(siteOrigin, order.paymentId, order.bookingId, 'return'),
+        cancelUrl: this.backUrl(siteOrigin, order.paymentId, order.bookingId, 'cancel'),
+        // After 3 declined attempts the guest comes back instead of being stuck on the bank's page.
+        redirectMerchantUrl: this.backUrl(siteOrigin, order.paymentId, order.bookingId, 'failed'),
+        retryAttemptCount: 3,
+        merchant: { name: this.credentials.merchantName || DEFAULT_MERCHANT_NAME, url: siteOrigin },
+        displayControl: { billingAddress: 'HIDE', shipping: 'HIDE' },
+      },
+      order: {
+        id: order.paymentId,
+        reference: order.bookingId,
+        amount: String(order.amount),
+        currency: order.currency,
+        description: `Booking ACT-${order.bookingId.slice(0, 8).toUpperCase()}`,
+      },
+    };
+  }
+
+  private rejection(status: number, json: any, what: string, paymentId: string): PaymentInitiationResponse {
+    const reason = json?.error?.explanation || json?.error?.cause || `HTTP ${status}`;
+    logger.error(`${what} failed`, { gateway: this.slug, paymentId, status, reason });
+    return { success: false, message: `${this.bankName} could not start the payment: ${reason}`, failureReason: 'mpgs_initiate_failed' };
+  }
+
   async initiatePayment(request: PaymentInitiationRequest): Promise<PaymentInitiationResponse> {
     if (!ZERO_DECIMAL_CURRENCIES.has(request.currency)) {
-      return { success: false, message: `Currency ${request.currency} is not configured for ANZ eGate (MPGS).` };
+      return { success: false, message: `Currency ${request.currency} is not configured for ${this.bankName}.` };
     }
     const paymentId: string | undefined = request.metadata?.paymentId;
     if (!paymentId) {
@@ -158,46 +210,53 @@ export class MpgsHostedCheckoutAdapter implements PaymentGatewayService {
     }
 
     const siteOrigin = new URL(request.successUrl).origin;
-    const back = (outcome: 'return' | 'cancel') =>
-      `${siteOrigin}/api/payments/callback/anz-egate?order=${encodeURIComponent(paymentId)}` +
-      `&booking=${encodeURIComponent(request.bookingId)}&outcome=${outcome}`;
-
     const { status, json } = await this.call('POST', '/session', {
-      apiOperation: 'INITIATE_CHECKOUT',
+      ...this.checkoutRequest({ paymentId, bookingId: request.bookingId, amount: request.amount, currency: request.currency }, siteOrigin),
       checkoutMode: 'WEBSITE',
-      interaction: {
-        operation: 'PURCHASE',
-        returnUrl: back('return'),
-        cancelUrl: back('cancel'),
-        merchant: { name: this.credentials.merchantName || DEFAULT_MERCHANT_NAME },
-        displayControl: { billingAddress: 'HIDE', shipping: 'HIDE' },
-      },
-      order: {
-        id: paymentId,
-        reference: request.bookingId,
-        amount: String(request.amount),
-        currency: request.currency,
-        description: `Booking ACT-${request.bookingId.slice(0, 8).toUpperCase()}`,
-      },
     });
 
     const sessionId: string | undefined = json?.session?.id;
     if (status >= 300 || json?.result !== 'SUCCESS' || !sessionId || !SESSION_ID_PATTERN.test(sessionId)) {
-      const reason = json?.error?.explanation || json?.error?.cause || `HTTP ${status}`;
-      logger.error('INITIATE_CHECKOUT failed', { paymentId, status, reason });
-      return { success: false, message: `ANZ eGate could not start the payment: ${reason}`, failureReason: 'mpgs_initiate_failed' };
+      return this.rejection(status, json, 'INITIATE_CHECKOUT', paymentId);
     }
 
     return {
       success: true,
       message: 'MPGS checkout session created.',
-      redirectUrl: `${siteOrigin}/api/payments/checkout/anz-egate?session=${encodeURIComponent(sessionId)}`,
+      redirectUrl: `${siteOrigin}/api/payments/checkout/${this.slug}?session=${encodeURIComponent(sessionId)}`,
       transactionId: paymentId, // the MPGS order ID
       paymentId,
     };
   }
 
-  /** Asks ANZ for the order's real state. Undefined order = ANZ has no such order. */
+  /**
+   * A bank-hosted payment link for the same order, to send to a guest by email or text.
+   * The link stops working at expiresAt, after 25 attempts, or once paid.
+   */
+  async createPaymentLink(link: {
+    paymentId: string; bookingId: string; amount: number; currency: string; expiresAt: Date; siteOrigin: string;
+  }): Promise<{ success: true; url: string; linkId: string } | { success: false; message: string }> {
+    if (!ZERO_DECIMAL_CURRENCIES.has(link.currency)) {
+      return { success: false, message: `Currency ${link.currency} is not configured for ${this.bankName}.` };
+    }
+    const { status, json } = await this.call('POST', '/session', {
+      ...this.checkoutRequest(link, link.siteOrigin),
+      checkoutMode: 'PAYMENT_LINK',
+      paymentLink: {
+        expiryDateTime: link.expiresAt.toISOString(),
+        numberOfAllowedAttempts: 25,
+        errorUrl: `${link.siteOrigin}/payment/cancel?booking=${encodeURIComponent(link.bookingId)}&reason=link_unavailable`,
+      },
+    });
+    const url: string | undefined = json?.paymentLink?.url;
+    if (status >= 300 || json?.result !== 'SUCCESS' || !url || !url.startsWith(`${this.origin}/`)) {
+      const { message } = this.rejection(status, json, 'PAYMENT_LINK', link.paymentId);
+      return { success: false, message: message ?? 'Payment link could not be created.' };
+    }
+    return { success: true, url, linkId: String(json.paymentLink.id ?? '') };
+  }
+
+  /** Asks the bank for the order's real state. Undefined order = the bank has no such order. */
   private async retrieveOrder(orderId: string): Promise<{ order?: MpgsOrder; notFound: boolean; error?: string }> {
     try {
       const { status, json } = await this.call('GET', `/order/${encodeURIComponent(orderId)}`);
@@ -230,7 +289,7 @@ export class MpgsHostedCheckoutAdapter implements PaymentGatewayService {
   /**
    * Two callers:
    * - the guest's browser coming back (rawEvent = query: order, booking, outcome)
-   * - an ANZ notification (rawEvent = JSON body, headers carry X-Notification-Secret)
+   * - a bank notification (rawEvent = JSON body, headers carry X-Notification-Secret)
    */
   async handleWebhook(event: WebhookEvent): Promise<WebhookResponse> {
     const raw = event.rawEvent ?? {};
@@ -257,12 +316,12 @@ export class MpgsHostedCheckoutAdapter implements PaymentGatewayService {
 
     const { order, notFound, error } = await this.retrieveOrder(orderId);
     if (!order) {
-      // A guest who cancels before paying leaves no order at ANZ.
+      // A guest who cancels before paying leaves no order at the bank.
       if (notFound && !isNotification && raw.outcome === 'cancel') {
         return { success: true, message: 'Guest cancelled before paying.', paymentId: orderId, gatewayReference: orderId, newPaymentStatus: PaymentStatus.Cancelled };
       }
       logger.warn('Retrieve Order gave no answer; payment left for reconciliation', { orderId, error });
-      return { success: true, message: `Order not confirmed by ANZ yet (${error}).`, paymentId: orderId, gatewayReference: orderId };
+      return { success: true, message: `Order not confirmed by the bank yet (${error}).`, paymentId: orderId, gatewayReference: orderId };
     }
 
     let newPaymentStatus = mapMpgsOrder(order);
@@ -271,9 +330,11 @@ export class MpgsHostedCheckoutAdapter implements PaymentGatewayService {
     if (isNotification && newPaymentStatus !== PaymentStatus.Completed) {
       newPaymentStatus = undefined;
     }
-    // Cancelled from the hosted page after starting (e.g. mid 3-D Secure): the guest has left.
-    if (!isNotification && raw.outcome === 'cancel' && newPaymentStatus === undefined) {
-      newPaymentStatus = PaymentStatus.Cancelled;
+    // The guest has left the bank's page: cancelled mid-way (e.g. during 3-D Secure),
+    // or sent back after the last declined attempt.
+    if (!isNotification && newPaymentStatus === undefined) {
+      if (raw.outcome === 'cancel') newPaymentStatus = PaymentStatus.Cancelled;
+      if (raw.outcome === 'failed') newPaymentStatus = PaymentStatus.Failed;
     }
     return this.toWebhookResponse(orderId, order, newPaymentStatus);
   }
@@ -281,9 +342,11 @@ export class MpgsHostedCheckoutAdapter implements PaymentGatewayService {
   async queryPaymentStatus(request: PaymentStatusRequest): Promise<PaymentStatusResponse> {
     const { order, notFound, error } = await this.retrieveOrder(request.paymentId);
     if (!order) {
+      // Unchanged: an unpaid payment link has no order yet. Reconciliation expires the
+      // payment once its expiry passes.
       return {
-        status: PaymentStatus.Pending,
-        message: notFound ? 'ANZ has no order for this payment (guest never paid).' : `Status query failed: ${error}. Will retry later.`,
+        status: PaymentStatus.Processing,
+        message: notFound ? `${this.bankName} has no order for this payment yet.` : `Status query failed: ${error}. Will retry later.`,
       };
     }
     const status = mapMpgsOrder(order) ?? PaymentStatus.Processing;
@@ -321,9 +384,9 @@ export function parseMpgsSessionId(value: unknown): string | undefined {
 }
 
 /**
- * The page that hands the guest to ANZ's hosted payment page. checkout.js needs a
- * page of ours to run on; it then navigates to ANZ. Returns the HTML and the CSP
- * that lets only ANZ's script (and our nonce'd snippet) run.
+ * The page that hands the guest to the bank's hosted payment page. checkout.js needs a
+ * page of ours to run on; it then navigates to the bank. Returns the HTML and the CSP
+ * that lets only the bank's script (and our nonce'd snippet) run.
  */
 export function renderMpgsLaunchPage(scriptUrl: string, sessionId: string, cancelUrl: string): { html: string; csp: string } {
   const nonce = randomBytes(16).toString('base64');
@@ -333,7 +396,7 @@ export function renderMpgsLaunchPage(scriptUrl: string, sessionId: string, cance
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex"><title>Secure payment</title>
 <style>body{font-family:system-ui,sans-serif;display:grid;place-items:center;min-height:100vh;margin:0;color:#1f2937;background:#fff}p{text-align:center;padding:0 16px}</style>
-</head><body><p id="msg">Opening ANZ secure payment&hellip;</p>
+</head><body><p id="msg">Opening your bank&rsquo;s secure payment page&hellip;</p>
 <script nonce="${nonce}">
 window.mpgsError = function () {
   document.getElementById('msg').textContent = 'The payment page could not be opened. Returning to your booking…';
