@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { SITE_URL } from "@/lib/site-url";
 import { useParams, Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, ArrowUpRight, Clock3, Compass, MapPin, Palmtree } from "lucide-react";
@@ -13,7 +14,6 @@ import { cleanProductList } from "@/lib/product-filters";
 import { useLocalizedProducts } from "@/hooks/useLocalizedProducts";
 import { getGuideVisual, guideReadTime } from "@/lib/guide-visuals";
 
-const SITE_URL = (import.meta.env.VITE_APP_URL as string | undefined)?.replace(/\/$/, "") || "https://acetoursvanuatu.com";
 
 interface OutlineItem {
   id: string;

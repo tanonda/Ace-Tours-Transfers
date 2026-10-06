@@ -40,6 +40,14 @@ const FLAG_DEFAULTS = [
     description: "Allow guests (non-logged-in users) to submit product reviews. Disable to restrict reviews to verified account holders only."
   },
   {
+    // Off: the site is live. Without this row the client fell back to the build-time
+    // VITE_COMING_SOON, so a stray value on Render could hide the whole site.
+    slug: "coming-soon",
+    enabled: false,
+    displayName: "Coming Soon Page",
+    description: "Show the coming-soon page to visitors (staff can still log in)."
+  },
+  {
     slug: "newsletter",
     enabled: true,
     displayName: "Newsletter Signup",

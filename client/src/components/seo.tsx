@@ -1,4 +1,5 @@
 import { Helmet } from "react-helmet-async";
+import { SITE_URL } from "@/lib/site-url";
 import { buildOfferJsonLd } from "@/lib/product-jsonld";
 import { useLocation } from "wouter";
 import { useTranslation } from "react-i18next";
@@ -6,14 +7,10 @@ import i18n from "@/lib/i18n";
 import { useOptionalCMS } from "@/lib/cms-context";
 import { readSeoSettings, resolveSeo } from "@/lib/seo-settings";
 
-// Canonical site URL for client-rendered SEO tags (canonical link, OG, JSON-LD).
-// Override via VITE_APP_URL at build time — Vite bakes it into the client bundle.
-// NOTE: the sitemap handler in server/routes.ts uses APP_URL (server-side, runtime)
-// for the same purpose. Both env vars should be set to the same canonical domain
-// in production, or both left unset to fall through to the default below.
-const SITE_URL =
-  (import.meta.env.VITE_APP_URL as string | undefined)?.replace(/\/$/, "") ||
-  "https://acetoursvanuatu.com";
+// Canonical site URL for client-rendered SEO tags (canonical link, OG, JSON-LD):
+// VITE_APP_URL at build time when it is a complete https:// origin, else the default.
+// NOTE: the sitemap handler uses APP_URL (server-side, runtime) for the same purpose;
+// set both to the same canonical domain in production, or leave both unset.
 const SITE_NAME = "Ace Tours & Transfers Vanuatu";
 const DEFAULT_DESC =
   "Experience the best of Efate Island with Ace Tours & Transfers. Meticulously pre-planned and custom-designed tour packages and airport transfers in Port Vila and across Efate Island, Vanuatu.";
