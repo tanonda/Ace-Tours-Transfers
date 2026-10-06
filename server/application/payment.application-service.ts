@@ -12,7 +12,8 @@ import { PaymentMethodClassifier } from '../domain/payments/payment-method-class
 import { IStorage } from '../storage.js';
 import { PaymentFactory } from "../infrastructure/payments/factory.js";
 import type { MpgsHostedCheckoutAdapter } from "../infrastructure/payments/mpgs.adapter.js";
-import { PaymentGateway, Booking } from '../../shared/schema.js';
+import { PaymentGateway, Booking, Payment } from '../../shared/schema.js';
+import { escapeHtml } from '../lib/escape-html.js';
 import { config } from "../config.js";
 import { PaymentIntent } from "../domain/payments/PaymentIntent.js";
 import { isTestModeGateway } from "./public-gateway.js";
@@ -364,6 +365,36 @@ export class PaymentApplicationService {
     return { success: true, url: link.url, paymentId: payment.id, expiresAt };
   }
 
+  /** A payment captured by the bank after we had failed, cancelled or expired it. */
+  private async flagPaidAfterClose(payment: Payment, result: WebhookResponse, gatewayName: string): Promise<void> {
+    console.error(`[WEBHOOK] Payment ${payment.id} was ${payment.status} but ${gatewayName} reports it paid; manual review`);
+    await this.storage.updatePayment(payment.id, {
+      status: PaymentStatus.ManualReviewRequired,
+      gatewayReference: result.gatewayReference,
+      failureReason: 'paid_after_close',
+      metadata: {
+        ...((payment.metadata as Record<string, any>) || {}),
+        closedStatus: payment.status,
+        bankReportedAmount: result.amount,
+        bankReportedCurrency: result.currency,
+      },
+    });
+    try {
+      await sendAdminEmail(
+        `⚠️ Paid after closing — Booking ACT-${shortBookingRef(payment.bookingId)}`,
+        `<div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+          <h2 style="color: #d35400;">⚠️ A closed payment was paid</h2>
+          <p>${escapeHtml(gatewayName)} reports a successful card payment of ${escapeHtml(String(result.amount ?? ''))} ${escapeHtml(String(result.currency ?? ''))}
+          for a payment this site had already marked <strong>${escapeHtml(payment.status)}</strong>.</p>
+          <p><strong>Payment ID:</strong> ${escapeHtml(payment.id)}<br><strong>Booking:</strong> ACT-${escapeHtml(shortBookingRef(payment.bookingId))}</p>
+          <p>The payment is now <strong>manual_review_required</strong>. Confirm the booking if seats are still available, or refund the guest from the bank's portal.</p>
+        </div>`
+      );
+    } catch (emailErr) {
+      console.error('[WEBHOOK] Failed to send paid-after-close email:', emailErr);
+    }
+  }
+
   async handlePaymentWebhook(event: WebhookEvent): Promise<WebhookResponse> {
     const gateway = await this.storage.getPaymentGatewayBySlug(event.gatewaySlug);
     if (!gateway) return { success: false, message: "Gateway not found" };
@@ -413,7 +444,21 @@ export class PaymentApplicationService {
 
       const terminalStates = [PaymentStatus.Completed, PaymentStatus.Failed, PaymentStatus.Cancelled, PaymentStatus.Expired];
       if (existingPayment && terminalStates.includes(existingPayment.status as PaymentStatus)) {
+        // The bank took the money for a payment we had already closed (the guest came back
+        // to a still-open payment link or hosted page). Never drop that: a person must
+        // confirm the booking or refund the guest.
+        if (result.newPaymentStatus === PaymentStatus.Completed && existingPayment.status !== PaymentStatus.Completed) {
+          await this.flagPaidAfterClose(existingPayment, result, gateway.displayName);
+          return { ...result, success: false, newPaymentStatus: PaymentStatus.ManualReviewRequired, message: 'Paid after the payment was closed; sent to manual review.' };
+        }
         return result;
+      }
+
+      // A payment link can still be paid after a cancel or decline on the bank's page,
+      // so only the bank's "paid" (or reconciliation's expiry) closes a link payment.
+      const isPaymentLink = !!(existingPayment?.metadata as { paymentLink?: unknown } | null)?.paymentLink;
+      if (isPaymentLink && [PaymentStatus.Cancelled, PaymentStatus.Failed].includes(result.newPaymentStatus)) {
+        return { ...result, newPaymentStatus: undefined, message: 'Payment link is still open; status unchanged.' };
       }
 
       // Verify callback amount + currency (Item 2)

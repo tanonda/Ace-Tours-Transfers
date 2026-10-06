@@ -4,8 +4,9 @@ import { PaymentReconciliationService } from './payment-reconciliation.service.j
 import { PaymentStatus } from '../domain/payments/interfaces.js';
 import { makeBooking, makePaymentGateway } from '../test-fixtures/payment.js';
 
+const sendAdminEmail = vi.fn();
 vi.mock('../lib/mail.js', () => ({
-  sendEmail: vi.fn(), sendAdminEmail: vi.fn(), getPaymentConfirmationTemplate: vi.fn(),
+  sendEmail: vi.fn(), sendAdminEmail: (...args: unknown[]) => sendAdminEmail(...args), getPaymentConfirmationTemplate: vi.fn(),
   getBookingRequestTemplate: vi.fn(), getAdminNewBookingTemplate: vi.fn(), getBookingConfirmedTemplate: vi.fn(),
   shortBookingRef: (id: string) => id.slice(0, 8),
 }));
@@ -19,6 +20,7 @@ vi.mock('../domain/payments/PaymentIntent.js', () => ({
 const adapter = {
   createPaymentLink: vi.fn(),
   queryPaymentStatus: vi.fn(),
+  handleWebhook: vi.fn(),
 };
 vi.mock('../infrastructure/payments/factory.js', () => ({
   PaymentFactory: { getPaymentGatewayService: () => adapter },
@@ -140,5 +142,47 @@ describe('PaymentReconciliationService — expiry', () => {
     await new PaymentReconciliationService(storage).syncPaymentStatus('pay-link-1');
 
     expect(storage.updatePayment).toHaveBeenCalledWith('pay-link-1', expect.objectContaining({ status: PaymentStatus.Completed }));
+  });
+});
+
+describe('PaymentApplicationService.handlePaymentWebhook — closed and link payments', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  const linkPayment = (status: PaymentStatus) => ({
+    id: 'pay-link-1', bookingId: 'book-123', gatewayId: 'gw-anz', amount: 25000, currency: 'VUV', status,
+    metadata: { paymentLink: { url: 'https://anz.example/pbl/PAYLINK1' } },
+  });
+
+  it('sends a payment the bank captured after we closed it to manual review and emails the admin', async () => {
+    adapter.handleWebhook.mockResolvedValue({
+      success: true, paymentId: 'pay-link-1', newPaymentStatus: PaymentStatus.Completed, amount: 25000, currency: 'VUV', gatewayReference: 'pay-link-1',
+    });
+    const storage = makeStorage({ getPayment: vi.fn().mockResolvedValue(linkPayment(PaymentStatus.Expired)) });
+    const result = await new PaymentApplicationService(storage).handlePaymentWebhook({ gatewaySlug: 'anz-egate', rawEvent: {} });
+
+    expect(result.newPaymentStatus).toBe(PaymentStatus.ManualReviewRequired);
+    expect(storage.updatePayment).toHaveBeenCalledWith('pay-link-1', expect.objectContaining({
+      status: PaymentStatus.ManualReviewRequired, failureReason: 'paid_after_close',
+    }));
+    expect(sendAdminEmail).toHaveBeenCalledTimes(1);
+  });
+
+  it('leaves an already-completed payment alone on a repeat notification', async () => {
+    adapter.handleWebhook.mockResolvedValue({ success: true, paymentId: 'pay-link-1', newPaymentStatus: PaymentStatus.Completed, amount: 25000, currency: 'VUV' });
+    const storage = makeStorage({ getPayment: vi.fn().mockResolvedValue(linkPayment(PaymentStatus.Completed)) });
+    await new PaymentApplicationService(storage).handlePaymentWebhook({ gatewaySlug: 'anz-egate', rawEvent: {} });
+
+    expect(storage.updatePayment).not.toHaveBeenCalled();
+    expect(sendAdminEmail).not.toHaveBeenCalled();
+  });
+
+  it('keeps a payment link open when the guest cancels on the bank\'s page', async () => {
+    adapter.handleWebhook.mockResolvedValue({ success: true, paymentId: 'pay-link-1', newPaymentStatus: PaymentStatus.Cancelled });
+    const storage = makeStorage({ getPayment: vi.fn().mockResolvedValue(linkPayment(PaymentStatus.Processing)) });
+    const result = await new PaymentApplicationService(storage).handlePaymentWebhook({ gatewaySlug: 'anz-egate', rawEvent: {} });
+
+    expect(result.newPaymentStatus).toBeUndefined();
+    expect(storage.updatePayment).not.toHaveBeenCalled();
+    expect(mockFail).not.toHaveBeenCalled();
   });
 });

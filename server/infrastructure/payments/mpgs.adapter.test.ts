@@ -269,6 +269,10 @@ describe('createPaymentLink', () => {
     expect(body.order).toMatchObject({ id: 'pay-0001', reference: REQUEST.bookingId, amount: '12500', currency: 'VUV' });
     expect(body.paymentLink).toMatchObject({ expiryDateTime: '2026-10-09T08:00:00.000Z', numberOfAllowedAttempts: 25 });
     expect(body.paymentLink.errorUrl).toContain('reason=link_unavailable');
+    // The link stays payable after a cancel or decline, so it only ever returns the guest on success.
+    expect(body.interaction.returnUrl).toContain('outcome=return');
+    expect(body.interaction).not.toHaveProperty('cancelUrl');
+    expect(body.interaction).not.toHaveProperty('redirectMerchantUrl');
   });
 
   it('refuses a link that does not point at the bank\'s own gateway', async () => {

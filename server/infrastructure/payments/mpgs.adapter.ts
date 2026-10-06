@@ -168,19 +168,31 @@ export class MpgsHostedCheckoutAdapter implements PaymentGatewayService {
       `&booking=${encodeURIComponent(bookingId)}&outcome=${outcome}`;
   }
 
+  /**
+   * A payment link stays payable after a cancel or a decline (the bank allows 25 attempts
+   * until it expires), so links only return the guest on success: a cancel or failed
+   * outcome would close a payment the guest can still make.
+   */
   private checkoutRequest(
     order: { paymentId: string; bookingId: string; amount: number; currency: string },
     siteOrigin: string,
+    mode: 'WEBSITE' | 'PAYMENT_LINK',
   ) {
-    return {
-      apiOperation: 'INITIATE_CHECKOUT',
-      interaction: {
-        operation: 'PURCHASE',
-        returnUrl: this.backUrl(siteOrigin, order.paymentId, order.bookingId, 'return'),
+    const exits = mode === 'WEBSITE'
+      ? {
         cancelUrl: this.backUrl(siteOrigin, order.paymentId, order.bookingId, 'cancel'),
         // After 3 declined attempts the guest comes back instead of being stuck on the bank's page.
         redirectMerchantUrl: this.backUrl(siteOrigin, order.paymentId, order.bookingId, 'failed'),
         retryAttemptCount: 3,
+      }
+      : {};
+    return {
+      apiOperation: 'INITIATE_CHECKOUT',
+      checkoutMode: mode,
+      interaction: {
+        operation: 'PURCHASE',
+        returnUrl: this.backUrl(siteOrigin, order.paymentId, order.bookingId, 'return'),
+        ...exits,
         merchant: { name: this.credentials.merchantName || DEFAULT_MERCHANT_NAME, url: siteOrigin },
         displayControl: { billingAddress: 'HIDE', shipping: 'HIDE' },
       },
@@ -210,10 +222,8 @@ export class MpgsHostedCheckoutAdapter implements PaymentGatewayService {
     }
 
     const siteOrigin = new URL(request.successUrl).origin;
-    const { status, json } = await this.call('POST', '/session', {
-      ...this.checkoutRequest({ paymentId, bookingId: request.bookingId, amount: request.amount, currency: request.currency }, siteOrigin),
-      checkoutMode: 'WEBSITE',
-    });
+    const { status, json } = await this.call('POST', '/session',
+      this.checkoutRequest({ paymentId, bookingId: request.bookingId, amount: request.amount, currency: request.currency }, siteOrigin, 'WEBSITE'));
 
     const sessionId: string | undefined = json?.session?.id;
     if (status >= 300 || json?.result !== 'SUCCESS' || !sessionId || !SESSION_ID_PATTERN.test(sessionId)) {
@@ -240,8 +250,7 @@ export class MpgsHostedCheckoutAdapter implements PaymentGatewayService {
       return { success: false, message: `Currency ${link.currency} is not configured for ${this.bankName}.` };
     }
     const { status, json } = await this.call('POST', '/session', {
-      ...this.checkoutRequest(link, link.siteOrigin),
-      checkoutMode: 'PAYMENT_LINK',
+      ...this.checkoutRequest(link, link.siteOrigin, 'PAYMENT_LINK'),
       paymentLink: {
         expiryDateTime: link.expiresAt.toISOString(),
         numberOfAllowedAttempts: 25,
