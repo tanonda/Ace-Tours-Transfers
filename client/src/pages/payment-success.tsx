@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { BANK_TRANSFER_KEYS, DEFAULT_ACCOUNT_NAME, MISSING_ACCOUNT_NUMBER, settingText } from "@shared/bank-transfer";
 import { useSearch } from "wouter";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -52,12 +53,10 @@ export default function PaymentSuccess() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Get bank details from individual site settings
-  const bankName = (getSetting("bank_name") as any) || "ANZ Bank (Vanuatu) Ltd";
-  const accountName = (getSetting("bank_account_name") as any) || "Ace Tours & Transfers";
-  const accountNumber = (getSetting("bank_account_number") as any) || "Contact us for account details";
-  const swiftCode = (getSetting("bank_swift_code") as any) || "";
-  const branchCode = (getSetting("bank_branch_code") as any) || "";
+  // Bank details from Admin → Settings → Payments (the same source as the email)
+  const bankName = settingText(getSetting(BANK_TRANSFER_KEYS.bankName));
+  const accountName = settingText(getSetting(BANK_TRANSFER_KEYS.accountName)) || DEFAULT_ACCOUNT_NAME;
+  const accountNumber = settingText(getSetting(BANK_TRANSFER_KEYS.accountNumber)) || MISSING_ACCOUNT_NUMBER;
 
   useEffect(() => {
     localStorage.removeItem('pendingCart');
@@ -294,11 +293,9 @@ export default function PaymentSuccess() {
                   </p>
                   <div className="bg-white rounded-lg border border-blue-100 divide-y divide-blue-50 text-sm overflow-hidden">
                     {[
-                      ["Bank Name", bankName],
+                      ...(bankName ? [["Bank Name", bankName]] : []),
                       ["Account Name", accountName],
                       ["Account Number", accountNumber],
-                      ...(swiftCode ? [["SWIFT / BIC", swiftCode]] : []),
-                      ...(branchCode ? [["Branch Code", branchCode]] : []),
                       ["Reference", displayRef],
                     ].map(([label, value]) => (
                       <div key={label} className="flex justify-between px-4 py-3">

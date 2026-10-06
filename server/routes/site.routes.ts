@@ -7,6 +7,7 @@ import { sql, eq } from "drizzle-orm";
 import { insertWishlistItemSchema, insertCmsContentSchema, newsletterSubscribers } from "../../shared/schema.js";
 import { isPrivateSettingKey, visibleSettings } from "../lib/public-settings.js";
 import { PRICING_RULES_SETTING_KEY, parsePricingRules } from "../../shared/pricing-rules.js";
+import { BANK_TRANSFER_SETTING_KEYS, settingText } from "../../shared/bank-transfer.js";
 import { invalidatePricingRulesCache } from "../domain/pricing/PricingEngine.js";
 
 import crypto from "crypto";
@@ -74,6 +75,22 @@ export function registerSiteRoutes(app: Express) {
         newValue: { value },
         req,
       });
+      // Guests pay into these details: a change (by a person, or by someone who got into
+      // an admin account) must never go unnoticed.
+      const previous = settingText((before as any)?.value);
+      if (BANK_TRANSFER_SETTING_KEYS.includes(req.params.key) && previous !== settingText(value)) {
+        sendAdminEmail(
+          `⚠️ Bank details changed: ${req.params.key}`,
+          `<div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+            <h2 style="color: #b45309;">Bank transfer details were changed</h2>
+            <p><strong>Setting:</strong> ${escapeHtml(req.params.key)}<br>
+            <strong>Before:</strong> ${escapeHtml(previous || "(empty)")}<br>
+            <strong>After:</strong> ${escapeHtml(settingText(value) || "(empty)")}</p>
+            <p>Guests choosing bank transfer now see the new value in their email and on the booking page.
+            If you did not make this change, correct it in Admin → Settings → Payments and change the admin passwords.</p>
+          </div>`
+        ).catch((err) => console.error("[SETTINGS] Bank change alert failed:", err));
+      }
       res.json(setting);
     } catch (error) {
       res.status(400).json({ error: "Failed to update setting" });

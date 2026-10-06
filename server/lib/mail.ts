@@ -1,5 +1,6 @@
 import { mailingService } from "../infrastructure/mailing/MailingService.js";
 import { escapeHtml } from "./escape-html.js";
+import { getBankTransferDetails } from "./bank-transfer-details.js";
 import QRCode from "qrcode";
 import { emailLocales } from "./email-translations.js";
 import crypto from "crypto";
@@ -243,10 +244,12 @@ export async function getBookingRequestTemplate(
         <p style="color: #15803d; font-size: 14px; margin: 0;">${getMsg(l, 'cashPaymentText2')}</p>
       </div>`;
   } else if (isOffline) {
+    // Admin-entered text: escape before it goes into the HTML.
+    const bank = await getBankTransferDetails();
     const bankRows = [
-      ["Bank Name", process.env.BANK_NAME || "ANZ Bank (Vanuatu) Ltd"],
-      ["Account Name", process.env.BANK_ACCOUNT_NAME || "Ace Tours &amp; Transfers"],
-      ["Account Number", process.env.BANK_ACCOUNT_NUMBER || "Contact us for account details"],
+      ...(bank.bankName ? [["Bank Name", escapeHtml(bank.bankName)]] : []),
+      ["Account Name", escapeHtml(bank.accountName)],
+      ["Account Number", escapeHtml(bank.accountNumber)],
       ["Amount", eAmount],
       ["Payment Reference", `ACT-${eId}`],
     ];
