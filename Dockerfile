@@ -12,6 +12,17 @@ COPY package*.json ./
 RUN npm install --include=dev --legacy-peer-deps
 
 COPY . .
+
+# Vite bakes VITE_* values into the client bundle at build time. Render passes a
+# service's environment variables to `docker build` only as declared ARGs, so each
+# one the client reads (client/src: import.meta.env.VITE_*) must be listed here.
+# They end up in public JavaScript: never put a secret in a VITE_* variable.
+ARG VITE_APP_URL
+ARG VITE_COMING_SOON
+ARG VITE_GOOGLE_MAPS_EMBED_KEY
+ARG VITE_TRUSTPILOT_BU_ID
+ARG VITE_TRUSTPILOT_URL
+
 RUN PRERENDER=0 npm run build
 
 # ─────────────────────────────────────────────────────────────────────────────
