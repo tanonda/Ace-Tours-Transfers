@@ -21,17 +21,13 @@ describe("LanguageSelector", () => {
     expect(renderToString(createElement(LanguageSelector))).toContain("English");
   });
 
-  it("re-renders only Radix's one-off popper anchoring after mounting", async () => {
+  it("does not re-render after mounting", async () => {
     const { LanguageSelector } = await import("@/components/language-selector");
     renders.clear();
     const { unmount } = await mount(createElement(LanguageSelector));
-    // Every Radix dropdown re-renders its small Popper wrapper once to record the
-    // button as its anchor. The Shadcn Select this replaced re-rendered 22 components
-    // (Select x3) while mounting all five options to work out its label.
-    const total = [...renders.values()].reduce((a, b) => a + b, 0);
-    expect(total).toBeLessThanOrEqual(7);
-    expect(renders.has("Select")).toBe(false);
-    expect(renders.has("LanguageSelector")).toBe(false);
+    // A Shadcn Select re-rendered 22 components here, and a Radix DropdownMenu 7
+    // (its Popper recording the button's position); SelectMenu holds no state until opened.
+    expect(Object.fromEntries(renders)).toEqual({});
     await unmount();
   });
 
@@ -42,16 +38,11 @@ describe("LanguageSelector", () => {
     const { container, act, unmount } = await mount(createElement(LanguageSelector));
 
     const trigger = container.querySelector<HTMLElement>('[data-testid="select-language"]')!;
-    await act(async () => {
-      trigger.focus();
-      trigger.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
-    });
+    await act(async () => trigger.click());
     const french = [...document.querySelectorAll<HTMLElement>('[role="menuitemradio"], [role="option"]')]
       .find((el) => el.textContent?.includes("Français"))!;
     expect(french).toBeTruthy();
-    await act(async () => {
-      french.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
-    });
+    await act(async () => french.click());
 
     expect(change).toHaveBeenCalledWith("fr");
     change.mockRestore();

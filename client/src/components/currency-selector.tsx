@@ -1,20 +1,13 @@
 /**
- * CurrencySelector — dropdown for switching display currency.
+ * CurrencySelector — menu for switching display currency.
  * Reads from / writes to CurrencyContext which persists choice in localStorage.
+ * SelectMenu holds no state until opened (a Radix DropdownMenu re-rendered on every
+ * page load to position itself).
  */
 
 import { useCurrency, CURRENCIES } from '@/lib/currency-context';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-  DropdownMenuLabel,
-} from '@/components/ui/dropdown-menu';
-import { Button } from '@/components/ui/button';
-import { Banknote, Check, ChevronDown } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Banknote, ChevronDown } from 'lucide-react';
+import { SelectMenu } from '@/components/select-menu';
 
 // Popular / regional groupings for the menu
 const REGIONAL_CURRENCIES = [
@@ -25,18 +18,39 @@ const POPULAR_CURRENCIES = [
   'USD', 'AUD', 'NZD', 'EUR', 'GBP', 'JPY', 'FJD', 'XPF',
 ] as const;
 
+const itemFor = (code: string, regional: boolean) => {
+  const def = CURRENCIES[code as keyof typeof CURRENCIES];
+  if (!def) return null;
+  return {
+    value: code,
+    content: (
+      <>
+        <span className={regional ? "w-7 text-center font-semibold text-xs" : "w-7 text-center font-semibold text-xs text-muted-foreground"}>
+          {regional ? def.symbol : code}
+        </span>
+        <span>{def.name}</span>
+      </>
+    ),
+  };
+};
+
+const GROUPS = [
+  { label: "Local Currency", items: REGIONAL_CURRENCIES.map(({ code }) => itemFor(code, true)).filter((i) => i !== null) },
+  { label: "International", items: POPULAR_CURRENCIES.map((code) => itemFor(code, false)).filter((i) => i !== null) },
+];
+
 export function CurrencySelector({ compact = false }: { compact?: boolean }) {
   const { currency, currencyDef, setCurrency } = useCurrency();
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="flex items-center gap-1.5 h-9 px-2.5 font-medium text-sm"
-          aria-label="Select display currency"
-        >
+    <SelectMenu
+      value={currency}
+      onSelect={(code) => setCurrency(code as any)}
+      ariaLabel="Select display currency"
+      menuClassName="w-52"
+      groups={GROUPS}
+      triggerContent={
+        <>
           <Banknote className="h-3.5 w-3.5 shrink-0 opacity-70" />
           <span>{currencyDef.symbol}</span>
           {!compact && (
@@ -44,57 +58,8 @@ export function CurrencySelector({ compact = false }: { compact?: boolean }) {
             <span className="text-xs ml-0.5 opacity-80">{currency}</span>
           )}
           <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-60" />
-        </Button>
-      </DropdownMenuTrigger>
-
-      <DropdownMenuContent align="end" className="w-52">
-        <DropdownMenuLabel className="text-xs font-medium text-muted-foreground uppercase tracking-wide pb-1">
-          Local Currency
-        </DropdownMenuLabel>
-
-        {REGIONAL_CURRENCIES.map(({ code }) => {
-          const def = CURRENCIES[code];
-          return (
-            <DropdownMenuItem
-              key={code}
-              onClick={() => setCurrency(code as any)}
-              className="flex items-center justify-between cursor-pointer"
-            >
-              <span className="flex items-center gap-2">
-                <span className="w-7 text-center font-semibold text-xs">{def.symbol}</span>
-                <span>{def.name}</span>
-              </span>
-              {currency === code && <Check className="h-3.5 w-3.5 text-primary" />}
-            </DropdownMenuItem>
-          );
-        })}
-
-        <DropdownMenuSeparator />
-        <DropdownMenuLabel className="text-xs font-medium text-muted-foreground uppercase tracking-wide pb-1">
-          International
-        </DropdownMenuLabel>
-
-        {POPULAR_CURRENCIES.map((code) => {
-          const def = CURRENCIES[code];
-          if (!def) return null;
-          return (
-            <DropdownMenuItem
-              key={code}
-              onClick={() => setCurrency(code as any)}
-              className={cn(
-                'flex items-center justify-between cursor-pointer',
-                currency === code && 'bg-accent'
-              )}
-            >
-              <span className="flex items-center gap-2">
-                <span className="w-7 text-center font-semibold text-xs text-muted-foreground">{code}</span>
-                <span>{def.name}</span>
-              </span>
-              {currency === code && <Check className="h-3.5 w-3.5 text-primary" />}
-            </DropdownMenuItem>
-          );
-        })}
-      </DropdownMenuContent>
-    </DropdownMenu>
+        </>
+      }
+    />
   );
 }
