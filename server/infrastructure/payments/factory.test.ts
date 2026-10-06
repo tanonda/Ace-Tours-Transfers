@@ -16,6 +16,8 @@ describe('PaymentFactory server switches', () => {
     config.payments.anz.enabled = false;
     config.payments.nbv.enabled = false;
     config.killSwitches.paymentsPaused = false;
+    config.killSwitches.cardPaymentsPaused = false;
+    config.payments.externalDisconnected = false;
   });
 
   it('refuses ANZ unless PAYMENTS_ANZ_ENABLED is on', () => {
@@ -41,9 +43,19 @@ describe('PaymentFactory server switches', () => {
     expect(PaymentFactory.getPaymentGatewayService(anz, 'existing')).toBeInstanceOf(MpgsHostedCheckoutAdapter);
   });
 
-  it('stops settling too under the global payments pause', () => {
-    config.payments.anz.enabled = true;
-    config.killSwitches.paymentsPaused = true;
-    expect(() => PaymentFactory.getPaymentGatewayService(anz, 'existing')).toThrow(/currently unavailable/);
-  });
+  // docs/KILL_SWITCH_POLICY.md: kill switches block initiation, never resolution.
+  const stops = [
+    ['GLOBAL_PAYMENTS_PAUSE', () => { config.killSwitches.paymentsPaused = true; }],
+    ['PAUSE_CARD_PAYMENTS', () => { config.killSwitches.cardPaymentsPaused = true; }],
+    ['PAYMENTS_EXTERNAL_DISABLED', () => { config.payments.externalDisconnected = true; }],
+  ] as const;
+
+  for (const [name, engage] of stops) {
+    it(`${name} refuses new ANZ payments but still settles ones in progress`, () => {
+      config.payments.anz.enabled = true;
+      engage();
+      expect(() => PaymentFactory.getPaymentGatewayService(anz)).toThrow(/currently unavailable/);
+      expect(PaymentFactory.getPaymentGatewayService(anz, 'existing')).toBeInstanceOf(MpgsHostedCheckoutAdapter);
+    });
+  }
 });

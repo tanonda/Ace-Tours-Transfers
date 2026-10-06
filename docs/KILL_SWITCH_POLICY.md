@@ -6,9 +6,17 @@ To protect production integrity during high-risk events, availability failures, 
 
 | Key | Scope | Logic Impact |
 | :--- | :--- | :--- |
-| `GLOBAL_PAYMENTS_PAUSE` | All Gateways | Blocks `initiateBookingPayment`. |
+| `GLOBAL_PAYMENTS_PAUSE` | All Gateways | Blocks new payments (checkout, payment links). |
+| `PAUSE_CARD_PAYMENTS` | Online card gateways (ANZ, BSP, NBV, BRED, wallets) | Blocks new card payments. |
+| `PAYMENTS_EXTERNAL_DISABLED` | Every non-offline gateway | Blocks new payments; only bank transfer and cash remain. |
+| `PAYMENTS_<KEY>_ENABLED` | One gateway (`ANZ`, `BSP`, `NBV`, `BRED`, `STRIPE`, `MANUAL`) | Bank and Stripe gateways are off unless `true`; blocks new payments and hides the gateway from guests. |
 | `NEW_BOOKINGS_PAUSE` | Checkout | Blocks `CreateBookingFromCartService`. |
 | `PAUSE_BANK_TRANSFER` | Manual Gateway | Blocks Bank Transfer initiation. |
+
+None of these stops bank callbacks or reconciliation for payments already started
+(`PaymentFactory.getPaymentGatewayService(gateway, 'existing')`). To stop a gateway's
+callbacks as well (for example, a leaked gateway key), switch the gateway off in
+Admin → Payments: callbacks for an inactive gateway are ignored.
 
 ## Implementation Rules
 

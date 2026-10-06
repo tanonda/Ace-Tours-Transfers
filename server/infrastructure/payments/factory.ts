@@ -41,42 +41,31 @@ export class PaymentFactory {
 
   /**
    * @param use 'new' to start a payment (checkout, payment link); 'existing' to settle one
-   * already in progress (bank callbacks, reconciliation). A gateway switched off on the
-   * server (PAYMENTS_<KEY>_ENABLED) takes no new payments but still confirms the ones a
-   * guest has started, so money already taken is never stranded. The emergency stops
-   * below apply to both.
+   * already in progress (bank callbacks, reconciliation). Every switch below blocks new
+   * payments only: per docs/KILL_SWITCH_POLICY.md, kill switches block initiation, never
+   * resolution, so money a guest has already paid is always confirmed. To stop a gateway's
+   * callbacks too, switch the gateway off in admin (callbacks for inactive gateways are ignored).
    */
   static getPaymentGatewayService(gatewayConfig: PaymentGateway, use: 'new' | 'existing' = 'new'): PaymentGatewayService {
     const slug = gatewayConfig.slug.toLowerCase();
 
-    // 1. Check Global Disconnect — only offline methods allowed if external systems are off
-    const externalDisconnected = config.payments.externalDisconnected;
-    if (externalDisconnected && !PaymentMethodClassifier.isOffline(slug)) {
-      log.warn('Gateway rejected', { slug, reason: 'global_external_disconnect' });
-      throw new Error(`External payment gateway ${slug} is currently disabled.`);
-    }
-
-    // 2. Resolve Adapter Class
     if (!Object.prototype.hasOwnProperty.call(this.adapters, slug)) {
       log.error('Adapter not implemented', { slug });
       throw new Error(`Payment gateway ${slug} is not implemented.`);
     }
     const AdapterClass = this.adapters[slug];
 
-    // 3. Server switch: gates new payments only (see `use`)
-    const isEnabled = use === 'existing' || isGatewayEnabledByEnv(slug);
-
-    // 4. Kill Switch Check (Production Circuit Breaker)
-    const isCard = slug === 'stripe' || slug.includes('card');
-    const cardPaused = config.killSwitches.cardPaymentsPaused;
-    const globalPaused = config.killSwitches.paymentsPaused;
-
-    const isPaused = (isCard && cardPaused) || globalPaused;
-
-    if (!isEnabled || isPaused) {
-      const reason = !isEnabled ? 'feature_flag_disabled' : (globalPaused ? 'global_kill_switch' : 'card_kill_switch');
-      log.warn('Gateway rejected', { slug, reason });
-      throw new Error(`Payment gateway ${slug} is currently unavailable.`);
+    if (use === 'new') {
+      const blockedBy =
+        config.killSwitches.paymentsPaused ? 'global_kill_switch'
+        : config.payments.externalDisconnected && !PaymentMethodClassifier.isOffline(slug) ? 'global_external_disconnect'
+        : config.killSwitches.cardPaymentsPaused && PaymentMethodClassifier.isOnlineCard(slug) ? 'card_kill_switch'
+        : !isGatewayEnabledByEnv(slug) ? 'feature_flag_disabled'
+        : undefined;
+      if (blockedBy) {
+        log.warn('[KILL_SWITCH][BLOCKED] New payment refused', { slug, reason: blockedBy });
+        throw new Error(`Payment gateway ${slug} is currently unavailable.`);
+      }
     }
 
     log.info('Gateway resolved', { slug, adapter: AdapterClass.name });
