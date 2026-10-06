@@ -10,7 +10,7 @@ import { DigicelMobileMoneyAdapter } from "./digicel-mobile-money.adapter.js";
 import { KwikPayAdapter } from "./kwikpay.adapter.js";
 import { GooglePayAdapter } from "./google-pay.adapter.js";
 import { ApplePayAdapter } from "./apple-pay.adapter.js";
-import { config } from "../../config.js";
+import { config, isGatewayEnabledByEnv } from "../../config.js";
 import { createLogger } from "../../lib/logger.js";
 import { PaymentMethodClassifier } from "../../domain/payments/payment-method-classifier.js";
 
@@ -57,9 +57,7 @@ export class PaymentFactory {
     const AdapterClass = this.adapters[slug];
 
     // 3. Feature Flag Check (Absolute Source of Truth)
-    const flagKey = this.normalizeSlugToFlag(slug);
-    const gatewaySettings = (config.payments as any)[flagKey];
-    const isEnabled = gatewaySettings?.enabled ?? true;
+    const isEnabled = isGatewayEnabledByEnv(slug);
 
     // 4. Kill Switch Check (Production Circuit Breaker)
     const isCard = slug === 'stripe' || slug.includes('card');
@@ -76,15 +74,5 @@ export class PaymentFactory {
 
     log.info('Gateway resolved', { slug, adapter: AdapterClass.name });
     return new AdapterClass(gatewayConfig);
-  }
-
-  private static normalizeSlugToFlag(slug: string): string {
-    if (slug === 'anz-egate') return 'anz-egate';
-    if (slug === 'bred-bank') return 'bred-bank';
-    if (slug === 'bsp-bank') return 'bsp-bank';
-    if (slug === 'nbv-bank') return 'nbv-bank';
-    // All manual/offline variants map to the 'manual' config block
-    if (slug === 'manual_transfer' || slug === 'cash') return 'manual';
-    return slug;
   }
 }

@@ -12,6 +12,28 @@ export interface GatewayConfig {
   mode: 'sandbox' | 'live';
 }
 
+/** Gateway slug → its server switch block, i.e. PAYMENTS_<KEY>_ENABLED. */
+const GATEWAY_ENV_KEY: Record<string, 'manual' | 'stripe' | 'anz' | 'bsp' | 'bred' | 'nbv'> = {
+  'anz-egate': 'anz',
+  'bsp-bank': 'bsp',
+  'bred-bank': 'bred',
+  'nbv-bank': 'nbv',
+  'stripe': 'stripe',
+  'manual': 'manual',
+  'manual_transfer': 'manual',
+  'cash': 'manual',
+};
+
+/**
+ * Whether the server allows this gateway (PAYMENTS_<KEY>_ENABLED). Bank and Stripe
+ * gateways are off unless set to "true"; manual methods are on unless set to "false".
+ * Gateways with no server switch (wallets, PayPal) rely on the admin toggle alone.
+ */
+export function isGatewayEnabledByEnv(slug: string): boolean {
+  const key = GATEWAY_ENV_KEY[slug.toLowerCase()];
+  return key ? config.payments[key].enabled === true : true;
+}
+
 export const config = {
   env: process.env.NODE_ENV || 'development',
   appUrl: process.env.APP_URL,
@@ -57,6 +79,12 @@ export const config = {
       enabled: process.env.PAYMENTS_BRED_ENABLED === 'true',
       visible: process.env.PAYMENTS_BRED_VISIBLE === 'true',
       mode: (process.env.PAYMENTS_BRED_MODE as 'sandbox' | 'live') || 'sandbox',
+    } as GatewayConfig,
+
+    nbv: {
+      enabled: process.env.PAYMENTS_NBV_ENABLED === 'true',
+      visible: process.env.PAYMENTS_NBV_VISIBLE === 'true',
+      mode: (process.env.PAYMENTS_NBV_MODE as 'sandbox' | 'live') || 'sandbox',
     } as GatewayConfig,
   },
 
@@ -114,7 +142,7 @@ export function validateConfig() {
 
 
   // 2. Default Provider Implementation Guard
-  const validProviders = ['manual', 'stripe', 'anz', 'bsp', 'bred'];
+  const validProviders = ['manual', 'stripe', 'anz', 'bsp', 'bred', 'nbv'];
   if (!validProviders.includes(config.payments.defaultProvider)) {
     console.error(`[CONFIG][ERROR] Unsupported default payment provider: ${config.payments.defaultProvider}`);
     process.exit(1);

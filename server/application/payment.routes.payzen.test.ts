@@ -6,6 +6,10 @@ import { registerPaymentRoutes } from './payment.routes.js';
 import { computePayzenSignature } from '../infrastructure/payments/payzen-signature.js';
 import { PaymentStatus } from '../domain/payments/interfaces.js';
 import { makeBooking, makePaymentGateway } from '../test-fixtures/payment.js';
+import { config } from '../config.js';
+
+// These tests run BRED with its server switch on (PAYMENTS_BRED_ENABLED=true).
+config.payments.bred.enabled = true;
 
 // Don't let PaymentConfirmed/PaymentFailed handlers reach the DB or mailer.
 vi.mock('../infrastructure/events/event-dispatcher.js', () => ({

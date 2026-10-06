@@ -1,6 +1,10 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 import { toPublicGateway, visibleGateways, isTestModeGateway } from './public-gateway.js';
 import { makePaymentGateway, makeMastercardPaymentGateway } from '../test-fixtures/payment.js';
+import { config, isGatewayEnabledByEnv } from '../config.js';
+
+// BRED with its server switch on (PAYMENTS_BRED_ENABLED=true) unless a test says otherwise.
+config.payments.bred.enabled = true;
 
 const cash = makePaymentGateway({ id: 'g-cash', slug: 'cash', credentials: {} });
 const bank = makePaymentGateway({ id: 'g-bank', slug: 'manual_transfer', credentials: {} });
@@ -61,5 +65,34 @@ describe("toPublicGateway", () => {
       isDefault: gateway.isDefault,
       supportedCurrencies: gateway.supportedCurrencies,
     });
+  });
+});
+
+describe('server switches (PAYMENTS_<KEY>_ENABLED)', () => {
+  afterEach(() => {
+    config.payments.bred.enabled = true;
+    config.payments.anz.enabled = false;
+    config.payments.manual.enabled = true;
+  });
+
+  it('reads each bank gateway from its own switch', () => {
+    config.payments.anz.enabled = true;
+    expect(isGatewayEnabledByEnv('anz-egate')).toBe(true);
+    expect(isGatewayEnabledByEnv('bsp-bank')).toBe(config.payments.bsp.enabled);
+    config.payments.anz.enabled = false;
+    expect(isGatewayEnabledByEnv('anz-egate')).toBe(false);
+    expect(isGatewayEnabledByEnv('ANZ-EGATE')).toBe(false);
+  });
+
+  it('maps bank transfer and cash to the manual switch, and leaves gateways without a switch to the admin toggle', () => {
+    config.payments.manual.enabled = false;
+    expect(isGatewayEnabledByEnv('manual_transfer')).toBe(false);
+    expect(isGatewayEnabledByEnv('cash')).toBe(false);
+    expect(isGatewayEnabledByEnv('paypal')).toBe(true);
+  });
+
+  it('hides a gateway switched off on the server, even when active in admin', () => {
+    config.payments.bred.enabled = false;
+    expect(slugs(visibleGateways([cash, bredLive], [], { isAdmin: true }))).toEqual(['cash']);
   });
 });

@@ -1,4 +1,5 @@
 import type { PaymentGateway } from "../../shared/schema.js";
+import { isGatewayEnabledByEnv } from "../config.js";
 
 /**
  * The only shape of a payment gateway that may leave the server on a public route.
@@ -37,6 +38,8 @@ export function visibleGateways(
 
   return gateways.filter((g) => {
     if (!g.active) return false;
+    // Switched off on the server (PAYMENTS_<KEY>_ENABLED): checkout would refuse it.
+    if (!isGatewayEnabledByEnv(g.slug)) return false;
     if (isTestModeGateway(g) && !viewer.isAdmin) return false;
     const slug = g.slug.toLowerCase();
 
