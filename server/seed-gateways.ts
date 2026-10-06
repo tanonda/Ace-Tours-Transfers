@@ -15,7 +15,7 @@ const GATEWAY_DATA = [
   {
     slug: "anz-egate",
     displayName: "ANZ eGate",
-    description: "Vanuatu bank gateway via ANZ Pacific (Mastercard Gateway).",
+    description: "ANZ Vanuatu card payments (Mastercard Payment Gateway Services, Hosted Checkout).",
     active: false,
     priority: 1,
     supportedCurrencies: ["VUV", "AUD"],

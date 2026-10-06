@@ -772,8 +772,22 @@ export const LocalBankConfigSchema = z.object({
   dataPortEndpoint: z.string().url().optional(),
 });
 
-// Refined: ANZ eGate Credentials Schema - extends Mastercard Gateway with optional specific fields
-export const AnzEGateCredentialsSchema = MastercardGatewayCredentialsSchema;
+// ANZ eGate Credentials Schema — ANZ runs on Mastercard Payment Gateway Services (MPGS),
+// Hosted Checkout over the REST API. ANZ issues a separate TEST merchant (usually "TEST" +
+// the merchant ID) with its own API password; blank optional fields arrive as "" from the form.
+const mpgsMerchantId = z.string().regex(/^[A-Za-z0-9_-]{1,40}$/, "Merchant ID: letters and digits as ANZ issued it");
+export const AnzEGateCredentialsSchema = z.object({
+  mode: z.enum(["TEST", "PRODUCTION"]),
+  gatewayUrl: z.string().url().refine((u) => u.startsWith("https://"), "Gateway URL must start with https://"), // e.g. https://anzworldline.gateway.mastercard.com
+  apiVersion: z.string().regex(/^(\d{2,3})?$/, "API version is a number such as 100").optional(), // blank = 100
+  testMerchantId: mpgsMerchantId,
+  testApiPassword: z.string().min(1),
+  testNotificationSecret: z.string().optional(),
+  productionMerchantId: mpgsMerchantId.or(z.literal("")).optional(),
+  productionApiPassword: z.string().optional(),
+  productionNotificationSecret: z.string().optional(),
+  merchantName: z.string().max(40).optional(), // shown on the hosted payment page
+});
 
 // Bred Bank Credentials Schema — BRED's hosted card page runs on Lyra PayZen
 // (signed form POST + Instant Payment Notification). Values come from the

@@ -1,7 +1,7 @@
 import { PaymentGateway } from "../../../shared/schema.js";
 import { PaymentGatewayService, PaymentStatus } from "../../domain/payments/interfaces.js";
 import { ManualAdapter } from "../../infrastructure/payments/manual.adapter.js";
-import { AnzEGateAdapter } from "../../infrastructure/payments/anz-egate.adapter.js";
+import { MpgsHostedCheckoutAdapter } from "../../infrastructure/payments/mpgs.adapter.js";
 import { BspEGateAdapter } from "../../infrastructure/payments/bsp-egate.adapter.js";
 import { PayzenAdapter } from "../../infrastructure/payments/payzen.adapter.js";
 import { StripeAdapter } from "../../infrastructure/payments/stripe.adapter.js";
@@ -26,8 +26,8 @@ export class PaymentFactory {
     'bank-transfer': ManualAdapter as any,
     'bank': ManualAdapter as any,
     // Local bank gateways: ANZ/BSP delegate to MastercardGatewayAdapter; BRED uses Lyra PayZen
-    'anz': AnzEGateAdapter as any,
-    'anz-egate': AnzEGateAdapter as any,
+    'anz': MpgsHostedCheckoutAdapter as any,
+    'anz-egate': MpgsHostedCheckoutAdapter as any,
     'bsp': BspEGateAdapter as any,
     'bsp-bank': BspEGateAdapter as any,
     'bred': PayzenAdapter as any,

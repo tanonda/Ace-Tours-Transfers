@@ -45,7 +45,7 @@ import { Textarea } from "@/components/ui/textarea";
 
 // Helper to map gateway slugs to their respective Zod schemas
 const gatewaySchemas: Record<string, { credentials?: z.ZodObject<any>, config?: z.ZodObject<any> }> = {
-    'anz-egate': { credentials: AnzEGateCredentialsSchema, config: LocalBankConfigSchema },
+    'anz-egate': { credentials: AnzEGateCredentialsSchema, config: undefined }, // MPGS Hosted Checkout: mode, gateway URL, test + production merchant/API password
     'bsp-bank': { credentials: BspBankCredentialsSchema, config: LocalBankConfigSchema },
     'bred-bank': { credentials: BredBankCredentialsSchema, config: undefined }, // Lyra PayZen: shop ID, mode, keys
     'stripe': { credentials: StripeCredentialsSchema, config: StripeConfigSchema },

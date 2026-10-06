@@ -8,6 +8,8 @@ import { rateLimit } from "express-rate-limit";
 import { z } from "zod";
 import { adminAudit } from "../infrastructure/audit/admin-audit-log.service.js";
 import { toPublicGateway, visibleGateways, isTestModeGateway } from "./public-gateway.js";
+import { PaymentStatus, WebhookResponse } from "../domain/payments/interfaces.js";
+import { MpgsHostedCheckoutAdapter, parseMpgsSessionId, renderMpgsLaunchPage } from "../infrastructure/payments/mpgs.adapter.js";
 
 const paymentLimiter = rateLimit({
   windowMs: 60 * 1000,
@@ -173,6 +175,31 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
   // ─────────────────────────────────────────────────────────────────────────
   const BANK_GATEWAY_SLUGS = ['anz-egate', 'bsp-bank', 'bred-bank', 'wantok-money', 'generic-local-bank'];
 
+  // A payment is shown the success page (which polls the booking) unless the bank said no.
+  const paidOrPending = (result: WebhookResponse) =>
+    result.success &&
+    ![PaymentStatus.Failed, PaymentStatus.Cancelled, PaymentStatus.Expired].includes(result.newPaymentStatus as PaymentStatus);
+
+  // ANZ eGate (MPGS) launch page: loads ANZ's checkout.js for the session created by
+  // initiatePayment and hands the guest to ANZ's hosted payment page.
+  app.get("/api/payments/checkout/anz-egate", callbackLimiter, async (req, res) => {
+    const sessionId = parseMpgsSessionId(req.query.session);
+    if (!sessionId) return res.redirect('/payment/cancel?reason=system_error');
+    try {
+      const gateway = await storage.getPaymentGatewayBySlug('anz-egate');
+      if (!gateway || !gateway.active) return res.redirect('/payment/cancel?reason=system_error');
+      const adapter = new MpgsHostedCheckoutAdapter(gateway);
+      const { html, csp } = renderMpgsLaunchPage(adapter.checkoutScriptUrl, sessionId, '/payment/cancel?reason=gateway_rejected');
+      res.set('Content-Security-Policy', csp);
+      res.set('Cache-Control', 'no-store');
+      res.set('Referrer-Policy', 'no-referrer');
+      return res.type('html').send(html);
+    } catch (error: any) {
+      console.error('[MPGS LAUNCH] Error:', error);
+      return res.redirect('/payment/cancel?reason=system_error');
+    }
+  });
+
   app.get("/api/payments/callback/:gateway", callbackLimiter, async (req, res) => {
     const { gateway } = req.params;
 
@@ -181,20 +208,20 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
     }
 
     try {
-      // The bank sends all vpc_ parameters in the query string.
-      // We pass them as-is to the adapter's handleWebhook().
+      // VPC banks send vpc_ parameters in the query string; ANZ (MPGS) sends back the
+      // order/booking we put in its return URL. Either way the adapter decides.
       const vpcParams = req.query as Record<string, string>;
-      const bookingId: string = vpcParams.vpc_OrderInfo || "";
 
       const result = await paymentAppService.handlePaymentWebhook({
         gatewaySlug: gateway,
         rawEvent: vpcParams,
         signature: vpcParams.vpc_SecureHash || "",
       });
+      const bookingId: string = result.bookingId || vpcParams.vpc_OrderInfo || vpcParams.booking || "";
 
       // Always redirect the browser — never show a raw JSON error to the customer.
-      if (result.success) {
-        console.log(`[BANK CALLBACK][${gateway}] Payment confirmed for booking ${bookingId}`);
+      if (paidOrPending(result)) {
+        console.log(`[BANK CALLBACK][${gateway}] ${result.message} for booking ${bookingId}`);
         return res.redirect(`/payment/success?booking=${encodeURIComponent(bookingId)}`);
       } else {
         console.warn(`[BANK CALLBACK][${gateway}] Payment failed/rejected for booking ${bookingId}: ${result.message}`);
@@ -217,15 +244,15 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
 
     try {
       const vpcParams = { ...req.body, ...req.query } as Record<string, string>;
-      const bookingId: string = vpcParams.vpc_OrderInfo || "";
 
       const result = await paymentAppService.handlePaymentWebhook({
         gatewaySlug: gateway,
         rawEvent: vpcParams,
         signature: vpcParams.vpc_SecureHash || "",
       });
+      const bookingId: string = result.bookingId || vpcParams.vpc_OrderInfo || vpcParams.booking || "";
 
-      if (result.success) {
+      if (paidOrPending(result)) {
         return res.redirect(`/payment/success?booking=${encodeURIComponent(bookingId)}`);
       } else {
         return res.redirect(`/payment/cancel?booking=${encodeURIComponent(bookingId)}&reason=gateway_rejected`);
@@ -256,6 +283,23 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
           .send(result.message || (result.success ? 'OK' : 'Rejected'));
       } catch (error: any) {
         console.error('[PAYZEN IPN] Error:', error);
+        return res.status(500).type('text/plain').send('Error while processing the notification');
+      }
+    }
+
+    // ANZ eGate (MPGS) notification: JSON body, X-Notification-Secret header. The adapter
+    // re-reads the order from ANZ, so the body itself is never trusted. MPGS retries on non-200.
+    if (gatewaySlug === 'anz-egate') {
+      try {
+        const result = await paymentAppService.handlePaymentWebhook({
+          gatewaySlug,
+          rawEvent: req.body,
+          headers: req.headers as Record<string, string>,
+        });
+        if (!result.success) console.warn(`[MPGS NOTIFICATION] Rejected: ${result.message}`);
+        return res.status(result.success ? 200 : 400).type('text/plain').send(result.success ? 'OK' : 'Rejected');
+      } catch (error: any) {
+        console.error('[MPGS NOTIFICATION] Error:', error);
         return res.status(500).type('text/plain').send('Error while processing the notification');
       }
     }
