@@ -198,6 +198,19 @@ export async function seedGateways(): Promise<void> {
   console.log(`\nDone! Created: ${created}, Updated: ${skipped}`);
 }
 
+/**
+ * Startup: insert any gateway in GATEWAY_DATA that the database lacks (e.g. one added
+ * in a release), inactive as seeded. Existing rows are left exactly as admins set them.
+ */
+export async function seedMissingGateways(): Promise<string[]> {
+  const existing = new Set((await db.select({ slug: paymentGateways.slug }).from(paymentGateways)).map((g) => g.slug));
+  const missing = GATEWAY_DATA.filter((g) => !existing.has(g.slug));
+  for (const gateway of missing) {
+    await db.insert(paymentGateways).values(gateway).onConflictDoNothing({ target: paymentGateways.slug });
+  }
+  return missing.map((g) => g.slug);
+}
+
 // CLI entry point — only runs when executed directly, not when imported
 const isMain = process.argv[1] && (
   process.argv[1].endsWith('seed-gateways.ts') ||

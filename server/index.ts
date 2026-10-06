@@ -25,7 +25,7 @@ import { fetchLiveExchangeRates } from "./domain/pricing/PricingEngine.js";
 import { verifyEmailConfig } from "./lib/mail.js";
 import { cleanupNotifications } from "./infrastructure/cleanup/notification-cleanup.js";
 import { seedFlags } from "./seed-flags.js";
-import { seedGateways } from "./seed-gateways.js";
+import { seedMissingGateways } from "./seed-gateways.js";
 import { PaymentReconciliationService } from "./application/payment-reconciliation.service.js";
 import { ReconciliationWorker } from "./infrastructure/payments/reconciliation.worker.js";
 import { HoldExpiryJob } from "./infrastructure/jobs/hold-expiry.job.js";
@@ -507,16 +507,13 @@ app.use((req, res, next) => {
   }
 
   // ── Gateway Auto-Seed Guard ────────────────────────────────────────────────
-  // Ensures payment_gateways is never empty after a DB reset or reprovisioning.
-  // Only inserts rows that don't already exist (idempotent ON CONFLICT skip).
+  // Adds any gateway this release knows that the database lacks (after a DB reset,
+  // or a new bank such as NBV). Inserts only, inactive; existing rows are untouched.
   try {
-    const existing = await storage.getPaymentGateways();
-    if (existing.length === 0) {
-      console.log('[STARTUP] payment_gateways table is empty — running auto-seed...');
-      await seedGateways();
-    } else {
-      console.log(`[STARTUP] payment_gateways OK — ${existing.length} gateways registered.`);
-    }
+    const added = await seedMissingGateways();
+    console.log(added.length
+      ? `[STARTUP] payment_gateways: added ${added.join(', ')} (inactive).`
+      : '[STARTUP] payment_gateways OK — all gateways registered.');
   } catch (gwSeedErr) {
     console.warn('[STARTUP] Gateway auto-seed check failed (non-fatal):', gwSeedErr);
   }
