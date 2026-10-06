@@ -610,5 +610,6 @@
     "label": "Gracias",
     "title": "Créditos fotográficos",
     "intro": "Las fotos de Efate de este sitio las comparten sus fotógrafos bajo licencias Creative Commons. Algunas se han recortado o retocado."
-  }
+  },
+  "common.nameNoAngleBrackets": "Los nombres no pueden contener < ni >."
 }

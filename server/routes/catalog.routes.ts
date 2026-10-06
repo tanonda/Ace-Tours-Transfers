@@ -1,4 +1,5 @@
 import type { Express } from "express";
+import { invalidPersonName } from "../../shared/person-name.js";
 import { storage } from "../storage.js";
 import { db } from "../db.js";
 import { sql, eq, desc } from "drizzle-orm";
@@ -163,6 +164,8 @@ export function registerCatalogRoutes(app: Express) {
       const { tourId, rating, comment, guestName, guestEmail } = req.body;
       if (!tourId || !rating) return res.status(400).json({ error: "tourId and rating are required" });
       if (rating < 1 || rating > 5) return res.status(400).json({ error: "rating must be 1-5" });
+      const nameError = invalidPersonName(guestName);
+      if (nameError) return res.status(400).json({ error: nameError });
 
       // Sanitize & cap all user-supplied string fields
       const safeComment = typeof comment === "string" ? comment.trim().slice(0, 2000) : null;

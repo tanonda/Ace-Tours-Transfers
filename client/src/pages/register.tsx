@@ -11,6 +11,8 @@ import { tours } from "@/lib/data";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LanguageSelector } from "@/components/language-selector";
 import { useTranslation } from "react-i18next";
+import { NameError } from "@/components/name-error";
+import { invalidPersonName } from "@shared/person-name";
 
 type Step = "details" | "verify";
 
@@ -36,6 +38,11 @@ export default function Register() {
   // Step 1 — submit details, request OTP
   const handleRequestOTP = async (e: React.FormEvent) => {
     e.preventDefault();
+    // The message under the name field already explains it.
+    if (invalidPersonName(formData.name)) {
+      document.getElementById("fullName")?.focus();
+      return;
+    }
     setIsLoading(true);
 
     try {
@@ -171,7 +178,11 @@ export default function Register() {
                           value={formData.name}
                           onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                           className="bg-white/20 border-white/30 text-white placeholder:text-white/50 focus:border-white/50 font-black shadow-lg"
+                          aria-invalid={Boolean(invalidPersonName(formData.name))}
+                          aria-describedby="fullName-error"
                         />
+                        {/* Light red: the form sits on a dark background. */}
+                        <NameError value={formData.name} id="fullName-error" className="text-red-200" />
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="email" className="text-white">{t("auth.email")}</Label>

@@ -21,6 +21,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { CalendarIcon } from "lucide-react";
+import { NameError } from "@/components/name-error";
+import { invalidPersonName } from "@shared/person-name";
 
 interface CreateBookingFormData extends Partial<InsertBooking> {
   customerEmail: string;
@@ -197,7 +199,10 @@ export function CreateBookingDialog({ open, onOpenChange, onSuccess }: CreateBoo
                 id="customerName"
                 value={formData.customerName}
                 onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
+                aria-invalid={Boolean(invalidPersonName(formData.customerName))}
+                aria-describedby="customerName-error"
               />
+              <NameError value={formData.customerName} id="customerName-error" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="customerEmail">Customer Email</Label>
@@ -349,7 +354,7 @@ export function CreateBookingDialog({ open, onOpenChange, onSuccess }: CreateBoo
           <Button
             className="bg-[#004165]"
             onClick={handleSave}
-            disabled={createBookingMutation.isPending}
+            disabled={createBookingMutation.isPending || Boolean(invalidPersonName(formData.customerName))}
           >
             {createBookingMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Create Booking

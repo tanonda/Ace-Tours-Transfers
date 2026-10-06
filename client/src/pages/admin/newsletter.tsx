@@ -22,6 +22,8 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { Textarea } from "@/components/ui/textarea";
+import { NameError } from "@/components/name-error";
+import { invalidPersonName } from "@shared/person-name";
 
 async function updateSubscriber(id: string, data: Partial<{ confirmed: boolean; unsubscribedAt: string | null; name: string }>) {
   const res = await fetch(`/api/newsletter/subscribers/${id}`, {
@@ -342,11 +344,12 @@ export default function AdminNewsletter() {
           </DialogHeader>
           <div className="space-y-3 py-2">
             <Label>Display Name</Label>
-            <Input value={editName} onChange={e => setEditName(e.target.value)} placeholder="Enter name..." />
+            <Input value={editName} onChange={e => setEditName(e.target.value)} placeholder="Enter name..." aria-invalid={Boolean(invalidPersonName(editName))} aria-describedby="subscriber-name-error" />
+            <NameError value={editName} id="subscriber-name-error" />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditingSub(null)}>Cancel</Button>
-            <Button onClick={() => updateMutation.mutate({ id: editingSub.id, data: { name: editName } })} disabled={updateMutation.isPending}>
+            <Button onClick={() => updateMutation.mutate({ id: editingSub.id, data: { name: editName } })} disabled={updateMutation.isPending || Boolean(invalidPersonName(editName))}>
               Save
             </Button>
           </DialogFooter>

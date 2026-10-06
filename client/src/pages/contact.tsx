@@ -15,6 +15,8 @@ import { useCmsText } from "@/hooks/use-cms-text";
 import { useToast } from "@/hooks/use-toast";
 import { vanuatuPhone } from "@/lib/phone";
 import { useSitePhoto } from "@/hooks/use-site-photo";
+import { NameError } from "@/components/name-error";
+import { invalidPersonName } from "@shared/person-name";
 
 const WHATSAPP_NUMBER = "6787114045";
 
@@ -44,6 +46,11 @@ export default function Contact() {
   const handleSubmit = async () => {
     if (!form.name.trim() || !form.email.trim() || !form.message.trim()) {
       toast({ title: "Missing fields", description: "Please fill in your name, email, and message.", variant: "destructive" });
+      return;
+    }
+    // The message under the name field already explains it.
+    if (invalidPersonName(form.name)) {
+      document.getElementById("name")?.focus();
       return;
     }
     setSubmitting(true);
@@ -198,7 +205,8 @@ export default function Contact() {
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-1.5">
                       <Label htmlFor="name">Name <span className="text-red-500">*</span></Label>
-                      <Input id="name" placeholder="Your full name" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
+                      <Input id="name" placeholder="Your full name" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} aria-invalid={Boolean(invalidPersonName(form.name))} aria-describedby="name-error" />
+                      <NameError value={form.name} id="name-error" />
                     </div>
                     <div className="space-y-1.5">
                       <Label htmlFor="email">Email <span className="text-red-500">*</span></Label>

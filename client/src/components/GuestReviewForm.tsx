@@ -4,6 +4,8 @@ import { useAuth } from "@/lib/auth-context";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
+import { NameError } from "@/components/name-error";
+import { invalidPersonName } from "@shared/person-name";
 
 interface GuestReviewFormProps {
   productId: string;
@@ -53,6 +55,11 @@ export function GuestReviewForm({ productId, productTitle, reviewQueryKey }: Gue
     }
     if (!isAuthenticated && !guestName.trim()) {
       toast({ title: "Please enter your name", variant: "destructive" });
+      return;
+    }
+    // The message under the name field already explains it.
+    if (!isAuthenticated && invalidPersonName(guestName)) {
+      document.getElementById("review-guest-name")?.focus();
       return;
     }
 
@@ -165,11 +172,15 @@ export function GuestReviewForm({ productId, productTitle, reviewQueryKey }: Gue
               </label>
               <input
                 type="text"
+                id="review-guest-name"
                 value={guestName}
                 onChange={(e) => setGuestName(e.target.value.slice(0, 100))}
                 placeholder="Your name"
                 className="w-full bg-card border border-primary/18 rounded-[10px] px-4 py-2.5 text-[0.88rem] text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus:border-primary transition-colors"
+                aria-invalid={Boolean(invalidPersonName(guestName))}
+                aria-describedby="review-guest-name-error"
               />
+              <NameError value={guestName} id="review-guest-name-error" className="mt-1.5" />
             </div>
             <div>
               <label className="text-[0.68rem] font-bold uppercase tracking-widest text-muted-foreground mb-1.5 block">

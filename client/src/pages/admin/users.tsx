@@ -22,9 +22,10 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
+import { invalidPersonName, PERSON_NAME_ERROR } from "@shared/person-name";
 
 const userFormSchema = z.object({
-  name: z.string().min(1, "Name is required"),
+  name: z.string().min(1, "Name is required").refine((name) => !invalidPersonName(name), PERSON_NAME_ERROR),
   email: z.string().email("Invalid email address"),
   phone: z.string().optional(),
   password: z.string().min(8, "Password must be at least 8 characters").max(50, "Password too long"),
@@ -692,7 +693,8 @@ export default function AdminUsers() {
                 <FormField control={form.control} name="name" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Full Name *</FormLabel>
-                    <FormControl><Input placeholder="Jane Smith" {...field} /></FormControl>
+                    {/* Re-check as the name is typed, so the < or > message shows before submit. */}
+                    <FormControl><Input placeholder="Jane Smith" {...field} onChange={(e) => { field.onChange(e); void form.trigger("name"); }} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />

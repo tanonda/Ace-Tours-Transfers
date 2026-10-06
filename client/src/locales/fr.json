@@ -610,5 +610,6 @@
     "label": "Merci",
     "title": "Crédits photo",
     "intro": "Les photos d'Efaté utilisées sur ce site sont partagées par leurs photographes sous licences Creative Commons. Certaines ont été recadrées ou retouchées."
-  }
+  },
+  "common.nameNoAngleBrackets": "Les noms ne peuvent pas contenir < ou >."
 }

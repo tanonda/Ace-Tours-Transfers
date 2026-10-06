@@ -12,6 +12,8 @@ import { ArrowLeft, ArrowRight, User, Phone, MapPin, MessageSquare, ShieldCheck,
 import { useToast } from "@/hooks/use-toast";
 import { formatPriceDisplay } from "@/lib/product.types";
 import { useCurrency } from "@/lib/currency-context";
+import { NameError } from "@/components/name-error";
+import { invalidPersonName } from "@shared/person-name";
 
 export default function Checkout() {
     const [, setLocation] = useLocation();
@@ -70,6 +72,11 @@ export default function Checkout() {
                 description: "Please provide your name, email, and phone number.",
                 variant: "destructive"
             });
+            return;
+        }
+        // The message under the field already explains it.
+        if (invalidPersonName(formData.name)) {
+            document.getElementById("name")?.focus();
             return;
         }
 
@@ -160,8 +167,11 @@ export default function Checkout() {
                                                         value={formData.name}
                                                         onChange={handleChange}
                                                         required
+                                                        aria-invalid={Boolean(invalidPersonName(formData.name))}
+                                                        aria-describedby="name-error"
                                                     />
                                                 </div>
+                                                <NameError value={formData.name} id="name-error" />
                                             </div>
                                             <div className="space-y-2">
                                                 <Label htmlFor="email" className="flex items-baseline gap-1">

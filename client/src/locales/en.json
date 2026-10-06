@@ -548,5 +548,6 @@
   "credits.intro": "Photos of Efate used on this site are shared by their photographers under Creative Commons licences. Some have been cropped or colour-graded.",
   "hero.bookTransfer": "Book a transfer",
   "hero.searchTours": "Search tours",
-  "hero.searchTransfers": "Search transfers"
+  "hero.searchTransfers": "Search transfers",
+  "common.nameNoAngleBrackets": "Names can't contain < or >."
 }

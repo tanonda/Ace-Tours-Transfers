@@ -23,6 +23,8 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import type { User } from "@shared/schema";
 import { useAuth } from "@/lib/auth-context";
+import { NameError } from "@/components/name-error";
+import { invalidPersonName } from "@shared/person-name";
 
 const ROLE_CONFIG: Record<string, { label: string; color: string; description: string; icon: React.ReactNode }> = {
   admin: {
@@ -500,7 +502,8 @@ export default function AdminStaff() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Full Name *</Label>
-                <Input placeholder="Jane Smith" value={newStaff.name} onChange={e => setNewStaff(s => ({ ...s, name: e.target.value }))} />
+                <Input placeholder="Jane Smith" value={newStaff.name} onChange={e => setNewStaff(s => ({ ...s, name: e.target.value }))} aria-invalid={Boolean(invalidPersonName(newStaff.name))} aria-describedby="staff-name-error" />
+                <NameError value={newStaff.name} id="staff-name-error" />
               </div>
               <div className="space-y-1.5">
                 <Label>Username <span className="text-muted-foreground font-normal">(optional)</span></Label>
@@ -550,7 +553,7 @@ export default function AdminStaff() {
             <Button type="button" variant="outline" onClick={() => setCreateDialogOpen(false)}>Cancel</Button>
             <Button
               type="submit"
-              disabled={createMutation.isPending || !newStaff.name || !newStaff.email || (!!newStaff.password && newStaff.password.length < 6)}
+              disabled={createMutation.isPending || !newStaff.name || Boolean(invalidPersonName(newStaff.name)) || !newStaff.email || (!!newStaff.password && newStaff.password.length < 6)}
               className="bg-[#004165] hover:bg-[#004165]/90"
             >
               {createMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

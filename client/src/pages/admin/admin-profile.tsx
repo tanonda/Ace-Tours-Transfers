@@ -11,6 +11,8 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Loader2, Save, KeyRound, User, Mail, Phone, Shield } from "lucide-react";
+import { NameError } from "@/components/name-error";
+import { invalidPersonName } from "@shared/person-name";
 
 export default function AdminProfile() {
   const { user } = useAuth();
@@ -164,8 +166,11 @@ export default function AdminProfile() {
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Your full name"
                   className="pl-9"
+                  aria-invalid={Boolean(invalidPersonName(name))}
+                  aria-describedby="name-error"
                 />
               </div>
+              <NameError value={name} id="name-error" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email Address</Label>
@@ -196,7 +201,7 @@ export default function AdminProfile() {
             </div>
             <Button
               onClick={() => profileMutation.mutate()}
-              disabled={profileMutation.isPending}
+              disabled={profileMutation.isPending || Boolean(invalidPersonName(name))}
               className="w-full"
             >
               {profileMutation.isPending ? (
