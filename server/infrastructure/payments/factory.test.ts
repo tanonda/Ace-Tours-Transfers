@@ -15,6 +15,7 @@ describe('PaymentFactory server switches', () => {
   afterEach(() => {
     config.payments.anz.enabled = false;
     config.payments.nbv.enabled = false;
+    config.killSwitches.paymentsPaused = false;
   });
 
   it('refuses ANZ unless PAYMENTS_ANZ_ENABLED is on', () => {
@@ -33,5 +34,16 @@ describe('PaymentFactory server switches', () => {
     expect(() => PaymentFactory.getPaymentGatewayService(nbv)).toThrow(/currently unavailable/);
     config.payments.nbv.enabled = true;
     expect(PaymentFactory.getPaymentGatewayService(nbv)).toBeInstanceOf(MpgsHostedCheckoutAdapter);
+  });
+
+  it('still settles a payment already in progress when the switch is off', () => {
+    config.payments.anz.enabled = false;
+    expect(PaymentFactory.getPaymentGatewayService(anz, 'existing')).toBeInstanceOf(MpgsHostedCheckoutAdapter);
+  });
+
+  it('stops settling too under the global payments pause', () => {
+    config.payments.anz.enabled = true;
+    config.killSwitches.paymentsPaused = true;
+    expect(() => PaymentFactory.getPaymentGatewayService(anz, 'existing')).toThrow(/currently unavailable/);
   });
 });

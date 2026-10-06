@@ -39,7 +39,14 @@ export class PaymentFactory {
     'apple-pay': ApplePayAdapter as any,
   };
 
-  static getPaymentGatewayService(gatewayConfig: PaymentGateway): PaymentGatewayService {
+  /**
+   * @param use 'new' to start a payment (checkout, payment link); 'existing' to settle one
+   * already in progress (bank callbacks, reconciliation). A gateway switched off on the
+   * server (PAYMENTS_<KEY>_ENABLED) takes no new payments but still confirms the ones a
+   * guest has started, so money already taken is never stranded. The emergency stops
+   * below apply to both.
+   */
+  static getPaymentGatewayService(gatewayConfig: PaymentGateway, use: 'new' | 'existing' = 'new'): PaymentGatewayService {
     const slug = gatewayConfig.slug.toLowerCase();
 
     // 1. Check Global Disconnect — only offline methods allowed if external systems are off
@@ -56,8 +63,8 @@ export class PaymentFactory {
     }
     const AdapterClass = this.adapters[slug];
 
-    // 3. Feature Flag Check (Absolute Source of Truth)
-    const isEnabled = isGatewayEnabledByEnv(slug);
+    // 3. Server switch: gates new payments only (see `use`)
+    const isEnabled = use === 'existing' || isGatewayEnabledByEnv(slug);
 
     // 4. Kill Switch Check (Production Circuit Breaker)
     const isCard = slug === 'stripe' || slug.includes('card');

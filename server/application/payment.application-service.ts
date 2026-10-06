@@ -411,7 +411,7 @@ export class PaymentApplicationService {
       return { success: false, message: "Gateway is not active" };
     }
 
-    const adapter = PaymentFactory.getPaymentGatewayService(gateway);
+    const adapter = PaymentFactory.getPaymentGatewayService(gateway, 'existing');
     const result = await adapter.handleWebhook(event);
 
     // Resolve the payment: prefer explicit paymentId, then resolve by gatewayReference (vpc_MerchTxnRef),

@@ -22,8 +22,11 @@ const adapter = {
   queryPaymentStatus: vi.fn(),
   handleWebhook: vi.fn(),
 };
+const factoryUses: string[] = [];
 vi.mock('../infrastructure/payments/factory.js', () => ({
-  PaymentFactory: { getPaymentGatewayService: () => adapter },
+  PaymentFactory: {
+    getPaymentGatewayService: (_gateway: unknown, use = 'new') => { factoryUses.push(use); return adapter; },
+  },
 }));
 
 const anz = makePaymentGateway({ id: 'gw-anz', slug: 'anz-egate', displayName: 'ANZ eGate' });
@@ -201,5 +204,26 @@ describe('PaymentApplicationService.handlePaymentWebhook — closed and link pay
     expect(result.newPaymentStatus).toBeUndefined();
     expect(storage.updatePayment).not.toHaveBeenCalled();
     expect(mockFail).not.toHaveBeenCalled();
+  });
+});
+
+describe('which payments the server switch gates', () => {
+  beforeEach(() => { vi.clearAllMocks(); factoryUses.length = 0; });
+
+  it('treats a payment link as a new payment', async () => {
+    adapter.createPaymentLink.mockResolvedValue({ success: true, url: 'https://anz.example/pbl/PAYLINK1', linkId: 'PAYLINK1' });
+    await new PaymentApplicationService(makeStorage()).createPaymentLink(OPTIONS);
+    expect(factoryUses).toEqual(['new']);
+  });
+
+  it('settles bank callbacks and reconciliation as existing payments', async () => {
+    adapter.handleWebhook.mockResolvedValue({ success: true });
+    adapter.queryPaymentStatus.mockResolvedValue({ status: PaymentStatus.Processing });
+    const storage = makeStorage({
+      getPayment: vi.fn().mockResolvedValue({ id: 'p', bookingId: 'book-123', gatewayId: 'gw-anz', status: PaymentStatus.Processing, expiresAt: new Date(Date.now() + 60_000) }),
+    });
+    await new PaymentApplicationService(storage).handlePaymentWebhook({ gatewaySlug: 'anz-egate', rawEvent: {} });
+    await new PaymentReconciliationService(storage).syncPaymentStatus('p');
+    expect(factoryUses).toEqual(['existing', 'existing']);
   });
 });

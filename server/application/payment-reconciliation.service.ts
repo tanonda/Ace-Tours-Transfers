@@ -56,7 +56,7 @@ export class PaymentReconciliationService {
       return;
     }
 
-    const adapter = PaymentFactory.getPaymentGatewayService(gateway);
+    const adapter = PaymentFactory.getPaymentGatewayService(gateway, 'existing');
     const traceId = `trace_${Date.now()}_${paymentId.slice(0, 8)}`;
 
     console.log(`[RECON][${traceId}] Syncing payment ${paymentId} with gateway ${gateway.slug}.`);
