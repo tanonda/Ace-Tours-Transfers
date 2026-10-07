@@ -88,7 +88,7 @@ app.use(helmet({
       defaultSrc: ["'self'"],
       scriptSrc: [
         "'self'",
-        "'unsafe-inline'", // Required for React inline event handlers & JSON-LD scripts
+        "'unsafe-inline'", // The inline GTM snippet and prerendered page data (JSON-LD is not executed, so CSP ignores it)
         "https://js.stripe.com",
         "https://fonts.googleapis.com",
         "https://www.googletagmanager.com",
@@ -127,8 +127,9 @@ app.use(helmet({
         "https://cdn.jsdelivr.net", // Live currency exchange rates (VUV)
         "https://widget.trustpilot.com", // Trustpilot widget sourcemaps
         "https://*.ingest.de.sentry.io",
-        "wss:",
-        "ws:",
+        // Vite's hot reload only. In production the browser opens no WebSockets (the
+        // notification stream is a same-origin EventSource), so none are allowed.
+        ...(process.env.NODE_ENV === "production" ? [] : ["wss:", "ws:"]),
       ],
       frameSrc: [
         "https://js.stripe.com",
@@ -140,6 +141,16 @@ app.use(helmet({
     } as any,
   },
 }));
+// The site never uses these browser features; deny them so injected or third-party
+// script cannot ask for them. Payment stays available to the page and Stripe's frame.
+app.use((_req, res, next) => {
+  res.setHeader(
+    "Permissions-Policy",
+    'camera=(), microphone=(), geolocation=(), usb=(), payment=(self "https://js.stripe.com")',
+  );
+  next();
+});
+
 // Session references will be initialized in the async block
 let sessionStore: any;
 let sessionMiddleware: any;
