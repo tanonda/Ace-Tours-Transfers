@@ -55,3 +55,15 @@ describe('CreateBookingFromCartService hold groups', () => {
     expect(first.bookingSessionId).not.toBe(second.bookingSessionId);
   });
 });
+
+describe('CreateBookingFromCartService pricing', () => {
+  it('prices from the pricing engine, never from prices sent with the request', async () => {
+    const tampered = {
+      ...REQUEST,
+      totalAmountCents: 1,
+      items: [{ ...REQUEST.items[0], price: 1, unitPriceCents: 1, subtotalCents: 1 }],
+    } as any;
+    await new CreateBookingFromCartService(storage as any).execute(tampered);
+    expect(storage.createBooking).toHaveBeenCalledWith(expect.objectContaining({ totalAmountCents: 10000 }), expect.anything());
+  });
+});

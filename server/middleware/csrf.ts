@@ -21,13 +21,13 @@ const CSRF_COOKIE = "csrf_token";
 const CSRF_HEADER = "x-csrf-token";
 const TOKEN_BYTES = 32;
 
-/** Paths that are exempt from CSRF checks (webhooks, bank callbacks). */
-const EXEMPT_PREFIXES = [
-  "/api/payments/webhook/",
-  "/api/payments/callback/",
-  "/api/stripe/webhook",
-  "/api/health",
-];
+/**
+ * Paths exempt from CSRF checks (webhooks and bank callbacks verify signatures instead).
+ * Single endpoints match exactly; only the per-gateway families match by prefix, so a
+ * future route such as /api/stripe/webhook-config is never exempted by accident.
+ */
+const EXEMPT_PATHS = new Set(["/api/stripe/webhook", "/api/health"]);
+const EXEMPT_PREFIXES = ["/api/payments/webhook/", "/api/payments/callback/"];
 
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 
@@ -47,7 +47,7 @@ export function csrfProtection(req: Request, res: Response, next: NextFunction):
   // Exempt webhook / callback endpoints (they use signature verification instead).
   // Mounted with app.use("/api", ...), so req.path has "/api" stripped: match the full path.
   const fullPath = req.baseUrl + req.path;
-  if (EXEMPT_PREFIXES.some((p) => fullPath.startsWith(p))) {
+  if (EXEMPT_PATHS.has(fullPath) || EXEMPT_PREFIXES.some((p) => fullPath.startsWith(p))) {
     return next();
   }
 
