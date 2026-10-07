@@ -57,6 +57,23 @@ describe("resolveSeo", () => {
     expect(resolveSeo(page, { siteName: "Ace Tours" }, FALLBACKS).fullTitle).toBe("Efate Tours | Ace Tours");
   });
 
+  it("drops a brand suffix the page title already carries before applying the template", () => {
+    const template = { titleTemplate: "{page} | Ace Tours Vanuatu" };
+    const full = (title: string) => resolveSeo({ title }, template, FALLBACKS).fullTitle;
+    expect(full("Pele Island Beach Day Tour | Ace Tours")).toBe("Pele Island Beach Day Tour | Ace Tours Vanuatu");
+    expect(full("Efate Scenic Tour | Ace Tours Vanuatu")).toBe("Efate Scenic Tour | Ace Tours Vanuatu");
+    expect(full("Havannah Transfers | Port Vila | ace tours")).toBe("Havannah Transfers | Port Vila | Ace Tours Vanuatu");
+  });
+
+  it("uses a title that already names the brand as-is", () => {
+    const seo = resolveSeo(
+      { title: "Ace Tours & Transfers - Private Tours in Vanuatu", isHomePage: true },
+      { titleTemplate: "{page} | Ace Tours Vanuatu" },
+      FALLBACKS,
+    );
+    expect(seo.fullTitle).toBe("Ace Tours & Transfers - Private Tours in Vanuatu");
+  });
+
   it("keeps a page's own description on inner pages", () => {
     const seo = resolveSeo(page, { defaultDescription: "Admin description." }, FALLBACKS);
     expect(seo.description).toBe("Page description.");

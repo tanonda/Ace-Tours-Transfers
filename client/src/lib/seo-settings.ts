@@ -52,12 +52,27 @@ export function readSeoSettings(getSetting: (key: string) => unknown): SeoSettin
   return settings;
 }
 
+// Product titles typed in admin often end in "| Ace Tours", which the template
+// would brand a second time. The brand is the site name's first two words.
+function withoutBrand(title: string, siteName: string): { title: string; branded: boolean } {
+  const brand = siteName.split(/\s+/).slice(0, 2).join(" ").toLowerCase();
+  const segments = title.split(" | ");
+  while (segments.length > 1 && segments[segments.length - 1].trim().toLowerCase().startsWith(brand)) {
+    segments.pop();
+  }
+  const stripped = segments.join(" | ");
+  return { title: stripped, branded: stripped.toLowerCase().includes(brand) };
+}
+
 export function resolveSeo(page: PageSeo, settings: SeoSettings, fallbacks: SeoFallbacks) {
   const siteName = settings.siteName ?? fallbacks.siteName;
 
-  const fullTitle = settings.titleTemplate?.includes("{page}")
-    ? settings.titleTemplate.replaceAll("{page}", page.title)
-    : `${page.title} | ${siteName}`;
+  const { title, branded } = withoutBrand(page.title, fallbacks.siteName);
+  const fullTitle = branded
+    ? title
+    : settings.titleTemplate?.includes("{page}")
+      ? settings.titleTemplate.replaceAll("{page}", title)
+      : `${title} | ${siteName}`;
 
   // The homepage is the site's "default" page, so the admin default wins there;
   // other pages keep their own, more specific description.

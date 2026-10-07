@@ -223,7 +223,12 @@ export default function TransferDetail() {
         image={displayImage}
         type="product"
         keywords={[...(transfer.seoKeywords ? transfer.seoKeywords.split(',').map((k: string) => k.trim()) : []), transfer.title, "Vanuatu transfer", "Port Vila transport", "airport transfer Vanuatu"]}
-        structuredType="TouristAttraction"
+        structuredType="Product"
+        breadcrumbs={[
+          { name: "Home", path: "/" },
+          { name: "Transfers", path: "/transfers" },
+          { name: transfer.title, path: `/transfers/${transfer.id}` },
+        ]}
         productName={transfer.title}
         productDescription={htmlToText(Array.isArray(transfer.description) ? transfer.description[0] : transfer.description)}
         offer={getDisplayPrice(transfer).amount ? { price: getDisplayPrice(transfer).amount, currency: "VUV", availability: "InStock" } : undefined}

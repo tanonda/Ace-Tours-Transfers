@@ -134,6 +134,11 @@ export default function BlogArticle() {
         type="article"
         keywords={[...seoKeywords, ...(article.tags ?? [])]}
         extraJsonLd={buildBlogPostingJsonLd(structuredArticle, canonical)}
+        breadcrumbs={[
+          { name: "Home", path: "/" },
+          { name: "Blog", path: "/blog" },
+          { name: article.title, path: `/blog/${article.slug}` },
+        ]}
       />
 
       <main className="overflow-hidden bg-[#f7f3e9] text-[#281c13] dark:bg-[#160f0a] dark:text-[#f7f0df]">

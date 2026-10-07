@@ -494,7 +494,12 @@ export default function TourDetail() {
         image={displayImage}
         type="product"
         keywords={[...(tour.seoKeywords ? tour.seoKeywords.split(',').map((k: string) => k.trim()) : []), tour.title, "Vanuatu tour", "Port Vila tour", tour.category || ""]}
-        structuredType="TouristAttraction"
+        structuredType="Product"
+        breadcrumbs={[
+          { name: "Home", path: "/" },
+          { name: "Tours", path: "/tours" },
+          { name: tour.title, path: `/tours/${tour.id}` },
+        ]}
         productName={tour.title}
         productDescription={htmlToText(Array.isArray(tour.description) ? tour.description[0] : tour.description)}
         offer={getDisplayPrice(tour).amount ? { price: getDisplayPrice(tour).amount, currency: "VUV", availability: "InStock" } : undefined}

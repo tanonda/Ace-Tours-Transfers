@@ -1,6 +1,7 @@
 import { Helmet } from "react-helmet-async";
 import { SITE_URL } from "@/lib/site-url";
 import { buildOfferJsonLd } from "@/lib/product-jsonld";
+import { buildBreadcrumbJsonLd, type Breadcrumb } from "@/lib/breadcrumb-jsonld";
 import { useLocation } from "wouter";
 import { useTranslation } from "react-i18next";
 import i18n from "@/lib/i18n";
@@ -69,6 +70,8 @@ interface SEOProps {
   reviews?: ReviewSchema[];
   faqs?: FAQItem[];
   extraJsonLd?: Record<string, unknown>;
+  /** Trail from the home page to this page, for a BreadcrumbList. */
+  breadcrumbs?: Breadcrumb[];
   /** Emit WebSite schema — set true only on the home page */
   isHomePage?: boolean;
 }
@@ -89,6 +92,7 @@ export function SEO({
   reviews = [],
   faqs = [],
   extraJsonLd,
+  breadcrumbs = [],
   isHomePage = false,
 }: SEOProps) {
   const [loc] = useLocation();
@@ -226,6 +230,9 @@ export function SEO({
     // ── Standalone extra JSON-LD (e.g. BlogPosting) when there is no product context ──
     jsonLdBlocks.push(extraJsonLd);
   }
+
+  const breadcrumbList = buildBreadcrumbJsonLd(breadcrumbs, SITE_URL);
+  if (breadcrumbList) jsonLdBlocks.push(breadcrumbList);
 
   // ── FAQPage schema ──
   if (faqs.length > 0) {
