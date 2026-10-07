@@ -10,7 +10,7 @@ const products: Record<string, { id: string; slug: string | null; category: stri
 };
 
 vi.mock("../storage.js", () => ({
-  storage: { getProduct: async (key: string) => products[key] },
+  storage: { getProductByIdOrSlug: async (key: string) => products[key] },
 }));
 
 let app: Express;

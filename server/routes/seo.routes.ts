@@ -64,7 +64,7 @@ export function registerSeoRoutes(app: Express) {
   // Google moves their ranking to the slug URL. Unknown keys fall through to the app.
   app.get(["/tours/:key", "/transfers/:key"], async (req, res, next) => {
     try {
-      const product = await storage.getProduct(String(req.params.key));
+      const product = await storage.getProductByIdOrSlug(String(req.params.key));
       if (!product) return next();
       const target = productPath(product);
       if (target === req.path) return next();

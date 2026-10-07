@@ -101,8 +101,10 @@ export interface IStorage {
 
   // Product operations
   getProducts(): Promise<Product[]>;
-  /** By id, or by URL slug when the value is not a UUID. */
-  getProduct(idOrSlug: string): Promise<Product | undefined>;
+  /** By id only. Booking, pricing and availability must use this: they key everything on the id. */
+  getProduct(id: string): Promise<Product | undefined>;
+  /** By id, or by URL slug when the value is not a UUID. Only for public page URLs. */
+  getProductByIdOrSlug(idOrSlug: string): Promise<Product | undefined>;
   backfillProductSlugs(): Promise<number>;
   getProductByTitle(title: string): Promise<Product | undefined>;
   createProduct(tour: InsertProduct): Promise<Product>;
@@ -436,10 +438,17 @@ export class DatabaseStorage implements IStorage {
     return this.withRetry(() => db.select().from(products));
   }
 
-  async getProduct(idOrSlug: string): Promise<Product | undefined> {
+  async getProduct(id: string): Promise<Product | undefined> {
     return this.withRetry(async () => {
-      const match = isProductId(idOrSlug) ? eq(products.id, idOrSlug) : eq(products.slug, idOrSlug);
-      const [tour] = await db.select().from(products).where(match);
+      const [tour] = await db.select().from(products).where(eq(products.id, id));
+      return tour || undefined;
+    });
+  }
+
+  async getProductByIdOrSlug(idOrSlug: string): Promise<Product | undefined> {
+    if (isProductId(idOrSlug)) return this.getProduct(idOrSlug);
+    return this.withRetry(async () => {
+      const [tour] = await db.select().from(products).where(eq(products.slug, idOrSlug));
       return tour || undefined;
     });
   }

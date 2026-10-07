@@ -15,6 +15,7 @@ vi.mock('./storage.js', () => {
         storage: {
             getProducts: vi.fn(),
             getProduct: vi.fn(),
+            getProductByIdOrSlug: vi.fn(),
             getSiteSettings: vi.fn().mockResolvedValue([]),
         },
     };
@@ -92,7 +93,7 @@ describe('API Routes', () => {
         it('GET /api/products/:id should return a specific tour', async () => {
             // Arrange
             const mockTour = { id: 't1', title: 'Specific Tour' };
-            vi.mocked(storage.getProduct).mockResolvedValue(mockTour as any);
+            vi.mocked(storage.getProductByIdOrSlug).mockResolvedValue(mockTour as any);
 
             // Act
             const res = await request(app).get('/api/products/t1');
@@ -100,12 +101,12 @@ describe('API Routes', () => {
             // Assert
             expect(res.status).toBe(200);
             expect(res.body).toEqual({ ...mockTour, addons: [] });
-            expect(storage.getProduct).toHaveBeenCalledWith('t1');
+            expect(storage.getProductByIdOrSlug).toHaveBeenCalledWith('t1');
         });
 
         it('GET /api/products/:id should return 404 for missing tour', async () => {
             // Arrange
-            vi.mocked(storage.getProduct).mockResolvedValue(undefined as any);
+            vi.mocked(storage.getProductByIdOrSlug).mockResolvedValue(undefined as any);
 
             // Act
             const res = await request(app).get('/api/products/not-found');

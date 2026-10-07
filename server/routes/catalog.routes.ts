@@ -49,7 +49,7 @@ export function registerCatalogRoutes(app: Express) {
   app.get("/api/products/:id", async (req, res) => {
     try {
       const locale = (req.query.locale as string) || "en";
-      const product = await storage.getProduct(req.params.id);
+      const product = await storage.getProductByIdOrSlug(req.params.id);
       if (!product) return res.status(404).json({ error: "Product not found" });
       const [translated] = await withProductTranslations([product], locale);
       // Include product-specific addons — failure must not break the whole endpoint

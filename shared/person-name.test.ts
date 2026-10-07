@@ -28,7 +28,7 @@ describe("POST /api/bookings body", () => {
   const body = (customerName: string) => ({
     customerName,
     customerEmail: "guest@example.com",
-    items: [{ productId: "tour-1", adultPax: 2, childPax: 0, date: "2026-11-01" }],
+    items: [{ productId: "90b13e31-6e1b-44e9-942c-667203409126", adultPax: 2, childPax: 0, date: "2026-11-01" }],
   });
 
   it("refuses a customer name containing < or >, with a message the guest can act on", () => {

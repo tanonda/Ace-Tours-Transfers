@@ -16,6 +16,7 @@ import { FraudDetectionService } from "../infrastructure/fraud/FraudDetectionSer
 import { ZodError } from "zod";
 
 import { bookingLimiter, cartPriceLimiter, createBookingBodySchema, escapeHtml, requireAdmin, requireAuth, requireBookingSession, requireStaff, verifyLimiter, type RouteDeps } from "./shared.js";
+import { isProductId } from "../../shared/product-path.js";
 
 export function registerBookingsRoutes(app: Express, deps: RouteDeps) {
   const { bookingApplicationService, sseClients } = deps;
@@ -30,6 +31,11 @@ export function registerBookingsRoutes(app: Express, deps: RouteDeps) {
       const { items } = req.body;
       if (!items || !Array.isArray(items) || items.length === 0) {
         return res.status(400).json({ error: "Missing or invalid items array" });
+      }
+
+      // Product ids only, never URL slugs: pricing rules and holds key on the id.
+      if (items.some((item: any) => !isProductId(String(item?.productId || item?.id || "")))) {
+        return res.status(400).json({ error: "Invalid product id" });
       }
 
       const cartId = req.sessionID || 'anonymous';

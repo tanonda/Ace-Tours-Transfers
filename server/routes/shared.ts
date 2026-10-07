@@ -12,6 +12,7 @@ import { rateLimit } from "express-rate-limit";
 
 import type { AvailabilityApplicationService } from "../application/availability/availability.application-service.js";
 import type { BookingApplicationService } from "../application/booking.application-service.js";
+import { isProductId } from "../../shared/product-path.js";
 
 // Security: HTML/XML encoding helpers to prevent XSS in server-rendered templates
 
@@ -76,7 +77,8 @@ export const cartPriceLimiter = rateLimit({
 
 // C6 Fix: Zod schema for booking creation
 export const createBookingItemSchema = z.object({
-  productId: z.string(),
+  // Product ids only, never URL slugs: holds, capacity and pricing rules key on the id.
+  productId: z.string().refine(isProductId, "Invalid product id"),
   adultPax: z.number().int().min(0),
   childPax: z.number().int().min(0),
   infantPax: z.number().int().min(0).default(0), // NEW — infants under 2, free, no capacity impact
