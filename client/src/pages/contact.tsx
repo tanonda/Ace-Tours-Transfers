@@ -75,7 +75,7 @@ export default function Contact() {
     <Layout>
       <SEO
         title="Contact Us - Ace Tours & Transfers Vanuatu"
-        description="Get in touch with Ace Tours & Transfers in Port Vila, Vanuatu. Call, email, or send us a message — our team is available 24/7 for bookings and inquiries."
+        description="Get in touch with Ace Tours & Transfers in Port Vila, Vanuatu. Call, email, or send us a message — we answer enquiries 07:00–18:00, Monday to Saturday."
         keywords={["contact Ace Tours", "Vanuatu tour contact", "Port Vila tour booking", "Vanuatu transfer inquiry"]}
       />
       <PageHero

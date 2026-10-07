@@ -73,7 +73,7 @@ export default function Transfers() {
               {[
                 { icon: Plane, text: t("transfers.factFlights", "Flight tracking") },
                 { icon: Users, text: t("transfers.factGreet", "Meet & greet") },
-                { icon: Clock, text: t("transfers.fact247", "Available 24/7") },
+                { icon: Clock, text: t("transfers.fact247", "24/7 line for booked guests") },
               ].map(({ icon: Icon, text }) => (
                 <li key={text} className="flex items-center gap-1.5 rounded-full border border-reef/30 bg-paper/70 px-3.5 py-1.5 text-sm text-navy">
                   <Icon className="h-4 w-4 text-reef" />

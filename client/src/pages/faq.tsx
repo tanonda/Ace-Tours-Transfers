@@ -12,7 +12,7 @@ export default function FAQ() {
     const defaultFaqs = [
         {
             question: "Do I need to pay in advance?",
-            answer: "No, we offer flexible payment options. You can pay securely online via credit card (Stripe, pending merchant availability), or choose local payment methods like Cash on Delivery, Bank Transfer, BRED Bank, BSP, and various local e-wallets like WanTok Money, Digicel Mobile Money, and KwikPay."
+            answer: "No. Book online now and pay your driver in cash on the day of your tour or transfer. We accept Vanuatu Vatu (preferred), Australian dollars and New Zealand dollars."
         },
         {
             question: "What is your cancellation policy?",
@@ -32,7 +32,7 @@ export default function FAQ() {
         },
         {
             question: "How can I contact from overseas?",
-            answer: "You can reach us easily via WhatsApp at +678 7114045, or via email at acetoursvanuatu@outlook.com. We are available 24/7 to assist with your travel inquiries."
+            answer: "You can reach us easily via WhatsApp at +678 7114045, or via email at acetoursvanuatu@outlook.com. We answer enquiries 07:00–18:00, Monday to Saturday, and the line stays open 24/7 for guests with a booking."
         },
         {
             question: "What currencies do you accept?",
@@ -90,7 +90,7 @@ export default function FAQ() {
                         <Info className="h-8 w-8 text-primary mx-auto mb-4" />
                         <h3 className="text-xl font-semibold mb-2">Still have questions?</h3>
                         <p className="text-muted-foreground mb-6">
-                            Our local experts are available 24/7 to help you plan your perfect Vanuatu experience.
+                            Our local team answers enquiries 07:00–18:00, Monday to Saturday, to help you plan your perfect Vanuatu experience.
                         </p>
                         <div className="flex flex-col sm:flex-row justify-center gap-4">
                             <a

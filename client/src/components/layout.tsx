@@ -712,7 +712,7 @@ const SiteFooter = memo(function SiteFooter() {
                         </span>
                       ))}
                     </p>
-                    <p className="text-sm opacity-60">{t("footer.available247", "Available 24/7")}</p>
+                    <p className="text-sm opacity-60">{t("footer.available247", "24/7 line for booked guests")}</p>
                   </div>
                 </li>
                 <li className="flex items-start gap-3">
