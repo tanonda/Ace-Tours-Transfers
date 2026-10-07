@@ -33,6 +33,7 @@ import {
 import { keepAcrossLanguageSwitch } from "@/lib/language-placeholder";
 import { htmlToText } from "@/lib/html-text";
 import { useSitePhoto } from "@/hooks/use-site-photo";
+import { productPath } from "@shared/product-path";
 
 // Header links without a dropdown. They are plain links, not one-item Radix
 // NavigationMenus: every NavigationMenu root sets state on mount and re-renders
@@ -342,7 +343,7 @@ export const SiteHeader = memo(function SiteHeader() {
                     {tours.map((tour: Product) => (
                       <Link
                         key={tour.id}
-                        href={`/tours/${tour.id}`}
+                        href={productPath(tour)}
                         onClick={closeMobileMenu}
                         className="flex items-center gap-2 py-2 px-3 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
                       >
@@ -372,7 +373,7 @@ export const SiteHeader = memo(function SiteHeader() {
                     {transfers.map((transfer: Product) => (
                       <Link
                         key={transfer.id}
-                        href={`/transfers/${transfer.id}`}
+                        href={productPath(transfer)}
                         onClick={closeMobileMenu}
                         className="flex items-center gap-2 py-2 px-3 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
                       >
@@ -570,7 +571,7 @@ export const SiteHeader = memo(function SiteHeader() {
                 <ListItem
                   key={tour.id}
                   title={tour.title.split(" | ")[0]}
-                  href={`/tours/${tour.id}`}
+                  href={productPath(tour)}
                 >
                   {htmlToText(Array.isArray(tour.description) ? tour.description[0] : tour.description)}
                 </ListItem>
@@ -587,7 +588,7 @@ export const SiteHeader = memo(function SiteHeader() {
                 <ListItem
                   key={transfer.id}
                   title={transfer.title.split(" | ")[0]}
-                  href={`/transfers/${transfer.id}`}
+                  href={productPath(transfer)}
                 >
                   {htmlToText(Array.isArray(transfer.description) ? transfer.description[0] : transfer.description)}
                 </ListItem>

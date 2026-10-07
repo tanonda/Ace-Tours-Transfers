@@ -508,6 +508,16 @@ app.use((req, res, next) => {
     throw flagSeedErr;
   }
 
+  // ── Product URL slugs ───────────────────────────────────────────────────────
+  // Fills slugs for products that have none (after migration 0025, or a product
+  // inserted outside the app). Must run before the prerender reads the sitemap.
+  try {
+    const filled = await storage.backfillProductSlugs();
+    if (filled) console.log(`[STARTUP] products: filled ${filled} URL slug(s).`);
+  } catch (slugErr) {
+    console.warn('[STARTUP] Product slug backfill failed (non-fatal):', slugErr);
+  }
+
   // ── Gateway Auto-Seed Guard ────────────────────────────────────────────────
   // Adds any gateway this release knows that the database lacks (after a DB reset,
   // or a new bank such as NBV). Inserts only, inactive; existing rows are untouched.

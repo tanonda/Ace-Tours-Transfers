@@ -15,6 +15,7 @@ import { cloudinaryOpt } from "@/components/seo";
 import { PriceStamp } from "@/components/postcard";
 import { shortDuration } from "@/lib/postcard-format";
 import { htmlToText } from "@/lib/html-text";
+import { productPath } from "@shared/product-path";
 
 // Descriptions are stored as HTML; cards show plain text (tags removed, &amp; etc. decoded).
 const stripHtml = htmlToText;
@@ -66,7 +67,7 @@ function PostcardTourCard({ tour, index }: { tour: ProductRouteProps; index: num
   const { currency } = useCurrency();
   const displayImage = getProductImage(tour.image);
   const shownPrice = getDisplayPrice(tour);
-  const detailHref = `/${tour.category === "transfer" ? "transfers" : "tours"}/${tour.id}`;
+  const detailHref = productPath(tour);
   const meta = [tour.duration, tour.minPax].filter(Boolean).join(" · ");
 
   return (
@@ -120,7 +121,7 @@ function TicketTourCard({ tour, index }: { tour: ProductRouteProps; index: numbe
   const { currency } = useCurrency();
   const displayImage = getProductImage(tour.image);
   const shownPrice = getDisplayPrice(tour);
-  const detailHref = `/${tour.category === "transfer" ? "transfers" : "tours"}/${tour.id}`;
+  const detailHref = productPath(tour);
   const badge = shortDuration(tour.duration);
   const tagline = firstDescription(tour.description).split(/(?<=[.!?])\s/)[0];
 
@@ -184,7 +185,7 @@ function DefaultTourCard({ tour, index }: { tour: ProductRouteProps; index: numb
   const { currency } = useCurrency();
   const displayImage = getProductImage(tour.image);
   const shownPrice = getDisplayPrice(tour);
-  const detailHref = `/${tour.category === "transfer" ? "transfers" : "tours"}/${tour.id}`;
+  const detailHref = productPath(tour);
 
   return (
     <>

@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { storage } from "../storage.js";
 import { publishedArticleSitemapEntries } from "../lib/article-sitemap.js";
+import { productPath } from "../../shared/product-path.js";
 
 function escapeXml(str: string): string {
   return String(str)
@@ -57,6 +58,23 @@ export function registerSeoRoutes(app: Express) {
   app.get("/vehicles", (_req, res) => res.redirect(301, "/transfers"));
   app.get("/vehicles/:id", (_req, res) => res.redirect(301, "/transfers"));
 
+  // ── Product URLs ──────────────────────────────────────────────────────────
+  // Detail pages live at /tours/<slug> and /transfers/<slug>. Old /tours/<uuid>
+  // links (and a product under the wrong section) get a permanent redirect so
+  // Google moves their ranking to the slug URL. Unknown keys fall through to the app.
+  app.get(["/tours/:key", "/transfers/:key"], async (req, res, next) => {
+    try {
+      const product = await storage.getProduct(String(req.params.key));
+      if (!product) return next();
+      const target = productPath(product);
+      if (target === req.path) return next();
+      const queryAt = req.originalUrl.indexOf("?");
+      res.redirect(301, queryAt === -1 ? target : target + req.originalUrl.slice(queryAt));
+    } catch {
+      next();
+    }
+  });
+
   // ── SEO: Sitemap ──────────────────────────────────────────────────────────
   // Always-200 robots.txt, served from an in-memory string with no DB/async work
   // so a deploy/restart window can never return a 5xx here (which Google caches as
@@ -94,12 +112,11 @@ export function registerSeoRoutes(app: Express) {
       const productPages = products
         .filter((p: any) => p.isActive !== false && p.category !== "vehicle")
         .map((p: any) => {
-          const type = p.category === "transfer" ? "transfers" : "tours";
           // Use the product's own updatedAt so Googlebot knows when content last changed
           const lastmod = p.updatedAt
             ? new Date(p.updatedAt).toISOString().split("T")[0]
             : now;
-          return { loc: `/${type}/${p.id}`, priority: "0.8", changefreq: "weekly", lastmod };
+          return { loc: productPath(p), priority: "0.8", changefreq: "weekly", lastmod };
         });
 
       const articleRows = await storage.getAllArticles();

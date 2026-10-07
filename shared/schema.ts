@@ -34,6 +34,8 @@ export const users = pgTable("users", {
 export const products = pgTable("products", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   title: text("title").notNull(),
+  // URL slug (/tours/<slug>); unique, set once and then kept stable. See migration 0025.
+  slug: text("slug"),
   price: text("price").notNull(), // DEPRECATED: use adultPriceCents
   childPrice: text("child_price"), // DEPRECATED: use childPriceCents
   adultPriceCents: integer("adult_price_cents").notNull().default(0),

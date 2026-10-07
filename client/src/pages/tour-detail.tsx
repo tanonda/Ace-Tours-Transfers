@@ -33,6 +33,7 @@ import { keepAcrossLanguageSwitch } from "@/lib/language-placeholder";
 import { usePricingRules } from "@/lib/site-settings";
 import { groupDiscountApplies, vatLabel } from "@shared/pricing-rules";
 import { htmlToText } from "@/lib/html-text";
+import { productPath } from "@shared/product-path";
 
 
 // ─── Countdown Timer Component ─────────────────────────────────────────────────
@@ -329,7 +330,9 @@ function StarRating({ value, max = 5, size = "sm" }: { value: number; max?: numb
 export default function TourDetail() {
   const pricingRules = usePricingRules();
   const cms = useCmsText("faq");
-  const { id } = useParams<{ id: string }>();
+  // The URL holds the product slug (or, from old links, its id); fetch by it, then
+  // use the product's real id for everything else.
+  const { id: routeKey } = useParams<{ id: string }>();
   const { t, i18n } = useTranslation();
   const { addToCart } = useCartActions();
   const { updateDraft } = useBookingDraft();
@@ -347,12 +350,13 @@ export default function TourDetail() {
   const [showAllReviews, setShowAllReviews] = useState(false);
 
   const { data: tour, isLoading, error } = useQuery({
-    queryKey: ["tour", id, i18n.language],
-    queryFn: () => fetchTour(id!),
+    queryKey: ["tour", routeKey, i18n.language],
+    queryFn: () => fetchTour(routeKey!),
     // Keep the page while a language switch refetches it (e.g. just after hydrating).
-    placeholderData: keepAcrossLanguageSwitch(["tour", id]),
-    enabled: !!id,
+    placeholderData: keepAcrossLanguageSwitch(["tour", routeKey]),
+    enabled: !!routeKey,
   });
+  const id = tour?.id;
 
   const { data: reviews = [] } = useQuery({
     queryKey: ["tour-reviews", id],
@@ -401,6 +405,16 @@ export default function TourDetail() {
   const handleTimeSelect = useCallback((t: string) => { setSelectedTime(t); }, []);
 
   const [, setLocation] = useLocation();
+
+  // In-app links from older code paths (e.g. the search widget) may use the id:
+  // show the slug URL without adding a history entry. Full page loads get a 301.
+  useEffect(() => {
+    if (!tour) return;
+    const canonical = productPath(tour);
+    if (window.location.pathname !== canonical) {
+      setLocation(canonical + window.location.search, { replace: true });
+    }
+  }, [tour, setLocation]);
 
   const handleAddToCart = () => {
     if (!tour) return;
@@ -498,7 +512,7 @@ export default function TourDetail() {
         breadcrumbs={[
           { name: "Home", path: "/" },
           { name: "Tours", path: "/tours" },
-          { name: tour.title, path: `/tours/${tour.id}` },
+          { name: tour.title, path: productPath(tour) },
         ]}
         productName={tour.title}
         productDescription={htmlToText(Array.isArray(tour.description) ? tour.description[0] : tour.description)}

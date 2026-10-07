@@ -76,6 +76,8 @@ import { db } from "./db.js";
 import { eq, like, desc, and, or, isNull, sql, lte, asc, lt, inArray, gt } from "drizzle-orm";
 import { extractErrorDetails } from "./lib/error-util.js";
 import { sealGatewayWrite, openGatewayRow } from "./lib/credential-crypto.js";
+import { isProductId } from "../shared/product-path.js";
+import { assignProductSlugs } from "./lib/product-slugs.js";
 
 // Payment gateway credentials are encrypted at rest (see server/lib/credential-crypto.ts).
 const credentialsKey = () => process.env.PAYMENT_CREDENTIALS_KEY;
@@ -99,7 +101,9 @@ export interface IStorage {
 
   // Product operations
   getProducts(): Promise<Product[]>;
-  getProduct(id: string): Promise<Product | undefined>;
+  /** By id, or by URL slug when the value is not a UUID. */
+  getProduct(idOrSlug: string): Promise<Product | undefined>;
+  backfillProductSlugs(): Promise<number>;
   getProductByTitle(title: string): Promise<Product | undefined>;
   createProduct(tour: InsertProduct): Promise<Product>;
   updateProduct(id: string, tour: Partial<InsertProduct>): Promise<Product>;
@@ -432,11 +436,22 @@ export class DatabaseStorage implements IStorage {
     return this.withRetry(() => db.select().from(products));
   }
 
-  async getProduct(id: string): Promise<Product | undefined> {
+  async getProduct(idOrSlug: string): Promise<Product | undefined> {
     return this.withRetry(async () => {
-      const [tour] = await db.select().from(products).where(eq(products.id, id));
+      const match = isProductId(idOrSlug) ? eq(products.id, idOrSlug) : eq(products.slug, idOrSlug);
+      const [tour] = await db.select().from(products).where(match);
       return tour || undefined;
     });
+  }
+
+  /** Give every slug-less product a slug. Returns how many were filled. */
+  async backfillProductSlugs(): Promise<number> {
+    const rows = await db.select({ id: products.id, title: products.title, slug: products.slug }).from(products);
+    const assigned = assignProductSlugs(rows);
+    for (const { id, slug } of assigned) {
+      await db.update(products).set({ slug }).where(and(eq(products.id, id), isNull(products.slug)));
+    }
+    return assigned.length;
   }
 
   async getProductByTitle(title: string): Promise<Product | undefined> {
@@ -449,7 +464,9 @@ export class DatabaseStorage implements IStorage {
       .insert(products)
       .values(insertTour as any)
       .returning();
-    return tour;
+    if (tour.slug) return tour;
+    await this.backfillProductSlugs();
+    return (await this.getProduct(tour.id)) ?? tour;
   }
 
   async updateProduct(id: string, updateData: Partial<InsertProduct>): Promise<Product> {

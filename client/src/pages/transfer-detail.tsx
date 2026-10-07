@@ -35,6 +35,7 @@ import { keepAcrossLanguageSwitch } from "@/lib/language-placeholder";
 import { usePricingRules } from "@/lib/site-settings";
 import { groupDiscountApplies, vatLabel } from "@shared/pricing-rules";
 import { htmlToText } from "@/lib/html-text";
+import { productPath } from "@shared/product-path";
 
 // ─── Star rating display ────────────────────────────────────────────────────
 function StarRating({ value, max = 5, size = "sm" }: { value: number; max?: number; size?: "sm" | "md" }) {
@@ -57,7 +58,9 @@ function StarRating({ value, max = 5, size = "sm" }: { value: number; max?: numb
 export default function TransferDetail() {
   const pricingRules = usePricingRules();
   const cms = useCmsText("faq");
-  const { id } = useParams<{ id: string }>();
+  // The URL holds the product slug (or, from old links, its id); fetch by it, then
+  // use the product's real id for everything else.
+  const { id: routeKey } = useParams<{ id: string }>();
   const { t, i18n } = useTranslation();
   const { addToCart } = useCartActions();
   const { updateDraft } = useBookingDraft();
@@ -75,12 +78,13 @@ export default function TransferDetail() {
   const [showAllReviews, setShowAllReviews] = useState(false);
 
   const { data: transfer, isLoading, error } = useQuery({
-    queryKey: ["tour", id, i18n.language],
-    queryFn: () => fetchTour(id!),
+    queryKey: ["tour", routeKey, i18n.language],
+    queryFn: () => fetchTour(routeKey!),
     // Keep the page while a language switch refetches it (e.g. just after hydrating).
-    placeholderData: keepAcrossLanguageSwitch(["tour", id]),
-    enabled: !!id,
+    placeholderData: keepAcrossLanguageSwitch(["tour", routeKey]),
+    enabled: !!routeKey,
   });
+  const id = transfer?.id;
 
   const { data: reviews = [] } = useQuery({
     queryKey: ["product-reviews", id],
@@ -132,6 +136,16 @@ export default function TransferDetail() {
   const handleTimeSelect = useCallback((t: string) => { setSelectedTime(t); }, []);
 
   const [, setLocation] = useLocation();
+
+  // In-app links from older code paths (e.g. the search widget) may use the id:
+  // show the slug URL without adding a history entry. Full page loads get a 301.
+  useEffect(() => {
+    if (!transfer) return;
+    const canonical = productPath(transfer);
+    if (window.location.pathname !== canonical) {
+      setLocation(canonical + window.location.search, { replace: true });
+    }
+  }, [transfer, setLocation]);
 
   const handleAddToCart = () => {
     if (!transfer) return;
@@ -227,7 +241,7 @@ export default function TransferDetail() {
         breadcrumbs={[
           { name: "Home", path: "/" },
           { name: "Transfers", path: "/transfers" },
-          { name: transfer.title, path: `/transfers/${transfer.id}` },
+          { name: transfer.title, path: productPath(transfer) },
         ]}
         productName={transfer.title}
         productDescription={htmlToText(Array.isArray(transfer.description) ? transfer.description[0] : transfer.description)}

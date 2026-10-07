@@ -14,6 +14,7 @@ import { useCurrency } from "@/lib/currency-context";
 import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { htmlToText } from "@/lib/html-text";
+import { productPath } from "@shared/product-path";
 
 interface BookableProduct {
   id: string;
@@ -60,9 +61,7 @@ export function ProductQuickView({ isOpen, onClose, product }: ProductQuickViewP
   const descText = htmlToText(typeof product.description === "string" ? product.description : descArray[0] || "");
   const included = descArray.length > 1 ? descArray.slice(1) : descArray;
 
-  const detailHref = product.category === "transfer"
-    ? `/transfers/${product.id}`
-    : `/tours/${product.id}`;
+  const detailHref = productPath(product);
 
   const handleAddToCart = () => {
     addToCart({
