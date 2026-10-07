@@ -4,10 +4,44 @@ import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 import { metaImagesPlugin } from "./vite-plugin-meta-images.js";
+import type { Plugin } from "vite";
+
+// Dev server only: stop Vite's error overlay from opening for non-Error rejections.
+// It used to sit inline in index.html, which shipped it to production and needed
+// script-src 'unsafe-inline'; production now allows no inline script.
+function devOverlayPatch(): Plugin {
+  return {
+    name: "dev-overlay-patch",
+    apply: "serve",
+    transformIndexHtml: () => [
+      {
+        tag: "script",
+        injectTo: "body-prepend",
+        children: `Object.defineProperty = (function (orig) {
+  return function (obj, prop, desc) {
+    if (prop === "ErrorOverlay" && desc && desc.value) {
+      const Original = desc.value;
+      desc.value = function (err, links) {
+        if (!err || typeof err !== "object" || !err.message) {
+          console.warn("Suppressed non-Error overlay:", err);
+          return document.createElement("div");
+        }
+        return new Original(err, links);
+      };
+      desc.value.prototype = Original.prototype;
+    }
+    return orig.call(this, obj, prop, desc);
+  };
+})(Object.defineProperty);`,
+      },
+    ],
+  };
+}
 
 export default defineConfig({
   plugins: [
     react(),
+    devOverlayPatch(),
     // runtimeErrorOverlay(),
     tailwindcss(),
     metaImagesPlugin(),

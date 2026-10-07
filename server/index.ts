@@ -82,13 +82,18 @@ const app = express();
 app.disable('x-powered-by'); // H4 Fix: Explicitly disable X-Powered-By
 
 // H4 & M9 Fix: Security headers and CORS - MUST BE FIRST
+// Production allows no inline script: every script is a file from 'self' or a listed
+// host (JSON and JSON-LD data blocks are not executed, so CSP ignores them). The Vite
+// dev server injects inline scripts for hot reload, so development keeps 'unsafe-inline'.
+const inlineScriptsForDev = process.env.NODE_ENV === "production" ? [] : ["'unsafe-inline'"];
+
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
       scriptSrc: [
         "'self'",
-        "'unsafe-inline'", // The inline GTM snippet and prerendered page data (JSON-LD is not executed, so CSP ignores it)
+        ...inlineScriptsForDev,
         "https://js.stripe.com",
         "https://fonts.googleapis.com",
         "https://www.googletagmanager.com",
@@ -96,7 +101,7 @@ app.use(helmet({
       ],
       scriptSrcElem: [
         "'self'",
-        "'unsafe-inline'",
+        ...inlineScriptsForDev,
         "https://js.stripe.com",
         "https://fonts.googleapis.com",
         "https://www.googletagmanager.com",
@@ -116,6 +121,7 @@ app.use(helmet({
         "https://lh3.googleusercontent.com",
         "https://*.stripe.com",
         "https://www.googletagmanager.com",
+        "https://*.google-analytics.com", // GA4 measurement
         "https://www.transparenttextures.com", // Background texture patterns
         "https://images.unsplash.com", // About page default story image
       ],
@@ -124,6 +130,8 @@ app.use(helmet({
         "https://api.stripe.com",
         "https://res.cloudinary.com",
         "https://www.googletagmanager.com",
+        "https://*.google-analytics.com", // GA4 measurement
+        "https://*.analytics.google.com", // GA4 measurement
         "https://cdn.jsdelivr.net", // Live currency exchange rates (VUV)
         "https://widget.trustpilot.com", // Trustpilot widget sourcemaps
         "https://*.ingest.de.sentry.io",

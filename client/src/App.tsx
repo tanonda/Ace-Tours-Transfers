@@ -129,23 +129,42 @@ function AnalyticsInjector() {
         const gtmPattern = /^GTM-[A-Z0-9]{1,10}$/;
         const ga4Pattern = /^G-[A-Z0-9]{1,15}$/;
 
-        // Google Tag Manager
-        if (normalizedGtmContainerId && gtmPattern.test(normalizedGtmContainerId) && !document.getElementById("gtm-script")) {
-          const s = document.createElement("script");
-          s.id = "gtm-script";
-          s.textContent = `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','${normalizedGtmContainerId}');`;
-          document.head.appendChild(s);
+        // Loaders run from this bundle (no inline <script>), so the CSP needs no 'unsafe-inline'.
+        const w = window as any;
+        w.dataLayer = w.dataLayer || [];
+
+        // Google Tag Manager. A prerendered page already carries the gtm-script tag;
+        // the start event is still needed once per page load.
+        if (normalizedGtmContainerId && gtmPattern.test(normalizedGtmContainerId)) {
+          if (!w.dataLayer.some((e: any) => e?.event === "gtm.js")) {
+            w.dataLayer.push({ "gtm.start": Date.now(), event: "gtm.js" });
+          }
+          if (!document.getElementById("gtm-script")) {
+            const s = document.createElement("script");
+            s.id = "gtm-script";
+            s.async = true;
+            s.src = `https://www.googletagmanager.com/gtm.js?id=${normalizedGtmContainerId}`;
+            document.head.appendChild(s);
+          }
         }
         // GA4 (only if GTM not set — avoid double-counting)
-        if (normalizedGa4MeasurementId && ga4Pattern.test(normalizedGa4MeasurementId) && !normalizedGtmContainerId && !document.getElementById("ga4-script")) {
-          const s = document.createElement("script");
-          s.id = "ga4-script";
-          s.async = true;
-          s.src = `https://www.googletagmanager.com/gtag/js?id=${normalizedGa4MeasurementId}`;
-          document.head.appendChild(s);
-          const s2 = document.createElement("script");
-          s2.textContent = `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${normalizedGa4MeasurementId}');`;
-          document.head.appendChild(s2);
+        if (normalizedGa4MeasurementId && ga4Pattern.test(normalizedGa4MeasurementId) && !normalizedGtmContainerId) {
+          if (!w.gtag) {
+            // gtag must queue the arguments object itself, as Google's snippet does.
+            w.gtag = function gtag() {
+              // eslint-disable-next-line prefer-rest-params
+              w.dataLayer.push(arguments);
+            };
+            w.gtag("js", new Date());
+            w.gtag("config", normalizedGa4MeasurementId);
+          }
+          if (!document.getElementById("ga4-script")) {
+            const s = document.createElement("script");
+            s.id = "ga4-script";
+            s.async = true;
+            s.src = `https://www.googletagmanager.com/gtag/js?id=${normalizedGa4MeasurementId}`;
+            document.head.appendChild(s);
+          }
         }
       })
       .catch(() => { }); // fail silently — analytics is non-critical

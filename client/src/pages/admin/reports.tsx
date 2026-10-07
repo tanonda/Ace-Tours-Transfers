@@ -146,9 +146,11 @@ export default function AdminReports() {
           <tbody>${rows}</tbody>
         </table>
         <div class="footer">Printed: ${new Date().toLocaleString('en-AU')} &nbsp;|&nbsp; Ace Tours & Transfers Vanuatu &nbsp;|&nbsp; Confidential — Staff Use Only</div>
-        <script>window.onload=()=>window.print()<\/script>
       </body></html>`);
     w.document.close();
+    // The popup inherits the site CSP, which allows no inline script: print from here.
+    w.focus();
+    w.print();
   };
 
   if (isLoadingRevenue || isLoadingStats) {
