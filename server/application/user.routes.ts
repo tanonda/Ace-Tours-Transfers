@@ -7,6 +7,7 @@ import { requireAdmin } from "../routes.js";
 import { adminInsertUserSchema } from '../../shared/schema.js';
 import { ZodError } from "zod";
 import { storage } from "../storage.js";
+import { toSafeUser } from "../lib/safe-user.js";
 
 const resetPasswordLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -19,7 +20,7 @@ export function registerUserRoutes(app: Express) {
   app.get("/api/users", requireAdmin, async (req, res) => {
     try {
       const users = await userProfileDomainService.getAllUsers();
-      res.json(users);
+      res.json(users.map(toSafeUser));
     } catch (error) {
       console.error("Failed to fetch users:", error);
       res.status(500).json({ error: "Failed to fetch users" });
@@ -78,11 +79,13 @@ export function registerUserRoutes(app: Express) {
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
-      res.json(user);
+      res.json(toSafeUser(user));
     } catch (error) {
       console.error("Failed to update user role:", error);
       if (error instanceof Error && error.message.includes("Invalid role")) {
         res.status(400).json({ error: error.message });
+      } else {
+        res.status(500).json({ error: "Failed to update user role" });
       }
     }
   });
@@ -94,7 +97,7 @@ export function registerUserRoutes(app: Express) {
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
-      res.json(user);
+      res.json(toSafeUser(user));
     } catch (error) {
       console.error("Failed to update user status:", error);
       res.status(500).json({ error: "Failed to update user status" });
@@ -108,7 +111,7 @@ export function registerUserRoutes(app: Express) {
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
-      res.json(user);
+      res.json(toSafeUser(user));
     } catch (error) {
       console.error("Failed to reset user password:", error);
       if (error instanceof Error && error.message.includes("New password is required")) {
@@ -190,7 +193,7 @@ export function registerUserRoutes(app: Express) {
   app.get("/api/customers", requireAdmin, async (req, res) => {
     try {
       const customers = await userProfileDomainService.getCustomers();
-      res.json(customers);
+      res.json(customers.map(toSafeUser));
     } catch (error) {
       console.error("Failed to fetch customers:", error);
       res.status(500).json({ error: "Failed to fetch customers" });

@@ -18,6 +18,7 @@
  */
 
 import { useQuery } from "@tanstack/react-query";
+import DOMPurify from "dompurify";
 import { useTranslation } from "react-i18next";
 import type { CmsContent } from "@shared/schema";
 import { keepAcrossLanguageSwitch } from "@/lib/language-placeholder";
@@ -59,7 +60,9 @@ export function useCmsText(blockSlug: string) {
     const row = rows.find((r) => r.contentKey === key);
     const val = row?.value?.trim() ?? "";
     // "<p></p>" from a cleared editor is not content: use the translation instead.
-    return isBlankHtml(val) ? fallback : val;
+    // CMS values (and their machine translations) are stored as entered, and every
+    // caller renders them with dangerouslySetInnerHTML, so clean them here.
+    return isBlankHtml(val) ? fallback : DOMPurify.sanitize(val);
   }
 
   return { text, html, ready: !isLoading };
