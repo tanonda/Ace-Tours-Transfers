@@ -5,6 +5,13 @@ export interface OfferInput {
   availability?: "InStock" | "OutOfStock" | "LimitedAvailability";
 }
 
+// Tours and transfers are services delivered in Vanuatu. Google's merchant
+// listings report still asks every Offer for shipping and return details, so
+// state the truth: no shipping cost or delay, and no returns once delivered
+// (the 24h free-cancellation window happens before delivery, not after).
+const SERVICE_COUNTRY = "VU";
+const ZERO_DAYS = { "@type": "QuantitativeValue", minValue: 0, maxValue: 0, unitCode: "DAY" };
+
 /** Build the schema.org Offer for a product detail page's JSON-LD. */
 export function buildOfferJsonLd(offer: OfferInput, url: string, sellerName: string) {
   return {
@@ -15,5 +22,20 @@ export function buildOfferJsonLd(offer: OfferInput, url: string, sellerName: str
     availability: `https://schema.org/${offer.availability ?? "InStock"}`,
     url,
     seller: { "@type": "Organization", name: sellerName },
+    shippingDetails: {
+      "@type": "OfferShippingDetails",
+      shippingRate: { "@type": "MonetaryAmount", value: 0, currency: offer.currency },
+      shippingDestination: { "@type": "DefinedRegion", addressCountry: SERVICE_COUNTRY },
+      deliveryTime: {
+        "@type": "ShippingDeliveryTime",
+        handlingTime: ZERO_DAYS,
+        transitTime: ZERO_DAYS,
+      },
+    },
+    hasMerchantReturnPolicy: {
+      "@type": "MerchantReturnPolicy",
+      applicableCountry: SERVICE_COUNTRY,
+      returnPolicyCategory: "https://schema.org/MerchantReturnNotPermitted",
+    },
   };
 }

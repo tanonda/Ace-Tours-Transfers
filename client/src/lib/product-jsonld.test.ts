@@ -25,6 +25,33 @@ describe('buildOfferJsonLd', () => {
       availability: 'https://schema.org/InStock',
       url,
       seller: { '@type': 'Organization', name: seller },
+      shippingDetails: expect.any(Object),
+      hasMerchantReturnPolicy: expect.any(Object),
+    });
+  });
+
+  // Search Console merchant listings flags offers without these two fields.
+  // Tours/transfers are services: nothing ships, nothing is returned after delivery.
+  it('declares free, instant, in-Vanuatu "shipping" for a service', () => {
+    const { shippingDetails } = buildOfferJsonLd({ price: 1500, currency: 'VUV' }, url, seller);
+    expect(shippingDetails).toMatchObject({
+      '@type': 'OfferShippingDetails',
+      shippingRate: { '@type': 'MonetaryAmount', value: 0, currency: 'VUV' },
+      shippingDestination: { '@type': 'DefinedRegion', addressCountry: 'VU' },
+      deliveryTime: {
+        '@type': 'ShippingDeliveryTime',
+        handlingTime: { '@type': 'QuantitativeValue', minValue: 0, maxValue: 0, unitCode: 'DAY' },
+        transitTime: { '@type': 'QuantitativeValue', minValue: 0, maxValue: 0, unitCode: 'DAY' },
+      },
+    });
+  });
+
+  it('declares that a delivered service cannot be returned', () => {
+    const { hasMerchantReturnPolicy } = buildOfferJsonLd({ price: 1500, currency: 'VUV' }, url, seller);
+    expect(hasMerchantReturnPolicy).toEqual({
+      '@type': 'MerchantReturnPolicy',
+      applicableCountry: 'VU',
+      returnPolicyCategory: 'https://schema.org/MerchantReturnNotPermitted',
     });
   });
 
