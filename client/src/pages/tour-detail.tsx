@@ -17,7 +17,6 @@ import { useCurrency } from "@/lib/currency-context";
 import { AvailabilityCalendar } from "@/components/AvailabilityCalendar";
 import { AvailabilityStatus } from "@/components/AvailabilityStatus";
 import { SEO, cloudinaryOpt } from "@/components/seo";
-import { GuestReviewForm } from "@/components/GuestReviewForm";
 import { useCmsText } from "@/hooks/use-cms-text";
 import { AddonsPanel, calcAddonTotal, type AddonSelections, type ProductAddonEntry } from "@/components/addons-panel";
 import {
@@ -867,7 +866,7 @@ export default function TourDetail() {
                     </div>
                   ))
                 ) : (
-                  <p className="text-[0.88rem] text-muted-foreground italic">{t("quickView.noReviews", "No reviews yet. Be the first to leave one!")}</p>
+                  <p className="text-[0.88rem] text-muted-foreground italic">{t("quickView.noReviewsYet", "No reviews yet.")}</p>
                 )}
               </div>
 
@@ -882,15 +881,6 @@ export default function TourDetail() {
 
               {/* Google Reviews — shown below internal reviews when review_provider = "google" */}
               <GoogleReviewsSection />
-
-              {/* Review submission form */}
-              <div className="mt-6 pt-6 border-t border-primary/12">
-                <GuestReviewForm
-                  productId={id!}
-                  productTitle={tour.title}
-                  reviewQueryKey={["tour-reviews", id!]}
-                />
-              </div>
             </section>
 
 

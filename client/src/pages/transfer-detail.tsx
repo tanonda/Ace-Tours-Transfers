@@ -16,7 +16,6 @@ import { useCurrency } from "@/lib/currency-context";
 import { AvailabilityCalendar } from "@/components/AvailabilityCalendar";
 import { AvailabilityStatus } from "@/components/AvailabilityStatus";
 import { SEO, cloudinaryOpt } from "@/components/seo";
-import { GuestReviewForm } from "@/components/GuestReviewForm";
 import { useCmsText } from "@/hooks/use-cms-text";
 import { AddonsPanel, calcAddonTotal, type AddonSelections, type ProductAddonEntry } from "@/components/addons-panel";
 import { useAvailabilityToast } from "@/hooks/useAvailabilityToast";
@@ -458,13 +457,6 @@ export default function TransferDetail() {
                   {showAllReviews ? "Show fewer reviews" : `Show all ${reviews.length} reviews`}
                 </button>
               )}
-              <div className="mt-6 pt-6 border-t border-primary/12">
-                <GuestReviewForm
-                  productId={id!}
-                  productTitle={transfer.title}
-                  reviewQueryKey={["product-reviews", id!]}
-                />
-              </div>
             </section>
           </div>{/* end left column */}
 

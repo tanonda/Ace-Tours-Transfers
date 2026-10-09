@@ -363,6 +363,7 @@ export default function AdminReviews() {
                           <div>
                             <div className="text-sm font-medium text-foreground">{review.authorName || review.guestName || "Anonymous"}</div>
                             {review.isGuest && <span className="text-[10px] bg-blue-500/10 text-blue-500 px-1.5 py-0.5 rounded-full">Guest</span>}
+                            {review.verified && <span className="text-[10px] bg-green-500/10 text-green-600 px-1.5 py-0.5 rounded-full">Verified customer</span>}
                           </div>
                         </div>
                       </TableCell>
@@ -415,8 +416,8 @@ export default function AdminReviews() {
             <MessageSquare className="h-4 w-4 text-blue-500" /> About Guest Reviews
           </h3>
           <p className="text-xs text-muted-foreground leading-relaxed">
-            Guests can submit reviews without creating an account. Guest reviews require approval before going public.
-            Verified registered users' reviews are automatically marked as verified. Use bulk selection for fast moderation.
+            Reviews come only from customers with a completed booking, via the emailed review link, and are marked Verified customer.
+            Every review requires approval before going public. Use bulk selection for fast moderation.
           </p>
         </div>
       </div>
@@ -438,6 +439,12 @@ export default function AdminReviews() {
                   <div className="text-xs text-muted-foreground mb-1">Guest</div>
                   <div className="font-semibold">{selectedReview.authorName || selectedReview.guestName || "Anonymous"}</div>
                   {selectedReview.isGuest && <Badge variant="outline" className="text-xs mt-1">Guest</Badge>}
+                  {selectedReview.verified && <Badge variant="outline" className="text-xs mt-1 border-green-500 text-green-600">Verified customer</Badge>}
+                  {selectedReview.bookingId && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Booking ACT-{selectedReview.bookingId.replace(/^book_/i, "").replace(/-/g, "").slice(0, 8).toUpperCase()}
+                    </p>
+                  )}
                 </div>
                 <div className="bg-muted/40 rounded-lg p-3">
                   <div className="text-xs text-muted-foreground mb-1">Tour</div>

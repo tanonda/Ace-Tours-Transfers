@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Search, Filter, MoreHorizontal, Eye, Download, Trash2,
-  CheckSquare, X, RefreshCw, Plus, CheckCircle2, XCircle, Clock, AlertTriangle, Link2
+  CheckSquare, X, RefreshCw, Plus, CheckCircle2, XCircle, Clock, AlertTriangle, Link2, Star
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { BookingDetailsDialog } from "@/components/admin/booking-details-dialog";
@@ -17,6 +17,7 @@ import { CreateBookingDialog } from "@/components/admin/create-booking-dialog";
 import { PaymentLinkDialog } from "@/components/admin/payment-link-dialog";
 import { useState, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchBookings, updateBooking, deleteBooking, exportBookingsCSV } from "@/lib/api";
 import type { Booking } from "@shared/schema";
@@ -59,6 +60,13 @@ export default function AdminBookings() {
   const updateMutation = useMutation({
     mutationFn: ({ id, updates }: { id: string; updates: Partial<Booking> }) => updateBooking(id, updates),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["bookings"] }); toast({ title: "Booking Updated" }); },
+  });
+
+  const reviewRequestMutation = useMutation({
+    mutationFn: async (id: string) => (await apiRequest("POST", `/api/admin/bookings/${id}/review-request`)).json(),
+    onSuccess: (r: { sent: boolean }) =>
+      toast({ title: r.sent ? "Review request sent" : "No email sent", description: r.sent ? undefined : "The booking has no email address, or sending failed." }),
+    onError: () => toast({ title: "Could not send review request", variant: "destructive" }),
   });
 
   const deleteMutation = useMutation({
@@ -254,6 +262,9 @@ export default function AdminBookings() {
                               <DropdownMenuItem onClick={() => updateMutation.mutate({ id: booking.id, updates: { status: "cancelled" } as any })}><XCircle className="h-4 w-4 mr-2 text-orange-600" />Cancel</DropdownMenuItem>
                               {booking.status === "pending" && (
                                 <DropdownMenuItem onClick={() => { setSelectedBooking(booking); setIsPaymentLinkOpen(true); }}><Link2 className="h-4 w-4 mr-2" />Create payment link</DropdownMenuItem>
+                              )}
+                              {booking.status === "completed" && (
+                                <DropdownMenuItem onClick={() => reviewRequestMutation.mutate(booking.id)}><Star className="h-4 w-4 mr-2 text-amber-500" />Send review request</DropdownMenuItem>
                               )}
                               <DropdownMenuSeparator />
                               <DropdownMenuItem className="text-red-600" onClick={() => {

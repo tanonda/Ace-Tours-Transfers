@@ -491,7 +491,8 @@
     "recentReviews": "Reseñas Recientes",
     "daysAgo": "hace 2 días",
     "sampleReview": "¡Una experiencia absolutamente increíble! Los guías fueron muy amables y los paisajes impresionantes.",
-    "noReviews": "Aún no hay reseñas. ¡Sé el primero en dejar uno!"
+    "noReviews": "Aún no hay reseñas. ¡Sé el primero en dejar uno!",
+    "noReviewsYet": "Aún no hay reseñas."
   },
   "reservations": {
     "title": "Portal de Reservas",
@@ -611,5 +612,19 @@
     "title": "Créditos fotográficos",
     "intro": "Las fotos de Efate de este sitio las comparten sus fotógrafos bajo licencias Creative Commons. Algunas se han recortado o retocado."
   },
-  "common.nameNoAngleBrackets": "Los nombres no pueden contener < ni >."
+  "common.nameNoAngleBrackets": "Los nombres no pueden contener < ni >.",
+  "review": {
+    "title": "¿Qué tal su viaje?",
+    "greeting": "Gracias por viajar con nosotros, {{name}}.",
+    "intro": "Valore cada parte de su viaje. Su reseña aparecerá cuando nuestro equipo la revise.",
+    "commentLabel": "Cuénteselo a otros viajeros (opcional)",
+    "alreadyReviewed": "Ya valorado — ¡gracias!",
+    "submit": "Enviar reseña",
+    "thanksTitle": "¡Gracias!",
+    "thanksBody": "Su reseña aparecerá en nuestro sitio una vez aprobada.",
+    "expiredTitle": "Este enlace ha caducado",
+    "expiredBody": "Puede que ya se haya usado o que tenga más de 90 días. Contáctenos y le enviaremos uno nuevo.",
+    "error": "Algo salió mal. Inténtelo de nuevo.",
+    "ratingLabel": "{{n}} estrella(s)"
+  }
 }

@@ -491,7 +491,8 @@
     "recentReviews": "最新评价",
     "daysAgo": "2天前",
     "sampleReview": "绝对令人惊叹的体验！导游非常友好，风景令人叹为观止。",
-    "noReviews": "还没有评论。 成为第一个离开的人！"
+    "noReviews": "还没有评论。 成为第一个离开的人！",
+    "noReviewsYet": "还没有评价。"
   },
   "reservations": {
     "title": "预订门户",
@@ -611,5 +612,19 @@
     "title": "图片来源",
     "intro": "本网站使用的埃法特照片由摄影师以知识共享许可分享，部分照片经过裁剪或调色。"
   },
-  "common.nameNoAngleBrackets": "姓名不能包含 < 或 >。"
+  "common.nameNoAngleBrackets": "姓名不能包含 < 或 >。",
+  "review": {
+    "title": "您的旅程如何？",
+    "greeting": "感谢您与我们同行，{{name}}。",
+    "intro": "请为旅程的每个部分评分。我们的团队审核后，您的评价将会显示。",
+    "commentLabel": "与其他旅行者分享（可选）",
+    "alreadyReviewed": "已评价——谢谢！",
+    "submit": "提交评价",
+    "thanksTitle": "谢谢！",
+    "thanksBody": "您的评价通过审核后将显示在我们的网站上。",
+    "expiredTitle": "此评价链接已失效",
+    "expiredBody": "该链接可能已被使用或已超过 90 天。请联系我们，我们会发送新的链接。",
+    "error": "出了点问题，请重试。",
+    "ratingLabel": "{{n}} 星"
+  }
 }

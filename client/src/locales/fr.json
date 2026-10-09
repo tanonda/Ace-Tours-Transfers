@@ -491,7 +491,8 @@
     "recentReviews": "Avis Récents",
     "daysAgo": "il y a 2 jours",
     "sampleReview": "Une expérience absolument incroyable! Les guides étaient très sympathiques et les paysages à couper le souffle.",
-    "noReviews": "Aucun avis pour l'instant. Soyez le premier à en laisser un !"
+    "noReviews": "Aucun avis pour l'instant. Soyez le premier à en laisser un !",
+    "noReviewsYet": "Aucun avis pour l'instant."
   },
   "reservations": {
     "title": "Portail de Réservations",
@@ -611,5 +612,19 @@
     "title": "Crédits photo",
     "intro": "Les photos d'Efaté utilisées sur ce site sont partagées par leurs photographes sous licences Creative Commons. Certaines ont été recadrées ou retouchées."
   },
-  "common.nameNoAngleBrackets": "Les noms ne peuvent pas contenir < ou >."
+  "common.nameNoAngleBrackets": "Les noms ne peuvent pas contenir < ou >.",
+  "review": {
+    "title": "Comment s'est passé votre voyage ?",
+    "greeting": "Merci d'avoir voyagé avec nous, {{name}}.",
+    "intro": "Notez chaque partie de votre voyage. Votre avis apparaîtra après vérification par notre équipe.",
+    "commentLabel": "Parlez-en aux autres voyageurs (facultatif)",
+    "alreadyReviewed": "Déjà noté — merci !",
+    "submit": "Envoyer l'avis",
+    "thanksTitle": "Merci !",
+    "thanksBody": "Votre avis apparaîtra sur notre site une fois approuvé.",
+    "expiredTitle": "Ce lien a expiré",
+    "expiredBody": "Il a peut-être déjà été utilisé ou date de plus de 90 jours. Contactez-nous et nous vous en enverrons un nouveau.",
+    "error": "Une erreur s'est produite. Veuillez réessayer.",
+    "ratingLabel": "{{n}} étoile(s)"
+  }
 }

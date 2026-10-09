@@ -35,6 +35,7 @@ const Contact = lazyWithPreload(() => import("@/pages/contact"));
 const Cart = lazy(() => import("@/pages/cart"));
 const Checkout = lazy(() => import("@/pages/checkout"));
 const ManageBooking = lazy(() => import("@/pages/manage-booking"));
+const ReviewInvite = lazy(() => import("@/pages/review-invite"));
 const Login = lazy(() => import("@/pages/login"));
 const Register = lazy(() => import("@/pages/register"));
 const NotFound = lazy(() => import("@/pages/not-found"));
@@ -213,6 +214,7 @@ const SITE_ROUTES = (
       <Route path="/payment/success" component={PaymentSuccess} />
       <Route path="/payment/cancel" component={PaymentCancel} />
       <Route path="/manage-booking" component={ManageBooking} />
+      <Route path="/review/:token" component={ReviewInvite} />
       <Route path="/confirmation" component={Confirmation} />
       <Route path="/staff-access" component={Login} />
       <Route path="/register" component={Register} />

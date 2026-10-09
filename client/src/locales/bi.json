@@ -491,7 +491,8 @@
     "recentReviews": "Recent Reviews",
     "daysAgo": "2 days bifo",
     "sampleReview": "Experience i amazing tumas! Ol guides oli friendly mo ol sights oli gud tumas.",
-    "noReviews": "I no gat reviews yet. Yu namba wan blong livimap wan!"
+    "noReviews": "I no gat reviews yet. Yu namba wan blong livimap wan!",
+    "noReviewsYet": "I no gat review yet."
   },
   "reservations": {
     "title": "Reservation Portal",
@@ -611,5 +612,19 @@
     "title": "Ol man blong foto",
     "intro": "Ol foto blong Efate long websaet ia, ol man blong tekem foto oli serem andanit long Creative Commons laesens. Samfala oli katem o jenisim kala."
   },
-  "common.nameNoAngleBrackets": "Nem i no save gat < o > insaed."
+  "common.nameNoAngleBrackets": "Nem i no save gat < o > insaed.",
+  "review": {
+    "title": "Trip blong yu i olsem wanem?",
+    "greeting": "Tangkyu blong travel wetem mifala, {{name}}.",
+    "intro": "Givim mak long evri pat blong trip blong yu. Review blong yu bambae i soaot taem tim blong mifala i jekem.",
+    "commentLabel": "Talem long ol narafala turis (sapos yu wantem)",
+    "alreadyReviewed": "Yu givim finis — tangkyu!",
+    "submit": "Sendem review",
+    "thanksTitle": "Tangkyu tumas!",
+    "thanksBody": "Review blong yu bambae i soaot long websaet taem mifala i oraetem.",
+    "expiredTitle": "Link ia i no moa wok",
+    "expiredBody": "Maet yu yusum finis, o i bitim 90 dei. Kontaktem mifala mo bambae mifala i sendem wan niu.",
+    "error": "I gat wan problem. Traem bakegen.",
+    "ratingLabel": "{{n}} sta"
+  }
 }

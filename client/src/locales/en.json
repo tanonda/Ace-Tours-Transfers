@@ -549,5 +549,18 @@
   "hero.bookTransfer": "Book a transfer",
   "hero.searchTours": "Search tours",
   "hero.searchTransfers": "Search transfers",
-  "common.nameNoAngleBrackets": "Names can't contain < or >."
+  "common.nameNoAngleBrackets": "Names can't contain < or >.",
+  "review.title": "How was your trip?",
+  "review.greeting": "Thanks for travelling with us, {{name}}.",
+  "review.intro": "Rate each part of your trip. Your review appears once our team has checked it.",
+  "review.commentLabel": "Tell other travellers about it (optional)",
+  "review.alreadyReviewed": "Already reviewed — thank you!",
+  "review.submit": "Submit review",
+  "review.thanksTitle": "Thank you!",
+  "review.thanksBody": "Your review will appear on our site once it has been approved.",
+  "review.expiredTitle": "This review link has expired",
+  "review.expiredBody": "It may already have been used, or it is more than 90 days old. Contact us and we'll send a new one.",
+  "review.error": "Something went wrong. Please try again.",
+  "review.ratingLabel": "{{n}} star(s)",
+  "quickView.noReviewsYet": "No reviews yet."
 }
