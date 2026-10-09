@@ -50,7 +50,6 @@ describe("name fields refuse < and >", () => {
     ["POST /api/users (admin creates an account)", () => request(app).post("/api/users").set("x-test-user", "admin1").set("x-test-role", "admin").send({ name: BAD, email: "a@b.com", username: "ab", password: "longenough1", role: "customer" })],
     ["POST /api/newsletter/subscribe", () => request(app).post("/api/newsletter/subscribe").send({ email: "a@b.com", name: BAD })],
     ["PATCH /api/newsletter/subscribers/:id (admin)", () => request(app).patch("/api/newsletter/subscribers/s1").set("x-test-user", "admin1").set("x-test-role", "admin").send({ name: BAD })],
-    ["POST /api/reviews/guest", () => request(app).post("/api/reviews/guest").send({ tourId: "t1", rating: 5, comment: "Great", guestName: BAD })],
     ["POST /api/contact", () => request(app).post("/api/contact").send({ name: BAD, email: "a@b.com", subject: "Hi", message: "Hello there, a question about tours." })],
   ])("%s", async (_route, send) => {
     calls.length = 0;

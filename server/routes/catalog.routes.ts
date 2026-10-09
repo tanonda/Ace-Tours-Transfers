@@ -1,16 +1,13 @@
 import type { Express } from "express";
-import { invalidPersonName } from "../../shared/person-name.js";
 import { storage } from "../storage.js";
 import { db } from "../db.js";
 import { sql, eq, desc } from "drizzle-orm";
 import * as schema from "../../shared/schema.js";
-import { insertProductSchema, insertReviewSchema } from "../../shared/schema.js";
+import { insertProductSchema } from "../../shared/schema.js";
 import { cloudinaryService } from "../infrastructure/storage/cloudinary-service.js";
 import { withProductTranslations } from "../lib/product-translation.service.js";
 
-import { ZodError } from "zod";
-
-import { requireAdmin, requireAuth, reviewsLimiter, upload, uploadToCloudinaryLegacy } from "./shared.js";
+import { requireAdmin, upload, uploadToCloudinaryLegacy } from "./shared.js";
 
 export function registerCatalogRoutes(app: Express) {
   // Image Upload API (Admin Only)
@@ -137,80 +134,6 @@ export function registerCatalogRoutes(app: Express) {
   });
 
 
-
-  // Public: approved reviews for coming soon page (no auth required)
-  app.get("/api/reviews/approved", async (_req, res) => {
-    try {
-      const allReviews = await storage.getAllReviews();
-      const approved = allReviews
-        .filter((r: any) => r.status === "approved" && r.comment)
-        .sort((a: any, b: any) => b.rating - a.rating)
-        .slice(0, 20);
-      res.json(approved);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  // Guest review submission (no auth required, requires moderation)
-  app.post("/api/reviews/guest", reviewsLimiter, async (req, res) => {
-    try {
-      // Check if guest reviews feature flag is enabled
-      const guestReviewsFlag = await storage.getFeatureFlag("guest-reviews");
-      if (guestReviewsFlag && !guestReviewsFlag.enabled) {
-        return res.status(403).json({ error: "Guest reviews are currently disabled. Please create an account to leave a review." });
-      }
-
-      const { tourId, rating, comment, guestName, guestEmail } = req.body;
-      if (!tourId || !rating) return res.status(400).json({ error: "tourId and rating are required" });
-      if (rating < 1 || rating > 5) return res.status(400).json({ error: "rating must be 1-5" });
-      const nameError = invalidPersonName(guestName);
-      if (nameError) return res.status(400).json({ error: nameError });
-
-      // Sanitize & cap all user-supplied string fields
-      const safeComment = typeof comment === "string" ? comment.trim().slice(0, 2000) : null;
-      const safeGuestName = typeof guestName === "string" ? guestName.trim().slice(0, 100) : "Anonymous";
-      const safeGuestEmail = typeof guestEmail === "string" ? guestEmail.trim().slice(0, 254) : null;
-
-      // Basic email format check
-      if (safeGuestEmail) {
-        const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRe.test(safeGuestEmail)) return res.status(400).json({ error: "Invalid email address" });
-      }
-
-      const review = await storage.createGuestReview({
-        tourId,
-        rating: parseInt(rating),
-        comment: safeComment,
-        guestName: safeGuestName,
-        guestEmail: safeGuestEmail,
-        isGuest: true,
-        status: "pending", // requires moderation
-      });
-      res.json({ success: true, id: review.id, message: "Thank you! Your review will appear after moderation." });
-    } catch (error: any) {
-      console.error("[ROUTE] POST /api/reviews/guest failed:", error?.message);
-      res.status(500).json({ error: "Failed to submit review. Please try again." });
-    }
-  });
-
-  app.post("/api/reviews", requireAuth, async (req, res) => {
-    try {
-      const parsedReview = insertReviewSchema.parse(req.body);
-      const review = await storage.createReview({
-        ...parsedReview,
-        userId: req.session.userId!
-      });
-      res.json(review);
-    } catch (error: any) {
-      if (error instanceof ZodError) {
-        res.status(400).json({ error: error.errors });
-      } else {
-        console.error("[ROUTE] POST /api/reviews failed:", error?.message);
-        res.status(500).json({ error: "Failed to submit review. Please try again." });
-      }
-    }
-  });
 
   app.post("/api/products", requireAdmin, async (req, res) => {
     try {

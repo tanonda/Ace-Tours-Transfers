@@ -17,6 +17,7 @@ import { registerAvailabilityRoutes } from "./routes/availability.routes.js";
 import { registerAdminOpsRoutes } from "./routes/admin-ops.routes.js";
 import { registerBookingsRoutes } from "./routes/bookings.routes.js";
 import { registerCatalogRoutes } from "./routes/catalog.routes.js";
+import { registerReviewRoutes } from "./routes/reviews.routes.js";
 import { registerSiteRoutes } from "./routes/site.routes.js";
 import { registerNotificationsRoutes } from "./routes/notifications.routes.js";
 import { registerReportingRoutes } from "./routes/reporting.routes.js";
@@ -56,6 +57,8 @@ export async function registerRoutes(
   registerBookingsRoutes(app, routeDeps);
 
   registerCatalogRoutes(app);
+
+  registerReviewRoutes(app);
 
   registerSiteRoutes(app);
 

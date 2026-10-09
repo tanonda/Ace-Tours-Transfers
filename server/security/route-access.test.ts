@@ -39,7 +39,7 @@ const PUBLIC_WRITE_ROUTES = new Set([
   "POST /api/payments/checkout", // ownership verified inside
   "POST /api/payments/webhook/:gateway", // signature-verified per gateway
   "POST /api/promotions/validate",
-  "POST /api/reviews/guest",
+  "POST /api/reviews/invite/:token", // HMAC-signed booking token
 ]);
 
 const SAMPLE_ID = "00000000-0000-4000-8000-000000000000";

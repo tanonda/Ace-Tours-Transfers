@@ -34,12 +34,6 @@ const FLAG_DEFAULTS = [
     description: "Enable customer reviews and moderation"
   },
   {
-    slug: "guest-reviews",
-    enabled: true,
-    displayName: "Guest Reviews",
-    description: "Allow guests (non-logged-in users) to submit product reviews. Disable to restrict reviews to verified account holders only."
-  },
-  {
     // Off: the site is live. Without this row the client fell back to the build-time
     // VITE_COMING_SOON, so a stray value on Render could hide the whole site.
     slug: "coming-soon",

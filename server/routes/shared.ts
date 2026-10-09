@@ -51,9 +51,9 @@ export const newsletterLimiter = rateLimit({
   message: { error: "Too many subscription attempts, please try again later." },
 });
 
-export const reviewsLimiter = rateLimit({
+export const reviewInviteLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: 3, // max 3 guest reviews per IP per hour
+  max: 10, // per IP — a family may submit several products in a few tries
   message: { error: "Too many review submissions. Please try again later." },
 });
 
