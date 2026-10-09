@@ -214,7 +214,7 @@ const SITE_ROUTES = (
       <Route path="/payment/success" component={PaymentSuccess} />
       <Route path="/payment/cancel" component={PaymentCancel} />
       <Route path="/manage-booking" component={ManageBooking} />
-      <Route path="/review/:token" component={ReviewInvite} />
+      <Route path="/review" component={ReviewInvite} />
       <Route path="/confirmation" component={Confirmation} />
       <Route path="/staff-access" component={Login} />
       <Route path="/register" component={Register} />

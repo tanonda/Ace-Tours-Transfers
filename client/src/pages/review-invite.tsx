@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useParams } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Helmet } from "react-helmet-async";
 import { useTranslation } from "react-i18next";
@@ -36,10 +35,13 @@ function Stars({ value, onChange, label }: { value: number; onChange: (n: number
 }
 
 export default function ReviewInvite() {
-  const { token = "" } = useParams<{ token: string }>();
+  // Token lives in the URL fragment so it never reaches servers, Referer headers or analytics.
+  const [token] = useState(() => {
+    try { return decodeURIComponent(window.location.hash.slice(1)).trim(); } catch { return ""; }
+  });
   const { t } = useTranslation();
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
-  const invite = useQuery({ queryKey: ["review-invite", token], queryFn: () => loadInvite(token), retry: false });
+  const invite = useQuery({ queryKey: ["review-invite", token], queryFn: () => loadInvite(token), retry: false, enabled: token !== "" });
 
   const submit = useMutation({
     mutationFn: async () => {
@@ -59,7 +61,9 @@ export default function ReviewInvite() {
   const anyRated = Object.values(drafts).some((d) => d.rating > 0);
 
   let body: React.ReactNode;
-  if (invite.isLoading) {
+  if (token === "") {
+    body = (<><h1 className="text-2xl font-bold mb-2">{t("review.expiredTitle")}</h1><p>{t("review.expiredBody")}</p></>);
+  } else if (invite.isLoading) {
     body = <p className="text-muted-foreground">…</p>;
   } else if (invite.data === "expired" || errorStatus(submit.error) === 410) {
     body = (<><h1 className="text-2xl font-bold mb-2">{t("review.expiredTitle")}</h1><p>{t("review.expiredBody")}</p></>);

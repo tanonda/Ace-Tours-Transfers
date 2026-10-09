@@ -8,7 +8,7 @@ import { getAppUrl, getMsg, getReviewRequestTemplate, sendEmail } from "./mail.j
 export async function sendReviewRequest(booking: Booking): Promise<boolean> {
   if (!booking.customerEmail) return false;
   try {
-    const link = `${await getAppUrl()}/review/${signReviewToken(booking.id)}`;
+    const link = `${await getAppUrl()}/review#${signReviewToken(booking.id)}`;
     const names = bookingProducts(booking, await storage.getBookingItems(booking.id)).map((p) => p.productName);
     return await sendEmail({
       to: booking.customerEmail,

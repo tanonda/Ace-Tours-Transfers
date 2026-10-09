@@ -9,6 +9,6 @@ Disallow: /api/
 Disallow: /cart
 Disallow: /payment
 Disallow: /confirmation
-Disallow: /review/
+Disallow: /review
 
 Sitemap: https://acetoursvanuatu.com/sitemap.xml
