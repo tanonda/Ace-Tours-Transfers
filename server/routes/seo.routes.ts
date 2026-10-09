@@ -31,7 +31,7 @@ let lastGoodSitemapXml: string | null = null;
  * during a deploy/restart window. A 5xx on robots.txt makes Google cache
  * "disallow everything" for up to 24h, which previously blocked the whole site.
  */
-function buildRobotsTxt(): string {
+export function buildRobotsTxt(): string {
   const siteUrl = (process.env.APP_URL || "https://acetoursvanuatu.com").replace(/\/$/, "");
   return [
     "User-agent: *",
@@ -45,6 +45,7 @@ function buildRobotsTxt(): string {
     "Disallow: /cart",
     "Disallow: /payment",
     "Disallow: /confirmation",
+    "Disallow: /review",
     "",
     `Sitemap: ${siteUrl}/sitemap.xml`,
     "",
