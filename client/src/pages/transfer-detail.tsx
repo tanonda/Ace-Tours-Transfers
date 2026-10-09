@@ -437,7 +437,7 @@ export default function TransferDetail() {
                     <div key={r.id} className="bg-muted rounded-[12px] p-5">
                       <div className="flex justify-between items-start mb-3">
                         <div>
-                          <div className="font-semibold text-[0.9rem]">{r.userName || "Guest"}</div>
+                          <div className="font-semibold text-[0.9rem]">{r.authorName || "Guest"}</div>
                           <StarRating value={r.rating} />
                         </div>
                         <div className="text-[0.72rem] text-muted-foreground">{new Date(r.createdAt).toLocaleDateString("en-US", { month: "short", year: "numeric" })}</div>

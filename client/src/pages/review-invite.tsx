@@ -94,6 +94,9 @@ export default function ReviewInvite() {
                   <Textarea maxLength={2000} className="mt-1" value={drafts[item.productId]?.comment ?? ""}
                     onChange={(e) => set(item.productId, { comment: e.target.value })} />
                 </label>
+                {(drafts[item.productId]?.comment ?? "").trim() && !(drafts[item.productId]?.rating > 0) && (
+                  <p className="text-sm text-muted-foreground">{t("review.ratingRequired")}</p>
+                )}
               </>
             )}
           </fieldset>
@@ -110,7 +113,7 @@ export default function ReviewInvite() {
         <title>{t("review.title")}</title>
         <meta name="robots" content="noindex, nofollow" />
       </Helmet>
-      <main className="max-w-xl mx-auto px-4 py-12">{body}</main>
+      <div className="max-w-xl mx-auto px-4 py-12">{body}</div>
     </Layout>
   );
 }

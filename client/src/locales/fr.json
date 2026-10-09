@@ -619,6 +619,7 @@
     "intro": "Notez chaque partie de votre voyage. Votre avis apparaîtra après vérification par notre équipe.",
     "commentLabel": "Parlez-en aux autres voyageurs (facultatif)",
     "alreadyReviewed": "Déjà noté — merci !",
+    "ratingRequired": "Choisissez une note pour inclure ce commentaire.",
     "submit": "Envoyer l'avis",
     "thanksTitle": "Merci !",
     "thanksBody": "Votre avis apparaîtra sur notre site une fois approuvé.",

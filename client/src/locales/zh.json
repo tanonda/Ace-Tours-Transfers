@@ -619,6 +619,7 @@
     "intro": "请为旅程的每个部分评分。我们的团队审核后，您的评价将会显示。",
     "commentLabel": "与其他旅行者分享（可选）",
     "alreadyReviewed": "已评价——谢谢！",
+    "ratingRequired": "请选择星级以提交此评论。",
     "submit": "提交评价",
     "thanksTitle": "谢谢！",
     "thanksBody": "您的评价通过审核后将显示在我们的网站上。",

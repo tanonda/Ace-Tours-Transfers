@@ -555,6 +555,7 @@
   "review.intro": "Rate each part of your trip. Your review appears once our team has checked it.",
   "review.commentLabel": "Tell other travellers about it (optional)",
   "review.alreadyReviewed": "Already reviewed — thank you!",
+  "review.ratingRequired": "Choose a star rating to include this comment.",
   "review.submit": "Submit review",
   "review.thanksTitle": "Thank you!",
   "review.thanksBody": "Your review will appear on our site once it has been approved.",

@@ -78,6 +78,7 @@ import { extractErrorDetails } from "./lib/error-util.js";
 import { sealGatewayWrite, openGatewayRow } from "./lib/credential-crypto.js";
 import { isProductId } from "../shared/product-path.js";
 import { assignProductSlugs } from "./lib/product-slugs.js";
+import { reviewAuthorName } from "./lib/review-author.js";
 
 // Payment gateway credentials are encrypted at rest (see server/lib/credential-crypto.ts).
 const credentialsKey = () => process.env.PAYMENT_CREDENTIALS_KEY;
@@ -1034,7 +1035,7 @@ export class DatabaseStorage implements IStorage {
 
         return rows.map((r: any) => ({
           ...r,
-          authorName: r.isGuest ? (r.guestName || "Anonymous") : (r.userName || "Guest"),
+          authorName: reviewAuthorName(r, { guest: "Anonymous", account: "Guest" }),
         }));
       } catch (e: any) {
         // Pre-migration fallback — status/isGuest/guestName columns may not exist yet
@@ -1069,12 +1070,19 @@ export class DatabaseStorage implements IStorage {
 
   // One review per (booking, product); returns null when that pair is already reviewed.
   async createVerifiedReview(data: VerifiedReviewInput): Promise<Review | null> {
-    const [review] = await db
-      .insert(reviews)
-      .values({ ...data, verified: true, status: "pending" })
-      .onConflictDoNothing({ target: [reviews.bookingId, reviews.tourId], where: sql`${reviews.bookingId} IS NOT NULL` })
-      .returning();
-    return review ?? null;
+    try {
+      const [review] = await db
+        .insert(reviews)
+        .values({ ...data, verified: true, status: "pending" })
+        .onConflictDoNothing({ target: [reviews.bookingId, reviews.tourId], where: sql`${reviews.bookingId} IS NOT NULL` })
+        .returning();
+      return review ?? null;
+    } catch (e: any) {
+      if ((e?.code ?? e?.cause?.code) === "42P10") {
+        console.error("[REVIEWS] reviews_booking_product_uniq index missing — run migration 0026 / check duplicate (booking_id, tour_id) rows");
+      }
+      throw e;
+    }
   }
 
   async getReviewedProductIds(bookingId: string): Promise<string[]> {
@@ -1110,7 +1118,7 @@ export class DatabaseStorage implements IStorage {
 
         return rows.map((r: any) => ({
           ...r,
-          authorName: r.isGuest ? (r.guestName || "Anonymous Guest") : (r.userName || "Registered User"),
+          authorName: reviewAuthorName(r, { guest: "Anonymous Guest", account: "Registered User" }),
         }));
       } catch (e: any) {
         // Pre-migration fallback

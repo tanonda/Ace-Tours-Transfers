@@ -619,6 +619,7 @@
     "intro": "Valore cada parte de su viaje. Su reseña aparecerá cuando nuestro equipo la revise.",
     "commentLabel": "Cuénteselo a otros viajeros (opcional)",
     "alreadyReviewed": "Ya valorado — ¡gracias!",
+    "ratingRequired": "Elija una puntuación para incluir este comentario.",
     "submit": "Enviar reseña",
     "thanksTitle": "¡Gracias!",
     "thanksBody": "Su reseña aparecerá en nuestro sitio una vez aprobada.",

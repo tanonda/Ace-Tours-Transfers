@@ -853,7 +853,7 @@ export default function TourDetail() {
                       <div className="flex justify-between items-start mb-3">
                         <div>
                           <div className="font-semibold text-[0.9rem] flex items-center gap-2">
-                            {r.userName || t("common.guest", "Guest")}
+                            {r.authorName || t("common.guest", "Guest")}
                             <span className="w-5 h-5 rounded-full bg-reef/20 border border-reef/40 flex items-center justify-center">
                               <CheckCircle2 className="w-3 h-3 text-reef" />
                             </span>
