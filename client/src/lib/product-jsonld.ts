@@ -39,3 +39,36 @@ export function buildOfferJsonLd(offer: OfferInput, url: string, sellerName: str
     },
   };
 }
+
+export interface RatedReview {
+  author: string;
+  rating: number;
+  body?: string | null;
+  datePublished?: string;
+}
+
+/**
+ * Product rating markup from approved first-party reviews. Returns null when
+ * there are none — Google treats an empty or invented rating as spam. Never
+ * attach this to LocalBusiness/Organization (self-serving ratings are ignored
+ * there and risk a manual action).
+ */
+export function buildRatingJsonLd(reviews: RatedReview[]) {
+  if (reviews.length === 0) return null;
+  const avg = reviews.reduce((s, r) => s + r.rating, 0) / reviews.length;
+  return {
+    aggregateRating: {
+      "@type": "AggregateRating",
+      ratingValue: avg.toFixed(1),
+      bestRating: "5",
+      reviewCount: reviews.length,
+    },
+    review: reviews.slice(0, 5).map((r) => ({
+      "@type": "Review",
+      reviewRating: { "@type": "Rating", ratingValue: r.rating, bestRating: 5 },
+      author: { "@type": "Person", name: r.author },
+      ...(r.body ? { reviewBody: r.body } : {}),
+      ...(r.datePublished ? { datePublished: r.datePublished } : {}),
+    })),
+  };
+}

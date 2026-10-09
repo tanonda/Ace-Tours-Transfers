@@ -1,6 +1,6 @@
 import { Helmet } from "react-helmet-async";
 import { SITE_URL } from "@/lib/site-url";
-import { buildOfferJsonLd } from "@/lib/product-jsonld";
+import { buildOfferJsonLd, buildRatingJsonLd, type RatedReview } from "@/lib/product-jsonld";
 import { buildBreadcrumbJsonLd, type Breadcrumb } from "@/lib/breadcrumb-jsonld";
 import { useLocation } from "wouter";
 import { useTranslation } from "react-i18next";
@@ -36,12 +36,7 @@ export function cloudinaryOpt(url: string, w = 800, q = "auto"): string {
   return url.replace("/upload/", `/upload/f_auto,q_${q},w_${w}/`);
 }
 
-export interface ReviewSchema {
-  author: string;
-  rating: number;
-  body?: string;
-  datePublished?: string;
-}
+export type ReviewSchema = RatedReview;
 
 export interface OfferSchema {
   price: number;
@@ -66,7 +61,6 @@ interface SEOProps {
   productDescription?: string;
   location?: string;
   offer?: OfferSchema;
-  aggregateRating?: { ratingValue: number; reviewCount: number };
   reviews?: ReviewSchema[];
   faqs?: FAQItem[];
   extraJsonLd?: Record<string, unknown>;
@@ -88,7 +82,6 @@ export function SEO({
   productDescription,
   location = "Port Vila, Efate Island, Vanuatu",
   offer,
-  aggregateRating,
   reviews = [],
   faqs = [],
   extraJsonLd,
@@ -173,14 +166,6 @@ export function SEO({
       "https://www.instagram.com/acetoursvanuatu",
     ],
   };
-  if (aggregateRating) {
-    localBusiness.aggregateRating = {
-      "@type": "AggregateRating",
-      ratingValue: aggregateRating.ratingValue.toFixed(1),
-      bestRating: "5",
-      reviewCount: aggregateRating.reviewCount,
-    };
-  }
   jsonLdBlocks.push(localBusiness);
 
   // ── WebSite (home page only) ──
@@ -207,23 +192,8 @@ export function SEO({
     if (offer) {
       productSchema.offers = buildOfferJsonLd(offer, fullUrl, siteName);
     }
-    if (aggregateRating) {
-      productSchema.aggregateRating = {
-        "@type": "AggregateRating",
-        ratingValue: aggregateRating.ratingValue.toFixed(1),
-        bestRating: "5",
-        reviewCount: aggregateRating.reviewCount,
-      };
-    }
-    if (reviews.length > 0) {
-      productSchema.review = reviews.slice(0, 5).map((r) => ({
-        "@type": "Review",
-        reviewRating: { "@type": "Rating", ratingValue: r.rating, bestRating: 5 },
-        author: { "@type": "Person", name: r.author },
-        ...(r.body && { reviewBody: r.body }),
-        ...(r.datePublished && { datePublished: r.datePublished }),
-      }));
-    }
+    const rating = buildRatingJsonLd(reviews);
+    if (rating) Object.assign(productSchema, rating);
     if (extraJsonLd) Object.assign(productSchema, extraJsonLd);
     jsonLdBlocks.push(productSchema);
   } else if (extraJsonLd) {

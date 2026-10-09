@@ -246,8 +246,7 @@ export default function TransferDetail() {
         productName={transfer.title}
         productDescription={htmlToText(Array.isArray(transfer.description) ? transfer.description[0] : transfer.description)}
         offer={getDisplayPrice(transfer).amount ? { price: getDisplayPrice(transfer).amount, currency: "VUV", availability: "InStock" } : undefined}
-        aggregateRating={reviews.length > 0 ? { ratingValue: averageRating, reviewCount: reviews.length } : undefined}
-        reviews={reviews.slice(0, 5).map((r: any) => ({ author: r.userName || "Guest", rating: r.rating, body: r.comment, datePublished: r.createdAt?.slice(0, 10) }))}
+        reviews={reviews.map((r: any) => ({ author: r.authorName, rating: r.rating, body: r.comment, datePublished: r.createdAt?.slice(0, 10) }))}
         faqs={transferFaqs}
       />
 

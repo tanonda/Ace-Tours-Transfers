@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildOfferJsonLd } from './product-jsonld';
+import { buildOfferJsonLd, buildRatingJsonLd } from './product-jsonld';
 
 const url = 'https://acetoursvanuatu.com/transfers/hospitality';
 const seller = 'Ace Tours & Transfers';
@@ -58,5 +58,38 @@ describe('buildOfferJsonLd', () => {
   it('passes through an explicit availability', () => {
     const offer = buildOfferJsonLd({ price: 1500, currency: 'VUV', availability: 'OutOfStock' }, url, seller);
     expect(offer.availability).toBe('https://schema.org/OutOfStock');
+  });
+});
+
+describe('buildRatingJsonLd', () => {
+  it('returns null with no approved reviews (no empty ratings in markup)', () => {
+    expect(buildRatingJsonLd([])).toBeNull();
+  });
+
+  it('averages to one decimal and counts every review', () => {
+    const out = buildRatingJsonLd([
+      { author: 'Sarah M.', rating: 5, body: 'Wonderful', datePublished: '2026-10-01' },
+      { author: 'Tom K.', rating: 4 },
+      { author: 'Ana P.', rating: 4 },
+    ])!;
+    expect(out.aggregateRating).toEqual({ '@type': 'AggregateRating', ratingValue: '4.3', bestRating: '5', reviewCount: 3 });
+  });
+
+  it('includes at most 5 reviews with named authors', () => {
+    const many = Array.from({ length: 8 }, (_, i) => ({ author: `R${i}`, rating: 5 }));
+    const out = buildRatingJsonLd(many)!;
+    expect(out.review).toHaveLength(5);
+    expect(out.review[0]).toEqual({
+      '@type': 'Review',
+      reviewRating: { '@type': 'Rating', ratingValue: 5, bestRating: 5 },
+      author: { '@type': 'Person', name: 'R0' },
+    });
+    expect(out.aggregateRating).toMatchObject({ reviewCount: 8 });
+  });
+
+  it('omits empty body and date fields', () => {
+    const out = buildRatingJsonLd([{ author: 'A', rating: 3, body: null }])!;
+    expect(out.review[0]).not.toHaveProperty('reviewBody');
+    expect(out.review[0]).not.toHaveProperty('datePublished');
   });
 });

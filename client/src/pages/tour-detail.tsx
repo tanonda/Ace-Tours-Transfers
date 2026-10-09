@@ -478,7 +478,6 @@ export default function TourDetail() {
   const isBooked = !availability?.isAvailable && !!date;
   const displayImage = getProductImage(tour.image);
 
-  const avgRating = reviews.length > 0 ? reviews.reduce((a: number, r: any) => a + r.rating, 0) / reviews.length : 0;
   const tourFaqs = [];
   for (let i = 1; i <= 20; i++) {
     // We only have 4 defaults here
@@ -517,8 +516,7 @@ export default function TourDetail() {
         productName={tour.title}
         productDescription={htmlToText(Array.isArray(tour.description) ? tour.description[0] : tour.description)}
         offer={getDisplayPrice(tour).amount ? { price: getDisplayPrice(tour).amount, currency: "VUV", availability: "InStock" } : undefined}
-        aggregateRating={reviews.length > 0 ? { ratingValue: avgRating, reviewCount: reviews.length } : undefined}
-        reviews={reviews.slice(0, 5).map((r: any) => ({ author: r.userName || "Guest", rating: r.rating, body: r.comment, datePublished: r.createdAt?.slice(0, 10) }))}
+        reviews={reviews.map((r: any) => ({ author: r.authorName, rating: r.rating, body: r.comment, datePublished: r.createdAt?.slice(0, 10) }))}
         faqs={tourFaqs}
       />
 
