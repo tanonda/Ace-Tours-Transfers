@@ -8,6 +8,7 @@ import { screenBookingUpdate } from "../lib/booking-update-policy.js";
 import { PriceCartService } from "../application/pricing/PriceCartService.js";
 
 import { sendEmail, sendAdminEmail, getBookingStatusUpdateTemplate, shortBookingRef } from "../lib/mail.js";
+import { sendReviewRequest } from "../lib/review-request.js";
 import { isFeatureEnabled } from "../feature-flags.js";
 import { AtomicBookingConfirmationService } from "../application/booking/AtomicBookingConfirmationService.js";
 import QRCode from "qrcode";
@@ -879,8 +880,11 @@ export function registerBookingsRoutes(app: Express, deps: RouteDeps) {
 
       const booking = await storage.updateBooking(req.params.id, updates);
 
-      // ✅ Send email when status changes
-      if (updates.status && updates.status !== existing.status && booking.customerEmail) {
+      // Completed trips get the "How was your trip?" review request in place of the
+      // generic status email. Fire-and-forget: email failure never fails the update.
+      if (updates.status === "completed" && existing.status !== "completed") {
+        sendReviewRequest(booking).catch((err) => console.error("[BOOKING][STATUS] Review request failed (non-fatal):", err));
+      } else if (updates.status && updates.status !== existing.status && booking.customerEmail) {
         try {
           const bookingItems = await storage.getBookingItems(booking.id);
           const firstItem = bookingItems[0];

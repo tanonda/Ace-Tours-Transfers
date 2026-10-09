@@ -5,7 +5,9 @@ import { verifyReviewToken } from "../lib/review-token.js";
 import { bookingProducts, reviewEntriesSchema, reviewerDisplayName, saveVerifiedReviews } from "../lib/review-invite.js";
 import { sendAdminEmail } from "../lib/mail.js";
 import { escapeHtml } from "../lib/escape-html.js";
-import { requireAuth, reviewInviteLimiter } from "./shared.js";
+import { requireAdmin, requireAuth, reviewInviteLimiter } from "./shared.js";
+import { sendReviewRequest } from "../lib/review-request.js";
+import { adminAudit } from "../infrastructure/audit/admin-audit-log.service.js";
 
 const expired = (res: Response) => res.status(410).json({ error: "link_expired" });
 
@@ -37,6 +39,25 @@ const signedInReviewSchema = z.object({
 }).strict();
 
 export function registerReviewRoutes(app: Express) {
+  app.post("/api/admin/bookings/:id/review-request", requireAdmin, async (req, res) => {
+    try {
+      const booking = await storage.getBooking(req.params.id);
+      if (!booking) return res.status(404).json({ error: "Booking not found" });
+      if (booking.status !== "completed") {
+        return res.status(400).json({ error: "Only completed bookings can be asked for a review." });
+      }
+      const sent = await sendReviewRequest(booking);
+      await adminAudit.log({
+        action: "review_request_sent", entityType: "booking", entityId: booking.id,
+        performedBy: req.session.userId, metadata: { sent }, req,
+      });
+      res.json({ sent });
+    } catch (error: any) {
+      console.error("[ROUTE] POST /api/admin/bookings/:id/review-request failed:", error?.message);
+      res.status(500).json({ error: "Failed to send review request." });
+    }
+  });
+
   // Public: approved reviews for the coming-soon page. Whitelisted fields only —
   // raw rows carry guestEmail, userId and bookingId.
   app.get("/api/reviews/approved", async (_req, res) => {

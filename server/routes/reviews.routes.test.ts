@@ -9,6 +9,10 @@ import { signReviewToken } from "../lib/review-token.js";
 vi.mock("express-rate-limit", () => ({ rateLimit: () => (_q: any, _s: any, n: any) => n(), default: () => (_q: any, _s: any, n: any) => n() }));
 vi.mock("../lib/mail.js", () => ({ sendAdminEmail: vi.fn(async () => true), sendEmail: vi.fn(async () => true) }));
 
+const sendReviewRequest = vi.hoisted(() => vi.fn(async () => true));
+vi.mock("../lib/review-request.js", () => ({ sendReviewRequest }));
+vi.mock("../infrastructure/audit/admin-audit-log.service.js", () => ({ adminAudit: { log: vi.fn(async () => {}) } }));
+
 const BK = "11111111-1111-4111-8111-111111111111";
 const fx = vi.hoisted(() => ({
   booking: null as any,
@@ -29,7 +33,7 @@ vi.mock("../storage.js", () => ({
       return { id: "r1", ...d };
     }),
     getAllReviews: vi.fn(async () => fx.allReviews),
-    getUser: vi.fn(async (id: string) => ({ id, role: "customer", isActive: true })),
+    getUser: vi.fn(async (id: string) => ({ id, role: id === "admin1" ? "admin" : "customer", isActive: true })),
   },
 }));
 
@@ -195,5 +199,39 @@ describe("GET /api/reviews/approved", () => {
     expect(res.status).toBe(200);
     expect(res.body).toEqual([{ id: "a", rating: 5, comment: "Great", authorName: "Sarah M.", tourTitle: "Mele" }]);
     expect(Object.keys(res.body[0]).sort()).toEqual(["authorName", "comment", "id", "rating", "tourTitle"]);
+  });
+});
+
+describe("POST /api/admin/bookings/:id/review-request", () => {
+  const send = (user?: string) => {
+    const r = request(app).post(`/api/admin/bookings/${BK}/review-request`);
+    return user ? r.set("x-test-user", user) : r;
+  };
+  beforeEach(() => sendReviewRequest.mockClear());
+
+  it("sends for a completed booking", async () => {
+    const res = await send("admin1");
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ sent: true });
+    expect(sendReviewRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it("400 when the booking is not completed", async () => {
+    fx.booking.status = "confirmed";
+    const res = await send("admin1");
+    expect(res.status).toBe(400);
+    expect(sendReviewRequest).not.toHaveBeenCalled();
+  });
+
+  it("404 when the booking does not exist", async () => {
+    fx.booking = null;
+    expect((await send("admin1")).status).toBe(404);
+    expect(sendReviewRequest).not.toHaveBeenCalled();
+  });
+
+  it("refuses non-admins and anonymous callers", async () => {
+    expect((await send("custA")).status).toBe(403);
+    expect((await send()).status).toBe(401);
+    expect(sendReviewRequest).not.toHaveBeenCalled();
   });
 });
