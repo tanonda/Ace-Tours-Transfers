@@ -85,7 +85,7 @@ export function shortBookingRef(bookingId: string): string {
 let _cachedAppUrl: string | null = null;
 let _cacheExpiry = 0;
 
-async function getAppUrl(): Promise<string> {
+export async function getAppUrl(): Promise<string> {
   if (_cachedAppUrl && Date.now() < _cacheExpiry) return _cachedAppUrl;
   try {
     const { storage } = await import("../storage.js");
@@ -473,6 +473,31 @@ export async function getBookingStatusUpdateTemplate(booking: any, newStatus: st
       </div>
 
       ${manageBookingBlock(appUrl, booking.id, eId, l)}
+    </div>
+    ${emailFooter(l)}
+  `);
+}
+
+export async function getReviewRequestTemplate(
+  booking: { id: string; customerName: string; locale?: string },
+  productNames: string[],
+  link: string,
+): Promise<string> {
+  const l = booking.locale || "en";
+  const appUrl = await getAppUrl();
+  const eName = escapeHtml(booking.customerName);
+  const eLink = escapeHtml(link);
+  const products = productNames.map((n) => `<li style="margin: 4px 0;">${escapeHtml(n)}</li>`).join("");
+
+  return emailWrapper(`
+    ${emailHeader(`${appUrl}/assets/logo.png`, getMsg(l, "reviewRequestTitle"), getMsg(l, "reviewRequestSubtitle"))}
+    <div style="padding: 32px 28px;">
+      <p style="color: #374151; font-size: 16px; margin: 0 0 8px 0;">${getMsg(l, "greeting", { name: eName })}</p>
+      <p style="color: #6b7280; font-size: 14px; margin: 0 0 16px 0;">${getMsg(l, "reviewRequestIntro")}</p>
+      <ul style="color: #004165; font-size: 15px; font-weight: 600; padding-left: 20px; margin: 0 0 24px 0;">${products}</ul>
+      <div style="text-align: center; margin: 28px 0;">
+        <a href="${eLink}" style="background: #004165; color: #ffffff; text-decoration: none; padding: 14px 28px; border-radius: 8px; font-weight: 700; display: inline-block;">★★★★★ ${getMsg(l, "reviewRequestButton")}</a>
+      </div>
     </div>
     ${emailFooter(l)}
   `);
