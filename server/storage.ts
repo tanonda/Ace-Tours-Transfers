@@ -83,6 +83,17 @@ import { assignProductSlugs } from "./lib/product-slugs.js";
 const credentialsKey = () => process.env.PAYMENT_CREDENTIALS_KEY;
 const openGateway = (row: PaymentGateway): PaymentGateway => openGatewayRow(row, credentialsKey());
 
+export type VerifiedReviewInput = {
+  bookingId: string;
+  userId: string | null;
+  tourId: string;
+  rating: number;
+  comment: string | null;
+  guestName: string;
+  guestEmail: string | null;
+  isGuest: boolean;
+};
+
 export interface IStorage {
   // User operations
   getUser(id: string): Promise<User | undefined>;
@@ -185,7 +196,8 @@ export interface IStorage {
   getProductReviews(productId: string): Promise<any[]>;
   getProductReviews(tourId: string): Promise<any[]>; // alias for backward compat
   getUserReviews(userId: string): Promise<Review[]>;
-  createGuestReview(data: { tourId: string; rating: number; comment?: string | null; guestName: string; guestEmail?: string | null; isGuest: boolean; status: string; }): Promise<any>;
+  createVerifiedReview(data: VerifiedReviewInput): Promise<Review | null>;
+  getReviewedProductIds(bookingId: string): Promise<string[]>;
   getAllReviews(): Promise<any[]>;
   updateReviewStatus(id: string, status: string): Promise<any>;
   deleteReview(id: string): Promise<void>;
@@ -1010,6 +1022,7 @@ export class DatabaseStorage implements IStorage {
             comment: reviews.comment,
             createdAt: reviews.createdAt,
             isGuest: reviews.isGuest,
+            verified: reviews.verified,
             guestName: reviews.guestName,
             status: reviews.status,
             userName: users.name,
@@ -1054,35 +1067,19 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(reviews).where(eq(reviews.userId, userId)).orderBy(desc(reviews.createdAt));
   }
 
-  // Guest review submission (no userId or bookingId required)
-  async createGuestReview(data: {
-    tourId: string; rating: number; comment?: string | null;
-    guestName: string; guestEmail?: string | null; isGuest: boolean; status: string;
-  }): Promise<any> {
-    return this.withRetry(async () => {
-      try {
-        const [review] = await db
-          .insert(reviews)
-          .values({
-            tourId: data.tourId,
-            rating: data.rating,
-            comment: data.comment || null,
-            guestName: data.guestName,
-            guestEmail: data.guestEmail || null,
-            isGuest: true,
-            status: data.status || "pending",
-          } as any)
-          .returning();
-        return review;
-      } catch (e: any) {
-        if (e?.message?.includes("column") || e?.message?.includes("does not exist") ||
-          e?.message?.includes("null value") || e?.message?.includes("not-null")) {
-          console.warn("[REVIEW] Guest review columns not yet migrated — run migration 0003");
-          return { id: crypto.randomUUID(), ...data, createdAt: new Date(), _migrationPending: true };
-        }
-        throw e;
-      }
-    });
+  // One review per (booking, product); returns null when that pair is already reviewed.
+  async createVerifiedReview(data: VerifiedReviewInput): Promise<Review | null> {
+    const [review] = await db
+      .insert(reviews)
+      .values({ ...data, verified: true, status: "pending" })
+      .onConflictDoNothing({ target: [reviews.bookingId, reviews.tourId], where: sql`${reviews.bookingId} IS NOT NULL` })
+      .returning();
+    return review ?? null;
+  }
+
+  async getReviewedProductIds(bookingId: string): Promise<string[]> {
+    const rows = await db.select({ tourId: reviews.tourId }).from(reviews).where(eq(reviews.bookingId, bookingId));
+    return rows.map((r) => r.tourId);
   }
 
   async getAllReviews(): Promise<any[]> {
@@ -1095,6 +1092,8 @@ export class DatabaseStorage implements IStorage {
             comment: reviews.comment,
             status: reviews.status,
             isGuest: reviews.isGuest,
+            verified: reviews.verified,
+            bookingId: reviews.bookingId,
             guestName: reviews.guestName,
             guestEmail: reviews.guestEmail,
             createdAt: reviews.createdAt,

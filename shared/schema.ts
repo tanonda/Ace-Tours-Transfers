@@ -1009,14 +1009,17 @@ export const reviews = pgTable("reviews", {
   rating: integer("rating").notNull(), // 1 to 5
   comment: text("comment"),
   // Moderation
-  status: varchar("status", { length: 20 }).notNull().default("approved"), // 'pending' | 'approved' | 'rejected'
+  status: varchar("status", { length: 20 }).notNull().default("pending"), // 'pending' | 'approved' | 'rejected'
   // Guest reviewer fields (populated when userId is null)
   guestName: varchar("guest_name", { length: 200 }),
   guestEmail: varchar("guest_email", { length: 300 }),
   isGuest: boolean("is_guest").notNull().default(false),
+  verified: boolean("verified").notNull().default(false), // tied to a completed booking
   photoUrl: text("photo_url"),           // optional reviewer photo (Cloudinary URL)
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (table) => ({
+  bookingProductUniq: uniqueIndex("reviews_booking_product_uniq").on(table.bookingId, table.tourId).where(sql`${table.bookingId} IS NOT NULL`),
+}));
 
 export const reviewsRelations = relations(reviews, ({ one }) => ({
   user: one(users, {
@@ -1051,6 +1054,7 @@ export const insertReviewSchema = createInsertSchema(reviews).omit({
   guestName: true,
   guestEmail: true,
   isGuest: true,
+  verified: true,
   photoUrl: true,
 });
 
