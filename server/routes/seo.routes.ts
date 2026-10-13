@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import type { Express, RequestHandler } from "express";
 import { storage } from "../storage.js";
 import { publishedArticleSitemapEntries } from "../lib/article-sitemap.js";
 import { productPath } from "../../shared/product-path.js";
@@ -32,6 +32,17 @@ let lastGoodSitemapXml: string | null = null;
  * during a deploy/restart window. A 5xx on robots.txt makes Google cache
  * "disallow everything" for up to 24h, which previously blocked the whole site.
  */
+/**
+ * /api is deliberately NOT disallowed in robots.txt: Google honours robots.txt while
+ * rendering, and tour, transfer and article pages fetch their content from /api —
+ * blocked, they render as "Error"/404 and Google rejects them. This header keeps the
+ * JSON itself out of the index instead.
+ */
+export const noindexApiResponses: RequestHandler = (_req, res, next) => {
+  res.setHeader("X-Robots-Tag", "noindex");
+  next();
+};
+
 export function buildRobotsTxt(): string {
   const siteUrl = (process.env.APP_URL || "https://acetoursvanuatu.com").replace(/\/$/, "");
   return [
@@ -40,7 +51,6 @@ export function buildRobotsTxt(): string {
     "",
     "# Block admin panel from indexing",
     "Disallow: /admin/",
-    "Disallow: /api/",
     "",
     "# Block checkout flow from indexing",
     "Disallow: /cart",

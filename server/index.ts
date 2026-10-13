@@ -4,6 +4,7 @@ import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 import { pool as neonPool, db, initializeDatabase } from "./db.js";
 import { registerRoutes } from "./routes.js";
+import { noindexApiResponses } from "./routes/seo.routes.js";
 import { registerPrerenderStatusRoute, serveStatic } from "./static.js";
 import { createServer } from "http";
 import path from "path";
@@ -324,6 +325,9 @@ app.post(
 
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
+
+// Keep API JSON out of Google's index (robots.txt must let the renderer fetch it).
+app.use("/api", noindexApiResponses);
 
 // CSRF token endpoint — client calls this once on load
 app.get("/api/csrf-token", (req, res) => {
