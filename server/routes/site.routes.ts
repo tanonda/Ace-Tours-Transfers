@@ -13,6 +13,8 @@ import { invalidatePricingRulesCache } from "../domain/pricing/PricingEngine.js"
 import crypto from "crypto";
 import { sendEmail, sendAdminEmail, getNewsletterConfirmationTemplate, getContactFormTemplate, sendNewsletterEmail, getContactAutoReplyTemplate } from "../lib/mail.js";
 import { translateToAll } from "../lib/translate.js";
+import { heroVideoSettingError, isHeroVideoKey, HERO_VIDEO_BLOCK } from "../../shared/hero-video.js";
+import { cloudinaryService } from "../infrastructure/storage/cloudinary-service.js";
 import { adminAudit } from "../infrastructure/audit/admin-audit-log.service.js";
 
 import { contactLimiter, escapeHtml, newsletterLimiter, requireAdmin, requireAuth } from "./shared.js";
@@ -374,6 +376,11 @@ export function registerSiteRoutes(app: Express) {
   app.post("/api/admin/cms-content", requireAdmin, async (req, res) => {
     try {
       const validatedData = insertCmsContentSchema.parse(req.body);
+      const heroError = heroVideoSettingError(
+        { blockSlug: validatedData.blockSlug, key: validatedData.contentKey, value: validatedData.value, locale: validatedData.locale },
+        cloudinaryService.cloudName(),
+      );
+      if (heroError) return res.status(400).json({ error: heroError });
       const content = await storage.createCmsContent(validatedData);
       res.status(201).json(content);
     } catch (error) {
@@ -383,6 +390,16 @@ export function registerSiteRoutes(app: Express) {
 
   app.patch("/api/admin/cms-content/:id", requireAdmin, async (req, res) => {
     try {
+      if (req.body && "value" in req.body) {
+        const existing = await storage.getCmsContentItem(req.params.id);
+        if (existing) {
+          const heroError = heroVideoSettingError(
+            { blockSlug: existing.blockSlug, key: existing.contentKey, value: req.body.value, locale: existing.locale },
+            cloudinaryService.cloudName(),
+          );
+          if (heroError) return res.status(400).json({ error: heroError });
+        }
+      }
       const content = await storage.updateCmsContent(req.params.id, req.body);
       if (!content) return res.status(404).json({ error: "Content not found" });
       res.json(content);
@@ -399,6 +416,9 @@ export function registerSiteRoutes(app: Express) {
 
       const source = await storage.getCmsContentItem(id);
       if (!source) return res.status(404).json({ error: "Content not found" });
+      if (source.blockSlug === HERO_VIDEO_BLOCK && isHeroVideoKey(source.contentKey)) {
+        return res.status(400).json({ error: "Hero video settings aren't translated: they apply to every language." });
+      }
       if (!source.value?.trim()) return res.status(400).json({ error: "Content value is empty — nothing to translate" });
 
       const translations = await translateToAll(source.value);
