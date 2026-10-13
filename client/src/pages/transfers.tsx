@@ -8,9 +8,11 @@ import { PageHero } from "@/components/page-hero";
 import { PaperEdge, SectionLabel } from "@/components/postcard";
 import { Clock, Plane, Users } from "lucide-react";
 import { useSitePhoto } from "@/hooks/use-site-photo";
+import { useHeroVideo } from "@/hooks/use-hero-video";
 
 export default function Transfers() {
   const heroPhoto = useSitePhoto("transfersHero"); // Admin → CMS
+  const heroVideo = useHeroVideo("transfers");
   const { t } = useTranslation();
   const { data: allTransfers = [], isLoading } = useLocalizedTransfers();
 
@@ -52,6 +54,8 @@ export default function Transfers() {
         )}
       />
       <PageHero
+        video={heroVideo.loop}
+        short={heroVideo.short}
         priority
         photo={heroPhoto}
         photoPosition="50% 55%"

@@ -8,9 +8,11 @@ import { PageHero } from "@/components/page-hero";
 import { SectionLabel } from "@/components/postcard";
 import { CalendarCheck, ShieldCheck, Users } from "lucide-react";
 import { useSitePhoto } from "@/hooks/use-site-photo";
+import { useHeroVideo } from "@/hooks/use-hero-video";
 
 export default function Tours() {
   const heroPhoto = useSitePhoto("toursHero"); // Admin → CMS
+  const heroVideo = useHeroVideo("tours");
   const { t } = useTranslation();
   const { data: allTours = [], isLoading } = useLocalizedTours();
 
@@ -26,6 +28,8 @@ export default function Tours() {
         )}
       />
       <PageHero
+        video={heroVideo.loop}
+        short={heroVideo.short}
         priority
         photo={heroPhoto}
         photoPosition="50% 55%"

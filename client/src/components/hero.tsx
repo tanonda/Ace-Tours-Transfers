@@ -49,6 +49,7 @@ import { cn } from "@/lib/utils";
 import { PageHero } from "@/components/page-hero";
 import { useAvailabilitySearch, SearchTab } from "@/hooks/useAvailabilitySearch";
 import { useSitePhoto } from "@/hooks/use-site-photo";
+import { useHeroVideo } from "@/hooks/use-hero-video";
 
 // ─── Bar height constant ──────────────────────────────────────────────────────
 // 64px — matches Skyscanner's search bar proportions
@@ -638,12 +639,15 @@ export function Hero() {
   const cms = useCmsText("home-page");
   const search = useAvailabilitySearch();
   const bgUrl = useSitePhoto("homeHero"); // Admin → CMS → Home Page → hero_image
+  const heroVideo = useHeroVideo("home");
   const bgSrc = bgUrl.includes("res.cloudinary.com")
     ? bgUrl.replace("/upload/", "/upload/ar_16:9,c_fill,g_auto,f_auto,q_auto,w_1600/")
     : bgUrl;
 
   return (
     <PageHero
+      video={heroVideo.loop}
+      short={heroVideo.short}
       size="home"
       priority
       photo={bgSrc}

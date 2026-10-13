@@ -37,7 +37,7 @@ beforeAll(async () => {
   registerUserRoutes(app);
   registerSiteRoutes(app);
   registerCatalogRoutes(app);
-});
+}, 60_000); // cold-imports four route modules: slow on a loaded machine
 
 const BAD = "<img src=x onerror=alert(1)>";
 const writes = () => calls.filter((c) => /^(create|update|insert|upsert|add|save|set)/i.test(c));

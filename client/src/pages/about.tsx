@@ -10,6 +10,7 @@ import { PaperEdge, Polaroid, SectionLabel } from "@/components/postcard";
 import { useSiteSettings } from "@/lib/site-settings";
 import { vanuatuPhone } from "@/lib/phone";
 import { useSitePhoto } from "@/hooks/use-site-photo";
+import { useHeroVideo } from "@/hooks/use-hero-video";
 
 function settingText(rows: { key: string; value: unknown }[] | undefined, key: string, fallback: string): string {
   const v = rows?.find((r) => r.key === key)?.value;
@@ -18,6 +19,7 @@ function settingText(rows: { key: string; value: unknown }[] | undefined, key: s
 
 export default function About() {
   const heroPhoto = useSitePhoto("aboutHero"); // Admin → CMS → About
+  const heroVideo = useHeroVideo("about");
   const storyImg1 = useSitePhoto("aboutStory1");
   const storyImg2 = useSitePhoto("aboutStory2");
   const { t } = useTranslation();
@@ -46,6 +48,8 @@ export default function About() {
       />
 
       <PageHero
+        video={heroVideo.loop}
+        short={heroVideo.short}
         priority
         photo={heroPhoto}
         photoPosition="50% 60%"

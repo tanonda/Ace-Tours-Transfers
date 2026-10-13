@@ -11,6 +11,9 @@ import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { PaperEdge } from "@/components/postcard";
 import { cloudinaryOpt } from "@/components/seo";
+import { HeroBackgroundVideo } from "@/components/hero-background-video";
+import { HeroShort } from "@/components/hero-short";
+import type { HeroShortData, LoopSources } from "@shared/hero-video";
 
 export function PageHero({
   photo,
@@ -23,6 +26,8 @@ export function PageHero({
   size = "page",
   as: Heading = "h1",
   priority = false,
+  video = null,
+  short = null,
 }: {
   photo: string;
   photoPosition?: string;
@@ -38,7 +43,46 @@ export function PageHero({
   as?: "h1" | "h2";
   /** Load the photo eagerly with high priority (it is the page's largest image). */
   priority?: boolean;
+  /** Background loop (Admin → CMS → Home Page → Hero video). Plays over the photo on larger screens only. */
+  video?: LoopSources | null;
+  /** YouTube / Instagram / Facebook Short shown as a phone card beside the headline. */
+  short?: HeroShortData | null;
 }) {
+  const heading = (
+    <motion.div
+      initial={{ opacity: 0, y: 18 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.8, ease: "easeOut" }}
+      className="text-white"
+    >
+      {/* Kicker and headline form ONE heading, so search engines read the full phrase
+          ("Efate Island Day Tours") while the eye sees a small line over a big word. */}
+      {greeting && (
+        <p className="mb-3 -rotate-3 font-brush text-[2rem] leading-tight text-[#ffe3c6] [text-shadow:0_3px_14px_rgba(0,0,0,0.45)] sm:text-[2.4rem] md:mb-5 md:text-[clamp(2.6rem,min(4.6vw,7vh),4.25rem)]">
+          {greeting}
+        </p>
+      )}
+      <Heading className="font-sans">
+        {kicker && (
+          <span className="mb-1 block text-sm font-semibold uppercase tracking-[0.28em] text-white drop-shadow md:text-xl">
+            {kicker}{" "}
+          </span>
+        )}
+        <span
+          className={cn(
+            "hero-fade-text block font-bold tracking-tight leading-[0.95]",
+            size === "home"
+              ? "text-[3.4rem] sm:text-7xl md:text-[clamp(3.6rem,min(8vw,11vh),8rem)]"
+              : "text-6xl sm:text-7xl md:text-[clamp(4.5rem,9vw,8rem)]",
+          )}
+        >
+          {title}
+        </span>
+      </Heading>
+      {subtitle && <p className="mx-auto mt-4 max-w-2xl text-base font-medium text-white [text-shadow:0_1px_8px_rgba(0,0,0,0.55)] md:text-lg">{subtitle}</p>}
+    </motion.div>
+  );
+
   return (
     <section
       className={cn(
@@ -56,6 +100,7 @@ export function PageHero({
           fetchPriority={priority ? "high" : "auto"}
           decoding="async"
         />
+        {video && <HeroBackgroundVideo sources={video} position={photoPosition} />}
         {/* Darken the top (header + kicker) and centre (headline) just enough for white text. */}
         <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/30 to-black/15" />
         <div className="absolute inset-x-0 bottom-0 h-1/4 bg-gradient-to-b from-transparent to-background/60" />
@@ -67,38 +112,21 @@ export function PageHero({
           size === "home" ? "justify-end pt-48 pb-12 md:pt-32 md:pb-16" : "justify-center pt-48 pb-28 md:pt-44 md:pb-24",
         )}
       >
-        <motion.div
-          initial={{ opacity: 0, y: 18 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
-          className="text-white"
-        >
-          {/* Kicker and headline form ONE heading, so search engines read the full phrase
-              ("Efate Island Day Tours") while the eye sees a small line over a big word. */}
-          {greeting && (
-            <p className="mb-3 -rotate-3 font-brush text-[2rem] leading-tight text-[#ffe3c6] [text-shadow:0_3px_14px_rgba(0,0,0,0.45)] sm:text-[2.4rem] md:mb-5 md:text-[clamp(2.6rem,min(4.6vw,7vh),4.25rem)]">
-              {greeting}
-            </p>
-          )}
-          <Heading className="font-sans">
-            {kicker && (
-              <span className="mb-1 block text-sm font-semibold uppercase tracking-[0.28em] text-white drop-shadow md:text-xl">
-                {kicker}{" "}
-              </span>
-            )}
-            <span
-              className={cn(
-                "hero-fade-text block font-bold tracking-tight leading-[0.95]",
-                size === "home"
-                  ? "text-[3.4rem] sm:text-7xl md:text-[clamp(3.6rem,min(8vw,11vh),8rem)]"
-                  : "text-6xl sm:text-7xl md:text-[clamp(4.5rem,9vw,8rem)]",
-              )}
+        {short ? (
+          <div className="flex w-full flex-col items-center md:flex-row md:items-center md:justify-center md:gap-12">
+            {heading}
+            <motion.div
+              initial={{ opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}
+              className="mt-6 shrink-0 md:mt-0"
             >
-              {title}
-            </span>
-          </Heading>
-          {subtitle && <p className="mx-auto mt-4 max-w-2xl text-base font-medium text-white [text-shadow:0_1px_8px_rgba(0,0,0,0.55)] md:text-lg">{subtitle}</p>}
-        </motion.div>
+              <HeroShort short={short} />
+            </motion.div>
+          </div>
+        ) : (
+          heading
+        )}
 
         {children && (
           <motion.div
