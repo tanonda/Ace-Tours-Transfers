@@ -513,7 +513,11 @@ export default function AdminCMS() {
             <TabsContent key={key} value={key} className="mt-4 space-y-4">
               {key === "home-page" &&
                 (activeLocale === "en" ? (
-                  <HeroVideoSettings getContent={getContent} onSave={handleSave} />
+                  <HeroVideoSettings
+                    getContent={getContent}
+                    onSave={handleSave}
+                    saving={updateMutation.isPending || createMutation.isPending}
+                  />
                 ) : (
                   <p className="rounded-lg border border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
                     Hero video settings are on the English tab and apply to every language.

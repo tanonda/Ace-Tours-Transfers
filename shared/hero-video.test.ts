@@ -8,6 +8,7 @@ import {
   heroVideoSettingError,
   resolveHeroVideo,
   HERO_VIDEO_KEYS,
+  HERO_LOOP_EAGER,
   type HeroVideoKey,
 } from "./hero-video.js";
 
@@ -220,5 +221,17 @@ describe("resolveHeroVideo", () => {
 
   it("drops invalid values instead of failing", () => {
     expect(resolveHeroVideo("home", settings({ hero_video: "https://evil.test/a.mp4", hero_short_url: "nope" }))).toEqual({ loop: null, short: null });
+  });
+});
+
+describe("HERO_LOOP_EAGER (pre-built at upload so big videos still play)", () => {
+  it("lists exactly the three versions the storefront requests", () => {
+    const s = cloudinaryLoopSources("https://res.cloudinary.com/ours/video/upload/v1/a.mov")!;
+    const wanted = [
+      [s.webm, "webm"],
+      [s.mp4, "mp4"],
+      [s.poster, "jpg"],
+    ].map(([url, ext]) => `${url.split("/video/upload/")[1].split("/v1/")[0]}/${ext}`);
+    expect(HERO_LOOP_EAGER.split("|")).toEqual(wanted);
   });
 });

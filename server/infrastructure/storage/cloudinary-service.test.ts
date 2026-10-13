@@ -9,12 +9,16 @@ beforeEach(() => {
 });
 
 describe("CloudinaryService.signVideoUpload", () => {
-  it("signs folder + timestamp with the API secret", async () => {
+  it("signs folder, timestamp and the eager loop versions with the API secret", async () => {
     const { CloudinaryService } = await import("./cloudinary-service.js");
     const sig = new CloudinaryService().signVideoUpload("ace-tours/hero-video");
     expect(sig).toMatchObject({ cloudName: "demo-cloud", apiKey: "123456", folder: "ace-tours/hero-video" });
     expect(Math.abs(sig.timestamp - Date.now() / 1000)).toBeLessThan(5);
-    expect(sig.signature).toBe(cloudinary.utils.api_sign_request({ folder: "ace-tours/hero-video", timestamp: sig.timestamp }, "shh-secret"));
+    const { HERO_LOOP_EAGER } = await import("../../../shared/hero-video.js");
+    expect(sig).toMatchObject({ eager: HERO_LOOP_EAGER, eagerAsync: true });
+    expect(sig.signature).toBe(
+      cloudinary.utils.api_sign_request({ eager: HERO_LOOP_EAGER, eager_async: true, folder: "ace-tours/hero-video", timestamp: sig.timestamp }, "shh-secret"),
+    );
     expect(JSON.stringify(sig)).not.toContain("shh-secret");
   });
 

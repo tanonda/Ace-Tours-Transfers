@@ -7,6 +7,7 @@ const state = vi.hoisted(() => ({
   rows: {} as Record<string, any>,
   created: [] as any[],
   updated: [] as any[],
+  upserts: [] as any[],
 }));
 
 vi.mock("../storage.js", () => ({
@@ -17,7 +18,11 @@ vi.mock("../storage.js", () => ({
       return { id: "new", ...data };
     },
     getCmsContentItem: async (id: string) => state.rows[id],
-    upsertCmsContentByLocale: async (blockSlug: string, contentKey: string, locale: string, value: string) => ({ blockSlug, contentKey, locale, value }),
+    upsertCmsContentByLocale: async (blockSlug: string, contentKey: string, locale: string, value: string, contentType: string) => {
+      const row = { blockSlug, contentKey, locale, value, contentType };
+      state.upserts.push(row);
+      return { id: "up", ...row };
+    },
     updateCmsContent: async (id: string, data: any) => {
       state.updated.push({ id, data });
       return { ...state.rows[id], ...data };
@@ -47,6 +52,7 @@ beforeAll(async () => {
 beforeEach(() => {
   state.created = [];
   state.updated = [];
+  state.upserts = [];
   state.rows = {
     v1: { id: "v1", blockSlug: "home-page", contentKey: "hero_video", locale: "en", value: "" },
     s1: { id: "s1", blockSlug: "home-page", contentKey: "hero_short_url", locale: "en", value: "https://youtu.be/dQw4w9WgXcQ" },
@@ -59,10 +65,22 @@ const create = (body: object) =>
 const patch = (id: string, value: string) => request(app).patch(`/api/admin/cms-content/${id}`).send({ value });
 
 describe("hero-video CMS validation", () => {
-  it("creates a valid Short link", async () => {
-    const res = await create({ contentKey: "hero_short_url", value: "https://youtu.be/dQw4w9WgXcQ" });
+  it("saves a valid Short link as the single English row (upsert, never a duplicate)", async () => {
+    const first = await create({ contentKey: "hero_short_url", value: "https://youtu.be/dQw4w9WgXcQ" });
+    const second = await create({ contentKey: "hero_short_url", value: "" });
+    expect([first.status, second.status]).toEqual([201, 201]);
+    expect(state.created).toHaveLength(0);
+    expect(state.upserts).toEqual([
+      { blockSlug: "home-page", contentKey: "hero_short_url", locale: "en", value: "https://youtu.be/dQw4w9WgXcQ", contentType: "text" },
+      { blockSlug: "home-page", contentKey: "hero_short_url", locale: "en", value: "", contentType: "text" },
+    ]);
+  });
+
+  it("still creates other CMS rows normally", async () => {
+    const res = await create({ contentKey: "hero_title_part1", value: "Hello" });
     expect(res.status).toBe(201);
     expect(state.created).toHaveLength(1);
+    expect(state.upserts).toHaveLength(0);
   });
 
   it("rejects an invalid Short link with a readable message", async () => {

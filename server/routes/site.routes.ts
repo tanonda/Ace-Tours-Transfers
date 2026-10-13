@@ -381,6 +381,14 @@ export function registerSiteRoutes(app: Express) {
         cloudinaryService.cloudName(),
       );
       if (heroError) return res.status(400).json({ error: heroError });
+      // Hero-video settings are one English row each: a repeated save (double click,
+      // stale admin view) updates that row instead of creating a duplicate.
+      if (validatedData.blockSlug === HERO_VIDEO_BLOCK && isHeroVideoKey(validatedData.contentKey)) {
+        const content = await storage.upsertCmsContentByLocale(
+          HERO_VIDEO_BLOCK, validatedData.contentKey, "en", (validatedData.value ?? "").trim(), validatedData.contentType ?? "text",
+        );
+        return res.status(201).json(content);
+      }
       const content = await storage.createCmsContent(validatedData);
       res.status(201).json(content);
     } catch (error) {

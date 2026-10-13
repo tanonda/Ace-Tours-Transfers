@@ -132,6 +132,13 @@ export interface LoopSources {
 // Silent, first 15 s, 16:9 at 1280 px, economy quality: a 50 MB upload plays as ~2–4 MB.
 const LOOP_TRANSFORM = "ac_none,du_15,c_fill,ar_16:9,w_1280,q_auto:eco";
 const POSTER_TRANSFORM = "so_0,c_fill,ar_16:9,w_1280,q_auto";
+
+/**
+ * The same three versions, built by Cloudinary right after upload (eager, async). Large
+ * videos can't be transformed on the fly when first requested, so without this a big
+ * upload would save fine but never play. Signed into the upload request.
+ */
+export const HERO_LOOP_EAGER = [`${LOOP_TRANSFORM}/webm`, `${LOOP_TRANSFORM}/mp4`, `${POSTER_TRANSFORM}/jpg`].join("|");
 const CLD_VIDEO = /^https:\/\/res\.cloudinary\.com\/([a-z0-9_-]+)\/video\/upload\/([A-Za-z0-9_\-./:,]+)\.([A-Za-z0-9]{2,5})$/;
 
 /** Delivery URLs for the hero loop, from the Cloudinary URL of the original upload. */

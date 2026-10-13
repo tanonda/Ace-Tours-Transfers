@@ -551,6 +551,8 @@ interface VideoUploadSignature {
   apiKey: string;
   timestamp: number;
   folder: string;
+  eager: string;
+  eagerAsync: true;
   signature: string;
 }
 
@@ -564,6 +566,8 @@ export async function uploadHeroVideo(file: File, onProgress: (fraction: number)
   form.append("api_key", sig.apiKey);
   form.append("timestamp", String(sig.timestamp));
   form.append("folder", sig.folder);
+  form.append("eager", sig.eager);
+  form.append("eager_async", "true");
   form.append("signature", sig.signature);
 
   return new Promise<string>((resolve, reject) => {

@@ -30,9 +30,12 @@ const PAGE_LABEL: Record<HeroVideoExtraPage, string> = { tours: "Tours", transfe
 export function HeroVideoSettings({
   getContent,
   onSave,
+  saving = false,
 }: {
   getContent: (key: string) => Item;
   onSave: (item: Item, value: string) => void;
+  /** A CMS save is in flight: controls are disabled so a second click can't build on stale data. */
+  saving?: boolean;
 }) {
   const { toast } = useToast();
   const videoItem = getContent(HERO_VIDEO_KEYS.video);
@@ -43,12 +46,14 @@ export function HeroVideoSettings({
   const [progress, setProgress] = useState<number | null>(null);
   const [coverUploading, setCoverUploading] = useState(false);
   const [shortDraft, setShortDraft] = useState<string | null>(null);
+  // The ticks the admin last chose, shown until the saved value catches up.
+  const [pagesDraft, setPagesDraft] = useState<string | null>(null);
 
   const loop = cloudinaryLoopSources(videoItem.value);
   const shortValue = shortDraft ?? shortItem.value ?? "";
   const parsed = parseShortUrl(shortValue);
   const shortInvalid = shortValue.trim() !== "" && !parsed;
-  const pages = heroVideoPages(pagesItem.value);
+  const pages = heroVideoPages(pagesDraft ?? pagesItem.value);
 
   const onVideo = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -83,7 +88,9 @@ export function HeroVideoSettings({
     const next = new Set(pages);
     if (on) next.add(page);
     else next.delete(page);
-    onSave(pagesItem, HERO_VIDEO_EXTRA_PAGES.filter((p) => next.has(p)).join(","));
+    const value = HERO_VIDEO_EXTRA_PAGES.filter((p) => next.has(p)).join(",");
+    setPagesDraft(value);
+    onSave(pagesItem, value);
   };
 
   return (
@@ -142,7 +149,7 @@ export function HeroVideoSettings({
             />
             <Button
               size="sm"
-              disabled={shortInvalid || shortDraft === null || shortDraft === (shortItem.value ?? "")}
+              disabled={saving || shortInvalid || shortDraft === null || shortDraft === (shortItem.value ?? "")}
               onClick={() => {
                 onSave(shortItem, shortValue.trim());
                 setShortDraft(null);
@@ -189,7 +196,7 @@ export function HeroVideoSettings({
           <div className="flex flex-wrap gap-5">
             {HERO_VIDEO_EXTRA_PAGES.map((page) => (
               <label key={page} className="flex cursor-pointer items-center gap-2 text-sm">
-                <Checkbox checked={pages.has(page)} onCheckedChange={(v) => togglePage(page, v === true)} />
+                <Checkbox checked={pages.has(page)} disabled={saving} onCheckedChange={(v) => togglePage(page, v === true)} />
                 {PAGE_LABEL[page]}
               </label>
             ))}
