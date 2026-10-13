@@ -9,7 +9,7 @@ import {
   resolveHeroVideo,
   HERO_VIDEO_KEYS,
   type HeroVideoKey,
-} from "./hero-video";
+} from "./hero-video.js";
 
 const YT = "dQw4w9WgXcQ";
 
@@ -163,7 +163,7 @@ describe("heroVideoSettingError", () => {
   });
 
   it("allows clearing every setting", () => {
-    for (const key of Object.values(HERO_VIDEO_KEYS)) expect(heroVideoSettingError(row(key, ""), "ours")).toBeNull();
+    for (const key of Object.values(HERO_VIDEO_KEYS) as string[]) expect(heroVideoSettingError(row(key, ""), "ours")).toBeNull();
     expect(heroVideoSettingError(row("hero_video", "   "), null)).toBeNull();
   });
 

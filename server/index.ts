@@ -42,6 +42,7 @@ import { RevenueByDayHandler } from "./application/projections/RevenueByDayHandl
 import { PaymentOverviewHandler } from "./application/projections/PaymentOverviewHandler.js";
 import { BankTransferReconciliationSaga } from "./application/sagas/BankTransferReconciliationSaga.js";
 import { BookingCreated, PaymentConfirmed, PaymentInitiated } from "./domain/events.js";
+import { HERO_VIDEO_CSP } from "./lib/hero-video-csp.js";
 
 
 // Sentry is now initialized via --import ./server/instrument.ts for ESM compatibility
@@ -115,6 +116,7 @@ app.use(helmet({
         "https://fonts.googleapis.com",
       ],
       fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
+      mediaSrc: HERO_VIDEO_CSP.mediaSrc, // hero background loop
       imgSrc: [
         "'self'",
         "data:",
@@ -126,11 +128,13 @@ app.use(helmet({
         "https://*.google-analytics.com", // GA4 measurement
         "https://www.transparenttextures.com", // Background texture patterns
         "https://images.unsplash.com", // About page default story image
+        ...HERO_VIDEO_CSP.imgSrc, // hero Short thumbnails
       ],
       connectSrc: [
         "'self'",
         "https://api.stripe.com",
         "https://res.cloudinary.com",
+        ...HERO_VIDEO_CSP.connectSrc, // admin hero-video upload
         "https://www.googletagmanager.com",
         "https://*.google-analytics.com", // GA4 measurement
         "https://*.analytics.google.com", // GA4 measurement
@@ -145,6 +149,7 @@ app.use(helmet({
         "https://js.stripe.com",
         "https://hooks.stripe.com",
         "https://widget.trustpilot.com", // Trustpilot iframe
+        ...HERO_VIDEO_CSP.frameSrc, // hero Short players (click to load)
       ],
       objectSrc: ["'none'"],
       formAction: formActionSources, // 'self' + hosted payment pages (BRED/PayZen form POST)
