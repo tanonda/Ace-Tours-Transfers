@@ -147,3 +147,35 @@ export async function writeSnapshot(html: string, route: string, distPath: strin
   await writeFile(file, html, 'utf-8');
   return file;
 }
+
+const PRERENDER_SKIPPED_RESOURCES = new Set(['image', 'media', 'font']);
+
+/**
+ * Requests the prerender browser does not make. Chrome runs inside a 512 MB container
+ * next to the site; decoding photos and running third-party widgets (Trustpilot's
+ * iframe, Stripe, Sentry) pushed it over the limit, restarting the instance mid-deploy.
+ * The snapshot is HTML: <img> tags keep their src, so nothing a visitor sees changes.
+ * Blocking Google Tag Manager also stops every deploy sending fake page views to GA4.
+ */
+export function shouldBlockPrerenderRequest(url: string, resourceType: string, baseOrigin: string): boolean {
+  if (PRERENDER_SKIPPED_RESOURCES.has(resourceType)) return true;
+  try {
+    return new URL(url).origin !== new URL(baseOrigin).origin;
+  } catch {
+    return true;
+  }
+}
+
+/** Chromium flags that keep the prerender browser small: one renderer, no GPU, no /dev/shm. */
+export const PRERENDER_CHROMIUM_ARGS = [
+  '--disable-dev-shm-usage', // Docker's /dev/shm is 64 MB; Chrome crashes when it fills
+  '--disable-gpu',
+  '--renderer-process-limit=1',
+  '--disable-features=site-per-process,IsolateOrigins,Translate,MediaRouter,OptimizationHints',
+  '--disable-extensions',
+  '--disable-background-networking',
+  '--disable-component-update',
+  '--disable-default-apps',
+  '--mute-audio',
+  '--no-first-run',
+];

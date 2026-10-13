@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import path from 'node:path';
-import { routeToRelFile, outputPathFor, attachSnapshotState } from './prerender-paths.js';
+import { routeToRelFile, outputPathFor, attachSnapshotState, shouldBlockPrerenderRequest } from './prerender-paths.js';
 import { MAX_STATE_BYTES, SNAPSHOT_STATE_ID } from '../shared/snapshot-state.js';
 
 describe('routeToRelFile', () => {
@@ -169,5 +169,35 @@ describe('attachSnapshotState', () => {
     expect(seeded).not.toContain(SNAPSHOT_STATE_ID);
     expect(seeded).toContain('<h1>Tour</h1>');
     expect(seeded).toContain('/assets/index-NEW.js');
+  });
+});
+
+describe('shouldBlockPrerenderRequest', () => {
+  const base = 'http://localhost:5000';
+  it('lets the app itself load: pages, scripts, styles and its own API', () => {
+    expect(shouldBlockPrerenderRequest(`${base}/tours/x`, 'document', base)).toBe(false);
+    expect(shouldBlockPrerenderRequest(`${base}/assets/index-abc.js`, 'script', base)).toBe(false);
+    expect(shouldBlockPrerenderRequest(`${base}/assets/index-abc.css`, 'stylesheet', base)).toBe(false);
+    expect(shouldBlockPrerenderRequest(`${base}/api/products/x`, 'fetch', base)).toBe(false);
+  });
+  it('skips images, media and fonts, which the HTML snapshot does not need', () => {
+    expect(shouldBlockPrerenderRequest(`${base}/assets/hero.jpg`, 'image', base)).toBe(true);
+    expect(shouldBlockPrerenderRequest(`${base}/video.mp4`, 'media', base)).toBe(true);
+    expect(shouldBlockPrerenderRequest(`${base}/f.woff2`, 'font', base)).toBe(true);
+  });
+  it('blocks every third party, including analytics (no fake page views from the server)', () => {
+    for (const url of [
+      'https://www.googletagmanager.com/gtm.js?id=GTM-X',
+      'https://www.google-analytics.com/g/collect?v=2',
+      'https://widget.trustpilot.com/bootstrap/v5/tp.widget.bootstrap.min.js',
+      'https://js.stripe.com/v3',
+      'https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/vuv.json',
+      'https://fonts.googleapis.com/css2?family=Inter',
+    ]) {
+      expect(shouldBlockPrerenderRequest(url, 'script', base), url).toBe(true);
+    }
+  });
+  it('blocks anything it cannot parse', () => {
+    expect(shouldBlockPrerenderRequest('not a url', 'fetch', base)).toBe(true);
   });
 });

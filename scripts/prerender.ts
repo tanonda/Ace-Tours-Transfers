@@ -5,7 +5,15 @@ import { spawn, type ChildProcess } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { writeFile } from 'node:fs/promises';
 import { chromium, type Browser, type Page } from 'playwright';
-import { attachSnapshotState, orderRoutesForPrerender, parseSitemapRoutes, PRERENDER_BYPASS_COOKIE, writeSnapshot } from '../server/prerender-paths.js';
+import {
+  attachSnapshotState,
+  orderRoutesForPrerender,
+  parseSitemapRoutes,
+  PRERENDER_BYPASS_COOKIE,
+  PRERENDER_CHROMIUM_ARGS,
+  shouldBlockPrerenderRequest,
+  writeSnapshot,
+} from '../server/prerender-paths.js';
 import { validatePrerenderSnapshots, validateSnapshotHtml } from '../server/prerender-validation.js';
 import { readContainerStats, type ContainerStats } from '../server/prerender-metrics.js';
 import os from 'node:os';
@@ -174,6 +182,17 @@ async function renderAll(
   // Always render from the bare app shell, never on top of an existing (possibly
   // seeded-from-previous-deploy) snapshot. Same-origin cookie, so third parties never see it.
   await context.addCookies([{ name: PRERENDER_BYPASS_COOKIE, value: '1', url: base }]);
+  // Only the app itself loads: no images/fonts/media, no third parties (memory, and no
+  // fake analytics hits). See shouldBlockPrerenderRequest.
+  let blockedRequests = 0;
+  await context.route('**/*', (route) => {
+    const request = route.request();
+    if (shouldBlockPrerenderRequest(request.url(), request.resourceType(), base)) {
+      blockedRequests++;
+      return route.abort();
+    }
+    return route.continue();
+  });
   const page = await context.newPage();
   let ok = 0;
   const writtenRoutes: string[] = [];
@@ -244,6 +263,7 @@ async function renderAll(
     );
   }
   const endStats = readContainerStats();
+  console.log(`[prerender] skipped ${blockedRequests} image/font/media/third-party requests`);
   await writeFile(
     path.join(DIST_PUBLIC, '.prerender-manifest.json'),
     JSON.stringify({
@@ -284,7 +304,7 @@ export async function runPrerender(): Promise<boolean> {
 
     const executablePath = browserExecutable();
     console.log(`[prerender] browser: ${executablePath ?? 'Playwright default'}`);
-    browser = await chromium.launch({ headless: true, ...(executablePath && { executablePath }) });
+    browser = await chromium.launch({ headless: true, args: PRERENDER_CHROMIUM_ARGS, ...(executablePath && { executablePath }) });
     const { written, failedRoutes } = await renderAll(BASE_URL, routes, browser);
     console.log(`[prerender] wrote ${written}/${routes.length} snapshots`);
     const validation = await validatePrerenderSnapshots(routes, DIST_PUBLIC);
