@@ -30,6 +30,18 @@ export function registerCatalogRoutes(app: Express) {
     }
   });
 
+  // Signed direct upload for the hero background video (Admin Only). The browser sends
+  // the file straight to Cloudinary; this server only signs, so big videos never sit in
+  // its memory.
+  app.post("/api/admin/uploads/video-signature", requireAdmin, (_req, res) => {
+    try {
+      res.json(cloudinaryService.signVideoUpload("ace-tours/hero-video"));
+    } catch (error: any) {
+      console.error("[UPLOAD] Video signature unavailable:", error?.message);
+      res.status(503).json({ error: "Video upload isn't set up (Cloudinary is not configured)." });
+    }
+  });
+
   // Products API (covers tours and transfers)
   app.get("/api/products", async (req, res) => {
     try {

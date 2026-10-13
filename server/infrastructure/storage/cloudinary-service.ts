@@ -1,6 +1,14 @@
 import { v2 as cloudinary } from 'cloudinary';
 import { config } from '../../config.js';
 
+export interface VideoUploadSignature {
+  cloudName: string;
+  apiKey: string;
+  timestamp: number;
+  folder: string;
+  signature: string;
+}
+
 /**
  * CloudinaryService
  * 
@@ -48,6 +56,27 @@ export class CloudinaryService {
 
       uploadStream.end(fileBuffer);
     });
+  }
+
+  /** Our Cloudinary cloud name (from CLOUDINARY_URL), or null when uploads aren't configured. */
+  cloudName(): string | null {
+    if (!this.enabled) return null;
+    return cloudinary.config().cloud_name ?? null;
+  }
+
+  /**
+   * Signed parameters for one direct browser upload into `folder`. Large files (the
+   * hero video) go straight from the admin's browser to Cloudinary and never pass
+   * through this 512 MB server. The API secret stays here; only the signature leaves.
+   */
+  signVideoUpload(folder: string): VideoUploadSignature {
+    const { cloud_name, api_key, api_secret } = cloudinary.config();
+    if (!this.enabled || !cloud_name || !api_key || !api_secret) {
+      throw new Error("Cloudinary service is not enabled. Please set CLOUDINARY_URL.");
+    }
+    const timestamp = Math.round(Date.now() / 1000);
+    const signature = cloudinary.utils.api_sign_request({ folder, timestamp }, api_secret);
+    return { cloudName: cloud_name, apiKey: api_key, timestamp, folder, signature };
   }
 }
 
