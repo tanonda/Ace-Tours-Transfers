@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { SITE_URL } from "@/lib/site-url";
 import { useParams, Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import { detailPageState } from "@/lib/detail-page-state";
 import { ArrowLeft, ArrowUpRight, Clock3, Compass, MapPin, Palmtree } from "lucide-react";
 import { Layout } from "@/components/layout";
 import { SEO } from "@/components/seo";
@@ -88,7 +89,7 @@ function GuideOutline({ items, mobile = false }: { items: OutlineItem[]; mobile?
 export default function BlogArticle() {
   const params = useParams();
   const slug = params.slug as string;
-  const { data: article, isLoading, isError } = useQuery({
+  const { data: article, isLoading, error, refetch } = useQuery({
     queryKey: ["article", slug],
     queryFn: () => fetchArticle(slug),
     retry: false,
@@ -96,7 +97,9 @@ export default function BlogArticle() {
   const productsQuery = useLocalizedProducts();
   const prepared = useMemo(() => prepareArticleHtml(article?.bodyHtml ?? ""), [article?.bodyHtml]);
 
-  if (isLoading) {
+  const pageState = detailPageState({ hasData: !!article, isLoading, error });
+
+  if (pageState === "loading") {
     return (
       <Layout>
         <main className="min-h-screen bg-[#f7f3e9] px-4 pt-header-page dark:bg-[#160f0a]" aria-live="polite">
@@ -108,7 +111,20 @@ export default function BlogArticle() {
       </Layout>
     );
   }
-  if (isError || !article) return <NotFound />;
+  if (pageState === "unavailable") {
+    return (
+      <Layout>
+        <main className="min-h-screen bg-[#f7f3e9] px-4 pt-header-page pb-20 text-center dark:bg-[#160f0a]">
+          <h1 className="mb-4 text-4xl font-bold">We couldn't load this travel guide</h1>
+          <p className="mb-8 text-muted-foreground">Please check your connection and try again.</p>
+          <button type="button" onClick={() => refetch()} className="rounded-full bg-primary px-6 py-3 font-semibold text-background">
+            Try again
+          </button>
+        </main>
+      </Layout>
+    );
+  }
+  if (pageState !== "ready" || !article) return <NotFound />;
 
   const visual = getGuideVisual(article);
   const visualUrl = visual.image.startsWith("http") ? visual.image : `${SITE_URL}${visual.image}`;

@@ -1,6 +1,7 @@
 
 import { Link, useParams, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import { detailPageState } from "@/lib/detail-page-state";
 import { fetchTour } from "@/lib/api";
 import { apiRequest } from "@/lib/queryClient";
 import { Layout } from "@/components/layout";
@@ -348,7 +349,7 @@ export default function TourDetail() {
   const [cancellationModalOpen, setCancellationModalOpen] = useState(false);
   const [showAllReviews, setShowAllReviews] = useState(false);
 
-  const { data: tour, isLoading, error } = useQuery({
+  const { data: tour, isLoading, error, refetch } = useQuery({
     queryKey: ["tour", routeKey, i18n.language],
     queryFn: () => fetchTour(routeKey!),
     // Keep the page while a language switch refetches it (e.g. just after hydrating).
@@ -449,7 +450,9 @@ export default function TourDetail() {
   const allPhotos = tour ? [getProductImage(tour.image), ...travelerPhotos].filter(Boolean) : [];
   const displayedReviews = showAllReviews ? reviews : reviews.slice(0, 5);
 
-  if (isLoading) {
+  const pageState = detailPageState({ hasData: !!tour, isLoading, error });
+
+  if (pageState === "loading") {
     return (
       <Layout>
         <div className="flex items-center justify-center min-h-screen bg-background">
@@ -459,12 +462,18 @@ export default function TourDetail() {
     );
   }
 
-  if (error || !tour) {
+  if (pageState !== "ready" || !tour) {
+    const unavailable = pageState === "unavailable";
     return (
       <Layout>
         <div className="container mx-auto px-4 pt-header-page pb-20 text-center bg-background min-h-screen">
-          <h1 className="text-4xl font-bold mb-4 text-foreground">{t("common.error", "Error")}</h1>
-          <p className="text-muted-foreground mb-8">{t("common.productNotFound", "Tour not found")}</p>
+          <h1 className="text-4xl font-bold mb-4 text-foreground">{unavailable ? t("common.loadFailed", "We couldn't load this page") : t("common.productNotFound", "Tour not found")}</h1>
+          <p className="text-muted-foreground mb-8">{unavailable ? t("common.loadFailedHint", "Please check your connection and try again.") : t("common.productNotFoundHint", "It may have been renamed or is no longer offered.")}</p>
+          {unavailable && (
+            <Button onClick={() => refetch()} className="bg-primary text-background mr-3">
+              {t("common.tryAgain", "Try again")}
+            </Button>
+          )}
           <Button onClick={() => window.history.back()} className="bg-primary text-background">
             <ArrowLeft className="mr-2 h-4 w-4" /> {t("common.goBack", "Go Back")}
           </Button>
