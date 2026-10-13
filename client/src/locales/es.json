@@ -28,6 +28,8 @@
     "startNewBooking": "Iniciar una nueva reserva"
   },
   "hero": {
+    "watchVideo": "Ver nuestro vídeo",
+    "watchOn": "Ver en {{platform}}",
     "title": "Es hora de tu próxima aventura",
     "titlePart1": "Es hora de tu",
     "titlePart2": "próxima aventura",

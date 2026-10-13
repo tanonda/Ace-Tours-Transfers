@@ -28,6 +28,8 @@
     "startNewBooking": "Startem wan new booking"
   },
   "hero": {
+    "watchVideo": "Lukim vidio blong mifala",
+    "watchOn": "Lukim long {{platform}}",
     "title": "Taem blong nxt adventure blong yu",
     "titlePart1": "Taem blong",
     "titlePart2": "nekst adventure blong yu",

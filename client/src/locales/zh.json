@@ -28,6 +28,8 @@
     "startNewBooking": "开始新预订"
   },
   "hero": {
+    "watchVideo": "观看我们的视频",
+    "watchOn": "在 {{platform}} 上观看",
     "title": "开启您的下一段冒险",
     "titlePart1": "开启您的",
     "titlePart2": "下一段冒险",
