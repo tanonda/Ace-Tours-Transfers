@@ -2,6 +2,7 @@ import express, { type Express } from "express";
 import fs from "fs";
 import path from "path";
 import { hasPrerenderBypass, prerenderFileFor, SPA_SHELL_FILE } from "./prerender-paths.js";
+import { isPageNotFound, isSpaRoute } from "./spa-routes.js";
 
 let prerenderHits = 0;
 let prerenderMisses = 0;
@@ -86,6 +87,8 @@ export function serveStatic(app: Express, distPath: string = path.resolve(__dirn
   app.use((req, res, next) => {
     if (req.method !== "GET" && req.method !== "HEAD") return next();
     if (hasPrerenderBypass(req.headers.cookie)) return next();
+    // A stale snapshot of a deleted product/article must not keep answering 200.
+    if (isPageNotFound(res)) return next();
     const snapshot = prerenderFileFor(req.path, distPath);
     if (snapshot && fs.existsSync(snapshot)) {
       prerenderHits++;
@@ -97,8 +100,11 @@ export function serveStatic(app: Express, distPath: string = path.resolve(__dirn
 
   // SPA fallback: the pristine app shell. index.html holds the homepage snapshot
   // once prerendered, so it is only used if the build predates spa-shell.html.
+  // Paths the app doesn't route (or a missing product/article) still get the shell,
+  // which renders the not-found page, but with a 404 so Google doesn't index it.
   const shellFile = path.resolve(distPath, SPA_SHELL_FILE);
-  app.use((_req, res) => {
+  app.use((req, res) => {
+    if (isPageNotFound(res) || !isSpaRoute(req.path)) res.status(404);
     res.sendFile(fs.existsSync(shellFile) ? shellFile : path.resolve(distPath, "index.html"));
   });
 }

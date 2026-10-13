@@ -5,11 +5,13 @@ import path from "node:path";
 import os from "node:os";
 import { mkdtemp, rm, mkdir, writeFile } from "node:fs/promises";
 import { registerPrerenderStatusRoute, serveStatic } from "./static.js";
+import { markPageNotFound } from "./spa-routes.js";
 
 // Integration test for the prerender-aware static server: it must serve a
 // prerendered snapshot for matching page routes, serve real static files
 // (assets, robots.txt) as-is, never 301-redirect a no-trailing-slash URL,
-// and fall back to the SPA shell for everything else.
+// and fall back to the SPA shell for everything else — with a 404 status when
+// the app has no such page.
 describe("serveStatic (prerender-aware)", () => {
   let dist: string;
   let app: express.Express;
@@ -26,6 +28,10 @@ describe("serveStatic (prerender-aware)", () => {
       path.join(dist, "tours", "abc-123", "index.html"),
       "<!doctype html><html><head><title>Blue Lagoon Tour</title></head><body>SNAPSHOT_TOUR</body></html>",
     );
+
+    // A snapshot left over from a product that has since been deleted.
+    await mkdir(path.join(dist, "tours", "deleted-tour"), { recursive: true });
+    await writeFile(path.join(dist, "tours", "deleted-tour", "index.html"), "STALE_SNAPSHOT");
 
     // A real static asset and robots.txt.
     await mkdir(path.join(dist, "assets"), { recursive: true });
@@ -44,6 +50,11 @@ describe("serveStatic (prerender-aware)", () => {
     app = express();
     registerPrerenderStatusRoute(app, dist);
     app.all("/api/*any", (_req, res) => res.status(404).json({ error: "API route not found" }));
+    // Stand-in for the detail-route lookup in seo.routes.ts: this product is gone.
+    app.get("/tours/deleted-tour", (_req, res, next) => {
+      markPageNotFound(res);
+      next();
+    });
     serveStatic(app, dist);
   });
 
@@ -76,9 +87,26 @@ describe("serveStatic (prerender-aware)", () => {
     expect(res.text).toContain("User-agent: *");
   });
 
-  it("falls back to the SPA shell for an unknown route (no snapshot)", async () => {
-    const res = await request(app).get("/some/unknown/path");
-    expect(res.status).toBe(200);
+  it("serves the SPA shell with 200 for an app route that has no snapshot", async () => {
+    for (const route of ["/checkout", "/admin/bookings", "/tours/new-tour-not-yet-prerendered", "/faq/"]) {
+      const res = await request(app).get(route);
+      expect(res.status, route).toBe(200);
+      expect(res.text).toContain("SPA_SHELL");
+    }
+  });
+
+  it("serves the SPA shell with 404 for a path the app doesn't route (no soft 404)", async () => {
+    for (const route of ["/some/unknown/path", "/login", "/admin", "/tours/a/b"]) {
+      const res = await request(app).get(route);
+      expect(res.status, route).toBe(404);
+      expect(res.text).toContain("SPA_SHELL");
+    }
+  });
+
+  it("answers 404 for a missing product even when a stale snapshot exists", async () => {
+    const res = await request(app).get("/tours/deleted-tour");
+    expect(res.status).toBe(404);
+    expect(res.text).not.toContain("STALE_SNAPSHOT");
     expect(res.text).toContain("SPA_SHELL");
   });
 
@@ -94,7 +122,7 @@ describe("serveStatic (prerender-aware)", () => {
     expect(res.status).toBe(200);
     expect(res.headers["cache-control"]).toBe("no-store");
     expect(res.body.status).toBe("ok");
-    expect(res.body.snapshots.htmlFiles).toBe(2);
+    expect(res.body.snapshots.htmlFiles).toBe(3);
     expect(res.body.manifest.writtenRoutes).toEqual(["/", "/tours/abc-123"]);
     expect(res.body).not.toHaveProperty("distPath");
   });

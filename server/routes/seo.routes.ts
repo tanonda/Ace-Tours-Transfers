@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { storage } from "../storage.js";
 import { publishedArticleSitemapEntries } from "../lib/article-sitemap.js";
 import { productPath } from "../../shared/product-path.js";
+import { markPageNotFound } from "../spa-routes.js";
 
 function escapeXml(str: string): string {
   return String(str)
@@ -62,11 +63,15 @@ export function registerSeoRoutes(app: Express) {
   // ── Product URLs ──────────────────────────────────────────────────────────
   // Detail pages live at /tours/<slug> and /transfers/<slug>. Old /tours/<uuid>
   // links (and a product under the wrong section) get a permanent redirect so
-  // Google moves their ranking to the slug URL. Unknown keys fall through to the app.
+  // Google moves their ranking to the slug URL. Unknown keys still get the app's
+  // not-found page, but with a 404 status. A lookup error fails open (200).
   app.get(["/tours/:key", "/transfers/:key"], async (req, res, next) => {
     try {
       const product = await storage.getProductByIdOrSlug(String(req.params.key));
-      if (!product) return next();
+      if (!product) {
+        markPageNotFound(res);
+        return next();
+      }
       const target = productPath(product);
       if (target === req.path) return next();
       const queryAt = req.originalUrl.indexOf("?");
@@ -74,6 +79,17 @@ export function registerSeoRoutes(app: Express) {
     } catch {
       next();
     }
+  });
+
+  // Same for articles: unknown or unpublished slugs are a 404, not a soft 404.
+  app.get("/blog/:slug", async (req, res, next) => {
+    try {
+      const article = await storage.getArticleBySlug(String(req.params.slug));
+      if (!article || article.status !== "published") markPageNotFound(res);
+    } catch {
+      // fail open
+    }
+    next();
   });
 
   // ── SEO: Sitemap ──────────────────────────────────────────────────────────

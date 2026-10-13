@@ -9,8 +9,16 @@ const products: Record<string, { id: string; slug: string | null; category: stri
   "airport-transfer": { id: "t1", slug: "airport-transfer", category: "transfer" },
 };
 
+const articles: Record<string, { slug: string; status: string }> = {
+  "live-post": { slug: "live-post", status: "published" },
+  "draft-post": { slug: "draft-post", status: "draft" },
+};
+
 vi.mock("../storage.js", () => ({
-  storage: { getProductByIdOrSlug: async (key: string) => products[key] },
+  storage: {
+    getProductByIdOrSlug: async (key: string) => products[key],
+    getArticleBySlug: async (slug: string) => articles[slug],
+  },
 }));
 
 let app: Express;
@@ -18,7 +26,7 @@ beforeAll(async () => {
   const { registerSeoRoutes } = await import("./seo.routes.js");
   app = express();
   registerSeoRoutes(app);
-  app.use((_req, res) => res.status(200).send("spa"));
+  app.use((_req, res) => res.status(200).send(res.locals.pageNotFound ? "not-found" : "spa"));
 });
 
 describe("product URL redirects", () => {
@@ -40,7 +48,19 @@ describe("product URL redirects", () => {
     expect(res.text).toBe("spa");
   });
 
-  it("leaves unknown products to the app's not-found page", async () => {
-    expect((await request(app).get("/tours/no-such-tour")).status).toBe(200);
+  it("marks unknown products as not found for the static server", async () => {
+    const res = await request(app).get("/tours/no-such-tour");
+    expect(res.text).toBe("not-found");
+  });
+});
+
+describe("blog article lookup", () => {
+  it("leaves a published article alone", async () => {
+    expect((await request(app).get("/blog/live-post")).text).toBe("spa");
+  });
+
+  it("marks unknown and unpublished articles as not found", async () => {
+    expect((await request(app).get("/blog/no-such-post")).text).toBe("not-found");
+    expect((await request(app).get("/blog/draft-post")).text).toBe("not-found");
   });
 });
