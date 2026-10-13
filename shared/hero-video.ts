@@ -163,6 +163,17 @@ export function cloudinaryLoopSources(url: string | null | undefined): LoopSourc
   };
 }
 
+/**
+ * <source> order for the loop. Browsers play the first one they support; at our settings
+ * the MP4 is the smaller file (e.g. 4.5 MB vs 6.4 MB WebM) and every browser plays it.
+ */
+export function loopSourceList(sources: LoopSources): { src: string; type: string }[] {
+  return [
+    { src: sources.mp4, type: "video/mp4" },
+    { src: sources.webm, type: "video/webm" },
+  ];
+}
+
 export function isOwnCloudinaryVideo(url: string, cloudName: string): boolean {
   return cloudinaryLoopSources(url) !== null && url.trim().startsWith(`https://res.cloudinary.com/${cloudName}/video/upload/`);
 }

@@ -13,6 +13,7 @@ import {
   SHORT_URL_HELP,
   isAcceptedHeroVideoFile,
   isFatalPlayError,
+  loopSourceList,
   type HeroVideoKey,
 } from "./hero-video.js";
 
@@ -275,5 +276,15 @@ describe("review follow-ups", () => {
     expect(isFatalPlayError(new DOMException("blocked", "NotAllowedError"))).toBe(true);
     expect(isFatalPlayError(new DOMException("bad", "NotSupportedError"))).toBe(true);
     expect(isFatalPlayError(undefined)).toBe(true);
+  });
+});
+
+describe("loopSourceList", () => {
+  it("offers MP4 first (smaller at our settings, plays everywhere), then WebM", () => {
+    const s = cloudinaryLoopSources("https://res.cloudinary.com/ours/video/upload/v1/a.mov")!;
+    expect(loopSourceList(s)).toEqual([
+      { src: s.mp4, type: "video/mp4" },
+      { src: s.webm, type: "video/webm" },
+    ]);
   });
 });

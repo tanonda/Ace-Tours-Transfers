@@ -9,7 +9,7 @@
  */
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
-import { LOOP_MIN_WIDTH, isFatalPlayError, shouldPlayLoop, type LoopSources } from "@shared/hero-video";
+import { LOOP_MIN_WIDTH, isFatalPlayError, loopSourceList, shouldPlayLoop, type LoopSources } from "@shared/hero-video";
 
 type Connection = { saveData?: boolean; effectiveType?: string };
 
@@ -63,9 +63,10 @@ export function HeroBackgroundVideo({ sources, position }: { sources: LoopSource
       className={cn("absolute inset-0 h-full w-full object-cover transition-opacity duration-700", ready ? "opacity-100" : "opacity-0")}
       style={{ objectPosition: position }}
     >
-      <source src={sources.webm} type="video/webm" />
-      {/* Errors fire on the last <source> when none can play. */}
-      <source src={sources.mp4} type="video/mp4" onError={() => setFailed(true)} />
+      {loopSourceList(sources).map((source, i, all) => (
+        // Errors fire on the last <source> when none can play.
+        <source key={source.type} src={source.src} type={source.type} onError={i === all.length - 1 ? () => setFailed(true) : undefined} />
+      ))}
     </video>
   );
 }
