@@ -563,5 +563,12 @@
   "review.expiredBody": "It may already have been used, or it is more than 90 days old. Contact us and we'll send a new one.",
   "review.error": "Something went wrong. Please try again.",
   "review.ratingLabel": "{{n}} star(s)",
-  "quickView.noReviewsYet": "No reviews yet."
+  "quickView.noReviewsYet": "No reviews yet.",
+  "common.loadFailed": "We couldn't load this page",
+  "common.loadFailedHint": "Please check your connection and try again.",
+  "common.tryAgain": "Try again",
+  "common.goBack": "Go Back",
+  "common.tourNotFound": "Tour not found",
+  "common.transferNotFound": "Transfer not found",
+  "common.productNotFoundHint": "It may have been renamed or is no longer offered."
 }

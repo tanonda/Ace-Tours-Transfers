@@ -371,7 +371,14 @@
     "actions": "Acciones",
     "language": "Idioma",
     "theme": "Tema",
-    "settings": "Configuración"
+    "settings": "Configuración",
+    "loadFailed": "No pudimos cargar esta página",
+    "loadFailedHint": "Comprueba tu conexión e inténtalo de nuevo.",
+    "tryAgain": "Reintentar",
+    "goBack": "Volver",
+    "tourNotFound": "Tour no encontrado",
+    "transferNotFound": "Traslado no encontrado",
+    "productNotFoundHint": "Puede que haya cambiado de nombre o que ya no se ofrezca."
   },
   "footer": {
     "quickLinks": "Enlaces Rápidos",

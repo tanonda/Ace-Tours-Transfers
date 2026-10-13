@@ -371,7 +371,14 @@
     "actions": "操作",
     "language": "语言",
     "theme": "主题",
-    "settings": "设置"
+    "settings": "设置",
+    "loadFailed": "无法加载此页面",
+    "loadFailedHint": "请检查网络连接后重试。",
+    "tryAgain": "重试",
+    "goBack": "返回",
+    "tourNotFound": "未找到该游览",
+    "transferNotFound": "未找到该接送服务",
+    "productNotFoundHint": "该项目可能已更名或不再提供。"
   },
   "footer": {
     "quickLinks": "快速链接",

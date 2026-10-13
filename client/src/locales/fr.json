@@ -371,7 +371,14 @@
     "actions": "Actions",
     "language": "Langue",
     "theme": "Thème",
-    "settings": "Paramètres"
+    "settings": "Paramètres",
+    "loadFailed": "Impossible de charger cette page",
+    "loadFailedHint": "Vérifiez votre connexion et réessayez.",
+    "tryAgain": "Réessayer",
+    "goBack": "Retour",
+    "tourNotFound": "Excursion introuvable",
+    "transferNotFound": "Transfert introuvable",
+    "productNotFoundHint": "Cette offre a peut-être été renommée ou n'est plus proposée."
   },
   "footer": {
     "quickLinks": "Liens Rapides",

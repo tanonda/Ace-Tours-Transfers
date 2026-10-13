@@ -189,7 +189,7 @@ export default function TransferDetail() {
     return (
       <Layout>
         <div className="container mx-auto px-4 pt-header-page pb-20 text-center bg-background min-h-screen">
-          <h1 className="text-4xl font-bold mb-4 text-foreground">{unavailable ? t("common.loadFailed", "We couldn't load this page") : t("common.productNotFound", "Transfer not found")}</h1>
+          <h1 className="text-4xl font-bold mb-4 text-foreground">{unavailable ? t("common.loadFailed", "We couldn't load this page") : t("common.transferNotFound", "Transfer not found")}</h1>
           <p className="text-muted-foreground mb-8">{unavailable ? t("common.loadFailedHint", "Please check your connection and try again.") : t("common.productNotFoundHint", "It may have been renamed or is no longer offered.")}</p>
           {unavailable && (
             <Button onClick={() => refetch()} className="bg-primary text-background mr-3">

@@ -371,7 +371,14 @@
     "actions": "Actions",
     "language": "Language",
     "theme": "Theme",
-    "settings": "Settings"
+    "settings": "Settings",
+    "loadFailed": "Mifala i no save openem pej ia",
+    "loadFailedHint": "Plis jekem intanet blo yu mo traem bakegen.",
+    "tryAgain": "Traem bakegen",
+    "goBack": "Go Bak",
+    "tourNotFound": "Mifala i no faenem Tua ia",
+    "transferNotFound": "Mifala i no faenem Transfa ia",
+    "productNotFoundHint": "Maet oli jenisim nem blong hem, o hem i no stap moa."
   },
   "footer": {
     "quickLinks": "Kwik Links",
