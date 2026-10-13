@@ -15,7 +15,7 @@ import {
 } from '../../domain/payments/interfaces.js';
 import { computePayzenSignature, verifyPayzenSignature } from './payzen-signature.js';
 
-const DEFAULT_PAYMENT_URL = 'https://secure.payzen.eu/vads-payment/';
+export const DEFAULT_PAYMENT_URL = 'https://secure.payzen.eu/vads-payment/';
 
 // ISO 4217 numeric codes. Amounts in this app are whole units of a
 // zero-decimal currency (see PaymentInitiationRequest.amount for VUV).

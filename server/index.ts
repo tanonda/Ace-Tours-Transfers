@@ -5,6 +5,7 @@ import connectPgSimple from "connect-pg-simple";
 import { pool as neonPool, db, initializeDatabase } from "./db.js";
 import { registerRoutes } from "./routes.js";
 import { noindexApiResponses } from "./routes/seo.routes.js";
+import { formActionSources } from "./lib/csp-form-action.js";
 import { registerPrerenderStatusRoute, serveStatic } from "./static.js";
 import { createServer } from "http";
 import path from "path";
@@ -146,6 +147,7 @@ app.use(helmet({
         "https://widget.trustpilot.com", // Trustpilot iframe
       ],
       objectSrc: ["'none'"],
+      formAction: formActionSources, // 'self' + hosted payment pages (BRED/PayZen form POST)
       upgradeInsecureRequests: process.env.NODE_ENV === "production" ? [] : null,
     } as any,
   },
