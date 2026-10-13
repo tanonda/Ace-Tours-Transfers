@@ -540,3 +540,49 @@ export async function autoTranslateProduct(productId: string): Promise<{ ok: boo
   const res = await apiRequest("POST", `/api/admin/products/${productId}/auto-translate`);
   return res.json();
 }
+
+// Hero background video: the browser uploads straight to Cloudinary with a signature
+// from our server, so large files never pass through it.
+export const HERO_VIDEO_MAX_BYTES = 100 * 1024 * 1024;
+export const HERO_VIDEO_TYPES = ["video/mp4", "video/webm", "video/quicktime"];
+
+interface VideoUploadSignature {
+  cloudName: string;
+  apiKey: string;
+  timestamp: number;
+  folder: string;
+  signature: string;
+}
+
+export async function uploadHeroVideo(file: File, onProgress: (fraction: number) => void): Promise<string> {
+  if (!HERO_VIDEO_TYPES.includes(file.type)) throw new Error("Choose an MP4, WebM or MOV video.");
+  if (file.size > HERO_VIDEO_MAX_BYTES) throw new Error("The video is over 100 MB. Trim or compress it first.");
+
+  const sig: VideoUploadSignature = await (await apiRequest("POST", "/api/admin/uploads/video-signature")).json();
+  const form = new FormData();
+  form.append("file", file);
+  form.append("api_key", sig.apiKey);
+  form.append("timestamp", String(sig.timestamp));
+  form.append("folder", sig.folder);
+  form.append("signature", sig.signature);
+
+  return new Promise<string>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", `https://api.cloudinary.com/v1_1/${encodeURIComponent(sig.cloudName)}/video/upload`);
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) onProgress(e.loaded / e.total);
+    };
+    xhr.onload = () => {
+      let body: any = null;
+      try {
+        body = JSON.parse(xhr.responseText);
+      } catch {
+        /* handled below */
+      }
+      if (xhr.status >= 200 && xhr.status < 300 && typeof body?.secure_url === "string") resolve(body.secure_url);
+      else reject(new Error(body?.error?.message || `Upload failed (${xhr.status}).`));
+    };
+    xhr.onerror = () => reject(new Error("Network error during upload. Check the connection and try again."));
+    xhr.send(form);
+  });
+}

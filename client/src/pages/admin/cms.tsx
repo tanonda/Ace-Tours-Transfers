@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchAllCmsContent, createCmsContent, updateCmsContent, uploadImage, autoTranslateCmsContent } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import { HeroVideoSettings } from "@/components/admin/hero-video-settings";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
@@ -510,6 +511,14 @@ export default function AdminCMS() {
 
           {Object.entries(SECTIONS).map(([key, section]) => (
             <TabsContent key={key} value={key} className="mt-4 space-y-4">
+              {key === "home-page" &&
+                (activeLocale === "en" ? (
+                  <HeroVideoSettings getContent={getContent} onSave={handleSave} />
+                ) : (
+                  <p className="rounded-lg border border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
+                    Hero video settings are on the English tab and apply to every language.
+                  </p>
+                ))}
               {section.fields.map((field) => {
                 const item = getContent(field.key);
                 if (!item.id) item.type = field.type;
