@@ -97,6 +97,20 @@ const SERVICE_CATEGORIES: ServiceCategory[] = [
         required: false,
       },
       {
+        name: "National Bank of Vanuatu (Mastercard Gateway)",
+        endpoint: "MPGS Hosted Checkout (gateway URL supplied by NBV)",
+        envVars: ["PAYMENTS_NBV_ENABLED", "Admin-configured mode, gateway URL, merchant ID, API password"],
+        why: "Local Vanuatu card payments via National Bank of Vanuatu, set up the same way as ANZ (MPGS Hosted Checkout). NBV must confirm it uses MPGS.",
+        howToConnect: [
+          "Contact National Bank of Vanuatu for an online merchant account and confirm it runs on MPGS",
+          "Obtain the gateway URL, test merchant ID and API password (production ones after testing)",
+          "Enter them in Admin → Payments → National Bank of Vanuatu, starting in TEST mode",
+          "Give NBV the notification URL https://acetoursvanuatu.com/api/payments/webhook/nbv-bank",
+          "Set PAYMENTS_NBV_ENABLED=true on Render",
+        ],
+        required: false,
+      },
+      {
         name: "BRED Bank (PayZen)",
         endpoint: "PayZen hosted payment page (https://secure.payzen.eu/vads-payment/ unless BRED gives its own)",
         envVars: ["PAYMENTS_BRED_ENABLED", "Admin-configured shop ID, mode, test key, production key"],
