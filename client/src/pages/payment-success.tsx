@@ -18,6 +18,7 @@ import { formatPriceDisplay } from "@/lib/product.types";
 import { useToast } from "@/hooks/use-toast";
 import { useCMS } from "@/lib/cms-context";
 import { format } from "date-fns";
+import { bookingCompleted, trackBookingCompleted } from "@/lib/booking-analytics";
 
 const WHATSAPP_NUMBER = "6787114045";
 
@@ -95,7 +96,7 @@ export default function PaymentSuccess() {
   });
 
   // Fetch booking items for service details
-  const { data: bookingItems = [] } = useQuery<BookingItem[]>({
+  const { data: bookingItems = [], isFetched: itemsFetched } = useQuery<BookingItem[]>({
     queryKey: ["booking-items", bookingId],
     queryFn: async () => {
       if (!bookingId) return [];
@@ -112,6 +113,13 @@ export default function PaymentSuccess() {
     ? bookingId.replace(/^book_/i, '').replace(/-/g, '').slice(0, 8).toUpperCase()
     : 'PENDING';
   const displayRef = `ACT-${shortRef}`;
+
+  // GA4 "purchase" once the booking is really complete (cash/bank: on arrival; card: once confirmed).
+  useEffect(() => {
+    if (!bookingId || bookingId === "demo" || !booking || !itemsFetched) return;
+    if (!bookingCompleted({ isManual, status: booking.status })) return;
+    trackBookingCompleted({ reference: displayRef, booking, items: bookingItems, paymentMethod });
+  }, [bookingId, booking, itemsFetched, bookingItems, isManual, displayRef, paymentMethod]);
 
   const firstItem = bookingItems[0];
   const serviceName = firstItem?.productName || booking?.tourName;
