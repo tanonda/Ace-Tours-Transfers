@@ -15,9 +15,12 @@ describe("CloudinaryService.signVideoUpload", () => {
     expect(sig).toMatchObject({ cloudName: "demo-cloud", apiKey: "123456", folder: "ace-tours/hero-video" });
     expect(Math.abs(sig.timestamp - Date.now() / 1000)).toBeLessThan(5);
     const { HERO_LOOP_EAGER } = await import("../../../shared/hero-video.js");
-    expect(sig).toMatchObject({ eager: HERO_LOOP_EAGER, eagerAsync: true });
+    expect(sig).toMatchObject({ eager: HERO_LOOP_EAGER, eagerAsync: true, allowedFormats: "mp4,webm,mov" });
     expect(sig.signature).toBe(
-      cloudinary.utils.api_sign_request({ eager: HERO_LOOP_EAGER, eager_async: true, folder: "ace-tours/hero-video", timestamp: sig.timestamp }, "shh-secret"),
+      cloudinary.utils.api_sign_request(
+        { allowed_formats: "mp4,webm,mov", eager: HERO_LOOP_EAGER, eager_async: true, folder: "ace-tours/hero-video", timestamp: sig.timestamp },
+        "shh-secret",
+      ),
     );
     expect(JSON.stringify(sig)).not.toContain("shh-secret");
   });

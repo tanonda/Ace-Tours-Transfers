@@ -108,6 +108,9 @@ export function parseShortUrl(input: string | null | undefined): ShortEmbed | nu
   if (IG_HOSTS.has(host)) {
     if (parts[0] === "reel" || parts[0] === "reels") return instagram("reel", parts[1]);
     if (parts[0] === "p") return instagram("p", parts[1]);
+    // instagram.com/<username>/reel/<id>/ (newer web links)
+    if (parts[1] === "reel" || parts[1] === "reels") return instagram("reel", parts[2]);
+    if (parts[1] === "p") return instagram("p", parts[2]);
     return null;
   }
   if (FB_HOSTS.has(host)) {
@@ -120,6 +123,10 @@ export function parseShortUrl(input: string | null | undefined): ShortEmbed | nu
   }
   return null;
 }
+
+/** Shown when a Short link can't be used (admin card and server). */
+export const SHORT_URL_HELP =
+  "Paste a YouTube, Instagram or Facebook video link. For Facebook, open the video and copy the address from the browser bar (facebook.com/reel/… or …/videos/…), not a \u201cCopy link\u201d share link.";
 
 // ─── Background loop ─────────────────────────────────────────────────────────
 
@@ -146,6 +153,8 @@ export function cloudinaryLoopSources(url: string | null | undefined): LoopSourc
   const m = CLD_VIDEO.exec((url ?? "").trim());
   if (!m) return null;
   const [, cloud, path] = m;
+  // "." / ".." segments would let the browser resolve the URL outside our folder or cloud.
+  if (path.split("/").some((seg) => seg === "." || seg === "..")) return null;
   const root = `https://res.cloudinary.com/${cloud}/video/upload`;
   return {
     webm: `${root}/${LOOP_TRANSFORM}/${path}.webm`,
@@ -156,6 +165,22 @@ export function cloudinaryLoopSources(url: string | null | undefined): LoopSourc
 
 export function isOwnCloudinaryVideo(url: string, cloudName: string): boolean {
   return cloudinaryLoopSources(url) !== null && url.trim().startsWith(`https://res.cloudinary.com/${cloudName}/video/upload/`);
+}
+
+/** Formats the admin may upload (also signed into the upload, so Cloudinary refuses others). */
+export const HERO_VIDEO_FORMATS = ["mp4", "webm", "mov"] as const;
+const HERO_VIDEO_MIME = new Set(["video/mp4", "video/webm", "video/quicktime"]);
+
+/** True for an MP4/WebM/MOV file. Windows often reports no type for .mov, so fall back to the extension. */
+export function isAcceptedHeroVideoFile(file: { name: string; type: string }): boolean {
+  if (file.type) return HERO_VIDEO_MIME.has(file.type);
+  const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
+  return (HERO_VIDEO_FORMATS as readonly string[]).includes(ext);
+}
+
+/** A play() rejection that means "give up and keep the photo". AbortError only means play was interrupted. */
+export function isFatalPlayError(err: unknown): boolean {
+  return !(err && typeof err === "object" && (err as { name?: unknown }).name === "AbortError");
 }
 
 // ─── Pages ───────────────────────────────────────────────────────────────────
@@ -207,7 +232,7 @@ export function heroVideoSettingError(
       if (!cloudName) return "Video upload isn't set up (Cloudinary is not configured).";
       return isOwnCloudinaryVideo(value, cloudName) ? null : "The background video must be uploaded here (it is stored on Cloudinary).";
     case HERO_VIDEO_KEYS.shortUrl:
-      return parseShortUrl(value) ? null : "Paste a YouTube, Instagram or Facebook video link (for Facebook, the full facebook.com address).";
+      return parseShortUrl(value) ? null : SHORT_URL_HELP;
     case HERO_VIDEO_KEYS.shortCover:
       return value.startsWith("https://res.cloudinary.com/") ? null : "The cover image must be uploaded here.";
     case HERO_VIDEO_KEYS.pages: {

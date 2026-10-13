@@ -108,6 +108,24 @@ describe("hero-video CMS validation", () => {
     expect(state.updated).toHaveLength(2);
   });
 
+  it("won't move a hero setting to another language or key", async () => {
+    expect((await request(app).patch("/api/admin/cms-content/v1").send({ locale: "fr" })).status).toBe(400);
+    expect((await request(app).patch("/api/admin/cms-content/s1").send({ contentKey: "hero_title_part1", value: "x" })).status).toBe(400);
+    expect(state.updated).toHaveLength(0);
+  });
+
+  it("won't turn another CMS row into a hero setting", async () => {
+    expect((await request(app).patch("/api/admin/cms-content/t1").send({ contentKey: "hero_short_url", value: "https://youtu.be/dQw4w9WgXcQ" })).status).toBe(400);
+    expect((await request(app).patch("/api/admin/cms-content/t1").send({ contentKey: "hero_video" })).status).toBe(400);
+    expect(state.updated).toHaveLength(0);
+  });
+
+  it("saves only the value of a hero setting", async () => {
+    const res = await request(app).patch("/api/admin/cms-content/s1").send({ value: "https://youtu.be/dQw4w9WgXcQ", sortOrder: 9 });
+    expect(res.status).toBe(200);
+    expect(state.updated).toEqual([{ id: "s1", data: { value: "https://youtu.be/dQw4w9WgXcQ" } }]);
+  });
+
   it("leaves other CMS rows alone", async () => {
     expect((await patch("t1", "javascript:anything")).status).toBe(200);
   });

@@ -1,6 +1,6 @@
 import { v2 as cloudinary } from 'cloudinary';
 import { config } from '../../config.js';
-import { HERO_LOOP_EAGER } from '../../../shared/hero-video.js';
+import { HERO_LOOP_EAGER, HERO_VIDEO_FORMATS } from '../../../shared/hero-video.js';
 
 export interface VideoUploadSignature {
   cloudName: string;
@@ -10,6 +10,8 @@ export interface VideoUploadSignature {
   /** Versions Cloudinary builds right after upload (see HERO_LOOP_EAGER). */
   eager: string;
   eagerAsync: true;
+  /** Cloudinary rejects any other format (comma list, signed). */
+  allowedFormats: string;
   signature: string;
 }
 
@@ -80,8 +82,12 @@ export class CloudinaryService {
     }
     const timestamp = Math.round(Date.now() / 1000);
     const eager = HERO_LOOP_EAGER;
-    const signature = cloudinary.utils.api_sign_request({ eager, eager_async: true, folder, timestamp }, api_secret);
-    return { cloudName: cloud_name, apiKey: api_key, timestamp, folder, eager, eagerAsync: true, signature };
+    const allowedFormats = HERO_VIDEO_FORMATS.join(",");
+    const signature = cloudinary.utils.api_sign_request(
+      { allowed_formats: allowedFormats, eager, eager_async: true, folder, timestamp },
+      api_secret,
+    );
+    return { cloudName: cloud_name, apiKey: api_key, timestamp, folder, eager, eagerAsync: true, allowedFormats, signature };
   }
 }
 

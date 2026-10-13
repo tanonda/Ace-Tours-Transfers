@@ -398,17 +398,28 @@ export function registerSiteRoutes(app: Express) {
 
   app.patch("/api/admin/cms-content/:id", requireAdmin, async (req, res) => {
     try {
-      if (req.body && "value" in req.body) {
-        const existing = await storage.getCmsContentItem(req.params.id);
-        if (existing) {
+      let changes = req.body;
+      const existing = await storage.getCmsContentItem(req.params.id);
+      if (existing) {
+        // Hero-video settings are fixed English rows: only their value may change, and no
+        // other row may be renamed into one (that would skip the checks below).
+        const merged = { ...existing, ...req.body };
+        const isHeroRow = (r: { blockSlug: string; contentKey: string }) => r.blockSlug === HERO_VIDEO_BLOCK && isHeroVideoKey(r.contentKey);
+        if (isHeroRow(existing) || isHeroRow(merged)) {
+          const moved =
+            merged.blockSlug !== existing.blockSlug ||
+            merged.contentKey !== existing.contentKey ||
+            (merged.locale ?? "en") !== (existing.locale ?? "en");
+          if (moved) return res.status(400).json({ error: "Hero video settings can't be renamed or moved: only their value can change." });
           const heroError = heroVideoSettingError(
-            { blockSlug: existing.blockSlug, key: existing.contentKey, value: req.body.value, locale: existing.locale },
+            { blockSlug: existing.blockSlug, key: existing.contentKey, value: merged.value, locale: existing.locale },
             cloudinaryService.cloudName(),
           );
           if (heroError) return res.status(400).json({ error: heroError });
+          changes = { value: merged.value };
         }
       }
-      const content = await storage.updateCmsContent(req.params.id, req.body);
+      const content = await storage.updateCmsContent(req.params.id, changes);
       if (!content) return res.status(404).json({ error: "Content not found" });
       res.json(content);
     } catch (error) {

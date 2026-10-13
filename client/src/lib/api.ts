@@ -1,4 +1,6 @@
 import { apiRequest } from "./queryClient";
+import { apiErrorMessage } from "./api-error";
+import { HERO_VIDEO_FORMATS, isAcceptedHeroVideoFile } from "@shared/hero-video";
 import i18n from "./i18n";
 import type { HostedFormPost } from "./hosted-payment-form";
 import type {
@@ -544,7 +546,8 @@ export async function autoTranslateProduct(productId: string): Promise<{ ok: boo
 // Hero background video: the browser uploads straight to Cloudinary with a signature
 // from our server, so large files never pass through it.
 export const HERO_VIDEO_MAX_BYTES = 100 * 1024 * 1024;
-export const HERO_VIDEO_TYPES = ["video/mp4", "video/webm", "video/quicktime"];
+// Types plus extensions, so Windows (which often has no type for .mov) still offers MOV files.
+export const HERO_VIDEO_ACCEPT = ["video/mp4", "video/webm", "video/quicktime", ...HERO_VIDEO_FORMATS.map((f) => `.${f}`)].join(",");
 
 interface VideoUploadSignature {
   cloudName: string;
@@ -553,14 +556,20 @@ interface VideoUploadSignature {
   folder: string;
   eager: string;
   eagerAsync: true;
+  allowedFormats: string;
   signature: string;
 }
 
 export async function uploadHeroVideo(file: File, onProgress: (fraction: number) => void): Promise<string> {
-  if (!HERO_VIDEO_TYPES.includes(file.type)) throw new Error("Choose an MP4, WebM or MOV video.");
+  if (!isAcceptedHeroVideoFile(file)) throw new Error("Choose an MP4, WebM or MOV video.");
   if (file.size > HERO_VIDEO_MAX_BYTES) throw new Error("The video is over 100 MB. Trim or compress it first.");
 
-  const sig: VideoUploadSignature = await (await apiRequest("POST", "/api/admin/uploads/video-signature")).json();
+  let sig: VideoUploadSignature;
+  try {
+    sig = await (await apiRequest("POST", "/api/admin/uploads/video-signature")).json();
+  } catch (err) {
+    throw new Error(apiErrorMessage(err, "Couldn't start the upload. Please try again."));
+  }
   const form = new FormData();
   form.append("file", file);
   form.append("api_key", sig.apiKey);
@@ -568,6 +577,7 @@ export async function uploadHeroVideo(file: File, onProgress: (fraction: number)
   form.append("folder", sig.folder);
   form.append("eager", sig.eager);
   form.append("eager_async", "true");
+  form.append("allowed_formats", sig.allowedFormats);
   form.append("signature", sig.signature);
 
   return new Promise<string>((resolve, reject) => {

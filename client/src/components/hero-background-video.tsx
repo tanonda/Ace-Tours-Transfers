@@ -9,7 +9,7 @@
  */
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
-import { LOOP_MIN_WIDTH, shouldPlayLoop, type LoopSources } from "@shared/hero-video";
+import { LOOP_MIN_WIDTH, isFatalPlayError, shouldPlayLoop, type LoopSources } from "@shared/hero-video";
 
 type Connection = { saveData?: boolean; effectiveType?: string };
 
@@ -43,7 +43,9 @@ export function HeroBackgroundVideo({ sources, position }: { sources: LoopSource
 
   useEffect(() => {
     if (!allowed) setReady(false);
-    else ref.current?.play()?.catch(() => setFailed(true));
+    // An interrupted start (e.g. the window narrowed mid-play) isn't a failure: the loop
+    // should come back when the window widens again.
+    else ref.current?.play()?.catch((err) => isFatalPlayError(err) && setFailed(true));
   }, [allowed]);
 
   if (!allowed || failed) return null;

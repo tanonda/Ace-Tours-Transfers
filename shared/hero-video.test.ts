@@ -9,6 +9,10 @@ import {
   resolveHeroVideo,
   HERO_VIDEO_KEYS,
   HERO_LOOP_EAGER,
+  HERO_VIDEO_FORMATS,
+  SHORT_URL_HELP,
+  isAcceptedHeroVideoFile,
+  isFatalPlayError,
   type HeroVideoKey,
 } from "./hero-video.js";
 
@@ -233,5 +237,43 @@ describe("HERO_LOOP_EAGER (pre-built at upload so big videos still play)", () =>
       [s.poster, "jpg"],
     ].map(([url, ext]) => `${url.split("/video/upload/")[1].split("/v1/")[0]}/${ext}`);
     expect(HERO_LOOP_EAGER.split("|")).toEqual(wanted);
+  });
+});
+
+describe("review follow-ups", () => {
+  it("rejects dot segments that would leave our Cloudinary folder", () => {
+    const sneaky = "https://res.cloudinary.com/ours/video/upload/../../../../evil/video/upload/v1/x.mp4";
+    expect(cloudinaryLoopSources(sneaky)).toBeNull();
+    expect(isOwnCloudinaryVideo(sneaky, "ours")).toBe(false);
+    expect(cloudinaryLoopSources("https://res.cloudinary.com/ours/video/upload/v1/./x.mp4")).toBeNull();
+    expect(cloudinaryLoopSources("https://res.cloudinary.com/ours/video/upload/v1/my.clip.mp4")).not.toBeNull();
+  });
+
+  it("accepts Instagram links that include the username", () => {
+    expect(parseShortUrl("https://www.instagram.com/acetours/reel/C9xYz_ab-12/?igsh=1")).toMatchObject({ platform: "instagram", id: "C9xYz_ab-12" });
+    expect(parseShortUrl("https://www.instagram.com/acetours/p/C9xYz_ab-12/")).toMatchObject({ platform: "instagram", id: "C9xYz_ab-12" });
+  });
+
+  it("explains that Facebook share links won't work", () => {
+    expect(parseShortUrl("https://www.facebook.com/share/r/1AbCdEf/")).toBeNull();
+    expect(SHORT_URL_HELP).toMatch(/share link/);
+    expect(heroVideoSettingError({ blockSlug: "home-page", key: "hero_short_url", value: "https://www.facebook.com/share/r/1AbCdEf/" }, "ours")).toBe(SHORT_URL_HELP);
+  });
+
+  it("accepts videos by type, or by extension when the browser reports no type", () => {
+    expect(HERO_VIDEO_FORMATS).toEqual(["mp4", "webm", "mov"]);
+    expect(isAcceptedHeroVideoFile({ name: "a.mp4", type: "video/mp4" })).toBe(true);
+    expect(isAcceptedHeroVideoFile({ name: "Beach.MOV", type: "" })).toBe(true);
+    expect(isAcceptedHeroVideoFile({ name: "clip.webm", type: "" })).toBe(true);
+    expect(isAcceptedHeroVideoFile({ name: "notes.txt", type: "" })).toBe(false);
+    expect(isAcceptedHeroVideoFile({ name: "a.mov", type: "image/png" })).toBe(false);
+    expect(isAcceptedHeroVideoFile({ name: "a.avi", type: "video/x-msvideo" })).toBe(false);
+  });
+
+  it("treats an interrupted play() as temporary, other failures as final", () => {
+    expect(isFatalPlayError(new DOMException("interrupted", "AbortError"))).toBe(false);
+    expect(isFatalPlayError(new DOMException("blocked", "NotAllowedError"))).toBe(true);
+    expect(isFatalPlayError(new DOMException("bad", "NotSupportedError"))).toBe(true);
+    expect(isFatalPlayError(undefined)).toBe(true);
   });
 });

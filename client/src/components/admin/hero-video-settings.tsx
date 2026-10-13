@@ -12,11 +12,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { uploadHeroVideo, uploadImage, HERO_VIDEO_TYPES } from "@/lib/api";
+import { uploadHeroVideo, uploadImage, HERO_VIDEO_ACCEPT } from "@/lib/api";
 import {
   HERO_VIDEO_EXTRA_PAGES,
   HERO_VIDEO_KEYS,
   SHORT_PLATFORM_NAME,
+  SHORT_URL_HELP,
   cloudinaryLoopSources,
   heroVideoPages,
   parseShortUrl,
@@ -125,7 +126,7 @@ export function HeroVideoSettings({
                 <label className="cursor-pointer">
                   <Upload className="mr-2 h-4 w-4" />
                   {loop ? "Replace video" : "Upload video"}
-                  <input type="file" accept={HERO_VIDEO_TYPES.join(",")} className="hidden" onChange={onVideo} />
+                  <input type="file" accept={HERO_VIDEO_ACCEPT} className="hidden" onChange={onVideo} />
                 </label>
               </Button>
               {videoItem.value && (
@@ -162,7 +163,7 @@ export function HeroVideoSettings({
             {parsed
               ? `${SHORT_PLATFORM_NAME[parsed.platform]} video detected. Visitors click to play it.`
               : shortInvalid
-                ? "Not a YouTube, Instagram or Facebook video link. For Facebook, open the video and copy the full facebook.com address."
+                ? SHORT_URL_HELP
                 : "Leave empty for no Short."}
           </p>
         </section>

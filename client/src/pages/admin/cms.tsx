@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchAllCmsContent, createCmsContent, updateCmsContent, uploadImage, autoTranslateCmsContent } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { HeroVideoSettings } from "@/components/admin/hero-video-settings";
+import { apiErrorMessage } from "@/lib/api-error";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
@@ -246,8 +247,8 @@ export default function AdminCMS() {
       queryClient.invalidateQueries({ queryKey: ["cms-content"] });
       toast({ title: "Content saved", description: "Changes published successfully." });
     },
-    onError: () => {
-      toast({ title: t("common.error"), description: "Failed to save content.", variant: "destructive" });
+    onError: (error) => {
+      toast({ title: t("common.error"), description: apiErrorMessage(error, "Failed to save content."), variant: "destructive" });
     },
   });
 
@@ -256,6 +257,9 @@ export default function AdminCMS() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["cms-content"] });
       toast({ title: "Content created", description: "New content block published." });
+    },
+    onError: (error) => {
+      toast({ title: t("common.error"), description: apiErrorMessage(error, "Failed to save content."), variant: "destructive" });
     },
   });
 
