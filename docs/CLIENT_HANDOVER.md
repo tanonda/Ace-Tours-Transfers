@@ -210,3 +210,19 @@ The codebase includes comprehensive documentation in the `docs/` folder:
 - [ ] GTM container ID set (if using Google Analytics)
 - [ ] Stripe configured (when ready for card payments)
 - [ ] Email SMTP switched to client's Gmail account
+
+## 11. Hero video
+
+Admin → CMS → Home Page (English tab) → **Hero video**.
+
+- **Background video**: upload a landscape clip (MP4, WebM or MOV, up to 100 MB). The site
+  plays the first 15 seconds, muted and looped, behind the headline on tablets and computers.
+  Phones always show the photo, to save visitors' mobile data. **Remove video** goes back to the photo.
+- **Short**: paste a YouTube Short, Instagram Reel or Facebook video link. It appears as a
+  phone-shaped card beside the headline (a "Watch our video" button on phones) and plays when
+  clicked. For Facebook, open the video and copy the full facebook.com address (not an fb.watch link).
+- **Short cover image**: optional. YouTube supplies one. For Instagram and Facebook, upload a
+  portrait image or a branded card is shown.
+- **Also show on**: tick Tours, Transfers and/or About to show the same video there too.
+
+Changes show on the site straight away. No redeploy is needed for the video itself.
