@@ -9,6 +9,7 @@ import crypto from "crypto";
 import { generateSecret, generateURI, verify } from "otplib";
 import qr from "qr-image";
 import { storage } from "../storage.js";
+import { toSafeUser } from "../lib/safe-user.js";
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -79,7 +80,7 @@ export function registerAuthRoutes(app: Express) {
       }
 
       console.log(`[AUTH] Login successful for: ${email}`);
-      res.json(authResult.user);
+      res.json(toSafeUser(authResult.user));
     } catch (error: any) {
       console.error("[AUTH] Login error:", error);
       if (error.message === "Invalid verification code.") {
@@ -259,7 +260,7 @@ export function registerAuthRoutes(app: Express) {
       const authResult = await authAppService.register(pending.name, pending.email, pending.password);
 
       console.log(`[AUTH][REGISTER] Account created and session started for: ${normEmail}`);
-      return res.status(201).json(authResult);
+      return res.status(201).json(toSafeUser(authResult));
     } catch (error: any) {
       console.error("[AUTH][VERIFY] Error:", error);
       if (error.message?.includes("already exists")) {
@@ -307,7 +308,7 @@ export function registerAuthRoutes(app: Express) {
         return res.status(401).json({ error: "User not found" });
       }
 
-      res.json(authResult);
+      res.json(toSafeUser(authResult));
     } catch (error) {
       console.error("[AUTH] Failed to get authenticated user:", error);
       res.status(500).json({ error: "Failed to get user" });

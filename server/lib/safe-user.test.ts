@@ -1,27 +1,30 @@
 import { describe, expect, it } from "vitest";
-import { toSafeUser } from "./safe-user";
+import { toSafeUser, SAFE_USER_FIELDS } from "./safe-user.js";
 
 describe("toSafeUser", () => {
-  it("drops credentials and keeps the profile fields admin screens use", () => {
+  it("returns only the allow-listed fields", () => {
+    const now = new Date();
     const safe = toSafeUser({
       id: "u1",
+      username: "staff",
       email: "staff@example.com",
       name: "Staff",
+      phone: null,
       role: "admin",
       isActive: true,
+      createdAt: now,
+      updatedAt: now,
+      totpEnabled: true,
       password: "$2a$10$hash",
       passwordResetToken: "reset-token",
-      passwordResetTokenExpiry: new Date(),
+      passwordResetTokenExpiry: now,
       totpSecret: "TOTPSECRET",
-      totpEnabled: true,
+      someFutureSecretColumn: "x",
     });
-    expect(safe).toEqual({
-      id: "u1",
-      email: "staff@example.com",
-      name: "Staff",
-      role: "admin",
-      isActive: true,
-      totpEnabled: true,
-    });
+    expect(Object.keys(safe).sort()).toEqual([...SAFE_USER_FIELDS].sort());
+    expect(safe).not.toHaveProperty("password");
+    expect(safe).not.toHaveProperty("totpSecret");
+    expect(safe).not.toHaveProperty("passwordResetToken");
+    expect(safe).not.toHaveProperty("someFutureSecretColumn");
   });
 });

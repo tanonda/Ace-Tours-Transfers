@@ -20,7 +20,7 @@ export function registerUserRoutes(app: Express) {
   app.get("/api/users", requireAdmin, async (req, res) => {
     try {
       const users = await userProfileDomainService.getAllUsers();
-      res.json(users.map(toSafeUser));
+      res.json(users.map((u) => toSafeUser(u)));
     } catch (error) {
       console.error("Failed to fetch users:", error);
       res.status(500).json({ error: "Failed to fetch users" });
@@ -36,13 +36,7 @@ export function registerUserRoutes(app: Express) {
     try {
       const validatedData = adminInsertUserSchema.parse(req.body);
       const user = await userProfileDomainService.createUser(validatedData);
-      res.status(201).json({
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        name: user.name,
-        role: user.role
-      });
+      res.status(201).json(toSafeUser(user));
     } catch (error) {
       console.error("User creation error:", error);
       if (error instanceof ZodError) {
@@ -132,13 +126,7 @@ export function registerUserRoutes(app: Express) {
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
-      res.json({
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        name: user.name,
-        role: user.role
-      });
+      res.json(toSafeUser(user));
     } catch (error) {
       console.error("Failed to fetch user:", error);
       res.status(500).json({ error: "Failed to fetch user" });
@@ -193,7 +181,7 @@ export function registerUserRoutes(app: Express) {
   app.get("/api/customers", requireAdmin, async (req, res) => {
     try {
       const customers = await userProfileDomainService.getCustomers();
-      res.json(customers.map(toSafeUser));
+      res.json(customers.map((u) => toSafeUser(u)));
     } catch (error) {
       console.error("Failed to fetch customers:", error);
       res.status(500).json({ error: "Failed to fetch customers" });
@@ -212,7 +200,7 @@ export function registerUserRoutes(app: Express) {
       if (nameError) return res.status(400).json({ error: nameError });
       const updated = await storage.updateUserProfile(req.params.id, { name, email, phone });
       if (!updated) return res.status(404).json({ error: "User not found" });
-      res.json({ id: updated.id, name: updated.name, email: updated.email, phone: updated.phone, role: updated.role });
+      res.json(toSafeUser(updated));
     } catch (error) {
       console.error("Failed to update user profile:", error);
       res.status(500).json({ error: "Failed to update profile" });
