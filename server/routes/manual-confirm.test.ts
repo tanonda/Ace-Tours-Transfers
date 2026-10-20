@@ -72,7 +72,11 @@ vi.mock("express-rate-limit", () => ({ rateLimit: () => (_q: any, _s: any, n: an
 vi.mock("../infrastructure/audit/admin-audit-log.service.js", () => ({ adminAudit: { log: vi.fn(async () => undefined) } }));
 vi.mock("../lib/mail.js", async (orig) => ({ ...(await orig<any>()), sendEmail: vi.fn(async () => true), sendAdminEmail: vi.fn(async () => true) }));
 vi.mock("../lib/review-request.js", () => ({ sendReviewRequest: vi.fn(async () => true) }));
-vi.mock("../infrastructure/mailing/MailingService.js", () => ({ mailingService: { sendPaymentExpiry: vi.fn(async () => undefined), sendPaymentFailure: vi.fn(async () => undefined) } }));
+const notify = vi.hoisted(() => ({ email: [] as string[], sms: [] as string[], admin: [] as string[] }));
+vi.mock("../infrastructure/mailing/MailingService.js", () => ({
+  mailingService: { sendPaymentExpiry: vi.fn(async (_to: string, id: string) => { notify.email.push(id); }), sendPaymentFailure: vi.fn(async () => undefined) },
+}));
+vi.mock("../infrastructure/sms/SmsService.js", () => ({ smsService: { sendPaymentExpiry: vi.fn(async (_to: string, ref: string) => { notify.sms.push(ref); }) } }));
 
 vi.mock("../storage.js", () => {
   const OPEN = ["pending", "processing", "manual_review_required"];
@@ -101,10 +105,11 @@ vi.mock("../storage.js", () => {
     getPayment: async (id: string) => (w.payments.has(id) ? { ...w.payments.get(id) } : undefined),
     getPaymentGateway: async (id: string) => w.gateways.get(id),
     updatePayment: async (id: string, updates: Row) => Object.assign(w.payments.get(id)!, updates),
-    // As the SQL does: open, past expiry, and only while the booking is pending.
+    // As the SQL does: open, past expiry, and never a paid (confirmed or completed) booking's.
     getOverduePayments: async () => [...w.payments.values()].filter((p) =>
       (p.status === "pending" || p.status === "manual_review_required") && p.expiresAt < new Date()
-      && w.bookings.get(p.bookingId)?.status === "pending"),
+      && !["confirmed", "completed"].includes(w.bookings.get(p.bookingId)?.status)),
+    createNotification: async (n: Row) => { notify.admin.push(n.message); return n; },
     getHoldsBySession: async (sid: string) => [...w.holds.values()].filter((h) => h.bookingSessionId === sid && h.status === "ACTIVE"),
     getExpiredHolds: async (now: Date) => [...w.holds.values()].filter((h) => h.status === "ACTIVE" && h.expiresAt < now),
     getBookingItems: async () => [],
@@ -117,6 +122,8 @@ vi.mock("../storage.js", () => {
 import { storage } from "../storage.js";
 import { AvailabilityService, HoldStatus, LapsedHoldUnavailableError } from "../domain/availability/availability.service.js";
 import { holdCountsForBooking } from "../lib/manual-confirmation.js";
+import { eventDispatcher } from "../infrastructure/events/event-dispatcher.js";
+import { PaymentExpired } from "../domain/events.js";
 
 const free = (i: Row) => i.totalCapacity - (i.confirmedCount + i.heldCount + i.blockedCount);
 
@@ -146,6 +153,20 @@ beforeAll(() => {
   });
 });
 
+// The guest and admin notifications of an expiry, as the app registers them.
+const expiredEvents: string[] = [];
+beforeAll(async () => {
+  const { BookingEventHandler } = await import("../application/events/BookingEventHandler.js");
+  const { GuestNotificationHandler } = await import("../application/events/GuestNotificationHandler.js");
+  const { AdminNotificationHandler } = await import("../application/events/AdminNotificationHandler.js");
+  const { AvailabilityApplicationService } = await import("../application/availability/availability.application-service.js");
+  new BookingEventHandler(storage, new AvailabilityApplicationService(storage)).register();
+  new GuestNotificationHandler(storage).register();
+  new AdminNotificationHandler(storage).register();
+  eventDispatcher.subscribe(PaymentExpired, async (e: PaymentExpired) => { expiredEvents.push(e.bookingId); });
+});
+const settle = () => new Promise((r) => setTimeout(r, 20)); // PaymentIntent.fail dispatches without awaiting
+
 let app: Express;
 beforeAll(async () => {
   const { registerReportingRoutes } = await import("./reporting.routes.js");
@@ -165,6 +186,8 @@ beforeEach(() => {
   w.blackedOut.clear();
   w.locks.length = 0;
   w.crashOn = null;
+  expiredEvents.length = 0;
+  notify.email.length = 0; notify.sms.length = 0; notify.admin.length = 0;
   w.gateways.set("gw-bank", { id: "gw-bank", slug: "manual_transfer" });
 });
 
@@ -190,7 +213,7 @@ function bankTransferBooking(holds: Array<{ status?: string; quantity?: number; 
   });
   w.bookings.set(bookingId, {
     id: bookingId, status: "pending", holdId: holdIds[0] ?? null, bookingSessionId: sessionId, totalAmountCents: 10000,
-    customerName: "Bank Guest", customerEmail: "", updatedAt: new Date("2026-10-19T01:02:03.456Z"), notes: null,
+    customerName: "Bank Guest", customerEmail: "guest@example.com", customerPhone: "+678 5550000", updatedAt: new Date("2026-10-19T01:02:03.456Z"), notes: null,
   });
   w.payments.set(`p${k}`, { id: `p${k}`, bookingId, gatewayId: "gw-bank", amount: 10000, currency: "VUV", status: "manual_review_required", expiresAt: new Date(Date.now() + 72 * HOUR) });
   return { bookingId, holdIds, paymentId: `p${k}`, instanceIds: holdIds.map((_, j) => `i${k}-${j}`) };
@@ -207,7 +230,9 @@ async function advancePastExpiry(b: { paymentId: string; holdIds: string[] }) {
   const { BankTransferReconciliationSaga } = await import("../application/sagas/BankTransferReconciliationSaga.js");
   const { HoldExpiryJob } = await import("../infrastructure/jobs/hold-expiry.job.js");
   await new BankTransferReconciliationSaga(storage).checkAndExpireOverduePayments();
-  return new HoldExpiryJob(storage).run();
+  const run = await new HoldExpiryJob(storage).run();
+  await settle();
+  return run;
 }
 
 const state = (b: { bookingId: string; holdIds: string[]; paymentId: string; instanceIds: string[] }) => ({
@@ -246,6 +271,40 @@ describe("a booking confirmed by hand survives its payment's expiry", () => {
     expect(s.payment).toBe("expired");
     expect(s.holds).toEqual(["RELEASED"]);
     expect(s.seats).toEqual([{ confirmed: 0, held: 0 }]);
+    expect(expiredEvents).toEqual([b.bookingId]);
+    expect(notify.email).toEqual([b.bookingId]);
+    expect(notify.sms).toHaveLength(1);
+    expect(notify.admin).toHaveLength(1);
+  });
+
+  it("a lapsed booking the hold job already marked expired still gets the saga's expiry: payment closed, guest and admin told", async () => {
+    const b = bankTransferBooking();
+    // The hold lapses first (15-minute holds in practice): the job releases it and marks the booking expired.
+    w.holds.get(b.holdIds[0])!.expiresAt = new Date(Date.now() - 60_000);
+    const { HoldExpiryJob } = await import("../infrastructure/jobs/hold-expiry.job.js");
+    await new HoldExpiryJob(storage).run();
+    expect(state(b)).toMatchObject({ booking: "expired", holds: ["EXPIRED"], payment: "manual_review_required" });
+
+    // 72h later the payment's deadline passes and the saga runs.
+    w.payments.get(b.paymentId)!.expiresAt = new Date(Date.now() - 60_000);
+    const { BankTransferReconciliationSaga } = await import("../application/sagas/BankTransferReconciliationSaga.js");
+    await new BankTransferReconciliationSaga(storage).checkAndExpireOverduePayments();
+    await settle();
+    expect(state(b)).toMatchObject({ booking: "cancelled", payment: "expired", seats: [{ confirmed: 0, held: 0 }] });
+    expect(expiredEvents).toEqual([b.bookingId]);
+    expect(notify.email).toEqual([b.bookingId]);
+    expect(notify.sms).toHaveLength(1);
+    expect(notify.admin).toHaveLength(1);
+  });
+
+  it("a confirmed booking past its payment deadline is untouched and nobody is told it expired", async () => {
+    const b = bankTransferBooking();
+    expect((await statementConfirm(b.bookingId)).status).toBe(200);
+    w.payments.get(b.paymentId)!.status = "manual_review_required"; // as if left open
+    await advancePastExpiry(b);
+    expect(state(b)).toMatchObject({ booking: "confirmed", holds: ["CONFIRMED"], payment: "manual_review_required" });
+    expect(expiredEvents).toEqual([]);
+    expect(notify).toEqual({ email: [], sms: [], admin: [] });
   });
 
   it("defence in depth: a confirmed booking whose payment was left open (as before this fix) is not expired", async () => {
@@ -322,10 +381,42 @@ describe("seats are reserved in the transaction of the confirm", () => {
     expect(state(b)).toMatchObject({ booking: "pending", holds: ["ACTIVE", "ACTIVE"] });
   });
 
-  it("a lapsed session hold that is not the booking's own holdId is left alone", async () => {
+  it("a later item's lapsed hold (a session hold, not the holdId) is re-reserved when its tour has room", async () => {
     const b = bankTransferBooking([{}, { status: "EXPIRED" }]);
     expect((await patchConfirm(b.bookingId)).status).toBe(200);
-    expect(state(b)).toMatchObject({ booking: "confirmed", holds: ["CONFIRMED", "EXPIRED"], seats: [{ confirmed: 2, held: 0 }, { confirmed: 0, held: 0 }] });
+    expect(state(b)).toMatchObject({ booking: "confirmed", holds: ["CONFIRMED", "CONFIRMED"], seats: [{ confirmed: 2, held: 0 }, { confirmed: 2, held: 0 }] });
+  });
+
+  it("a later item's lapsed hold on a full tour refuses the confirm (409) and nothing changes", async () => {
+    const b = bankTransferBooking([{}, { status: "EXPIRED", capacity: 4, confirmed: 3 }]);
+    for (const res of [await statementConfirm(b.bookingId), await patchConfirm(b.bookingId)]) {
+      expect(res.status).toBe(409);
+      expect(res.body.error).toBe("Couldn't reserve the seats for this booking. Check availability and try again.");
+      expect(state(b)).toEqual({
+        booking: "pending", holds: ["ACTIVE", "EXPIRED"], payment: "manual_review_required",
+        seats: [{ confirmed: 0, held: 2 }, { confirmed: 3, held: 0 }],
+      });
+    }
+  });
+
+  it("an open card payment is never completed by a manual confirm", async () => {
+    const b = bankTransferBooking();
+    w.gateways.set("gw-card", { id: "gw-card", slug: "payzen" });
+    Object.assign(w.payments.get(b.paymentId)!, { gatewayId: "gw-card", status: "manual_review_required" });
+    const warn = vi.spyOn(console, "warn");
+    expect((await patchConfirm(b.bookingId)).status).toBe(200);
+    expect(state(b)).toMatchObject({ booking: "confirmed", holds: ["CONFIRMED"], payment: "manual_review_required" });
+    expect(warn.mock.calls.some(([m]) => String(m).includes("open card payment"))).toBe(true);
+    warn.mockRestore();
+  });
+
+  it("an unexpected error in the admin PATCH is a 500, not a 400", async () => {
+    const b = bankTransferBooking();
+    w.crashOn = b.holdIds[0];
+    const res = await patchConfirm(b.bookingId);
+    expect(res.status).toBe(500);
+    expect(res.body.error).toBe("Failed to update booking");
+    expect(state(b)).toMatchObject({ booking: "pending", holds: ["ACTIVE"] });
   });
 
   it("a booking sharing its session confirms only its own hold, never a sibling's", async () => {
@@ -344,13 +435,13 @@ describe("seats are reserved in the transaction of the confirm", () => {
 describe("holdCountsForBooking", () => {
   const booking = { holdId: "own", bookingSessionId: "s1" };
   const hold = (id: string, status: string, bookingSessionId = "s1") => ({ id, status, bookingSessionId });
-  it("counts ACTIVE and CONFIRMED holds, and an EXPIRED one only when it is the booking's own holdId", () => {
+  it("counts ACTIVE, CONFIRMED and EXPIRED holds of the booking, never RELEASED ones", () => {
     expect(holdCountsForBooking(hold("own", "ACTIVE"), booking, false)).toBe(true);
     expect(holdCountsForBooking(hold("own", "CONFIRMED"), booking, false)).toBe(true);
     expect(holdCountsForBooking(hold("own", "EXPIRED"), booking, false)).toBe(true);
     expect(holdCountsForBooking(hold("own", "RELEASED"), booking, true)).toBe(false);
     expect(holdCountsForBooking(hold("other", "ACTIVE"), booking, true)).toBe(true);
-    expect(holdCountsForBooking(hold("other", "EXPIRED"), booking, true)).toBe(false);
+    expect(holdCountsForBooking(hold("other", "EXPIRED"), booking, true)).toBe(true);
     expect(holdCountsForBooking(hold("other", "RELEASED"), booking, true)).toBe(false);
   });
   it("counts session holds only when the booking is alone in its session", () => {

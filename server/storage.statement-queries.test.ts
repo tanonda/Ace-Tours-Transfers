@@ -81,8 +81,8 @@ describe("booking writes", () => {
 });
 
 describe("getOverduePayments", () => {
-  it("lists only payments whose booking is still pending", async () => {
+  it("leaves out only payments whose booking is paid (confirmed or completed)", async () => {
     await storage.getOverduePayments();
-    expect(pg.calls[0].text).toMatch(/EXISTS \(SELECT 1 FROM bookings b WHERE b.id = "payments"."booking_id" AND b.status = 'pending'\)/);
+    expect(pg.calls[0].text).toMatch(/NOT EXISTS \(SELECT 1 FROM bookings b WHERE b.id = "payments"."booking_id" AND b.status IN \('confirmed', 'completed'\)\)/);
   });
 });

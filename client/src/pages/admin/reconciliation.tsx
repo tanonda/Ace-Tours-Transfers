@@ -10,6 +10,7 @@ import { Loader2, RefreshCw, AlertCircle, Info, Landmark, Check, X, ShieldAlert,
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { updateBooking } from "@/lib/api";
+import { apiErrorMessage } from "@/lib/api-error";
 import type { Booking } from "@shared/schema";
 import { Input } from "@/components/ui/input";
 import { format } from "date-fns";
@@ -121,8 +122,9 @@ export default function AdminReconciliation() {
             queryClient.invalidateQueries({ queryKey: ["statement-candidates"] });
             toast({ title: "Success", description: "Booking updated successfully." });
         },
-        onError: () => {
-            toast({ title: "Error", description: "Failed to update booking.", variant: "destructive" });
+        onError: (err) => {
+            // The server's own message, e.g. "Couldn't reserve the seats for this booking. ..."
+            toast({ title: "Error", description: apiErrorMessage(err, "Failed to update booking."), variant: "destructive" });
         },
     });
 

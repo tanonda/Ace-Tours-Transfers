@@ -1,10 +1,10 @@
 // Completes a booking an admin confirmed by hand (a bank statement match, or PATCH to confirmed) the
 // way a gateway payment completes one:
 //  - confirmWithSeats confirms the booking's seat holds in the same transaction as the status write
-//    (a lapsed hold of its own is re-reserved if the date is open and capacity allows), so the
+//    (a lapsed hold is re-reserved if the date is open and capacity allows), so the
 //    hold-expiry job never frees them, and a booking whose seats are gone stays pending;
 //  - completeManualConfirmation then marks its open offline payment `completed`, so the bank transfer
-//    saga stops tracking it and never expires it.
+//    saga stops tracking it. An open online (card) payment is left alone, with a warning.
 import { asc, eq, inArray, or } from "drizzle-orm";
 import { availabilityHolds, bookings, tourInstances, type AvailabilityHold, type Booking } from "../../shared/schema.js";
 import type { IStorage } from "../storage.js";
@@ -29,9 +29,10 @@ export class SeatsUnavailableError extends Error {
 class RolledBack extends Error {}
 
 /**
- * Whether a hold counts as one of the booking's seats. Session holds count only when the booking is
- * alone in its session (otherwise they may be a sibling's). Only ACTIVE or CONFIRMED holds count,
- * plus an EXPIRED hold that is the booking's own holdId (re-reserved on confirm); never RELEASED ones.
+ * Whether a hold counts as one of the booking's seats: its own holdId, or a hold of its session when
+ * the booking is alone in that session (otherwise it may be a sibling's; in Ace each booking has its
+ * own session, so these are its later items). ACTIVE, CONFIRMED and EXPIRED holds count (an EXPIRED
+ * one is re-reserved on confirm, or the confirm is refused); RELEASED ones never do.
  * HoldExpiryJob uses the same rule for its session fallback.
  */
 export function holdCountsForBooking(
@@ -42,8 +43,7 @@ export function holdCountsForBooking(
   const own = !!booking.holdId && hold.id === booking.holdId;
   const inSession = aloneInSession && !!booking.bookingSessionId && hold.bookingSessionId === booking.bookingSessionId;
   if (!own && !inSession) return false;
-  if (hold.status === HoldStatus.ACTIVE || hold.status === HoldStatus.CONFIRMED) return true;
-  return hold.status === HoldStatus.EXPIRED && own;
+  return hold.status === HoldStatus.ACTIVE || hold.status === HoldStatus.CONFIRMED || hold.status === HoldStatus.EXPIRED;
 }
 
 /** True when no other (unarchived) booking shares the booking's session. */
@@ -56,7 +56,7 @@ export async function isAloneInSession(storage: IStorage, booking: Pick<Booking,
 /**
  * Runs `write` (the booking's status write, given the transaction) together with confirming the
  * booking's seat holds, in one transaction. Locks in the gateway path's order: the booking row, then
- * its holds by id, then their tour instances by id. A lapsed (EXPIRED) hold of the booking's own is
+ * its holds by id, then their tour instances by id. A lapsed (EXPIRED) hold of the booking is
  * re-reserved if the date is open and capacity allows; when it can't be, everything rolls back and
  * SeatsUnavailableError is thrown. Any other error rolls back and propagates as is.
  * Returns what `write` returned, or undefined (also rolled back) when `write` returned undefined
@@ -120,14 +120,16 @@ export async function confirmWithSeats<T>(
 /** Completes the booking's open offline payment (the seat holds are handled by confirmWithSeats). */
 export async function completeManualConfirmation(storage: IStorage, booking: Booking): Promise<{ completedPaymentIds: string[] }> {
   const completedPaymentIds: string[] = [];
-  // The open payment the admin has just checked by hand. An offline gateway's payment (bank
-  // transfer, cash), or one a person was asked to review; never an online payment still with the bank.
-  // No payment row (an admin confirming a booking taken by phone): payment status is left alone.
+  // The open payment the admin has just checked by hand: only an offline gateway's (bank transfer,
+  // cash). An online (card) payment is never completed here, whatever its status: it is still with
+  // the bank, so it is left alone and flagged. No payment row (a booking taken by phone): nothing to do.
   for (const payment of await storage.getPaymentsByBooking(booking.id)) {
     if (!OPEN_PAYMENT.has(payment.status)) continue;
     const gateway = await storage.getPaymentGateway(payment.gatewayId);
-    const offline = PaymentMethodClassifier.isOffline(gateway?.slug ?? "");
-    if (!offline && payment.status !== PaymentStatus.ManualReviewRequired) continue;
+    if (!PaymentMethodClassifier.isOffline(gateway?.slug ?? "")) {
+      console.warn(`[BOOKING][CONFIRM] Booking ${booking.id} was confirmed by an admin with an open card payment ${payment.id} (${gateway?.slug ?? "unknown gateway"}, ${payment.status}); the payment is left as it is.`);
+      continue;
+    }
     await storage.updatePayment(payment.id, { status: PaymentStatus.Completed });
     completedPaymentIds.push(payment.id);
   }

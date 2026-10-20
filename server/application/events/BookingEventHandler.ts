@@ -2,6 +2,7 @@
 import { eventDispatcher } from "../../infrastructure/events/event-dispatcher.js";
 import { PaymentConfirmed, PaymentFailed, PaymentExpired } from "../../domain/events.js";
 import { IStorage } from "../../storage.js";
+import { isPaidBookingStatus } from "../../domain/booking/paid-status.js";
 import { AvailabilityApplicationService } from "../availability/availability.application-service.js";
 import { mailingService } from "../../infrastructure/mailing/MailingService.js";
 import { AuditLogService } from "../../infrastructure/audit/audit-log.service.js";
@@ -217,8 +218,8 @@ export class BookingEventHandler {
   private async onPaymentExpired(event: PaymentExpired): Promise<void> {
     const booking = await this.storage.getBooking(event.bookingId);
     if (!booking) return;
-    // Only a booking still waiting for its payment expires (one confirmed by hand keeps its seats).
-    if (booking.status !== 'pending') {
+    // A booking paid meanwhile (confirmed by hand) keeps its seats; any other one expires as before.
+    if (isPaidBookingStatus(booking.status)) {
       console.warn(`[EVENT][HANDLER] PaymentExpired for booking ${booking.id} ignored: it is '${booking.status}'`);
       return;
     }

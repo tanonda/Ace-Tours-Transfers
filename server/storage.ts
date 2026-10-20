@@ -1017,8 +1017,8 @@ export class DatabaseStorage implements IStorage {
             eq(payments.status, 'manual_review_required')
           ),
           sql`${payments.expiresAt} < NOW()`,
-          // Only payments whose booking still waits for them: a booking confirmed by hand never expires.
-          sql`EXISTS (SELECT 1 FROM bookings b WHERE b.id = ${payments.bookingId} AND b.status = 'pending')`
+          // Never the payment of a booking paid meanwhile (confirmed by hand); any other booking expires as before.
+          sql`NOT EXISTS (SELECT 1 FROM bookings b WHERE b.id = ${payments.bookingId} AND b.status IN ('confirmed', 'completed'))`
         )
       )
     );

@@ -10,6 +10,7 @@ import {
 } from '../domain/payments/interfaces.js';
 import { PaymentMethodClassifier } from '../domain/payments/payment-method-classifier.js';
 import { IStorage } from '../storage.js';
+import { isPaidBookingStatus } from '../domain/booking/paid-status.js';
 import { PaymentFactory } from "../infrastructure/payments/factory.js";
 import type { MpgsHostedCheckoutAdapter } from "../infrastructure/payments/mpgs.adapter.js";
 import { PaymentGateway, Booking, Payment } from '../../shared/schema.js';
@@ -596,9 +597,9 @@ export class PaymentApplicationService {
     const payment = await this.storage.getPayment(paymentId);
     const nonTerminalStatuses = [PaymentStatus.Pending, PaymentStatus.Processing, PaymentStatus.ManualReviewRequired];
     if (!payment || !nonTerminalStatuses.includes(payment.status as PaymentStatus)) return;
-    // Only an unpaid booking expires: one confirmed by hand (a bank statement, an admin) keeps its payment.
+    // A booking paid meanwhile (confirmed by hand: a bank statement, an admin) keeps its payment.
     const booking = payment.bookingId ? await this.storage.getBooking(payment.bookingId) : undefined;
-    if (booking && booking.status !== 'pending') {
+    if (booking && isPaidBookingStatus(booking.status)) {
       console.warn(`[PAYMENT][EXPIRE] Payment ${payment.id} is past expiry but booking ${booking.id} is '${booking.status}': not expiring it.`);
       return;
     }

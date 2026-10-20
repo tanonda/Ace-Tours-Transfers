@@ -900,7 +900,8 @@ export function registerBookingsRoutes(app: Express, deps: RouteDeps) {
 
       res.json(booking);
     } catch (error) {
-      res.status(400).json({ error: "Failed to update booking" });
+      console.error(`[ROUTE] PATCH /api/bookings/${req.params.id} Error:`, error);
+      res.status(500).json({ error: "Failed to update booking" });
     }
   });
 

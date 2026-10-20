@@ -11,6 +11,7 @@ vi.mock('../../infrastructure/mailing/MailingService.js', () => ({
 import { BookingEventHandler } from './BookingEventHandler.js';
 import { PaymentFailed, PaymentExpired } from '../../domain/events.js';
 import { makeBooking } from '../../test-fixtures/payment.js';
+import { mailingService } from '../../infrastructure/mailing/MailingService.js';
 
 let storage: Record<string, ReturnType<typeof vi.fn>>;
 let availability: { releaseHold: ReturnType<typeof vi.fn> };
@@ -63,15 +64,18 @@ describe('BookingEventHandler — PaymentFailed', () => {
 describe('BookingEventHandler — PaymentExpired', () => {
   beforeEach(() => handlers.clear());
 
-  it('cancels a booking still waiting for its payment', async () => {
-    setup(makeBooking({ id: 'book_a', status: 'pending' }), [], []);
+  it.each(['pending', 'expired'])('cancels a %s booking and emails the guest, as before', async (status) => {
+    setup(makeBooking({ id: 'book_a', status }), [], []);
     await handlers.get(PaymentExpired)!(new PaymentExpired('pay-1', 'book_a'));
     expect(storage.updateBooking).toHaveBeenCalledWith('book_a', { status: 'cancelled' });
+    expect(mailingService.sendPaymentExpiry).toHaveBeenCalled();
   });
 
   it.each(['confirmed', 'completed'])('leaves a %s booking alone (an admin confirmed it by hand)', async (status) => {
     setup(makeBooking({ id: 'book_a', status }), [], []);
+    vi.mocked(mailingService.sendPaymentExpiry).mockClear();
     await handlers.get(PaymentExpired)!(new PaymentExpired('pay-1', 'book_a'));
     expect(storage.updateBooking).not.toHaveBeenCalled();
+    expect(mailingService.sendPaymentExpiry).not.toHaveBeenCalled();
   });
 });

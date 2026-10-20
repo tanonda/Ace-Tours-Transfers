@@ -3,6 +3,7 @@ import { AvailabilityService, HoldStatus } from "../../domain/availability/avail
 import { createLogger } from "../../lib/logger.js";
 import { extractErrorDetails } from "../../lib/error-util.js";
 import { holdCountsForBooking } from "../../lib/manual-confirmation.js";
+import { isPaidBookingStatus } from "../../domain/booking/paid-status.js";
 import type { AvailabilityHold, Booking } from "../../../shared/schema.js";
 
 const log = createLogger('hold-expiry');
@@ -144,7 +145,7 @@ export class HoldExpiryJob {
    * rule a manual confirm uses (holdCountsForBooking).
    */
   private async paidBookingOwning(hold: AvailabilityHold, byHold: Booking | undefined): Promise<Booking | undefined> {
-    const paid = (b: Booking) => b.status === 'confirmed' || b.status === 'completed';
+    const paid = (b: Booking) => isPaidBookingStatus(b.status);
     if (byHold) return paid(byHold) ? byHold : undefined;
     if (!hold.bookingSessionId) return undefined;
     const group = await this.storage.getBookingsBySession(hold.bookingSessionId);
