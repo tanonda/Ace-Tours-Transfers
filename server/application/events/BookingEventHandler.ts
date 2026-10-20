@@ -217,6 +217,11 @@ export class BookingEventHandler {
   private async onPaymentExpired(event: PaymentExpired): Promise<void> {
     const booking = await this.storage.getBooking(event.bookingId);
     if (!booking) return;
+    // Only a booking still waiting for its payment expires (one confirmed by hand keeps its seats).
+    if (booking.status !== 'pending') {
+      console.warn(`[EVENT][HANDLER] PaymentExpired for booking ${booking.id} ignored: it is '${booking.status}'`);
+      return;
+    }
 
     console.log(`[EVENT][HANDLER] Handling PaymentExpired for Booking ${booking.id}`);
 

@@ -596,6 +596,12 @@ export class PaymentApplicationService {
     const payment = await this.storage.getPayment(paymentId);
     const nonTerminalStatuses = [PaymentStatus.Pending, PaymentStatus.Processing, PaymentStatus.ManualReviewRequired];
     if (!payment || !nonTerminalStatuses.includes(payment.status as PaymentStatus)) return;
+    // Only an unpaid booking expires: one confirmed by hand (a bank statement, an admin) keeps its payment.
+    const booking = payment.bookingId ? await this.storage.getBooking(payment.bookingId) : undefined;
+    if (booking && booking.status !== 'pending') {
+      console.warn(`[PAYMENT][EXPIRE] Payment ${payment.id} is past expiry but booking ${booking.id} is '${booking.status}': not expiring it.`);
+      return;
+    }
 
     // Reconstruct Aggregate
     const intent = new PaymentIntent({

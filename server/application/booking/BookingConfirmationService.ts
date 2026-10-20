@@ -292,6 +292,11 @@ export class BookingConfirmationService {
       
       const booking = await this.storage.getBooking(bookingId);
       if (!booking) return;
+      // An expired payment cancels only a booking still waiting for it, never one confirmed meanwhile.
+      if (reason === "payment_expired" && booking.status !== "pending") {
+        console.warn(`[BOOKING_CONFIRM] Not cancelling ${bookingId} for payment_expired: it is '${booking.status}'`);
+        return;
+      }
 
       // Release any holds
       if (booking.holdId) {

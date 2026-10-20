@@ -9,7 +9,7 @@ vi.mock('../../infrastructure/mailing/MailingService.js', () => ({
 }));
 
 import { BookingEventHandler } from './BookingEventHandler.js';
-import { PaymentFailed } from '../../domain/events.js';
+import { PaymentFailed, PaymentExpired } from '../../domain/events.js';
 import { makeBooking } from '../../test-fixtures/payment.js';
 
 let storage: Record<string, ReturnType<typeof vi.fn>>;
@@ -57,5 +57,21 @@ describe('BookingEventHandler — PaymentFailed', () => {
     await onFailed(new PaymentFailed('pay-1', 'book_a', 'payzen_refused'));
 
     expect(storage.updateBooking).toHaveBeenCalledWith('book_a', { status: 'failed' });
+  });
+});
+
+describe('BookingEventHandler — PaymentExpired', () => {
+  beforeEach(() => handlers.clear());
+
+  it('cancels a booking still waiting for its payment', async () => {
+    setup(makeBooking({ id: 'book_a', status: 'pending' }), [], []);
+    await handlers.get(PaymentExpired)!(new PaymentExpired('pay-1', 'book_a'));
+    expect(storage.updateBooking).toHaveBeenCalledWith('book_a', { status: 'cancelled' });
+  });
+
+  it.each(['confirmed', 'completed'])('leaves a %s booking alone (an admin confirmed it by hand)', async (status) => {
+    setup(makeBooking({ id: 'book_a', status }), [], []);
+    await handlers.get(PaymentExpired)!(new PaymentExpired('pay-1', 'book_a'));
+    expect(storage.updateBooking).not.toHaveBeenCalled();
   });
 });
