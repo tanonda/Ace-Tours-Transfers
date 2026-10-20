@@ -18,6 +18,7 @@
  */
 
 import { IStorage } from "../../storage.js";
+import { AvailabilityService } from "../../domain/availability/availability.service.js";
 import { ConfirmationErrorCode } from "./AtomicBookingConfirmationService.js";
 
 export enum ConflictType {
@@ -366,7 +367,7 @@ export class ConcurrencyConflictHandler {
           console.log(
             `[CONFLICT] Releasing stale hold ${hold.id} (expired at ${hold.expiresAt.toISOString()})`
           );
-          await this.storage.updateHold(hold.id, { status: "RELEASED" });
+          await new AvailabilityService(this.storage).releaseHold(hold.id);
         }
       }
     } catch (error) {

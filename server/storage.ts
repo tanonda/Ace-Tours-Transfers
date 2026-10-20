@@ -679,6 +679,14 @@ export class DatabaseStorage implements IStorage {
       if (!booking) return;
 
       if (booking.holdId) {
+        // An ACTIVE hold gives its seats back (heldCount) as it is released; a later re-reservation of
+        // the released hold then counts them once.
+        const [hold] = await tx.select().from(availabilityHolds).where(eq(availabilityHolds.id, booking.holdId)).for('update');
+        if (hold?.status === 'ACTIVE') {
+          await tx.update(tourInstances)
+            .set({ heldCount: sql`GREATEST(0, ${tourInstances.heldCount} - ${hold.quantity})` })
+            .where(eq(tourInstances.id, hold.tourInstanceId));
+        }
         await tx.update(availabilityHolds)
           .set({ status: 'RELEASED' })
           .where(eq(availabilityHolds.id, booking.holdId));

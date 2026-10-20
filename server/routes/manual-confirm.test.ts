@@ -16,6 +16,8 @@ const w = vi.hoisted(() => ({
   instances: new Map<string, Row>(),
   payments: new Map<string, Row>(),
   gateways: new Map<string, Row>(),
+  /** booking_items per booking id (only the guest counts matter). */
+  items: new Map<string, Row[]>(),
   blackedOut: new Set<string>(),
   locks: [] as string[],
   /** Throw this (not a seat problem) when confirming the given hold. */
@@ -112,7 +114,7 @@ vi.mock("../storage.js", () => {
     createNotification: async (n: Row) => { notify.admin.push(n.message); return n; },
     getHoldsBySession: async (sid: string) => [...w.holds.values()].filter((h) => h.bookingSessionId === sid && h.status === "ACTIVE"),
     getExpiredHolds: async (now: Date) => [...w.holds.values()].filter((h) => h.status === "ACTIVE" && h.expiresAt < now),
-    getBookingItems: async () => [],
+    getBookingItems: async (id: string) => (w.items.get(id) ?? []).map((i) => ({ ...i })),
     getProduct: async () => undefined,
     isBlackedOut: async (productId: string, date: string) => w.blackedOut.has(`${productId}:${date}`),
   };
@@ -139,6 +141,7 @@ beforeAll(() => {
   });
   vi.spyOn(AvailabilityService.prototype, "reserveLapsedHold").mockImplementation(async (holdId: string) => {
     const h = w.holds.get(holdId)!;
+    if (h.status !== HoldStatus.EXPIRED && h.status !== HoldStatus.RELEASED) throw new Error(`Cannot re-reserve hold in status: ${h.status}`);
     const i = w.instances.get(h.tourInstanceId)!;
     if (w.blackedOut.has(`${i.tourId}:${i.serviceDate}`)) throw new LapsedHoldUnavailableError("blackout", "blackout");
     if (free(i) < h.quantity) throw new LapsedHoldUnavailableError("capacity", "full");
@@ -182,7 +185,7 @@ beforeAll(async () => {
 const HOUR = 3600_000;
 let n = 0;
 beforeEach(() => {
-  [w.bookings, w.holds, w.instances, w.payments, w.gateways].forEach((m) => m.clear());
+  [w.bookings, w.holds, w.instances, w.payments, w.gateways, w.items].forEach((m) => m.clear());
   w.blackedOut.clear();
   w.locks.length = 0;
   w.crashOn = null;
@@ -397,6 +400,46 @@ describe("seats are reserved in the transaction of the confirm", () => {
         seats: [{ confirmed: 0, held: 2 }, { confirmed: 3, held: 0 }],
       });
     }
+  });
+
+  it("a RELEASED later-item hold is re-reserved with the others", async () => {
+    const b = bankTransferBooking([{}, { status: "RELEASED" }]);
+    expect((await patchConfirm(b.bookingId)).status).toBe(200);
+    expect(state(b)).toMatchObject({ booking: "confirmed", holds: ["CONFIRMED", "CONFIRMED"], seats: [{ confirmed: 2, held: 0 }, { confirmed: 2, held: 0 }] });
+  });
+
+  it("a RELEASED later-item hold on a full tour refuses the confirm (409) and nothing changes", async () => {
+    const b = bankTransferBooking([{}, { status: "RELEASED", capacity: 4, confirmed: 3 }]);
+    for (const res of [await statementConfirm(b.bookingId), await patchConfirm(b.bookingId)]) {
+      expect(res.status).toBe(409);
+      expect(res.body.error).toBe("Couldn't reserve the seats for this booking. Check availability and try again.");
+      expect(state(b)).toEqual({
+        booking: "pending", holds: ["ACTIVE", "RELEASED"], payment: "manual_review_required",
+        seats: [{ confirmed: 0, held: 2 }, { confirmed: 3, held: 0 }],
+      });
+    }
+  });
+
+  it("fewer holds than items with guests (a missing hold) gives 409 and the booking stays pending", async () => {
+    const b = bankTransferBooking([{}]);
+    w.items.set(b.bookingId, [{ adultPax: 2, childPax: 0 }, { adultPax: 1, childPax: 1 }, { adultPax: 0, childPax: 0 }]);
+    for (const res of [await statementConfirm(b.bookingId), await patchConfirm(b.bookingId)]) {
+      expect(res.status).toBe(409);
+      expect(res.body.error).toBe("Couldn't reserve the seats for this booking. Check availability and try again.");
+      expect(state(b)).toMatchObject({ booking: "pending", holds: ["ACTIVE"], seats: [{ confirmed: 0, held: 2 }] });
+    }
+  });
+
+  it("as many holds as items with guests confirms", async () => {
+    const b = bankTransferBooking([{}, {}]);
+    w.items.set(b.bookingId, [{ adultPax: 2, childPax: 0 }, { adultPax: 0, childPax: 2 }, { adultPax: 0, childPax: 0 }]);
+    expect((await patchConfirm(b.bookingId)).status).toBe(200);
+  });
+
+  it("a RELEASED own hold with no others is re-reserved, not confirmed with no seats", async () => {
+    const b = bankTransferBooking([{ status: "RELEASED" }]);
+    expect((await statementConfirm(b.bookingId)).status).toBe(200);
+    expect(state(b)).toMatchObject({ booking: "confirmed", holds: ["CONFIRMED"], seats: [{ confirmed: 2, held: 0 }] });
   });
 
   it("an open card payment is never completed by a manual confirm", async () => {

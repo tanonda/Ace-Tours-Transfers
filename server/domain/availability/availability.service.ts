@@ -328,7 +328,7 @@ export class AvailabilityService {
   }
 
   /**
-   * Re-reserves the seats of an EXPIRED hold as confirmed, for a booking an admin confirmed after its
+   * Re-reserves the seats of an EXPIRED or RELEASED hold as confirmed (neither holds heldCount seats), for a booking an admin confirmed after its
    * hold lapsed. Checks blackout dates and capacity under the instance lock (the caller has locked
    * the hold and its instance) and throws LapsedHoldUnavailableError when the seats can't be had.
    * Runs in the caller's transaction.
@@ -336,7 +336,7 @@ export class AvailabilityService {
   async reserveLapsedHold(holdId: string, tx: any): Promise<void> {
     const [hold] = await tx.select().from(availabilityHolds).where(eq(availabilityHolds.id, holdId)).for('update');
     if (!hold) throw new Error("Hold not found");
-    if (hold.status !== HoldStatus.EXPIRED) throw new Error(`Cannot re-reserve hold in status: ${hold.status}`);
+    if (hold.status !== HoldStatus.EXPIRED && hold.status !== HoldStatus.RELEASED) throw new Error(`Cannot re-reserve hold in status: ${hold.status}`);
 
     const [instance] = await tx.select().from(tourInstances).where(eq(tourInstances.id, hold.tourInstanceId)).for('update');
     if (!instance) throw new LapsedHoldUnavailableError("unavailable", "Tour instance not found");

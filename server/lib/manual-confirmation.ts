@@ -31,9 +31,9 @@ class RolledBack extends Error {}
 /**
  * Whether a hold counts as one of the booking's seats: its own holdId, or a hold of its session when
  * the booking is alone in that session (otherwise it may be a sibling's; in Ace each booking has its
- * own session, so these are its later items). ACTIVE, CONFIRMED and EXPIRED holds count (an EXPIRED
- * one is re-reserved on confirm, or the confirm is refused); RELEASED ones never do.
- * HoldExpiryJob uses the same rule for its session fallback.
+ * own session, so these are its later items). ACTIVE, CONFIRMED and EXPIRED holds count; RELEASED ones
+ * do not. This is HoldExpiryJob's rule for its session fallback only: a manual confirm reserves every
+ * hold of the booking, RELEASED ones included (see confirmWithSeats).
  */
 export function holdCountsForBooking(
   hold: Pick<AvailabilityHold, "id" | "status" | "bookingSessionId">,
@@ -56,7 +56,7 @@ export async function isAloneInSession(storage: IStorage, booking: Pick<Booking,
 /**
  * Runs `write` (the booking's status write, given the transaction) together with confirming the
  * booking's seat holds, in one transaction. Locks in the gateway path's order: the booking row, then
- * its holds by id, then their tour instances by id. A lapsed (EXPIRED) hold of the booking is
+ * its holds by id, then their tour instances by id. A lapsed (EXPIRED or RELEASED) hold of the booking is
  * re-reserved if the date is open and capacity allows; when it can't be, everything rolls back and
  * SeatsUnavailableError is thrown. Any other error rolls back and propagates as is.
  * Returns what `write` returned, or undefined (also rolled back) when `write` returned undefined
@@ -74,16 +74,22 @@ export async function confirmWithSeats<T>(
       const [locked] = await tx.select().from(bookings).where(eq(bookings.id, booking.id)).for('update');
       if (!locked || locked.status !== booking.status) throw new RolledBack();
 
-      // 2. Its holds, locked in id order, kept only when they count for this booking.
+      // 2. Its holds, locked in id order: its own holdId and, alone in its session, every hold of the
+      //    session, whatever the status (ACTIVE and CONFIRMED are confirmed, EXPIRED and RELEASED re-reserved).
       const alone = await isAloneInSession(storage, locked);
       const which = [
         locked.holdId ? eq(availabilityHolds.id, locked.holdId) : undefined,
         alone && locked.bookingSessionId ? eq(availabilityHolds.bookingSessionId, locked.bookingSessionId) : undefined,
       ].filter((c) => c !== undefined);
-      const rows: AvailabilityHold[] = which.length
+      const holds: AvailabilityHold[] = which.length
         ? await tx.select().from(availabilityHolds).where(or(...which)).orderBy(asc(availabilityHolds.id)).for('update')
         : [];
-      const holds = rows.filter((h) => holdCountsForBooking(h, locked, alone));
+
+      // Safeguard: each item with guests has a hold; fewer holds than such items means seats are missing.
+      const seated = (await storage.getBookingItems(locked.id)).filter((i) => (i.adultPax ?? 0) + (i.childPax ?? 0) > 0).length;
+      if (holds.length < seated) {
+        throw new SeatsUnavailableError(new Error(`Booking has ${seated} items with guests but ${holds.length} holds`));
+      }
 
       // 3. Their tour instances, locked in id order.
       const instanceIds = [...new Set(holds.map((h) => h.tourInstanceId))].sort();
@@ -96,7 +102,7 @@ export async function confirmWithSeats<T>(
         if (hold.status === HoldStatus.CONFIRMED) continue;
         try {
           if (hold.status === HoldStatus.ACTIVE) await availability.confirmBooking(hold.id, tx);
-          else await availability.reserveLapsedHold(hold.id, tx);
+          else await availability.reserveLapsedHold(hold.id, tx); // EXPIRED or RELEASED
         } catch (err) {
           if (err instanceof LapsedHoldUnavailableError) throw new SeatsUnavailableError(err);
           throw err;

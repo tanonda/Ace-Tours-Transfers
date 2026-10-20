@@ -44,10 +44,10 @@ describe("reserveLapsedHold", () => {
     expect(updates).toEqual([]);
   });
 
-  it("refuses a hold whose tour instance is gone; a hold that is not EXPIRED is a plain error", async () => {
+  it("refuses a hold whose tour instance is gone; a hold that is neither EXPIRED nor RELEASED is a plain error", async () => {
     delete rows.tour_instances;
     await expect(service().reserveLapsedHold("h1", tx)).rejects.toMatchObject({ reason: "unavailable" });
-    rows.availability_holds.status = "RELEASED";
+    rows.availability_holds.status = "CONFIRMED";
     const err = await service().reserveLapsedHold("h1", tx).catch((e) => e);
     expect(err).not.toBeInstanceOf(LapsedHoldUnavailableError);
   });
