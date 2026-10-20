@@ -141,8 +141,9 @@ export class HoldExpiryJob {
 
   /**
    * The confirmed or completed booking this hold belongs to, if any: the booking whose holdId it is,
-   * or else (the later items of a multi-item booking) the one booking of its session, by the same
-   * rule a manual confirm uses (holdCountsForBooking).
+   * or else (the later items of a multi-item booking) the one booking of its session. A live
+   * (non-RELEASED) hold only: holdCountsForBooking. A manual confirm itself reserves every hold of a
+   * booking in its own session, RELEASED ones included.
    */
   private async paidBookingOwning(hold: AvailabilityHold, byHold: Booking | undefined): Promise<Booking | undefined> {
     const paid = (b: Booking) => isPaidBookingStatus(b.status);

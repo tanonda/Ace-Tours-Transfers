@@ -6,7 +6,7 @@
 //  - completeManualConfirmation then marks its open offline payment `completed`, so the bank transfer
 //    saga stops tracking it. An open online (card) payment is left alone, with a warning.
 import { asc, eq, inArray, or } from "drizzle-orm";
-import { availabilityHolds, bookings, tourInstances, type AvailabilityHold, type Booking } from "../../shared/schema.js";
+import { availabilityHolds, bookingItems, bookings, tourInstances, type AvailabilityHold, type Booking, type BookingItem } from "../../shared/schema.js";
 import type { IStorage } from "../storage.js";
 import { db } from "../db.js";
 import { AvailabilityService, HoldStatus, LapsedHoldUnavailableError } from "../domain/availability/availability.service.js";
@@ -46,13 +46,6 @@ export function holdCountsForBooking(
   return hold.status === HoldStatus.ACTIVE || hold.status === HoldStatus.CONFIRMED || hold.status === HoldStatus.EXPIRED;
 }
 
-/** True when no other (unarchived) booking shares the booking's session. */
-export async function isAloneInSession(storage: IStorage, booking: Pick<Booking, "id" | "bookingSessionId">): Promise<boolean> {
-  if (!booking.bookingSessionId) return false;
-  const group = await storage.getBookingsBySession(booking.bookingSessionId);
-  return group.every((b) => b.id === booking.id);
-}
-
 /**
  * Runs `write` (the booking's status write, given the transaction) together with confirming the
  * booking's seat holds, in one transaction. Locks in the gateway path's order: the booking row, then
@@ -76,17 +69,19 @@ export async function confirmWithSeats<T>(
 
       // 2. Its holds, locked in id order: its own holdId and, alone in its session, every hold of the
       //    session, whatever the status (ACTIVE and CONFIRMED are confirmed, EXPIRED and RELEASED re-reserved).
-      const alone = await isAloneInSession(storage, locked);
+      //    Only a booking in its own session (bookingSessionId === id, the form since 56c9138) has session
+      //    holds; an older booking shared the browser session, whose holds may be a deleted sibling's.
+      const ownSession = !!locked.bookingSessionId && locked.bookingSessionId === locked.id;
       const which = [
         locked.holdId ? eq(availabilityHolds.id, locked.holdId) : undefined,
-        alone && locked.bookingSessionId ? eq(availabilityHolds.bookingSessionId, locked.bookingSessionId) : undefined,
+        ownSession && locked.bookingSessionId ? eq(availabilityHolds.bookingSessionId, locked.bookingSessionId) : undefined,
       ].filter((c) => c !== undefined);
       const holds: AvailabilityHold[] = which.length
         ? await tx.select().from(availabilityHolds).where(or(...which)).orderBy(asc(availabilityHolds.id)).for('update')
         : [];
 
       // Safeguard: each item with guests has a hold; fewer holds than such items means seats are missing.
-      const seated = (await storage.getBookingItems(locked.id)).filter((i) => (i.adultPax ?? 0) + (i.childPax ?? 0) > 0).length;
+      const seated = (await tx.select().from(bookingItems).where(eq(bookingItems.bookingId, locked.id)) as BookingItem[]).filter((i) => (i.adultPax ?? 0) + (i.childPax ?? 0) > 0).length;
       if (holds.length < seated) {
         throw new SeatsUnavailableError(new Error(`Booking has ${seated} items with guests but ${holds.length} holds`));
       }

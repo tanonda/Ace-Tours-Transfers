@@ -42,6 +42,9 @@ vi.mock("../db.js", () => {
         const name = getTableName(table);
         let wanted: unknown[] = [];
         const chain = {
+          // booking_items are read without a lock: awaiting the chain gives the booking's rows
+          then: (ok: (r: Row[]) => unknown, no: (e: unknown) => unknown) =>
+            Promise.resolve(name === "booking_items" ? wanted.flatMap((id) => (w.items.get(id as string) ?? []).map((i) => ({ ...i }))) : []).then(ok, no),
           where: (cond: unknown) => { wanted = params(cond); return chain; },
           orderBy: () => chain,
           for: async () => {
@@ -202,7 +205,7 @@ beforeEach(() => {
 function bankTransferBooking(holds: Array<{ status?: string; quantity?: number; capacity?: number; confirmed?: number }> = [{}]) {
   const k = ++n;
   const bookingId = `b${k}`;
-  const sessionId = `s${k}`;
+  const sessionId = bookingId; // the per-booking session form
   const holdIds = holds.map((spec, j) => {
     const holdId = `h${k}-${j}`;
     const quantity = spec.quantity ?? 2;
@@ -462,10 +465,19 @@ describe("seats are reserved in the transaction of the confirm", () => {
     expect(state(b)).toMatchObject({ booking: "pending", holds: ["ACTIVE"] });
   });
 
+  it("an older booking (session id not its own) uses only its holdId and never picks up a deleted sibling's RELEASED hold", async () => {
+    const b = bankTransferBooking([{}, { status: "RELEASED" }]);
+    w.bookings.get(b.bookingId)!.bookingSessionId = "browser-session"; // shared browser session, as before 56c9138
+    for (const h of b.holdIds) w.holds.get(h)!.bookingSessionId = "browser-session";
+    expect((await patchConfirm(b.bookingId)).status).toBe(200);
+    expect(state(b)).toMatchObject({ booking: "confirmed", holds: ["CONFIRMED", "RELEASED"], seats: [{ confirmed: 2, held: 0 }, { confirmed: 0, held: 0 }] });
+  });
+
   it("a booking sharing its session confirms only its own hold, never a sibling's", async () => {
     const a = bankTransferBooking([{}]);
     // A second booking in the same session, with its own hold.
-    const sid = w.bookings.get(a.bookingId)!.bookingSessionId;
+    const sid = w.bookings.get(a.bookingId)!.bookingSessionId = "shared";
+    w.holds.get(a.holdIds[0])!.bookingSessionId = "shared";
     w.instances.set("i-sib", { id: "i-sib", tourId: "tour1", serviceDate: "2099-01-01", totalCapacity: 10, confirmedCount: 0, heldCount: 1, blockedCount: 0 });
     w.holds.set("h-sib", { id: "h-sib", tourInstanceId: "i-sib", quantity: 1, status: "ACTIVE", bookingSessionId: sid, expiresAt: new Date(Date.now() + HOUR) });
     w.bookings.set("b-sib", { id: "b-sib", status: "pending", holdId: "h-sib", bookingSessionId: sid, updatedAt: new Date() });

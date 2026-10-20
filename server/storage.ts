@@ -675,7 +675,7 @@ export class DatabaseStorage implements IStorage {
   async deleteBooking(id: string, hardDelete: boolean = false): Promise<void> {
     await db.transaction(async (tx: any) => {
       // M8 Fix: Properly release holds and handle confirmedCount before deletion
-      const [booking] = await tx.select().from(bookings).where(eq(bookings.id, id));
+      const [booking] = await tx.select().from(bookings).where(eq(bookings.id, id)).for('update'); // booking, then hold, then instance: confirmWithSeats' order
       if (!booking) return;
 
       if (booking.holdId) {

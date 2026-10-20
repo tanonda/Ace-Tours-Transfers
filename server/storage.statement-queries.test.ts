@@ -116,6 +116,18 @@ describe("held counts", () => {
     expect(pg.calls.some((c) => /^update "availability_holds" set "status" = \$1/.test(c.text) && c.values[0] === "RELEASED")).toBe(true);
   });
 
+  it("deleteBooking locks the booking row first, then the hold, then the instance (confirmWithSeats' order)", async () => {
+    world("ACTIVE");
+    await storage.deleteBooking("b1", false);
+    const at = (re: RegExp) => sql().findIndex((t) => re.test(t));
+    const booking = at(/from "bookings".* for update/);
+    const hold = at(/from "availability_holds".* for update/);
+    const instance = at(/^update "tour_instances"/);
+    expect(booking).toBeGreaterThanOrEqual(0);
+    expect(booking).toBeLessThan(hold);
+    expect(hold).toBeLessThan(instance);
+  });
+
   it.each(["RELEASED", "EXPIRED", "CONFIRMED"])("deleteBooking leaves heldCount alone for a %s hold", async (status) => {
     world(status);
     await storage.deleteBooking("b1", false);
