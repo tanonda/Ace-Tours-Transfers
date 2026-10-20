@@ -12,6 +12,8 @@ const sendEmail = vi.hoisted(() => vi.fn(async () => true));
 vi.mock("express-rate-limit", () => ({ rateLimit: () => (_q: any, _s: any, n: any) => n(), default: () => (_q: any, _s: any, n: any) => n() }));
 vi.mock("../lib/review-request.js", () => ({ sendReviewRequest }));
 vi.mock("../lib/mail.js", async (orig) => ({ ...(await orig<any>()), sendEmail, sendAdminEmail: vi.fn(async () => true) }));
+// The seat reservation of a confirm is a database transaction, tested in manual-confirm.test.ts.
+vi.mock("../lib/manual-confirmation.js", async (orig) => ({ ...(await orig<any>()), confirmWithSeats: async (_s: unknown, _b: unknown, write: (tx: unknown) => unknown) => write(undefined) }));
 vi.mock("../storage.js", () => ({
   storage: new Proxy({} as Record<string, unknown>, {
     get: (t, key: string) => (t[key] ??= vi.fn(async (id?: unknown, updates?: any) => {

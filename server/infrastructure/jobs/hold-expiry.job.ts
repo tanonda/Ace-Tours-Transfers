@@ -2,8 +2,13 @@ import { IStorage } from "../../storage.js";
 import { AvailabilityService, HoldStatus } from "../../domain/availability/availability.service.js";
 import { createLogger } from "../../lib/logger.js";
 import { extractErrorDetails } from "../../lib/error-util.js";
+import { holdCountsForBooking } from "../../lib/manual-confirmation.js";
+import type { AvailabilityHold, Booking } from "../../../shared/schema.js";
 
 const log = createLogger('hold-expiry');
+
+/** Holds already reported as skipped (a paid booking's), so each is logged once per process. */
+const loggedSkippedHolds = new Set<string>();
 
 export interface HoldExpiryMetrics {
   totalRuns: number;
@@ -64,23 +69,30 @@ export class HoldExpiryJob {
 
         // Process batch concurrently with Promise.allSettled for resilience
         const results = await Promise.allSettled(
-          batch.map(async (hold) => {
-            // HIGH-3 FIX: Release hold first (transactional), then cancel booking.
-            // releaseHold is already transactional internally (lock + decrement + status update).
-            // The booking status update wraps together so if releaseHold succeeds,
-            // the booking MUST be cancelled too — we retry the booking update if it fails.
-            await this.availabilityService.releaseHold(hold.id, HoldStatus.EXPIRED);
-
-            // Cancel associated pending booking AFTER hold is released
+          batch.map(async (hold): Promise<'expired' | 'skipped'> => {
+            // Backstop: never free the seats of a confirmed or completed booking (one confirmed by
+            // hand before its hold was confirmed would otherwise be overbooked). The hold stays as it is.
             const booking = await this.storage.getBookingByHoldId(hold.id);
-            if (booking && booking.status === 'pending') {
-              log.info('Cancelling orphaned pending booking', { bookingId: booking.id, holdId: hold.id });
+            const paidBooking = await this.paidBookingOwning(hold, booking);
+            if (paidBooking) {
+              if (!loggedSkippedHolds.has(hold.id)) {
+                loggedSkippedHolds.add(hold.id);
+                log.warn('Skipping expired hold of a confirmed booking', { holdId: hold.id, bookingId: paidBooking.id, status: paidBooking.status });
+              }
+              return 'skipped';
+            }
+
+            // Release first (transactional: lock + decrement + status). Only a hold this call actually
+            // released expires its booking; a hold confirmed or released meanwhile is left alone.
+            const released = await this.availabilityService.releaseHold(hold.id, HoldStatus.EXPIRED);
+            if (!released) return 'skipped';
+
+            // Expire the booking only while it is still pending: the write is conditional, so a confirm
+            // that landed after the read above is never overwritten.
+            if (booking) {
               try {
-                await this.storage.updateBooking(booking.id, {
-                  status: 'expired',
-                  updatedAt: new Date(),
-                  notes: (booking.notes || "") + "\nCancelled by hold expiry job."
-                });
+                const expired = await this.storage.expireBookingIfPending(booking.id, "\nCancelled by hold expiry job.");
+                if (expired) log.info('Expired orphaned pending booking', { bookingId: booking.id, holdId: hold.id });
               } catch (bookingErr) {
                 // Hold has been released — booking update failing is critical.
                 // Log prominently so reconciliation can pick it up.
@@ -88,12 +100,13 @@ export class HoldExpiryJob {
                 throw bookingErr; // Surface the failure to Promise.allSettled
               }
             }
+            return 'expired';
           })
         );
 
         for (const result of results) {
           if (result.status === "fulfilled") {
-            totalExpired++;
+            if (result.value === 'expired') totalExpired++;
           } else {
             totalFailed++;
             const holdErr = result.reason instanceof Error ? result.reason.message : String(result.reason ?? 'unknown');
@@ -123,6 +136,21 @@ export class HoldExpiryJob {
 
     this.updateMetrics(startTime, totalExpired, totalFailed);
     return { expired: totalExpired, failed: totalFailed };
+  }
+
+  /**
+   * The confirmed or completed booking this hold belongs to, if any: the booking whose holdId it is,
+   * or else (the later items of a multi-item booking) the one booking of its session, by the same
+   * rule a manual confirm uses (holdCountsForBooking).
+   */
+  private async paidBookingOwning(hold: AvailabilityHold, byHold: Booking | undefined): Promise<Booking | undefined> {
+    const paid = (b: Booking) => b.status === 'confirmed' || b.status === 'completed';
+    if (byHold) return paid(byHold) ? byHold : undefined;
+    if (!hold.bookingSessionId) return undefined;
+    const group = await this.storage.getBookingsBySession(hold.bookingSessionId);
+    if (group.length !== 1) return undefined;
+    const [only] = group; // alone in its session
+    return paid(only) && holdCountsForBooking(hold, only, true) ? only : undefined;
   }
 
   private updateMetrics(startTime: number, expired: number, failed: number): void {

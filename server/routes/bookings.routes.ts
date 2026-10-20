@@ -8,7 +8,8 @@ import { screenBookingUpdate } from "../lib/booking-update-policy.js";
 import { PriceCartService } from "../application/pricing/PriceCartService.js";
 
 import { sendEmail, sendAdminEmail, getBookingStatusUpdateTemplate, shortBookingRef } from "../lib/mail.js";
-import { sendReviewRequest } from "../lib/review-request.js";
+import { afterAdminStatusChange } from "../lib/booking-status-effects.js";
+import { confirmWithSeats, SeatsUnavailableError, SEATS_UNAVAILABLE_MESSAGE } from "../lib/manual-confirmation.js";
 import { isFeatureEnabled } from "../feature-flags.js";
 import { AtomicBookingConfirmationService } from "../application/booking/AtomicBookingConfirmationService.js";
 import QRCode from "qrcode";
@@ -878,34 +879,23 @@ export function registerBookingsRoutes(app: Express, deps: RouteDeps) {
         }
       }
 
-      const booking = await storage.updateBooking(req.params.id, updates);
-
-      // Completed trips get the "How was your trip?" review request in place of the
-      // generic status email. Fire-and-forget: email failure never fails the update.
-      if (updates.status === "completed" && existing.status !== "completed") {
-        sendReviewRequest(booking).catch((err) => console.error("[BOOKING][STATUS] Review request failed (non-fatal):", err));
-      } else if (updates.status && updates.status !== existing.status && booking.customerEmail) {
+      // A confirm by hand reserves the booking's seats in the same transaction as the status write:
+      // if the seats can't be reserved the booking stays as it was.
+      let booking;
+      if (updates.status === "confirmed" && existing.status !== "confirmed") {
         try {
-          const bookingItems = await storage.getBookingItems(booking.id);
-          const firstItem = bookingItems[0];
-          const tourData = firstItem ? await storage.getProduct(firstItem.productId) : null;
-          const tourInfo = tourData || { title: 'Product/Transfer Booking' };
-
-          const emailBooking = {
-            ...booking,
-            date: booking.date || new Date().toISOString().split('T')[0],
-            guests: `${firstItem?.adultPax || 1} Adult(s)${firstItem?.childPax ? ', ' + firstItem.childPax + ' Child(ren)' : ''}`,
-            amount: `VT ${(booking.totalAmountCents || 0).toLocaleString()}`,
-          };
-
-          await sendEmail({
-            to: booking.customerEmail,
-            subject: `Booking ${updates.status.charAt(0).toUpperCase() + updates.status.slice(1)} — ACT-${shortBookingRef(booking.id)}`,
-            html: await getBookingStatusUpdateTemplate(emailBooking, updates.status, tourInfo),
-          });
-        } catch (emailErr) {
-          console.error('[BOOKING][STATUS] Email failed (non-fatal):', emailErr);
+          booking = await confirmWithSeats(storage, existing, (tx) => storage.updateBooking(req.params.id, updates, tx));
+        } catch (err) {
+          if (err instanceof SeatsUnavailableError) return res.status(409).json({ error: SEATS_UNAVAILABLE_MESSAGE });
+          throw err;
         }
+        if (!booking) return res.status(409).json({ error: "This booking changed while you were confirming it. Reload and try again." });
+      } else {
+        booking = await storage.updateBooking(req.params.id, updates);
+      }
+
+      if (updates.status && updates.status !== existing.status) {
+        await afterAdminStatusChange(existing, booking, updates.status);
       }
 
       res.json(booking);

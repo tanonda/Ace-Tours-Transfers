@@ -73,6 +73,7 @@ import {
   type InsertArticle,
 } from "../shared/schema.js";
 import { db } from "./db.js";
+import { PaymentMethodClassifier } from "./domain/payments/payment-method-classifier.js";
 import { eq, like, desc, and, or, isNull, sql, lte, asc, lt, inArray, gt } from "drizzle-orm";
 import { extractErrorDetails } from "./lib/error-util.js";
 import { sealGatewayWrite, openGatewayRow } from "./lib/credential-crypto.js";
@@ -140,6 +141,15 @@ export interface IStorage {
   getUserBookings(userId: string): Promise<Booking[]>;
   getBookingsForServiceAndDate(serviceId: string, dateString: string): Promise<Booking[]>;
   getBookingsBySession(sessionId: string): Promise<Booking[]>;
+  /** Pending bookings with an open payment (pending, processing or manual review) on an offline gateway; paymentMethod is that gateway's slug. */
+  getPendingOfflineBookings(): Promise<Booking[]>;
+  /**
+   * Confirms a pending booking only if its updatedAt (to the millisecond) is still `expectedUpdatedAt`.
+   * Returns the confirmed booking, or undefined when it changed or is no longer pending.
+   */
+  confirmPendingBookingIfUnchanged(id: string, expectedUpdatedAt: Date, tx?: any): Promise<Booking | undefined>;
+  /** Sets a booking to 'expired' (appending `note` to its notes) only while it is still pending. Returns it, or undefined. */
+  expireBookingIfPending(id: string, note: string): Promise<Booking | undefined>;
   createBooking(booking: InsertBooking, tx?: any): Promise<Booking>;
   updateBooking(id: string, booking: Partial<InsertBooking>, tx?: any): Promise<Booking>;
   linkBookingsToUser(email: string, userId: string): Promise<void>;
@@ -562,6 +572,54 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(bookings.createdAt));
   }
 
+  async getPendingOfflineBookings(): Promise<Booking[]> {
+    // One query: the pending bookings joined to their open payments and those payments' gateways.
+    const rows = await db
+      .select({ booking: bookings, slug: paymentGateways.slug })
+      .from(bookings)
+      .innerJoin(payments, eq(payments.bookingId, bookings.id))
+      .innerJoin(paymentGateways, eq(paymentGateways.id, payments.gatewayId))
+      .where(and(
+        eq(bookings.status, "pending"),
+        isNull(bookings.archivedAt),
+        inArray(payments.status, ["pending", "processing", "manual_review_required"]),
+      ))
+      .orderBy(desc(bookings.createdAt));
+    const seen = new Set<string>();
+    const out: Booking[] = [];
+    for (const { booking, slug } of rows) {
+      if (seen.has(booking.id) || !PaymentMethodClassifier.isOffline(slug)) continue;
+      seen.add(booking.id);
+      out.push({ ...booking, paymentMethod: slug });
+    }
+    return out;
+  }
+
+  async confirmPendingBookingIfUnchanged(id: string, expectedUpdatedAt: Date, tx?: any): Promise<Booking | undefined> {
+    // Timestamps are stored as UTC wall time (drizzle writes toISOString()), and the app only sees
+    // milliseconds, so compare the stored value truncated to milliseconds.
+    const now = new Date();
+    const [row] = await (tx || db)
+      .update(bookings)
+      .set({ status: "confirmed", confirmedAt: now, updatedAt: now })
+      .where(and(
+        eq(bookings.id, id),
+        eq(bookings.status, "pending"),
+        sql`date_trunc('milliseconds', ${bookings.updatedAt}) = ${expectedUpdatedAt.toISOString()}::timestamp`,
+      ))
+      .returning();
+    return row || undefined;
+  }
+
+  async expireBookingIfPending(id: string, note: string): Promise<Booking | undefined> {
+    const [row] = await db
+      .update(bookings)
+      .set({ status: "expired", updatedAt: new Date(), notes: sql`COALESCE(${bookings.notes}, '') || ${note}` })
+      .where(and(eq(bookings.id, id), eq(bookings.status, "pending")))
+      .returning();
+    return row || undefined;
+  }
+
   async createBooking(insertBooking: InsertBooking, tx?: any): Promise<Booking> {
     const client = tx || db;
     // If an idempotencyKey is provided, attempt an insert with ON CONFLICT DO NOTHING
@@ -594,7 +652,8 @@ export class DatabaseStorage implements IStorage {
     const client = tx || db;
     const [booking] = await client
       .update(bookings)
-      .set(updateData)
+      // Every change moves updatedAt, so compare-and-set callers (statement-match confirm) see it.
+      .set({ ...updateData, updatedAt: updateData.updatedAt ?? new Date() })
       .where(eq(bookings.id, id))
       .returning();
     return booking;

@@ -1,8 +1,12 @@
 import type { Express } from "express";
 import { storage } from "../storage.js";
 import { PaymentReconciliationService } from "../application/payment-reconciliation.service.js";
+import { matchStatement, bookingRef } from "../lib/statement-match.js";
+import { afterAdminStatusChange } from "../lib/booking-status-effects.js";
+import { confirmWithSeats, SeatsUnavailableError, SEATS_UNAVAILABLE_MESSAGE } from "../lib/manual-confirmation.js";
+import { adminAudit } from "../infrastructure/audit/admin-audit-log.service.js";
 
-import { requireAdmin, upload } from "./shared.js";
+import { requireAdmin, statementUpload } from "./shared.js";
 
 export function registerReportingRoutes(app: Express) {
   // Analytics API
@@ -114,75 +118,81 @@ export function registerReportingRoutes(app: Express) {
     }
   });
 
-  // Statement Reconciliation Upload
-  app.post("/api/admin/reconciliation/statement", requireAdmin, upload.single('statement'), async (req, res) => {
+  // Statement Reconciliation Upload. Never confirms: an amount-column match on a booking reference is
+  // a suggestion for an admin to confirm (below); every other reference match needs review.
+  app.post("/api/admin/reconciliation/statement", requireAdmin, (req, res, next) => {
+    statementUpload.single('statement')(req, res, (err: unknown) => {
+      if (err) return res.status(400).json({ error: err instanceof Error ? err.message : "Invalid statement file" });
+      next();
+    });
+  }, async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No statement file uploaded" });
       }
 
-      const fileContent = req.file.buffer.toString('utf-8');
-      const lines = fileContent.split(/\r?\n/);
+      // Pending bookings with an open payment on an offline gateway (bank transfer, cash, ...).
+      const pendingOfflineBookings = await storage.getPendingOfflineBookings();
 
-      const OFFLINE_METHODS = [
-        'manual_transfer', 'bank-transfer', 'bank_transfer', 'bank', 'cash',
-        'cash-on-delivery', 'local-bank-transfer', 'local-bank', 'cash-at-office',
-        'v-money', 'm-vatu', 'my-cash', 'digi-cash'
-      ];
-
-      // Fetch all pending bookings to check against
-      const allBookings = await storage.getBookings();
-      const pendingOfflineBookings = allBookings.filter((b: any) =>
-        b.status === 'pending' && OFFLINE_METHODS.includes(b.paymentMethod || '')
-      );
-
-      const results = { matched: 0, flagged: 0, ignored: 0, details: [] as any[] };
-      const matchedBookingIds = new Set<string>();
-
-      for (const line of lines) {
-        if (!line.trim()) continue;
-
-        // Find if this line matches any pending offline booking
-        let matchedBooking = null;
-        let isAmountMatch = false;
-
-        for (const booking of pendingOfflineBookings) {
-          if (matchedBookingIds.has(booking.id)) continue;
-
-          const shortRef = booking.id.replace(/^book_/i, "").replace(/-/g, "").slice(0, 8).toUpperCase();
-          // Case insensitive search for the shortRef (e.g., ACT-1234ABCD or just 1234ABCD)
-          if (line.toUpperCase().includes(shortRef)) {
-            matchedBooking = booking;
-
-            // Verify amount
-            const expectedAmount = (booking.totalAmountCents || 0) / 100;
-            // Check if the expected amount (as string) is cleanly in the line
-            if (line.includes(expectedAmount.toString()) || line.includes(expectedAmount.toLocaleString('en-US', { minimumFractionDigits: 2 }))) {
-              isAmountMatch = true;
-            }
-            break;
-          }
-        }
-
-        if (matchedBooking) {
-          if (isAmountMatch) {
-            await storage.updateBooking(matchedBooking.id, { status: "confirmed" });
-            matchedBookingIds.add(matchedBooking.id);
-            results.matched++;
-            results.details.push({ bookingId: matchedBooking.id, ref: matchedBooking.id.slice(0, 8), status: 'fulfilled' });
-          } else {
-            results.flagged++;
-            results.details.push({ bookingId: matchedBooking.id, ref: matchedBooking.id.slice(0, 8), status: 'flagged_amount_mismatch' });
-          }
-        } else {
-          results.ignored++;
-        }
-      }
-
-      res.json({ success: true, ...results });
+      const result = matchStatement(req.file.buffer.toString('utf-8'), pendingOfflineBookings);
+      res.json({ success: true, ...result });
     } catch (error) {
       console.error("[ROUTE] POST /api/admin/reconciliation/statement Error:", error);
       res.status(500).json({ error: "Failed to process statement" });
+    }
+  });
+
+  // The bookings a statement can match: pending, with an open payment on an offline gateway.
+  app.get("/api/admin/statement-matches/candidates", requireAdmin, async (_req, res) => {
+    try {
+      res.json(await storage.getPendingOfflineBookings());
+    } catch (error) {
+      console.error("[ROUTE] GET /api/admin/statement-matches/candidates Error:", error);
+      res.status(500).json({ error: "Failed to load pending offline bookings" });
+    }
+  });
+
+  // An admin confirms one suggested statement match. Compare-and-set on the booking's updatedAt as it
+  // was when the statement was matched, with its seats reserved in the same transaction; audited,
+  // then the admin confirm effects (offline payment completed, guest email).
+  app.post("/api/admin/statement-matches/:bookingId/confirm", requireAdmin, async (req, res) => {
+    try {
+      const expected = typeof req.body?.expectedUpdatedAt === "string" ? new Date(req.body.expectedUpdatedAt) : null;
+      if (!expected || Number.isNaN(expected.getTime())) {
+        return res.status(400).json({ error: "expectedUpdatedAt is required" });
+      }
+      const existing = await storage.getBooking(req.params.bookingId);
+      if (!existing) return res.status(404).json({ error: "Booking not found" });
+      if (existing.status !== "pending") {
+        return res.status(409).json({ error: `This booking is '${existing.status}', not pending.` });
+      }
+      let booking;
+      try {
+        booking = await confirmWithSeats(storage, existing, (tx) => storage.confirmPendingBookingIfUnchanged(existing.id, expected, tx));
+      } catch (err) {
+        if (err instanceof SeatsUnavailableError) return res.status(409).json({ error: SEATS_UNAVAILABLE_MESSAGE });
+        throw err;
+      }
+      if (!booking) {
+        return res.status(409).json({ error: "This booking changed after the statement was matched. Upload the statement again." });
+      }
+      const statementAmount = typeof req.body?.statementAmount === "number" ? req.body.statementAmount : null;
+      await adminAudit.log({
+        action: "booking.statement_confirm",
+        entityType: "booking",
+        entityId: booking.id,
+        entityName: `ACT-${bookingRef(booking.id)}`,
+        performedBy: req.session.userId,
+        previousValue: { status: existing.status, updatedAt: existing.updatedAt },
+        newValue: { status: booking.status },
+        metadata: { statementAmount, expectedAmount: existing.totalAmountCents },
+        req,
+      });
+      await afterAdminStatusChange(existing, booking, "confirmed");
+      res.json(booking);
+    } catch (error) {
+      console.error(`[ROUTE] POST /api/admin/statement-matches/${req.params.bookingId}/confirm Error:`, error);
+      res.status(500).json({ error: "Failed to confirm the booking" });
     }
   });
 

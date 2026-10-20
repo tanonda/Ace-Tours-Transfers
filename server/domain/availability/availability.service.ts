@@ -24,6 +24,14 @@ export enum HoldStatus {
   RELEASED = 'RELEASED'
 }
 
+/** A lapsed hold's seats can't be re-reserved: the tour is full, blacked out, or its instance is gone. */
+export class LapsedHoldUnavailableError extends Error {
+  constructor(public readonly reason: "capacity" | "blackout" | "unavailable", message: string) {
+    super(message);
+    this.name = "LapsedHoldUnavailableError";
+  }
+}
+
 export class AvailabilityService {
   private storage: IStorage;
   private auditLog: AuditLogService;
@@ -320,6 +328,42 @@ export class AvailabilityService {
   }
 
   /**
+   * Re-reserves the seats of an EXPIRED hold as confirmed, for a booking an admin confirmed after its
+   * hold lapsed. Checks blackout dates and capacity under the instance lock (the caller has locked
+   * the hold and its instance) and throws LapsedHoldUnavailableError when the seats can't be had.
+   * Runs in the caller's transaction.
+   */
+  async reserveLapsedHold(holdId: string, tx: any): Promise<void> {
+    const [hold] = await tx.select().from(availabilityHolds).where(eq(availabilityHolds.id, holdId)).for('update');
+    if (!hold) throw new Error("Hold not found");
+    if (hold.status !== HoldStatus.EXPIRED) throw new Error(`Cannot re-reserve hold in status: ${hold.status}`);
+
+    const [instance] = await tx.select().from(tourInstances).where(eq(tourInstances.id, hold.tourInstanceId)).for('update');
+    if (!instance) throw new LapsedHoldUnavailableError("unavailable", "Tour instance not found");
+    if (await this.storage.isBlackedOut(instance.tourId, instance.serviceDate)) {
+      throw new LapsedHoldUnavailableError("blackout", `This date (${instance.serviceDate}) is not available for bookings (blackout period).`);
+    }
+    const available = instance.totalCapacity - (instance.confirmedCount + instance.heldCount + instance.blockedCount);
+    if (available < hold.quantity) {
+      throw new LapsedHoldUnavailableError("capacity", `Insufficient availability. Requested ${hold.quantity}, available ${available}`);
+    }
+    await tx.update(tourInstances)
+      .set({ confirmedCount: sql`${tourInstances.confirmedCount} + ${hold.quantity}`, updatedAt: new Date() })
+      .where(eq(tourInstances.id, instance.id));
+    await tx.update(availabilityHolds).set({ status: HoldStatus.CONFIRMED }).where(eq(availabilityHolds.id, holdId));
+    await this.auditLog.log({
+      tourInstanceId: instance.id,
+      productId: instance.tourId,
+      action: 'booking_confirmed',
+      quantity: hold.quantity,
+      previousState: { confirmedCount: instance.confirmedCount, heldCount: instance.heldCount, blockedCount: instance.blockedCount },
+      newState: { confirmedCount: instance.confirmedCount + hold.quantity, heldCount: instance.heldCount, blockedCount: instance.blockedCount },
+      metadata: { holdId, resourceId: hold.resourceId, reReservedFrom: hold.status },
+    }, tx);
+    availabilityCache.invalidate(instance.tourId, instance.serviceDate, instance.timeSlot || undefined);
+  }
+
+  /**
    * Confirms all active holds for a given session.
    */
   async confirmHoldsBySession(sessionId: string): Promise<void> {
@@ -364,16 +408,18 @@ export class AvailabilityService {
 
   /**
    * Releases a hold (manual cancellation or expiry).
+   * Returns true when this call released it, false when it was missing or no longer ACTIVE
+   * (already confirmed, released or expired by someone else).
    */
-  async releaseHold(holdId: string, status: HoldStatus = HoldStatus.RELEASED): Promise<void> {
-    await db.transaction(async (tx: any) => {
+  async releaseHold(holdId: string, status: HoldStatus = HoldStatus.RELEASED): Promise<boolean> {
+    return await db.transaction(async (tx: any) => {
       const [hold] = await tx
         .select()
         .from(availabilityHolds)
         .where(eq(availabilityHolds.id, holdId))
         .for('update');
 
-      if (!hold || hold.status !== HoldStatus.ACTIVE) return;
+      if (!hold || hold.status !== HoldStatus.ACTIVE) return false;
 
       const [instance] = await tx
         .select()
@@ -420,6 +466,7 @@ export class AvailabilityService {
         .update(availabilityHolds)
         .set({ status })
         .where(eq(availabilityHolds.id, holdId));
+      return true;
     });
   }
 

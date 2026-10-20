@@ -134,6 +134,23 @@ export const upload = multer({
   fileFilter: imageFileFilter,
 });
 
+/** Bank statements: CSV or plain text only (by extension and type), at most 1 MB. */
+export const STATEMENT_MAX_BYTES = 1024 * 1024;
+const STATEMENT_TYPES = new Set(['text/csv', 'text/plain', 'application/csv', 'application/vnd.ms-excel', 'application/octet-stream']);
+export const statementFileFilter = (_req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+  if (/\.(csv|txt)$/i.test(file.originalname) && STATEMENT_TYPES.has(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error(`Invalid statement file: upload a .csv or .txt bank statement.`));
+  }
+};
+
+export const statementUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: STATEMENT_MAX_BYTES, files: 1 },
+  fileFilter: statementFileFilter,
+});
+
 export const uploadMultiple = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024, files: 10 },
