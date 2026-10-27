@@ -120,8 +120,6 @@ async function main() {
       category: "transfer",
       defaultCapacity: 50,
       cancellationPolicy: "Free cancellation up to 24 hours before pickup. 50% fee applies for late cancellations.",
-      supportEmail: "transfers@acetoursvanuatu.com",
-      supportPhone: "+678 7777777",
       includedItems: ["Air-conditioned vehicle", "Meet & greet at terminal", "Luggage assistance"],
       excludedItems: ["Waiting time beyond 30 min"]
     },
@@ -140,8 +138,6 @@ async function main() {
       category: "transfer",
       defaultCapacity: 100,
       cancellationPolicy: "Free cancellation up to 24 hours before pickup.",
-      supportEmail: "transfers@acetoursvanuatu.com",
-      supportPhone: "+678 7777777",
       includedItems: ["Air-conditioned bus", "Luggage assistance"],
       excludedItems: []
     },
@@ -160,8 +156,6 @@ async function main() {
       category: "transfer",
       defaultCapacity: 20,
       cancellationPolicy: "Free cancellation up to 12 hours before pickup.",
-      supportEmail: "transfers@acetoursvanuatu.com",
-      supportPhone: "+678 7777777",
       includedItems: ["Round trip transfer", "Professional driver"],
       excludedItems: ["Restaurant reservations"]
     },
@@ -180,8 +174,6 @@ async function main() {
       category: "transfer",
       defaultCapacity: 3,
       cancellationPolicy: "Free cancellation up to 48 hours before. Non-refundable within 48 hours.",
-      supportEmail: "vip@acetoursvanuatu.com",
-      supportPhone: "+678 7777777",
       includedItems: ["Private luxury vehicle", "Meet & greet", "Cold towels & water", "Wi-Fi"],
       excludedItems: ["Gratuity"]
     }

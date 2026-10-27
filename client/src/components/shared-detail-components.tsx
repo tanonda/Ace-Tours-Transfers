@@ -6,7 +6,7 @@
  */
 
 import { useState, useEffect, useRef } from "react";
-import { useSiteSettings } from "@/lib/site-settings";
+import { productContact, useSiteSettings } from "@/lib/site-settings";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import {
@@ -204,6 +204,8 @@ export function ContactCard({
   supportEmail,
   supportPhone,
 }: ContactCardProps) {
+  const { data: settings } = useSiteSettings();
+  const contact = productContact({ supportEmail, supportPhone }, settings);
   return (
     <div className="bg-card border border-primary/18 rounded-[14px] p-5 flex flex-col gap-3">
       <div className="flex items-center gap-2">
@@ -232,24 +234,23 @@ export function ContactCard({
           </svg>
           WhatsApp
         </a>
-        {supportEmail && (
+        <a
+          href={`mailto:${contact.email}`}
+          className="flex items-center gap-2 text-primary text-[0.82rem] hover:underline"
+        >
+          <Mail className="w-3.5 h-3.5" />
+          {contact.email}
+        </a>
+        {contact.phones.map((phone) => (
           <a
-            href={`mailto:${supportEmail}`}
-            className="flex items-center gap-2 text-primary text-[0.82rem] hover:underline"
-          >
-            <Mail className="w-3.5 h-3.5" />
-            {supportEmail}
-          </a>
-        )}
-        {supportPhone && (
-          <a
-            href={`tel:${supportPhone}`}
+            key={phone.tel}
+            href={phone.tel}
             className="flex items-center gap-2 text-muted-foreground text-[0.82rem] hover:underline"
           >
             <Phone className="w-3.5 h-3.5" />
-            {supportPhone}
+            {phone.display}
           </a>
-        )}
+        ))}
       </div>
     </div>
   );
