@@ -344,11 +344,17 @@ export class GooglePayAdapter implements PaymentGatewayService {
     const params = event.rawEvent;
     const bank = this.getBankCredentials();
 
-    if (bank && params.vpc_SecureHash) {
-      const valid = this.verifyVpcHash(params, params.vpc_SecureHash, bank.credentials.secureHashSecret);
-      if (!valid) {
-        return Promise.resolve({ success: false, message: 'VPC hash verification failed.' });
-      }
+    // Fail closed: a VPC callback without a verifiable hash is not a payment event.
+    // The previous "if (bank && hash)" skipped verification entirely when either was
+    // missing, so a forged `vpc_TxnResponseCode=0` could complete a booking.
+    if (!bank) {
+      return Promise.resolve({ success: false, message: 'Local bank processor is not configured; cannot verify the callback.' });
+    }
+    if (!params?.vpc_SecureHash) {
+      return Promise.resolve({ success: false, message: 'Missing VPC secure hash.' });
+    }
+    if (!this.verifyVpcHash(params, params.vpc_SecureHash, bank.credentials.secureHashSecret)) {
+      return Promise.resolve({ success: false, message: 'VPC hash verification failed.' });
     }
 
     const responseCode = params.vpc_TxnResponseCode;

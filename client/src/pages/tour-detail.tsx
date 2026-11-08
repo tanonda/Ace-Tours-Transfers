@@ -101,6 +101,13 @@ function BookingCountdownTimer({ cutoffHours = 24, tourDate, tourTime }: { cutof
 // ─── Cancellation Policy Modal ──────────────────────────────────────────────────
 
 function CancellationModal({ isOpen, onClose, policy, t }: { isOpen: boolean; onClose: () => void; policy?: string; t: any }) {
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") onClose(); };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const defaultPolicy = `
@@ -117,7 +124,7 @@ function CancellationModal({ isOpen, onClose, policy, t }: { isOpen: boolean; on
   `;
 
   return (
-    <div className="fixed inset-0 z-[999] flex items-center justify-center p-4" onClick={onClose}>
+    <div role="dialog" aria-modal="true" aria-labelledby="cancellation-policy-title" className="fixed inset-0 z-[999] flex items-center justify-center p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
       <div
         className="relative bg-card border border-primary/25 rounded-[18px] max-w-lg w-full max-h-[80vh] overflow-y-auto shadow-2xl"
@@ -126,9 +133,9 @@ function CancellationModal({ isOpen, onClose, policy, t }: { isOpen: boolean; on
         <div className="sticky top-0 bg-card border-b border-primary/15 px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Shield className="w-5 h-5 text-primary" />
-            <h3 className="font-serif text-lg font-bold">Cancellation Policy</h3>
+            <h3 id="cancellation-policy-title" className="font-serif text-lg font-bold">Cancellation Policy</h3>
           </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-full hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
+          <button onClick={onClose} aria-label="Close cancellation policy" className="w-8 h-8 rounded-full hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -223,6 +230,17 @@ function PhotoGallery({ images, title }: { images: string[]; title: string }) {
 
   if (!images || images.length === 0) return null;
 
+  useEffect(() => {
+    if (lightbox === null) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setLightbox(null);
+      if (event.key === "ArrowRight") setLightbox(l => Math.min(images.length - 1, (l ?? 0) + 1));
+      if (event.key === "ArrowLeft") setLightbox(l => Math.max(0, (l ?? 0) - 1));
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [lightbox, images.length]);
+
   const main = images[0];
   const thumbs = images.slice(1, 5);
   const remaining = images.length - 5;
@@ -230,14 +248,16 @@ function PhotoGallery({ images, title }: { images: string[]; title: string }) {
   return (
     <>
       {lightbox !== null && (
-        <div className="fixed inset-0 z-[999] bg-black/90 flex items-center justify-center p-4" onClick={() => setLightbox(null)}>
+        <div role="dialog" aria-modal="true" aria-label="Photo viewer" className="fixed inset-0 z-[999] bg-black/90 flex items-center justify-center p-4" onClick={() => setLightbox(null)}>
           <button
             onClick={() => setLightbox(null)}
+            aria-label="Close photo viewer"
             className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
           <button
+            aria-label="Previous photo"
             disabled={lightbox === 0}
             onClick={e => { e.stopPropagation(); setLightbox(l => Math.max(0, (l ?? 0) - 1)); }}
             className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white disabled:opacity-30 transition-colors"
@@ -251,6 +271,7 @@ function PhotoGallery({ images, title }: { images: string[]; title: string }) {
             onClick={e => e.stopPropagation()}
           />
           <button
+            aria-label="Next photo"
             disabled={lightbox === images.length - 1}
             onClick={e => { e.stopPropagation(); setLightbox(l => Math.min(images.length - 1, (l ?? 0) + 1)); }}
             className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white disabled:opacity-30 transition-colors"

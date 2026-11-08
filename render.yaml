@@ -28,6 +28,13 @@ services:
         value: https://acetoursvanuatu.com
       - key: CLOUDINARY_URL
         sync: false
+      # The legacy upload fallback reads the three separate keys; set them too.
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
       - key: SMTP_HOST
         sync: false
       - key: SMTP_PORT
@@ -50,9 +57,59 @@ services:
         value: console # Change to android_gateway or twilio when ready
       - key: SMS_ADMIN_PHONE
         sync: false
+      - key: PAYMENTS_ENABLED
+        value: "true"
+      - key: PAYMENTS_DEFAULT_PROVIDER
+        value: manual
+      - key: PAYMENTS_MANUAL_ENABLED
+        value: "true"
+      - key: MANUAL_PAYMENT_BANK_TRANSFER
+        value: "true"
+      - key: MANUAL_PAYMENT_CASH_ON_DELIVERY
+        value: "true"
+      - key: PAYMENTS_EXTERNAL_DISABLED
+        value: "false"
+      # Cards stay off until DDD_DISABLE_CARD=false and a bank is enabled.
+      - key: DDD_DISABLE_CARD
+        value: "true"
+      - key: PAYMENTS_ANZ_ENABLED
+        value: "false"
+      - key: PAYMENTS_BSP_ENABLED
+        value: "false"
+      - key: PAYMENTS_NBV_ENABLED
+        value: "false"
+      - key: PAYMENTS_BRED_ENABLED
+        value: "false"
+      - key: PAYMENTS_STRIPE_ENABLED
+        value: "false"
+      - key: PAYMENTS_STRIPE_VISIBLE
+        value: "false"
+      - key: STRIPE_ENABLED
+        value: "false"
+      - key: VAT_RATE
+        value: "0.15"
+      - key: LOG_LEVEL
+        value: info
       - key: STRIPE_PUBLISHABLE_KEY
         sync: false
       - key: STRIPE_SECRET_KEY
         sync: false
-      - key: PAYMENTS_STRIPE_MODE
-        value: sandbox
+      # Required to save/open bank gateway credentials (Admin → Payments).
+      - key: PAYMENT_CREDENTIALS_KEY
+        sync: false
+      # Optional: encrypts TOTP secrets (falls back to PAYMENT_CREDENTIALS_KEY).
+      - key: DATA_ENCRYPTION_KEY
+        sync: false
+      # Optional monitoring / integrations.
+      - key: SENTRY_DSN
+        sync: false
+      - key: BETTERSTACK_API_KEY
+        sync: false
+      - key: BETTERSTACK_MONITOR_ID
+        sync: false
+      - key: GOOGLE_PLACES_API_KEY
+        sync: false
+      - key: GOOGLE_PLACE_ID
+        sync: false
+      - key: GOOGLE_REVIEW_URL
+        sync: false

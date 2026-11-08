@@ -37,36 +37,44 @@ export function useRealtimeAvailability(
             return;
         }
 
+        let cancelled = false;
+
         const cacheKey = generateAvailabilityKey(params.productId, params.date, params);
 
         const fetchData = async (useCache = true) => {
             if (useCache) {
                 const cached = availabilityCache.get(cacheKey);
                 if (cached) {
-                    setData(cached);
-                    onUpdate?.(cached);
+                    if (!cancelled) {
+                        setData(cached);
+                        onUpdate?.(cached);
+                    }
                     return;
                 }
             }
 
-            setLoading(true);
+            if (!cancelled) setLoading(true);
             try {
                 const result = await checkAvailability(params);
+                if (cancelled) return;
                 setData(result);
                 availabilityCache.set(cacheKey, result);
                 onUpdate?.(result);
                 setError(null);
             } catch (err: any) {
-                setError(err);
+                if (!cancelled) setError(err);
             } finally {
-                setLoading(false);
+                if (!cancelled) setLoading(false);
             }
         };
 
         fetchData();
 
         const interval = setInterval(() => fetchData(false), pollingInterval);
-        return () => clearInterval(interval);
+        return () => {
+            cancelled = true;
+            clearInterval(interval);
+        };
     }, [paramsKey, enabled, pollingInterval]);
 
     return { data, loading, error };

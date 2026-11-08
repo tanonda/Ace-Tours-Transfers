@@ -32,7 +32,7 @@ export class HoldExpiryJob {
     lastRunDurationMs: 0,
     lastRunExpiredCount: 0,
   };
-  private readonly BATCH_SIZE = 50;
+  private readonly BATCH_SIZE = 5;
 
   constructor(storage: IStorage) {
     this.storage = storage;
@@ -50,7 +50,7 @@ export class HoldExpiryJob {
     let totalFailed = 0;
 
     try {
-      const expiredHolds = await this.storage.getExpiredHolds(now);
+      const expiredHolds = await this.storage.getExpiredHolds(now, 200);
 
       if (expiredHolds.length === 0) {
         log.info('No expired holds to sweep');

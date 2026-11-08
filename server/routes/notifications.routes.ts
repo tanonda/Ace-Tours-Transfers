@@ -13,6 +13,11 @@ export function registerNotificationsRoutes(app: Express, deps: RouteDeps) {
   });
 
   app.patch("/api/notifications/:id/read", requireAuth, async (req, res) => {
+    const notification = await storage.getNotification(req.params.id);
+    if (!notification) return res.status(404).json({ error: "Notification not found" });
+    if (req.session.userRole !== 'admin' && notification.userId !== req.session.userId) {
+      return res.status(403).json({ error: "Access denied" });
+    }
     await storage.markNotificationAsRead(req.params.id);
     // Broadcast to all SSE clients that a notification was read
     sseClients.forEach(client => {

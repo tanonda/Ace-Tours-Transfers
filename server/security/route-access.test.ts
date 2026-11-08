@@ -26,6 +26,7 @@ const PUBLIC_WRITE_ROUTES = new Set([
   "POST /api/auth/register",
   "POST /api/auth/verify-email",
   "POST /api/auth/reset-password",
+  "POST /api/auth/forgot-password",
   "POST /api/availability/check",
   "POST /api/bookings",
   "POST /api/bookings/:id/cancel", // re-verifies email / last name / phone

@@ -3,6 +3,7 @@ import { storage } from "../storage.js";
 import { metricsService } from "../infrastructure/metrics/metrics.service.js";
 
 import { requireAdmin } from "./shared.js";
+import { cancelBookingWithSeats } from "../lib/booking-seats.js";
 
 export function registerAdminOpsRoutes(app: Express) {
   // Admin Metrics & Alerts
@@ -71,11 +72,10 @@ export function registerAdminOpsRoutes(app: Express) {
     try {
       const booking = await storage.getBooking(req.params.id);
       if (!booking) return res.status(404).json({ error: "Booking not found" });
-      await storage.updateBooking(req.params.id, {
-        status: "cancelled",
+      await cancelBookingWithSeats(booking, {
         fraudReviewedAt: new Date(),
         fraudReviewedBy: (req.session as any)?.userId || null,
-      } as any);
+      });
       res.json({ success: true, message: "Booking cancelled due to fraud review." });
     } catch (error: any) {
       res.status(500).json({ error: "Failed to dismiss booking" });

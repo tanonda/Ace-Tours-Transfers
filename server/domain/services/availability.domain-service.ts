@@ -5,6 +5,7 @@ import { PricingEngine } from "../pricing/PricingEngine.js";
 import { availabilityCache } from "../../infrastructure/cache/availability-cache.service.js";
 import { capacityAlertService } from "../../application/alerts/capacity-alert.service.js";
 import { TimeInterval, intervalsOverlap, getDefaultInterval } from "../availability/time-interval.js";
+import { isValidCalendarDate, isValidTime, vanuatuDateTimeToUtc } from "../../lib/business-time.js";
 
 export interface AvailabilityResult {
   isAvailable: boolean;
@@ -115,9 +116,19 @@ export class AvailabilityDomainService {
         const times = instances.map(i => i.startTime).filter(Boolean).sort() as string[];
         departureTimeStr = times[0] ?? "08:30";
       }
-      const [depHour, depMin] = departureTimeStr.split(":").map(Number);
-      const [year, month, day] = date.split("-").map(Number);
-      const departureMs = new Date(year, month - 1, day, depHour, depMin).getTime();
+      if (!isValidCalendarDate(date)) {
+        return {
+          isAvailable: false,
+          remainingCapacity: 0,
+          totalCapacity: 0,
+          message: "Invalid booking date.",
+        };
+      }
+      // The departure time is Vanuatu wall-clock time; containers run UTC. Convert
+      // explicitly instead of `new Date(y, m, d, hh, mm)`, which used to shift the
+      // booking window by 11 hours.
+      const safeDeparture = isValidTime(departureTimeStr) ? departureTimeStr : "08:30";
+      const departureMs = vanuatuDateTimeToUtc(date, safeDeparture).getTime();
       const cutoffMs    = departureMs - cutoffHours * 60 * 60 * 1000;
 
       if (Date.now() >= cutoffMs) {

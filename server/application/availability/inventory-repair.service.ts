@@ -1,7 +1,7 @@
 
 import { db } from "../../db.js";
-import { bookings, tourInstances, type TourInstance } from "../../../shared/schema.js";
-import { eq, and, sql, sum } from "drizzle-orm";
+import { availabilityHolds, tourInstances } from "../../../shared/schema.js";
+import { eq, and, sql } from "drizzle-orm";
 import { IStorage } from "../../storage.js";
 
 export interface RepairResult {
@@ -29,7 +29,7 @@ export class InventoryRepairService {
   }
 
   /**
-   * Deterministically rebuilds confirmed_count for a single instance from its confirmed bookings.
+   * Deterministically rebuilds confirmed_count for a single instance from its CONFIRMED holds.
    */
   async repairTourInstance(instanceId: string): Promise<RepairResult> {
     return await db.transaction(async (tx: any) => {
@@ -51,18 +51,21 @@ export class InventoryRepairService {
         };
       }
 
-      // 2. Aggregate confirmed bookings from truth source
+      // 2. Aggregate the seats held by CONFIRMED holds for this instance. A
+      // booking row is not a seat: the old `sum(1)` counted bookings (and only
+      // those whose display-only tourInstanceId was set), which reset every
+      // instance to zero on a fresh database.
       const [result] = await tx
         .select({
-          totalConfirmed: sum(sql`1`).mapWith(Number)
+          totalConfirmed: sql<number>`COALESCE(SUM(${availabilityHolds.quantity}), 0)`.mapWith(Number)
         })
-        .from(bookings)
+        .from(availabilityHolds)
         .where(and(
-          eq(bookings.tourInstanceId, instanceId),
-          eq(bookings.status, 'confirmed')
+          eq(availabilityHolds.tourInstanceId, instanceId),
+          eq(availabilityHolds.status, 'CONFIRMED')
         ));
 
-      const actualConfirmedCount = result?.totalConfirmed || 0;
+      const actualConfirmedCount = Number(result?.totalConfirmed) || 0;
       const beforeCount = instance.confirmedCount;
 
       if (actualConfirmedCount === beforeCount) {
@@ -155,15 +158,15 @@ export class InventoryRepairService {
 
     const [result] = await db
       .select({
-        totalConfirmed: sum(sql`1`).mapWith(Number)
+        totalConfirmed: sql<number>`COALESCE(SUM(${availabilityHolds.quantity}), 0)`.mapWith(Number)
       })
-      .from(bookings)
+      .from(availabilityHolds)
       .where(and(
-        eq(bookings.tourInstanceId, instanceId),
-        eq(bookings.status, 'confirmed')
+        eq(availabilityHolds.tourInstanceId, instanceId),
+        eq(availabilityHolds.status, 'CONFIRMED')
       ));
 
-    const actualConfirmedCount = result?.totalConfirmed || 0;
+    const actualConfirmedCount = Number(result?.totalConfirmed) || 0;
     return {
       instanceId,
       beforeCount: instance.confirmedCount,

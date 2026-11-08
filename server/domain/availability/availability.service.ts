@@ -16,6 +16,7 @@ import { availabilityCache } from "../../infrastructure/cache/availability-cache
 import { AuditLogService } from "../../infrastructure/audit/audit-log.service.js";
 import { TimeInterval, intervalsOverlap, getDefaultInterval } from "./time-interval.js";
 import { metricsService } from "../../infrastructure/metrics/metrics.service.js";
+import { isValidCalendarDate } from "../../lib/business-time.js";
 
 export enum HoldStatus {
   ACTIVE = 'ACTIVE',
@@ -92,6 +93,16 @@ export class AvailabilityService {
     pinnedResourceId?: string, // Phase 1: Support pinning a resource for multi-day consistency
     tx?: any // Phase 4: Allow passing transactional context
   ): Promise<AvailabilityHold> {
+    // Defensive: the public hold route validates this, but a negative/zero
+    // quantity must never reach the atomic increment (it would free seats).
+    if (!Number.isInteger(quantity) || quantity < 1) {
+      throw new Error("Hold quantity must be a positive whole number.");
+    }
+    if (!isValidCalendarDate(date)) {
+      throw new Error(`Invalid booking date: ${date}`);
+    }
+    const effectiveTtl = Number.isFinite(ttlMinutes) && ttlMinutes > 0 ? ttlMinutes : 15;
+
     // Phase 4: Check blackout dates (applies to tours and transfers)
     const isBlacked = await this.storage.isBlackedOut(tourId, date);
     if (isBlacked) {
@@ -132,7 +143,7 @@ export class AvailabilityService {
 
       // 4. Create Hold record (with optional resourceId for pinned assets)
       const expiresAt = new Date();
-      expiresAt.setMinutes(expiresAt.getMinutes() + ttlMinutes);
+      expiresAt.setMinutes(expiresAt.getMinutes() + effectiveTtl);
 
       const holdValues: any = {
         tourInstanceId: instance.id,
@@ -402,6 +413,10 @@ export class AvailabilityService {
           .update(availabilityHolds)
           .set({ status: HoldStatus.CONFIRMED })
           .where(eq(availabilityHolds.id, hold.id));
+
+        if (instance) {
+          availabilityCache.invalidate(instance.tourId, instance.serviceDate, instance.timeSlot || undefined);
+        }
       }
     });
   }
@@ -419,7 +434,9 @@ export class AvailabilityService {
         .where(eq(availabilityHolds.id, holdId))
         .for('update');
 
-      if (!hold || hold.status !== HoldStatus.ACTIVE) return false;
+      // ACTIVE holds free heldCount; CONFIRMED holds free confirmedCount. This is
+      // what lets a cancelled confirmed booking return its seats to inventory.
+      if (!hold || (hold.status !== HoldStatus.ACTIVE && hold.status !== HoldStatus.CONFIRMED)) return false;
 
       const [instance] = await tx
         .select()
@@ -433,11 +450,16 @@ export class AvailabilityService {
           heldCount: instance.heldCount,
           blockedCount: instance.blockedCount,
         };
-        const newHeldCount = Math.max(0, instance.heldCount - hold.quantity);
+        const newHeldCount = hold.status === HoldStatus.ACTIVE
+          ? Math.max(0, instance.heldCount - hold.quantity)
+          : instance.heldCount;
+        const newConfirmedCount = hold.status === HoldStatus.CONFIRMED
+          ? Math.max(0, instance.confirmedCount - hold.quantity)
+          : instance.confirmedCount;
 
         await tx
           .update(tourInstances)
-          .set({ heldCount: newHeldCount })
+          .set({ heldCount: newHeldCount, confirmedCount: newConfirmedCount })
           .where(eq(tourInstances.id, instance.id));
 
         // Phase 7: Audit log
@@ -449,7 +471,7 @@ export class AvailabilityService {
           quantity: hold.quantity,
           previousState,
           newState: {
-            confirmedCount: instance.confirmedCount,
+            confirmedCount: newConfirmedCount,
             heldCount: newHeldCount,
             blockedCount: instance.blockedCount,
           },
@@ -466,6 +488,10 @@ export class AvailabilityService {
         .update(availabilityHolds)
         .set({ status })
         .where(eq(availabilityHolds.id, holdId));
+
+      if (instance) {
+        availabilityCache.invalidate(instance.tourId, instance.serviceDate, instance.timeSlot || undefined);
+      }
       return true;
     });
   }
@@ -519,6 +545,7 @@ export class AvailabilityService {
         },
       }, tx);
 
+      availabilityCache.invalidate(instance.tourId, instance.serviceDate, instance.timeSlot || undefined);
       return updated;
     });
   }
@@ -531,6 +558,12 @@ export class AvailabilityService {
     startTime?: string,
     endTime?: string
   ): Promise<TourInstance> {
+    // Serialise concurrent creation of the same instance. SELECT ... FOR UPDATE
+    // locks nothing when the row does not exist yet, and the unique index alone
+    // is not enough on databases created before the COALESCE index migration.
+    const lockKey = `tour-instance:${tourId}:${date}:${slot ?? ''}:${startTime ?? ''}:${endTime ?? ''}`;
+    await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${lockKey})::bigint)`);
+
     // Build a selector that accounts for slot OR start/end times.
     let query = tx.select().from(tourInstances);
     if (slot) {

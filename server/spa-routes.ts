@@ -21,6 +21,7 @@ const PAGE_PATHS = new Set([
   "/review",
   "/confirmation",
   "/staff-access",
+  "/login",
   "/register",
   "/privacy-policy",
   "/photo-credits",

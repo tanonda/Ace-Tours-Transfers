@@ -124,10 +124,17 @@ export const tourInstances = pgTable("tour_instances", {
   blockedCount: integer("blocked_count").notNull().default(0),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => ({
-  // Unique constraint expanded to include start/end times so multiple
-  // sessions per day can be represented without relying solely on `timeSlot`.
-  instanceUniqueIdx: uniqueIndex("idx_tour_instances_unique")
-    .on(table.tourId, table.serviceDate, table.timeSlot, table.startTime, table.endTime)
+  // Nullable columns must be coalesced: PostgreSQL treats NULLs as distinct in a
+  // unique index, so the old (tour, date, time_slot, start, end) index allowed
+  // unlimited duplicates for full-day products (all three NULL).
+  instanceUniqueIdx: uniqueIndex("idx_tour_instances_unique_v2")
+    .on(
+      table.tourId,
+      table.serviceDate,
+      sql`COALESCE(${table.timeSlot}, '')`,
+      sql`COALESCE(${table.startTime}, '')`,
+      sql`COALESCE(${table.endTime}, '')`,
+    )
 }));
 
 // Phase 1: Resources table for asset-allocated products (e.g. specific transfer buses).
@@ -150,10 +157,13 @@ export const availabilityHolds = pgTable("availability_holds", {
   quantity: integer("quantity").notNull(),
   status: text("status").notNull().default("ACTIVE"), // 'ACTIVE', 'EXPIRED', 'CONFIRMED', 'RELEASED'
   expiresAt: timestamp("expires_at").notNull(),
+  confirmedAt: timestamp("confirmed_at"), // set when the hold becomes CONFIRMED
   createdAt: timestamp("created_at").notNull().defaultNow(),
   bookingSessionId: text("booking_session_id").notNull(),
 }, (table) => ({
   expiryIdx: index("idx_availability_holds_expiry").on(table.status, table.expiresAt),
+  sessionIdx: index("idx_availability_holds_session").on(table.bookingSessionId),
+  instanceIdx: index("idx_availability_holds_instance").on(table.tourInstanceId),
 }));
 
 // CRIT-3 DOCUMENTATION:
@@ -188,6 +198,8 @@ export const bookings = pgTable("bookings", {
   customerPhone: text("customer_phone"),
   tourName: text("tour_name").notNull(),
   locale: text("locale").notNull().default("en"), // Tracks the language used during booking
+  promoCode: text("promo_code"),                  // Applied promotion (see /api/promotions/validate)
+  discountCents: integer("discount_cents").notNull().default(0),
   pickupLocation: text("pickup_location"), // Phase 4 readiness: stores customer pickup details
   confirmedAt: timestamp("confirmed_at"),  // Phase 4 readiness: tracked for production reporting
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -201,6 +213,13 @@ export const bookings = pgTable("bookings", {
   fraudReviewedBy: varchar("fraud_reviewed_by").references(() => users.id),
 }, (table) => ({
   holdUniqueIdx: uniqueIndex("idx_bookings_hold_unique").on(table.holdId),
+  emailLowerIdx: index("idx_bookings_email_lower").on(sql`LOWER(${table.customerEmail})`),
+  statusCreatedIdx: index("idx_bookings_status_created").on(table.status, table.createdAt),
+  createdIdx: index("idx_bookings_created_at").on(table.createdAt),
+  sessionIdx: index("idx_bookings_session").on(table.bookingSessionId),
+  userIdx: index("idx_bookings_user").on(table.userId),
+  tourIdx: index("idx_bookings_tour").on(table.tourId),
+  dateIdx: index("idx_bookings_date").on(table.date),
 }));
 
 export const bookingItems = pgTable("booking_items", {
@@ -217,7 +236,9 @@ export const bookingItems = pgTable("booking_items", {
   infantPax: integer("infant_pax").notNull().default(0),  // Infants under 2 — manifesting only
   petPax: integer("pet_pax").notNull().default(0),     // Pets — manifesting only
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (table) => ({
+  bookingIdx: index("idx_booking_items_booking").on(table.bookingId),
+}));
 
 // CMS Content Blocks - for toggling site sections on/off
 export const contentBlocks = pgTable("content_blocks", {
@@ -280,7 +301,9 @@ export const bookingAddons = pgTable("booking_addons", {
   unitPriceCents: integer("unit_price_cents").notNull(),
   quantity: integer("quantity").notNull().default(1),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (table) => ({
+  bookingIdx: index("idx_booking_addons_booking").on(table.bookingId),
+}));
 
 // Newsletter Subscribers
 export const newsletterSubscribers = pgTable("newsletter_subscribers", {
@@ -305,7 +328,10 @@ export const cmsContent = pgTable("cms_content", {
   sortOrder: integer("sort_order").default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+}, (table) => ({
+  keyLocaleIdx: uniqueIndex("idx_cms_content_key_locale")
+    .on(table.blockSlug, table.contentKey, sql`COALESCE(${table.locale}, 'en')`),
+}));
 
 // Payment Transactions
 export const payments = pgTable("payments", {
@@ -333,6 +359,19 @@ export const payments = pgTable("payments", {
   pendingExpiryIdx: index("idx_payments_pending_expiry")
     .on(table.status, table.expiresAt)
     .where(sql`status IN ('pending', 'processing')`),
+  bookingIdx: index("idx_payments_booking").on(table.bookingId),
+  gatewayIdx: index("idx_payments_gateway").on(table.gatewayId),
+  gatewayReferenceIdx: index("idx_payments_gateway_reference")
+    .on(table.gatewayReference)
+    .where(sql`gateway_reference IS NOT NULL`),
+  overdueIdx: index("idx_payments_overdue")
+    .on(table.expiresAt)
+    .where(sql`status IN ('pending', 'manual_review_required')`),
+  // At most one open payment per booking: a double-clicked checkout must not
+  // create two chargeable attempts.
+  oneOpenIdx: uniqueIndex("idx_payments_one_open_per_booking")
+    .on(table.bookingId)
+    .where(sql`status IN ('pending', 'processing', 'manual_review_required')`),
 }));
 
 export const featureFlags = pgTable("feature_flags", {
@@ -1065,7 +1104,9 @@ export const session = pgTable("session", {
   sid: varchar("sid").primaryKey(),
   sess: jsonb("sess").notNull(),
   expire: timestamp("expire", { mode: 'date', precision: 6 }).notNull(),
-});
+}, (table) => ({
+  expireIdx: index("idx_session_expire").on(table.expire),
+}));
 
 // Promotions & Discount Codes
 export const promotions = pgTable("promotions", {

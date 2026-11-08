@@ -131,6 +131,14 @@ interface CancellationModalProps {
 }
 
 export function CancellationModal({ isOpen, onClose, policy }: CancellationModalProps) {
+  // Hooks must run unconditionally, before the closed-state early return.
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") onClose(); };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const defaultPolicy = `
@@ -148,6 +156,9 @@ export function CancellationModal({ isOpen, onClose, policy }: CancellationModal
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="cancellation-policy-title"
       className="fixed inset-0 z-[999] flex items-center justify-center p-4"
       onClick={onClose}
     >
@@ -159,10 +170,11 @@ export function CancellationModal({ isOpen, onClose, policy }: CancellationModal
         <div className="sticky top-0 bg-card border-b border-primary/15 px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Shield className="w-5 h-5 text-primary" />
-            <h3 className="font-serif text-lg font-bold">Cancellation Policy</h3>
+            <h3 id="cancellation-policy-title" className="font-serif text-lg font-bold">Cancellation Policy</h3>
           </div>
           <button
             onClick={onClose}
+            aria-label="Close cancellation policy"
             className="w-8 h-8 rounded-full hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
           >
             <X className="w-4 h-4" />
@@ -310,12 +322,34 @@ const TP_URL = (import.meta.env.VITE_TRUSTPILOT_URL as string | undefined)
 export function TrustpilotWidget() {
   const ref = useRef<HTMLDivElement>(null);
 
-  // The bootstrap script may have already fired before React rendered this div,
-  // so we call loadFromElement() on mount to activate the widget in SPA context.
+  // Load the Trustpilot bootstrap only on pages that actually render the widget
+  // (it used to run on checkout, payment and password-reset pages too).
   useEffect(() => {
-    if (ref.current && typeof (window as any).Trustpilot !== "undefined") {
-      (window as any).Trustpilot.loadFromElement(ref.current, true);
+    if (!TP_BU_ID) return;
+    const activate = () => {
+      if (ref.current && typeof (window as any).Trustpilot !== "undefined") {
+        (window as any).Trustpilot.loadFromElement(ref.current, true);
+      }
+    };
+
+    if (typeof (window as any).Trustpilot !== "undefined") {
+      activate();
+      return;
     }
+
+    const selector = 'script[data-trustpilot-bootstrap]';
+    const existing = document.querySelector(selector) as HTMLScriptElement | null;
+    if (existing) {
+      existing.addEventListener("load", activate, { once: true });
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = "https://widget.trustpilot.com/bootstrap/v5/tp.widget.bootstrap.min.js";
+    script.async = true;
+    script.dataset.trustpilotBootstrap = "true";
+    script.addEventListener("load", activate, { once: true });
+    document.body.appendChild(script);
   }, []);
 
   if (!TP_BU_ID) {

@@ -160,14 +160,23 @@ export class PaymentApplicationService {
     const expiresAt = new Date();
     expiresAt.setMinutes(expiresAt.getMinutes() + paymentTtlMinutes);
 
-    const payment = await this.storage.createPayment({
-      bookingId: booking.id,
-      gatewayId: gateway.id,
-      amount: amountCents,
-      currency: 'VUV',
-      status: PaymentStatus.Pending,
-      expiresAt: expiresAt,
-    });
+    let payment;
+    try {
+      payment = await this.storage.createPayment({
+        bookingId: booking.id,
+        gatewayId: gateway.id,
+        amount: amountCents,
+        currency: 'VUV',
+        status: PaymentStatus.Pending,
+        expiresAt: expiresAt,
+      });
+    } catch (err: any) {
+      // The partial unique index is the race-proof version of the check above.
+      if (err?.code === '23505') {
+        return { success: false, message: "An active payment attempt already exists for this booking." };
+      }
+      throw err;
+    }
 
     // Domain Event Initiation
     try {
@@ -342,14 +351,22 @@ export class PaymentApplicationService {
       await this.extendHolds(booking, hold.id, expiresAt);
     }
 
-    const payment = await this.storage.createPayment({
-      bookingId: booking.id,
-      gatewayId: gateway.id,
-      amount: booking.totalAmountCents,
-      currency: 'VUV',
-      status: PaymentStatus.Pending,
-      expiresAt,
-    });
+    let payment;
+    try {
+      payment = await this.storage.createPayment({
+        bookingId: booking.id,
+        gatewayId: gateway.id,
+        amount: booking.totalAmountCents,
+        currency: 'VUV',
+        status: PaymentStatus.Pending,
+        expiresAt,
+      });
+    } catch (err: any) {
+      if (err?.code === '23505') {
+        return { success: false, message: "This booking already has a payment in progress or awaiting review." };
+      }
+      throw err;
+    }
 
     const link = await adapter.createPaymentLink({
       paymentId: payment.id,

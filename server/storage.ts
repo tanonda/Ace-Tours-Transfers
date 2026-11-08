@@ -2,6 +2,8 @@ import {
   users,
   products,
   bookings,
+  promotions,
+  type Promotion,
   contentBlocks,
   siteSettings,
   paymentGateways,
@@ -74,9 +76,12 @@ import {
 } from "../shared/schema.js";
 import { db } from "./db.js";
 import { PaymentMethodClassifier } from "./domain/payments/payment-method-classifier.js";
-import { eq, like, desc, and, or, isNull, sql, lte, asc, lt, inArray, gt } from "drizzle-orm";
+import { eq, like, desc, and, or, isNull, isNotNull, sql, lte, asc, lt, inArray, gt } from "drizzle-orm";
 import { extractErrorDetails } from "./lib/error-util.js";
+import { createHash } from "crypto";
 import { sealGatewayWrite, openGatewayRow } from "./lib/credential-crypto.js";
+import { releaseBookingSeatsInTransaction } from "./lib/booking-seats.js";
+import { vanuatuDaysAgoStartUtc } from "./lib/business-time.js";
 import { isProductId } from "../shared/product-path.js";
 import { assignProductSlugs } from "./lib/product-slugs.js";
 import { reviewAuthorName } from "./lib/review-author.js";
@@ -111,6 +116,8 @@ export interface IStorage {
   getCustomers(): Promise<User[]>;
   getUserByResetToken(token: string): Promise<User | undefined>;
   setUserResetToken(userId: string, token: string | null, expiry: Date | null): Promise<void>;
+  /** Invalidates live sessions for a user (optionally keeping the current sid). */
+  deleteUserSessions(userId: string, exceptSid?: string): Promise<number>;
 
   // Product operations
   getProducts(): Promise<Product[]>;
@@ -134,9 +141,10 @@ export interface IStorage {
   deleteArticle(id: string): Promise<void>;
 
   // Booking operations
-  getBookings(includeArchived?: boolean): Promise<Booking[]>;
+  getBookings(includeArchived?: boolean, limit?: number, offset?: number): Promise<Booking[]>;
   getFlaggedBookings(): Promise<Booking[]>;
   getBooking(id: string): Promise<Booking | undefined>;
+  getBookingByIdempotencyKey(key: string): Promise<Booking | undefined>;
   getBookingsByEmail(email: string): Promise<Booking[]>;
   getUserBookings(userId: string): Promise<Booking[]>;
   getBookingsForServiceAndDate(serviceId: string, dateString: string): Promise<Booking[]>;
@@ -194,13 +202,19 @@ export interface IStorage {
   updatePayment(id: string, data: Partial<InsertPayment>): Promise<Payment>;
   checkPaymentExpiration(paymentId: string): Promise<boolean>;
   getStaleProcessingPayments(batchSize: number): Promise<Payment[]>;
-  getOverduePayments(): Promise<Payment[]>;
+  getOverduePayments(limit?: number): Promise<Payment[]>;
 
+  getNotification(id: string): Promise<Notification | undefined>;
   markNotificationAsRead(id: string): Promise<void>;
   createNotification(notification: InsertNotification): Promise<Notification>;
   getUnreadNotifications(userId?: string): Promise<Notification[]>;
   getAllNotifications(limit?: number): Promise<Notification[]>;
   deleteNotification(id: string): Promise<void>;
+
+  // Promotions
+  getPromotionByCode(code: string): Promise<Promotion | undefined>;
+  /** Atomically reserves one use; false when the cap has been reached. */
+  claimPromotion(id: string, tx?: any): Promise<boolean>;
 
   // Reviews
   createReview(review: InsertReview): Promise<Review>;
@@ -233,7 +247,7 @@ export interface IStorage {
   createAddon(addon: InsertAddon): Promise<Addon>;
   updateAddon(id: string, addon: Partial<InsertAddon>): Promise<Addon>;
   deleteAddon(id: string): Promise<void>;
-  createBookingAddon(item: InsertBookingAddon): Promise<BookingAddon>;
+  createBookingAddon(item: InsertBookingAddon, tx?: any): Promise<BookingAddon>;
   getBookingAddons(bookingId: string): Promise<BookingAddon[]>;
 
   // CMS Content
@@ -257,8 +271,9 @@ export interface IStorage {
   getHold(id: string): Promise<AvailabilityHold | undefined>;
   createHold(hold: InsertAvailabilityHold): Promise<AvailabilityHold>;
   updateHold(id: string, data: Partial<InsertAvailabilityHold>): Promise<AvailabilityHold>;
-  getExpiredHolds(now: Date): Promise<AvailabilityHold[]>;
+  getExpiredHolds(now: Date, limit?: number): Promise<AvailabilityHold[]>;
   getHoldsBySession(sessionId: string): Promise<AvailabilityHold[]>;
+  getAllHoldsBySession(sessionId: string): Promise<AvailabilityHold[]>;
 
   // Projections
   upsertBookingSummary(summary: any): Promise<void>;
@@ -430,12 +445,13 @@ export class DatabaseStorage implements IStorage {
 
   async getUserByResetToken(token: string): Promise<User | undefined> {
     return this.withRetry(async () => {
+      const tokenHash = createHash("sha256").update(token, "utf8").digest("hex");
       const [user] = await db
         .select()
         .from(users)
         .where(
           and(
-            eq(users.passwordResetToken, token),
+            eq(users.passwordResetToken, tokenHash),
             sql`${users.passwordResetTokenExpiry} > NOW()`
           )
         );
@@ -445,15 +461,24 @@ export class DatabaseStorage implements IStorage {
 
   async setUserResetToken(userId: string, token: string | null, expiry: Date | null): Promise<void> {
     return this.withRetry(async () => {
+      // Store only a hash: a database reader cannot use the token in the email.
+      const tokenHash = token ? createHash("sha256").update(token, "utf8").digest("hex") : null;
       await db
         .update(users)
         .set({
-          passwordResetToken: token,
+          passwordResetToken: tokenHash,
           passwordResetTokenExpiry: expiry,
           updatedAt: new Date()
         })
         .where(eq(users.id, userId));
     });
+  }
+
+  async deleteUserSessions(userId: string, exceptSid?: string): Promise<number> {
+    const result: any = exceptSid
+      ? await db.execute(sql`DELETE FROM session WHERE sess->>'userId' = ${userId} AND sid <> ${exceptSid}`)
+      : await db.execute(sql`DELETE FROM session WHERE sess->>'userId' = ${userId}`);
+    return Number(result?.rowCount ?? 0);
   }
 
   // Product operations
@@ -515,20 +540,27 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Booking operations
-  async getBookings(includeArchived: boolean = false): Promise<Booking[]> {
-    if (includeArchived) {
-      return await db.select().from(bookings).orderBy(desc(bookings.createdAt));
-    }
-    return await db.select().from(bookings).where(isNull(bookings.archivedAt)).orderBy(desc(bookings.createdAt));
+  async getBookings(includeArchived: boolean = false, limit?: number, offset: number = 0): Promise<Booking[]> {
+    let query: any = db.select().from(bookings);
+    if (!includeArchived) query = query.where(isNull(bookings.archivedAt));
+    query = query.orderBy(desc(bookings.createdAt));
+    if (limit !== undefined) query = query.limit(limit).offset(offset);
+    return await query;
   }
 
   async getFlaggedBookings(): Promise<Booking[]> {
-    // Returns bookings that have been fraud-scored but not yet reviewed by an admin.
-    // Uses the dedicated fraud_level column — efficient with the partial index.
-    const allBookings = await db.select().from(bookings).where(isNull(bookings.archivedAt)).orderBy(desc(bookings.createdAt));
-    return allBookings.filter(
-      (b: any) => b.fraudLevel != null && b.fraudReviewedAt == null
-    );
+    // Filter in SQL so the partial fraud index can actually be used; the old
+    // version loaded every booking and filtered in JavaScript.
+    return await db
+      .select()
+      .from(bookings)
+      .where(and(
+        isNull(bookings.archivedAt),
+        isNotNull(bookings.fraudLevel),
+        isNull(bookings.fraudReviewedAt),
+      ))
+      .orderBy(desc(bookings.createdAt))
+      .limit(500);
   }
 
   async getBooking(id: string): Promise<Booking | undefined> {
@@ -536,11 +568,16 @@ export class DatabaseStorage implements IStorage {
     return booking || undefined;
   }
 
+  async getBookingByIdempotencyKey(key: string): Promise<Booking | undefined> {
+    const [booking] = await db.select().from(bookings).where(eq(bookings.idempotencyKey, key));
+    return booking || undefined;
+  }
+
   async getBookingsByEmail(email: string): Promise<Booking[]> {
     return await db
       .select()
       .from(bookings)
-      .where(and(eq(bookings.customerEmail, email.trim().toLowerCase()), isNull(bookings.archivedAt)))
+      .where(and(sql`LOWER(${bookings.customerEmail}) = ${email.trim().toLowerCase()}`, isNull(bookings.archivedAt)))
       .orderBy(desc(bookings.createdAt))
       .limit(20);
   }
@@ -662,7 +699,7 @@ export class DatabaseStorage implements IStorage {
   async linkBookingsToUser(email: string, userId: string): Promise<void> {
     await db.update(bookings)
       .set({ userId })
-      .where(and(eq(bookings.customerEmail, email), sql`${bookings.userId} IS NULL`));
+      .where(and(sql`LOWER(${bookings.customerEmail}) = ${email.trim().toLowerCase()}`, sql`${bookings.userId} IS NULL`));
   }
 
   async getBookingByHoldId(holdId: string): Promise<Booking | undefined> {
@@ -678,27 +715,9 @@ export class DatabaseStorage implements IStorage {
       const [booking] = await tx.select().from(bookings).where(eq(bookings.id, id)).for('update'); // booking, then hold, then instance: confirmWithSeats' order
       if (!booking) return;
 
-      if (booking.holdId) {
-        // An ACTIVE hold gives its seats back (heldCount) as it is released; a later re-reservation of
-        // the released hold then counts them once.
-        const [hold] = await tx.select().from(availabilityHolds).where(eq(availabilityHolds.id, booking.holdId)).for('update');
-        if (hold?.status === 'ACTIVE') {
-          await tx.update(tourInstances)
-            .set({ heldCount: sql`GREATEST(0, ${tourInstances.heldCount} - ${hold.quantity})` })
-            .where(eq(tourInstances.id, hold.tourInstanceId));
-        }
-        await tx.update(availabilityHolds)
-          .set({ status: 'RELEASED' })
-          .where(eq(availabilityHolds.id, booking.holdId));
-      }
-
-      if (booking.status === 'confirmed' && booking.tourInstanceId) {
-        await tx.update(tourInstances)
-          .set({
-            confirmedCount: sql`${tourInstances.confirmedCount} - ${booking.guests}`
-          })
-          .where(eq(tourInstances.id, booking.tourInstanceId));
-      }
+      // Release every hold of the booking (ACTIVE holds free heldCount, CONFIRMED
+      // ones free confirmedCount) before the row or its dependants are removed.
+      await releaseBookingSeatsInTransaction(tx, booking);
 
       if (hardDelete) {
         // Delete dependent records first to avoid constraint violations
@@ -750,23 +769,27 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getRevenueByMonth(): Promise<{ month: string; total: number; }[]> {
-    // H8 Fix: Use SQL aggregate grouping instead of full table scan
-    const results = await db
+    // Group by YYYY-MM, not the three-letter month name: January 2025 and
+    // January 2026 were previously summed into one bucket, and the result had no
+    // deterministic order. Include completed bookings and exclude archived ones.
+    const month = sql<string>`to_char(to_date(${bookings.date}, 'YYYY-MM-DD'), 'YYYY-MM')`;
+    return await db
       .select({
-        month: sql<string>`to_char(to_date(${bookings.date}, 'YYYY-MM-DD'), 'Mon')`,
+        month,
         total: sql<number>`sum(${bookings.totalAmountCents})`.mapWith(Number)
       })
       .from(bookings)
-      .where(eq(bookings.status, 'confirmed'))
-      .groupBy(sql`to_char(to_date(${bookings.date}, 'YYYY-MM-DD'), 'Mon')`);
-
-    return results;
+      .where(and(
+        inArray(bookings.status, ['confirmed', 'completed']),
+        isNull(bookings.archivedAt),
+      ))
+      .groupBy(month)
+      .orderBy(month);
   }
 
   async getRevenueDaily(days: number): Promise<{ date: string; amount: number; }[]> {
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - days);
-    cutoffDate.setHours(0, 0, 0, 0);
+    // Midnight in Vanuatu (UTC+11), not the server's UTC midnight.
+    const cutoffDate = vanuatuDaysAgoStartUtc(Math.max(0, days - 1));
 
     const results = await db
       .select({
@@ -790,9 +813,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getTopPerformingProducts(limit: number, days: number = 30): Promise<{ productName: string; bookingCount: number; revenue: number; }[]> {
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - days);
-    cutoffDate.setHours(0, 0, 0, 0);
+    // Midnight in Vanuatu (UTC+11), not the server's UTC midnight.
+    const cutoffDate = vanuatuDaysAgoStartUtc(Math.max(0, days - 1));
 
     // We join with items to get accurate product types, but fall back to bookings 
     // for historical data that might not have items
@@ -818,9 +840,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getRevenueByCategory(days: number = 30): Promise<{ category: string; revenueCents: number; }[]> {
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - days);
-    cutoffDate.setHours(0, 0, 0, 0);
+    // Midnight in Vanuatu (UTC+11), not the server's UTC midnight.
+    const cutoffDate = vanuatuDaysAgoStartUtc(Math.max(0, days - 1));
 
     // Option B: UNION approach — bookingItems (authoritative) + legacy bookings without items
     // This ensures all historical revenue is included, not just post-bookingItems bookings.
@@ -966,7 +987,14 @@ export class DatabaseStorage implements IStorage {
 
   async getPaymentByGatewayReference(gatewayReference: string): Promise<Payment | undefined> {
     return this.withRetry(async () => {
-      const [payment] = await db.select().from(payments).where(eq(payments.gatewayReference, gatewayReference));
+      // If historical duplicates exist, the newest attempt is the one the
+      // callback most likely belongs to.
+      const [payment] = await db
+        .select()
+        .from(payments)
+        .where(eq(payments.gatewayReference, gatewayReference))
+        .orderBy(desc(payments.createdAt))
+        .limit(1);
       return payment || undefined;
     });
   }
@@ -1013,8 +1041,7 @@ export class DatabaseStorage implements IStorage {
     );
   }
 
-  async getOverduePayments(): Promise<Payment[]> {
-    // M6 Fix: Targeted query instead of full table scan
+  async getOverduePayments(limit: number = 200): Promise<Payment[]> {
     return this.withRetry(() => db
       .select()
       .from(payments)
@@ -1029,7 +1056,27 @@ export class DatabaseStorage implements IStorage {
           sql`NOT EXISTS (SELECT 1 FROM bookings b WHERE b.id = ${payments.bookingId} AND b.status IN ('confirmed', 'completed'))`
         )
       )
+      .limit(limit)
     );
+  }
+
+  // Promotions
+  async getPromotionByCode(code: string): Promise<Promotion | undefined> {
+    const [promo] = await db.select().from(promotions).where(eq(promotions.code, code.trim().toUpperCase())).limit(1);
+    return promo || undefined;
+  }
+
+  async claimPromotion(id: string, tx?: any): Promise<boolean> {
+    const client = tx || db;
+    const rows = await client
+      .update(promotions)
+      .set({ usedCount: sql`${promotions.usedCount} + 1` })
+      .where(and(
+        eq(promotions.id, id),
+        sql`(${promotions.maxUses} = 0 OR ${promotions.usedCount} < ${promotions.maxUses})`,
+      ))
+      .returning({ id: promotions.id });
+    return rows.length > 0;
   }
 
   // Notifications
@@ -1054,6 +1101,11 @@ export class DatabaseStorage implements IStorage {
       .from(notifications)
       .where(and(eq(notifications.read, false), isNull(notifications.userId)))
       .orderBy(desc(notifications.createdAt));
+  }
+
+  async getNotification(id: string): Promise<Notification | undefined> {
+    const [notification] = await db.select().from(notifications).where(eq(notifications.id, id));
+    return notification || undefined;
   }
 
   async markNotificationAsRead(id: string): Promise<void> {
@@ -1342,8 +1394,9 @@ export class DatabaseStorage implements IStorage {
     await db.delete(addons).where(eq(addons.id, id));
   }
 
-  async createBookingAddon(item: InsertBookingAddon): Promise<BookingAddon> {
-    const [newAddon] = await db.insert(bookingAddons).values(item).returning();
+  async createBookingAddon(item: InsertBookingAddon, tx?: any): Promise<BookingAddon> {
+    const client = tx || db;
+    const [newAddon] = await client.insert(bookingAddons).values(item).returning();
     return newAddon;
   }
 
@@ -1516,7 +1569,7 @@ export class DatabaseStorage implements IStorage {
     return updated;
   }
 
-  async getExpiredHolds(now: Date): Promise<AvailabilityHold[]> {
+  async getExpiredHolds(now: Date, limit: number = 500): Promise<AvailabilityHold[]> {
     return this.withRetry(async () => {
       return await db
         .select()
@@ -1527,12 +1580,17 @@ export class DatabaseStorage implements IStorage {
             lt(availabilityHolds.expiresAt, now)
           )
         )
-        .orderBy(availabilityHolds.expiresAt);
+        .orderBy(availabilityHolds.expiresAt)
+        .limit(limit);
     });
   }
 
   async getHoldsBySession(sessionId: string): Promise<AvailabilityHold[]> {
     return await db.select().from(availabilityHolds).where(and(eq(availabilityHolds.bookingSessionId, sessionId), eq(availabilityHolds.status, 'ACTIVE')));
+  }
+
+  async getAllHoldsBySession(sessionId: string): Promise<AvailabilityHold[]> {
+    return await db.select().from(availabilityHolds).where(eq(availabilityHolds.bookingSessionId, sessionId));
   }
 
   // Projections

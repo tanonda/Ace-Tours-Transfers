@@ -32,6 +32,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
 import { useAuth } from "@/lib/auth-context";
+import { csvRow } from "@shared/csv";
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -566,7 +567,7 @@ export default function AdminCalendar() {
                               (b.id || "").slice(0, 12)
                             ])
                           ];
-                          const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+                          const csv = rows.map(r => csvRow(r)).join("\n");
                           const a = document.createElement("a");
                           a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
                           a.download = `schedule-${new Date().toISOString().split("T")[0]}.csv`;
@@ -590,8 +591,11 @@ export default function AdminCalendar() {
                             <body><h1>Ace Tours & Transfers — Daily Schedule</h1><p><strong>Date:</strong> ${new Date().toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
                             <table><thead><tr><th>#</th><th>Customer</th><th>Email</th><th>Phone</th><th>Tour / Transfer</th><th>Guests</th><th>Amount</th><th>Status</th></tr></thead>
                             <tbody>${rows}</tbody></table>
-                            <script>window.onload=()=>window.print()<\/script></body></html>`);
+                            </body></html>`);
                           w.document.close();
+                          // Production CSP forbids the inline script that used to call
+                          // print(); call it from the opener instead.
+                          setTimeout(() => { try { w.focus(); w.print(); } catch { /* closed */ } }, 250);
                         }}>
                         🖨 Print
                       </Button>

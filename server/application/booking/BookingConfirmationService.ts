@@ -299,33 +299,29 @@ export class BookingConfirmationService {
         return;
       }
 
-      // Release any holds
-      if (booking.holdId) {
+      // Release every hold of the booking: ACTIVE holds (heldCount) and
+      // CONFIRMED holds (confirmedCount). releaseHold handles both now.
+      const holdIds = new Set<string>();
+      if (booking.holdId) holdIds.add(booking.holdId);
+      // Modern bookings own their session id (= booking id); older bookings
+      // shared a browser session, whose holds may belong to a sibling booking.
+      if (booking.bookingSessionId && booking.bookingSessionId === booking.id) {
+        const sessionHolds = typeof this.storage.getAllHoldsBySession === "function"
+          ? await this.storage.getAllHoldsBySession(booking.bookingSessionId)
+          : await this.storage.getHoldsBySession(booking.bookingSessionId);
+        for (const hold of sessionHolds) holdIds.add(hold.id);
+      }
+      for (const holdId of holdIds) {
         try {
-          await this.availabilityService.releaseHold(booking.holdId);
-          console.log(`[BOOKING_CONFIRM] Released hold ${booking.holdId}`);
+          await this.availabilityService.releaseHold(holdId);
         } catch (error) {
-          console.warn(`[BOOKING_CONFIRM] Could not release hold ${booking.holdId}:`, error);
+          console.warn(`[BOOKING_CONFIRM] Could not release hold ${holdId}:`, error);
         }
       }
 
-      // Release session holds
-      if (booking.bookingSessionId) {
-        try {
-          const holds = await this.storage.getHoldsBySession(booking.bookingSessionId);
-          for (const hold of holds) {
-            await this.availabilityService.releaseHold(hold.id);
-          }
-          console.log(`[BOOKING_CONFIRM] Released ${holds.length} session holds`);
-        } catch (error) {
-          console.warn(`[BOOKING_CONFIRM] Error releasing session holds:`, error);
-        }
-      }
-
-      // Update booking status
       await this.storage.updateBooking(bookingId, {
-        status: 'cancelled',
-        paymentReference: `CANCELLED: ${reason}`
+        status: "cancelled",
+        paymentReference: `CANCELLED: ${reason}`,
       });
 
       console.log(`[BOOKING_CONFIRM] ✅ Booking ${bookingId} cancelled`);

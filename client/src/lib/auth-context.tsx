@@ -16,6 +16,8 @@ interface AuthContextType {
   isLoading: boolean;
   login: (email: string, password: string, mfaToken?: string) => Promise<{ success: boolean; requiresMfa?: boolean; error?: string }>;
   logout: () => Promise<void>;
+  /** Re-read /api/auth/me (after a profile change). */
+  refresh: () => Promise<void>;
   isAuthenticated: boolean;
   isAdmin: boolean;
   isStaff: boolean;
@@ -120,6 +122,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isLoading,
       login,
       logout,
+      refresh: checkAuth,
       isAuthenticated: !!user,
       isAdmin: user?.role === "admin",
       isStaff: user?.role === "admin" || user?.role === "field_service",

@@ -40,6 +40,7 @@ export default function PaymentSuccess() {
   const searchString = useSearch();
   const params = new URLSearchParams(searchString);
   const bookingId = params.get("booking") || params.get("id");
+  const receiptToken = params.get("receipt");
   const isManual = params.get("manual") === "true";
   const paymentMethod = params.get("method") || "manual_transfer";
   const isCash = paymentMethod === "cash";
@@ -64,6 +65,17 @@ export default function PaymentSuccess() {
     localStorage.removeItem('ace-tours-booking-draft');
   }, []);
 
+  // A guest arriving from an admin-created payment link has no session; the
+  // signed receipt token lets them see this one booking's status.
+  const loadReceipt = async () => {
+    if (!bookingId || !receiptToken) return null;
+    const res = await fetch(`/api/bookings/${bookingId}/receipt?token=${encodeURIComponent(receiptToken)}`, {
+      credentials: "include",
+    });
+    if (!res.ok) return null;
+    return res.json();
+  };
+
   const { data: booking, isLoading } = useQuery<{
     status: string;
     customerName?: string;
@@ -79,9 +91,13 @@ export default function PaymentSuccess() {
     petPaxTotal?: number;
     guests?: number;
   }>({
-    queryKey: ["booking", bookingId],
+    queryKey: ["booking", bookingId, receiptToken],
     queryFn: async () => {
       if (!bookingId) return null;
+      if (receiptToken) {
+        const receipt = await loadReceipt();
+        if (receipt?.booking) return receipt.booking;
+      }
       const res = await fetch(`/api/bookings/${bookingId}`, { credentials: "include" });
       if (!res.ok) return null;
       return res.json();
@@ -97,9 +113,13 @@ export default function PaymentSuccess() {
 
   // Fetch booking items for service details
   const { data: bookingItems = [], isFetched: itemsFetched } = useQuery<BookingItem[]>({
-    queryKey: ["booking-items", bookingId],
+    queryKey: ["booking-items", bookingId, receiptToken],
     queryFn: async () => {
       if (!bookingId) return [];
+      if (receiptToken) {
+        const receipt = await loadReceipt();
+        if (Array.isArray(receipt?.items)) return receipt.items;
+      }
       const res = await fetch(`/api/bookings/${bookingId}/items`, { credentials: "include" });
       if (!res.ok) return [];
       return res.json();
@@ -158,7 +178,7 @@ export default function PaymentSuccess() {
 
           {/* Ace Tours Brand Identity */}
           <div className="flex items-center justify-center gap-3 mb-2">
-            <img src="/assets/logo.png" alt="Ace Tours & Transfers" className="h-10 w-10 rounded-full border border-[#f4a830]/30" />
+            <img src="/assets/logo-128.png" alt="Ace Tours & Transfers" className="h-10 w-10 rounded-full border border-[#f4a830]/30" />
             <div className="text-center">
               <p className="text-sm font-semibold text-[#f4a830] tracking-wide">Ace Tours & Transfers</p>
               <p className="text-[10px] text-muted-foreground">Vanuatu</p>

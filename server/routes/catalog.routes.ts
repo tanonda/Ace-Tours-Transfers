@@ -6,8 +6,30 @@ import * as schema from "../../shared/schema.js";
 import { insertProductSchema } from "../../shared/schema.js";
 import { cloudinaryService } from "../infrastructure/storage/cloudinary-service.js";
 import { withProductTranslations } from "../lib/product-translation.service.js";
+import { z } from "zod";
+import { adminAudit } from "../infrastructure/audit/admin-audit-log.service.js";
 
 import { requireAdmin, upload, uploadToCloudinaryLegacy } from "./shared.js";
+
+/** Global active add-ons, shaped for the storefront's AddonsPanel. */
+function toProductAddons(addons: Awaited<ReturnType<typeof storage.getActiveAddons>>) {
+  return addons.map((addon) => ({
+    id: addon.id,
+    addonId: addon.id,
+    isRequired: false,
+    sortOrder: 0,
+    addon: {
+      id: addon.id,
+      name: addon.name,
+      description: addon.description,
+      priceCents: addon.priceCents,
+      isPerUnit: false,
+      unitLabel: null,
+      minUnits: 1,
+      maxUnits: 1,
+    },
+  }));
+}
 
 export function registerCatalogRoutes(app: Express) {
   // Image Upload API (Admin Only)
@@ -61,8 +83,9 @@ export function registerCatalogRoutes(app: Express) {
       const product = await storage.getProductByIdOrSlug(req.params.id);
       if (!product) return res.status(404).json({ error: "Product not found" });
       const [translated] = await withProductTranslations([product], locale);
-      // Include product-specific addons — failure must not break the whole endpoint
-      res.json({ ...translated, addons: [] });
+      // Add-ons are global (Admin → Addons); the detail page's panel renders them.
+      const activeAddons = await storage.getActiveAddons().catch(() => []);
+      res.json({ ...translated, addons: toProductAddons(activeAddons) });
     } catch (error: any) {
       console.error("[ROUTE] GET /api/products/:id failed:", error?.message, error?.code);
       res.status(500).json({ error: "Failed to fetch product" });
@@ -258,92 +281,114 @@ export function registerCatalogRoutes(app: Express) {
     }
   });
 
-  // Pre-launch data reset endpoint
+  // Pre-launch data reset endpoint. Destructive: requires an explicit confirm
+  // token, runs in one transaction, and is recorded in the admin audit log.
+  const resetScopeSchema = z.object({
+    confirm: z.literal("RESET"),
+    keepProductIds: z.array(z.string()).default([]),
+    scope: z.object({
+      bookings: z.boolean().optional(),
+      payments: z.boolean().optional(),
+      holds: z.boolean().optional(),
+      users: z.boolean().optional(),
+      newsletter: z.boolean().optional(),
+      reviews: z.boolean().optional(),
+      products: z.boolean().optional(),
+    }).strict(),
+  }).refine((value) => Object.values(value.scope).some(Boolean), {
+    message: "Choose at least one scope to reset",
+  });
+
   app.post("/api/admin/reset", requireAdmin, async (req, res) => {
-    const { keepProductIds = [], scope = {} } = req.body as {
-      keepProductIds: string[];
-      scope: {
-        bookings?: boolean;
-        payments?: boolean;
-        holds?: boolean;
-        users?: boolean;
-        newsletter?: boolean;
-        reviews?: boolean;
-        products?: boolean;
-      };
-    };
+    const parsed = resetScopeSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: parsed.error.errors[0]?.message ?? "Invalid reset request" });
+    }
+    const { keepProductIds, scope } = parsed.data;
+
     try {
-      const deleted: Record<string, number> = {};
+      const deleted = await db.transaction(async (tx: any) => {
+        const counts: Record<string, number> = {};
+        const count = (result: any) => Number(result?.rowCount ?? 0);
 
-      if (scope.holds) {
-        const r = await db.execute(sql`DELETE FROM availability_holds`);
-        deleted.holds = (r as any).rowCount ?? 0;
-        await db.execute(sql`DELETE FROM capacity_audit_log`);
-      }
-
-      if (scope.bookings || scope.payments) {
-        await db.execute(sql`DELETE FROM booking_addons`);
-        await db.execute(sql`DELETE FROM booking_items`);
-        if (scope.payments) {
-          const r = await db.execute(sql`DELETE FROM payments`);
-          deleted.payments = (r as any).rowCount ?? 0;
+        if (scope.holds) {
+          counts.holds = count(await tx.execute(sql`DELETE FROM availability_holds`));
+          await tx.execute(sql`DELETE FROM capacity_audit_log`);
         }
-        if (scope.bookings) {
-          const r = await db.execute(sql`DELETE FROM bookings`);
-          deleted.bookings = (r as any).rowCount ?? 0;
+
+        if (scope.bookings || scope.payments) {
+          await tx.execute(sql`DELETE FROM booking_addons`);
+          await tx.execute(sql`DELETE FROM booking_items`);
+          // Reviews point at bookings; keep the review text but drop the link.
+          await tx.execute(sql`UPDATE reviews SET booking_id = NULL WHERE booking_id IS NOT NULL`);
+          if (scope.payments || scope.bookings) {
+            counts.payments = count(await tx.execute(sql`DELETE FROM payments`));
+          }
+          if (scope.bookings) {
+            counts.bookings = count(await tx.execute(sql`DELETE FROM bookings`));
+          }
         }
-      }
 
-      if (scope.reviews) {
-        const r = await db.execute(sql`DELETE FROM reviews`);
-        deleted.reviews = (r as any).rowCount ?? 0;
-      }
-
-      if (scope.newsletter) {
-        const r = await db.execute(sql`DELETE FROM newsletter_subscribers`);
-        deleted.newsletter = (r as any).rowCount ?? 0;
-      }
-
-      if (scope.users) {
-        // Never delete the admin account
-        const r = await db.execute(sql`DELETE FROM users WHERE role != 'admin'`);
-        deleted.users = (r as any).rowCount ?? 0;
-        await db.execute(sql`DELETE FROM wishlist_items WHERE user_id NOT IN (SELECT id FROM users)`);
-      }
-
-      if (scope.products) {
-        // Delete all products EXCEPT those in keepProductIds
-        const toDelete = await db.execute(
-          keepProductIds.length > 0
-            ? sql`SELECT id FROM products WHERE id NOT IN (${sql.raw(keepProductIds.map(id => `'${id.replace(/'/g, "''")}'`).join(","))})`
-            : sql`SELECT id FROM products`
-        );
-        for (const row of (toDelete as any).rows ?? []) {
-          const pid = row.id;
-          await db.execute(sql`DELETE FROM availability_holds WHERE tour_instance_id IN (SELECT id FROM tour_instances WHERE tour_id = ${pid})`);
-          await db.execute(sql`DELETE FROM capacity_audit_log WHERE tour_instance_id IN (SELECT id FROM tour_instances WHERE tour_id = ${pid})`);
-          await db.execute(sql`DELETE FROM tour_instances WHERE tour_id = ${pid}`);
-          await db.execute(sql`DELETE FROM wishlist_items WHERE tour_id = ${pid}`);
-          await db.execute(sql`DELETE FROM pricing_versions WHERE product_id = ${pid}`);
-          await db.execute(sql`DELETE FROM product_blackout_dates WHERE product_id = ${pid}`);
-          await db.execute(sql`DELETE FROM resources WHERE product_id = ${pid}`);
-          await db.execute(sql`DELETE FROM booking_addons WHERE booking_id IN (SELECT id FROM bookings WHERE tour_id = ${pid})`);
-          await db.execute(sql`DELETE FROM booking_items WHERE booking_id IN (SELECT id FROM bookings WHERE tour_id = ${pid})`);
-          await db.execute(sql`DELETE FROM payments WHERE booking_id IN (SELECT id FROM bookings WHERE tour_id = ${pid})`);
-          await db.execute(sql`DELETE FROM bookings WHERE tour_id = ${pid}`);
-          await db.execute(sql`DELETE FROM products WHERE id = ${pid}`);
+        if (scope.reviews) {
+          counts.reviews = count(await tx.execute(sql`DELETE FROM reviews`));
         }
-        deleted.products = ((toDelete as any).rows ?? []).length;
-        // Also wipe tour_instances for any surviving products
-        if (keepProductIds.length === 0) {
-          await db.execute(sql`DELETE FROM tour_instances`);
+
+        if (scope.newsletter) {
+          counts.newsletter = count(await tx.execute(sql`DELETE FROM newsletter_subscribers`));
         }
-      }
+
+        if (scope.users) {
+          await tx.execute(sql`UPDATE bookings SET user_id = NULL WHERE user_id IN (SELECT id FROM users WHERE role != 'admin')`);
+          await tx.execute(sql`UPDATE reviews SET user_id = NULL WHERE user_id IN (SELECT id FROM users WHERE role != 'admin')`);
+          await tx.execute(sql`DELETE FROM wishlist_items WHERE user_id NOT IN (SELECT id FROM users WHERE role = 'admin')`);
+          counts.users = count(await tx.execute(sql`DELETE FROM users WHERE role != 'admin'`));
+        }
+
+        if (scope.products) {
+          const keepCondition = keepProductIds.length
+            ? sql`WHERE id NOT IN (${sql.join(keepProductIds.map((id) => sql`${id}`), sql`, `)})`
+            : sql``;
+          const toDelete: any = await tx.execute(sql`SELECT id FROM products ${keepCondition}`);
+          for (const row of toDelete.rows ?? []) {
+            const pid = row.id;
+            await tx.execute(sql`DELETE FROM availability_holds WHERE tour_instance_id IN (SELECT id FROM tour_instances WHERE tour_id = ${pid})`);
+            await tx.execute(sql`DELETE FROM capacity_audit_log WHERE tour_instance_id IN (SELECT id FROM tour_instances WHERE tour_id = ${pid})`);
+            await tx.execute(sql`DELETE FROM tour_instances WHERE tour_id = ${pid}`);
+            await tx.execute(sql`DELETE FROM wishlist_items WHERE tour_id = ${pid}`);
+            await tx.execute(sql`DELETE FROM pricing_versions WHERE product_id = ${pid}`);
+            await tx.execute(sql`DELETE FROM product_blackout_dates WHERE product_id = ${pid}`);
+            await tx.execute(sql`DELETE FROM resources WHERE product_id = ${pid}`);
+            await tx.execute(sql`DELETE FROM product_translations WHERE product_id = ${pid}`);
+            await tx.execute(sql`DELETE FROM reviews WHERE tour_id = ${pid}`);
+            await tx.execute(sql`DELETE FROM booking_addons WHERE booking_id IN (SELECT id FROM bookings WHERE tour_id = ${pid})`);
+            await tx.execute(sql`DELETE FROM booking_items WHERE booking_id IN (SELECT id FROM bookings WHERE tour_id = ${pid})`);
+            await tx.execute(sql`DELETE FROM payments WHERE booking_id IN (SELECT id FROM bookings WHERE tour_id = ${pid})`);
+            await tx.execute(sql`DELETE FROM bookings WHERE tour_id = ${pid}`);
+            await tx.execute(sql`DELETE FROM products WHERE id = ${pid}`);
+          }
+          counts.products = (toDelete.rows ?? []).length;
+          if (keepProductIds.length === 0) {
+            await tx.execute(sql`DELETE FROM tour_instances`);
+          }
+        }
+
+        return counts;
+      });
+
+      await adminAudit.log({
+        action: "system.reset",
+        entityType: "system",
+        entityId: `reset_${Date.now()}`,
+        entityName: "Pre-launch data reset",
+        performedBy: req.session.userId,
+        metadata: { scope, keepProductIds, deleted },
+        req,
+      });
 
       res.json({ ok: true, deleted });
-    } catch (error) {
+    } catch (error: any) {
       console.error("[ROUTE] POST /api/admin/reset Error:", error);
-      res.status(500).json({ error: "Reset failed", detail: String(error) });
+      res.status(500).json({ error: "Reset failed" });
     }
   });
 
@@ -379,8 +424,8 @@ export function registerCatalogRoutes(app: Express) {
   });
 
   // Product-specific addons
-  app.get("/api/products/:productId/addons", async (req, res) => {
-    try { res.json([]); }
+  app.get("/api/products/:productId/addons", async (_req, res) => {
+    try { res.json(toProductAddons(await storage.getActiveAddons())); }
     catch { res.status(500).json({ error: "Failed to fetch product addons" }); }
   });
 
@@ -466,7 +511,8 @@ export function registerCatalogRoutes(app: Express) {
   });
   app.post("/api/promotions/validate", async (req, res) => {
     try {
-      const { code, subtotalCents } = req.body;
+      const { code, subtotalCents, orderTotalCents } = req.body;
+      const cartCents = Number(subtotalCents ?? orderTotalCents) || 0;
       if (!code) return res.json({ valid: false, message: "No code provided" });
       const [promo] = await db.select().from(schema.promotions).where(eq(schema.promotions.code, (code as string).toUpperCase().trim())).limit(1);
       if (!promo) return res.json({ valid: false, message: "Invalid promo code" });
@@ -475,9 +521,9 @@ export function registerCatalogRoutes(app: Express) {
       if (today < promo.validFrom) return res.json({ valid: false, message: "Promo not yet valid" });
       if (today > promo.validTo) return res.json({ valid: false, message: "Promo has expired" });
       if (promo.maxUses > 0 && promo.usedCount >= promo.maxUses) return res.json({ valid: false, message: "Usage limit reached" });
-      if (promo.minPurchaseCents > 0 && (subtotalCents || 0) < promo.minPurchaseCents)
+      if (promo.minPurchaseCents > 0 && cartCents < promo.minPurchaseCents)
         return res.json({ valid: false, message: `Minimum purchase of ${Math.round(promo.minPurchaseCents / 100).toLocaleString()} VT required` });
-      const discountCents = promo.discountType === "percentage" ? Math.round((subtotalCents || 0) * (promo.discountValue / 100)) : promo.discountValue;
+      const discountCents = promo.discountType === "percentage" ? Math.round(cartCents * (promo.discountValue / 100)) : promo.discountValue;
       res.json({
         valid: true, promoId: promo.id, code: promo.code, description: promo.description,
         discountType: promo.discountType, discountValue: promo.discountValue, discountCents,

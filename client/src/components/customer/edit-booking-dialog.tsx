@@ -120,6 +120,7 @@ export function EditBookingDialog({ booking, open, onOpenChange, onSave }: EditB
               <Select
                 value={formData.tour}
                 onValueChange={(value) => setFormData({ ...formData, tour: value })}
+                disabled
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select tour or transfer" />
@@ -157,7 +158,7 @@ export function EditBookingDialog({ booking, open, onOpenChange, onSave }: EditB
           </div>
 
           <div className="bg-yellow-50 p-3 rounded-md text-xs text-yellow-800 border border-yellow-100">
-            Note: Changing dates or guests may affect the total price. Our team will review your request and confirm via email.
+            Note: date and guest changes are checked against live availability and may change the total. The tour itself cannot be changed here; contact us for a different product.
           </div>
         </div>
 

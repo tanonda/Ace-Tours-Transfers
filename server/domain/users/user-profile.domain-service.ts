@@ -99,6 +99,9 @@ export class UserProfileDomainService {
   }
 
   async resetPasswordWithToken(token: string, newPassword: string): Promise<User> {
+    if (typeof newPassword !== "string" || newPassword.length < 8) {
+      throw new Error("New password must be at least 8 characters");
+    }
     const user = await this.storage.getUserByResetToken(token);
     if (!user) {
       throw new Error("Invalid or expired reset token");
@@ -113,6 +116,14 @@ export class UserProfileDomainService {
     }
 
     await this.storage.setUserResetToken(user.id, null, null);
+    // A reset invalidates every existing session: a stolen cookie must not
+    // survive the password change.
+    try {
+      const deleted = await this.storage.deleteUserSessions(user.id);
+      console.log(`[AUTH] Password reset revoked ${deleted} session(s) for user ${user.id}`);
+    } catch (error) {
+      console.error(`[AUTH] Could not revoke sessions for user ${user.id}:`, error);
+    }
     return updatedUser;
   }
 

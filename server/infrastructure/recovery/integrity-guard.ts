@@ -27,17 +27,12 @@ export class BackupIntegrityGuard {
       // 1. Check if we can even connect
       await db.execute(sql`SELECT 1`);
 
-      // 2. Determine the expected migration count from the journal (source of truth),
-      //    falling back to raw file count if the journal is unavailable.
-      let expectedMigrationCount: number;
-      try {
-        const journalPath = path.join(process.cwd(), 'migrations', 'meta', '_journal.json');
-        const journal = JSON.parse(fs.readFileSync(journalPath, 'utf8'));
-        expectedMigrationCount = (journal.entries ?? []).length;
-      } catch {
-        const migrationFiles = fs.readdirSync(path.join(process.cwd(), 'migrations')).filter(f => f.endsWith('.sql'));
-        expectedMigrationCount = migrationFiles.length;
-      }
+      // 2. The custom runner applies every .sql file, so the file count is the
+      //    accurate expectation. The Drizzle journal stopped at 0014 and would
+      //    report a healthy database as drifted.
+      const expectedMigrationCount = fs
+        .readdirSync(path.join(process.cwd(), 'migrations'))
+        .filter((file) => file.endsWith('.sql')).length;
 
       // 3. Prefer our custom idempotent tracking table (drizzle_migrations_applied)
       //    which correctly handles migrations without Drizzle snapshot files.

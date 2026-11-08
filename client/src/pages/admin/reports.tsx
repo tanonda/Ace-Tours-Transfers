@@ -15,6 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Loader2, Download, TrendingUp, CreditCard, DollarSign, Calendar, Users, FileText, Printer, Search } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, Cell } from "recharts";
+import { csvRow } from "@shared/csv";
 
 export default function AdminReports() {
   const { t } = useTranslation();
@@ -90,7 +91,7 @@ export default function AdminReports() {
         b.amount || "", b.status || "",
       ]),
     ];
-    const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const csv = rows.map(r => csvRow(r)).join("\n");
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
     a.download = `bookings-report-${dateFrom}-to-${dateTo}.csv`;
@@ -106,7 +107,7 @@ export default function AdminReports() {
         b.status || "", b.amount || "", b.notes || ""
       ]),
     ];
-    const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const csv = rows.map(r => csvRow(r)).join("\n");
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
     a.download = `guest-manifest-${guestDate}.csv`;

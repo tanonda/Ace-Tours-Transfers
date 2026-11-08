@@ -8,6 +8,9 @@ import { mailingService } from "../../infrastructure/mailing/MailingService.js";
 import { AuditLogService } from "../../infrastructure/audit/audit-log.service.js";
 import { AtomicSessionConfirmationService } from "../booking/AtomicSessionConfirmationService.js";
 import { metricsService } from "../../infrastructure/metrics/metrics.service.js";
+import { confirmWithSeats } from "../../lib/manual-confirmation.js";
+import { PaymentStatus } from "../../domain/payments/interfaces.js";
+import type { Booking } from "../../../shared/schema.js";
 
 export class BookingEventHandler {
   constructor(
@@ -90,7 +93,11 @@ export class BookingEventHandler {
 
         if (!result.success) {
           console.error(`[SESSION_CONFIRM][FAILED] ${result.message}`, result.error);
-          return;
+          // The money is in. Try to re-reserve the seats (a lapsed hold can be
+          // re-confirmed if capacity still exists); if that fails, a person must
+          // resolve it. Never leave a completed payment silently unconfirmed.
+          const recovered = await this.recoverUnconfirmedPayment(booking, event.paymentId, result.message, correlationId);
+          if (!recovered) return;
         }
 
         if (result.wasAlreadyConfirmed) {
@@ -171,6 +178,95 @@ export class BookingEventHandler {
         }
       }
     }
+  }
+
+  /**
+   * A gateway says it was paid, but the normal session confirmation could not
+   * finish (usually because the hold expired). Re-reserve the booking's own
+   * seats where possible; otherwise flag the payment and booking for a human.
+   * Returns true when the booking is now confirmed.
+   */
+  private async recoverUnconfirmedPayment(
+    booking: Booking,
+    paymentId: string,
+    failureMessage: string,
+    correlationId: string,
+  ): Promise<boolean> {
+    try {
+      const confirmed = await confirmWithSeats(this.storage, booking, (tx) =>
+        this.storage.updateBooking(booking.id, {
+          status: "confirmed",
+          paymentReference: paymentId,
+          confirmedAt: new Date(),
+        }, tx),
+      );
+      if (confirmed) {
+        console.warn(`[EVENT][RECOVERED][${correlationId}] Booking ${booking.id} confirmed by re-reserving lapsed seats after payment.`);
+        return true;
+      }
+    } catch (err: any) {
+      console.error(`[EVENT][RECOVERY-FAILED][${correlationId}] Could not re-reserve seats for ${booking.id}:`, err?.message || err);
+    }
+
+    const payment = await this.storage.getPayment(paymentId);
+    await this.storage.updatePayment(paymentId, {
+      status: PaymentStatus.ManualReviewRequired,
+      failureReason: "seats_unavailable_after_payment",
+      metadata: {
+        ...((payment?.metadata as Record<string, unknown>) || {}),
+        confirmationFailure: failureMessage,
+      },
+    });
+
+    // Never overwrite a booking that was already completed/cancelled by a person.
+    if (!["completed", "cancelled"].includes(booking.status)) {
+      await this.storage.updateBooking(booking.id, { status: "inventory_conflict" });
+    }
+
+    const ref = (booking.id || "").replace(/^book_/i, "").replace(/-/g, "").slice(0, 8).toUpperCase();
+    const message = `Payment ${paymentId} for booking ${booking.id} was received, but its seats could not be confirmed (${failureMessage}). The payment is held for manual review; refund or re-book the guest.`;
+    try {
+      await this.storage.createNotification({
+        type: "error",
+        title: "Paid booking needs seats",
+        message,
+        link: "/admin/bookings",
+        userId: null,
+      });
+    } catch (notifyErr) {
+      console.error(`[EVENT][RECOVERY-NOTIFY][${correlationId}] In-app notification failed:`, notifyErr);
+    }
+
+    try {
+      await mailingService.sendAdminEmail(
+        `⚠️ Paid booking could not be confirmed — ACT-${ref}`,
+        `<p>A gateway reported a successful payment, but the booking could not be confirmed because its seats were no longer available.</p>
+         <p><strong>Booking:</strong> ACT-${ref} (${booking.id})<br>
+         <strong>Payment:</strong> ${paymentId}<br>
+         <strong>Customer:</strong> ${booking.customerName} (${booking.customerEmail})<br>
+         <strong>Reason:</strong> ${failureMessage}</p>
+         <p>The payment is <strong>manual_review_required</strong> and the booking is <strong>inventory_conflict</strong>. Refund the guest or find them seats in Admin → Bookings.</p>`,
+      );
+    } catch (emailErr) {
+      console.error(`[EVENT][RECOVERY-EMAIL][${correlationId}] Admin alert failed:`, emailErr);
+    }
+
+    const audit = new AuditLogService(this.storage);
+    await audit.log({
+      productId: booking.tourId,
+      action: "manual_adjustment",
+      performedBy: "system",
+      metadata: {
+        bookingId: booking.id,
+        paymentId,
+        reason: "paid_but_seats_unavailable",
+        failureMessage,
+      },
+    });
+
+    metricsService.incrementFailure("PAID_BUT_UNCONFIRMED");
+    console.error(`[EVENT][PAID-UNCONFIRMED][${correlationId}] ${message}`);
+    return false;
   }
 
   private async onPaymentFailed(event: PaymentFailed): Promise<void> {

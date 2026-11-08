@@ -88,7 +88,7 @@ describe("serveStatic (prerender-aware)", () => {
   });
 
   it("serves the SPA shell with 200 for an app route that has no snapshot", async () => {
-    for (const route of ["/checkout", "/admin/bookings", "/tours/new-tour-not-yet-prerendered", "/faq/"]) {
+    for (const route of ["/checkout", "/login", "/admin/bookings", "/tours/new-tour-not-yet-prerendered", "/faq/"]) {
       const res = await request(app).get(route);
       expect(res.status, route).toBe(200);
       expect(res.text).toContain("SPA_SHELL");
@@ -96,7 +96,7 @@ describe("serveStatic (prerender-aware)", () => {
   });
 
   it("serves the SPA shell with 404 for a path the app doesn't route (no soft 404)", async () => {
-    for (const route of ["/some/unknown/path", "/login", "/admin", "/tours/a/b"]) {
+    for (const route of ["/some/unknown/path", "/admin", "/tours/a/b"]) {
       const res = await request(app).get(route);
       expect(res.status, route).toBe(404);
       expect(res.text).toContain("SPA_SHELL");

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isProductId, productPath, productSlugBase } from "./product-path";
+import { isProductId, productPath, productSlugBase } from "./product-path.js";
 
 describe("productPath", () => {
   it("uses the slug under the section for the product's category", () => {

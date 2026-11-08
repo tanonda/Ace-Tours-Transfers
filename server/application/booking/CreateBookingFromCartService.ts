@@ -11,12 +11,15 @@ import { config } from "../../config.js";
 import { AvailabilityApplicationService } from "../availability/availability.application-service.js";
 import { metricsService } from "../../infrastructure/metrics/metrics.service.js";
 import crypto from "crypto";
+import { vanuatuTodayISO } from "../../lib/business-time.js";
 
 export interface CreateBookingRequest {
   customerName: string;
   customerEmail: string;
   customerPhone?: string;
+  notes?: string;
   idempotencyKey?: string;
+  promoCode?: string;
   pickupLocation?: string;
   items: {
     productId: string;
@@ -32,6 +35,18 @@ export interface CreateBookingRequest {
     endTime?: string;
   }[];
   locale?: string;
+}
+
+/** The exact shape the pricing engine needs; the date drives version + peak season. */
+export function toPriceCartItems(items: CreateBookingRequest["items"]) {
+  return items.map((item) => ({
+    productId: item.productId,
+    adultPax: item.adultPax,
+    childPax: item.childPax,
+    quantity: item.quantity,
+    addonIds: item.addonIds,
+    date: item.date,
+  }));
 }
 
 export class CreateBookingFromCartService {
@@ -52,6 +67,17 @@ export class CreateBookingFromCartService {
 
     const startTime = Date.now();
 
+    // A retry with the same idempotency key must return the booking created by the
+    // first attempt. Checking before any hold is created prevents the retry from
+    // leaving orphan holds attached to no booking.
+    if (request.idempotencyKey) {
+      const existing = await this.storage.getBookingByIdempotencyKey(request.idempotencyKey);
+      if (existing) {
+        console.log(`[BOOKING] Idempotent replay for key ${request.idempotencyKey}: returning ${existing.id}`);
+        return existing;
+      }
+    }
+
     // Each booking owns its holds: the booking ID is the hold-group key
     // (bookings.bookingSessionId / availability_holds.bookingSessionId). Using the
     // browser session here made a guest's separate bookings share holds, so paying
@@ -61,8 +87,11 @@ export class CreateBookingFromCartService {
     const cart = new Cart(cartId);
 
     // Phase 4: Wrap EVERYTHING in a single atomic transaction
-    return await db.transaction(async (tx: any) => {
+    try {
+      return await db.transaction(async (tx: any) => {
       const createdHolds: string[] = [];
+      let firstTourInstanceId: string | null = null;
+      const productCategories = new Set<string>();
 
       try {
         // 1. Build Cart items and create holds ATOMICALLY
@@ -70,6 +99,7 @@ export class CreateBookingFromCartService {
           const product = await this.storage.getProduct(item.productId);
           if (!product) throw new Error(`Product ${item.productId} not found`);
           if (!product.isActive) throw new Error(`Product "${product.title}" is no longer available`);
+          productCategories.add(product.category === "transfer" ? "transfers" : "tours");
 
           const rates = await this.pricingEngine.getTourRate(item.productId, item.date);
           if (!rates) throw new Error(`Rates for product ${item.productId} not found`);
@@ -93,6 +123,7 @@ export class CreateBookingFromCartService {
               tx
             );
             createdHolds.push(hold.id);
+            if (!firstTourInstanceId) firstTourInstanceId = hold.tourInstanceId;
           }
 
           // Price calculation — infants and pets are FREE, only adults + children priced
@@ -133,15 +164,40 @@ export class CreateBookingFromCartService {
         // 2. Price the Cart via Pricing Context
         const snapshot = await this.priceCartService.priceCart(
           cartId,
-          request.items.map((i) => ({
-            productId: i.productId,
-            adultPax: i.adultPax,
-            childPax: i.childPax,
-            quantity: i.quantity,
-            addonIds: i.addonIds,
-          }))
+          toPriceCartItems(request.items)
         );
-        cart.setPricedSnapshot(snapshot);
+        // Promotion codes are validated here, after the subtotal is known, and the
+        // usage is claimed in this same transaction (a failed booking rolls it back).
+        let discountCents = 0;
+        let appliedPromoCode: string | null = null;
+        if (request.promoCode) {
+          const promo = await this.storage.getPromotionByCode(request.promoCode);
+          if (!promo || !promo.isActive) throw new Error("Invalid or inactive promo code");
+          const today = vanuatuTodayISO();
+          if (today < promo.validFrom || today > promo.validTo) throw new Error("This promo code has expired");
+          if (promo.maxUses > 0 && promo.usedCount >= promo.maxUses) throw new Error("This promo code has reached its usage limit");
+          if (promo.minPurchaseCents > 0 && snapshot.totalCents < promo.minPurchaseCents) {
+            throw new Error(`This promo code needs a minimum purchase of ${promo.minPurchaseCents} cents`);
+          }
+          const applicable = promo.applicableTo || "all";
+          if (applicable !== "all" && !productCategories.has(applicable)) {
+            throw new Error("This promo code is not valid for the items in your cart");
+          }
+          discountCents = promo.discountType === "percentage"
+            ? Math.round(snapshot.totalCents * (promo.discountValue / 100))
+            : promo.discountValue;
+          discountCents = Math.min(Math.max(discountCents, 0), snapshot.totalCents);
+          if (!(await this.storage.claimPromotion(promo.id, tx))) {
+            throw new Error("This promo code has reached its usage limit");
+          }
+          appliedPromoCode = promo.code;
+        }
+
+        cart.setPricedSnapshot(
+          discountCents > 0
+            ? { ...snapshot, totalCents: snapshot.totalCents - discountCents, discountCents, promoCode: appliedPromoCode } as any
+            : snapshot,
+        );
 
         // 3. Create Booking Aggregate
         const domainBooking = DomainBooking.createFromCart(bookingId, cart, {
@@ -169,13 +225,15 @@ export class CreateBookingFromCartService {
             id: domainBooking.id,
             customerName: domainBooking.customerName,
             customerEmail: domainBooking.customerEmail,
-            customerPhone: request.customerPhone || null,
+            customerPhone: request.customerPhone?.trim() || null,
+            notes: request.notes?.trim() || null,
             amount: snapshot.totalCents.toString(),
             totalAmountCents: snapshot.totalCents,
             status: "pending",
             date: request.items[0].date,
             guests: request.items.reduce((sum, i) => sum + i.adultPax + i.childPax, 0),
             tourId: request.items[0].productId,
+            tourInstanceId: firstTourInstanceId,
             tourName: cart.getItems()[0].name,
             adultPaxTotal: request.items.reduce((sum, i) => sum + i.adultPax, 0),
             childPaxTotal: request.items.reduce((sum, i) => sum + i.childPax, 0),
@@ -188,9 +246,15 @@ export class CreateBookingFromCartService {
             endTime: aggregateEnd,
             pickupLocation: request.pickupLocation || null,
             locale: request.locale || "en",
+            promoCode: appliedPromoCode,
+            discountCents,
           },
           tx
         );
+
+        if (persistedBooking.id !== bookingId) {
+          throw new DuplicateBookingError(persistedBooking);
+        }
 
         // 6. Persist all items
         for (let idx = 0; idx < cart.getItems().length; idx++) {
@@ -214,6 +278,21 @@ export class CreateBookingFromCartService {
           );
         }
 
+        // 6b. Persist the selected add-ons for reporting/refunds. The price was
+        // already included by priceCart's addonIds calculation.
+        for (const item of request.items) {
+          for (const addonId of item.addonIds ?? []) {
+            const addon = await this.storage.getAddon(addonId);
+            if (!addon) continue;
+            await this.storage.createBookingAddon({
+              bookingId: persistedBooking.id,
+              addonId: addon.id,
+              unitPriceCents: addon.priceCents,
+              quantity: 1,
+            }, tx);
+          }
+        }
+
         // 7. Emit Event
         await eventDispatcher.dispatch(
           new BookingCreated(domainBooking.id, domainBooking.amountCents)
@@ -232,6 +311,22 @@ export class CreateBookingFromCartService {
         metricsService.recordTransactionTime(elapsedMs);
         throw error;
       }
-    });
+      });
+    } catch (error) {
+      // A concurrent first attempt can win the unique index between our lookup and
+      // insert. Its transaction owns the holds; ours rolled back, so return it.
+      if (error instanceof DuplicateBookingError) {
+        console.warn(`[BOOKING] Concurrent idempotent replay; returning ${error.booking.id}`);
+        return error.booking;
+      }
+      throw error;
+    }
+  }
+}
+
+class DuplicateBookingError extends Error {
+  constructor(public readonly booking: SchemaBooking) {
+    super(`Booking already exists for this idempotency key: ${booking.id}`);
+    this.name = "DuplicateBookingError";
   }
 }

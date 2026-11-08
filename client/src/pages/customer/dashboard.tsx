@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { fetchUserBookings, fetchBookingPayments } from "@/lib/api";
+import { fetchUserBookings, fetchBookingPayments, fetchWishlist } from "@/lib/api";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/hooks/use-toast";
@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { useTranslation } from "react-i18next";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Star, Loader2, Calendar, Wallet, Heart, HelpCircle, Ticket, Download, X, Printer, FileText } from "lucide-react";
+import { Star, Loader2, Calendar, Heart, HelpCircle, Ticket, Download, X, Printer, FileText } from "lucide-react";
 
 const PrintItinerary = lazy(() => import("@/components/print-itinerary").then(m => ({ default: m.PrintItinerary })));
 
@@ -211,11 +211,6 @@ export default function CustomerDashboard() {
   const [itineraryBooking, setItineraryBooking] = useState<any>(null);
   const { t, i18n } = useTranslation();
 
-  const fmtVT = (n?: number) => {
-    if (n == null) return '-';
-    const formattedNumber = n.toLocaleString(i18n.language === 'zh' ? 'zh-CN' : i18n.language === 'fr' ? 'fr-FR' : i18n.language === 'es' ? 'es-ES' : 'en-US');
-    return `${formattedNumber} ${t("dashboard.currencySuffix")}`;
-  };
 
   const { data: bookings = [] } = useQuery({
     queryKey: ["user-bookings", user?.id],
@@ -229,8 +224,11 @@ export default function CustomerDashboard() {
     enabled: !!itineraryBooking?.id,
   });
 
+  const { data: wishlist = [] } = useQuery({
+    queryKey: ["wishlist"],
+    queryFn: fetchWishlist,
+  });
   const upcomingTrips = bookings.filter(b => b.status === 'confirmed' || b.status === 'pending');
-  const walletBalance = 52300;
 
   return (
     <DashboardLayout type="customer">
@@ -307,43 +305,6 @@ export default function CustomerDashboard() {
               )}
             </CardContent>
           </Card>
-
-          <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                <Wallet className="h-5 w-5 text-primary" />
-                {t("dashboard.wallet")}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-primary mb-1">{fmtVT(walletBalance)}</div>
-              <p className="text-sm text-muted-foreground mb-4">{t("dashboard.availableBalance")}</p>
-              <div className="flex gap-2">
-                <Button
-                  data-testid="button-topup"
-                  onClick={() => toast({ title: t("dashboard.topUp"), description: t("dashboard.topUpComingSoon") })}
-                  size="sm"
-                  className="flex-1"
-                >
-                  {t("dashboard.topUp")}
-                </Button>
-                <Button
-                  data-testid="button-withdraw"
-                  onClick={() => toast({ title: t("dashboard.withdraw"), description: t("dashboard.withdrawComingSoon") })}
-                  size="sm"
-                  variant="outline"
-                  className="flex-1"
-                >
-                  {t("dashboard.withdraw")}
-                </Button>
-              </div>
-              <div className="mt-4 p-3 bg-background/50 rounded-lg border border-border/50">
-                <div className="text-xs text-muted-foreground mb-1">{t("dashboard.loyaltyPoints")}</div>
-                <div className="font-bold text-lg text-foreground">2,450 pts</div>
-                <div className="text-xs text-muted-foreground">{t("dashboard.bronzeMember")}</div>
-              </div>
-            </CardContent>
-          </Card>
         </div>
 
         <Card>
@@ -371,7 +332,7 @@ export default function CustomerDashboard() {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground mb-3">
-                {t("dashboard.savedInWishlist", { count: 5 })}
+                {t("dashboard.savedInWishlist", { count: wishlist.length })}
               </p>
               <Button
                 data-testid="button-view-wishlist"

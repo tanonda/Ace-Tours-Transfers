@@ -37,14 +37,17 @@ if (!process.env.DATABASE_URL) {
 const MIGRATIONS_DIR = path.resolve("migrations");
 const TRACKING_TABLE = "drizzle_migrations_applied";
 
-// Postgres error codes that mean "this change is already done — skip it"
+// Postgres error codes that mean "this change is already done — skip it".
+//
+// Do NOT add 23505 (unique_violation) or 42P01 (undefined_table): those usually
+// mean a data migration or a missing dependency failed, and swallowing them
+// would mark the file applied with part of its work missing. The runner now
+// runs each file in a transaction, so a real failure rolls the file back.
 const IGNORABLE_CODES = new Set([
   "42701", // duplicate_column
   "42P07", // duplicate_table
   "42710", // duplicate_object (constraint/index)
   "42704", // undefined_object (dropping something that doesn't exist)
-  "23505", // unique_violation (on constraint creation)
-  "42P01", // ← ADD THIS: undefined_table (relation does not exist)
 ]);
 
 function splitStatements(sql: string): string[] {
@@ -86,6 +89,7 @@ export async function runIdempotentMigrations(externalPool?: any): Promise<void>
       console.warn(`[MIGRATE] DNS fallback: ${dnsError.message}`);
     }
 
+    const ca = process.env.DATABASE_SSL_CA?.replace(/\\n/g, "\n");
     pool = new Pool({
       host: targetHost,
       port: port,
@@ -95,7 +99,8 @@ export async function runIdempotentMigrations(externalPool?: any): Promise<void>
       connectionTimeoutMillis: 60000,
       ssl: {
         servername: host,
-        rejectUnauthorized: false
+        rejectUnauthorized: process.env.DATABASE_SSL_REJECT_UNAUTHORIZED !== "false",
+        ...(ca ? { ca } : {}),
       }
     });
   }
@@ -103,6 +108,9 @@ export async function runIdempotentMigrations(externalPool?: any): Promise<void>
   const client = await pool.connect();
 
   try {
+    // One runner at a time (two deploy instances must not interleave DDL).
+    await client.query(`SELECT pg_advisory_lock(hashtext('ace-tours:migrations')::bigint)`);
+
     // 1. Create tracking table
     await client.query(`
       CREATE TABLE IF NOT EXISTS ${TRACKING_TABLE} (
@@ -134,23 +142,32 @@ export async function runIdempotentMigrations(externalPool?: any): Promise<void>
 
       console.log(`  Applying: ${filename} (${statements.length} statement(s))`);
 
-      for (const stmt of statements) {
-        try {
-          await client.query(stmt);
-        } catch (e: any) {
-          if (IGNORABLE_CODES.has(e.code)) {
-            console.log(`    SKIP (${e.code}): ${stmt.slice(0, 70).replace(/\s+/g, " ")}...`);
-          } else {
-            console.error(`    FAILED on statement: ${stmt.slice(0, 120)}`);
-            throw e;
+      // All-or-nothing per file: a partially applied schema change is worse than
+      // a deploy that stops and can be retried.
+      await client.query("BEGIN");
+      try {
+        for (const stmt of statements) {
+          try {
+            await client.query(stmt);
+          } catch (e: any) {
+            if (IGNORABLE_CODES.has(e.code)) {
+              console.log(`    SKIP (${e.code}): ${stmt.slice(0, 70).replace(/\s+/g, " ")}...`);
+            } else {
+              console.error(`    FAILED on statement: ${stmt.slice(0, 120)}`);
+              throw e;
+            }
           }
         }
-      }
 
-      await client.query(
-        `INSERT INTO ${TRACKING_TABLE} (filename) VALUES ($1)`,
-        [filename]
-      );
+        await client.query(
+          `INSERT INTO ${TRACKING_TABLE} (filename) VALUES ($1)`,
+          [filename]
+        );
+        await client.query("COMMIT");
+      } catch (e) {
+        await client.query("ROLLBACK");
+        throw e;
+      }
       console.log(`    DONE: ${filename}`);
       ran++;
     }
@@ -161,6 +178,8 @@ export async function runIdempotentMigrations(externalPool?: any): Promise<void>
 
     console.log("Migrations complete!");
   } finally {
+    // Release the session advisory lock before returning the connection.
+    await client.query(`SELECT pg_advisory_unlock(hashtext('ace-tours:migrations')::bigint)`).catch(() => undefined);
     client.release();
     if (ownsPool) {
       // Force-end the pool with a timeout so the CLI process always exits

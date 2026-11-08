@@ -8,8 +8,10 @@ import { PaymentStatus } from '../domain/payments/interfaces.js';
 import { makeBooking, makePaymentGateway } from '../test-fixtures/payment.js';
 import { config } from '../config.js';
 
-// These tests run BRED with its server switch on (PAYMENTS_BRED_ENABLED=true).
+// These tests run BRED with its server switch on (PAYMENTS_BRED_ENABLED=true)
+// and the documented card switch off (DDD_DISABLE_CARD=false).
 config.payments.bred.enabled = true;
+config.ddd.cardPaymentsDisabled = false;
 
 // Don't let PaymentConfirmed/PaymentFailed handlers reach the DB or mailer.
 vi.mock('../infrastructure/events/event-dispatcher.js', () => ({

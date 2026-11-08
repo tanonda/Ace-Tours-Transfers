@@ -50,6 +50,16 @@ async function createResilientPool() {
   const password = decodeURIComponent(url.password);
   const database = decodeURIComponent(url.pathname.substring(1));
 
+  // Verify the server certificate by default. `DATABASE_SSL_CA` can carry a
+  // private CA (PEM, with literal \n escapes allowed); the escape hatch
+  // DATABASE_SSL_REJECT_UNAUTHORIZED=false exists only for a broken
+  // certificate chain during an incident.
+  const ca = process.env.DATABASE_SSL_CA?.replace(/\\n/g, "\n");
+  const rejectUnauthorized = process.env.DATABASE_SSL_REJECT_UNAUTHORIZED !== "false";
+  if (!rejectUnauthorized) {
+    console.warn("[DATABASE] TLS certificate verification is DISABLED (DATABASE_SSL_REJECT_UNAUTHORIZED=false).");
+  }
+
   const p = new Pool({
     host: targetHost,
     port: port,
@@ -61,8 +71,9 @@ async function createResilientPool() {
     max: 20,                       
     allowExitOnIdle: false,
     ssl: {
-      servername: host, // Crucial: Maintain original host for SNI
-      rejectUnauthorized: false
+      servername: host, // Hostname verification still uses the original host.
+      rejectUnauthorized,
+      ...(ca ? { ca } : {}),
     }
   });
 

@@ -38,6 +38,14 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Typecheck
+        # Both tsconfig projects: the client/shared one and the stricter NodeNext server one.
+        run: npm run check
+
+      - name: Unit and integration tests
+        # Vitest mocks DATABASE_URL (see vitest.config.ts), so no database is needed.
+        run: npm test
+
       - name: Build
         # PRERENDER=0: skip the runtime browser-prerender step in CI. Prerender needs a
         # live DATABASE_URL + a Chromium binary (neither present in this job) and is a

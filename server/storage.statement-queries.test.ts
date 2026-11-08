@@ -128,11 +128,20 @@ describe("held counts", () => {
     expect(hold).toBeLessThan(instance);
   });
 
-  it.each(["RELEASED", "EXPIRED", "CONFIRMED"])("deleteBooking leaves heldCount alone for a %s hold", async (status) => {
+  it.each(["RELEASED", "EXPIRED"])("deleteBooking leaves a %s hold and its heldCount alone", async (status) => {
     world(status);
     await storage.deleteBooking("b1", false);
     expect(instanceUpdates()).toHaveLength(0);
-    expect(pg.calls.some((c) => /^update "availability_holds"/.test(c.text))).toBe(true);
+    expect(pg.calls.some((c) => /^update "availability_holds"/.test(c.text))).toBe(false);
+  });
+
+  it("deleteBooking releases a CONFIRMED hold by lowering confirmedCount", async () => {
+    world("CONFIRMED");
+    await storage.deleteBooking("b1", false);
+    const [upd] = instanceUpdates();
+    expect(upd.text).toMatch(/"confirmed_count" = GREATEST\(0, "tour_instances"."confirmed_count" - \$1\)/);
+    expect(upd.values[0]).toBe(2);
+    expect(pg.calls.some((c) => /^update "availability_holds" set "status" = \$1/.test(c.text) && c.values[0] === "RELEASED")).toBe(true);
   });
 
   it("re-reserving a RELEASED hold adds to confirmedCount only, so the seats are not counted twice", async () => {

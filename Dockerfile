@@ -54,6 +54,10 @@ COPY drizzle.config.ts ./
 COPY tsconfig.json ./
 RUN chmod +x ./scripts/start-with-prerender.sh
 
+# The startup prerender writes into dist/public, so the app user must own /app.
+RUN chown -R pwuser:pwuser /app
+USER pwuser
+
 EXPOSE 5000
 
 # The supervisor starts the server so the prerender can crawl it, but treats the

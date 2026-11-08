@@ -1,14 +1,14 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Layout } from "@/components/layout";
-import { useCart } from "@/lib/cart-context";
+import { useCart, useCartHydrated } from "@/lib/cart-context";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, ArrowRight, User, Phone, MapPin, MessageSquare, ShieldCheck, Mail } from "lucide-react";
+import { ArrowLeft, ArrowRight, User, Phone, MapPin, MessageSquare, ShieldCheck, Mail, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatPriceDisplay } from "@/lib/product.types";
 import { useCurrency } from "@/lib/currency-context";
@@ -18,6 +18,7 @@ import { invalidPersonName } from "@shared/person-name";
 export default function Checkout() {
     const [, setLocation] = useLocation();
     const { items, total } = useCart();
+    const isHydrated = useCartHydrated();
     const { user, isAuthenticated } = useAuth();
     const { toast } = useToast();
     const { currency } = useCurrency();
@@ -32,6 +33,9 @@ export default function Checkout() {
 
     // Pre-fill user data if logged in, or load from session storage if returning
     useEffect(() => {
+        // Wait for the localStorage restore before deciding the cart is empty;
+        // otherwise a refresh or direct load of /checkout bounced to /cart.
+        if (!isHydrated) return;
         if (items.length === 0) {
             setLocation("/cart");
             return;
@@ -52,7 +56,7 @@ export default function Checkout() {
                 phone: user.phone || ""
             }));
         }
-    }, [isAuthenticated, user, items.length, setLocation]);
+    }, [isAuthenticated, user, items.length, isHydrated, setLocation]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { id, value } = e.target;
@@ -98,6 +102,15 @@ export default function Checkout() {
         setLocation("/payment");
     };
 
+    if (!isHydrated) {
+        return (
+            <div className="min-h-screen flex items-center justify-center" aria-live="polite">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                <span className="sr-only">Restoring your cart…</span>
+            </div>
+        );
+    }
+
     if (items.length === 0) return null; // handled by useEffect redirect
 
     return (
@@ -112,7 +125,7 @@ export default function Checkout() {
 
                         {/* Ace Tours Brand Identity */}
                         <div className="flex items-center justify-center gap-3 mb-5">
-                            <img src="/assets/logo.png" alt="Ace Tours & Transfers" className="h-10 w-10 rounded-full border border-[#f4a830]/30" />
+                            <img src="/assets/logo-128.png" alt="Ace Tours & Transfers" className="h-10 w-10 rounded-full border border-[#f4a830]/30" />
                             <div className="text-center">
                                 <p className="text-sm font-semibold text-[#f4a830] tracking-wide">Ace Tours & Transfers</p>
                                 <p className="text-[10px] text-muted-foreground">Vanuatu</p>

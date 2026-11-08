@@ -23,7 +23,7 @@ describe("isSpaRoute", () => {
   });
 
   it("rejects paths the app doesn't route", () => {
-    for (const p of ["/login", "/admin", "/admin/nope", "/tours/a/b", "/vehicle-hire", "/blog/x/y"]) {
+    for (const p of ["/admin", "/admin/nope", "/tours/a/b", "/vehicle-hire", "/blog/x/y"]) {
       expect(isSpaRoute(p), p).toBe(false);
     }
   });

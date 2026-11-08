@@ -4,6 +4,7 @@ import { type IStorage, storage } from "../../storage.js";
 import { mailingService } from "../../infrastructure/mailing/MailingService.js";
 import bcrypt from "bcryptjs";
 import { verify } from "otplib";
+import { isSealedSecret, openSecret, sealSecret } from "../../lib/secret-crypto.js";
 
 export interface AuthResult extends User {
   // Add any extra fields needed for the auth response
@@ -23,38 +24,73 @@ export class AuthDomainService {
     const isPasswordValid = await this.verifyPassword(password, user.password);
     if (!isPasswordValid) return null;
 
+    // Legacy rows may still hold a plaintext password (the old fallback accepted
+    // them forever). A successful login is the one moment we have the plaintext,
+    // so upgrade it to bcrypt and never fall back again for this user.
+    if (!/^\$2[aby]\$/.test(user.password)) {
+      try {
+        await this.storage.updateUserPassword(user.id, await bcrypt.hash(password, 10));
+        console.warn(`[AUTH] Upgraded a legacy plaintext password for user ${user.id}`);
+      } catch (upgradeError) {
+        console.error(`[AUTH] Could not upgrade legacy password for user ${user.id}:`, upgradeError);
+      }
+    }
+
     if (user.isActive === false) {
       throw new Error("Account is suspended. Please contact administrator.");
     }
 
-    if (user.totpEnabled && user.totpSecret) {
+    if (user.totpEnabled) {
+      // Fail closed if MFA is on but the secret is missing or cannot be opened.
+      if (!user.totpSecret) {
+        console.error(`[AUTH] MFA enabled for user ${user.id} but no TOTP secret is stored`);
+        return null;
+      }
+
+      let totpSecret: string;
+      try {
+        totpSecret = openSecret(user.totpSecret);
+      } catch (error) {
+        console.error(`[AUTH] Cannot open the TOTP secret for user ${user.id}:`, error);
+        return null;
+      }
+
       if (!mfaToken) {
         return { user, requiresMfa: true };
       }
-      const isValid = await verify({ token: mfaToken.replace(/\s/g, ''), secret: user.totpSecret });
+      const isValid = await verify({ token: mfaToken.replace(/\s/g, ''), secret: totpSecret });
       if (!isValid) throw new Error("Invalid verification code.");
+
+      // A secret written before encryption existed: keep the login working and
+      // seal it now, so the plaintext row disappears on the next successful login.
+      if (!isSealedSecret(user.totpSecret)) {
+        try {
+          await this.storage.updateUserMfa(user.id, sealSecret(totpSecret), true);
+          console.warn(`[AUTH] Upgraded a legacy plaintext TOTP secret for user ${user.id}`);
+        } catch (error) {
+          console.error(`[AUTH] Could not seal the legacy TOTP secret for user ${user.id}:`, error);
+        }
+      }
     }
 
     return { user };
   }
 
   private async verifyPassword(password: string, storedPassword: string): Promise<boolean> {
-    if (!storedPassword) {
-      return false;
+    if (!storedPassword) return false;
+
+    // A real bcrypt hash: compare normally, and treat a malformed hash as a
+    // failed login (never as plaintext).
+    if (/^\$2[aby]\$/.test(storedPassword)) {
+      try {
+        return await bcrypt.compare(password, storedPassword);
+      } catch {
+        return false;
+      }
     }
 
-    try {
-      return await bcrypt.compare(password, storedPassword);
-    } catch (error) {
-      // Backwards compatibility for legacy plaintext passwords.
-      // If bcrypt compare fails due to an invalid hash format, gracefully
-      // fall back to direct comparison instead of surfacing a 500.
-      const bcryptErrorMessage = error instanceof Error ? error.message : "";
-      if (bcryptErrorMessage.toLowerCase().includes("invalid salt")) {
-        return password === storedPassword;
-      }
-      return false;
-    }
+    // Legacy plaintext row: accept the exact value once; login() then rehashes it.
+    return password === storedPassword;
   }
 
   /**

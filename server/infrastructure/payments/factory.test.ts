@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, afterEach, beforeEach } from 'vitest';
 import { PaymentFactory } from './factory.js';
 import { MpgsHostedCheckoutAdapter } from './mpgs.adapter.js';
 import { config } from '../../config.js';
@@ -12,12 +12,17 @@ const anz = makePaymentGateway({
 });
 
 describe('PaymentFactory server switches', () => {
+  beforeEach(() => {
+    config.ddd.cardPaymentsDisabled = false;
+  });
+
   afterEach(() => {
     config.payments.anz.enabled = false;
     config.payments.nbv.enabled = false;
     config.killSwitches.paymentsPaused = false;
     config.killSwitches.cardPaymentsPaused = false;
     config.payments.externalDisconnected = false;
+    config.ddd.cardPaymentsDisabled = false;
   });
 
   it('refuses ANZ unless PAYMENTS_ANZ_ENABLED is on', () => {
@@ -27,6 +32,7 @@ describe('PaymentFactory server switches', () => {
 
   it('resolves ANZ when PAYMENTS_ANZ_ENABLED is on', () => {
     config.payments.anz.enabled = true;
+    config.ddd.cardPaymentsDisabled = false;
     expect(PaymentFactory.getPaymentGatewayService(anz)).toBeInstanceOf(MpgsHostedCheckoutAdapter);
   });
 
@@ -40,6 +46,13 @@ describe('PaymentFactory server switches', () => {
 
   it('still settles a payment already in progress when the switch is off', () => {
     config.payments.anz.enabled = false;
+    expect(PaymentFactory.getPaymentGatewayService(anz, 'existing')).toBeInstanceOf(MpgsHostedCheckoutAdapter);
+  });
+
+  it('refuses cards while DDD_DISABLE_CARD is on (the default)', () => {
+    config.payments.anz.enabled = true;
+    config.ddd.cardPaymentsDisabled = true;
+    expect(() => PaymentFactory.getPaymentGatewayService(anz)).toThrow(/currently unavailable/);
     expect(PaymentFactory.getPaymentGatewayService(anz, 'existing')).toBeInstanceOf(MpgsHostedCheckoutAdapter);
   });
 

@@ -27,7 +27,7 @@ import {
   availabilityHolds,
   tourInstances,
 } from "../../../shared/schema.js";
-import { eq, and, sql } from "drizzle-orm";
+import { asc, eq, and, inArray, sql } from "drizzle-orm";
 import { AuditLogService } from "../../infrastructure/audit/audit-log.service.js";
 import { metricsService } from "../../infrastructure/metrics/metrics.service.js";
 
@@ -369,30 +369,44 @@ export class AtomicBookingConfirmationService {
         // No holds to validate
         console.log(`[ATOMIC_CONFIRM][${transactionId}] No holds to validate`);
       } else {
+        // A multi-item booking can span several tour instances. Group the holds,
+        // lock every affected instance in id order, and move each instance's own
+        // seats. The old code credited the whole session's seats to holds[0]'s
+        // instance and never decremented the others.
+        const instanceIds = [...new Set(holds.map((hold) => hold.tourInstanceId))].sort();
         const instanceRows = await tx
           .select()
           .from(tourInstances)
-          .where(eq(tourInstances.id, holds[0].tourInstanceId))
+          .where(inArray(tourInstances.id, instanceIds))
+          .orderBy(asc(tourInstances.id))
           .for('update');
+        const instances = new Map(instanceRows.map((instance: any) => [instance.id, instance]));
+        lockedRowCount += instanceRows.length;
 
-        if (instanceRows.length > 0) {
-          lockedRowCount++;
+        console.log(`[ATOMIC_CONFIRM][${transactionId}] STEP 6: Re-verifying capacity for ${instanceIds.length} instance(s)...`);
 
-          // ═══════════════════════════════════════════════════════════════
-          // STEP 6: Re-verify capacity (critical for concurrency safety)
-          // ═══════════════════════════════════════════════════════════════
-          console.log(`[ATOMIC_CONFIRM][${transactionId}] STEP 6: Re-verifying capacity...`);
+        for (const instanceId of instanceIds) {
+          const instance: any = instances.get(instanceId);
+          if (!instance) {
+            return {
+              success: false,
+              bookingId,
+              message: "A tour instance for this booking no longer exists",
+              error: {
+                code: ConfirmationErrorCode.INSTANCE_LOCKED,
+                reason: "Tour instance not found",
+                details: `Instance ${instanceId} was removed before confirmation`,
+                isRetryable: false,
+                transactionId,
+              },
+            };
+          }
 
-          const instance = instanceRows[0];
-          const totalHeldQuantity = holds.reduce((sum, h) => sum + h.quantity, 0);
+          const instanceHolds = holds.filter((hold) => hold.tourInstanceId === instanceId);
+          const totalHeldQuantity = instanceHolds.reduce((sum, hold) => sum + hold.quantity, 0);
+          if (totalHeldQuantity === 0) continue;
 
-          // Check: confirmedCount + (heldCount - thisHold) + blockedCount <= totalCapacity
-          const projectedConfirming = instance.confirmedCount + totalHeldQuantity;
-          const utilization =
-            instance.confirmedCount + instance.heldCount + instance.blockedCount;
-
-          if (projectedConfirming + instance.blockedCount > instance.totalCapacity) {
-            // Capacity would be exceeded
+          if (instance.confirmedCount + totalHeldQuantity + instance.blockedCount > instance.totalCapacity) {
             return {
               success: false,
               bookingId,
@@ -400,21 +414,13 @@ export class AtomicBookingConfirmationService {
               error: {
                 code: ConfirmationErrorCode.CAPACITY_EXHAUSTED,
                 reason: "Re-validation shows capacity would be exceeded",
-                details: `Current: ${instance.confirmedCount} confirmed + ${totalHeldQuantity} pending = ${projectedConfirming}, Capacity: ${instance.totalCapacity}`,
+                details: `Instance ${instanceId}: ${instance.confirmedCount} confirmed + ${totalHeldQuantity} pending + ${instance.blockedCount} blocked > ${instance.totalCapacity}`,
                 isRetryable: false,
                 transactionId,
               },
             };
           }
 
-          verificationsPerformed++;
-
-          // ═══════════════════════════════════════════════════════════════
-          // STEP 7: Atomically confirm all holds
-          // ═══════════════════════════════════════════════════════════════
-          console.log(`[ATOMIC_CONFIRM][${transactionId}] STEP 7: Confirming ${holds.length} holds...`);
-
-          // H5 Fix: Use SQL arithmetic for atomic updates
           await tx
             .update(tourInstances)
             .set({
@@ -422,21 +428,21 @@ export class AtomicBookingConfirmationService {
               heldCount: sql`GREATEST(0, ${tourInstances.heldCount} - ${totalHeldQuantity})`,
               updatedAt: new Date(),
             })
-            .where(eq(tourInstances.id, instance.id));
-
-          // Confirm all holds
-          for (const hold of holds) {
-            await tx
-              .update(availabilityHolds)
-              .set({
-                status: 'CONFIRMED',
-                confirmedAt: new Date(),
-              })
-              .where(eq(availabilityHolds.id, hold.id));
-          }
-
+            .where(eq(tourInstances.id, instanceId));
           verificationsPerformed++;
         }
+
+        // Confirm all holds only after every instance passed its capacity check.
+        for (const hold of holds) {
+          await tx
+            .update(availabilityHolds)
+            .set({
+              status: 'CONFIRMED',
+              confirmedAt: new Date(),
+            })
+            .where(eq(availabilityHolds.id, hold.id));
+        }
+        verificationsPerformed++;
       }
 
       // ═══════════════════════════════════════════════════════════════

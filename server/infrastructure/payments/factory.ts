@@ -60,6 +60,7 @@ export class PaymentFactory {
         config.killSwitches.paymentsPaused ? 'global_kill_switch'
         : config.payments.externalDisconnected && !PaymentMethodClassifier.isOffline(slug) ? 'global_external_disconnect'
         : config.killSwitches.cardPaymentsPaused && PaymentMethodClassifier.isOnlineCard(slug) ? 'card_kill_switch'
+        : config.ddd.cardPaymentsDisabled && PaymentMethodClassifier.isOnlineCard(slug) ? 'ddd_card_payments_disabled'
         : !isGatewayEnabledByEnv(slug) ? 'feature_flag_disabled'
         : undefined;
       if (blockedBy) {

@@ -92,10 +92,10 @@ These improve email deliverability:
 
 Access at: `https://acetoursvanuatu.com/admin`
 
-### Default admin login
-- Email: `admin@aceproducts.vu`
-- Password: `adminpassword`
-- **Change this immediately after first login**
+### Admin login
+The admin account is created by the operator (Admin → Staff) or the local seed
+script; it is never a published default in production. If a seeded development
+account exists (`admin@aceproducts.vu`), change its password before going live.
 
 ### What the admin can do
 - **Tours/Transfers/Vehicles**: Create, edit, pricing, availability, images

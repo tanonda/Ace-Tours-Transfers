@@ -13,6 +13,7 @@ import { rateLimit } from "express-rate-limit";
 import type { AvailabilityApplicationService } from "../application/availability/availability.application-service.js";
 import type { BookingApplicationService } from "../application/booking.application-service.js";
 import { isProductId } from "../../shared/product-path.js";
+import { isValidCalendarDate } from "../lib/business-time.js";
 
 // Security: HTML/XML encoding helpers to prevent XSS in server-rendered templates
 
@@ -83,7 +84,9 @@ export const createBookingItemSchema = z.object({
   childPax: z.number().int().min(0),
   infantPax: z.number().int().min(0).default(0), // NEW — infants under 2, free, no capacity impact
   petPax: z.number().int().min(0).default(0), // NEW — pets, free, manifesting only
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format (YYYY-MM-DD)"),
+  date: z.string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format (YYYY-MM-DD)")
+    .refine(isValidCalendarDate, "That date does not exist."),
   addonIds: z.array(z.string()).optional(),
   slot: z.string().optional(),
   quantity: z.number().int().min(1).optional(),
@@ -94,9 +97,12 @@ export const createBookingItemSchema = z.object({
 export const createBookingBodySchema = z.object({
   customerName: z.string().min(1, "Name is required").max(100).refine((name) => !invalidPersonName(name), PERSON_NAME_ERROR),
   customerEmail: z.string().email("Invalid email address"),
+  customerPhone: z.string().trim().max(30).optional(),
+  notes: z.string().trim().max(2000).optional(),
   items: z.array(createBookingItemSchema).min(1, "At least one item is required"),
   pickupLocation: z.string().max(500).nullable().optional(),
   idempotencyKey: z.string().optional(),
+  promoCode: z.string().trim().max(50).optional(),
   locale: z.string().optional().default("en"),
 }).refine(data => {
   const totalPax = data.items.reduce((sum, item) => sum + (item.adultPax || 0) + (item.childPax || 0), 0);
@@ -226,6 +232,22 @@ export function requireBookingSession(req: Request, res: Response, next: NextFun
     return res.status(401).json({ error: "Booking session expired. Please verify again." });
   }
   next();
+}
+
+/**
+ * Whether the current session may read this booking: an admin, the signed-in
+ * owner, the short-lived guest booking session created by /api/bookings/session
+ * (still unexpired), or a booking created in this browser session during checkout.
+ */
+export function canAccessBooking(req: Request, booking: { id: string; userId?: string | null; bookingSessionId?: string | null }): boolean {
+  if (req.session.userRole === "admin") return true;
+  if (booking.userId && booking.userId === req.session.userId) return true;
+  if (booking.bookingSessionId && booking.bookingSessionId === req.sessionID) return true;
+  if (req.session.bookingSessionId === booking.id) {
+    const expiresAt = req.session.bookingSessionExpiresAt;
+    if (!expiresAt || Date.now() <= expiresAt) return true;
+  }
+  return !!req.session.recentBookingIds?.includes(booking.id);
 }
 
 // Service instances and state shared across route modules (created once in routes.ts).

@@ -2,8 +2,9 @@ import type { Express } from "express";
 import { storage } from "../storage.js";
 import { db } from "../db.js";
 import * as schema from "../../shared/schema.js";
+import { inArray } from "drizzle-orm";
+import { csvRow } from "../../shared/csv.js";
 import { Booking } from "../../shared/schema.js";
-import { AvailabilityApplicationService } from "../application/availability/availability.application-service.js";
 import { screenBookingUpdate } from "../lib/booking-update-policy.js";
 import { PriceCartService } from "../application/pricing/PriceCartService.js";
 
@@ -17,8 +18,11 @@ import { CreateBookingFromCartService } from "../application/booking/CreateBooki
 import { FraudDetectionService } from "../infrastructure/fraud/FraudDetectionService.js";
 import { ZodError } from "zod";
 
-import { bookingLimiter, cartPriceLimiter, createBookingBodySchema, escapeHtml, requireAdmin, requireAuth, requireBookingSession, requireStaff, verifyLimiter, type RouteDeps } from "./shared.js";
+import { bookingLimiter, cartPriceLimiter, createBookingBodySchema, escapeHtml, requireAdmin, requireAuth, requireBookingSession, requireStaff, canAccessBooking, verifyLimiter, type RouteDeps } from "./shared.js";
 import { isProductId } from "../../shared/product-path.js";
+import { isVanuatuPastDate } from "../lib/business-time.js";
+import { cancelBookingWithSeats } from "../lib/booking-seats.js";
+import { verifyBookingReceiptToken } from "../lib/receipt-token.js";
 
 export function registerBookingsRoutes(app: Express, deps: RouteDeps) {
   const { bookingApplicationService, sseClients } = deps;
@@ -48,7 +52,9 @@ export function registerBookingsRoutes(app: Express, deps: RouteDeps) {
         infantPax: parseInt(item.infantPax) || 0, // NEW — stored, not priced
         petPax: parseInt(item.petPax) || 0, // NEW — stored, not priced
         quantity: parseInt(item.quantity) || 1,
-        addonIds: item.addonIds || []
+        addonIds: item.addonIds || [],
+        // Needed for date-effective pricing versions and the peak-season rule.
+        date: typeof item.date === "string" && item.date ? item.date : undefined,
       }));
 
       // Note: Both systems currently use PricingEngine internally
@@ -73,10 +79,17 @@ export function registerBookingsRoutes(app: Express, deps: RouteDeps) {
   app.get("/api/bookings", requireStaff, async (req, res) => {
     try {
       const includeArchived = req.query.includeArchived === 'true';
-      const bookings = await storage.getBookings(includeArchived);
+      const requestedLimit = parseInt(String(req.query.limit ?? ''), 10);
+      const limit = Number.isFinite(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 500) : 500;
+      const offset = Math.max(parseInt(String(req.query.offset ?? '0'), 10) || 0, 0);
+      const bookings = await storage.getBookings(includeArchived, limit, offset);
 
-      // Fetch all payments and gateways to map payment methods to bookings
-      const allPayments = await db.select().from(schema.payments);
+      // Only the payments for this page: the old query loaded the entire payments
+      // table on every staff page view.
+      const pageIds = bookings.map((b) => b.id);
+      const allPayments = pageIds.length
+        ? await db.select().from(schema.payments).where(inArray(schema.payments.bookingId, pageIds))
+        : [];
       const allGateways = await storage.getPaymentGateways();
       const gatewayMap = new Map(allGateways.map(g => [g.id, g.slug]));
 
@@ -111,16 +124,9 @@ export function registerBookingsRoutes(app: Express, deps: RouteDeps) {
   app.get("/api/bookings/export", requireAdmin, async (_req, res) => {
     try {
       const bookings = await storage.getBookings();
-      const escapeCSV = (value: any): string => {
-        const str = String(value ?? '');
-        if (str.includes(',') || str.includes('"') || str.includes('\n')) {
-          return `"${str.replace(/"/g, '""')}"`;
-        }
-        return str;
-      };
       const csvHeader = "ID,Customer,Product,Date,Amount,Status,Guests\n";
       const csvRows = bookings.map((b: Booking) =>
-        [b.id, b.customerName, b.tourName, b.date, b.amount, b.status, b.guests].map(escapeCSV).join(',')
+        csvRow([b.id, b.customerName, b.tourName, b.date, b.amount, b.status, b.guests])
       ).join("\n");
       res.setHeader("Content-Type", "text/csv");
       res.setHeader("Content-Disposition", "attachment; filename=bookings.csv");
@@ -170,16 +176,17 @@ export function registerBookingsRoutes(app: Express, deps: RouteDeps) {
 
       let verified = false;
       const normalise = (s?: string | null) => (s ?? "").trim().toLowerCase();
+      const provided = normalise(value);
+      const lastName = (booking.customerName ?? "").trim().split(/\s+/).pop() ?? "";
+      const stored = type === "email"
+        ? normalise(booking.customerEmail)
+        : type === "lastname"
+          ? normalise(lastName)
+          : normalise((booking as any).customerPhone);
 
-      if (type === "email") {
-        verified = normalise(booking.customerEmail) === normalise(value);
-      } else if (type === "lastname") {
-        const lastName = (booking.customerName ?? "").trim().split(/\s+/).pop() ?? "";
-        verified = normalise(lastName) === normalise(value);
-      } else if (type === "phone") {
-        const storedPhone = (booking as any).customerPhone ?? "";
-        verified = normalise(storedPhone) === normalise(value);
-      }
+      // A missing stored factor (e.g. no phone captured) must never match a
+      // blank/whitespace input; otherwise " " verifies an empty field.
+      verified = stored.length > 0 && provided.length > 0 && stored === provided;
 
       if (!verified) return res.status(403).json(VERIFY_FAIL);
 
@@ -225,15 +232,15 @@ export function registerBookingsRoutes(app: Express, deps: RouteDeps) {
       // Re-verify ownership (same logic as /verify)
       let verified = false;
       const normalise = (s?: string | null) => (s ?? "").trim().toLowerCase();
+      const provided = normalise(value);
+      const lastName = (booking.customerName ?? "").trim().split(/\s+/).pop() ?? "";
+      const stored = type === "email"
+        ? normalise(booking.customerEmail)
+        : type === "lastname"
+          ? normalise(lastName)
+          : normalise((booking as any).customerPhone);
 
-      if (type === "email") {
-        verified = normalise(booking.customerEmail) === normalise(value);
-      } else if (type === "lastname") {
-        const lastName = (booking.customerName ?? "").trim().split(/\s+/).pop() ?? "";
-        verified = normalise(lastName) === normalise(value);
-      } else if (type === "phone") {
-        verified = normalise((booking as any).customerPhone) === normalise(value);
-      }
+      verified = stored.length > 0 && provided.length > 0 && stored === provided;
 
       if (!verified) return res.status(403).json(VERIFY_FAIL);
 
@@ -579,13 +586,7 @@ export function registerBookingsRoutes(app: Express, deps: RouteDeps) {
       const booking = await storage.getBooking(req.params.id);
       if (!booking) return res.status(404).json({ error: "Booking not found" });
 
-      // C3 Fix: Require authentication or email verification for guest access
-      const isAdmin = req.session.userRole === 'admin';
-      const isOwner = booking.userId === req.session.userId || booking.bookingSessionId === req.sessionID;
-      // Allow access if this booking was recently created in this session (checkout flow)
-      const isRecentBooking = (req.session as any).recentBookingIds?.includes(req.params.id);
-
-      if (!isAdmin && !isOwner && !isRecentBooking) {
+      if (!canAccessBooking(req, booking)) {
         return res.status(401).json({ error: "Unauthorized access to booking details" });
       }
 
@@ -602,12 +603,7 @@ export function registerBookingsRoutes(app: Express, deps: RouteDeps) {
       const booking = await storage.getBooking(req.params.id);
       if (!booking) return res.status(404).json({ error: "Booking not found" });
 
-      // Mirror the same ownership checks as GET /api/bookings/:id
-      const isAdmin = req.session.userRole === 'admin';
-      const isOwner = booking.userId === req.session.userId || booking.bookingSessionId === req.sessionID;
-      const isRecentBooking = (req.session as any).recentBookingIds?.includes(req.params.id);
-
-      if (!isAdmin && !isOwner && !isRecentBooking) {
+      if (!canAccessBooking(req, booking)) {
         return res.status(401).json({ error: "Unauthorized access to booking items" });
       }
 
@@ -625,6 +621,9 @@ export function registerBookingsRoutes(app: Express, deps: RouteDeps) {
     try {
       const booking = await storage.getBooking(req.params.id);
       if (!booking) return res.status(404).json({ error: "Booking not found" });
+      if (!canAccessBooking(req, booking)) {
+        return res.status(401).json({ error: "Unauthorized access to booking QR" });
+      }
 
       const appUrlSetting = await storage.getSiteSetting("app_url");
       const appUrl = ((typeof appUrlSetting?.value === "string" ? appUrlSetting.value : "") ||
@@ -648,16 +647,92 @@ export function registerBookingsRoutes(app: Express, deps: RouteDeps) {
     }
   });
 
+  /**
+   * Signed receipt view for a guest who paid through a bank payment link on a
+   * different device (no session cookie). The token is short-lived and grants
+   * read access to this one booking only; internal IDs and PII are stripped.
+   */
+  app.get("/api/bookings/:id/receipt", async (req, res) => {
+    try {
+      const claim = verifyBookingReceiptToken(String(req.query.token ?? ""));
+      if (!claim || claim.bookingId !== req.params.id) {
+        return res.status(401).json({ error: "This receipt link is invalid or has expired." });
+      }
+
+      const booking = await storage.getBooking(req.params.id);
+      if (!booking) return res.status(404).json({ error: "Booking not found" });
+
+      const [items, payments] = await Promise.all([
+        storage.getBookingItems(booking.id),
+        storage.getPaymentsByBooking(booking.id),
+      ]);
+
+      const email = booking.customerEmail ?? "";
+      const [local, domain] = email.split("@");
+      const maskedEmail = !domain || local.length < 2
+        ? email
+        : `${local[0]}${"*".repeat(Math.max(1, local.length - 1))}@${domain}`;
+
+      return res.json({
+        booking: {
+          id: booking.id,
+          status: booking.status,
+          customerName: booking.customerName,
+          customerEmail: maskedEmail,
+          tourName: booking.tourName,
+          date: booking.date,
+          startTime: booking.startTime,
+          endTime: booking.endTime,
+          totalAmountCents: booking.totalAmountCents,
+          currency: booking.currency,
+          adultPaxTotal: booking.adultPaxTotal,
+          childPaxTotal: booking.childPaxTotal,
+          infantPaxTotal: booking.infantPaxTotal,
+          petPaxTotal: booking.petPaxTotal,
+          promoCode: booking.promoCode,
+          discountCents: booking.discountCents,
+          pickupLocation: booking.pickupLocation,
+          notes: booking.notes,
+          locale: booking.locale,
+          createdAt: booking.createdAt,
+          confirmedAt: booking.confirmedAt,
+        },
+        items: items.map((item) => ({
+          id: item.id,
+          productId: item.productId,
+          productName: item.productName,
+          productType: item.productType,
+          quantity: item.quantity,
+          unitPriceCents: item.unitPriceCents,
+          subtotalCents: item.subtotalCents,
+          adultPax: item.adultPax,
+          childPax: item.childPax,
+          infantPax: item.infantPax,
+          petPax: item.petPax,
+        })),
+        payments: payments.map((payment) => ({
+          id: payment.id,
+          status: payment.status,
+          amount: payment.amount,
+          currency: payment.currency,
+          createdAt: payment.createdAt,
+        })),
+      });
+    } catch (error) {
+      console.error("[BOOKING RECEIPT] Error:", error);
+      res.status(500).json({ error: "Failed to load this receipt." });
+    }
+  });
+
   app.post("/api/bookings", bookingLimiter, async (req, res) => {
     try {
       // C6 Fix: Validate input body
       const validatedBody = createBookingBodySchema.parse(req.body);
-      const { items, customerName, customerEmail, pickupLocation, idempotencyKey } = validatedBody;
+      const { items, customerName, customerEmail, customerPhone, notes, pickupLocation, idempotencyKey, promoCode, locale } = validatedBody;
 
-      // M1 Fix: Past-date validation
-      const today = new Date().toISOString().split('T')[0];
+      // Past-date validation uses the business day in Vanuatu, not the UTC date.
       for (const item of items) {
-        if (item.date < today) {
+        if (isVanuatuPastDate(item.date)) {
           return res.status(400).json({ error: `Cannot book for a past date: ${item.date}` });
         }
       }
@@ -667,9 +742,13 @@ export function registerBookingsRoutes(app: Express, deps: RouteDeps) {
       const booking = await bookingService.execute({
         customerName,
         customerEmail,
+        customerPhone: customerPhone || undefined,
+        notes: notes || undefined,
         items,
         idempotencyKey,
-        pickupLocation: pickupLocation ?? undefined
+        promoCode: promoCode || undefined,
+        pickupLocation: pickupLocation ?? undefined,
+        locale,
       });
 
       // ── Fraud Detection ──────────────────────────────────────────────────
@@ -699,8 +778,8 @@ export function registerBookingsRoutes(app: Express, deps: RouteDeps) {
 
         // Hard block: critical score + IP burst detected
         if (assessment.shouldBlock) {
-          // Cancel the booking immediately
-          await storage.updateBooking(booking.id, { status: "cancelled" });
+          // Cancel the booking immediately, freeing the seats it just held.
+          await cancelBookingWithSeats(booking);
           return res.status(403).json({
             error: "Your booking could not be processed. Please contact us directly if you believe this is an error.",
           });
@@ -776,6 +855,9 @@ export function registerBookingsRoutes(app: Express, deps: RouteDeps) {
       if (msg.toLowerCase().includes("idempotency") || msg.toLowerCase().includes("duplicate")) {
         return res.status(409).json({ error: "This booking was already submitted. Please check your bookings." });
       }
+      if (msg.toLowerCase().includes("promo") || msg.toLowerCase().includes("minimum purchase")) {
+        return res.status(400).json({ error: msg });
+      }
       if (msg.toLowerCase().includes("paused") || msg.toLowerCase().includes("maintenance")) {
         return res.status(503).json({ error: "Bookings are temporarily paused for maintenance. Please try again shortly." });
       }
@@ -834,24 +916,10 @@ export function registerBookingsRoutes(app: Express, deps: RouteDeps) {
         }
       }
 
-      // If cancelling, release holds and flag completed payments for refund
+      // If cancelling, flag completed payments for refund. The seat release happens
+      // in the same transaction as the status write below (ACTIVE and CONFIRMED holds).
       if (updates.status === 'cancelled' && existing) {
         try {
-          // Release primary hold if exists
-          if (existing.holdId) {
-            const svc = new AvailabilityApplicationService(storage);
-            await svc.releaseHold(existing.holdId).catch(console.error);
-          }
-
-          // Release session holds
-          if (existing.bookingSessionId) {
-            const holds = await storage.getHoldsBySession(existing.bookingSessionId);
-            const svc = new AvailabilityApplicationService(storage);
-            for (const h of holds) {
-              await svc.releaseHold(h.id).catch(console.error);
-            }
-          }
-
           // Flag completed payments for refund
           const payments = await storage.getPaymentsByBooking(existing.id);
           const completedPayments = payments.filter((p: any) => p.status === 'completed');
@@ -890,6 +958,9 @@ export function registerBookingsRoutes(app: Express, deps: RouteDeps) {
           throw err;
         }
         if (!booking) return res.status(409).json({ error: "This booking changed while you were confirming it. Reload and try again." });
+      } else if (updates.status === "cancelled" && existing.status !== "cancelled") {
+        // Free both ACTIVE holds and CONFIRMED seats in the same transaction.
+        booking = await cancelBookingWithSeats(existing, updates);
       } else {
         booking = await storage.updateBooking(req.params.id, updates);
       }

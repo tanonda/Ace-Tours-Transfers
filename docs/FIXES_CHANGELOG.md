@@ -256,3 +256,140 @@ The mobile menu logout button was using `<LogIn className="rotate-180" />` — n
 ---
 
 *Changelog generated: February 18, 2026*
+
+---
+
+## 2026-11-08 — Integration-seam fixes (full review follow-up)
+
+**Scope:** fixes for `CODE_REVIEW.md` (C1–C2, H1–H10, M1–M18 and low-priority cleanup).
+**Verification:** `npm run check` and the Vitest suite (see the review document for the run log).
+
+### Payment pipeline
+
+- **C1** — Added `server/application/webhook-body.ts`: webhook bodies stay raw at
+  the HTTP edge, then are parsed per gateway (PayZen form, MPGS JSON, mobile-money
+  raw string, Stripe raw bytes). `POST /api/payments/webhook/:gateway` now routes
+  every supported gateway and answers in the format each one expects. Added
+  route-level tests that mount the production raw-body parser.
+- **C2** — A paid booking whose seats cannot be confirmed is no longer silent.
+  `BookingEventHandler` retries the confirmation through `confirmWithSeats`
+  (which can re-reserve lapsed holds); if that fails it marks the payment
+  `manual_review_required`, the booking `inventory_conflict`, creates an admin
+  notification, emails the admin and audits the event.
+- **H6** — Google Pay, Apple Pay and PayPal webhooks now fail closed when the
+  processor/hash/transmission headers are missing. Added adapter tests.
+
+### Inventory and bookings
+
+- **H1** — `POST /api/holds` validates product id, real calendar date, start/end
+  time and `1 <= quantity <= 100`; the domain service rejects non-positive or
+  non-integer quantities defensively.
+- **H3** — New `server/lib/booking-seats.ts` releases ACTIVE holds (`heldCount`)
+  and CONFIRMED holds (`confirmedCount`) in one transaction. Admin cancellation,
+  deletion, fraud dismissal and expired payments use it. `AvailabilityService`
+  now also handles CONFIRMED holds in `releaseHold`. The inventory repair service
+  rebuilds counts from CONFIRMED hold quantities instead of counting booking rows.
+- **H4** — Added a transaction-scoped advisory lock when creating a tour instance,
+  a COALESCE-based unique index (`idx_tour_instances_unique_v2`), migration 0027
+  with a duplicate guard, and `scripts/dedupe-tour-instances.ts`.
+- **H5** — `customerPhone`, `notes`, `promoCode` and `locale` are accepted by the
+  booking schema, passed through, and persisted. `locale` is no longer dropped.
+- **H8** — Booking creation checks the idempotency key before creating holds and
+  rolls back a racing duplicate; a retry no longer leaves orphan holds.
+- **H2** — The booking date is passed to `PriceCartService` at both call sites,
+  so date-versioned prices and the peak-season surcharge apply.
+
+### Data layer and operations
+
+- **H9** — Migration 0028 adds the missing `bookings.locale`.
+- **H10** — Database TLS verification is on by default; `DATABASE_SSL_CA` supports
+  a private CA and `DATABASE_SSL_REJECT_UNAUTHORIZED=false` is an emergency
+  escape hatch. The same policy applies to `server/migrate.ts` and Drizzle.
+- **M2** — Each migration file runs in a transaction under a Postgres advisory
+  lock; `23505`/`42P01` are no longer swallowed; failed files are not recorded.
+- **M5** — Migration 0029 and schema indexes cover the hot booking/hold/payment
+  lookups; the staff list is paginated and only loads the page's payments; hold
+  and overdue-payment sweeps are bounded and less concurrent.
+- **M6** — Partial unique index `idx_payments_one_open_per_booking` plus `23505`
+  handling in checkout/payment-link creation.
+- **M14** — Revenue monthly buckets use `YYYY-MM`, include completed bookings and
+  exclude archived rows; report cut-offs use Vanuatu midnight.
+- **M15** — The integrity guard counts real `.sql` files; CMS content gets a
+  COALESCE-based unique index (migration 0031).
+- **M16** — Hold release/confirmation/admin override invalidate the availability
+  cache; `HoldReleased` is emitted only when a hold was actually released.
+
+### Customer and account flows
+
+- **H7** — Customer profile and password forms call the real endpoints; the fake
+  wallet/loyalty cards are gone, the wishlist count is real, saved tours use the
+  wishlist API, and "Download Ticket" renders the existing print itinerary.
+- **M7** — Login upgrades legacy plaintext passwords to bcrypt on first success
+  and never accepts plaintext as a fallback again. Added `POST
+  /api/auth/forgot-password` (generic response, rate-limited), a request form on
+  `/reset-password`, and an 8-character minimum. Removed the published default
+  password from the handover guide.
+- **M8/M9** — `/login` is routed (and served by the SPA), registration/reset
+  redirects work, and checkout waits for cart hydration before redirecting.
+- **M10** — Global add-ons are returned by product detail and persisted on
+  booking. Promotion codes are validated server-side, reduce the booking total,
+  consume a use in the same transaction, and can be entered on the payment page.
+- **M11** — CSV exports neutralise `= + - @` formula cells on server and client.
+- **M12** — Notification read is owner-scoped, the QR endpoint uses the shared
+  booking-access check (admin/owner/booking session/recent), and blank stored
+  phone numbers can no longer be verified with whitespace.
+
+### Frontend / deployment / cleanup
+
+- **M17** — Removed the cart line double-count, guarded availability requests with
+  a cancellation flag, fixed admin print under CSP, surfaced confirmation payment
+  errors, required a date in Quick View, added dialog semantics/Escape handling,
+  loaded Trustpilot only where the widget renders, and added a 128 px logo.
+- **M18** — Docker runs as `pwuser`, `render.yaml` documents the missing required
+  env vars, `env.txt`/tool directories are ignored, and the stale `vercel.json`
+  and `.wave1-status.json` were removed.
+- Removed unused client components (`booking-form.tsx`, the patch note, upload
+  scaffolds, `QRScanner`, `section-backdrop`, `wishlist-button`); added
+  `availability_holds.confirmed_at` (migration 0033) so the existing writes persist;
+  `/api/admin/reset` is transactional, requires `confirm: "RESET"` and writes an
+  admin audit entry.
+
+### Residual / follow-up
+
+- TOTP secrets and password-reset tokens are still stored unencrypted; password
+  resets do not invalidate other live sessions.
+- `AtomicBookingConfirmationService.confirmBookingAtomically` remains unused and
+  still assumes one tour instance per session; the live paths do not use it.
+- Payment-success for a guest who pays via an admin payment link on a different
+  device still has no session; the page shows the pending state rather than the
+  guest's receipt. A signed receipt token would be the next step.
+- `scripts/dedupe-tour-instances.ts` must be run (with `--apply`) on any database
+  that already has duplicate instances before migration 0027 can create the
+  unique index; the migration warns instead of failing the deploy.
+
+### 2026-11-08 follow-up — residual items
+
+- **TOTP secrets at rest** — `server/lib/secret-crypto.ts` seals the TOTP secret
+  with AES-256-GCM (`DATA_ENCRYPTION_KEY`, falling back to
+  `PAYMENT_CREDENTIALS_KEY`). Legacy plaintext secrets still verify, then re-seal
+  on the next successful login. MFA-enabled rows with no secret now fail closed
+  instead of skipping the second factor.
+- **Password reset tokens** — stored as SHA-256 hashes; a reset or password
+  change revokes the user's live sessions (`deleteUserSessions`).
+- **`AtomicBookingConfirmationService`** — groups holds by tour instance, locks
+  every instance in id order and moves each instance's own seats (the old code
+  credited the whole session to the first instance). Still unused by the live
+  path, but no longer an oversell trap if it is wired back in.
+- **Payment-link receipts** — callbacks and checkout success URLs carry a signed,
+  two-hour receipt token (`server/lib/receipt-token.ts`); a guest on another
+  device can read a sanitised booking/items/payments view from
+  `GET /api/bookings/:id/receipt?token=…` without a session.
+- **`/payment/success`** uses that receipt token when present, so the page works
+  after a bank payment link even without cookies.
+- **Sandbox guidance** — `docs/PAYMENT_SANDBOX_TESTING.md` documents the bank
+  test modes, credentials, staging setup and checklist. There is no separate
+  application sandbox; TEST mode is per-gateway credentials and admin-only.
+- **Config cleanup** — removed the unused `PAYMENTS_*_MODE` variables (the
+  effective mode is the gateway credential `mode`), added
+  `DATA_ENCRYPTION_KEY` to `.env.example`/`render.yaml`, and added
+  `npm run tour:dedupe`.

@@ -18,6 +18,7 @@
     "db:drop": "tsx server/drop-tables.ts",
     "db:seed": "tsx server/seed.ts",
     "db:test": "tsx scripts/test-neon-connection.ts",
+    "tour:dedupe": "tsx scripts/dedupe-tour-instances.ts",
     "verify-ddd": "tsx scripts/verify-ddd-invariants.ts",
     "verify-architecture": "tsx scripts/check-adr-compliance.ts",
     "check-architecture": "npm run verify-architecture && npm run verify-ddd",

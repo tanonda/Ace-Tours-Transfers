@@ -63,6 +63,9 @@ type CartContextType = CartState & CartActions;
 // (tour and transfer pages) don't re-render whenever the cart's contents change.
 const CartStateContext = createContext<CartState | undefined>(undefined);
 const CartActionsContext = createContext<CartActions | undefined>(undefined);
+// Hydration is separate so flipping it does not invalidate the memoized cart
+// state and re-render every cart reader on mount.
+const CartHydrationContext = createContext<boolean | undefined>(undefined);
 
 function loadCartFromStorage(): { items: CartItem[]; expiresAt: number | null } {
   if (typeof window === "undefined") return { items: [], expiresAt: null };
@@ -161,7 +164,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           const existing = updatedItems[existingIndex];
           updatedItems[existingIndex] = {
             ...existing,
-            quantity:  existing.quantity  + (item.quantity || 1),
+            quantity:  existing.quantity, // pax is authoritative; do not double-count on re-add
             adultPax:  existing.adultPax  + item.adultPax,
             childPax:  existing.childPax  + item.childPax,
             infantPax: existing.infantPax + (item.infantPax ?? 0), // NEW
@@ -262,9 +265,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <CartActionsContext.Provider value={actions}>
-      <CartStateContext.Provider value={state}>{children}</CartStateContext.Provider>
-    </CartActionsContext.Provider>
+    <CartHydrationContext.Provider value={isHydrated}>
+      <CartActionsContext.Provider value={actions}>
+        <CartStateContext.Provider value={state}>{children}</CartStateContext.Provider>
+      </CartActionsContext.Provider>
+    </CartHydrationContext.Provider>
   );
 }
 
@@ -276,6 +281,15 @@ export function useCart(): CartContextType {
     throw new Error("useCart must be used within a CartProvider");
   }
   return useMemo(() => ({ ...state, ...actions }), [state, actions]);
+}
+
+/** False until the cart has been restored from localStorage on mount. */
+export function useCartHydrated(): boolean {
+  const hydrated = useContext(CartHydrationContext);
+  if (hydrated === undefined) {
+    throw new Error("useCartHydrated must be used within a CartProvider");
+  }
+  return hydrated;
 }
 
 /** Just the cart actions; never re-renders because of cart changes. */

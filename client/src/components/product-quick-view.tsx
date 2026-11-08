@@ -63,7 +63,12 @@ export function ProductQuickView({ isOpen, onClose, product }: ProductQuickViewP
 
   const detailHref = productPath(product);
 
+  const now = new Date();
+  const todayISO = new Date(now.getTime() - now.getTimezoneOffset() * 60_000).toISOString().slice(0, 10);
+  const dateValid = !!date && date >= todayISO;
+
   const handleAddToCart = () => {
+    if (!dateValid) return;
     addToCart({
       id: product.id,
       title: product.title,
@@ -75,7 +80,7 @@ export function ProductQuickView({ isOpen, onClose, product }: ProductQuickViewP
       childPax: parseInt(childPax) || 0,
       infantPax: 0,
       petPax: 0,
-      date: date ? new Date(date) : new Date(),
+      date: new Date(date),
     });
     onClose();
   };
@@ -197,25 +202,25 @@ export function ProductQuickView({ isOpen, onClose, product }: ProductQuickViewP
                 <div className="border-t border-primary/12 bg-card p-5">
                   <div className="grid grid-cols-3 gap-3 mb-4">
                     <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground uppercase tracking-wider">{t("booking.adults", "Adults")}</Label>
-                      <Input type="number" min="1" value={adultPax} onChange={(e) => setAdultPax(e.target.value)}
+                      <Label htmlFor="quick-view-adults" className="text-xs text-muted-foreground uppercase tracking-wider">{t("booking.adults", "Adults")}</Label>
+                      <Input id="quick-view-adults" type="number" min="1" value={adultPax} onChange={(e) => setAdultPax(e.target.value)}
                         className="bg-card border-primary/20 text-white h-9 focus:border-primary" />
                     </div>
                     {(product.childPriceCents || 0) > 0 && (
                       <div className="space-y-1">
-                        <Label className="text-xs text-muted-foreground uppercase tracking-wider">{t("booking.children", "Children")}</Label>
-                        <Input type="number" min="0" value={childPax} onChange={(e) => setChildPax(e.target.value)}
+                        <Label htmlFor="quick-view-children" className="text-xs text-muted-foreground uppercase tracking-wider">{t("booking.children", "Children")}</Label>
+                        <Input id="quick-view-children" type="number" min="0" value={childPax} onChange={(e) => setChildPax(e.target.value)}
                           className="bg-card border-primary/20 text-white h-9 focus:border-primary" />
                       </div>
                     )}
                     <div className={(product.childPriceCents || 0) > 0 ? "" : "col-span-2"}>
-                      <Label className="text-xs text-muted-foreground uppercase tracking-wider mb-1 block">{t("cart.date", "Date")}</Label>
-                      <Input type="date" value={date} onChange={(e) => setDate(e.target.value)}
+                      <Label htmlFor="quick-view-date" className="text-xs text-muted-foreground uppercase tracking-wider mb-1 block">{t("cart.date", "Date")}</Label>
+                      <Input id="quick-view-date" type="date" required min={todayISO} value={date} onChange={(e) => setDate(e.target.value)}
                         className="bg-card border-primary/20 text-white h-9 focus:border-primary" />
                     </div>
                   </div>
                   <div className="flex gap-3">
-                    <Button onClick={handleAddToCart} className="flex-1 bg-primary hover:bg-primary text-white font-bold h-11 rounded-xl shadow-[0_4px_16px_hsl(var(--primary) / 0.35)]">
+                    <Button onClick={handleAddToCart} disabled={!dateValid} title={dateValid ? undefined : "Choose a date first"} className="flex-1 bg-primary hover:bg-primary text-white font-bold h-11 rounded-xl shadow-[0_4px_16px_hsl(var(--primary) / 0.35)]">
                       <ShoppingCart className="mr-2 h-4 w-4" />
                       {t("cart.addToCart", "Add to Cart")}
                     </Button>

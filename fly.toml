@@ -20,4 +20,3 @@ primary_region = "syd" # Sydney is closest to Vanuatu
 [env]
   NODE_ENV = "production"
   PORT = "5000"
-  PAYMENTS_STRIPE_MODE = "sandbox"

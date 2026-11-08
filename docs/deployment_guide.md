@@ -13,7 +13,6 @@ You will need to set the following environment variables in your hosting provide
 | `SESSION_SECRET` | A long random string for session signing | Generated (e.g., `openssl rand -hex 32`) |
 | `STRIPE_PUBLISHABLE_KEY` | Stripe Public Key | Stripe Dashboard (Developers > API keys) |
 | `STRIPE_SECRET_KEY` | Stripe Secret Key | Stripe Dashboard (Developers > API keys) |
-| `PAYMENTS_STRIPE_MODE` | `sandbox` or `live` | Configuration |
 
 ### Setting Secrets on Fly.io
 ```bash

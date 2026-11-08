@@ -217,6 +217,7 @@ const SITE_ROUTES = (
       <Route path="/review" component={ReviewInvite} />
       <Route path="/confirmation" component={Confirmation} />
       <Route path="/staff-access" component={Login} />
+      <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
       <Route path="/privacy-policy" component={PrivacyPolicy} />
       <Route path="/photo-credits" component={PhotoCredits} />
@@ -389,6 +390,7 @@ function Router() {
       <Suspense fallback={<Loader />}>
         <Switch>
           <Route path="/staff-access" component={Login} />
+      <Route path="/login" component={Login} />
           <Route component={ComingSoon} />
         </Switch>
         <RouteCommitted />

@@ -4,6 +4,21 @@ import { storage } from "../storage.js";
 import { CapacityOverviewService } from "../application/admin/capacity-overview.service.js";
 
 import { availabilityLimiter, holdsLimiter, requireAdmin, type RouteDeps } from "./shared.js";
+import { z } from "zod";
+import { isProductId } from "../../shared/product-path.js";
+import { isValidCalendarDate, isValidTime, isVanuatuPastDate } from "../lib/business-time.js";
+
+const holdBodySchema = z.object({
+  tourId: z.string().refine(isProductId, "Invalid product id"),
+  date: z.string().refine(isValidCalendarDate, "Invalid date"),
+  slot: z.string().max(50).optional(),
+  quantity: z.coerce.number().int().min(1).max(100),
+  startTime: z.string().refine(isValidTime, "Invalid start time").optional(),
+  endTime: z.string().refine(isValidTime, "Invalid end time").optional(),
+}).strict().refine((data) => !isVanuatuPastDate(data.date), {
+  message: "Cannot hold seats for a past date",
+  path: ["date"],
+});
 
 export function registerAvailabilityRoutes(app: Express, deps: RouteDeps) {
   const { bookingApplicationService, availabilityAppService } = deps;
@@ -99,14 +114,17 @@ export function registerAvailabilityRoutes(app: Express, deps: RouteDeps) {
 
   app.post("/api/holds", holdsLimiter, async (req, res) => {
     try {
-      const { tourId, date, slot, quantity, startTime, endTime } = req.body;
+      const parsed = holdBodySchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.errors[0]?.message ?? "Invalid hold request." });
+      }
+      const { tourId, date, slot, quantity, startTime, endTime } = parsed.data;
       const sessionId = req.sessionID;
-      if (!tourId || !date || !quantity) return res.status(400).json({ error: "Missing required fields" });
       const hold = await availabilityAppService.createHold({
         tourId,
         date,
         slot,
-        quantity: parseInt(quantity),
+        quantity,
         sessionId,
         startTime,
         endTime

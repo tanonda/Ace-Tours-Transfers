@@ -10,8 +10,11 @@ logs
 npm-debug.log*
 .env
 .env.*
+env.txt
 !.env.example
 tmp
+.superpowers
+.kilo
 backup.dump
 *.dump
 attached_assets

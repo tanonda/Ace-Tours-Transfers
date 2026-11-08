@@ -86,7 +86,7 @@ export function BookingDetailsDialog({ booking, open, onOpenChange }: BookingDet
           <DialogHeader>
             <div className="flex items-center justify-between mr-6">
               <div className="flex items-center gap-3">
-                <img src="/assets/logo.png" alt="Ace Tours & Transfers" className="h-8 w-8 rounded-full border border-[#f4a830]/30" />
+                <img src="/assets/logo-128.png" alt="Ace Tours & Transfers" className="h-8 w-8 rounded-full border border-[#f4a830]/30" />
                 <DialogTitle className="text-xl font-serif font-bold text-[#004165]">Booking Details</DialogTitle>
               </div>
               <Badge className={getStatusColor(booking.status)} variant="outline">

@@ -32,7 +32,7 @@ export default function Cart() {
   // Client-side fallback total when pricing service is unavailable
   const clientSideTotal = items.reduce((sum, item) => {
     const subtotal = (item.price * item.adultPax) + (item.childPrice * item.childPax) + (item.addonTotal || 0);
-    return sum + estimateWithRules(pricingRules, subtotal, item).total * item.quantity;
+    return sum + estimateWithRules(pricingRules, subtotal, item).total;
   }, 0);
   const displayTotal = pricingSnapshot ? total : clientSideTotal;
   const [, setLocation] = useLocation();
@@ -211,7 +211,7 @@ export default function Cart() {
 
                               {/* Price column */}
                               <div className="text-right shrink-0">
-                                <p className="font-bold text-lg">{formatPriceDisplay(finalItemSubtotal * item.quantity, currency)}</p>
+                                <p className="font-bold text-lg">{formatPriceDisplay(finalItemSubtotal, currency)}</p>
                                 <p className="text-[0.65rem] text-muted-foreground uppercase tracking-tight">{vatLabel(pricingRules)}</p>
                                 {appliedRules.length > 0 && (
                                   <div className="text-xs space-y-0.5 mt-1">
@@ -306,7 +306,7 @@ export default function Cart() {
                                 </div>
                               </div>
                               <span className="font-semibold whitespace-nowrap shrink-0">
-                                {formatPriceDisplay(lineTotal * item.quantity, currency)}
+                                {formatPriceDisplay(lineTotal, currency)}
                               </span>
                             </div>
                           </div>

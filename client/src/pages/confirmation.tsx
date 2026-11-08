@@ -10,6 +10,8 @@ import { Payment } from "@shared/schema";
 import { QRCodeGenerator } from "@/components/QRCodeGenerator";
 import { AvailabilityStatus } from "@/components";
 import { submitHostedPaymentForm } from "@/lib/hosted-payment-form";
+import { useToast } from "@/hooks/use-toast";
+import { apiErrorMessage } from "@/lib/api-error";
 
 const PrintItinerary = lazy(() => import("@/components/print-itinerary").then(m => ({ default: m.PrintItinerary })));
 
@@ -18,6 +20,7 @@ export default function ConfirmationPage() {
   const bookingId = new URLSearchParams(window.location.search).get("bookingId");
   const [showPrintItinerary, setShowPrintItinerary] = useState(false);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const { toast } = useToast();
 
   const { data: booking, isLoading, error } = useQuery({
     queryKey: ["booking", bookingId],
@@ -53,7 +56,11 @@ export default function ConfirmationPage() {
       else if (checkoutUrl) window.location.href = checkoutUrl; // Redirect to payment gateway or internal payment page
     } catch (err) {
       console.error("Failed to initiate payment", err);
-      // TODO: Show a toast notification for error
+      toast({
+        title: "Could not start payment",
+        description: apiErrorMessage(err, "Please try again or contact us."),
+        variant: "destructive",
+      });
     } finally {
       setIsProcessingPayment(false);
     }
@@ -88,7 +95,7 @@ export default function ConfirmationPage() {
         <div className="h-1.5 bg-gradient-to-r from-[#f4a830] via-[#e6c97a] to-[#f4a830]" />
         <CardHeader className="text-center">
           <div className="flex items-center justify-center gap-3 mb-4">
-            <img src="/assets/logo.png" alt="Ace Tours & Transfers" className="h-12 w-12 rounded-full border-2 border-[#f4a830]/30" />
+            <img src="/assets/logo-128.png" alt="Ace Tours & Transfers" className="h-12 w-12 rounded-full border-2 border-[#f4a830]/30" />
             <div className="text-left">
               <p className="text-sm font-semibold text-[#f4a830] tracking-wide">Ace Tours & Transfers</p>
               <p className="text-[10px] text-muted-foreground">Vanuatu</p>

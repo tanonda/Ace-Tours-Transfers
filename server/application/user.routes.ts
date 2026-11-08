@@ -105,6 +105,10 @@ export function registerUserRoutes(app: Express) {
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
+      // An admin reset signs the user out everywhere.
+      await storage.deleteUserSessions(req.params.id).catch((error) => {
+        console.error(`[AUTH] Could not revoke sessions for ${req.params.id}:`, error);
+      });
       res.json(toSafeUser(user));
     } catch (error) {
       console.error("Failed to reset user password:", error);
@@ -225,6 +229,10 @@ export function registerUserRoutes(app: Express) {
       if (!valid) return res.status(400).json({ error: "Current password is incorrect" });
       const hashed = await bcrypt.hash(newPassword, 10);
       await storage.updateUserPassword(req.params.id, hashed);
+      // Keep the current session; sign out every other one.
+      await storage.deleteUserSessions(req.params.id, req.sessionID).catch((error) => {
+        console.error(`[AUTH] Could not revoke other sessions for ${req.params.id}:`, error);
+      });
       res.json({ success: true });
     } catch (error) {
       console.error("Failed to change password:", error);

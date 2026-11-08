@@ -76,6 +76,8 @@ export function makeBooking(overrides: Partial<Booking> = {}): Booking {
     customerPhone: "12345",
     tourName: "Blue Hole Tour",
     locale: "en",
+    promoCode: null,
+    discountCents: 0,
     pickupLocation: null,
     confirmedAt: null,
     updatedAt: new Date(),

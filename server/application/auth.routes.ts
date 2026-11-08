@@ -10,11 +10,19 @@ import { generateSecret, generateURI, verify } from "otplib";
 import qr from "qr-image";
 import { storage } from "../storage.js";
 import { toSafeUser } from "../lib/safe-user.js";
+import { sealSecret } from "../lib/secret-crypto.js";
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 5,                   // 5 login attempts per 15 min — brute-force protection
   message: { error: "Too many login attempts, please try again later." },
+});
+
+// Password-reset requests are unauthenticated and send email; keep them tight.
+const forgotPasswordLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: { error: "Too many password reset requests, please try again in 15 minutes." },
 });
 
 // Stricter limiter for registration OTP — prevents email flooding
@@ -67,11 +75,11 @@ export function registerAuthRoutes(app: Express) {
         new ExpressSessionAdapter(req)
       );
 
-      console.log(`[AUTH] Login attempt for: ${email}`);
+      console.log("[AUTH] Login attempt");
       const authResult = await authAppService.login(email, password, mfaToken);
 
       if (!authResult) {
-        console.log(`[AUTH] Login failed: Invalid credentials for ${email}`);
+        console.log("[AUTH] Login failed: invalid credentials");
         return res.status(401).json({ error: "Invalid email or password" });
       }
 
@@ -79,7 +87,7 @@ export function registerAuthRoutes(app: Express) {
         return res.status(200).json({ requiresMfa: true });
       }
 
-      console.log(`[AUTH] Login successful for: ${email}`);
+      console.log("[AUTH] Login successful");
       res.json(toSafeUser(authResult.user));
     } catch (error: any) {
       console.error("[AUTH] Login error:", error);
@@ -127,7 +135,12 @@ export function registerAuthRoutes(app: Express) {
       const isValid = await verify({ token: token.replace(/\s/g, ''), secret });
 
       if (isValid) {
-        await storage.updateUserMfa(userId, secret, true);
+        try {
+          await storage.updateUserMfa(userId, sealSecret(secret), true);
+        } catch (error: any) {
+          console.error("[AUTH] Cannot store MFA secret:", error);
+          return res.status(500).json({ error: "MFA cannot be enabled until DATA_ENCRYPTION_KEY (or PAYMENT_CREDENTIALS_KEY) is configured." });
+        }
         return res.json({ success: true });
       } else {
         return res.status(400).json({ error: "Invalid token" });
@@ -169,7 +182,7 @@ export function registerAuthRoutes(app: Express) {
       const existing = await authDomainService.getUserByEmail(normEmail);
       if (existing) {
         // Don't reveal the account exists — just say "check your email"
-        console.log(`[AUTH][REGISTER] Email already registered: ${normEmail}`);
+        console.log("[AUTH][REGISTER] Email already registered");
         return res.status(200).json({
           message: "If this email is not already registered, a verification code has been sent.",
           requiresVerification: true,
@@ -215,7 +228,7 @@ export function registerAuthRoutes(app: Express) {
         return res.status(503).json({ error: "Could not send verification email. Please try again." });
       }
 
-      console.log(`[AUTH][REGISTER] OTP sent to ${normEmail}`);
+      console.log("[AUTH][REGISTER] OTP sent");
       return res.status(200).json({
         message: "Verification code sent. Please check your email.",
         requiresVerification: true,
@@ -259,7 +272,7 @@ export function registerAuthRoutes(app: Express) {
 
       const authResult = await authAppService.register(pending.name, pending.email, pending.password);
 
-      console.log(`[AUTH][REGISTER] Account created and session started for: ${normEmail}`);
+      console.log("[AUTH][REGISTER] Account created and session started");
       return res.status(201).json(toSafeUser(authResult));
     } catch (error: any) {
       console.error("[AUTH][VERIFY] Error:", error);
@@ -267,6 +280,47 @@ export function registerAuthRoutes(app: Express) {
         return res.status(409).json({ error: "An account with this email already exists." });
       }
       res.status(500).json({ error: "Account creation failed. Please try again." });
+    }
+  });
+
+  // ── Request a password reset ─────────────────────────────────────────────
+  // Generic response whether or not the address exists, so the endpoint cannot
+  // be used to enumerate accounts. The link is valid for one hour.
+  app.post("/api/auth/forgot-password", forgotPasswordLimiter, async (req: Request, res: Response) => {
+    const generic = { message: "If that email is registered, a password reset link has been sent." };
+    try {
+      const email = typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
+      if (!email) return res.status(400).json({ error: "Email is required." });
+
+      const user = await authDomainService.getUserByEmail(email);
+      if (user) {
+        const token = crypto.randomBytes(32).toString("hex");
+        const expiry = new Date(Date.now() + 60 * 60 * 1000);
+        await storage.setUserResetToken(user.id, token, expiry);
+
+        const appUrl = (process.env.APP_URL || "https://acetoursvanuatu.com").replace(/\/$/, "");
+        const link = `${appUrl}/reset-password?token=${encodeURIComponent(token)}`;
+        const { sendEmail } = await import("../lib/mail.js");
+        await sendEmail({
+          to: user.email,
+          subject: "Reset your Ace Tours password",
+          html: `<div style="font-family: sans-serif; max-width: 520px; margin: 0 auto; padding: 28px; border: 1px solid #e5e7eb; border-radius: 12px;">
+            <h2 style="color: #004165; margin: 0 0 12px;">Reset your password</h2>
+            <p style="color: #374151; font-size: 14px; line-height: 1.6;">We received a request to reset the password for this email address. This link is valid for one hour.</p>
+            <p style="text-align: center; margin: 28px 0;">
+              <a href="${link}" style="display:inline-block;background:#004165;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:700;">Choose a new password</a>
+            </p>
+            <p style="color: #6b7280; font-size: 13px;">If you did not request this, you can ignore this email; your password will not change.</p>
+          </div>`,
+        });
+        console.log(`[AUTH] Password reset email sent to ${user.id}`);
+      }
+      return res.json(generic);
+    } catch (error) {
+      console.error("[AUTH] Forgot-password error:", error);
+      // Deliberately still generic: do not reveal whether the address exists or
+      // whether mail delivery failed.
+      return res.json(generic);
     }
   });
 

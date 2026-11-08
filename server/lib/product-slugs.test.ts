@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { assignProductSlugs } from "./product-slugs";
+import { assignProductSlugs } from "./product-slugs.js";
 
 describe("assignProductSlugs", () => {
   it("gives slug-less products a slug from their title", () => {

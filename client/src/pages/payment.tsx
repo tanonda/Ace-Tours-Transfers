@@ -99,6 +99,10 @@ export default function Payment() {
   const [guestPhone, setGuestPhone] = useState(user?.phone || "");
   const [pickupLocation, setPickupLocation] = useState("");
   const [notes, setNotes] = useState("");
+  const [promoCode, setPromoCode] = useState("");
+  const [promoStatus, setPromoStatus] = useState<"idle" | "checking" | "valid" | "invalid">("idle");
+  const [promoDiscount, setPromoDiscount] = useState(0);
+  const [promoMessage, setPromoMessage] = useState("");
 
   const [bookingId, setBookingId] = useState<string | null>(null);
   const [selectedMethod, setSelectedMethod] = useState<string>("");
@@ -219,6 +223,34 @@ export default function Payment() {
     return method.gatewaySlug || '';
   };
 
+  const applyPromo = async () => {
+    const code = promoCode.trim().toUpperCase();
+    if (!code) return;
+    setPromoStatus("checking");
+    try {
+      const res = await fetch("/api/promotions/validate", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code, subtotalCents: total }),
+      });
+      const data = await res.json();
+      if (data.valid) {
+        setPromoStatus("valid");
+        setPromoDiscount(data.discountCents || 0);
+        setPromoMessage(data.message || "Promo applied");
+      } else {
+        setPromoStatus("invalid");
+        setPromoDiscount(0);
+        setPromoMessage(data.message || "Invalid promo code");
+      }
+    } catch {
+      setPromoStatus("invalid");
+      setPromoDiscount(0);
+      setPromoMessage("Could not validate that code. Please try again.");
+    }
+  };
+
   const createBookingMutation = useMutation({
     mutationFn: async () => {
       await ensureCsrfToken();
@@ -234,6 +266,7 @@ export default function Payment() {
           pickupLocation: pickupLocation || undefined,
           notes: notes || undefined,
           idempotencyKey: idempotencyKey.current,
+          promoCode: promoStatus === "valid" ? promoCode.trim().toUpperCase() : undefined,
           locale: i18n.language,
           items: items.map(i => ({
             productId: i.id,
@@ -339,7 +372,8 @@ export default function Payment() {
               productId: i.id,
               adultPax: i.adultPax,
               childPax: i.childPax,
-              quantity: i.quantity || 1
+              quantity: i.quantity || 1,
+              date: i.date ? (typeof i.date === 'string' ? i.date : format(new Date(i.date), "yyyy-MM-dd")) : undefined,
             }))
           }),
         });
@@ -383,7 +417,8 @@ export default function Payment() {
   const CurrentIcon = activeMethod ? (methodIcons[activeMethod.method] || CreditCard) : CreditCard;
 
   // Determine the display total: use booking total if available, otherwise cart total
-  const displayTotal = bookingDetails?.totalAmountCents ?? total;
+  const payableTotal = promoStatus === "valid" ? Math.max(0, total - promoDiscount) : total;
+  const displayTotal = bookingDetails?.totalAmountCents ?? payableTotal;
   const displayCurrency = bookingDetails?.currency || currency;
 
   // Has a pre-created booking (from booking form flow)
@@ -415,7 +450,7 @@ export default function Payment() {
 
             {/* Ace Tours Brand Identity */}
             <div className="flex items-center justify-center gap-3 mb-5">
-              <img src="/assets/logo.png" alt="Ace Tours & Transfers" className="h-10 w-10 rounded-full border border-[#f4a830]/30" />
+              <img src="/assets/logo-128.png" alt="Ace Tours & Transfers" className="h-10 w-10 rounded-full border border-[#f4a830]/30" />
               <div className="text-center">
                 <p className="text-sm font-semibold text-[#f4a830] tracking-wide">Ace Tours & Transfers</p>
                 <p className="text-[10px] text-muted-foreground">Vanuatu</p>
@@ -615,9 +650,47 @@ export default function Payment() {
                   <Separator />
                   <div className="flex justify-between items-center">
                     <span className="font-semibold">Total</span>
-                    <span className="text-xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">{formatPriceDisplay(total, currency)}</span>
+                    <span className="text-xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">{formatPriceDisplay(payableTotal, currency)}</span>
                   </div>
                   <p className="text-[0.65rem] text-muted-foreground text-center">{pricingRules.vat.included ? `All prices include ${pricingRules.vat.percent}% VAT` : `Prices exclude ${pricingRules.vat.percent}% VAT`}</p>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* ──── Promotion code (only when no pre-created booking) ──── */}
+            {!hasBooking && items.length > 0 && (
+              <Card className="border-border/50 shadow-lg bg-card/80 backdrop-blur-sm">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg">Promo code</CardTitle>
+                  <CardDescription>Have a discount code? Apply it before paying.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex gap-2">
+                    <Input
+                      value={promoCode}
+                      onChange={(e) => {
+                        setPromoCode(e.target.value.toUpperCase());
+                        if (promoStatus !== "idle") {
+                          setPromoStatus("idle");
+                          setPromoDiscount(0);
+                          setPromoMessage("");
+                        }
+                      }}
+                      placeholder="e.g. WELCOME10"
+                      aria-label="Promo code"
+                      disabled={promoStatus === "checking"}
+                    />
+                    <Button type="button" variant="outline" onClick={applyPromo} disabled={!promoCode.trim() || promoStatus === "checking"}>
+                      {promoStatus === "checking" ? "Checking…" : "Apply"}
+                    </Button>
+                  </div>
+                  {promoStatus !== "idle" && (
+                    <p className={`text-sm ${promoStatus === "valid" ? "text-green-600" : "text-red-600"}`}>
+                      {promoStatus === "valid" && promoDiscount > 0
+                        ? `${promoMessage} — −${formatPriceDisplay(promoDiscount, currency)}`
+                        : promoMessage}
+                    </p>
+                  )}
                 </CardContent>
               </Card>
             )}
@@ -787,7 +860,7 @@ export default function Payment() {
                         <Lock className="mr-2 h-4 w-4" />
                         {hasBooking
                           ? `Pay ${formatPriceDisplay(displayTotal, displayCurrency)}`
-                          : `Pay ${formatPriceDisplay(total, currency)}`
+                          : `Pay ${formatPriceDisplay(payableTotal, currency)}`
                         }
                       </>
                     )}

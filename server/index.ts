@@ -198,6 +198,7 @@ declare module "express-session" {
     userRole: string;
     bookingSessionId: string;       // scoped booking ID for guest access
     bookingSessionExpiresAt: number; // Unix timestamp, 30-min TTL
+    recentBookingIds: string[];     // bookings created in this browser session (checkout)
   }
 }
 
@@ -279,17 +280,14 @@ app.get('/api/health', async (_req, res) => {
       commit: process.env.RENDER_GIT_COMMIT?.slice(0, 7) ?? 'unknown',
       database: 'connected',
       sessionStore: sessionStore ? 'initialized' : 'pending',
-      env: {
-        nodeEnv: process.env.NODE_ENV,
-        hasSentry: !!process.env.SENTRY_DSN,
-        hasDatabase: !!process.env.DATABASE_URL,
-      }
     });
   } catch (error: any) {
+    // Infrastructure details stay in the server log; the public endpoint only
+    // says whether the service is ready.
     console.error('[HEALTH CHECK FAILED]', error);
     res.status(503).json({
       status: 'error',
-      message: error.message,
+      message: 'Database unavailable',
     });
   }
 });
@@ -405,23 +403,32 @@ app.use((req, res, next) => {
   };
 
   res.on("finish", () => {
+    if (!path.startsWith("/api")) return;
     const duration = Date.now() - start;
-    if (path.startsWith("/api")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        // L7 Fix: Scrub sensitive fields before logging
-        const sensitiveKeys = ['password', 'token', 'secret', 'credentials', 'credit_card', 'cvv'];
-        const scrubbedResponse = JSON.parse(JSON.stringify(capturedJsonResponse, (key, value) => {
-          if (sensitiveKeys.some(sk => key.toLowerCase().includes(sk))) {
-            return '[SCRUBBED]';
-          }
+    let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
+
+    // API responses routinely contain guest PII (names, emails, phones, notes).
+    // Log only the error text by default; full bodies are opt-in for a short
+    // debugging window and are scrubbed/truncated.
+    if (capturedJsonResponse && typeof capturedJsonResponse === "object" && "error" in capturedJsonResponse) {
+      logLine += ` :: error=${JSON.stringify((capturedJsonResponse as any).error)}`;
+    }
+
+    if (process.env.LOG_API_BODIES === "true" && capturedJsonResponse) {
+      const sensitiveKeys = ['password', 'token', 'secret', 'credentials', 'credit_card', 'cvv', 'email', 'phone', 'notes'];
+      let scrubbed: unknown;
+      try {
+        scrubbed = JSON.parse(JSON.stringify(capturedJsonResponse, (key, value) => {
+          if (sensitiveKeys.some(sk => key.toLowerCase().includes(sk))) return '[SCRUBBED]';
           return value;
         }));
-        logLine += ` :: ${JSON.stringify(scrubbedResponse)}`;
+      } catch {
+        scrubbed = '[unserialisable]';
       }
-
-      log(logLine);
+      logLine += ` :: ${String(JSON.stringify(scrubbed)).slice(0, 2000)}`;
     }
+
+    log(logLine);
   });
 
   next();

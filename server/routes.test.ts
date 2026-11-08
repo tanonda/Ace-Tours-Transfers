@@ -17,6 +17,7 @@ vi.mock('./storage.js', () => {
             getProduct: vi.fn(),
             getProductByIdOrSlug: vi.fn(),
             getSiteSettings: vi.fn().mockResolvedValue([]),
+            getActiveAddons: vi.fn().mockResolvedValue([]),
         },
     };
 });

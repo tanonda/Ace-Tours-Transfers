@@ -218,29 +218,42 @@ export class PayPalAdapter implements PaymentGatewayService {
     console.log(`[PAYPAL] Processing webhook event`);
 
     try {
-      // 1. Verify webhook signature via PayPal Notifications API
-      if (this.credentials.ipnWebhookUrl && event.headers) {
-        const verificationPayload = {
-          auth_algo: event.headers['paypal-auth-algo'],
-          cert_url: event.headers['paypal-cert-url'],
-          transmission_id: event.headers['paypal-transmission-id'],
-          transmission_sig: event.headers['paypal-transmission-sig'],
-          transmission_time: event.headers['paypal-transmission-time'],
-          webhook_id: this.credentials.ipnWebhookUrl, // Webhook ID from PayPal dashboard
-          webhook_event: event.rawEvent,
-        };
+      // The HTTP layer hands us the raw body; parse it here so both the API
+      // verification call and the event switch see the same object.
+      const raw = typeof event.rawEvent === 'string' ? JSON.parse(event.rawEvent) : event.rawEvent;
 
-        const verification = await this.apiRequest('POST', '/v1/notifications/verify-webhook-signature', verificationPayload);
+      // 1. Verify webhook signature via PayPal Notifications API. Fail closed:
+      // without a configured webhook id and the PayPal transmission headers we
+      // cannot authenticate the sender, and trusting the body would let anyone
+      // mark a booking paid.
+      if (!this.credentials.ipnWebhookUrl) {
+        return { success: false, message: 'PayPal webhook id is not configured; callback rejected.' };
+      }
+      const headers = event.headers as Record<string, string> | undefined;
+      if (!headers || !headers['paypal-transmission-id'] || !headers['paypal-transmission-sig']) {
+        return { success: false, message: 'Missing PayPal transmission headers; callback rejected.' };
+      }
 
-        if (verification.verification_status !== 'SUCCESS') {
-          console.error('[PAYPAL] Webhook signature verification failed');
-          return { success: false, message: 'Webhook signature verification failed.' };
-        }
+      const verificationPayload = {
+        auth_algo: headers['paypal-auth-algo'],
+        cert_url: headers['paypal-cert-url'],
+        transmission_id: headers['paypal-transmission-id'],
+        transmission_sig: headers['paypal-transmission-sig'],
+        transmission_time: headers['paypal-transmission-time'],
+        webhook_id: this.credentials.ipnWebhookUrl, // Webhook ID from PayPal dashboard
+        webhook_event: raw,
+      };
+
+      const verification = await this.apiRequest('POST', '/v1/notifications/verify-webhook-signature', verificationPayload);
+
+      if (verification.verification_status !== 'SUCCESS') {
+        console.error('[PAYPAL] Webhook signature verification failed');
+        return { success: false, message: 'Webhook signature verification failed.' };
       }
 
       // 2. Process the event
-      const eventType = event.rawEvent?.event_type;
-      const resource = event.rawEvent?.resource;
+      const eventType = raw?.event_type;
+      const resource = raw?.resource;
 
       let newStatus: PaymentStatus | undefined;
       let bookingId: string | undefined;

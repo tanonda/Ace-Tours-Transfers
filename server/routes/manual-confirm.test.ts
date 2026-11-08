@@ -116,6 +116,7 @@ vi.mock("../storage.js", () => {
       && !["confirmed", "completed"].includes(w.bookings.get(p.bookingId)?.status)),
     createNotification: async (n: Row) => { notify.admin.push(n.message); return n; },
     getHoldsBySession: async (sid: string) => [...w.holds.values()].filter((h) => h.bookingSessionId === sid && h.status === "ACTIVE"),
+    getAllHoldsBySession: async (sid: string) => [...w.holds.values()].filter((h) => h.bookingSessionId === sid),
     getExpiredHolds: async (now: Date) => [...w.holds.values()].filter((h) => h.status === "ACTIVE" && h.expiresAt < now),
     getBookingItems: async (id: string) => (w.items.get(id) ?? []).map((i) => ({ ...i })),
     getProduct: async () => undefined,

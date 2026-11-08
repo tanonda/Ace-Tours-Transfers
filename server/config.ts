@@ -9,7 +9,6 @@
 export interface GatewayConfig {
   enabled: boolean;
   visible: boolean;
-  mode: 'sandbox' | 'live';
 }
 
 /** Gateway slug → its server switch block, i.e. PAYMENTS_<KEY>_ENABLED. */
@@ -59,32 +58,27 @@ export const config = {
     stripe: {
       enabled: process.env.PAYMENTS_STRIPE_ENABLED === 'true',
       visible: process.env.PAYMENTS_STRIPE_VISIBLE === 'true',
-      mode: (process.env.PAYMENTS_STRIPE_MODE as 'sandbox' | 'live') || 'sandbox',
       webhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
     } as GatewayConfig & { webhookSecret?: string },
 
     anz: {
       enabled: process.env.PAYMENTS_ANZ_ENABLED === 'true',
       visible: process.env.PAYMENTS_ANZ_VISIBLE === 'true',
-      mode: (process.env.PAYMENTS_ANZ_MODE as 'sandbox' | 'live') || 'sandbox',
     } as GatewayConfig,
 
     bsp: {
       enabled: process.env.PAYMENTS_BSP_ENABLED === 'true',
       visible: process.env.PAYMENTS_BSP_VISIBLE === 'true',
-      mode: (process.env.PAYMENTS_BSP_MODE as 'sandbox' | 'live') || 'sandbox',
     } as GatewayConfig,
 
     bred: {
       enabled: process.env.PAYMENTS_BRED_ENABLED === 'true',
       visible: process.env.PAYMENTS_BRED_VISIBLE === 'true',
-      mode: (process.env.PAYMENTS_BRED_MODE as 'sandbox' | 'live') || 'sandbox',
     } as GatewayConfig,
 
     nbv: {
       enabled: process.env.PAYMENTS_NBV_ENABLED === 'true',
       visible: process.env.PAYMENTS_NBV_VISIBLE === 'true',
-      mode: (process.env.PAYMENTS_NBV_MODE as 'sandbox' | 'live') || 'sandbox',
     } as GatewayConfig,
   },
 

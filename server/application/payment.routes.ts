@@ -3,6 +3,7 @@ import { PaymentApplicationService } from "./payment.application-service.js";
 import { IStorage } from "../storage.js";
 // LOW-4: stripeClient import removed — Stripe not available to Vanuatu merchants
 import { requireAuth, requireAdmin } from "../routes.js";
+import { canAccessBooking } from "../routes/shared.js";
 import { config } from "../config.js";
 import { rateLimit } from "express-rate-limit";
 import { z } from "zod";
@@ -10,6 +11,8 @@ import { adminAudit } from "../infrastructure/audit/admin-audit-log.service.js";
 import { toPublicGateway, visibleGateways, isTestModeGateway } from "./public-gateway.js";
 import { PaymentStatus, WebhookResponse } from "../domain/payments/interfaces.js";
 import { MpgsHostedCheckoutAdapter, isMpgsGateway, parseMpgsSessionId, renderMpgsLaunchPage } from "../infrastructure/payments/mpgs.adapter.js";
+import { signBookingReceiptToken } from "../lib/receipt-token.js";
+import { isSupportedWebhookGateway, parseWebhookBody, wantsTextWebhookReply, webhookSignature } from "./webhook-body.js";
 
 const paymentLimiter = rateLimit({
   windowMs: 60 * 1000,
@@ -79,7 +82,7 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
         sessionId: req.sessionID, // CRITICAL: Pass session ID for guest ownership
         recentBookingIds: (req.session as any).recentBookingIds || [], // Checkout flow: recently created bookings
         provider: provider,
-        successUrl: `${req.protocol}://${req.get('host')}/payment/success?booking=${bookingId}`,
+        successUrl: `${req.protocol}://${req.get('host')}/payment/success?booking=${bookingId}&receipt=${encodeURIComponent(signBookingReceiptToken(String(bookingId)))}`,
         cancelUrl: `${req.protocol}://${req.get('host')}/payment/cancel?booking=${bookingId}`,
         isAdmin: req.session.userRole === 'admin',
       });
@@ -113,13 +116,10 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
         return res.status(404).json({ error: "Payment not found" });
       }
 
-      // SECURITY: Ownership or Admin check
+      // SECURITY: Ownership or Admin check (booking session / checkout session included)
       const booking = await storage.getBooking(payment.bookingId);
       const isAdmin = req.session.userRole === 'admin';
-      const isOwner = booking && (booking.userId === req.session.userId || booking.bookingSessionId === req.sessionID
-        || (req.session as any).recentBookingIds?.includes(booking.id)); // bookings now key holds by their own ID
-
-      if (!isAdmin && !isOwner) {
+      if (!booking || !canAccessBooking(req, booking)) {
         return res.status(403).json({ error: "Access denied" });
       }
 
@@ -142,10 +142,7 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
       const booking = await storage.getBooking(bookingId);
 
       const isAdmin = req.session.userRole === 'admin';
-      const isOwner = booking && (booking.userId === req.session.userId || booking.bookingSessionId === req.sessionID
-        || (req.session as any).recentBookingIds?.includes(booking.id)); // bookings now key holds by their own ID
-
-      if (!isAdmin && !isOwner) {
+      if (!booking || !canAccessBooking(req, booking)) {
         return res.status(403).json({ error: "Access denied" });
       }
 
@@ -222,7 +219,8 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
       // Always redirect the browser — never show a raw JSON error to the customer.
       if (paidOrPending(result)) {
         console.log(`[BANK CALLBACK][${gateway}] ${result.message} for booking ${bookingId}`);
-        return res.redirect(`/payment/success?booking=${encodeURIComponent(bookingId)}`);
+        const receipt = bookingId ? `&receipt=${encodeURIComponent(signBookingReceiptToken(String(bookingId)))}` : "";
+        return res.redirect(`/payment/success?booking=${encodeURIComponent(bookingId)}${receipt}`);
       } else {
         console.warn(`[BANK CALLBACK][${gateway}] Payment failed/rejected for booking ${bookingId}: ${result.message}`);
         return res.redirect(`/payment/cancel?booking=${encodeURIComponent(bookingId)}&reason=gateway_rejected`);
@@ -253,7 +251,8 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
       const bookingId: string = result.bookingId || vpcParams.vpc_OrderInfo || vpcParams.booking || "";
 
       if (paidOrPending(result)) {
-        return res.redirect(`/payment/success?booking=${encodeURIComponent(bookingId)}`);
+        const receipt = bookingId ? `&receipt=${encodeURIComponent(signBookingReceiptToken(String(bookingId)))}` : "";
+        return res.redirect(`/payment/success?booking=${encodeURIComponent(bookingId)}${receipt}`);
       } else {
         return res.redirect(`/payment/cancel?booking=${encodeURIComponent(bookingId)}&reason=gateway_rejected`);
       }
@@ -264,66 +263,49 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
   });
 
   // Standardized Webhook Handler
+  //
+  // The HTTP layer hands us a raw Buffer (see server/index.ts). `parseWebhookBody`
+  // converts it to the shape each adapter expects; without that step every
+  // gateway except Stripe rejected its own notifications (the old bug).
   app.post("/api/payments/webhook/:gateway", async (req, res) => {
     const gatewaySlug = req.params.gateway;
-    const signature = req.headers['stripe-signature'] as string;
 
-    // BRED Bank (PayZen) Instant Payment Notification: a form-encoded POST whose
-    // signature is inside the body. PayZen logs the first 256 bytes of the reply
-    // in its Back Office and retries on any non-200 status.
-    if (gatewaySlug === 'bred-bank') {
-      try {
-        const result = await paymentAppService.handlePaymentWebhook({ gatewaySlug, rawEvent: req.body });
-        if (!result.success) {
-          console.warn(`[PAYZEN IPN] Rejected: ${result.message}`);
-        }
-        return res
-          .status(result.success ? 200 : 400)
-          .type('text/plain')
-          .send(result.message || (result.success ? 'OK' : 'Rejected'));
-      } catch (error: any) {
-        console.error('[PAYZEN IPN] Error:', error);
-        return res.status(500).type('text/plain').send('Error while processing the notification');
-      }
-    }
-
-    // MPGS notification (ANZ, BSP, NBV): JSON body, X-Notification-Secret header. The adapter
-    // re-reads the order from the bank, so the body itself is never trusted. MPGS retries on non-200.
-    if (isMpgsGateway(gatewaySlug)) {
-      try {
-        const result = await paymentAppService.handlePaymentWebhook({
-          gatewaySlug,
-          rawEvent: req.body,
-          headers: req.headers as Record<string, string>,
-        });
-        if (!result.success) console.warn(`[MPGS NOTIFICATION] Rejected: ${result.message}`);
-        return res.status(result.success ? 200 : 400).type('text/plain').send(result.success ? 'OK' : 'Rejected');
-      } catch (error: any) {
-        console.error('[MPGS NOTIFICATION] Error:', error);
-        return res.status(500).type('text/plain').send('Error while processing the notification');
-      }
-    }
-
-    // H7 Fix: Signature verification and Method Not Allowed for manual
-    if (gatewaySlug !== 'stripe') {
+    if (!isSupportedWebhookGateway(gatewaySlug)) {
       return res.status(405).json({ error: "Method Not Allowed: Webhooks not supported for this gateway." });
     }
+
+    const headers = req.headers as Record<string, string>;
+    const rawEvent = parseWebhookBody(gatewaySlug, req.body);
+    const signature = webhookSignature(gatewaySlug, headers);
 
     try {
       const result = await paymentAppService.handlePaymentWebhook({
         gatewaySlug,
-        rawEvent: req.body,
+        rawEvent,
         signature,
+        headers,
       });
 
-      if (result.success) {
-        res.json({ received: true });
-      } else {
-        res.status(400).json({ error: result.message });
+      if (!result.success) {
+        console.warn(`[WEBHOOK][${gatewaySlug}] Rejected: ${result.message}`);
       }
+
+      // PayZen and MPGS log the first bytes of the reply and retry on non-200.
+      if (wantsTextWebhookReply(gatewaySlug)) {
+        return res
+          .status(result.success ? 200 : 400)
+          .type("text/plain")
+          .send(result.success ? result.message || "OK" : result.message || "Rejected");
+      }
+
+      return result.success
+        ? res.json({ received: true })
+        : res.status(400).json({ error: result.message });
     } catch (error: any) {
-      console.error(`Webhook error (${gatewaySlug}):`, error);
-      res.status(500).json({ error: "Webhook processing failed" });
+      console.error(`[WEBHOOK][${gatewaySlug}] Error:`, error);
+      return wantsTextWebhookReply(gatewaySlug)
+        ? res.status(500).type("text/plain").send("Error while processing the notification")
+        : res.status(500).json({ error: "Webhook processing failed" });
     }
   });
 

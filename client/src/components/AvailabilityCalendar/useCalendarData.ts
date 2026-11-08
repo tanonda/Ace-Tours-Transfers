@@ -20,6 +20,7 @@ export const useCalendarData = ({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
     const fetchCalendarData = async () => {
       try {
         setLoading(true);
@@ -30,19 +31,21 @@ export const useCalendarData = ({
         const endDate = format(endOfMonth(baseDate), 'yyyy-MM-dd');
 
         const result = await getAvailabilityRange(tourId, startDate, endDate, minGuests);
-        setData(result);
+        if (!cancelled) setData(result);
       } catch (err) {
+        if (cancelled) return;
         const message = err instanceof Error ? err.message : 'Failed to load calendar';
         setError(message);
         console.error('Calendar data fetch error:', err);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
     if (tourId) {
       fetchCalendarData();
     }
+    return () => { cancelled = true; };
   }, [tourId, month, year, minGuests]);
 
   return { data, loading, error };

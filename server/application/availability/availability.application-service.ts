@@ -77,8 +77,10 @@ export class AvailabilityApplicationService {
   }
 
   async releaseHold(holdId: string): Promise<void> {
-    await this.availabilityService.releaseHold(holdId, HoldStatus.RELEASED);
-    await eventDispatcher.dispatch(new HoldReleased(holdId, "manual_release"));
+    const released = await this.availabilityService.releaseHold(holdId, HoldStatus.RELEASED);
+    if (released) {
+      await eventDispatcher.dispatch(new HoldReleased(holdId, "manual_release"));
+    }
   }
 
   async adminOverrideCapacity(instanceId: string, totalCapacity: number): Promise<TourInstance> {
