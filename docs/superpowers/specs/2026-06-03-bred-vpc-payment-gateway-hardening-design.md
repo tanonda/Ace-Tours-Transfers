@@ -1,7 +1,23 @@
 # BRED Bank Card Payments — VPC/MIGS Gateway Hardening
 
+> ## ⚠️ SUPERSEDED — do not implement
+>
+> **Status: SUPERSEDED on 2026-11-08.** This June 2026 design assumed BRED would
+> provide a classic **MIGS/VPC redirect** merchant (merchant ID + access code +
+> secure-hash secret, `vpc_*` params, shared `MastercardGatewayAdapter` and
+> `vpc-secure-hash.ts`). That is **not** BRED's product and none of it was
+> implemented — `MastercardGatewayAdapter` and `vpc-secure-hash.ts` do not exist
+> in the current tree.
+>
+> The accepted, shipped integration is **Lyra PayZen** (hosted payment page,
+> VADS V2 form POST, HMAC-SHA-256, IPN to
+> `/api/payments/webhook/bred-bank`). See
+> [`docs/adr/ADR-007-BRED-PAYZEN.md`](../../adr/ADR-007-BRED-PAYZEN.md) and
+> [`docs/BRED_PAYZEN_GO_LIVE.md`](../../BRED_PAYZEN_GO_LIVE.md). This file is kept
+> for history only; do not code against it.
+
 **Date:** 2026-06-03
-**Status:** Approved design — pending spec review → implementation plan
+**Status:** Superseded (was: Approved design — pending spec review → implementation plan)
 **Author:** Mark (with Claude)
 
 ## Context

@@ -225,7 +225,7 @@ export default function TransferDetail() {
           i === 4 ? "Can I book a private transfer?" : "";
     const defaultA = i === 1 ? htmlToText(Array.isArray(transfer.description) ? transfer.description[0] : transfer.description).slice(0, 300) || "Please contact us for full inclusions." :
       i === 2 ? (transfer.meetingPoint || "We pick up from your hotel, cruise terminal, or the airport. Please provide your location at booking.") :
-        i === 3 ? `Free cancellation up to ${cutoffHours} hours before your scheduled transfer time.` :
+        i === 3 ? "Full refund for cancellations more than 48 hours before your scheduled transfer, 50% between 24 and 48 hours, and no refund within 24 hours or for no-shows. See our Cancellation and Refund Policy for details." :
           i === 4 ? "Yes, all our transfers can be arranged as private service. Contact us via WhatsApp for private transfer pricing." : "";
 
     const q = cms.text(`faq${i}_q`, defaultQ);
@@ -515,7 +515,7 @@ export default function TransferDetail() {
                     className="text-[0.75rem] text-muted-foreground hover:text-primary flex items-center gap-1.5 transition-colors self-start"
                   >
                     <Shield className="w-3.5 h-3.5" />
-                    Free cancellation · {cutoffHours}h before start
+                    Cancellation &amp; refund policy
                   </button>
                 </div>
 

@@ -97,11 +97,16 @@ describe('PayZen IPN — POST /api/payments/webhook/bred-bank', () => {
     expect(storage.updatePayment).not.toHaveBeenCalled();
   });
 
-  it('answers 200 for a refund notification without touching the payment', async () => {
+  it('answers 200 for a refund notification and records the refund without completing the payment', async () => {
     const res = await request(app).post('/api/payments/webhook/bred-bank').type('form')
       .send(signedIpn({ vads_operation_type: 'CREDIT', vads_trans_status: 'CAPTURED' }));
     expect(res.status).toBe(200);
-    expect(storage.updatePayment).not.toHaveBeenCalled();
+    expect(storage.updatePayment).toHaveBeenCalledWith('pay-0001', expect.objectContaining({
+      status: PaymentStatus.Refunded,
+      refundedAmount: 12500,
+      refundReference: 'uuid-1',
+      refundedAt: expect.any(Date),
+    }));
   });
 
   it('replies in plain text, which PayZen stores in its Back Office log', async () => {

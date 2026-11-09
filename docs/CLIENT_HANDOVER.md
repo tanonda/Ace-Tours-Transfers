@@ -2,18 +2,24 @@
 
 This document covers everything needed to take ownership of the Ace Tours & Transfers website.
 
+> **Read this first:** [`docs/SECURITY_HANDOVER.md`](./SECURITY_HANDOVER.md). The
+> GitHub repository **must be private**, the repository history contains old
+> credentials, and the working folder (`.env`, logs, `.kilo/`) must never be
+> shared. Rotate secrets before giving anyone access.
+
 ---
 
 ## 1. What You're Receiving
 
 | Component | Details |
 |-----------|---------|
-| **Website** | Full-stack booking platform (tours, transfers, vehicle hire) |
-| **Source code** | GitHub repository at `github.com/tanonda/Ace-Tours-Transfers` |
+| **Website** | Full-stack booking platform (island tours and airport/wharf transfers; self-drive vehicle hire is retired) |
+| **Source code** | **Private** GitHub repository at `github.com/tanonda/Ace-Tours-Transfers` (it must stay private) |
 | **Database** | Neon PostgreSQL (serverless, managed) |
 | **Image storage** | Cloudinary |
 | **Error monitoring** | Sentry |
 | **Uptime monitoring** | BetterStack |
+| **Hosting** | **Render** (Docker web service, plan `starter`; `render.yaml` in the repo) |
 | **Domain** | `acetoursvanuatu.com` (Hostinger) |
 
 ---
@@ -24,47 +30,70 @@ The following accounts need to be transferred to the client's email or the clien
 
 | Service | What to do | URL |
 |---------|------------|-----|
-| **GitHub** | Transfer repository or add client as collaborator | github.com |
+| **GitHub** | Keep the repository **private**; add the client as owner/collaborator (never make it public) | github.com |
+| **Render** | Transfer the web service or create a new one under the client's email | render.com |
 | **Neon** | Transfer project or create new project + migrate data | console.neon.tech |
 | **Cloudinary** | Transfer account or create new (re-upload images) | console.cloudinary.com |
 | **Sentry** | Transfer project or create new + update DSN | sentry.io |
 | **BetterStack** | Transfer monitor or create new + update API key | betterstack.com |
 | **Hostinger** | Transfer domain ownership to client | hostinger.com |
-| **Gmail SMTP** | Client creates their own Gmail + App Password | myaccount.google.com/apppasswords |
-| **Hosting** (Fly.io/Render) | Create account under client's email | fly.io or render.com |
+| **Gmail SMTP** | Client creates their own business mailbox + App Password | myaccount.google.com/apppasswords |
+| **BRED / PayZen** | Merchant account + Back Office users (card go-live; see [`BRED_PAYZEN_GO_LIVE.md`](./BRED_PAYZEN_GO_LIVE.md)) | BRED Bank Vanuatu |
 
-### After transfer, rotate all secrets:
-1. Neon database password
-2. Session secret and JWT secret (`openssl rand -base64 32`)
-3. Cloudinary API secret
-4. Gmail App Password (new one for client's Gmail)
-5. Update all in hosting provider's environment variables
+### After transfer, rotate all secrets
+
+Follow the full checklist in [`SECURITY_HANDOVER.md`](./SECURITY_HANDOVER.md):
+at minimum the Neon database password, `SESSION_SECRET`, `PAYMENT_CREDENTIALS_KEY`
+(this one invalidates the stored gateway credentials — re-enter them in
+Admin → Payments), `DATA_ENCRYPTION_KEY` (invalidates MFA enrolments), Cloudinary
+API secret, Gmail App Password, SMS credentials, and every admin password. Create
+a new admin on the business mailbox and remove the old personal-Gmail admin.
 
 ---
 
 ## 3. Hosting & Deployment
 
-### Option A: Fly.io (Recommended)
-```bash
-# Install Fly CLI
-curl -L https://fly.io/install.sh | sh
+**Production runs on Render**, as a **Docker** web service (`render.yaml`:
+`runtime: docker`, `dockerfilePath: ./Dockerfile`, health check `/api/health`).
+The Dockerfile builds the Vite client and the server bundle, then starts the app
+through `scripts/start-with-prerender.sh`, which runs the Playwright SEO prerender
+at container startup (Render only exposes `DATABASE_URL` at runtime). Do not use
+the old `fly.toml` — Fly.io is no longer the recommended target; it is kept only
+as a historical artifact.
 
-# Login and deploy
-fly auth login
-fly launch              # Detects fly.toml and Dockerfile
-fly secrets set DATABASE_URL="..." SESSION_SECRET="..." # Set all env vars
-fly deploy              # Build + deploy
-```
+### Render (production)
 
-### Option B: Render
-1. Create a **Web Service** pointing to the GitHub repo
-2. Build command: `npm install && npm run build`
-3. Start command: `npm start`
-4. Add all environment variables from `.env.example`
+1. Create a **Web Service** from the private GitHub repo; Render detects
+   `render.yaml` (or set runtime **Docker**, Dockerfile path `./Dockerfile`).
+2. Plan: **Starter** or above — the app runs background workers (hold expiry,
+   reconciliation) and the startup prerender, so a free instance is not suitable.
+3. Add every environment variable from `.env.example` in **Dashboard → the web
+   service → Environment** (see [`deployment_guide.md`](./deployment_guide.md)
+   for the list). `render.yaml` declares most of them; secrets are `sync: false`.
+4. Deploy. Verify `https://acetoursvanuatu.com/api/health` returns
+   `status: ok`, `database: connected`.
+5. Keep the Neon database and the Render service in the same region if possible.
 
-### Automatic on deploy
-- Database migrations run automatically on container startup
-- No manual migration steps needed
+### Migrations on deploy
+
+- **They run automatically at boot** (`server/index.ts` calls
+  `runIdempotentMigrations`), and `server/migrate.ts` applies every `.sql` file in
+  `migrations/` in filename order, each in a transaction, tracked in
+  `drizzle_migrations_applied`.
+- **Caveat:** if the boot migration fails the server **only warns and keeps
+  starting** (the error is logged as `[MIGRATIONS] Migration execution warning`).
+  Do not rely on it silently; after a deploy with new migrations check the logs,
+  and run `npm run db:migrate` manually if the warning appears. Apply migrations
+  to a Neon branch/staging database first.
+- Never use `npm run db:push` against production; it skips the tracking table and
+  the safety checks.
+
+### Neon TLS
+
+`DATABASE_URL` must include `?sslmode=require`. Certificate verification is on by
+default; set `DATABASE_SSL_CA` only if the runtime does not trust Neon's CA.
+`DATABASE_SSL_REJECT_UNAUTHORIZED=false` is an emergency escape hatch only — see
+the warnings in `.env.example`.
 
 ---
 
@@ -72,11 +101,11 @@ fly deploy              # Build + deploy
 
 Domain `acetoursvanuatu.com` is on Hostinger. After deploying to a host:
 
-1. Get the host's IP or CNAME from Fly.io/Render dashboard
+1. Get the Render service hostname from the Render dashboard (Custom Domain)
 2. In Hostinger DNS zone editor, update:
-   - **A record** → host IP, or
-   - **CNAME** for `www` → host's provided domain
-3. Enable SSL/TLS on the hosting provider (automatic on Fly.io and Render)
+   - **A record** → Render's IP, or
+   - **CNAME** for `www` → Render's provided hostname
+3. Render issues and renews the SSL certificate automatically once DNS points at it.
 
 ### Email DNS Records (add in Hostinger DNS)
 These improve email deliverability:
@@ -93,14 +122,19 @@ These improve email deliverability:
 Access at: `https://acetoursvanuatu.com/admin`
 
 ### Admin login
-The admin account is created by the operator (Admin → Staff) or the local seed
-script; it is never a published default in production. If a seeded development
-account exists (`admin@aceproducts.vu`), change its password before going live.
+There is **no default admin password**. Create the production admin from
+**Admin → Staff** (as an existing admin), or seed a *local development* admin by
+setting `SEED_ADMIN_EMAIL` and `SEED_ADMIN_PASSWORD` before `npm run db:seed`
+(the seed refuses to run without them and refuses to run in production). Use a
+business e-mail address, a long unique password, and enable MFA; remove any old
+personal-Gmail admin.
 
 ### What the admin can do
-- **Tours/Transfers/Vehicles**: Create, edit, pricing, availability, images
-- **Bookings**: View, confirm, cancel, refund
-- **Payments**: View transactions, reconciliation
+- **Tours / Transfers**: Create, edit, pricing, availability, images (self-drive
+  vehicle hire is retired)
+- **Bookings**: View, confirm, cancel, and flag refunds
+- **Payments**: View transactions and reconcile; card refunds are executed in the
+  bank's (PayZen) Back Office first — see [`BRED_PAYZEN_GO_LIVE.md`](./BRED_PAYZEN_GO_LIVE.md)
 - **CMS**: Edit page content, FAQ, site settings
 - **Settings**: Business phone, WhatsApp, email, GTM, coming soon mode
 - **Analytics**: Revenue, booking trends, capacity utilisation
@@ -111,8 +145,15 @@ account exists (`admin@aceproducts.vu`), change its password before going live.
 
 ### Checking bookings
 1. Login to admin dashboard → **Bookings**
-2. New bookings arrive as "pending" (manual transfer) or "confirmed" (auto)
-3. For bank transfers: verify payment received → click **Confirm**
+2. New bookings arrive as "pending" (manual transfer/cash) or "confirmed" (auto)
+3. For bank transfers: verify payment received → click **Confirm**. **Before
+   relying on bank transfer, enter the real account details** in Admin → Settings
+   → Payments: the seeded values are placeholders ("To be configured").
+4. Card payments are **not live yet**. Once BRED/PayZen is enabled
+   ([go-live runbook](./BRED_PAYZEN_GO_LIVE.md)), refunds are made in the PayZen
+   Back Office and then recorded on the payment in the admin dashboard; a missed
+   bank notification puts the payment in `manual_review_required` and e-mails the
+   admin.
 
 ### Managing tours & availability
 - **Add blackout dates**: Admin → Products → select tour → Blackout Dates
@@ -132,14 +173,14 @@ account exists (`admin@aceproducts.vu`), change its password before going live.
 |---------|------|-------|
 | **Neon** (database) | Free tier available (0.5 GB) | Paid from ~$19/mo for more storage |
 | **Cloudinary** (images) | Free tier (25 GB bandwidth) | Sufficient for most use |
-| **Fly.io** | ~$5-10/mo | Shared CPU, 512MB RAM |
-| **Render** | Free tier available | Cold starts on free; $7/mo for always-on |
+| **Render** | Starter ~$7/mo | **Required for production**: always-on workers + startup prerender; free tier cold-starts and idles. |
 | **Sentry** | Free tier (5K errors/mo) | Sufficient for this scale |
 | **BetterStack** | Free tier available | Basic uptime monitoring |
 | **Hostinger** (domain) | ~$10-15/year | Domain renewal |
-| **Gmail SMTP** | Free | Limited to ~500 emails/day |
+| **Gmail SMTP / business mailbox** | Free–low | Gmail App Password limits (~500 emails/day); prefer a business mailbox |
+| **BRED PayZen** | Per agreement | Card fees only once enabled; see the go-live doc |
 
-**Estimated monthly cost: $5–30/mo** depending on hosting choice.
+**Estimated monthly cost: ~$7–30/mo** (Render Starter + free tiers) before card fees.
 
 ---
 
@@ -164,9 +205,16 @@ pg_dump $DATABASE_URL > backup-$(date +%Y%m%d).sql
 ```bash
 git pull origin main
 npm install
-npm run build
-# Then redeploy via fly deploy or push to trigger Render auto-deploy
+npm run build        # compile client + server bundles
+npm run db:migrate   # apply any new .sql migrations (boot does this too, but see caveat in §3)
+# Then let Render auto-deploy (push) or redeploy from the Render dashboard
 ```
+
+### Payments
+Card payments (BRED PayZen) have a separate go-live runbook:
+[`BRED_PAYZEN_GO_LIVE.md`](./BRED_PAYZEN_GO_LIVE.md). Do not enable
+`PAYMENTS_BRED_ENABLED` / `DDD_DISABLE_CARD` in production until the TEST phase
+and the cutover in that document are complete.
 
 ---
 
@@ -174,9 +222,9 @@ npm run build
 
 ### Site is down
 1. Check BetterStack for alert details
-2. Check hosting provider status page (Fly.io/Render)
-3. Check Neon status page (database)
-4. Restart the service: `fly apps restart` (Fly.io) or redeploy on Render
+2. Check the Render status page and the Render service logs
+3. Check Neon's status page (database)
+4. Redeploy or restart the service from the Render dashboard
 
 ### Database issue
 1. Login to Neon console
@@ -185,31 +233,36 @@ npm run build
 
 ### Need a developer
 The codebase includes comprehensive documentation in the `docs/` folder:
+- `SECURITY_HANDOVER.md` — security findings, owner actions, safe access rules
 - `QUICK_START.md` — Developer onboarding
 - `BOOKING_ENGINE_ARCHITECTURE.md` — System design
 - `OPERATIONAL_RUNBOOK.md` — Troubleshooting guide
-- `deployment_guide.md` — Deployment instructions
+- `deployment_guide.md` — Render/Neon deployment instructions
+- `BRED_PAYZEN_GO_LIVE.md` — card-payment go-live runbook and BRED e-mail draft
 - `.env.example` — All environment variables documented
 
 ---
 
 ## 10. Handover Checklist
 
-- [ ] GitHub repository access transferred
+- [ ] **GitHub repository made private** and access reviewed (see `SECURITY_HANDOVER.md`)
+- [ ] Old credentials rotated (database, session, payment/MFA keys, Cloudinary, SMTP, SMS, gateway keys, admin passwords)
+- [ ] Personal-Gmail admin removed; business-mailbox admin created with MFA
 - [ ] Neon database ownership transferred
 - [ ] Cloudinary account transferred
 - [ ] Sentry project transferred
 - [ ] BetterStack monitor transferred
 - [ ] Hostinger domain transferred
-- [ ] All secrets rotated with new values
-- [ ] Hosting account created under client email
-- [ ] Site deployed and accessible
-- [ ] Admin password changed from default
+- [ ] Render account/service moved to the client's email
+- [ ] All environment variables set on Render (`npm run db:migrate` / boot migration logs checked)
+- [ ] Site deployed and accessible; `/api/health` ok
+- [ ] Bank-transfer account details entered in Admin → Settings → Payments
 - [ ] SPF and DMARC DNS records added
 - [ ] Client trained on admin dashboard
 - [ ] GTM container ID set (if using Google Analytics)
-- [ ] Stripe configured (when ready for card payments)
-- [ ] Email SMTP switched to client's Gmail account
+- [ ] BRED PayZen card go-live completed (or explicitly deferred)
+- [ ] Email SMTP switched to the client's business mailbox
+- [ ] BRED/Global Bedbank access (if granted) is read-only, staging + TEST keys only, and revoked at the end
 
 ## 11. Hero video
 

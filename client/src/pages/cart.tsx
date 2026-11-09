@@ -230,7 +230,7 @@ export default function Cart() {
                               <div className="flex items-center gap-3 text-xs text-muted-foreground">
                                 <span className="flex items-center gap-1">
                                   <Shield className="h-3 w-3" />
-                                  Free cancellation
+                                  Cancellation policy applies
                                 </span>
                                 <span className="flex items-center gap-1">🔒 Instant confirm</span>
                               </div>
@@ -374,7 +374,7 @@ export default function Cart() {
                   <div className="space-y-1.5 text-xs text-muted-foreground">
                     <div className="flex items-center gap-2">
                       <Shield className="h-3.5 w-3.5 text-green-500 shrink-0" />
-                      <span>Free cancellation up to 24h before</span>
+                      <span>Full refund for cancellations more than 48h before</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />

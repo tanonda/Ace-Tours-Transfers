@@ -23,7 +23,7 @@ export default function PrivacyPolicy() {
               <span className="text-primary font-semibold uppercase tracking-wider text-sm">Legal</span>
             </div>
             <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">Privacy Policy</h1>
-            <p className="text-muted-foreground">Last updated: April 2026</p>
+            <p className="text-muted-foreground">Last updated: November 2026</p>
           </motion.div>
         </div>
       </div>
@@ -78,7 +78,7 @@ export default function PrivacyPolicy() {
               We do not sell or rent your personal information to third parties. We may share information with:
             </p>
             <ul>
-              <li>Payment processors to complete transactions securely</li>
+              <li>Payment processors to complete transactions securely. Card payments are processed by our bank, BRED Bank Vanuatu, through its PayZen hosted payment page — card details are entered on the bank's page and we do not receive or store your full card number</li>
               <li>Email service providers used to deliver booking confirmations</li>
               <li>Analytics providers (data is anonymised where possible)</li>
               <li>Authorities where required by law</li>
@@ -115,8 +115,12 @@ export default function PrivacyPolicy() {
             <h2>8. Security</h2>
             <p>
               We implement appropriate technical and organisational measures to protect your personal information
-              against unauthorised access, alteration, disclosure, or destruction. All payment data is handled
-              through PCI-compliant payment processors.
+              against unauthorised access, alteration, disclosure, or destruction. Card payments are handled
+              entirely on BRED Bank Vanuatu's PCI-compliant PayZen hosted payment page; we do not receive or store
+              full card details. Card refunds are processed through the same bank portal and are subject to{" "}
+              <a href="/refund-policy" className="text-primary hover:underline">
+                our Cancellation &amp; Refund Policy
+              </a>.
             </p>
 
             <h2>9. External Links</h2>

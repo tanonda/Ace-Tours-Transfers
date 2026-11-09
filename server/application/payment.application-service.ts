@@ -7,6 +7,7 @@ import {
   PaymentStatus,
   WebhookEvent,
   WebhookResponse,
+  GatewayRefundInfo,
 } from '../domain/payments/interfaces.js';
 import { PaymentMethodClassifier } from '../domain/payments/payment-method-classifier.js';
 import { IStorage } from '../storage.js';
@@ -419,6 +420,97 @@ export class PaymentApplicationService {
     }
   }
 
+  /**
+   * Records a refund the bank reported (PayZen CREDIT IPN). The refund itself is
+   * executed in the bank's Back Office; this keeps the payment ledger truthful:
+   * a full refund closes the payment as `refunded`, a partial refund stays
+   * `completed` with `refundedAmount` set, and a refund for an unsettled payment
+   * is held for manual review. Duplicate notifications (bank retries) are ignored.
+   */
+  private async recordGatewayRefund(
+    payment: Payment,
+    refund: GatewayRefundInfo,
+    gatewayName: string,
+  ): Promise<void> {
+    const metadata = (payment.metadata as Record<string, any> | null) ?? {};
+    const priorRefunds: Array<{ amount?: number; reference?: string; at?: string }> =
+      Array.isArray(metadata.refunds) ? metadata.refunds : [];
+
+    // PayZen retries IPNs; the same refund notification must not be counted twice.
+    if (refund.reference && priorRefunds.some((r) => r.reference === refund.reference)) {
+      console.warn(`[WEBHOOK] Duplicate refund notification ${refund.reference} for payment ${payment.id}; ignored.`);
+      return;
+    }
+
+    const alreadyRefunded = payment.refundedAmount ?? 0;
+    const reported = Number.isFinite(refund.amount) && (refund.amount as number) > 0
+      ? Math.round(refund.amount as number)
+      : payment.amount;
+    const totalAfter = Math.min(payment.amount, alreadyRefunded + reported);
+    const overRefund = alreadyRefunded + reported > payment.amount;
+    const fullyRefunded = totalAfter >= payment.amount;
+
+    const refunds = [...priorRefunds, {
+      amount: reported,
+      reference: refund.reference,
+      at: new Date().toISOString(),
+    }];
+
+    let status: PaymentStatus;
+    let failureReason = payment.failureReason;
+    if (fullyRefunded) {
+      status = PaymentStatus.Refunded;
+    } else if (payment.status === PaymentStatus.Completed) {
+      // A partial refund leaves the payment completed; the amount is tracked separately.
+      status = PaymentStatus.Completed;
+    } else if (payment.status === PaymentStatus.Refunded) {
+      status = PaymentStatus.Refunded;
+    } else if (payment.status === PaymentStatus.RefundPending) {
+      // The booking was cancelled and the admin flagged the money for refund;
+      // the bank notification confirms it. Partial refunds stay pending.
+      status = PaymentStatus.RefundPending;
+    } else {
+      // A refund for a payment we never completed needs a person.
+      status = PaymentStatus.ManualReviewRequired;
+      failureReason = overRefund ? 'refund_amount_exceeds_payment' : 'refund_without_completed_payment';
+    }
+
+    await this.storage.updatePayment(payment.id, {
+      refundedAmount: totalAfter,
+      refundedAt: new Date(),
+      refundReference: refund.reference ?? payment.refundReference ?? undefined,
+      status,
+      failureReason,
+      metadata: { ...metadata, refunds },
+    });
+
+    try {
+      const booking = await this.storage.getBooking(payment.bookingId);
+      await sendAdminEmail(
+        `Refund recorded — Booking ACT-${shortBookingRef(payment.bookingId)}`,
+        `<div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+          <h2 style="color: #7f8c8d;">Refund recorded</h2>
+          <p>${escapeHtml(gatewayName)} reported a refund for a payment made through this site.</p>
+          <p><strong>Refund amount:</strong> ${reported.toLocaleString()} ${escapeHtml(payment.currency)}<br>
+          <strong>Total refunded:</strong> ${totalAfter.toLocaleString()} of ${payment.amount.toLocaleString()} ${escapeHtml(payment.currency)}<br>
+          <strong>Bank reference:</strong> ${escapeHtml(refund.reference ?? 'n/a')}</p>
+          <p><strong>Payment ID:</strong> ${escapeHtml(payment.id)}<br>
+          <strong>Booking:</strong> ACT-${escapeHtml(shortBookingRef(payment.bookingId))}<br>
+          <strong>Guest:</strong> ${escapeHtml(booking?.customerName ?? 'Unknown')}</p>
+          ${fullyRefunded
+            ? '<p>The payment is now <strong>refunded</strong>.</p>'
+            : '<p>A partial refund is recorded; the payment status is unchanged.</p>'}
+          ${overRefund ? '<p style="color:#c0392b;"><strong>The reported refunds exceed the original payment; check the PayZen Back Office.</strong></p>' : ''}
+          ${status === PaymentStatus.ManualReviewRequired
+            ? '<p style="color:#c0392b;">The refund was for a payment that was not completed here; the payment is held for <strong>manual review</strong>.</p>'
+            : ''}
+        </div>`,
+      );
+    } catch (emailErr) {
+      console.error('[WEBHOOK] Failed to send refund-recorded email:', emailErr);
+    }
+  }
+
   async handlePaymentWebhook(event: WebhookEvent): Promise<WebhookResponse> {
     const gateway = await this.storage.getPaymentGatewayBySlug(event.gatewaySlug);
     if (!gateway) return { success: false, message: "Gateway not found" };
@@ -455,6 +547,26 @@ export class PaymentApplicationService {
       }
     }
 
+    // A refund notification (PayZen CREDIT) reports money returned to the guest.
+    // It must be recorded against the payment but never complete or fail it.
+    if (result.success && resolvedPaymentId && result.refund) {
+      const paymentForRefund = await this.storage.getPayment(resolvedPaymentId);
+      if (!paymentForRefund) {
+        return { ...result, success: false, message: 'Refund notification for an unknown payment.' };
+      }
+      if (paymentForRefund.gatewayId !== gateway.id) {
+        console.warn(`[WEBHOOK] ${event.gatewaySlug} refund named payment ${resolvedPaymentId} of another gateway; ignored`);
+        return { ...result, success: false, message: 'Payment does not belong to this gateway' };
+      }
+      await this.recordGatewayRefund(paymentForRefund, result.refund, gateway.displayName);
+      return {
+        ...result,
+        paymentId: paymentForRefund.id,
+        bookingId: paymentForRefund.bookingId,
+        message: 'Refund recorded against the payment.',
+      };
+    }
+
     if (result.success && resolvedPaymentId && result.newPaymentStatus) {
       const existingPayment = await this.storage.getPayment(resolvedPaymentId);
 
@@ -466,8 +578,14 @@ export class PaymentApplicationService {
         return { ...result, success: false, newPaymentStatus: undefined, message: 'Payment does not belong to this gateway' };
       }
 
-      const terminalStates = [PaymentStatus.Completed, PaymentStatus.Failed, PaymentStatus.Cancelled, PaymentStatus.Expired];
+      const terminalStates = [PaymentStatus.Completed, PaymentStatus.Failed, PaymentStatus.Cancelled, PaymentStatus.Expired, PaymentStatus.Refunded];
       if (existingPayment && terminalStates.includes(existingPayment.status as PaymentStatus)) {
+        // A replay of the original debit notification must not resurrect a refunded
+        // payment. Refunds are recorded (and executed) deliberately; only a person
+        // may undo that.
+        if (existingPayment.status === PaymentStatus.Refunded) {
+          return { ...result, success: false, newPaymentStatus: undefined, message: 'Payment has already been refunded; status unchanged.' };
+        }
         // The bank took the money for a payment we had already closed (the guest came back
         // to a still-open payment link or hosted page). Never drop that: a person must
         // confirm the booking or refund the guest.

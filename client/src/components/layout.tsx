@@ -751,6 +751,8 @@ const SiteFooter = memo(function SiteFooter() {
               <span>·</span>
               <a href="/terms-of-service" className="hover:text-white/70 transition-colors">Terms of Service</a>
               <span>·</span>
+              <a href="/refund-policy" className="hover:text-white/70 transition-colors">Cancellation &amp; Refund Policy</a>
+              <span>·</span>
               <Link href="/photo-credits" className="hover:text-white/70 transition-colors">{t("footer.photoCredits", "Photo credits")}</Link>
             </div>
           </div>

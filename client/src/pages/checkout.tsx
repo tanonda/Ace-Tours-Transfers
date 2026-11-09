@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { Layout } from "@/components/layout";
 import { useCart, useCartHydrated } from "@/lib/cart-context";
 import { useAuth } from "@/lib/auth-context";
@@ -313,6 +313,17 @@ export default function Checkout() {
                                             <ShieldCheck className="h-3.5 w-3.5 text-green-500" />
                                             <span>Your personal information is secure</span>
                                         </div>
+
+                                        <p className="text-center text-[0.65rem] text-muted-foreground leading-relaxed border-t border-border/40 pt-3 w-full">
+                                            By continuing you agree to our{" "}
+                                            <Link href="/terms-of-service" className="text-primary hover:underline">
+                                                Terms of Service
+                                            </Link>{" "}
+                                            and{" "}
+                                            <Link href="/refund-policy" className="text-primary hover:underline">
+                                                Cancellation &amp; Refund Policy
+                                            </Link>.
+                                        </p>
                                     </CardFooter>
                                 </Card>
                             </div>

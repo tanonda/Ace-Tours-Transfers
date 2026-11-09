@@ -6,8 +6,17 @@ Adding a new payment method in Ace Tours & Transfers requires high discipline to
 Ensure the payment provider is represented in the database (e.g., via a migration or the `PaymentGateway` table).
 
 ## 2. Implement the Adapter
-Create a new adapter in `server/infrastructure/payments/adapters/`.
-- Must implement `PaymentGatewayService` interface.
+Create a new adapter in `server/infrastructure/payments/`.
+- Must implement `PaymentGatewayService` interface:
+    - `initiatePayment`, `handleWebhook`, `queryPaymentStatus`.
+    - `refundPayment?` — only when the gateway has a real refund API; PayZen refunds
+      are executed in the bank's Back Office and recorded from its `CREDIT`
+      notification instead (return `refund: { amount, reference }` from
+      `handleWebhook`; the application service records it).
+    - `supportsStatusQuery?` — return `false` for notification-only gateways
+      (PayZen). The reconciliation worker then treats a stale `processing`
+      payment as a missed IPN: it records manual review and e-mails the admin
+      instead of polling `queryPaymentStatus`, which throws for PayZen.
 - **Rules**:
     - No direct database mutation.
     - No side effects outside the initiation/webhook flow.

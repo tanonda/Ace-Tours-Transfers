@@ -1,7 +1,8 @@
+import { Link } from "wouter";
 import { Layout } from "@/components/layout";
 import { SEO } from "@/components/seo";
 import { useCmsText } from "@/hooks/use-cms-text";
-import { FileText, Shield, Clock, CreditCard, AlertTriangle, Phone } from "lucide-react";
+import { FileText, Shield, Clock, CreditCard, AlertTriangle, Phone, RotateCcw, Scale } from "lucide-react";
 
 export default function TermsOfService() {
   const cms = useCmsText("terms");
@@ -10,7 +11,7 @@ export default function TermsOfService() {
     <Layout>
       <SEO
         title="Terms of Service — Ace Tours & Transfers Vanuatu"
-        description="Terms and conditions for booking tours and transfers with Ace Tours & Transfers in Vanuatu."
+        description="Terms and conditions for booking tours and transfers with Ace Tours & Transfers in Vanuatu, including payments, refunds, chargebacks and governing law."
       />
 
       {/* Page Header */}
@@ -22,7 +23,7 @@ export default function TermsOfService() {
               <span className="text-primary font-semibold uppercase tracking-wider text-sm">Legal</span>
             </div>
             <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">Terms of Service</h1>
-            <p className="text-muted-foreground">Last updated: April 2026</p>
+            <p className="text-muted-foreground">Last updated: November 2026</p>
           </div>
         </div>
       </div>
@@ -92,6 +93,13 @@ export default function TermsOfService() {
               </div>
               <p>{cms.text("cancellation_note", "To cancel a booking, please contact us via WhatsApp at +678 7114045 or email acetoursvanuatu@outlook.com with your booking reference number. Cancellations are not accepted via social media messages.")}</p>
               <p>{cms.text("cancellation_weather", "In the event that Ace Tours & Transfers cancels a service due to weather or operational reasons, a full refund will be issued or an alternative date offered at no extra charge.")}</p>
+              <p>
+                How and when refunds are paid (including card refunds through BRED Bank) is set out in our{" "}
+                <Link href="/refund-policy" className="text-primary hover:underline">
+                  Cancellation &amp; Refund Policy
+                </Link>
+                , which forms part of these terms.
+              </p>
             </div>
           </section>
 
@@ -107,6 +115,7 @@ export default function TermsOfService() {
               <p>{cms.text("payment_1", "We accept payment via bank transfer (ANZ, BRED, BSP), cash on the day of service, and local e-wallets including WanTok Money, Digicel Mobile Money, and KwikPay.")}</p>
               <p>{cms.text("payment_2", "For bank transfers, please use your booking reference number as the payment reference. Your booking will be confirmed once payment is received and verified by our team.")}</p>
               <p>{cms.text("payment_3", "Cash payments are accepted in Vanuatu Vatu (VUV). Please ensure you have the correct amount as our drivers may not carry change.")}</p>
+              <p>{cms.text("payment_card", "Card payments are processed by BRED Bank Vanuatu through the bank's PayZen hosted payment page. You enter your card details on BRED Bank's secure page — we never see or store your full card number. Card payments are charged in Vanuatu Vatu (VUV); any other currency shown on the site is for reference only.")}</p>
             </div>
           </section>
 
@@ -137,6 +146,42 @@ export default function TermsOfService() {
             <div className="space-y-3 text-muted-foreground leading-relaxed">
               <p>{cms.text("conduct_1", "We ask all guests to treat our drivers and guides with respect. Ace Tours & Transfers reserves the right to remove guests from a tour or vehicle if their behaviour endangers others or is deemed inappropriate.")}</p>
               <p>{cms.text("conduct_2", "Smoking is not permitted in any of our vehicles. Consumption of alcohol is not permitted on transfers. Any damage to our vehicles caused by guests will be charged at the cost of repair.")}</p>
+            </div>
+          </section>
+
+          {/* Refunds & chargebacks */}
+          <section>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-lg bg-teal-500/10 flex items-center justify-center">
+                <RotateCcw className="h-5 w-5 text-teal-600" />
+              </div>
+              <h2 className="text-xl font-bold text-foreground">6. Refunds &amp; Chargebacks</h2>
+            </div>
+            <div className="space-y-3 text-muted-foreground leading-relaxed">
+              <p>{cms.text("refund_1", "Refunds are paid to the original payment method used for the booking. Card refunds are processed through BRED Bank's PayZen merchant portal and credited back to the card used for the original payment; BRED Bank and your card issuer need time to process the refund, so please allow up to 10 business days for the credit to appear.")}</p>
+              <p>{cms.text("refund_2", "The cancellation windows that determine whether — and how much — you are refunded are set out in section 2 above and in our Cancellation & Refund Policy.")}</p>
+              <p>{cms.text("chargeback_1", "If you believe a charge is incorrect or a refund has not arrived, please contact us first so we can investigate and resolve it. If the matter cannot be resolved, you may raise a chargeback with your card issuer; chargebacks are handled by the card issuer and BRED Bank under the applicable card scheme rules.")}</p>
+              <p>
+                For full details of refund tiers, timing and weather cancellations, see the{" "}
+                <Link href="/refund-policy" className="text-primary hover:underline">
+                  Cancellation &amp; Refund Policy
+                </Link>
+                .
+              </p>
+            </div>
+          </section>
+
+          {/* Governing law */}
+          <section>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-lg bg-indigo-500/10 flex items-center justify-center">
+                <Scale className="h-5 w-5 text-indigo-600" />
+              </div>
+              <h2 className="text-xl font-bold text-foreground">7. Governing Law</h2>
+            </div>
+            <div className="space-y-3 text-muted-foreground leading-relaxed">
+              <p>{cms.text("governing_law_1", "These terms, and any dispute arising out of or in connection with them or a booking, are governed by the laws of the Republic of Vanuatu.")}</p>
+              <p>{cms.text("governing_law_2", "You and Ace Tours & Transfers agree to submit to the exclusive jurisdiction of the courts of Vanuatu for the resolution of any such dispute. Nothing in these terms limits any right you may have under the law of your own country that cannot be excluded by agreement.")}</p>
             </div>
           </section>
 

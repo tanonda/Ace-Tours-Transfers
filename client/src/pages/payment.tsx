@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useRef } from "react";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -877,7 +877,19 @@ export default function Payment() {
             {/* Info note */}
             <div className="flex items-start gap-2.5 px-2 text-xs text-muted-foreground">
               <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-              <p>Free cancellation up to 24 hours before your tour. By proceeding, you agree to our terms of service.</p>
+              <p>
+                Cancellations more than 48 hours before your tour or transfer receive a full refund;
+                24–48 hours receive a 50% refund, and cancellations within 24 hours or no-shows are
+                non-refundable. See our{" "}
+                <Link href="/refund-policy" className="text-primary hover:underline">
+                  Cancellation &amp; Refund Policy
+                </Link>{" "}
+                and{" "}
+                <Link href="/terms-of-service" className="text-primary hover:underline">
+                  Terms of Service
+                </Link>{" "}
+                — by proceeding, you agree to them.
+              </p>
             </div>
           </div>
         </div>

@@ -111,16 +111,16 @@ function CancellationModal({ isOpen, onClose, policy, t }: { isOpen: boolean; on
   if (!isOpen) return null;
 
   const defaultPolicy = `
-    <h3>Free Cancellation</h3>
-    <p>You can cancel up to <strong>24 hours in advance</strong> of the experience for a full refund.</p>
-    <h3>Late Cancellation</h3>
-    <p>Cancellations made within 24 hours of the scheduled departure time are non-refundable.</p>
-    <h3>No-show Policy</h3>
-    <p>Guests who do not show up without prior cancellation will be charged the full booking amount.</p>
-    <h3>Operator Cancellations</h3>
-    <p>If the tour operator cancels the experience for any reason, you will receive a full refund.</p>
-    <h3>How to Cancel</h3>
-    <p>To cancel or modify your booking, please contact us via WhatsApp or email as soon as possible.</p>
+    <h3>Full refund — more than 48 hours before</h3>
+    <p>Cancellations made more than 48 hours before the scheduled start time receive a <strong>100% refund</strong>.</p>
+    <h3>Partial refund — 24 to 48 hours before</h3>
+    <p>Cancellations made between 24 and 48 hours before the scheduled start receive a <strong>50% refund</strong>.</p>
+    <h3>No refund — less than 24 hours before, or no-show</h3>
+    <p>Cancellations made less than 24 hours before the scheduled start, and no-shows, are not refundable.</p>
+    <h3>Operator cancellations</h3>
+    <p>If we cancel for weather, safety, vehicle or operational reasons, you receive a full refund or a free rebooking.</p>
+    <h3>How to cancel</h3>
+    <p>Contact us on WhatsApp or email with your booking reference. The full policy is at our <a href="/refund-policy">Cancellation and Refund Policy</a>.</p>
   `;
 
   return (
@@ -517,7 +517,7 @@ export default function TourDetail() {
           i === 4 ? "Where does the tour depart from?" : "";
     const defaultA = i === 1 ? htmlToText(Array.isArray(tour.description) ? tour.description[0] : tour.description).slice(0, 300) || "Please contact us for full inclusions." :
       i === 2 ? "Yes, this tour accommodates children. Child pricing is available at checkout." :
-        i === 3 ? "Free cancellation up to 24 hours before your scheduled tour. Contact us for late cancellations." :
+        i === 3 ? "Full refund for cancellations more than 48 hours before your scheduled tour, 50% between 24 and 48 hours, and no refund within 24 hours or for no-shows. See our Cancellation and Refund Policy for details." :
           i === 4 ? (tour.meetingPoint || "Pick-up is available from most Port Vila hotels. Please confirm your location at booking.") : "";
 
     const q = cms.text(`faq${i}_q`, defaultQ);
@@ -964,7 +964,7 @@ export default function TourDetail() {
                     className="text-[0.75rem] text-muted-foreground hover:text-primary flex items-center gap-1.5 transition-colors self-start"
                   >
                     <Shield className="w-3.5 h-3.5" />
-                    Free cancellation · {cutoffHours}h before start
+                    Cancellation &amp; refund policy
                   </button>
                 </div>
 

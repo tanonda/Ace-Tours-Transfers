@@ -360,6 +360,15 @@ export default function PaymentSuccess() {
               <p className="text-xs text-center text-muted-foreground">
                 A confirmation has been sent to your email address.
               </p>
+
+              <p className="text-xs text-center text-muted-foreground leading-relaxed">
+                Refunds follow our{" "}
+                <Link href="/refund-policy" className="text-primary hover:underline">
+                  Cancellation &amp; Refund Policy
+                </Link>
+                : full refund with more than 48 hours' notice, 50% for 24–48 hours, and no refund within
+                24 hours or for no-shows. Card refunds go back to the original card via BRED Bank.
+              </p>
             </CardContent>
           </Card>
 

@@ -267,9 +267,8 @@ npm install @tiptap/react @tiptap/pm @tiptap/starter-kit @tiptap/extension-place
 BETTERSTACK_API_KEY=your_api_key
 BETTERSTACK_MONITOR_ID=your_monitor_id
 
-# K: Stripe (for future integration)
-STRIPE_SECRET_KEY=sk_live_...
-STRIPE_PUBLISHABLE_KEY=pk_live_...
+# K: Stripe — not used. Stripe is not available to Vanuatu merchants; do not
+# add Stripe keys. Card payments go through the bank's PayZen/MPGS gateway.
 
 # K: PayPal (for future integration)
 PAYPAL_CLIENT_ID=your_client_id

@@ -26,6 +26,7 @@ const PAGE_PATHS = new Set([
   "/privacy-policy",
   "/photo-credits",
   "/terms-of-service",
+  "/refund-policy",
   "/faq",
   "/blog",
   "/reset-password",

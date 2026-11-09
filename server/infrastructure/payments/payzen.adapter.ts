@@ -166,8 +166,18 @@ export class PayzenAdapter implements PaymentGatewayService {
     };
 
     // Refunds made in the Back Office notify too; they must never complete a payment.
+    // They are reported to the application service so the refund can be recorded
+    // against the payment (the refund itself is executed in the PayZen portal).
     if (ipn.vads_operation_type === 'CREDIT') {
-      return { ...base, message: 'Refund notification recorded; payment status unchanged.' };
+      const refundAmount = Number(ipn.vads_amount);
+      return {
+        ...base,
+        message: 'Refund notification recorded; payment status unchanged by the adapter.',
+        refund: {
+          amount: Number.isFinite(refundAmount) && refundAmount > 0 ? refundAmount : undefined,
+          reference: ipn.vads_trans_uuid,
+        },
+      };
     }
 
     const newPaymentStatus = mapPayzenTransStatus(ipn.vads_trans_status);
@@ -181,5 +191,14 @@ export class PayzenAdapter implements PaymentGatewayService {
 
   async queryPaymentStatus(_request: PaymentStatusRequest): Promise<PaymentStatusResponse> {
     throw new Error('PayZen results arrive by IPN; check the PayZen Back Office or reconcile manually.');
+  }
+
+  /**
+   * PayZen has no status-query API configured for this shop: the IPN is the only
+   * authoritative result. The reconciliation worker uses this to route missed
+   * notifications to manual review instead of polling an endpoint that throws.
+   */
+  supportsStatusQuery(): boolean {
+    return false;
   }
 }

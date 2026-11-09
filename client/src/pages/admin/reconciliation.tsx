@@ -6,14 +6,25 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, RefreshCw, AlertCircle, Info, Landmark, Check, X, ShieldAlert, ChevronDown, Wallet, Calendar, User, DollarSign } from "lucide-react";
+import { Loader2, RefreshCw, AlertCircle, Info, Landmark, Check, X, ShieldAlert, ChevronDown, Wallet, Calendar, User, DollarSign, Undo2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { updateBooking } from "@/lib/api";
 import { apiErrorMessage } from "@/lib/api-error";
+import { isRefundRecorded, refundSummary, statusLabel, statusToneClass } from "@/lib/payment-status";
 import type { Booking } from "@shared/schema";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { format } from "date-fns";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -31,6 +42,10 @@ type StalePayment = {
     status: string;
     gatewayId: string;
     gatewayReference: string | null;
+    // Refunds are executed in the bank's PayZen Back Office and recorded here.
+    refundedAmount?: number | null;
+    refundedAt?: string | null;
+    refundReference?: string | null;
     createdAt: string;
     lastReconciledAt: string | null;
     reconciliationAttempts: number | null;
@@ -60,6 +75,13 @@ const REVIEW_REASONS: Record<NonNullable<StatementMatch["reason"]>, string> = {
 // Vatu has no minor unit: amounts are whole vatu.
 const vatu = (n: number | null) => (n === null ? "—" : `VT ${n.toLocaleString()}`);
 
+// The API sends ISO strings; ignore anything unparseable rather than crashing the table.
+const parsePaymentDate = (dateString: string | null) => {
+    if (!dateString) return null;
+    const date = new Date(dateString);
+    return Number.isNaN(date.getTime()) ? null : date;
+};
+
 export default function AdminReconciliation() {
     const { t } = useTranslation();
     const { toast } = useToast();
@@ -68,6 +90,8 @@ export default function AdminReconciliation() {
     const [isUploading, setIsUploading] = useState(false);
     const [statement, setStatement] = useState<StatementResult | null>(null);
     const [confirmingId, setConfirmingId] = useState<string | null>(null);
+    const [refundTarget, setRefundTarget] = useState<StalePayment | null>(null);
+    const [refundNote, setRefundNote] = useState("");
 
     const { data: payments = [], isLoading: isStaleLoading } = useQuery<StalePayment[]>({
         queryKey: ["stale-payments"],
@@ -115,6 +139,40 @@ export default function AdminReconciliation() {
         }
     });
 
+    // Refunds themselves are performed in the bank's PayZen Back Office; this only
+    // records the refund on the payment. The server marks the payment refunded,
+    // stores the full amount and the time, and keeps the booking.
+    const recordRefundMutation = useMutation({
+        mutationFn: async ({ id, note }: { id: string; note: string }) => {
+            const res = await fetch(`/api/admin/payments/${id}/reconcile`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ note, forceStatus: "refunded" }),
+            });
+            const body = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(body?.error || "Failed to record the refund");
+            return body;
+        },
+        onSuccess: () => {
+            toast({
+                title: "Refund Recorded",
+                description: "The payment is marked refunded and the full amount is recorded. The booking was kept.",
+            });
+            queryClient.invalidateQueries({ queryKey: ["stale-payments"] });
+            queryClient.invalidateQueries({ queryKey: ["admin-bookings"] });
+            queryClient.invalidateQueries({ queryKey: ["statement-candidates"] });
+            setRefundTarget(null);
+            setRefundNote("");
+        },
+        onError: (err: any) => {
+            toast({
+                title: "Refund Not Recorded",
+                description: err.message || "Failed to record the refund",
+                variant: "destructive",
+            });
+        },
+    });
+
     const updateBookingMutation = useMutation({
         mutationFn: ({ id, updates }: { id: string; updates: any }) => updateBooking(id, updates),
         onSuccess: () => {
@@ -143,6 +201,24 @@ export default function AdminReconciliation() {
         if (!confirm("Are you sure you want to Mark this payment as FAILED? This will cancel the booking.")) return;
         setSyncingPaymentId(paymentId);
         syncMutation.mutate({ id: paymentId, note: "Admin forced failure", forceStatus: "failed" });
+    };
+
+    const openRefundDialog = (payment: StalePayment) => {
+        setRefundNote("");
+        setRefundTarget(payment);
+    };
+
+    const closeRefundDialog = () => {
+        if (recordRefundMutation.isPending) return;
+        setRefundTarget(null);
+        setRefundNote("");
+    };
+
+    const handleRecordRefund = () => {
+        if (!refundTarget) return;
+        const note = refundNote.trim();
+        if (!note) return; // the server also requires a note for this action
+        recordRefundMutation.mutate({ id: refundTarget.id, note });
     };
 
     const handleConfirmSuggestion = async (match: StatementMatch) => {
@@ -218,6 +294,25 @@ export default function AdminReconciliation() {
         } finally {
             setIsUploading(false);
         }
+    };
+
+    const renderRefund = (payment: StalePayment) => {
+        const refund = refundSummary(payment);
+        if (!refund.hasRefund) return <span className="text-xs text-muted-foreground">—</span>;
+        const date = parsePaymentDate(refund.date);
+        return (
+            <div className="space-y-0.5 text-xs">
+                <div className="font-medium">
+                    {refund.amount === null ? "Refund recorded" : vatu(refund.amount)}
+                    {refund.isPartial && <span className="text-muted-foreground"> (partial)</span>}
+                    {refund.isFull && <span className="text-muted-foreground"> (full)</span>}
+                </div>
+                {date && <div className="text-muted-foreground">{format(date, "MMM dd, yyyy")}</div>}
+                {refund.reference && (
+                    <div className="font-mono text-[10px] text-muted-foreground">Ref: {refund.reference}</div>
+                )}
+            </div>
+        );
     };
 
     return (
@@ -446,7 +541,8 @@ export default function AdminReconciliation() {
                             <CardHeader>
                                 <CardTitle>Stale Online Payments</CardTitle>
                                 <CardDescription>
-                                    Payments that have been in 'processing' status longer than expected.
+                                    Payments that have been in 'processing' status longer than expected. Card refunds are executed in the
+                                    PayZen Back Office; once made, record them here so the payment ledger shows what was refunded.
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>
@@ -465,6 +561,7 @@ export default function AdminReconciliation() {
                                                     <TableHead>Payment ID</TableHead>
                                                     <TableHead>Amount</TableHead>
                                                     <TableHead>Status</TableHead>
+                                                    <TableHead>Refund</TableHead>
                                                     <TableHead className="text-right">Actions</TableHead>
                                                 </TableRow>
                                             </TableHeader>
@@ -475,8 +572,13 @@ export default function AdminReconciliation() {
                                                             {payment.id.split('-')[0]}...
                                                             <div className="text-[10px] text-muted-foreground mt-1">Ref: {payment.gatewayReference || 'N/A'}</div>
                                                         </TableCell>
-                                                        <TableCell>{payment.currency.toUpperCase()} {(payment.amount / 100).toFixed(2)}</TableCell>
-                                                        <TableCell><Badge variant="secondary">{payment.status}</Badge></TableCell>
+                                                        <TableCell>{vatu(payment.amount)}</TableCell>
+                                                        <TableCell>
+                                                            <Badge variant="secondary" className={statusToneClass(payment.status)}>
+                                                                {statusLabel(payment.status)}
+                                                            </Badge>
+                                                        </TableCell>
+                                                        <TableCell>{renderRefund(payment)}</TableCell>
                                                         <TableCell className="text-right">
                                                             <DropdownMenu>
                                                                 <DropdownMenuTrigger asChild>
@@ -486,6 +588,15 @@ export default function AdminReconciliation() {
                                                                     <DropdownMenuItem onClick={() => handleSync(payment.id)}>Auto Sync</DropdownMenuItem>
                                                                     <DropdownMenuItem onClick={() => handleForceComplete(payment.id)} className="text-green-600">Force Complete</DropdownMenuItem>
                                                                     <DropdownMenuItem onClick={() => handleForceFail(payment.id)} className="text-destructive">Force Fail</DropdownMenuItem>
+                                                                    <DropdownMenuSeparator />
+                                                                    <DropdownMenuItem
+                                                                        onClick={() => openRefundDialog(payment)}
+                                                                        disabled={isRefundRecorded(payment.status)}
+                                                                        className="text-purple-700 dark:text-purple-300"
+                                                                    >
+                                                                        <Undo2 className="h-4 w-4 mr-2" />
+                                                                        Record refund
+                                                                    </DropdownMenuItem>
                                                                 </DropdownMenuContent>
                                                             </DropdownMenu>
                                                         </TableCell>
@@ -500,6 +611,88 @@ export default function AdminReconciliation() {
                     </TabsContent>
                 </Tabs>
             </div>
+
+            <Dialog
+                open={!!refundTarget}
+                onOpenChange={(open) => {
+                    if (!open) closeRefundDialog();
+                }}
+            >
+                <DialogContent className="max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle>Record a card refund</DialogTitle>
+                        <DialogDescription>
+                            Record a refund already made in the PayZen Back Office. This only updates the site's payment record — it
+                            does not move any money.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    {refundTarget && (
+                        <div className="space-y-4 py-2">
+                            <div className="space-y-1 rounded-md border bg-muted/30 p-3 text-xs">
+                                <div className="flex items-start justify-between gap-4">
+                                    <span className="text-muted-foreground">Payment</span>
+                                    <span className="font-mono break-all text-right">{refundTarget.id}</span>
+                                </div>
+                                <div className="flex items-start justify-between gap-4">
+                                    <span className="text-muted-foreground">Booking</span>
+                                    <span className="font-mono break-all text-right">{refundTarget.bookingId}</span>
+                                </div>
+                                <div className="flex items-start justify-between gap-4">
+                                    <span className="text-muted-foreground">Amount</span>
+                                    <span>{vatu(refundTarget.amount)}</span>
+                                </div>
+                                <div className="flex items-start justify-between gap-4">
+                                    <span className="text-muted-foreground">Status</span>
+                                    <span>{statusLabel(refundTarget.status)}</span>
+                                </div>
+                            </div>
+
+                            <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-700/60 dark:bg-amber-950/40 dark:text-amber-200">
+                                <p className="flex items-center gap-2 font-medium">
+                                    <ShieldAlert className="h-4 w-4" /> Refund in PayZen first
+                                </p>
+                                <p className="mt-1">
+                                    The refund must already have been made in the PayZen Back Office. Recording it here marks this
+                                    payment refunded, stores the full payment amount and today's date, and keeps the booking.
+                                </p>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="refund-note">Note (required)</Label>
+                                <Textarea
+                                    id="refund-note"
+                                    value={refundNote}
+                                    onChange={(e) => setRefundNote(e.target.value)}
+                                    placeholder="e.g. PayZen refund completed on 8 Nov 2026, ref TXN-12345; guest notified by email."
+                                    rows={3}
+                                />
+                                <p className="text-[11px] text-muted-foreground">
+                                    Saved on the payment's reconciliation audit trail. Explain why the refund was made.
+                                </p>
+                            </div>
+                        </div>
+                    )}
+
+                    <DialogFooter className="gap-2">
+                        <Button variant="outline" onClick={closeRefundDialog} disabled={recordRefundMutation.isPending}>
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={handleRecordRefund}
+                            disabled={!refundNote.trim() || recordRefundMutation.isPending}
+                            className="bg-purple-600 hover:bg-purple-700"
+                        >
+                            {recordRefundMutation.isPending ? (
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            ) : (
+                                <Undo2 className="h-4 w-4 mr-2" />
+                            )}
+                            Record refund
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </DashboardLayout>
     );
 }

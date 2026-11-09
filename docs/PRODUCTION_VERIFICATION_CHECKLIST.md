@@ -775,7 +775,7 @@ npm run load-test
 # 1. Deploy to staging environment
 git checkout staging
 git merge main
-npm run db:push  # Apply migrations
+npm run db:migrate  # Apply migrations
 
 # 2. Run verification tests on staging
 npm run load-test
@@ -803,7 +803,7 @@ curl http://staging.acetoursapp.com/api/admin/audit-log
 ```bash
 # 1. Schedule maintenance window (if needed)
 # 2. Apply database migrations
-npm run db:push
+npm run db:migrate
 
 # 3. Deploy application
 # - Build: npm run build
@@ -931,6 +931,61 @@ Info (Monitor):
 - [x] API reference documentation
 - [x] Concurrency proof (via load test)
 - [x] Migration guide from legacy system
+
+---
+
+## Card-Gateway Go-Live (BRED PayZen)
+
+**Do not enable card charging until every item below passes.** The full runbook
+is [`docs/BRED_PAYZEN_GO_LIVE.md`](./BRED_PAYZEN_GO_LIVE.md); the sandbox
+checklist is [`docs/PAYMENT_SANDBOX_TESTING.md`](./PAYMENT_SANDBOX_TESTING.md).
+
+### Preconditions
+
+- [ ] Repository and secrets are safe per [`docs/SECURITY_HANDOVER.md`](./SECURITY_HANDOVER.md)
+      (private repo, credentials rotated, no production `.env`/logs shared).
+- [ ] BRED has answered all 13 setup points (merchant account, Back Office
+      users, 8-digit Shop ID, TEST/PRODUCTION keys, VUV enabled, whole-vatu
+      amounts, payment URL, HMAC-SHA-256, automatic capture, 3-D Secure, IPN URL
+      + retries, test cards, fees/settlement/refunds).
+- [ ] `PAYMENT_CREDENTIALS_KEY` is set on the target service and backed up.
+- [ ] Staging service + separate Neon database exist; production is untouched.
+- [ ] Baseline: `npm run check`, `npm test` and `npm run check-architecture` pass.
+
+### TEST phase (staging)
+
+- [ ] Env: `DDD_DISABLE_CARD=false`, `PAYMENTS_BRED_ENABLED=true`; kill switches unset.
+- [ ] Admin → Payments → BRED: `shopId` 8 digits, `mode=TEST`, `testKey`; gateway active.
+- [ ] Back Office: test IPN URL points at a reachable host; HMAC-SHA-256; VUV; 3DS; auto capture.
+- [ ] Admin test payment completes: booking `confirmed`, payment `completed`, IPN logged HTTP 200.
+- [ ] Guest view: TEST gateway hidden from guests and refused for guest checkout.
+- [ ] Replaying the IPN does not double-confirm; wrong shop/mode/bad signature is rejected 400.
+- [ ] Declined/abandoned card leaves the booking pending and the hold expires normally.
+- [ ] Amount/currency mismatch → `manual_review_required`, not completed.
+- [ ] Refund in Back Office → `CREDIT` IPN records `refunded_amount` / status (full/partial).
+- [ ] Missed IPN (deliberately not delivered) → `manual_review_required` + admin e-mail
+      after the payment window; not silently cancelled or marked paid.
+- [ ] Test evidence recorded (order IDs, amounts, results, number of tests).
+
+### PRODUCTION cutover
+
+- [ ] Production key issued by BRED; production IPN URL confirmed.
+- [ ] `PAYMENTS_BRED_ENABLED=true`; enter `mode=PRODUCTION` + production key in
+      Admin → Payments (TEST key preserved); gateway active.
+- [ ] `DDD_DISABLE_CARD=false`; gateway enabled for guests; kill switches unset.
+- [ ] One controlled live payment (small amount) succeeds and confirms the booking.
+- [ ] That live payment is refunded in the Back Office and the refund is recorded.
+- [ ] Guest checkout shows the card option; confirmation e-mail sent once.
+
+### Post-go-live monitoring (first 24–72 hours)
+
+- [ ] Render logs: `POST /api/payments/webhook/bred-bank 200` for every card payment.
+- [ ] Admin → Payments vs PayZen Back Office: no unexplained `processing` or
+      `manual_review_required` payments.
+- [ ] Admin e-mails: no `ipn_not_received`, `paid_after_close`, refund or
+      amount-mismatch alerts left unresolved.
+- [ ] Rollback ready: `PAYMENTS_BRED_ENABLED=false` and/or `DDD_DISABLE_CARD=true`
+      (blocks new card payments only; in-flight payments still resolve by IPN).
 
 ---
 

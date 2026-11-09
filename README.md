@@ -43,26 +43,37 @@ A production-grade booking and management platform for [Ace Tours Vanuatu](https
   - **Cloudinary**: Cloud-based image management.
   - **Sentry**: Error monitoring and reporting.
   - **Twilio & Email**: Automated guest notifications.
-- **Infrastructure**: Deployment-ready for **Fly.io** or **Render**.
+  - **BRED PayZen**: Card payments via the bank's hosted page + IPN (code ready;
+    go-live pending the bank setup — see the [BRED go-live runbook](./docs/BRED_PAYZEN_GO_LIVE.md)).
+- **Infrastructure**: **Render** (Docker runtime + Playwright prerender) with Neon PostgreSQL.
 
 ## 💻 Local Development
 
 1. **Clone & Install**:
    ```bash
-   git clone <repo-url>
+   git clone <private-repo-url>
    cd Ace-Tours-Transfers
    npm install
    ```
-2. **Environment Setup**: Create a `.env` file based on the template in `docs/deployment_guide.md`.
-3. **Database Migration**: `npm run db:push`
+2. **Environment Setup**: Copy `.env.active.example` to `.env` and fill it in
+   (full reference: [`.env.example`](./.env.example)).
+3. **Database Migration**: `npm run db:migrate` (never `db:push` against a shared DB)
 4. **Development Server**: `npm run dev`
+
+See [`docs/QUICK_START.md`](./docs/QUICK_START.md) for requirements, seeding,
+tests and the architecture map.
 
 ---
 
 ## 🚢 Deployment & QA
 
 Refer to the following documents for production protocols:
-- **[Deployment Guide](./docs/deployment_guide.md)**: Infrastructure and environment configuration.
+- **[Security & Handover](./docs/SECURITY_HANDOVER.md)** — required reading before
+  any access/handover (the repo must be private; secrets must be rotated).
+- **[Deployment Guide](./docs/deployment_guide.md)**: Render + Neon setup and the
+  full environment list.
+- **[BRED PayZen Go-Live](./docs/BRED_PAYZEN_GO_LIVE.md)**: card-payment runbook,
+  BRED checklist and reply-e-mail draft.
 - **[Fixes Changelog](./docs/FIXES_CHANGELOG.md)**: Audit record and reliability improvements.
 
 ### Verification Suite

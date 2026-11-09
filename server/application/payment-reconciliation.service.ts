@@ -4,7 +4,9 @@ import { PaymentFactory } from "../infrastructure/payments/factory.js";
 import { PaymentStatus, type PaymentStatusResponse } from "../domain/payments/interfaces.js";
 import { PaymentIntent, PaymentIntentStatus } from "../domain/payments/PaymentIntent.js";
 import { ReconciliationPolicy } from "../domain/payments/reconciliation.policy.js";
-import { sendEmail, sendAdminEmail, getPaymentConfirmationTemplate, getBookingConfirmedTemplate } from "../lib/mail.js";
+import { sendEmail, sendAdminEmail, getPaymentConfirmationTemplate, getBookingConfirmedTemplate, shortBookingRef } from "../lib/mail.js";
+import { escapeHtml } from "../lib/escape-html.js";
+import type { Payment, PaymentGateway } from "../../shared/schema.js";
 
 export class PaymentReconciliationService {
   private storage: IStorage;
@@ -58,6 +60,14 @@ export class PaymentReconciliationService {
 
     const adapter = PaymentFactory.getPaymentGatewayService(gateway, 'existing');
     const traceId = `trace_${Date.now()}_${paymentId.slice(0, 8)}`;
+
+    // Notification-only gateways (PayZen) have no status-query API. Polling them
+    // throws forever, so a missed IPN would leave a charged guest's payment in
+    // `processing` with no alert. Route it to manual review instead.
+    if (adapter.supportsStatusQuery?.() === false) {
+      await this.handleMissedNotification(payment, gateway, traceId, auditFields);
+      return;
+    }
 
     console.log(`[RECON][${traceId}] Syncing payment ${paymentId} with gateway ${gateway.slug}.`);
 
@@ -138,6 +148,87 @@ export class PaymentReconciliationService {
   }
 
   /**
+   * A gateway that only reports by notification (PayZen) can be charged with no
+   * IPN reaching us (guest closed the tab, bank retry exhausted, notification URL
+   * misconfigured). While the payment window is still open we simply wait; once it
+   * has passed, the payment is held for manual review and an admin is emailed, so
+   * the guest is never silently left charged with an "expired" record.
+   */
+  private async handleMissedNotification(
+    payment: Payment,
+    gateway: PaymentGateway,
+    traceId: string,
+    auditFields?: { reconciledBy?: string; reconciliationNote?: string },
+  ): Promise<void> {
+    const now = new Date();
+
+    // Only a payment still waiting for its notification can be missed. A completed,
+    // refunded, failed or already-reviewed payment must not be moved back to
+    // review by an admin pressing "sync".
+    if (payment.status !== PaymentStatus.Processing) {
+      await this.storage.updatePayment(payment.id, {
+        lastReconciledAt: now,
+        reconciliationAttempts: (payment.reconciliationAttempts || 0) + 1,
+        ...(auditFields || {}),
+      });
+      console.log(`[RECON][${traceId}] ${gateway.slug} is notification-only and payment ${payment.id} is ${payment.status}; no recovery needed.`);
+      return;
+    }
+
+    const windowOver = !!payment.expiresAt && new Date(payment.expiresAt).getTime() < now.getTime();
+
+    const update: Record<string, any> = {
+      lastReconciledAt: now,
+      reconciliationAttempts: (payment.reconciliationAttempts || 0) + 1,
+      ...(auditFields || {}),
+    };
+
+    if (!windowOver) {
+      // Still inside the checkout window: the IPN may simply be late.
+      await this.storage.updatePayment(payment.id, update);
+      console.log(`[RECON][${traceId}] ${gateway.slug} is notification-only; payment ${payment.id} still inside its window, waiting for the IPN.`);
+      return;
+    }
+
+    // Give an admin time to check the bank portal without the expiry saga closing
+    // the booking the next time it runs. If it is not resolved, the normal expiry
+    // path eventually closes the still-pending booking.
+    const reviewUntil = new Date(now.getTime() + 72 * 60 * 60 * 1000);
+    await this.storage.updatePayment(payment.id, {
+      ...update,
+      status: PaymentStatus.ManualReviewRequired,
+      failureReason: 'ipn_not_received',
+      expiresAt: reviewUntil,
+    });
+
+    console.warn(`[RECON][${traceId}] No ${gateway.slug} notification for payment ${payment.id}; held for manual review until ${reviewUntil.toISOString()}.`);
+
+    try {
+      await sendAdminEmail(
+        `Payment needs review — no bank notification for ACT-${shortBookingRef(payment.bookingId)}`,
+        `<div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+          <h2 style="color: #c0392b;">No bank notification received</h2>
+          <p>The site did not receive a ${escapeHtml(gateway.displayName)} notification for a card payment, and this gateway does not support status polling.
+          The payment is now held for <strong>manual review</strong>.</p>
+          <p><strong>Payment ID:</strong> ${escapeHtml(payment.id)}<br>
+          <strong>Booking:</strong> ACT-${escapeHtml(shortBookingRef(payment.bookingId))}<br>
+          <strong>Amount:</strong> ${escapeHtml(String(payment.amount))} ${escapeHtml(payment.currency)}<br>
+          <strong>Gateway reference:</strong> ${escapeHtml(payment.gatewayReference || 'n/a')}</p>
+          <p>Check the ${escapeHtml(gateway.displayName)} Back Office for this order:</p>
+          <ul>
+            <li>If the card was not charged, expire the payment (the booking is still pending).</li>
+            <li>If the card was charged, confirm the payment manually so the guest gets their booking.</li>
+            <li>If the money must be returned, refund it in the bank portal and then record the refund here.</li>
+          </ul>
+          <p>The payment is held for 72 hours; if no admin resolves it, the normal expiry path closes the still-pending booking.</p>
+        </div>`,
+      );
+    } catch (emailErr) {
+      console.error('[RECON] Failed to send missed-notification email:', emailErr);
+    }
+  }
+
+  /**
    * Manual admin-triggered reconciliation with forced audit trail.
    * Phase 4: Uses resilient confirmation with automatic retry
    */
@@ -163,6 +254,16 @@ export class PaymentReconciliationService {
       // Manual overrides allow bypassing some safety checks but should still be logged.
       console.warn(`[RECON] Manual status override: ${payment.status} -> ${forceStatus}`);
       updateData.status = forceStatus;
+
+      // Card refunds are executed in the bank's portal, not by the site. Recording
+      // one here keeps the ledger truthful: it marks the full amount refunded.
+      if (forceStatus === PaymentStatus.Refunded) {
+        const alreadyRefunded = payment.refundedAmount || 0;
+        updateData.refundedAmount = Math.max(alreadyRefunded, payment.amount);
+        updateData.refundedAt = new Date();
+        updateData.refundReference = payment.refundReference || note;
+        updateData.failureReason = null;
+      }
 
       await this.storage.updatePayment(paymentId, updateData);
 

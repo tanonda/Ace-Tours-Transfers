@@ -10,14 +10,27 @@ async function main() {
     console.error("Seed script cannot run in production. Set NODE_ENV to something else to proceed.");
     process.exit(1);
   }
-  console.log("Seeding database...");
 
   // 1. Seed Admin User
-  const adminEmail = "admin@aceproducts.vu";
+  // Credentials come from the environment only: never put an admin password in
+  // this file, and never commit one. The seed refuses to run without both.
+  const adminEmail = process.env.SEED_ADMIN_EMAIL?.trim();
+  const adminPassword = process.env.SEED_ADMIN_PASSWORD;
+
+  if (!adminEmail || !adminPassword) {
+    console.error(
+      "SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD must both be set before seeding.\n" +
+      "Example: SEED_ADMIN_EMAIL=admin@example.com SEED_ADMIN_PASSWORD='<long random password>' npm run db:seed"
+    );
+    process.exit(1);
+  }
+
+  console.log("Seeding database...");
+
   const existingAdmin = await db.select().from(usersTable).where(eq(usersTable.email, adminEmail)).limit(1);
 
   if (existingAdmin.length === 0) {
-    const hashedPassword = await bcrypt.hash("adminpassword", 12);
+    const hashedPassword = await bcrypt.hash(adminPassword, 12);
     await db.insert(usersTable).values({
       username: adminEmail,
       email: adminEmail,
@@ -25,9 +38,9 @@ async function main() {
       password: hashedPassword,
       role: "admin",
     });
-    console.log("Admin user created.");
+    console.log(`Admin user ${adminEmail} created.`);
   } else {
-    console.log("Admin user already exists.");
+    console.log(`Admin user ${adminEmail} already exists.`);
   }
 
   // 2. Seed Tours and Transfers

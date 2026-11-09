@@ -241,6 +241,17 @@ describe('PayzenAdapter', () => {
       expect(result.success).toBe(true);
       expect(result.newPaymentStatus).toBeUndefined();
     });
+
+    it('reports the refunded amount and reference from a CREDIT notification', async () => {
+      const ipn = makeIpn({
+        vads_operation_type: 'CREDIT',
+        vads_trans_status: 'CAPTURED',
+        vads_amount: '5000',
+        vads_trans_uuid: 'refund-uuid-1',
+      });
+      const result = await makeAdapter().handleWebhook(ipnEvent(ipn));
+      expect(result.refund).toEqual({ amount: 5000, reference: 'refund-uuid-1' });
+    });
   });
 
   describe('queryPaymentStatus', () => {

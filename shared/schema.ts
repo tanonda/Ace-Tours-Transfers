@@ -340,7 +340,12 @@ export const payments = pgTable("payments", {
   gatewayId: varchar("gateway_id").notNull().references(() => paymentGateways.id),
   amount: integer("amount").notNull(), // Amount in smallest currency unit (e.g., cents/vatu)
   currency: text("currency").notNull().default("VUV"),
-  status: text("status").notNull().default("pending"), // 'pending', 'processing', 'completed', 'failed', 'refunded'
+  status: text("status").notNull().default("pending"), // 'pending', 'processing', 'completed', 'failed', 'refund_pending', 'refunded'
+  // Money returned to the guest, in whole VUV (the same unit as payments.amount).
+  // Card refunds are executed in the bank's portal and reported as CREDIT IPNs.
+  refundedAmount: integer("refunded_amount").notNull().default(0),
+  refundedAt: timestamp("refunded_at"),
+  refundReference: text("refund_reference"), // Bank/PayZen refund transaction id
   gatewayReference: text("gateway_reference"), // External reference from bank
   gatewayResponse: jsonb("gateway_response"), // Full response from gateway
   metadata: jsonb("metadata"), // Additional payment data

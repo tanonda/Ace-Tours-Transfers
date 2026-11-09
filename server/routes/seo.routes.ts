@@ -130,6 +130,11 @@ export function registerSeoRoutes(app: Express) {
         { loc: "/about",     priority: "0.6", changefreq: "monthly", lastmod: staticLastmod },
         { loc: "/contact",   priority: "0.6", changefreq: "monthly", lastmod: staticLastmod },
         { loc: "/blog",      priority: "0.7", changefreq: "weekly",  lastmod: staticLastmod },
+        // Legal pages: included so the prerenderer crawls them and card-scheme /
+        // bank reviewers can reach a real, server-rendered policy page.
+        { loc: "/privacy-policy",   priority: "0.3", changefreq: "monthly", lastmod: staticLastmod },
+        { loc: "/terms-of-service", priority: "0.3", changefreq: "monthly", lastmod: staticLastmod },
+        { loc: "/refund-policy",    priority: "0.4", changefreq: "monthly", lastmod: staticLastmod },
       ];
 
       for (const slug of SEO_LANDING_SLUGS) {

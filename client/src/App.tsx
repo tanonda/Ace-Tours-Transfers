@@ -42,6 +42,7 @@ const NotFound = lazy(() => import("@/pages/not-found"));
 const PrivacyPolicy = lazyWithPreload(() => import("@/pages/privacy-policy"));
 const PhotoCredits = lazyWithPreload(() => import("@/pages/photo-credits"));
 const TermsOfService = lazyWithPreload(() => import("@/pages/terms-of-service"));
+const RefundPolicy = lazyWithPreload(() => import("@/pages/refund-policy"));
 const TourDetail = lazyWithPreload(() => import("@/pages/tour-detail"));
 const TransferDetail = lazyWithPreload(() => import("@/pages/transfer-detail"));
 const Confirmation = lazy(() => import("@/pages/confirmation"));
@@ -64,6 +65,7 @@ const PRERENDERED_PAGES: Array<[string, PreloadableComponent<ComponentType<any>>
   ["/privacy-policy", PrivacyPolicy],
   ["/photo-credits", PhotoCredits],
   ["/terms-of-service", TermsOfService],
+  ["/refund-policy", RefundPolicy],
   ["/faq", FAQ],
   ["/blog", Blog],
   ["/blog/:slug", BlogArticle],
@@ -222,6 +224,7 @@ const SITE_ROUTES = (
       <Route path="/privacy-policy" component={PrivacyPolicy} />
       <Route path="/photo-credits" component={PhotoCredits} />
       <Route path="/terms-of-service" component={TermsOfService} />
+      <Route path="/refund-policy" component={RefundPolicy} />
       <Route path="/faq" component={FAQ} />
       <Route path="/blog" component={Blog} />
       <Route path="/blog/:slug" component={BlogArticle} />

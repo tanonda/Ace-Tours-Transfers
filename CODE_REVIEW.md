@@ -244,7 +244,7 @@ Concrete failure: if `0026_verified_reviews.sql` hits duplicate `(booking_id, to
 - **Legacy plaintext password fallback**: `verifyPassword` falls back to `password === storedPassword` when bcrypt reports an invalid salt ([auth.domain-service.ts:44–58](server/domain/users/auth.domain-service.ts#L44-L58)). Any legacy plaintext row is accepted. Remove the fallback and force a reset.
 - **Password reset** has no "request reset" endpoint; the consume endpoint has no minimum length check ([user.routes.ts:56–70](server/application/user.routes.ts#L56-L70)), so a reset can set `"a"`. Tokens are stored plaintext, and a password reset does not invalidate existing sessions.
 - **TOTP secrets** are stored plaintext (`users.totp_secret`), and there is no replay guard on a used code.
-- **Default admin credentials are published** in the handover doc (`admin@aceproducts.vu` / `adminpassword`, [docs/CLIENT_HANDOVER.md:96–97](docs/CLIENT_HANDOVER.md#L96-L97)). The seed refuses to run in production, but the document should not advertise a working password; remove it and instruct a first-run reset.
+- **Default admin credentials are published** in the handover doc (a seeded admin e-mail and literal password, [docs/CLIENT_HANDOVER.md:96–97](docs/CLIENT_HANDOVER.md#L96-L97)). The seed refuses to run in production, but the document should not advertise a working password; remove it and instruct a first-run reset. *(Fixed in the 2026-11-08 handover cleanup; the values are removed here and from the seed.)*
 
 ### M8. Routes that lead to a 404
 
@@ -422,3 +422,78 @@ guest on another device still sees the booking.
 index; `DATABASE_SSL_REJECT_UNAUTHORIZED=false` remains an emergency-only escape
 hatch; `DATA_ENCRYPTION_KEY` falls back to `PAYMENT_CREDENTIALS_KEY`, and rotating
 either one invalidates existing MFA enrolments.
+
+---
+
+## Status 2026-11-08 after handover fixes
+
+**Verification of the handover branch (2026-11-08):** `npm run check` passes
+(both tsconfig projects); `npm test` passes (130 files, 979 tests, including new
+PayZen refund/missed-IPN tests, sitemap policy test and admin refund helpers);
+`npm run check-architecture` passes. The live production deploy remains on
+`936b48a` until this branch is reviewed and deployed.
+
+Scope: the handover branch contains three linked pieces of work: (1)
+repository/security/handover cleanup before giving the BRED PayZen integrator
+access, (2) PayZen payment-reliability fixes — missed-IPN recovery and refund
+recording (`migrations/0034_payment_refunds.sql`, `server/application/payment*`,
+`server/infrastructure/payments/payzen.adapter.ts`, admin reconciliation UI), and
+(3) public-site compliance fixes (standalone refund policy, consistent
+cancellation wording, legal pages added to the sitemap/prerender). The review
+findings in [Fix status](#fix-status-2026-11-08) above remain as stated.
+
+**Fixed in this change**
+
+| Finding | Resolution |
+|---|---|
+| Admin password literal in `script/update-admin-user.ts` (also rewrote the admin to a personal Gmail) | File deleted after checking there were no importers. |
+| Default admin credentials in `server/seed.ts` (a seeded admin e-mail and a literal password) | Seed now requires `SEED_ADMIN_EMAIL` + `SEED_ADMIN_PASSWORD` env vars, refuses to run when unset, keeps the `NODE_ENV=production` guard, and contains no password literal. |
+| Dummy Stripe secret/publishable keys in `docs/archive/ADVISORY_IMPLEMENTATION_REPORT.md` | Removed; the archive now says Stripe is not used (not available to Vanuatu merchants). |
+| Stale/credential-leaking docs (Fly "recommended", `db:push`, seeded default-admin hint, missing ADR, superseded VPC/MIGS spec) | New `docs/SECURITY_HANDOVER.md`, `docs/BRED_PAYZEN_GO_LIVE.md`, `docs/adr/ADR-007-BRED-PAYZEN.md`; SUPERSEDED banner on the June 2026 VPC/MIGS spec; corrected `docs/CLIENT_HANDOVER.md`, `docs/deployment_guide.md`, `docs/QUICK_START.md`, `docs/PAYMENT_SANDBOX_TESTING.md`, `docs/PRODUCTION_VERIFICATION_CHECKLIST.md`, `.env.example`, `README.md`. |
+| Misleading `.env.example` comments | `PAYMENTS_ENABLED` documented as not enforced; `PAYMENTS_*_VISIBLE` documented as parsed-but-inert; `VAT_RATE`/`DDD_VAT_RATE` documented as currently unread; BRED/PayZen fields and the `PAYMENT_CREDENTIALS_KEY` / `DATA_ENCRYPTION_KEY` rotation consequences documented. |
+
+**Remaining follow-ups (not fixed here)**
+
+1. **VAT snapshot / receipts.** Payment records store the gross amount only;
+   VAT is computed at pricing time from the admin `pricing_rules` setting. If
+   card receipts must show a VAT breakdown (or the business needs a tax-invoice
+   record), snapshot the VAT amount/inclusive flag onto the payment/booking and
+   print it on the receipt. Related: `VAT_RATE`/`DDD_VAT_RATE` env values are
+   parsed into `config.ddd.vatRateOverride` but nothing consumes them — remove
+   them or wire them up so the template does not imply they work.
+2. **Admin money-display unit audit.** Booking rows carry both `amount` (text)
+   and `totalAmountCents` (integer, whole VUV for VUV), and admin screens/CSV
+   exports are not uniformly labelled. Audit every admin money display and
+   export so nothing renders "cents" as vatu (or vice versa).
+3. **Multi-currency charging.** Charging is VUV-only by decision (ADR-007); the
+   PayZen adapter rejects any other currency. Accepting AUD/USD would need a
+   currency/FX policy, currency-specific pricing and adapter changes — out of
+   scope for this go-live.
+4. **Fee/settlement ledger.** BRED deducts its merchant fee (quoted 3.5% / 1%;
+   verify with the merchant agreement) and settles net. The app records gross
+   payments only: there is no fee or settlement table/import. Add a monthly
+   PayZen Back Office settlement import reconciled against `payments` and
+   `refunded_amount` (see the runbook in `docs/BRED_PAYZEN_GO_LIVE.md`).
+5. **`PAYMENTS_ENABLED` semantics.** It is exposed on `/api/config` but not
+   enforced as a master switch; either enforce it or remove it so operators do
+   not believe it stops payments. Use the documented kill switches meanwhile.
+6. **Admin refund-recording UX — done.** The backend records PayZen `CREDIT`
+   IPNs (`refunded_amount`, `refunded_at`, `refund_reference`) and the
+   reconciliation screen now shows the refund column and offers a required-note
+   "Record refund" action (which writes the same fields through the audited admin
+   reconcile endpoint), so an operator can record a Back Office refund that
+   arrived without an IPN.
+7. **External owner actions** (cannot be done from the repo):
+   - make the GitHub repository **private** (it was public during the audit);
+   - rotate every exposed secret (database, `SESSION_SECRET`,
+     `PAYMENT_CREDENTIALS_KEY` → re-enter gateway credentials,
+     `DATA_ENCRYPTION_KEY` → re-enrol MFA, Cloudinary, SMTP/Gmail, SMS, gateway
+     keys, admin passwords);
+   - remove the personal-Gmail admin, create a business-mailbox admin with MFA;
+   - decide whether to rewrite git history (commit `240f98a` and earlier contain
+     old admin passwords) after rotation;
+   - finish the BRED merchant/PayZen setup (13 points) and run the TEST →
+     PRODUCTION cutover.
+
+   See [`docs/SECURITY_HANDOVER.md`](docs/SECURITY_HANDOVER.md) and
+   [`docs/BRED_PAYZEN_GO_LIVE.md`](docs/BRED_PAYZEN_GO_LIVE.md).

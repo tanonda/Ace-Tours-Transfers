@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Info, HelpCircle } from "lucide-react";
 import { useCmsText } from "@/hooks/use-cms-text";
+import { htmlToText } from "@/lib/html-text";
 
 export default function FAQ() {
     const { t } = useTranslation();
@@ -12,11 +13,11 @@ export default function FAQ() {
     const defaultFaqs = [
         {
             question: "Do I need to pay in advance?",
-            answer: "No. Book online now and pay your driver in cash on the day of your tour or transfer. We accept Vanuatu Vatu (preferred), Australian dollars and New Zealand dollars."
+            answer: "No — you don't need to pay in advance. You can pay by local bank transfer (ANZ, BRED or BSP), in cash in Vanuatu Vatu on the day of your tour or transfer, and by card once card payments go live with our bank, BRED Bank Vanuatu, through its secure hosted payment page. Card details are entered on the bank's page — we never see or store them."
         },
         {
             question: "What is your cancellation policy?",
-            answer: "We offer a flexible cancellation policy. Cancellations made more than 48 hours before the scheduled tour or transfer are fully refundable. Cancellations within 48 hours may incur a fee. Please reach out to our team if you need to make changes to your booking."
+            answer: "The same cancellation policy applies to every booking. Cancel more than 48 hours before your tour or transfer for a 100% refund; cancel 24–48 hours before for a 50% refund; cancellations within 24 hours of the start time, or a no-show, receive no refund. If we cancel a service for weather or operational reasons, you get a full refund or a free rebooking. Full details, including how card refunds are paid through BRED Bank, are in our <a href=\"/refund-policy\">Cancellation &amp; Refund Policy</a>."
         },
         {
             question: "Where do you pick up from?",
@@ -36,7 +37,7 @@ export default function FAQ() {
         },
         {
             question: "What currencies do you accept?",
-            answer: "We accept Vanuatu Vatu (VUV), Australian Dollars (AUD), and New Zealand Dollars (NZD). On our website, you can use the currency selector at the top to view prices in your preferred currency."
+            answer: "We accept Vanuatu Vatu (VUV), Australian Dollars (AUD), and New Zealand Dollars (NZD). On our website, you can use the currency selector at the top to view prices in your preferred currency. Card payments are always charged in Vanuatu Vatu (VUV) — other currencies are for display only."
         }
     ];
 
@@ -59,7 +60,7 @@ export default function FAQ() {
                 title="Frequently Asked Questions - Ace Tours & Transfers"
                 description="Find answers to common questions about our Vanuatu tours, airport transfers, payments, cancellations, and pickup locations in Port Vila."
                 keywords={["Vanuatu tour FAQ", "Port Vila transfer questions", "Ace Tours help"]}
-                faqs={faqs}
+                faqs={faqs.map(faq => ({ question: faq.question, answer: htmlToText(faq.answer) }))}
             />
             <div className="bg-muted/30 pt-header-page pb-16 md:pb-24">
                 <div className="container mx-auto px-4 max-w-4xl">

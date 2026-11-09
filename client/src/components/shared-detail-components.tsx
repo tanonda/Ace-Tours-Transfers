@@ -142,16 +142,16 @@ export function CancellationModal({ isOpen, onClose, policy }: CancellationModal
   if (!isOpen) return null;
 
   const defaultPolicy = `
-    <h3>Free Cancellation</h3>
-    <p>You can cancel up to <strong>24 hours in advance</strong> of the experience for a full refund.</p>
-    <h3>Late Cancellation</h3>
-    <p>Cancellations made within 24 hours of the scheduled departure time are non-refundable.</p>
-    <h3>No-show Policy</h3>
-    <p>Guests who do not show up without prior cancellation will be charged the full booking amount.</p>
-    <h3>Operator Cancellations</h3>
-    <p>If the operator cancels the experience for any reason, you will receive a full refund.</p>
-    <h3>How to Cancel</h3>
-    <p>To cancel or modify your booking, please contact us via WhatsApp or email as soon as possible.</p>
+    <h3>Full refund — more than 48 hours before</h3>
+    <p>Cancellations made more than 48 hours before the scheduled start time receive a <strong>100% refund</strong>.</p>
+    <h3>Partial refund — 24 to 48 hours before</h3>
+    <p>Cancellations made between 24 and 48 hours before the scheduled start receive a <strong>50% refund</strong>.</p>
+    <h3>No refund — less than 24 hours before, or no-show</h3>
+    <p>Cancellations made less than 24 hours before the scheduled start, and no-shows, are not refundable.</p>
+    <h3>Operator cancellations</h3>
+    <p>If we cancel for weather, safety, vehicle or operational reasons, you receive a full refund or a free rebooking.</p>
+    <h3>How to cancel</h3>
+    <p>Contact us on WhatsApp or email with your booking reference. The full policy is at our <a href="/refund-policy">Cancellation and Refund Policy</a>.</p>
   `;
 
   return (

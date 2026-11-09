@@ -10,7 +10,8 @@ export class ReconciliationPolicy {
       PaymentStatus.Completed,
       PaymentStatus.Failed,
       PaymentStatus.Cancelled,
-      PaymentStatus.Expired
+      PaymentStatus.Expired,
+      PaymentStatus.Refunded
     ];
 
     // INVARIANT: Terminal states must not be resurrected or changed automatedly.

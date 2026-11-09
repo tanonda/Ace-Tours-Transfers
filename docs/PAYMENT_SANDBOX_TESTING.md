@@ -39,17 +39,57 @@ in test mode.
 
 | Field | What it is |
 |---|---|
-| `shopId` | the PayZen test shop ID |
-| `mode` | `TEST` |
-| `testKey` | the test signature key |
-| `paymentUrl` | `https://secure.payzen.eu/vads-payment/` (default) |
+| `shopId` | the 8-digit PayZen shop ID (must match `vads_site_id` in the IPN) |
+| `mode` | `TEST` or `PRODUCTION` (selects the key and is sent as `vads_ctx_mode`) |
+| `testKey` | the TEST signature key |
+| `productionKey` | the PRODUCTION key, issued by BRED after testing |
+| `paymentUrl` | `https://secure.payzen.eu/vads-payment/` (default) or the BRED-specific URL |
 
 PayZen's test cards and 3-D Secure test profiles come from the Lyra/PayZen
 documentation and are enabled by BRED on the test shop.
 
+#### PayZen shop settings that must match the code
+
+These are configured in the PayZen **Back Office** (ask BRED to set them):
+
+- **IPN / notification URL** (test and production):
+  `https://acetoursvanuatu.com/api/payments/webhook/bred-bank`, with automatic
+  retry on failure. The route replies `text/plain` 200 (accepted) or 400
+  (rejected); PayZen retries non-200 replies.
+- **Signature algorithm:** HMAC-SHA-256. The adapter signs `vads_*` field
+  *values* sorted by field name, joined with `+`, then `+<key>`, Base64-encoded
+  (`server/infrastructure/payments/payzen-signature.ts`).
+- **Currency:** VUV enabled on the shop. VUV is a **zero-decimal** currency: the
+  site stores whole vatu and sends `vads_amount=5000` for VT 5,000 — **not**
+  `500000` (no minor-unit multiplication). The adapter refuses any other currency.
+- **Capture / 3-D Secure:** same-day automatic capture and 3-D Secure on, so a
+  normal payment settles without manual validation in the Back Office.
+
+#### PayZen is notification-only
+
+The adapter has no status-query API (`supportsStatusQuery() === false`), so the
+IPN is the only authoritative result. If it never arrives:
+
+- the payment is **not** guessed paid and **not** silently cancelled;
+- the reconciliation worker waits until the payment window closes, then moves the
+  payment to `manual_review_required`, e-mails an admin, and holds the review for
+  72 hours;
+- the admin then checks the PayZen Back Office: expire the payment if the card was
+  not charged, confirm it if it was, or refund in the Back Office.
+
+#### Refunds are manual in the PayZen Back Office
+
+The site cannot refund a card. Refund the transaction in the Back Office; PayZen
+sends a `CREDIT` IPN and the site records it (`refunded_amount`, `refunded_at`,
+`refund_reference`): full refund → `refunded`, partial → `completed` with the
+refunded amount, refund without a completed payment → `manual_review_required`.
+If the `CREDIT` IPN is lost, record the refund through the admin reconciliation
+action with a note.
+
+
 ## Recommended setup
 
-1. **Use a staging deployment, not production.** Point a Render/Fly service at a
+1. **Use a staging deployment, not production.** Point a Render service at a
    separate Neon branch (or database) and send test email to an internal inbox.
 2. Set `PAYMENT_CREDENTIALS_KEY` (and optionally `DATA_ENCRYPTION_KEY`) in that
    service's environment. Gateway credentials cannot be saved/opened without it.
@@ -63,7 +103,7 @@ documentation and are enabled by BRED on the test shop.
    `mode: TEST`, and activate it. Do not make it the default gateway for guests.
 5. For server-to-server notifications (PayZen IPN, MPGS notification), the bank
    must be able to reach your test host over HTTPS. A local `npm run dev`
-   instance needs a tunnel such as ngrok/cloudflared; a staging Render/Fly URL
+   instance needs a tunnel such as ngrok/cloudflared; a staging Render URL
    works without one.
 6. Log in as an **admin** (TEST gateways are hidden from guests) and run a
    booking through the gateway.
@@ -82,6 +122,13 @@ documentation and are enabled by BRED on the test shop.
       released by the expiry job.
 - [ ] A callback with the wrong amount/currency lands in
       `manual_review_required`, not `completed`.
+- [ ] Replaying the same IPN does not double-confirm; a duplicate refund IPN does
+      not count the refund twice.
+- [ ] A refund created in the PayZen Back Office is recorded from the `CREDIT`
+      IPN (full → `refunded`, partial → `completed` with `refunded_amount`).
+- [ ] With the IPN deliberately not delivered, the reconciliation worker moves the
+      payment to `manual_review_required` after its window and e-mails the admin
+      (it is not silently cancelled or marked paid).
 - [ ] The admin cancellation of a confirmed test booking frees its seats.
 - [ ] Switching `mode` to `PRODUCTION` with production credentials is a separate,
       reviewed change; TEST and PRODUCTION credentials are never mixed.

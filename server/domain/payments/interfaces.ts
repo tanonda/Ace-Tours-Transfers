@@ -64,6 +64,14 @@ export interface WebhookEvent {
   headers?: Record<string, string>;
 }
 
+/** A refund the bank reports (e.g. a PayZen CREDIT notification). */
+export interface GatewayRefundInfo {
+  /** Amount refunded, in the payment currency's smallest unit (whole VUV here). */
+  amount?: number;
+  /** Bank/PayZen refund transaction reference. */
+  reference?: string;
+}
+
 export interface WebhookResponse {
   success: boolean;
   message?: string;
@@ -74,6 +82,8 @@ export interface WebhookResponse {
   failureReason?: string;
   amount?: number;
   currency?: string;
+  /** Present when the notification reports a refund rather than a payment. */
+  refund?: GatewayRefundInfo;
 }
 
 export interface PaymentGatewayService {
@@ -81,6 +91,13 @@ export interface PaymentGatewayService {
   handleWebhook(event: WebhookEvent): Promise<WebhookResponse>;
   queryPaymentStatus(request: PaymentStatusRequest): Promise<PaymentStatusResponse>;
   refundPayment?(payment: Payment, amount?: number, reason?: string): Promise<PaymentStatusResponse>;
+  /**
+   * False when the gateway only reports results by notification and cannot be
+   * polled for status (PayZen). The reconciliation worker must not call
+   * queryPaymentStatus for these; it records a missed notification for manual
+   * review instead.
+   */
+  supportsStatusQuery?(): boolean;
 }
 
 export interface HostedBankGatewayAdapter extends PaymentGatewayService {
