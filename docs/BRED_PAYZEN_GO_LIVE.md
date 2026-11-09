@@ -17,8 +17,8 @@ the BRED merchant/PayZen setup below.
 
 | Person | Role in this setup |
 |---|---|
-| **Saviera "Savi" Alexis** — `acetoursvanuatu@outlook.com` | Owner of Ace Tours & Transfers; applicant and merchant-account holder; sends the BRED reply. |
-| **Mark** — `markmal64@gmail.com` | Developer of the website/PayZen integration; the correct technical contact for the application and the PayZen Back Office. |
+| **Saviera "Savi" Alexis** — `acetoursvanuatu@outlook.com` | Owner of Ace Tours & Transfers; applicant and merchant-account holder; cc on the developer's reply to John and recipient of the PayZen Back Office access. |
+| **Mark** — `markmal64@gmail.com` | Developer of the website/PayZen integration; the correct technical contact for the application and the PayZen Back Office. The pending chain reply is his, to John (reply-all, Savi and Jaynol cc'd). |
 | **Michael Dan** — `mdan@bred.vu`, BRED (Vanuatu) Ltd, E-Banking | BRED e-Banking Merchant Officer; the PayZen/e-commerce contact who sent the fees and application. |
 | **John Lew** — `john@pacificbedbank.com`, Global Bedbank Pte Ltd (Fiji) | Bedbank contact copied into the thread on 2 Nov 2026. **Not the website developer or PayZen integrator.** He asked Savi on 5 Nov for "access to your website files"; that is not needed — the integration is already built. |
 | **Jaynol Tari** — Palladium Group | Submitted the completed e-commerce application on 2 Nov 2026 and copied John in, describing him as "the developer assisting with integration"; that description is inaccurate (the developer is Mark). |
@@ -287,85 +287,82 @@ external access. In short:
 
 ---
 
-## 10. Ready-to-send reply e-mail draft
+## 10. Ready-to-send e-mail draft
 
-Use this as the reply **from Savi (owner) to Michael Dan (BRED)**, with Mark
-(developer) and John Lew (Global Bedbank) copied. Replace the bracketed
-placeholders. The technical facts are true today: the integration is implemented
-and deployed, but card charging waits on the bank setup below.
+### Who replies next
 
-> **Subject:** Re: Online card payments (PayZen) for Ace Tours & Transfers —
-> integration is built; here is what we need
->
-> Dear Michael,
->
-> Mark, John — copying you both.
->
-> Thank you for the offer to help set up online card payments. We want to be
-> clear about where things stand so we do not duplicate work: **our website
-> already has a complete PayZen integration built and deployed.** It creates the
-> signed VADS V2 payment form, sends customers to the PayZen hosted payment page,
-> and receives and verifies the bank's IPN (HMAC-SHA-256) at
-> `https://acetoursvanuatu.com/api/payments/webhook/bred-bank`. It supports
-> TEST/PRODUCTION shops, charges in VUV only, records refunds from the PayZen
-> Back Office, and moves a payment to manual review if an IPN is missed. The
-> remaining step is the bank-side setup. We do **not** need to hand over our
-> production website files, database or credentials to finish it.
->
-> Could you please confirm the following 13 points so we can run the TEST phase
-> and then switch on production?
->
-> **Account and access**
-> 1. Please set up (or confirm) our online merchant account for card payments in
->    the name of [registered business name], settling to our account
->    [BRED account number].
-> 2. Please give PayZen Back Office access to the business owner,
->    Savi ([owner email]), and a separate user for our developer,
->    Mark ([developer email]). John is copied for visibility and does not need a
->    Back Office login.
-> 3. Please confirm our Shop ID, the 8-digit number.
-> 4. Please confirm we can see the TEST key in the Back Office, and tell us how we
->    get the PRODUCTION key once testing is done.
->
-> **Shop settings**
-> 5. Please enable VUV (Vanuatu vatu) on our shop. We will charge in VUV only.
-> 6. Please confirm VUV amounts are accepted in whole vatu — a VT 5,000 payment
->    is sent as `vads_amount=5000`, not `500000`.
-> 7. Should we use the standard payment page
->    `https://secure.payzen.eu/vads-payment/`, or does BRED have its own? If so,
->    please send the exact address.
-> 8. Please confirm our shop's signature algorithm is set to HMAC-SHA-256.
-> 9. Please confirm payments are captured automatically on the same day, with no
->    manual approval needed per payment.
-> 10. Please confirm 3-D Secure is turned on.
->
-> **Notifications**
-> 11. Please set the Instant Payment Notification (IPN) URL for **both test and
->     production** to `https://acetoursvanuatu.com/api/payments/webhook/bred-bank`,
->     with automatic retry turned on if a notification fails.
->
-> **Testing and costs**
-> 12. Please send the test card numbers for test mode, and tell us how many test
->     payments PayZen needs before the production key is issued.
-> 13. Please send our fees (per transaction and monthly), the settlement time
->     (how long until funds reach our account), and how refunds work.
->
-> On access: to keep things safe for both sides, if BRED's technical team needs
-> to review the integration we can provide a **sanitised read-only snapshot (or
-> read-only private-repo access) of the current commit**, a **staging test
-> site**, and the **TEST credentials** only. We cannot share production files,
-> the production database or production keys, but none of that is needed — the
-> integration is already in place and the TEST shop is all we need to prove it
-> end to end.
->
-> Mark (developer, copied) can answer any technical questions.
->
-> Kind regards,
-> Savi
-> Ace Tours & Transfers
-> [Phone] · https://acetoursvanuatu.com
+The last message in the thread is **Saviera's 5 November 2026, 10:18 email to
+John Lew** — "Copying Marc to assist. He will be your main contact person for
+this part" — cc Mark and Jaynol Tari. Saviera has handed the technical part to
+Mark, and Mark has not replied yet, so **the next response is Mark's reply to
+John** (reply-all keeps Savi and Jaynol on cc). Michael Dan (BRED) should be
+added to the cc because the remaining questions are for the bank.
 
----
+### 10.1 Reply to John Lew (send now)
+
+**From:** Mark `<markmal64@gmail.com>`
+**To:** John Lew `<john@pacificbedbank.com>`
+**Cc:** Saviera Alexis `<acetoursvanuatu@outlook.com>`; Jaynol Tari
+`<jaynol.tari-mdf@thepalladiumgroup.com>`; Michael Dan `<mdan@bred.vu>`
+**Subject:** Re: Ace Tours & Transfer Business Account Set-up
+
+> Hi John,
+>
+> Thanks for your email — and Savi, thanks for the introduction.
+>
+> I'm Mark, the developer who built and maintains the Ace Tours website and its
+> PayZen integration. On your request for access to our website files: none are
+> needed, and nothing on the website has to change for the PayZen setup. The
+> integration is already built and running in production: the site creates the
+> signed VADS V2 form for the PayZen hosted payment page, receives and verifies
+> BRED's IPN (HMAC-SHA-256) at
+> `https://acetoursvanuatu.com/api/payments/webhook/bred-bank`, and records
+> refunds made in the PayZen Back Office.
+>
+> What is still outstanding is the BRED-side shop configuration. Michael, could
+> you please confirm the following so we can run the TEST phase and then switch
+> to production?
+>
+> 1. The online merchant account for card payments in the business name,
+>    settling to our BRED account.
+> 2. PayZen Back Office access for Savi (owner) and a separate user for me
+>    (developer). For BRED's records, please list me as the technical contact for
+>    the website/payment integration; Savi remains the merchant-account holder.
+> 3. The 8-digit Shop ID.
+> 4. The TEST key, and how the PRODUCTION key is issued after testing.
+> 5. VUV enabled on the shop (we charge in VUV only).
+> 6. Confirmation that VUV amounts are whole vatu — a VT 5,000 payment is sent as
+>    `vads_amount=5000`, not `500000`.
+> 7. The payment page URL: the standard
+>    `https://secure.payzen.eu/vads-payment/`, or a BRED-specific one.
+> 8. The shop's signature algorithm set to HMAC-SHA-256.
+> 9. Same-day automatic capture, with no manual validation per payment.
+> 10. 3-D Secure enabled.
+> 11. The IPN URL for both test and production set to
+>     `https://acetoursvanuatu.com/api/payments/webhook/bred-bank`, with
+>     automatic retry on failure.
+> 12. Test card numbers, and how many test payments are needed before the
+>     production key is issued.
+> 13. Our fees (per transaction and monthly), settlement timing, and how refunds
+>     work.
+>
+> John, if you need a technical overview for the bedbank side, I'm happy to share
+> a short integration summary or a read-only snapshot of the relevant code — we
+> just won't be handing over production website files, the database or
+> credentials.
+>
+> Thanks,
+> Mark
+> Developer, Ace Tours & Transfers
+> markmal64@gmail.com · https://acetoursvanuatu.com
+
+### 10.2 Optional separate thread with BRED
+
+If BRED prefers a separate thread, send the same 13 points to Michael Dan with
+Savi cc'd, and keep the reply to John short: acknowledge Savi's handoff, explain
+that the integration is already built so no website files are needed, and say
+Mark will coordinate the shop setup with Michael. Do not send production files
+or credentials in either email.
 
 ## 11. Final go-live checklist
 
