@@ -312,54 +312,47 @@ therefore a **private email to Savi**, not an immediate reply to John:
 
 ### 10.1 Email to Savi first (send now)
 
+This is an internal check-in with the owner, not a client email — keep it short,
+warm and direct rather than formal. The text below is deliberately conversational.
+
 **From:** Mark `<markmal64@gmail.com>`
 **To:** Saviera Alexis `<acetoursvanuatu@outlook.com>`
-**Subject:** John Lew / PayZen — website files and how to respond
+**Subject:** John / PayZen — quick one before I reply
 
-> Hi Savi,
+> Hey Savi,
 >
-> Following your note to John on Thursday (copying me), I want to check with you
-> before I reply, because I'm not clear yet on the arrangement with John and
-> Global Bedbank and I don't want to get in the way of that relationship.
+> Before I get back to John, wanted to check with you first — I don't want to
+> make things awkward or look like I'm blocking him.
 >
-> John asked for access to the website files so he can set up the PayZen
-> integration. I can share files if that is what you want, but I would not send
-> the production website folder: it contains the live database connection and
-> other credentials, customer data, server logs and payment configuration.
-> Sharing that outside our team would create a real security and privacy risk,
-> and it is not needed — the PayZen integration is already built and deployed
-> (hosted payment page, signed requests, bank notifications, refunds recorded).
-> The remaining step is BRED's side: Michael Dan and the PayZen Back Office
-> (shop ID, keys, VUV etc.). I have the list ready.
+> He's asked for the website files to set up the PayZen integration. I'm happy to
+> share stuff if that's what you want, but I wouldn't send the whole live site
+> folder: it's got the database connection, passwords, customer info and logs in
+> there. That's not something we should hand out, and honestly it isn't needed —
+> the PayZen integration is already built and live. The only thing left is BRED's
+> side (Michael Dan, the shop ID, keys, VUV etc.), and I've got that list ready.
 >
-> Could you help me with two things?
+> Two things I need from you:
 >
-> 1. What is the arrangement with John / Global Bedbank? Is he advising or
->    partnering on payments, did he offer to do the integration, and is there a
->    scope or contract? Does he need to review the code, or is he expecting to
->    change the site? That will tell us what he actually needs.
-> 2. Who was listed as the "technical contact" on the BRED e-commerce
->    application Jaynol submitted? If it names John, we should ask Michael Dan to
->    change it to me, so BRED sends Back Office access and the production key to
->    the right people.
+> 1. What's the deal with John? Is he helping with payments, did he offer to sort
+>    the integration, or is he just copied in? Do we have anything in writing
+>    with him? That'll tell me what he actually needs.
+> 2. Do you know who was put down as the "technical contact" on the BRED form
+>    Jaynol sent? If it's John, we should ask Michael to change it to me, so the
+>    bank sends the access and keys to us.
 >
-> My suggestion is that you reply to John — as the owner and the person he
-> contacted — explaining that the integration is already built and that I am
-> coordinating the BRED/PayZen setup with Michael, so no website files are
-> needed. I am happy to be cc'd and to answer any technical questions. If John
-> genuinely needs to review the code, we can give him a short technical overview
-> or a read-only snapshot of the relevant code, not the production files,
-> database or credentials. I can draft that reply for you if that is easier.
+> My honest suggestion: you reply to John, since he emailed you and you know him
+> — just say the integration is already built and I'm handling the BRED setup
+> with Michael, so no files are needed. I'll be cc'd and can jump in if he has
+> technical questions. If it's easier, I'll draft it for you. If he really does
+> need to see the code, I can send him an overview or a read-only snapshot — just
+> not the live site, database or credentials.
 >
-> I am not trying to block John or keep him out of the loop. I just want to make
-> sure we share the minimum needed and don't hand over customer data or live
-> credentials unnecessarily. Once I know what he is expecting, I will follow
-> your call.
+> Not trying to be a pain about it — I just don't want to hand over customer data
+> or live credentials to someone before we know what he's actually after. Happy
+> to go with whatever you think.
 >
 > Thanks,
 > Mark
-> Developer, Ace Tours & Transfers
-> markmal64@gmail.com
 
 ### 10.2 Reply to John (after Savi agrees; from Savi or Mark)
 
