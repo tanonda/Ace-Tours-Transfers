@@ -417,7 +417,11 @@ sending.
 > Developer, Ace Tours & Transfers
 > markmal64@gmail.com · https://acetoursvanuatu.com
 
-### 10.3 Optional separate BRED thread
+### 10.3 Technical overview / read-only snapshot
+
+A shareable technical overview is at [`PAYZEN_TECHNICAL_OVERVIEW.md`](./PAYZEN_TECHNICAL_OVERVIEW.md) (also provided as a PDF). If John or BRED's technical team needs more than the overview, give them a **read-only snapshot** (a sanitised archive of the deployed source, no Git history, `.env`, logs, customer data or internal runbooks) rather than website files. The snapshot is read-only and can be shared under the conditions in `SECURITY_HANDOVER.md`.
+
+### 10.4 Optional separate BRED thread
 
 If BRED prefers a separate thread, send the same 13 points to Michael Dan with
 Savi cc'd, and keep the John reply short: explain that the integration is already
