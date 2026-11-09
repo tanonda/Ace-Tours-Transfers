@@ -1,8 +1,8 @@
 # Ace Tours & Transfers — PayZen Integration Technical Overview
 
-**Prepared for:** BRED Bank (Vanuatu) / Global Bedbank technical review
-**Prepared by:** Mark, developer, Ace Tours & Transfers (`markmal64@gmail.com`)
-**Date:** 9 November 2026
+**Prepared for:** BRED Bank (Vanuatu) / Global Bedbank technical review  
+**Prepared by:** Mark, developer, Ace Tours & Transfers (`markmal64@gmail.com`)  
+**Date:** 9 November 2026  
 **Repository state:** source code as deployed in `8cdd99a`; this document is shareable and contains no credentials, customer data or production configuration.
 
 ---
