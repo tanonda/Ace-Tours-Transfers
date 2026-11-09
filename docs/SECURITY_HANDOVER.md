@@ -1,13 +1,19 @@
 # Security & Handover — Ace Tours & Transfers
 
-**Date:** 8 November 2026
+**Date:** 9 November 2026
 **Status:** internal — do not share this file, the repository, or the working folder until the owner actions in §3 are done.
-**Applies to:** `936b48a` (live commit) plus the handover changes in this branch.
+**Applies to:** `8cdd99a` (deployed 9 November 2026).
 
-This document records the security issues found before giving an external
-integrator (Global Bedbank / BRED PayZen) access to the website, what has been
-fixed in the code, and what only the owner can do. It also defines the access
-rules for any future developer or bank-side integrator.
+This document records the security issues found before granting any external
+access around the BRED PayZen setup, what has been fixed in the code, and what
+only the owner can do. It also defines the access rules for any future developer
+or bank-side contact.
+
+Role note: **Mark is the developer** who built the PayZen integration. **Savi**
+is the owner. **Michael Dan** is the BRED e-Banking merchant contact. **John
+Lew** (Global Bedbank, Fiji) is a bedbank contact who was copied into the thread
+and asked for website files on 5 November; he is not the developer and no
+website files need to change for the bank setup.
 
 ---
 
@@ -64,7 +70,7 @@ Consequences:
 `.env`, `env.txt`, `*.log`, `.kilo` and `.remember` are gitignored and excluded
 from the Docker build (`.dockerignore`), but they are still on disk in the
 working folder. They are **not** part of a repository handover and must never be
-sent to the integrator.
+sent to any third party (bank contact, reviewer or developer).
 
 ### 1.5 Personal Gmail used as the admin identity
 
@@ -179,17 +185,20 @@ deploy/access logs.
 
 ---
 
-## 4. Safe handover rules for an external integrator
+## 4. Safe access rules for external parties
 
-BRED's team (John Lew / Global Bedbank) needs to see how the PayZen integration
-is wired, but **does not need the production website files, database, `.env`,
-logs, domain or credentials.** Use this access path:
+BRED's contact (Michael Dan) does not need the website files at all; John Lew
+(Global Bedbank) asked for them on 5 November but is not the developer. The only
+external access the go-live needs is the PayZen **Back Office** for the owner
+(Savi) and the developer (Mark). If BRED's technical team ever asks to review the
+integration, **they do not need the production website files, database, `.env`,
+logs, domain or credentials.** Ceiling of access:
 
-### 4.1 What the integrator may get
+### 4.1 What an external reviewer may get (if actually needed)
 
-1. **A private repository, read-only collaborator** — invite the integrator's
+1. **A private repository, read-only collaborator** — invite the reviewer's
    GitHub account to the private repo with the **Read** role (not Write, not
-   Admin), or give them a sanitised snapshot:
+   Admin), or give them a sanitised snapshot (normally not needed):
    ```bash
    # Only after the repo is private and this branch is committed:
    git archive --format=zip --prefix=ace-tours/ HEAD -o ace-tours-handover.zip
@@ -202,10 +211,10 @@ logs, domain or credentials.** Use this access path:
    and **TEST-mode** credentials only. Connect it to the PayZen **test** shop.
    Production database, production admin account and production PayZen keys stay
    with the owner.
-3. **A separate PayZen Back Office user** for the integrator (not the owner's
-   login), scoped to what the bank allows. The owner keeps the merchant
-   account/settlement authority.
-4. **A reviewed PR + CI path**: the integrator works on a branch/PR; CI
+3. **A separate PayZen Back Office user** for the developer (Mark), plus the
+   owner's own login; not the owner's login shared with anyone. The owner keeps
+   the merchant account/settlement authority.
+4. **A reviewed PR + CI path**: any external developer works on a branch/PR; CI
    (`.github/workflows/verify.yml`) must pass (`npm run check`, `npm test`) and
    the owner (or owner's developer) reviews and merges. No direct pushes to
    `main`; no force-pushes.
@@ -223,7 +232,7 @@ logs, domain or credentials.** Use this access path:
 ### 4.3 End of engagement
 
 - [ ] Remove the GitHub collaborator and the staging environment.
-- [ ] Revoke the integrator's PayZen Back Office user.
+- [ ] Revoke any external PayZen Back Office user.
 - [ ] Rotate any credential they were given (staging-only keys included) and
       review audit logs.
 - [ ] If the repo was ever made public again, repeat §1–§3.

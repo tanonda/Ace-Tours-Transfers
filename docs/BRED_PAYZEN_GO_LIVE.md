@@ -1,12 +1,11 @@
 # BRED PayZen Card Payments — Go-Live Runbook
 
-**Date:** 8 November 2026
-**Status:** integration code complete in this repository — the PayZen adapter,
-IPN, admin form and tests shipped in the live commit `936b48a`; the refund ledger
-(`refunded_amount` / `refunded_at` / `refund_reference`) and the missed-IPN
-manual-review recovery are in the current branch (not yet deployed at the time of
-writing). **Card charging is not live yet** — it is waiting on the BRED
-merchant/PayZen setup below.
+**Date:** 9 November 2026
+**Status:** integration code complete and **deployed** — the live site runs
+`8cdd99a` (PayZen adapter, IPN, admin form, tests, refund ledger and missed-IPN
+manual-review recovery). Migration `0034_payment_refunds.sql` applied in
+production on 9 Nov 2026. **Card charging is not live yet** — it is waiting on
+the BRED merchant/PayZen setup below.
 **Audience:** owner/operator, and any developer doing the BRED go-live.
 **Related:** [`ADR-007`](./adr/ADR-007-BRED-PAYZEN.md),
 [`SECURITY_HANDOVER`](./SECURITY_HANDOVER.md),
@@ -14,12 +13,29 @@ merchant/PayZen setup below.
 
 ---
 
+## 0. People and roles
+
+| Person | Role in this setup |
+|---|---|
+| **Saviera "Savi" Alexis** — `acetoursvanuatu@outlook.com` | Owner of Ace Tours & Transfers; applicant and merchant-account holder; sends the BRED reply. |
+| **Mark** — `markmal64@gmail.com` | Developer of the website/PayZen integration; the correct technical contact for the application and the PayZen Back Office. |
+| **Michael Dan** — `mdan@bred.vu`, BRED (Vanuatu) Ltd, E-Banking | BRED e-Banking Merchant Officer; the PayZen/e-commerce contact who sent the fees and application. |
+| **John Lew** — `john@pacificbedbank.com`, Global Bedbank Pte Ltd (Fiji) | Bedbank contact copied into the thread on 2 Nov 2026. **Not the website developer or PayZen integrator.** He asked Savi on 5 Nov for "access to your website files"; that is not needed — the integration is already built. |
+| **Jaynol Tari** — Palladium Group | Submitted the completed e-commerce application on 2 Nov 2026 and copied John in, describing him as "the developer assisting with integration"; that description is inaccurate (the developer is Mark). |
+
+The "Technical Contact Details" on BRED's E-Commerce application should name
+**Mark (developer)**, not John. If the submitted form says otherwise, ask BRED
+(Michael Dan) to correct it so the PayZen Back Office and production-key handover
+go to the owner and the developer.
+
+---
+
 ## 1. Current state
 
-| Item | State on 2026-11-08 |
+| Item | State on 2026-11-09 |
 |---|---|
-| PayZen integration in the code | **Complete** — adapter, signature, IPN route, admin credentials form, tests. Refund recording and missed-IPN review are in the current branch. |
-| Live site (`https://acetoursvanuatu.com`) | **Cash on delivery only** (verified 8 Nov 2026: `/api/payment-gateways` returns just `cash`). `DDD_DISABLE_CARD=true` and `PAYMENTS_BRED_ENABLED=false` in `render.yaml`; the BRED gateway is inactive. |
+| PayZen integration in the code | **Complete and deployed** — adapter, signature, IPN route, admin credentials form, tests, refund recording and missed-IPN review. |
+| Live site (`https://acetoursvanuatu.com`) | **Cash on delivery only** (verified 9 Nov 2026: `/api/payment-gateways` returns just `cash`). `DDD_DISABLE_CARD=true` and `PAYMENTS_BRED_ENABLED=false` in `render.yaml`; the BRED gateway is inactive. |
 | Bank transfer | **Not currently offered to guests** even though `render.yaml` sets `PAYMENTS_MANUAL_ENABLED=true` — the production gateway row/feature flag is disabled. Its account-number setting is also still the placeholder `To be configured` (Admin → Settings → Payments → `bank_transfer_account_number`). Fix both when enabling it. |
 | BRED merchant account / PayZen shop | **Not finished** — that is the 13-point list in §3. |
 | Card charging | **Off.** Do not turn it on until §4 (TEST) and §5 (cutover) are complete. |
@@ -80,7 +96,7 @@ These are the same 13 points as the existing draft at
 | # | Item | Why it is needed |
 |---|---|---|
 | 1 | Online merchant account for card payments, in the business name, settling to the BRED account | Payment destination and settlement |
-| 2 | PayZen **Back Office** access for the owner, plus a separate user for the integrator/developer | Configure and test the shop without sharing a login |
+| 2 | PayZen **Back Office** access for the owner (Savi), plus a separate user for the developer (Mark) | Configure and test the shop without sharing a login |
 | 3 | The **8-digit Shop ID** | Goes in Admin → Payments `shopId`; the IPN must match it |
 | 4 | Confirm the **TEST key** is visible, and say how the **PRODUCTION key** is issued | Signs forms/IPNs (`testKey` / `productionKey`) |
 | 5 | Enable **VUV** on the shop | VUV is not in PayZen's default currency table |
@@ -97,7 +113,9 @@ Notes for the bank conversation:
 
 - We do not need to hand over production website files. Ask for the shop
   configuration and TEST credentials; production credentials are entered by the
-  owner directly in Admin → Payments.
+  owner directly in Admin → Payments. John Lew's 5 Nov request for website files
+  should be answered with that clarification — the integration already exists;
+  no repo/folder access is needed for the bank setup.
 - The IPN endpoint must be reachable over public HTTPS (it is, on Render).
   PayZen retries non-200 replies; the route answers `text/plain` 200/400.
 
@@ -250,16 +268,19 @@ The booking flow and the PayZen adapter charge **VUV only**. Consequences:
 
 ## 9. Security and handover conditions
 
-Follow [`SECURITY_HANDOVER.md`](./SECURITY_HANDOVER.md) before giving BRED/Global
-Bedbank access. In short:
+Follow [`SECURITY_HANDOVER.md`](./SECURITY_HANDOVER.md) before granting any
+external access. In short:
 
 - Make the GitHub repo **private** first; the old history contains credentials.
-- Give the integrator a **private read-only repo collaborator or a `git archive`
-  snapshot**, a **staging** environment, and **TEST credentials only**. Never send
-  the working folder, `.env`, logs or the production `DATABASE_URL`.
+- **No one needs website files for this go-live.** The integration is already
+  deployed. The only external system access needed is the PayZen **Back Office**:
+  the owner (Savi) and a separate user for the developer (Mark). If BRED's
+  technical team asks to review the integration, the ceiling is a sanitised
+  `git archive`/read-only snapshot or a staging site with TEST credentials —
+  never the working folder, `.env`, logs or the production `DATABASE_URL`.
 - Production PayZen `productionKey`, the merchant account, the domain/DNS and the
   production database stay with the owner.
-- A separate PayZen Back Office user for the integrator; revoke it at the end.
+- Revoke any external PayZen user at the end of the setup.
 - Rotate exposed secrets (see the checklist) and remember that rotating
   `PAYMENT_CREDENTIALS_KEY` invalidates the stored gateway credentials, which must
   be re-entered in Admin → Payments.
@@ -268,14 +289,17 @@ Bedbank access. In short:
 
 ## 10. Ready-to-send reply e-mail draft
 
-Use this as the reply to BRED / John Lew (Global Bedbank). Replace the bracketed
+Use this as the reply **from Savi (owner) to Michael Dan (BRED)**, with Mark
+(developer) and John Lew (Global Bedbank) copied. Replace the bracketed
 placeholders. The technical facts are true today: the integration is implemented
 and deployed, but card charging waits on the bank setup below.
 
 > **Subject:** Re: Online card payments (PayZen) for Ace Tours & Transfers —
 > integration is built; here is what we need
 >
-> Dear [BRED contact name],
+> Dear Michael,
+>
+> Mark, John — copying you both.
 >
 > Thank you for the offer to help set up online card payments. We want to be
 > clear about where things stand so we do not duplicate work: **our website
@@ -296,8 +320,9 @@ and deployed, but card charging waits on the bank setup below.
 >    the name of [registered business name], settling to our account
 >    [BRED account number].
 > 2. Please give PayZen Back Office access to the business owner,
->    [owner name, email], and a separate user for our developer,
->    [developer name, email].
+>    Savi ([owner email]), and a separate user for our developer,
+>    Mark ([developer email]). John is copied for visibility and does not need a
+>    Back Office login.
 > 3. Please confirm our Shop ID, the 8-digit number.
 > 4. Please confirm we can see the TEST key in the Back Office, and tell us how we
 >    get the PRODUCTION key once testing is done.
@@ -325,17 +350,18 @@ and deployed, but card charging waits on the bank setup below.
 > 13. Please send our fees (per transaction and monthly), the settlement time
 >     (how long until funds reach our account), and how refunds work.
 >
-> On access: to keep things safe for both sides, we can give your technical team
-> a **read-only collaborator seat on our private GitHub repository** (or a
-> snapshot of the current commit), a **staging test site**, and the **TEST
-> credentials** only. We cannot share production files, the production database
-> or production keys, but that is not needed — the integration is already in place
-> and the TEST shop is all we need to prove it end to end.
+> On access: to keep things safe for both sides, if BRED's technical team needs
+> to review the integration we can provide a **sanitised read-only snapshot (or
+> read-only private-repo access) of the current commit**, a **staging test
+> site**, and the **TEST credentials** only. We cannot share production files,
+> the production database or production keys, but none of that is needed — the
+> integration is already in place and the TEST shop is all we need to prove it
+> end to end.
 >
-> Thank you. [Developer name] can answer any technical questions.
+> Mark (developer, copied) can answer any technical questions.
 >
 > Kind regards,
-> [Owner name]
+> Savi
 > Ace Tours & Transfers
 > [Phone] · https://acetoursvanuatu.com
 
@@ -344,6 +370,7 @@ and deployed, but card charging waits on the bank setup below.
 ## 11. Final go-live checklist
 
 - [ ] Repo private; owner actions in `SECURITY_HANDOVER.md` started.
+- [ ] BRED's application lists Mark (not John) as technical contact.
 - [ ] 13 points answered by BRED.
 - [ ] TEST shop configured: VUV, HMAC-SHA-256, auto capture, 3DS, IPN + retries.
 - [ ] TEST payments pass §4 (including replay, decline, refund, missed IPN).

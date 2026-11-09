@@ -262,7 +262,7 @@ The codebase includes comprehensive documentation in the `docs/` folder:
 - [ ] GTM container ID set (if using Google Analytics)
 - [ ] BRED PayZen card go-live completed (or explicitly deferred)
 - [ ] Email SMTP switched to the client's business mailbox
-- [ ] BRED/Global Bedbank access (if granted) is read-only, staging + TEST keys only, and revoked at the end
+- [ ] PayZen Back Office users are limited to the owner and the developer (Mark); no website-file access is granted for the BRED setup, and any extra user is revoked at the end
 
 ## 11. Hero video
 

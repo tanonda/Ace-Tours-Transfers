@@ -120,7 +120,7 @@ Rules of the road: business logic belongs in `server/domain`, orchestration in
 ## 8. More docs
 
 - [`SECURITY_HANDOVER.md`](./SECURITY_HANDOVER.md) — security findings, owner
-  actions, safe access for external integrators.
+  actions, safe access for external parties.
 - [`deployment_guide.md`](./deployment_guide.md) — Render + Neon deployment.
 - [`BRED_PAYZEN_GO_LIVE.md`](./BRED_PAYZEN_GO_LIVE.md) — card go-live runbook.
 - [`BOOKING_ENGINE_ARCHITECTURE.md`](./BOOKING_ENGINE_ARCHITECTURE.md),

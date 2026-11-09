@@ -430,12 +430,12 @@ either one invalidates existing MFA enrolments.
 **Verification of the handover branch (2026-11-08):** `npm run check` passes
 (both tsconfig projects); `npm test` passes (130 files, 979 tests, including new
 PayZen refund/missed-IPN tests, sitemap policy test and admin refund helpers);
-`npm run check-architecture` passes. The live production deploy remains on
-`936b48a` until this branch is reviewed and deployed.
+`npm run check-architecture` passes. This branch is deployed as `8cdd99a`
+(9 November 2026); migration `0034_payment_refunds.sql` applied in production.
 
 Scope: the handover branch contains three linked pieces of work: (1)
-repository/security/handover cleanup before giving the BRED PayZen integrator
-access, (2) PayZen payment-reliability fixes — missed-IPN recovery and refund
+repository/security/handover cleanup before granting any external access for the
+BRED PayZen setup, (2) PayZen payment-reliability fixes — missed-IPN recovery and refund
 recording (`migrations/0034_payment_refunds.sql`, `server/application/payment*`,
 `server/infrastructure/payments/payzen.adapter.ts`, admin reconciliation UI), and
 (3) public-site compliance fixes (standalone refund policy, consistent
