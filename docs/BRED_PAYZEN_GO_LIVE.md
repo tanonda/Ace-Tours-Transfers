@@ -293,103 +293,102 @@ external access. In short:
 
 The last message in the thread is **Saviera's 5 November 2026, 10:18 email to
 John Lew** — "Copying Marc to assist. He will be your main contact person for
-this part" — cc Mark and Jaynol Tari. Saviera has handed the technical part to
-Mark, but Mark is not yet clear on the arrangement between Savi and John, and
-does not want to appear to be blocking John's access. The right first step is
-therefore a **private email to Savi**, not an immediate reply to John:
+this part" — cc Mark and Jaynol Tari. Saviera has delegated the technical part to
+Mark, so **Mark is the person who must respond to John**; replying to her asking
+her to answer John would send the task back to the person who delegated it.
 
-1. Ask Savi what John's role/arrangement is (adviser, partner, integration
-   contractor?) and who was listed as the technical contact on BRED's
-   e-commerce application.
-2. Recommend that **Savi replies to John** as the owner and the person John
-   contacted, explaining that the integration is already built and that Mark is
-   coordinating the BRED/PayZen setup with Michael Dan — so no website files are
-   needed. Mark is cc'd and answers technical questions.
-3. If Savi prefers, Mark can reply to John with Savi cc'd instead. Either way,
-   no production files, database or credentials are shared; if John genuinely
-   needs a technical review, offer a short overview or a read-only snapshot of
-   the relevant code.
+Before replying to John, Mark should send Savi a short business email confirming:
+(a) the arrangement/scope with John and Global Bedbank, and (b) who is recorded
+as the technical contact on BRED's e-commerce application. Then Mark replies to
+John (reply-all keeps Savi and Jaynol on cc; Michael Dan is added because the
+remaining questions are for BRED). No production files, database or credentials
+are shared; if John genuinely needs code visibility, offer a technical overview
+or a read-only snapshot instead.
 
 ### 10.1 Email to Savi first (send now)
 
-This is an internal check-in with the owner, not a client email — keep it short,
-warm and direct rather than formal. The text below is deliberately conversational.
+Keep this businesslike and brief: it is a check-in with the owner, not a request
+for her to take the John reply back.
 
 **From:** Mark `<markmal64@gmail.com>`
 **To:** Saviera Alexis `<acetoursvanuatu@outlook.com>`
-**Subject:** John / PayZen — quick one before I reply
+**Subject:** John Lew / PayZen — website files and my planned response
 
-> Hey Savi,
+> Dear Savi,
 >
-> Before I get back to John, wanted to check with you first — I don't want to
-> make things awkward or look like I'm blocking him.
+> Following your note to John on Thursday (copying me), I would like to confirm
+> two points before I respond to him, so my reply is accurate and does not cut
+> across any arrangement you have with Global Bedbank.
 >
-> He's asked for the website files to set up the PayZen integration. I'm happy to
-> share stuff if that's what you want, but I wouldn't send the whole live site
-> folder: it's got the database connection, passwords, customer info and logs in
-> there. That's not something we should hand out, and honestly it isn't needed —
-> the PayZen integration is already built and live. The only thing left is BRED's
-> side (Michael Dan, the shop ID, keys, VUV etc.), and I've got that list ready.
+> John has asked for access to our website files to set up the PayZen
+> integration. I do not recommend sending the production website folder: it
+> contains the live database credentials, customer data, server logs and payment
+> configuration, and sharing it outside our team would create a security and
+> privacy risk. It is also not required — the PayZen integration is already
+> implemented and deployed in production (hosted payment page, signed requests,
+> bank IPN at `/api/payments/webhook/bred-bank`, refunds recorded). The
+> outstanding items are on BRED's side — PayZen shop configuration, keys and VUV
+> enablement — which I am coordinating with Michael Dan.
 >
-> Two things I need from you:
+> Before I reply to John, could you clarify:
 >
-> 1. What's the deal with John? Is he helping with payments, did he offer to sort
->    the integration, or is he just copied in? Do we have anything in writing
->    with him? That'll tell me what he actually needs.
-> 2. Do you know who was put down as the "technical contact" on the BRED form
->    Jaynol sent? If it's John, we should ask Michael to change it to me, so the
->    bank sends the access and keys to us.
+> 1. The nature of your arrangement with John / Global Bedbank — is he advising
+>    on payments, has he been engaged to work on the integration, or is he copied
+>    in for visibility? Is there a scope or agreement in place? This determines
+>    what, if anything, he needs from us.
+> 2. Who was recorded as the "technical contact" on the BRED e-commerce
+>    application Jaynol submitted? If it is John, we should ask Michael Dan to
+>    correct it to me, so BRED sends Back Office access and production
+>    credentials to the right people.
 >
-> My honest suggestion: you reply to John, since he emailed you and you know him
-> — just say the integration is already built and I'm handling the BRED setup
-> with Michael, so no files are needed. I'll be cc'd and can jump in if he has
-> technical questions. If it's easier, I'll draft it for you. If he really does
-> need to see the code, I can send him an overview or a read-only snapshot — just
-> not the live site, database or credentials.
+> Subject to your guidance, I will reply to John — keeping you and Jaynol cc'd
+> and adding Michael for the BRED items — explaining that the integration is
+> already in place, that no website files are required, and that I am handling
+> the technical setup with BRED. If John genuinely needs visibility of the code,
+> I can provide a short technical overview or a read-only snapshot of the
+> relevant files, not the production site, database or credentials.
 >
-> Not trying to be a pain about it — I just don't want to hand over customer data
-> or live credentials to someone before we know what he's actually after. Happy
-> to go with whatever you think.
+> Please let me know if you would prefer a different approach.
 >
-> Thanks,
+> Kind regards,
 > Mark
+> Developer, Ace Tours & Transfers
+> markmal64@gmail.com
 
-### 10.2 Reply to John (after Savi agrees; from Savi or Mark)
+### 10.2 Reply to John (send after Savi's guidance)
 
-If Savi replies, use her voice; if she asks Mark to reply, use the version below
-with Savi and Jaynol kept on cc and Michael Dan added for the BRED questions.
+Mark sends this to John, keeping Savi and Jaynol cc'd and adding Michael Dan for
+the BRED questions. If Savi asks for a different sender or wording, adjust before
+sending.
 
-**From:** Savi `<acetoursvanuatu@outlook.com>`
+**From:** Mark `<markmal64@gmail.com>`
 **To:** John Lew `<john@pacificbedbank.com>`
-**Cc:** Mark `<markmal64@gmail.com>`; Jaynol Tari
+**Cc:** Saviera Alexis `<acetoursvanuatu@outlook.com>`; Jaynol Tari
 `<jaynol.tari-mdf@thepalladiumgroup.com>`; Michael Dan `<mdan@bred.vu>`
 **Subject:** Re: Ace Tours & Transfer Business Account Set-up
 
-*(If Savi asks Mark to send instead, change the opening to "I'm Mark, the
-developer who built and maintains the Ace Tours website and its PayZen
-integration", keep Savi on cc, and sign as Mark.)*
-
 > Hi John,
 >
-> Thanks for your email. I've asked Mark, our developer, to pick up the technical
-> side.
+> Thanks for your email — and Savi, thanks for the introduction.
 >
-> The website already has a complete PayZen integration built and running in
-> production — the signed PayZen hosted payment page, the bank's IPN
-> (HMAC-SHA-256) at `https://acetoursvanuatu.com/api/payments/webhook/bred-bank`,
-> and refunds recorded from the PayZen Back Office — so no website files need to
-> be shared or changed for the integration. What is still outstanding is BRED's
-> side of the setup.
+> I'm Mark, the developer who built and maintains the Ace Tours website and its
+> PayZen integration. On your request for access to our website files: none are
+> needed, and nothing on the website has to change for the PayZen setup. The
+> integration is already built and running in production: the site creates the
+> signed VADS V2 form for the PayZen hosted payment page, receives and verifies
+> BRED's IPN (HMAC-SHA-256) at
+> `https://acetoursvanuatu.com/api/payments/webhook/bred-bank`, and records
+> refunds made in the PayZen Back Office.
 >
-> Michael, could you please confirm the following so we can run the TEST phase
-> and then switch to production?
+> What is still outstanding is the BRED-side shop configuration. Michael, could
+> you please confirm the following so we can run the TEST phase and then switch
+> to production?
 >
 > 1. The online merchant account for card payments in the business name,
 >    settling to our BRED account.
-> 2. PayZen Back Office access for Savi (owner) and a separate user for Mark
->    (developer). For BRED's records, please list Mark as the technical contact
->    for the website/payment integration; Savi remains the merchant-account
->    holder.
+> 2. PayZen Back Office access for Savi (owner) and a separate user for me
+>    (developer). For BRED's records, please list me as the technical contact for
+>    the website/payment integration; Savi remains the merchant-account holder.
 > 3. The 8-digit Shop ID.
 > 4. The TEST key, and how the PRODUCTION key is issued after testing.
 > 5. VUV enabled on the shop (we charge in VUV only).
@@ -408,25 +407,22 @@ integration", keep Savi on cc, and sign as Mark.)*
 > 13. Our fees (per transaction and monthly), settlement timing, and how refunds
 >     work.
 >
-> John, if you need a technical overview for the bedbank side, Mark is happy to
-> share a short integration summary or a read-only snapshot of the relevant
-> code; we won't be handing over production website files, the database or
+> John, if you need a technical overview for the bedbank side, I'm happy to share
+> a short integration summary or a read-only snapshot of the relevant code — we
+> just won't be handing over production website files, the database or
 > credentials.
 >
 > Thanks,
-> Savi
-> Ace Tours & Transfers
-> [Phone] · https://acetoursvanuatu.com
->
-> *Mark (cc'd) can answer any technical questions.*
+> Mark
+> Developer, Ace Tours & Transfers
+> markmal64@gmail.com · https://acetoursvanuatu.com
 
 ### 10.3 Optional separate BRED thread
 
 If BRED prefers a separate thread, send the same 13 points to Michael Dan with
-Savi cc'd, and keep the John reply short: acknowledge the handoff, explain that
-the integration is already built so no website files are needed, and say Mark
-will coordinate the shop setup with Michael. Do not send production files or
-credentials in any email.
+Savi cc'd, and keep the John reply short: explain that the integration is already
+built so no website files are needed, and that Mark will coordinate the shop
+setup with Michael. Do not send production files or credentials in any email.
 
 ## 11. Final go-live checklist
 
