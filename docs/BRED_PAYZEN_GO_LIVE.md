@@ -59,6 +59,8 @@ What already exists in the repository:
 | `server/lib/csp-form-action.ts` | `form-action` CSP allowlist; follows the saved PayZen `paymentUrl` automatically. |
 | `client/src/pages/admin/payments.tsx` | Admin credentials form for the BRED (PayZen) gateway; `mode` is a TEST/PRODUCTION dropdown. |
 | [`BRED_PAYZEN_BANK_SETUP_SHEET.md`](./BRED_PAYZEN_BANK_SETUP_SHEET.md) | Owner-facing one-pager: settings to give BRED, checklist, admin steps and ready-to-send messages. |
+| [`BRED_TEST_EVIDENCE.md`](./BRED_TEST_EVIDENCE.md) | Endpoint checks, Back Office round-trip and the printable TEST evidence log. |
+| `scripts/check-bred-endpoint.mjs` | `npm run check:bred-endpoint` — verifies the public API, CSP and the IPN route (unsigned + signed probe). |
 | `server/application/payment.routes.payzen.test.ts`, `payzen-signature.test.ts`, `payzen.adapter.test.ts` | Tests for signature, form and IPN. |
 
 ---
@@ -174,8 +176,12 @@ never on production first.
    - [ ] Stopping the IPN (or closing the browser before it arrives) ends in
          `manual_review_required` with an admin e-mail after the payment window —
          not a silent cancellation.
-7. Keep a record of the test payments (date, order ID, amount, result) — BRED may
-   ask for the count before issuing the production key.
+7. Run the endpoint checker before the first payment, then record every scenario:
+   `BRED_SHOP_ID=… BRED_TEST_KEY=… npm run check:bred-endpoint -- --base-url https://<test-host>`
+   See [`BRED_TEST_EVIDENCE.md`](./BRED_TEST_EVIDENCE.md) for the endpoint checks, the
+   Back Office round-trip and the printable TEST evidence log. Keep a record of the
+   test payments (date, order ID, amount, result) — BRED may ask for the count before
+   issuing the production key.
 
 ---
 

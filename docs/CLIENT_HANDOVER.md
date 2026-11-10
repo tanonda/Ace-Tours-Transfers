@@ -240,6 +240,7 @@ The codebase includes comprehensive documentation in the `docs/` folder:
 - `deployment_guide.md` — Render/Neon deployment instructions
 - `BRED_PAYZEN_GO_LIVE.md` — card-payment go-live runbook and BRED e-mail draft
 - `BRED_PAYZEN_BANK_SETUP_SHEET.md` — plain-language BRED bank setup sheet (start here for the bank account)
+- `BRED_TEST_EVIDENCE.md` — endpoint checks and the printable TEST evidence log
 - `.env.example` — All environment variables documented
 
 ---

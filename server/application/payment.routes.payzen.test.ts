@@ -97,6 +97,16 @@ describe('PayZen IPN — POST /api/payments/webhook/bred-bank', () => {
     expect(storage.updatePayment).not.toHaveBeenCalled();
   });
 
+  it('answers a clean 400 for a correctly signed notification naming an unknown order (probe safe)', async () => {
+    storage.getPayment.mockResolvedValue(undefined);
+    const res = await request(app).post('/api/payments/webhook/bred-bank').type('form')
+      .send(signedIpn({ vads_order_id: 'pay-unknown' }));
+    expect(res.status).toBe(400);
+    expect(res.type).toBe('text/plain');
+    expect(res.text).toMatch(/Payment not found/);
+    expect(storage.updatePayment).not.toHaveBeenCalled();
+  });
+
   it('answers 200 for a refund notification and records the refund without completing the payment', async () => {
     const res = await request(app).post('/api/payments/webhook/bred-bank').type('form')
       .send(signedIpn({ vads_operation_type: 'CREDIT', vads_trans_status: 'CAPTURED' }));

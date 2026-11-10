@@ -75,6 +75,8 @@ Refer to the following documents for production protocols:
 - **[BRED Bank Setup Sheet](./docs/BRED_PAYZEN_BANK_SETUP_SHEET.md)**: plain-language,
   owner-facing — the settings to send BRED, what to ask BRED for, and where to enter
   the details in Admin → Payments.
+- **[BRED TEST Evidence & Endpoint Checks](./docs/BRED_TEST_EVIDENCE.md)**: endpoint
+  checker, Back Office round-trip and the printable TEST evidence log.
 - **[BRED PayZen Go-Live](./docs/BRED_PAYZEN_GO_LIVE.md)**: card-payment runbook,
   BRED checklist and reply-e-mail draft.
 - **[Fixes Changelog](./docs/FIXES_CHANGELOG.md)**: Audit record and reliability improvements.
@@ -82,6 +84,8 @@ Refer to the following documents for production protocols:
 ### Verification Suite
 - **Architecture Audit**: `npm run check-architecture`
 - **Go-Live Verification**: `npm run go-live-verify`
+- **BRED endpoint check**: `npm run check:bred-endpoint -- --base-url https://<host>`
+  (needs `BRED_SHOP_ID` and `BRED_TEST_KEY`; see the [TEST evidence sheet](./docs/BRED_TEST_EVIDENCE.md))
 - **Database Connectivity**: `npm run db:test`
 
 ## 🛡️ Governance

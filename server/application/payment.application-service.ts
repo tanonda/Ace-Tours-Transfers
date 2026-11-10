@@ -570,6 +570,18 @@ export class PaymentApplicationService {
     if (result.success && resolvedPaymentId && result.newPaymentStatus) {
       const existingPayment = await this.storage.getPayment(resolvedPaymentId);
 
+      // A correctly signed notification may name an order we don't have (DB reset,
+      // deleted payment, or a probe). Answer 400 with a clear message instead of
+      // dereferencing a missing row and returning a 500 that PayZen retries forever.
+      if (!existingPayment) {
+        return {
+          ...result,
+          success: false,
+          newPaymentStatus: undefined,
+          message: 'Payment not found for the notification order reference.',
+        };
+      }
+
       // A callback may only move payments made through its own gateway: otherwise a
       // return URL naming another payment's ID (e.g. a bank transfer awaiting review)
       // could cancel it via a gateway that has no such order.
