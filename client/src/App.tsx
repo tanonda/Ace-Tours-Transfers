@@ -18,6 +18,7 @@ import { useSiteSettings } from "@/lib/site-settings";
 import { NProgressRouter } from "@/components/nprogress-router";
 import { lazyWithPreload, matchesRoutePattern, type PreloadableComponent } from "@/lib/preloadable";
 import { RouteCommitted } from "@/lib/route-committed";
+import { startInpReporting } from "@/lib/web-vitals-report";
 
 // Coming soon gate — controlled via Admin Dashboard > Settings > Feature Flags
 // Falls back to VITE_COMING_SOON env var if the DB flag hasn't been seeded yet.
@@ -150,6 +151,9 @@ function AnalyticsInjector() {
             s.src = `https://www.googletagmanager.com/gtm.js?id=${normalizedGtmContainerId}`;
             document.head.appendChild(s);
           }
+          // Real-visitor tap responsiveness (INP), forwarded by GTM like the
+          // booking events. Lazy chunk, so it never delays the page.
+          startInpReporting().catch(() => { });
         }
         // GA4 (only if GTM not set — avoid double-counting)
         if (normalizedGa4MeasurementId && ga4Pattern.test(normalizedGa4MeasurementId) && !normalizedGtmContainerId) {
