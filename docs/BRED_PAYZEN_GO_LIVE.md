@@ -11,6 +11,11 @@ the BRED merchant/PayZen setup below.
 [`SECURITY_HANDOVER`](./SECURITY_HANDOVER.md),
 [`PAYMENT_SANDBOX_TESTING`](./PAYMENT_SANDBOX_TESTING.md).
 
+> **Not a developer?** Start with the plain-language
+> [`BRED_PAYZEN_BANK_SETUP_SHEET.md`](./BRED_PAYZEN_BANK_SETUP_SHEET.md) — the settings to
+> give BRED, what to ask BRED for, and where to enter the details in Admin → Payments.
+> This runbook is the technical/operator companion.
+
 ---
 
 ## 0. People and roles
@@ -53,6 +58,7 @@ What already exists in the repository:
 | `shared/gateway-schemas.ts` | That schema (and the other gateways' schemas) shared by the admin form, its client-side check and the server save route. |
 | `server/lib/csp-form-action.ts` | `form-action` CSP allowlist; follows the saved PayZen `paymentUrl` automatically. |
 | `client/src/pages/admin/payments.tsx` | Admin credentials form for the BRED (PayZen) gateway; `mode` is a TEST/PRODUCTION dropdown. |
+| [`BRED_PAYZEN_BANK_SETUP_SHEET.md`](./BRED_PAYZEN_BANK_SETUP_SHEET.md) | Owner-facing one-pager: settings to give BRED, checklist, admin steps and ready-to-send messages. |
 | `server/application/payment.routes.payzen.test.ts`, `payzen-signature.test.ts`, `payzen.adapter.test.ts` | Tests for signature, form and IPN. |
 
 ---

@@ -72,6 +72,9 @@ Refer to the following documents for production protocols:
   any access/handover (the repo must be private; secrets must be rotated).
 - **[Deployment Guide](./docs/deployment_guide.md)**: Render + Neon setup and the
   full environment list.
+- **[BRED Bank Setup Sheet](./docs/BRED_PAYZEN_BANK_SETUP_SHEET.md)**: plain-language,
+  owner-facing — the settings to send BRED, what to ask BRED for, and where to enter
+  the details in Admin → Payments.
 - **[BRED PayZen Go-Live](./docs/BRED_PAYZEN_GO_LIVE.md)**: card-payment runbook,
   BRED checklist and reply-e-mail draft.
 - **[Fixes Changelog](./docs/FIXES_CHANGELOG.md)**: Audit record and reliability improvements.

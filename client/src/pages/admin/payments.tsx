@@ -18,10 +18,10 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, CreditCard, Settings, Check, AlertTriangle, Info, ExternalLink } from "lucide-react";
+import { Loader2, CreditCard, Settings, Check, AlertTriangle, Info, ExternalLink, Copy } from "lucide-react";
 import { z } from "zod";
 import { GATEWAY_SCHEMAS } from "@shared/gateway-schemas";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -47,6 +47,76 @@ const getCategoryName = (categoryKey: string) => {
         default: return 'Other Gateways';
     }
 };
+
+// The PayZen notification (IPN) endpoint. The full URL is derived from the current
+// site origin, so an owner on production sees the production address and one on
+// staging sees the staging address — they never have to construct it by hand.
+const BRED_NOTIFICATION_PATH = '/api/payments/webhook/bred-bank';
+
+/**
+ * Copy-only "Notification URL (for BRED)" panel shown in the BRED Configure dialog.
+ * The owner does not need to understand IPN: they copy this address and send it to
+ * BRED (or BRED sets it in the PayZen Back Office). It is not a page to open.
+ */
+function BredNotificationUrl() {
+    const { toast } = useToast();
+    const [notificationUrl, setNotificationUrl] = useState("");
+
+    useEffect(() => {
+        setNotificationUrl(`${window.location.origin}${BRED_NOTIFICATION_PATH}`);
+    }, []);
+
+    const copyNotificationUrl = async () => {
+        try {
+            await navigator.clipboard.writeText(notificationUrl);
+            toast({
+                title: "Copied",
+                description: "Notification URL copied — paste it into the message to BRED.",
+            });
+        } catch {
+            toast({
+                title: "Copy failed",
+                description: "Select the address in the box and copy it with Ctrl/Cmd+C.",
+                variant: "destructive",
+            });
+        }
+    };
+
+    return (
+        <div className="rounded-lg border border-border bg-muted/40 p-3 space-y-2">
+            <Label htmlFor="bred-notification-url">Notification URL (for BRED)</Label>
+            <p className="text-xs text-muted-foreground">
+                This is the address where PayZen sends the payment result. BRED may call it the
+                "IPN" or "notification" URL. It is not a page to open — copy it exactly. Use the
+                same address for the TEST and PRODUCTION shops.
+            </p>
+            <div className="flex gap-2">
+                <Input
+                    id="bred-notification-url"
+                    readOnly
+                    value={notificationUrl}
+                    aria-label="Notification URL for BRED"
+                    className="font-mono text-xs"
+                    onFocus={(e) => e.currentTarget.select()}
+                />
+                <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={copyNotificationUrl}
+                    className="shrink-0"
+                >
+                    <Copy className="h-4 w-4 mr-1" />
+                    Copy
+                </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+                Set it in the PayZen Back Office (BRED can do that), or send it to Michael Dan at
+                BRED. Mark configures this during go-live.
+            </p>
+        </div>
+    );
+}
 
 export default function AdminPayments() {
     const { t } = useTranslation();
@@ -345,6 +415,8 @@ export default function AdminPayments() {
                             </div>
                         ) : (
                             <>
+                                {/* BRED/PayZen: copy-only notification URL for the owner to give BRED. */}
+                                {selectedGateway?.slug === 'bred-bank' && <BredNotificationUrl />}
                                 {selectedGateway && GATEWAY_SCHEMAS[selectedGateway.slug]?.credentials && (
                                     <>
                                         <h4 className="font-semibold text-base sticky top-0 bg-background py-1">{t("payments.credentials")}</h4>
