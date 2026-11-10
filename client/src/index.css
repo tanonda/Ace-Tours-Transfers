@@ -45,6 +45,17 @@
   --font-script: "Caveat", cursive;
   /* Bold brush lettering for the hero greeting */
   --font-brush: "Kaushan Script", "Caveat", cursive;
+
+  /* Motion language. One family of curves for the whole product:
+     - ease-out-quint  : one-shot UI (fades, reveals, hover) — decelerates hard, no bounce
+     - ease-apple      : exit/enter on sheets and drawers — the Apple "settle" curve
+     - ease-press      : pointer-down feedback — fast enough to feel instant
+     A spring is preferred for anything the user can grab (drag, sheet dismiss);
+     these curves cover the rest. Durations stay in the 120–320ms band: above
+     ~400ms a transition starts to feel like waiting for the interface. */
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-apple: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-press: cubic-bezier(0.2, 0, 0, 1);
 }
 
 :root {
@@ -221,7 +232,14 @@
   body {
     @apply font-sans antialiased bg-background text-foreground;
     font-size: 16px; /* Base size for rem calculations */
-    line-height: 1.6;
+    line-height: 1.55;
+    /* Headline size is fluid, so optical sizing + text-wrap keep ragging sane
+       without hand-tuning every breakpoint. */
+    font-optical-sizing: auto;
+  }
+
+  p {
+    text-wrap: pretty;
   }
 
   h1,
@@ -232,25 +250,44 @@
   h6 {
     /* DM Serif Display ships one weight; a forced bold would be faux-bolded. */
     @apply font-serif font-normal;
-    line-height: 1.15;
+    /* Leading and tracking are size-specific (Apple: "tracking is not one value
+       for all sizes"). Big display type wants tight leading and negative
+       tracking; small headings want a looser line so descenders clear. */
+    font-optical-sizing: auto;
+    text-wrap: balance;
   }
-  
+
   /* Typography Scale - Luxury Travel Standard */
   h1 {
     font-size: clamp(2.25rem, 5vw, 4.5rem); /* 36px - 72px */
+    line-height: 1.04;
+    letter-spacing: -0.022em;
   }
   h2 {
     font-size: clamp(1.75rem, 4vw, 3rem); /* 28px - 48px */
+    line-height: 1.08;
+    letter-spacing: -0.018em;
   }
   h3 {
     font-size: clamp(1.25rem, 2.5vw, 1.75rem); /* 20px - 28px */
+    line-height: 1.16;
+    letter-spacing: -0.01em;
   }
   h4 {
     font-size: clamp(1.125rem, 2vw, 1.5rem); /* 18px - 24px */
+    line-height: 1.28;
+    letter-spacing: 0;
   }
-  
-  /* Minimum text size enforcement for legibility */
-  p, span, li, label, a {
+  h5,
+  h6 {
+    line-height: 1.32;
+    letter-spacing: 0;
+  }
+
+  /* Minimum text size for readability. Only applies to block-level copy:
+     inline spans and links inherit their parent's size, so small-type
+     components (badges, eyebrows, table cells) keep the size they ask for. */
+  p, li, label {
     font-size: max(0.9375rem, 1em); /* Never below 15px */
   }
   
@@ -312,9 +349,137 @@
   font-weight: 500;
 }
 
-/* Reduced motion support */
-@media (prefers-reduced-motion: reduce) {
+/* ─── Interaction & material layer ───────────────────────────────────────────
+   Two ideas borrowed from Apple, translated to the web:
+   1. Feedback happens on pointer-down and stays continuous — never only at the
+      end of a gesture.
+   2. Chrome (header, tab bar, menus, sheets) is a translucent functional layer
+      with content scrolling underneath, not an opaque strip that eats a band
+      of the page.
+   Both degrade deliberately for reduced-transparency / reduced-motion users. */
 
+:root {
+  color-scheme: light;
+}
+
+.dark {
+  color-scheme: dark;
+}
+
+/* No grey flash on iOS taps. `touch-action: manipulation` removes the historic
+   300ms delay where the viewport meta doesn't. */
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
+a,
+button,
+[role="button"],
+input,
+select,
+textarea,
+summary,
+label {
+  touch-action: manipulation;
+}
+
+/* One press-feedback recipe for clickable surfaces that are not <Button>
+   (cards, tab items, chips): scale down on pointer-down, commit instantly,
+   release without a lingering tween. */
+.press {
+  transition: transform 120ms var(--ease-press);
+}
+
+.press:active {
+  transform: scale(0.98);
+}
+
+/* Translucent chrome: header, bottom tab bar, toolbars.
+   Bigger surfaces read as thicker — stronger blur than a small chip — and the
+   1px top highlight is "light catching the material", which is what stops a
+   blurred bar reading as a flat tinted rectangle. */
+.material-chrome {
+  background-color: hsl(var(--background) / 0.82);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.45);
+}
+
+.dark .material-chrome {
+  background-color: hsl(var(--background) / 0.72);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
+}
+
+/* Floating panels (menus, popovers, sheets, toasts): a lighter, blurrier
+   material than the chrome. Never stack one translucent panel on another —
+   use a solid surface for nested content instead, or legibility collapses. */
+.material-panel {
+  background-color: hsl(var(--popover) / 0.9);
+  -webkit-backdrop-filter: blur(28px) saturate(160%);
+  backdrop-filter: blur(28px) saturate(160%);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.5);
+}
+
+.dark .material-panel {
+  background-color: hsl(var(--popover) / 0.86);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.07);
+}
+
+/* Scroll edge, not a hard divider: content fades out where it meets floating
+   chrome. Apply under sticky/fixed bars only. */
+.scroll-edge-b {
+  background: linear-gradient(
+    to bottom,
+    hsl(var(--background) / 0.85),
+    hsl(var(--background) / 0)
+  );
+}
+
+/* Theme changes ease instead of snapping: an abrupt light↔dark flip is a
+   full-viewport brightness jump and reads as a glitch. */
+@media (prefers-reduced-motion: no-preference) {
+  body {
+    transition:
+      background-color 320ms var(--ease-out-quint),
+      color 320ms var(--ease-out-quint);
+  }
+}
+
+/* Reduce transparency: frosted surfaces become solid, hierarchy is preserved. */
+@media (prefers-reduced-transparency: reduce) {
+  .material-chrome,
+  .material-panel {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background-color: hsl(var(--background));
+  }
+
+  .material-panel {
+    border: 1px solid hsl(var(--border));
+  }
+
+  [data-slot="sheet-content"],
+  [data-slot="dialog-content"] {
+    background-color: hsl(var(--background));
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+/* Reduced motion: keep the feedback, drop the travel. Press states become a
+   contrast change instead of a scale. */
+@media (prefers-reduced-motion: reduce) {
+  .press:active {
+    transform: none;
+    opacity: 0.85;
+  }
+}
+
+/* Reduced motion support. This is the safety net for CSS-driven motion; the
+   JS-driven motion (framer-motion) opts in separately via <MotionConfig
+   reducedMotion="user"> in App.tsx. Transitions are shortened rather than
+   deleted so colour/opacity feedback that aids comprehension still lands. */
+@media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
@@ -330,6 +495,23 @@
   :root {
     --border: 25 30% 30%;
     --ring: 30 90% 40%;
+  }
+
+  /* The hero headline fades to near-transparent by design; in high-contrast
+     mode that makes the lower half of every page title unreadable. */
+  .hero-fade-text {
+    background: none;
+    -webkit-text-fill-color: #fff;
+    color: #fff;
+    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.85));
+  }
+
+  /* Chrome and panels become solid with a defined border. */
+  .material-chrome,
+  .material-panel {
+    background-color: hsl(var(--background));
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
   }
 
   button,

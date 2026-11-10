@@ -1,5 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { Home, Compass, Car, ShoppingCart, Menu } from "lucide-react";
+import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useCart } from "@/lib/cart-context";
 import { Badge } from "@/components/ui/badge";
@@ -32,7 +33,7 @@ export function MobileBottomNav({ menuContent }: MobileNavProps) {
 
     return (
         <nav
-            className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-background/95 backdrop-blur-lg border-t border-border shadow-lg"
+            className="material-chrome fixed bottom-0 left-0 right-0 z-50 border-t border-border/60 shadow-[0_-8px_30px_-12px_rgba(0,0,0,0.28)] md:hidden"
             style={{ paddingBottom: "var(--safe-area-inset-bottom)" }}
             role="navigation"
             aria-label="Mobile navigation"
@@ -42,6 +43,7 @@ export function MobileBottomNav({ menuContent }: MobileNavProps) {
                     <Link
                         key={item.href}
                         href={item.href}
+                        aria-current={isActive(item.href) ? "page" : undefined}
                         className={cn(
                             "flex flex-col items-center justify-center flex-1 h-full touch-target touch-feedback relative",
                             "transition-colors duration-200",
@@ -62,7 +64,13 @@ export function MobileBottomNav({ menuContent }: MobileNavProps) {
                         </div>
                         <span className="text-[10px] mt-1 font-medium">{item.label}</span>
                         {isActive(item.href) && (
-                            <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-primary rounded-full" />
+                            // The selection indicator is one element that travels
+                            // between tabs, so the eye can follow where it went.
+                            <motion.span
+                                layoutId="bottom-nav-indicator"
+                                className="pointer-events-none absolute top-0 left-[calc(50%-1rem)] h-0.5 w-8 rounded-full bg-primary"
+                                transition={{ type: "spring", stiffness: 480, damping: 38, mass: 0.7 }}
+                            />
                         )}
                     </Link>
                 ))}

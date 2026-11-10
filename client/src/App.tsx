@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, type ComponentType } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { MotionConfig } from "framer-motion";
 import { Switch, Route } from "wouter";
 import { queryClient, ensureCsrfToken } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -411,7 +412,18 @@ function App() {
 
   return (
     <ErrorBoundary>
-      <HelmetProvider>
+      {/* One motion contract for the whole product:
+          - reducedMotion="user": honours prefers-reduced-motion for every
+            framer-motion transform (the CSS safety net cannot reach JS motion),
+            keeping opacity fades so feedback still reads.
+          - default spring: critically damped (damping 32 / stiffness 260 is a
+            damping ratio of ~1.0), so entrances settle without overshoot.
+            Components override it only when a gesture carried momentum. */}
+      <MotionConfig
+        reducedMotion="user"
+        transition={{ type: "spring", stiffness: 260, damping: 32, mass: 1 }}
+      >
+        <HelmetProvider>
         <QueryClientProvider client={queryClient}>
           <ThemeProvider>
             <TooltipProvider>
@@ -434,7 +446,8 @@ function App() {
             </TooltipProvider>
           </ThemeProvider>
         </QueryClientProvider>
-      </HelmetProvider>
+        </HelmetProvider>
+      </MotionConfig>
     </ErrorBoundary>
   );
 }

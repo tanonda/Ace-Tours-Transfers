@@ -14,7 +14,7 @@ export function ArticleCard({ article, featured = false }: { article: Article; f
     <Link
       href={`/blog/${article.slug}`}
       aria-label={`Read ${article.title}`}
-      className={`group grid min-h-full overflow-hidden rounded-[1.4rem] border border-white/10 bg-[#21180f] text-white shadow-[0_18px_60px_rgba(39,25,12,0.12)] transition duration-500 hover:-translate-y-1 hover:shadow-[0_24px_70px_rgba(39,25,12,0.22)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f59a23] focus-visible:ring-offset-4 ${
+      className={`group grid min-h-full overflow-hidden rounded-[1.4rem] border border-white/10 bg-[#21180f] text-white shadow-[0_18px_60px_rgba(39,25,12,0.12)] transition-[transform,box-shadow] duration-200 hover:-translate-y-1 hover:shadow-[0_24px_70px_rgba(39,25,12,0.22)] active:scale-[0.995] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f59a23] focus-visible:ring-offset-4 ${
         featured ? "md:grid-cols-[1.25fr_0.75fr]" : "grid-rows-[auto_1fr]"
       }`}
     >
@@ -22,7 +22,7 @@ export function ArticleCard({ article, featured = false }: { article: Article; f
         <img
           src={visual.image}
           alt={article.imageAlt || article.title}
-          className="h-full w-full object-cover transition duration-700 ease-out group-hover:scale-[1.035]"
+          className="h-full w-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.035]"
           style={{ objectPosition: visual.imagePosition }}
           loading={featured ? "eager" : "lazy"}
           fetchPriority={featured ? "high" : "auto"}

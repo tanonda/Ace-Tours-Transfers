@@ -112,7 +112,7 @@ export function ProductQuickView({ isOpen, onClose, product }: ProductQuickViewP
 
                 {/* Close button */}
                 <button onClick={onClose} aria-label={t("common.close", "Close")}
-                  className="absolute top-4 right-4 h-9 w-9 rounded-full bg-black/40 hover:bg-black/70 border border-white/10 flex items-center justify-center text-white/80 hover:text-white transition-all backdrop-blur-sm">
+                  className="absolute top-4 right-4 grid h-11 w-11 place-items-center rounded-full bg-black/40 hover:bg-black/70 border border-white/10 text-white/80 hover:text-white transition-[background-color,transform] active:scale-95 backdrop-blur-sm">
                   <X className="h-4 w-4" />
                 </button>
 
@@ -133,7 +133,7 @@ export function ProductQuickView({ isOpen, onClose, product }: ProductQuickViewP
                     <div className="flex text-primary mb-2 gap-0.5">
                       {[1, 2, 3, 4, 5].map(i => <Star key={i} className="h-4 w-4 fill-current" />)}
                     </div>
-                    <h2 className="font-serif text-2xl lg:text-3xl font-bold text-white leading-tight">{product.title}</h2>
+                    <h2 className="font-serif text-2xl lg:text-3xl font-bold text-foreground leading-tight">{product.title}</h2>
                   </div>
 
                   {/* Meta row */}
@@ -187,12 +187,12 @@ export function ProductQuickView({ isOpen, onClose, product }: ProductQuickViewP
                     </div>
                     <div className="flex justify-between text-sm mb-1.5">
                       <span className="text-muted-foreground">{shownPrice.isPackage ? t("quickView.package", "Package (whole group)") : t("quickView.adult", "Adult")}</span>
-                      <span className="text-white font-bold">{formatPriceDisplay(shownPrice.amount, currency)}</span>
+                      <span className="text-foreground font-bold">{formatPriceDisplay(shownPrice.amount, currency)}</span>
                     </div>
                     {(product.childPriceCents || 0) > 0 && (
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">{t("quickView.child", "Child (under 12)")}</span>
-                        <span className="text-white font-bold">{formatPriceDisplay(product.childPriceCents || 0, currency as any)}</span>
+                        <span className="text-foreground font-bold">{formatPriceDisplay(product.childPriceCents || 0, currency as any)}</span>
                       </div>
                     )}
                   </div>
@@ -204,19 +204,19 @@ export function ProductQuickView({ isOpen, onClose, product }: ProductQuickViewP
                     <div className="space-y-1">
                       <Label htmlFor="quick-view-adults" className="text-xs text-muted-foreground uppercase tracking-wider">{t("booking.adults", "Adults")}</Label>
                       <Input id="quick-view-adults" type="number" min="1" value={adultPax} onChange={(e) => setAdultPax(e.target.value)}
-                        className="bg-card border-primary/20 text-white h-9 focus:border-primary" />
+                        className="bg-background border-primary/20 text-foreground h-9 focus:border-primary" />
                     </div>
                     {(product.childPriceCents || 0) > 0 && (
                       <div className="space-y-1">
                         <Label htmlFor="quick-view-children" className="text-xs text-muted-foreground uppercase tracking-wider">{t("booking.children", "Children")}</Label>
                         <Input id="quick-view-children" type="number" min="0" value={childPax} onChange={(e) => setChildPax(e.target.value)}
-                          className="bg-card border-primary/20 text-white h-9 focus:border-primary" />
+                          className="bg-background border-primary/20 text-foreground h-9 focus:border-primary" />
                       </div>
                     )}
                     <div className={(product.childPriceCents || 0) > 0 ? "" : "col-span-2"}>
                       <Label htmlFor="quick-view-date" className="text-xs text-muted-foreground uppercase tracking-wider mb-1 block">{t("cart.date", "Date")}</Label>
                       <Input id="quick-view-date" type="date" required min={todayISO} value={date} onChange={(e) => setDate(e.target.value)}
-                        className="bg-card border-primary/20 text-white h-9 focus:border-primary" />
+                        className="bg-background border-primary/20 text-foreground h-9 focus:border-primary" />
                     </div>
                   </div>
                   <div className="flex gap-3">

@@ -218,13 +218,18 @@ export const SiteHeader = memo(function SiteHeader() {
       ref={headerRef}
       id="main-navigation"
       role="banner"
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled
-        ? "bg-background/95 backdrop-blur-md shadow-sm border-b border-border/50"
+      className={`fixed top-0 left-0 right-0 z-50 transition-[background-color,box-shadow] duration-300 ease-out ${isScrolled
+        ? "material-chrome shadow-sm"
         : isHome
           ? "bg-transparent"
-          : "bg-background/95 backdrop-blur-md"
+          : "material-chrome"
         }`}
     >
+      {/* Scroll edge instead of a hard divider: the page fades out under the
+          floating chrome, which reads as depth rather than as a cut line. */}
+      {isScrolled && (
+        <div aria-hidden className="scroll-edge-b pointer-events-none absolute inset-x-0 top-full h-6" />
+      )}
       <div className={`transition-all duration-300 ${isScrolled ? "hidden" : "block"}`}>
         <div className={`container mx-auto px-4 py-2 flex flex-col md:flex-row items-center justify-between text-sm ${isTransparent ? "text-white/90" : "text-muted-foreground"}`}>
           <p className={`italic font-medium ${isTransparent ? "text-white" : "text-foreground"}`}>
@@ -272,9 +277,13 @@ export const SiteHeader = memo(function SiteHeader() {
           </SheetTrigger>
           <SheetContent
             side="left"
+            hideCloseButton
             className="w-[85vw] max-w-[320px] p-0 overflow-hidden"
             data-testid="mobile-menu-panel"
           >
+            <SheetHeader className="sr-only">
+              <SheetTitle>{t("nav.menu", "Menu")}</SheetTitle>
+            </SheetHeader>
             <div className="bg-primary text-white p-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <img

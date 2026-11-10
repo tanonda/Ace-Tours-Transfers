@@ -50,9 +50,12 @@ export function PageHero({
 }) {
   const heading = (
     <motion.div
-      initial={{ opacity: 0, y: 18 }}
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.8, ease: "easeOut" }}
+      // Critically damped spring (no overshoot): a hero should settle, not bounce.
+      // The y-offset is small on purpose — motion telegraphs the direction of
+      // arrival without delaying the words.
+      transition={{ type: "spring", stiffness: 240, damping: 32, mass: 0.9 }}
       className="text-white"
     >
       {/* Kicker and headline form ONE heading, so search engines read the full phrase
@@ -116,9 +119,9 @@ export function PageHero({
           <div className="flex w-full flex-col items-center md:flex-row md:items-center md:justify-center md:gap-12">
             {heading}
             <motion.div
-              initial={{ opacity: 0, y: 18 }}
+              initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}
+              transition={{ type: "spring", stiffness: 240, damping: 32, delay: 0.12 }}
               className="mt-6 shrink-0 md:mt-0"
             >
               <HeroShort short={short} />
@@ -130,9 +133,12 @@ export function PageHero({
 
         {children && (
           <motion.div
-            initial={{ opacity: 0, y: 24 }}
+            initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.9, delay: 0.25, ease: [0.23, 1, 0.32, 1] }}
+            // The booking widget is the conversion surface: it arrives with the
+            // headline, not a second later. Delay is 80ms — enough to read as a
+            // sequence, short enough not to feel waited on.
+            transition={{ type: "spring", stiffness: 240, damping: 32, delay: 0.08 }}
             // On laptops the floating social/WhatsApp buttons sit at the right edge; keep the
             // widget clear of them until the screen is wide enough to leave a natural margin.
             className="z-20 mt-8 w-full text-left md:mt-10 md:pr-20 min-[1500px]:pr-0"

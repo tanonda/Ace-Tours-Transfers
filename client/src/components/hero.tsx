@@ -178,13 +178,13 @@ function CounterRow({
         </div>
         <p className="text-[13px] text-gray-400 mt-0.5">{sub}</p>
       </div>
-      <div className="flex items-center gap-3 shrink-0">
+      <div className="flex items-center gap-2 shrink-0">
         <button
           type="button"
           onClick={onDec}
           disabled={value <= min}
           aria-label={`Decrease ${label}`}
-          className="h-8 w-8 rounded-full border border-gray-300 flex items-center justify-center text-gray-600 hover:border-gray-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          className="relative h-11 w-11 rounded-full border border-gray-300 flex items-center justify-center text-gray-600 hover:border-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-[background-color,border-color,transform] duration-150 active:scale-90"
         >
           <Minus className="h-3.5 w-3.5" />
         </button>
@@ -196,7 +196,7 @@ function CounterRow({
           onClick={onInc}
           disabled={value >= max}
           aria-label={`Increase ${label}`}
-          className="h-8 w-8 rounded-full border border-gray-300 flex items-center justify-center text-gray-600 hover:border-gray-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          className="relative h-11 w-11 rounded-full border border-gray-300 flex items-center justify-center text-gray-600 hover:border-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-[background-color,border-color,transform] duration-150 active:scale-90"
         >
           <Plus className="h-3.5 w-3.5" />
         </button>
@@ -457,14 +457,25 @@ function SearchTabs({ activeTab, onTabChange }: SearchTabsProps) {
           aria-controls={`search-panel-${tab.id}`}
           onClick={() => onTabChange(tab.id)}
           className={cn(
-            "flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-semibold transition-all duration-200",
+            "relative flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-semibold transition-colors duration-200",
             activeTab === tab.id
-              ? "bg-white text-[#12324a] shadow-sm"
+              ? "text-[#12324a]"
               : "text-white/90 hover:text-white hover:bg-white/15"
           )}
         >
-          {tab.icon}
-          {tab.label}
+          {activeTab === tab.id && (
+            // The selected pill is a single element shared between tabs, so it
+            // slides with the tap instead of blinking in a new place.
+            <motion.span
+              layoutId="search-tab-pill"
+              className="absolute inset-0 rounded-full bg-white shadow-sm"
+              transition={{ type: "spring", stiffness: 480, damping: 38, mass: 0.7 }}
+            />
+          )}
+          <span className="relative flex items-center gap-1.5">
+            {tab.icon}
+            {tab.label}
+          </span>
         </button>
       ))}
     </div>
@@ -499,12 +510,10 @@ function SearchBar({ search }: SearchBarProps) {
         className="flex flex-col gap-3 md:flex-row md:items-end"
       >
         {/* Animated field panel */}
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.div
+        <motion.div
             key={search.activeTab}
-            initial={{ opacity: 0 }}
+            initial={false}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
             transition={{ duration: 0.12 }}
             className="grid min-w-0 flex-1 grid-cols-2 gap-3 md:flex md:flex-row md:items-end"
           >
@@ -603,8 +612,7 @@ function SearchBar({ search }: SearchBarProps) {
               </>
             )}
 
-          </motion.div>
-        </AnimatePresence>
+        </motion.div>
 
         {/*
          * Primary CTA — same height as bar, flush right.
@@ -618,7 +626,7 @@ function SearchBar({ search }: SearchBarProps) {
           aria-disabled={!search.isValid}
           title={!search.isValid ? search.validationMessage : undefined}
           className={cn(
-            "flex h-12 w-full shrink-0 items-center justify-center gap-2 rounded-lg px-8 text-[15px] font-bold text-white shadow-lg transition-colors md:w-auto",
+            "flex h-12 w-full shrink-0 items-center justify-center gap-2 rounded-lg px-8 text-[15px] font-bold text-white shadow-lg transition-[background-color,transform] duration-150 active:scale-[0.98] active:duration-100 motion-reduce:active:scale-100 md:w-auto",
             // Stays orange (dimmed) until the form is complete, so it still reads as the action on the glass.
             search.isValid ? "bg-primary hover:bg-primary/90 cursor-pointer" : "bg-primary/60 cursor-not-allowed"
           )}
