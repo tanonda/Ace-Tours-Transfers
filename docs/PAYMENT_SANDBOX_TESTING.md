@@ -43,7 +43,7 @@ in test mode.
 | `mode` | `TEST` or `PRODUCTION` (selects the key and is sent as `vads_ctx_mode`) |
 | `testKey` | the TEST signature key |
 | `productionKey` | the PRODUCTION key, issued by BRED after testing |
-| `paymentUrl` | `https://secure.payzen.eu/vads-payment/` (default) or the BRED-specific URL |
+| `paymentUrl` | `https://secure.payzen.eu/vads-payment/` (default) or the BRED-specific URL. Entering it here is enough: the `form-action` CSP allowlist follows the saved value automatically. |
 
 PayZen's test cards and 3-D Secure test profiles come from the Lyra/PayZen
 documentation and are enabled by BRED on the test shop.

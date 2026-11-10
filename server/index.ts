@@ -5,7 +5,7 @@ import connectPgSimple from "connect-pg-simple";
 import { pool as neonPool, db, initializeDatabase } from "./db.js";
 import { registerRoutes } from "./routes.js";
 import { noindexApiResponses } from "./routes/seo.routes.js";
-import { formActionSources } from "./lib/csp-form-action.js";
+import { FORM_ACTION_PLACEHOLDER, applyFormActionSources, setConfiguredHostedPaymentUrl } from "./lib/csp-form-action.js";
 import { registerPrerenderStatusRoute, serveStatic } from "./static.js";
 import { createServer } from "http";
 import path from "path";
@@ -152,11 +152,26 @@ app.use(helmet({
         ...HERO_VIDEO_CSP.frameSrc, // hero Short players (click to load)
       ],
       objectSrc: ["'none'"],
-      formAction: formActionSources, // 'self' + hosted payment pages (BRED/PayZen form POST)
+      // 'self' + hosted payment pages (BRED/PayZen form POST). The placeholder is
+      // replaced per request with the live allowlist from lib/csp-form-action.ts,
+      // which follows the PayZen "Payment URL" saved in Admin → Payments.
+      formAction: ["'self'", FORM_ACTION_PLACEHOLDER],
       upgradeInsecureRequests: process.env.NODE_ENV === "production" ? [] : null,
     } as any,
   },
 }));
+// Replace the form-action sentinel in helmet's CSP header with the live allowlist
+// (site + standard PayZen page + the BRED-specific "Payment URL" when configured).
+// Reading and rewriting the header here keeps one CSP definition (helmet) while
+// still following an admin-configured payment page without a code change.
+app.use((_req, res, next) => {
+  const policy = res.getHeader("Content-Security-Policy");
+  if (typeof policy === "string") {
+    const withPaymentPages = applyFormActionSources(policy);
+    if (withPaymentPages !== policy) res.setHeader("Content-Security-Policy", withPaymentPages);
+  }
+  next();
+});
 // The site never uses these browser features; deny them so injected or third-party
 // script cannot ask for them. Payment stays available to the page and Stripe's frame.
 app.use((_req, res, next) => {
@@ -565,6 +580,21 @@ app.use((req, res, next) => {
       : '[STARTUP] payment_gateways OK — all gateways registered.');
   } catch (gwSeedErr) {
     console.warn('[STARTUP] Gateway auto-seed check failed (non-fatal):', gwSeedErr);
+  }
+
+  // ── Hosted payment page origin for CSP form-action ──────────────────────────
+  // The BRED (PayZen) adapter posts its signed form to the "Payment URL" saved in
+  // Admin → Payments. Load it so the CSP allowlist matches; saving the gateway
+  // updates it live (PUT /api/admin/payment-gateways) without a restart.
+  try {
+    const bredGateway = await storage.getPaymentGatewayBySlug("bred-bank");
+    const configuredPaymentUrl = (bredGateway?.credentials as { paymentUrl?: string } | null | undefined)?.paymentUrl;
+    setConfiguredHostedPaymentUrl(configuredPaymentUrl);
+    if (configuredPaymentUrl) {
+      console.log(`[STARTUP] CSP form-action: BRED payment page allowed (${configuredPaymentUrl}).`);
+    }
+  } catch (cspErr) {
+    console.warn('[STARTUP] Could not load the BRED payment page for CSP (non-fatal):', cspErr);
   }
 
   // Initialize Reconciliation Worker (Phase 4)

@@ -156,7 +156,7 @@ A separate manual reconciliation screen lets an admin sync/force a payment state
 - **Credentials encrypted at rest.** Gateway credentials are sealed with AES-256-GCM using a key held only in the hosting environment; a missing key means the gateway cannot run.
 - **Kill switches.** Global payments pause, card-payments pause, external-gateway disconnect and per-gateway environment switches block new payments; a kill switch never blocks resolution of money already in flight.
 - **Admin controls.** Role checks re-read from the database per request, CSRF double-submit protection, audit logging of payment/reconciliation actions, optional TOTP MFA.
-- **Transport.** HTTPS everywhere; Secure/HttpOnly/SameSite session cookies; `form-action` CSP restricted to the site and `https://secure.payzen.eu` (updated if BRED supplies a different payment page host).
+- **Transport.** HTTPS everywhere; Secure/HttpOnly/SameSite session cookies; `form-action` CSP restricted to the site, the standard PayZen page, and the payment-page origin saved in Admin → Payments (`paymentUrl`). The allowlist follows that field automatically, so pointing it at a BRED-specific page needs no code change or redeploy.
 - **Logging.** Signatures, keys and card data are never logged.
 
 ---

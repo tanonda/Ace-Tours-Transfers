@@ -37,7 +37,9 @@ Accept **BRED card payments via Lyra PayZen**:
 2. **Modes:** credentials carry `mode: TEST | PRODUCTION` plus `shopId` (8
    digits), `testKey`, optional `productionKey`, optional `paymentUrl` (blank =
    `https://secure.payzen.eu/vads-payment/`). The mode selects the key **and** is
-   sent as `vads_ctx_mode`; the IPN must match the shop ID and the mode.
+   sent as `vads_ctx_mode`; the IPN must match the shop ID and the mode. The
+   `form-action` CSP allowlist follows the saved `paymentUrl`, so a BRED-specific
+   payment page needs no code change.
 3. **Result:** server-to-server IPN at
    `https://acetoursvanuatu.com/api/payments/webhook/bred-bank`. The adapter
    verifies the shop, mode, HMAC signature and notification markers

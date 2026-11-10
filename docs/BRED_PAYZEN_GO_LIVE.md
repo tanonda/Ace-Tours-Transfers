@@ -50,7 +50,9 @@ What already exists in the repository:
 | `server/application/payment.application-service.ts` | Status transitions, amount/currency checks, refund recording. |
 | `server/application/payment-reconciliation.service.ts` | Missed-IPN recovery to `manual_review_required` + admin alert. |
 | `shared/schema.ts` → `BredBankCredentialsSchema` | Admin fields: `shopId`, `mode`, `testKey`, `productionKey`, `paymentUrl`. |
-| `client/src/pages/admin/payments.tsx` | Admin credentials form for the BRED (PayZen) gateway. |
+| `shared/gateway-schemas.ts` | That schema (and the other gateways' schemas) shared by the admin form, its client-side check and the server save route. |
+| `server/lib/csp-form-action.ts` | `form-action` CSP allowlist; follows the saved PayZen `paymentUrl` automatically. |
+| `client/src/pages/admin/payments.tsx` | Admin credentials form for the BRED (PayZen) gateway; `mode` is a TEST/PRODUCTION dropdown. |
 | `server/application/payment.routes.payzen.test.ts`, `payzen-signature.test.ts`, `payzen.adapter.test.ts` | Tests for signature, form and IPN. |
 
 ---
@@ -59,6 +61,8 @@ What already exists in the repository:
 
 1. At checkout the server creates a payment row and a **signed form POST** to the
    PayZen hosted page (`paymentUrl`, blank = `https://secure.payzen.eu/vads-payment/`).
+   The `form-action` CSP allowlist follows the saved `paymentUrl` automatically, so
+   switching to a BRED-specific page needs no code change.
    The browser POSTs it; card data never touches our server.
 2. `vads_ctx_mode` is `TEST` or `PRODUCTION` from the admin credentials; the
    matching key signs the form.
@@ -138,7 +142,8 @@ never on production first.
    - `shopId`: the 8-digit shop ID from the Back Office
    - `mode`: `TEST`
    - `testKey`: the TEST key
-   - `paymentUrl`: blank (default page) or the BRED-specific URL from point 7
+   - `paymentUrl`: blank (default page) or the BRED-specific URL from point 7. The
+     CSP allowlist picks it up on save; no code change or redeploy is needed.
    Save, then make the gateway **active**. Do **not** make it the default for
    guests yet.
 3. In the PayZen **Back Office** (test shop) set the notification/IPN URL for the

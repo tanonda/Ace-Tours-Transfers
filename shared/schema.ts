@@ -848,7 +848,12 @@ export const BredBankCredentialsSchema = z.object({
   mode: z.enum(["TEST", "PRODUCTION"]),
   testKey: z.string().min(1),
   productionKey: z.string().optional(),
-  paymentUrl: z.string().url().or(z.literal("")).optional(), // blank = https://secure.payzen.eu/vads-payment/
+  paymentUrl: z
+    .string()
+    .url()
+    .refine((u) => u.startsWith("https://"), "Payment URL must start with https://")
+    .or(z.literal(""))
+    .optional(), // blank = https://secure.payzen.eu/vads-payment/
 });
 
 // BSP Bank Credentials Schema — built on MPGS like ANZ; BSP must confirm its platform.

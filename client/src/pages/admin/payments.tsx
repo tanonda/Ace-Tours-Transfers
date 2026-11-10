@@ -19,47 +19,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, CreditCard, Settings, Check, AlertTriangle, Info, ExternalLink } from "lucide-react";
-import {
-    AnzEGateCredentialsSchema,
-    BredBankCredentialsSchema,
-    BspBankCredentialsSchema,
-    NbvBankCredentialsSchema,
-    StripeCredentialsSchema,
-    StripeConfigSchema,
-    GooglePayCredentialsSchema,
-    ApplePayCredentialsSchema,
-    PayPalCredentialsSchema,
-    MastercardGatewayCredentialsSchema,
-    WanTokCredentialsSchema,
-    DigicelMobileMoneyCredentialsSchema,
-    KwikPayCredentialsSchema,
-    LocalEWalletConfigSchema,
-    LocalBankConfigSchema,
-    DigitalWalletConfigSchema,
-    InternationalFallbackConfigSchema,
-} from "@shared/schema";
 import { z } from "zod";
+import { GATEWAY_SCHEMAS } from "@shared/gateway-schemas";
 import { useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-
-
-// Helper to map gateway slugs to their respective Zod schemas
-const gatewaySchemas: Record<string, { credentials?: z.ZodObject<any>, config?: z.ZodObject<any> }> = {
-    'anz-egate': { credentials: AnzEGateCredentialsSchema, config: undefined }, // MPGS Hosted Checkout: mode, gateway URL, test + production merchant/API password
-    'bsp-bank': { credentials: BspBankCredentialsSchema, config: undefined }, // MPGS Hosted Checkout, same fields as ANZ
-    'nbv-bank': { credentials: NbvBankCredentialsSchema, config: undefined }, // MPGS Hosted Checkout, same fields as ANZ
-    'bred-bank': { credentials: BredBankCredentialsSchema, config: undefined }, // Lyra PayZen: shop ID, mode, keys
-    'stripe': { credentials: StripeCredentialsSchema, config: StripeConfigSchema },
-    'google-pay': { credentials: GooglePayCredentialsSchema, config: DigitalWalletConfigSchema },
-    'apple-pay': { credentials: ApplePayCredentialsSchema, config: DigitalWalletConfigSchema },
-    'paypal': { credentials: PayPalCredentialsSchema, config: InternationalFallbackConfigSchema },
-    'wantok-money': { credentials: WanTokCredentialsSchema, config: LocalEWalletConfigSchema },
-    'digicel-mobile-money': { credentials: DigicelMobileMoneyCredentialsSchema, config: LocalEWalletConfigSchema },
-    'kwikpay': { credentials: KwikPayCredentialsSchema, config: LocalEWalletConfigSchema },
-    'manual_transfer': { credentials: undefined, config: undefined },
-    'cash': { credentials: undefined, config: undefined },
-};
 
 // Define categorization for gateways based on their slug
 const GATEWAY_CATEGORIES = {
@@ -169,8 +133,8 @@ export default function AdminPayments() {
         setConfigErrors({});
 
         let hasError = false;
-        const currentCredentialsSchema = gatewaySchemas[selectedGateway.slug]?.credentials;
-        const currentConfigSchema = gatewaySchemas[selectedGateway.slug]?.config;
+        const currentCredentialsSchema = GATEWAY_SCHEMAS[selectedGateway.slug]?.credentials;
+        const currentConfigSchema = GATEWAY_SCHEMAS[selectedGateway.slug]?.config;
 
         let validatedCredentials = credentials;
         if (currentCredentialsSchema) {
@@ -374,21 +338,28 @@ export default function AdminPayments() {
                     </DialogHeader>
 
                     <div className="space-y-4 py-2">
-                        {!selectedGateway || (!gatewaySchemas[selectedGateway?.slug]?.credentials && !gatewaySchemas[selectedGateway?.slug]?.config) ? (
+                        {!selectedGateway || (!GATEWAY_SCHEMAS[selectedGateway?.slug]?.credentials && !GATEWAY_SCHEMAS[selectedGateway?.slug]?.config) ? (
                             <div className="text-center py-6">
                                 <Info className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
                                 <p className="text-muted-foreground">This payment method requires no specific credentials. Settings for bank accounts or instructions can be managed in the main Settings page.</p>
                             </div>
                         ) : (
                             <>
-                                {selectedGateway && gatewaySchemas[selectedGateway.slug]?.credentials && (
+                                {selectedGateway && GATEWAY_SCHEMAS[selectedGateway.slug]?.credentials && (
                                     <>
                                         <h4 className="font-semibold text-base sticky top-0 bg-background py-1">{t("payments.credentials")}</h4>
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                             {/* ... (inside the map for credentials) */}
-                                            {Object.keys(gatewaySchemas[selectedGateway.slug].credentials!.shape).map(key => {
+                                            {Object.keys(GATEWAY_SCHEMAS[selectedGateway.slug].credentials!.shape).map(key => {
                                                 const fieldError = credentialsErrors[key];
                                                 const label = key.split(/(?=[A-Z])/).map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ');
+                                                // Enum fields (PayZen/MPGS mode = TEST | PRODUCTION) are a
+                                                // dropdown, never free text: a typed "admin@..." would be
+                                                // rejected by the schema and break checkout.
+                                                const fieldSchema = GATEWAY_SCHEMAS[selectedGateway.slug].credentials!.shape[key];
+                                                const enumOptions = fieldSchema instanceof z.ZodEnum
+                                                    ? (fieldSchema.options as string[])
+                                                    : null;
 
                                                 return (
                                                     <div className={`space-y-2 ${key === 'instructions' ? 'sm:col-span-2' : ''}`} key={key}>
@@ -396,16 +367,40 @@ export default function AdminPayments() {
                                                         {key === 'instructions' ? (
                                                             <Textarea
                                                                 id={key}
+                                                                autoComplete="off"
+                                                                spellCheck={false}
                                                                 value={credentials[key] || ""}
                                                                 onChange={(e) => handleCredentialChange(key, e.target.value)}
                                                                 placeholder={`Enter ${label.toLowerCase()}`}
                                                                 className={fieldError ? "border-destructive" : ""}
                                                                 rows={4}
                                                             />
+                                                        ) : enumOptions ? (
+                                                            <Select
+                                                                // A legacy value that is not one of the enum
+                                                                // options (e.g. a saved e-mail) shows as empty
+                                                                // so the admin must pick a valid option.
+                                                                value={enumOptions.includes(credentials[key]) ? credentials[key] : ""}
+                                                                onValueChange={(value) => handleCredentialChange(key, value)}
+                                                            >
+                                                                <SelectTrigger id={key} className={fieldError ? "border-destructive" : ""}>
+                                                                    <SelectValue placeholder={`Select ${label.toLowerCase()}`} />
+                                                                </SelectTrigger>
+                                                                <SelectContent>
+                                                                    {enumOptions.map(option => (
+                                                                        <SelectItem key={option} value={option}>{option}</SelectItem>
+                                                                    ))}
+                                                                </SelectContent>
+                                                            </Select>
                                                         ) : (
                                                             <Input
                                                                 id={key}
                                                                 type={isPasswordField(key) ? "password" : "text"}
+                                                                // No browser/password-manager autofill: a saved
+                                                                // admin e-mail or password must never land in a
+                                                                // credential field (it did happen in "Mode").
+                                                                autoComplete={isPasswordField(key) ? "new-password" : "off"}
+                                                                spellCheck={false}
                                                                 value={credentials[key] || ""}
                                                                 onChange={(e) => handleCredentialChange(key, e.target.value)}
                                                                 placeholder={`Enter ${label.toLowerCase()}`}
@@ -419,11 +414,11 @@ export default function AdminPayments() {
                                         </div>
                                     </>
                                 )}
-                                {selectedGateway && gatewaySchemas[selectedGateway.slug]?.config && (
+                                {selectedGateway && GATEWAY_SCHEMAS[selectedGateway.slug]?.config && (
                                     <>
                                         <h4 className="font-semibold text-base mt-4 sticky top-0 bg-background py-1">{t("payments.config")}</h4>
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                            {Object.keys(gatewaySchemas[selectedGateway.slug].config!.shape).map(key => {
+                                            {Object.keys(GATEWAY_SCHEMAS[selectedGateway.slug].config!.shape).map(key => {
                                                 const fieldError = configErrors[key];
                                                 return (
                                                     <div className="space-y-2" key={key}>
@@ -431,6 +426,8 @@ export default function AdminPayments() {
                                                         <Input
                                                             id={`config-${key}`}
                                                             type="text"
+                                                            autoComplete="off"
+                                                            spellCheck={false}
                                                             value={config[key] || ""}
                                                             onChange={(e) => handleConfigChange(key, e.target.value)}
                                                             placeholder={`Enter ${key.split(/(?=[A-Z])/).map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ')}`}

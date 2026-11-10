@@ -13,6 +13,8 @@ import { PaymentStatus, WebhookResponse } from "../domain/payments/interfaces.js
 import { MpgsHostedCheckoutAdapter, isMpgsGateway, parseMpgsSessionId, renderMpgsLaunchPage } from "../infrastructure/payments/mpgs.adapter.js";
 import { signBookingReceiptToken } from "../lib/receipt-token.js";
 import { isSupportedWebhookGateway, parseWebhookBody, wantsTextWebhookReply, webhookSignature } from "./webhook-body.js";
+import { GATEWAY_SCHEMAS } from "../../shared/gateway-schemas.js";
+import { setConfiguredHostedPaymentUrl } from "../lib/csp-form-action.js";
 
 const paymentLimiter = rateLimit({
   windowMs: 60 * 1000,
@@ -391,7 +393,43 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
       }
       // Fetch before-state for diff
       const before = await storage.getPaymentGateway(req.params.id);
+      if (!before) {
+        return res.status(404).json({ error: "Payment gateway not found" });
+      }
+
+      // Validate credentials/config with the gateway's own schema. The admin form
+      // does this client-side, but the API must not accept a value the adapter will
+      // reject later (for example an e-mail address in PayZen's TEST/PRODUCTION mode).
+      const gatewaySchema = GATEWAY_SCHEMAS[before.slug];
+      if (parsed.data.credentials && gatewaySchema?.credentials) {
+        const credentials = gatewaySchema.credentials.safeParse(parsed.data.credentials);
+        if (!credentials.success) {
+          return res.status(400).json({
+            error: "Invalid gateway credentials",
+            details: { fieldErrors: { credentials: credentials.error.flatten().fieldErrors } },
+          });
+        }
+        parsed.data.credentials = credentials.data;
+      }
+      if (parsed.data.config && gatewaySchema?.config) {
+        const config = gatewaySchema.config.safeParse(parsed.data.config);
+        if (!config.success) {
+          return res.status(400).json({
+            error: "Invalid gateway configuration",
+            details: { fieldErrors: { config: config.error.flatten().fieldErrors } },
+          });
+        }
+        parsed.data.config = config.data;
+      }
+
       const gateway = await storage.updatePaymentGateway(req.params.id, parsed.data);
+
+      // Follow a BRED-specific PayZen payment page in the CSP form-action allowlist,
+      // so changing the "Payment URL" field needs no code change or restart.
+      if (gateway.slug === "bred-bank") {
+        const paymentUrl = (gateway.credentials as { paymentUrl?: string } | null | undefined)?.paymentUrl;
+        setConfiguredHostedPaymentUrl(paymentUrl);
+      }
 
       // Determine action label: credentials-only save vs general update
       const hasCredentials = parsed.data.credentials && Object.keys(parsed.data.credentials).length > 0;
