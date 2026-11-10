@@ -21,3 +21,8 @@ replit.nix
 *.orig
 output*.txt
 *.zip
+
+# Local design/tooling scratch
+.tmp-design/
+.tmp-npm/
+skills-lock.json
