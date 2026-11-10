@@ -289,23 +289,24 @@ external access. In short:
 
 ## 10. Ready-to-send e-mail drafts
 
-### Who replies next
+### Current state (10 November 2026)
 
-The last message in the thread is **Saviera's 5 November 2026, 10:18 email to
-John Lew** — "Copying Marc to assist. He will be your main contact person for
-this part" — cc Mark and Jaynol Tari. Saviera has delegated the technical part to
-Mark, so **Mark is the person who must respond to John**; replying to her asking
-her to answer John would send the task back to the person who delegated it.
+Mark sent the check-in email to Savi on 9 November 2026 at 22:07 (below). Savi
+replied on 10 November: she understands the security concern, does not want to
+spend more on development at the moment, asks Mark to email John to obtain more
+information, and reports two separate issues — her admin login is not working,
+and she wants an Airbnb announcement added to the site.
 
-Before replying to John, Mark should send Savi a short business email confirming:
-(a) the arrangement/scope with John and Global Bedbank, and (b) who is recorded
-as the technical contact on BRED's e-commerce application. Then Mark replies to
-John (reply-all keeps Savi and Jaynol on cc; Michael Dan is added because the
-remaining questions are for BRED). No production files, database or credentials
-are shared; if John genuinely needs code visibility, offer a technical overview
-or a read-only snapshot instead.
+The next actions, in order:
 
-### 10.1 Email to Savi first (send now)
+1. **Mark emails John** to clarify John's role, scope and what he actually needs
+   before any access is discussed (10.4). Savi asked for this explicitly.
+2. **Mark replies to Savi** with the John update, login-reset steps and the
+   questions needed for the Airbnb announcement (10.5).
+3. Once John or BRED clarifies, Mark sends the full technical reply to John
+   (10.2) and/or the 13 setup points to Michael Dan (10.6).
+
+### 10.1 Initial check-in email to Savi (sent 9 Nov)
 
 Keep this businesslike and brief: it is a check-in with the owner, not a request
 for her to take the John reply back.
@@ -355,11 +356,12 @@ for her to take the John reply back.
 > Developer, Ace Tours & Transfers
 > markmal64@gmail.com
 
-### 10.2 Reply to John (send after Savi's guidance)
+### 10.2 Full technical reply to John (send after his clarification)
 
-Mark sends this to John, keeping Savi and Jaynol cc'd and adding Michael Dan for
-the BRED questions. If Savi asks for a different sender or wording, adjust before
-sending.
+Send this only after John has explained his role and confirmed he is working on
+the BRED/PayZen setup; Mark sends it, keeping Savi and Jaynol cc'd and adding
+Michael Dan for the BRED questions. The shorter information-gathering email in
+10.4 comes first.
 
 **From:** Mark `<markmal64@gmail.com>`
 **To:** John Lew `<john@pacificbedbank.com>`
@@ -421,7 +423,102 @@ sending.
 
 A shareable technical overview is at [`PAYZEN_TECHNICAL_OVERVIEW.md`](./PAYZEN_TECHNICAL_OVERVIEW.md) (also provided as a PDF). If John or BRED's technical team needs more than the overview, give them a **read-only snapshot** (a sanitised archive of the deployed source, no Git history, `.env`, logs, customer data or internal runbooks) rather than website files. The snapshot is read-only and can be shared under the conditions in `SECURITY_HANDOVER.md`.
 
-### 10.4 Optional separate BRED thread
+### 10.4 Email to John after Savi's 10 Nov reply
+
+Savi has now explicitly asked Mark to email John to obtain more information, and
+confirmed she does not want to spend more on development. Send this business
+email from Mark to John, cc Savi and Jaynol (do not cc Michael — this is about
+John's role, not the BRED shop setup):
+
+**From:** Mark `<markmal64@gmail.com>`
+**To:** John Lew `<john@pacificbedbank.com>`
+**Cc:** Saviera Alexis `<acetoursvanuatu@outlook.com>`; Jaynol Tari
+`<jaynol.tari-mdf@thepalladiumgroup.com>`
+**Subject:** Re: Ace Tours & Transfer Business Account Set-up
+
+> Hi John,
+>
+> I'm Mark, the developer for Ace Tours & Transfers. Savi has asked me to follow
+> up with you directly.
+>
+> Before we go further, I'd like to understand your involvement so we can respond
+> properly and avoid duplicating work. Could you clarify:
+>
+> 1. What is your role and arrangement with Ace Tours and Global Bedbank? Are you
+>    advising Savi, has Global Bedbank engaged you to work on the website or
+>    integration, or are you copied in for visibility? Is there a scope,
+>    agreement or cost arrangement in place?
+> 2. What exactly do you need website file access for? The PayZen payment
+>    integration with BRED is already built and deployed by me — hosted payment
+>    page, signed requests, bank IPN and refund recording. If your work is on the
+>    BRED/PayZen setup, the remaining items sit with BRED (Michael Dan) and do not
+>    require website files.
+> 3. If your interest is bedbank distribution or connecting inventory/booking
+>    flow, what information or access do you need, and who at Global Bedbank is
+>    driving it?
+>
+> To be clear, I'm happy to share a technical overview or a read-only snapshot of
+> the relevant code for review. What I can't do is hand over the production
+> website folder, database, credentials or customer data — that's a security and
+> privacy requirement, not a reflection on you.
+>
+> Savi is keen to start taking bookings online and is watching costs, so a short
+> call or a written scope would help us move quickly. Are you free for 20 minutes
+> this week?
+>
+> Thanks,
+> Mark
+> Developer, Ace Tours & Transfers
+> markmal64@gmail.com
+
+### 10.5 Reply to Savi on John, login and the Airbnb announcement
+
+Savi also reported that the admin login Mark provided does not work and that she
+wants an Airbnb announcement added. Reply to Savi with:
+
+**From:** Mark `<markmal64@gmail.com>`
+**To:** Saviera Alexis `<acetoursvanuatu@outlook.com>`
+**Subject:** Re: John / PayZen — login, Airbnb and next steps
+
+> Dear Savi,
+>
+> Thanks for the reply. I understand on the budget — the PayZen integration is
+> already built and deployed, so there is no further development cost for cards;
+> the only new cost would be BRED's merchant fees. We can also start taking
+> bookings online sooner by switching on bank transfer (the site currently only
+> offers cash and the bank-transfer account number is still a placeholder).
+>
+> **John:** I have emailed him as you asked, copying you and Jaynol, to clarify
+> his role and exactly what he needs before we share anything. I'll keep you
+> posted and will not send production files, the database or credentials.
+>
+> **Login:** Your admin account exists and is active (`saviera_alexis`,
+> `acetoursvanuatu@outlook.com`). The login field expects the **email address**,
+> not the username. Please try `acetoursvanuatu@outlook.com` with your password;
+> if it still fails, open `https://acetoursvanuatu.com/reset-password`, request a
+> reset link for that email, and check the inbox and spam folder — the link is
+> valid for one hour. If the email does not arrive, I can set a temporary
+> password for you. Once you are in, pricing is under Admin → Products → Pricing.
+>
+> **Airbnb:** Happy to add this. The cleanest approach is a small announcement
+> banner (on the home page or site-wide) saying something like: "Our Port Vila
+> house will be available on Airbnb from February 2027" with a link to the
+> listing. Please send the Airbnb listing URL, the exact wording you want, and
+> whether it should show on all pages or just the home page. If the listing is
+> not live yet, we can say "Coming February 2027 — enquire via WhatsApp" and add
+> the link later. It will be easy to remove or update after the launch.
+>
+> **To start bookings:** please send me the BRED account name and number from the
+> account confirmation letter (or confirm the details), and I will switch bank
+> transfer on and test a booking. I'll coordinate the PayZen shop setup with
+> Michael Dan in parallel.
+>
+> Kind regards,
+> Mark
+> Developer, Ace Tours & Transfers
+> markmal64@gmail.com
+
+### 10.6 Optional separate BRED thread
 
 If BRED prefers a separate thread, send the same 13 points to Michael Dan with
 Savi cc'd, and keep the John reply short: explain that the integration is already
