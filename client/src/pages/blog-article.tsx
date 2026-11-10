@@ -172,7 +172,7 @@ export default function BlogArticle() {
             <div className="absolute inset-x-0 bottom-0 -z-10 h-2/3 bg-[radial-gradient(ellipse_at_30%_100%,rgba(205,104,19,0.2),transparent_55%)]" />
 
             <div className="container mx-auto px-4 pb-10 text-white sm:px-6 sm:pb-14 lg:px-8 lg:pb-16">
-              <Link href="/blog" className="mb-7 hidden min-h-11 items-center gap-2 rounded-full border border-white/25 bg-black/20 px-4 text-sm font-bold text-white backdrop-blur-sm transition hover:bg-white hover:text-[#271a11] sm:inline-flex">
+              <Link href="/blog" className="press mb-7 hidden min-h-11 items-center gap-2 rounded-full border border-white/25 bg-black/20 px-4 text-sm font-bold text-white backdrop-blur-sm hover:bg-white hover:text-[#271a11] sm:inline-flex">
                 <ArrowLeft className="h-4 w-4" aria-hidden="true" /> All travel guides
               </Link>
 
@@ -191,7 +191,7 @@ export default function BlogArticle() {
           </header>
 
           <div className="container mx-auto px-4 py-10 sm:px-6 sm:py-14 lg:px-8 lg:py-20">
-            <Link href="/blog" className="mb-5 inline-flex min-h-11 items-center gap-2 rounded-full border border-[#d8cbb6] bg-white/60 px-4 text-sm font-bold text-[#2b1d13] dark:border-white/10 dark:bg-white/5 dark:text-white sm:hidden">
+            <Link href="/blog" className="press mb-5 inline-flex min-h-11 items-center gap-2 rounded-full border border-[#d8cbb6] bg-white/60 px-4 text-sm font-bold text-[#2b1d13] dark:border-white/10 dark:bg-white/5 dark:text-white sm:hidden">
               <ArrowLeft className="h-4 w-4" aria-hidden="true" /> All travel guides
             </Link>
             {prepared.outline.length > 0 ? <GuideOutline items={prepared.outline} mobile /> : null}
@@ -217,7 +217,7 @@ export default function BlogArticle() {
                       <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#ffc36f]">A local route, shaped around you</p>
                       <h2 className="mt-2 font-serif text-2xl font-bold leading-tight text-white sm:text-3xl">Want help turning this guide into your day?</h2>
                       <p className="mt-3 max-w-[55ch] leading-7 text-white/72">Tell us where you are staying, who you are travelling with, and what you do not want to rush.</p>
-                      <Link href="/contact" className="mt-6 inline-flex min-h-12 items-center gap-2 rounded-full bg-[#ffad3d] px-5 font-bold text-[#25180f] transition hover:bg-[#ffc978]">
+                      <Link href="/contact" className="press mt-6 inline-flex min-h-12 items-center gap-2 rounded-full bg-[#ffad3d] px-5 font-bold text-[#25180f] hover:bg-[#ffc978]">
                         Plan with Ace Tours <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
                       </Link>
                     </div>
@@ -246,8 +246,8 @@ export default function BlogArticle() {
                 <p className="mt-2 max-w-[32ch] font-serif text-3xl font-bold leading-tight">More local knowledge, fewer rushed island days.</p>
               </div>
               <div className="flex flex-col gap-3 sm:flex-row">
-                <Link href="/blog" className="inline-flex min-h-12 items-center justify-center rounded-full border border-white/20 px-5 font-bold text-white transition hover:bg-white hover:text-[#21160e]">More guides</Link>
-                <Link href="/tours" className="inline-flex min-h-12 items-center justify-center rounded-full bg-[#ffad3d] px-5 font-bold text-[#21160e] transition hover:bg-[#ffc978]">Browse tours</Link>
+                <Link href="/blog" className="press inline-flex min-h-12 items-center justify-center rounded-full border border-white/20 px-5 font-bold text-white hover:bg-white hover:text-[#21160e]">More guides</Link>
+                <Link href="/tours" className="press inline-flex min-h-12 items-center justify-center rounded-full bg-[#ffad3d] px-5 font-bold text-[#21160e] hover:bg-[#ffc978]">Browse tours</Link>
               </div>
             </div>
           </footer>

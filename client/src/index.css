@@ -385,13 +385,24 @@ label {
 
 /* One press-feedback recipe for clickable surfaces that are not <Button>
    (cards, tab items, chips): scale down on pointer-down, commit instantly,
-   release without a lingering tween. */
+   release without a lingering tween.
+   - Uses the individual `scale` property so it composes with Tailwind's
+     `translate` (hover lifts) instead of overwriting `transform`.
+   - This rule is unlayered, so it beats Tailwind `transition-*` utilities on
+     the same element; it therefore also carries the lift and shadow timing.
+   - A press on a nested control (the card's own button or link) belongs to
+     that control, so the surface around it stays still. */
 .press {
-  transition: transform 120ms var(--ease-press);
+  transition:
+    scale 120ms var(--ease-press),
+    translate 200ms var(--ease-out-quint),
+    box-shadow 200ms var(--ease-out-quint),
+    background-color 150ms ease-out,
+    color 150ms ease-out;
 }
 
-.press:active {
-  transform: scale(0.98);
+.press:active:not(:has(button:active, a:active, [role="button"]:active)) {
+  scale: 0.98;
 }
 
 /* Translucent chrome: header, bottom tab bar, toolbars.
@@ -469,8 +480,8 @@ label {
 /* Reduced motion: keep the feedback, drop the travel. Press states become a
    contrast change instead of a scale. */
 @media (prefers-reduced-motion: reduce) {
-  .press:active {
-    transform: none;
+  .press:active:not(:has(button:active, a:active, [role="button"]:active)) {
+    scale: none;
     opacity: 0.85;
   }
 }

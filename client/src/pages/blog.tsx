@@ -93,7 +93,7 @@ export default function Blog() {
               <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#b86412] dark:text-[#ffb552]">Local help, when you need it</p>
               <h2 className="mt-2 max-w-[25ch] text-balance font-serif text-3xl font-bold leading-tight sm:text-4xl">Turn a saved guide into a day worth remembering.</h2>
             </div>
-            <Link href="/contact" className="inline-flex min-h-12 items-center justify-center rounded-full bg-[#2a1d13] px-6 font-bold text-white transition hover:bg-[#b86412] dark:bg-[#f2992e] dark:text-[#21160d] dark:hover:bg-[#ffc36f]">
+            <Link href="/contact" className="press inline-flex min-h-12 items-center justify-center rounded-full bg-[#2a1d13] px-6 font-bold text-white hover:bg-[#b86412] dark:bg-[#f2992e] dark:text-[#21160d] dark:hover:bg-[#ffc36f]">
               Plan with our local team
             </Link>
           </div>

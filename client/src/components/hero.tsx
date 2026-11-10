@@ -457,7 +457,7 @@ function SearchTabs({ activeTab, onTabChange }: SearchTabsProps) {
           aria-controls={`search-panel-${tab.id}`}
           onClick={() => onTabChange(tab.id)}
           className={cn(
-            "relative flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-semibold transition-colors duration-200",
+            "press relative flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-semibold",
             activeTab === tab.id
               ? "text-[#12324a]"
               : "text-white/90 hover:text-white hover:bg-white/15"

@@ -73,7 +73,7 @@ export function HeroShort({ short }: { short: HeroShortData }) {
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="inline-flex items-center gap-2 rounded-full bg-white/90 px-4 py-2 text-sm font-semibold text-[#12324a] shadow-lg"
+          className="press inline-flex items-center gap-2 rounded-full bg-white/90 px-4 py-2 text-sm font-semibold text-[#12324a] shadow-lg"
         >
           <Play className="h-4 w-4 fill-current" />
           {label}

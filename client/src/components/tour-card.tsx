@@ -80,7 +80,7 @@ function PostcardTourCard({ tour, index }: { tour: ProductRouteProps; index: num
     >
       <Link href={detailHref} className="group block h-full">
         <article
-          className="relative h-full bg-paper p-3 pb-7 shadow-[0_22px_50px_-18px_rgba(0,0,0,0.55)] transition-transform duration-200 ease-out group-hover:-translate-y-1.5 group-active:scale-[0.99]"
+          className="press relative h-full bg-paper p-3 pb-7 shadow-[0_22px_50px_-18px_rgba(0,0,0,0.55)] group-hover:-translate-y-1.5"
           style={{ rotate: `${POSTCARD_TILT[index % POSTCARD_TILT.length]}deg` }}
         >
           <div className="aspect-[4/3] overflow-hidden bg-muted">
@@ -134,7 +134,7 @@ function TicketTourCard({ tour, index }: { tour: ProductRouteProps; index: numbe
       className="h-full"
     >
       <Link href={detailHref} className="group block h-full">
-        <article className="flex h-full flex-col bg-paper border-l-2 border-dashed border-reef/30 shadow-[0_18px_40px_-20px_rgba(18,50,74,0.35)] transition-transform duration-200 ease-out group-hover:-translate-y-1 group-active:scale-[0.99]">
+        <article className="press flex h-full flex-col bg-paper border-l-2 border-dashed border-reef/30 shadow-[0_18px_40px_-20px_rgba(18,50,74,0.35)] group-hover:-translate-y-1">
           <div className="aspect-[16/10] overflow-hidden bg-muted">
             {displayImage && (
               <img
@@ -196,7 +196,7 @@ function DefaultTourCard({ tour, index }: { tour: ProductRouteProps; index: numb
         viewport={{ once: true }}
       >
         <Card
-          className="h-full flex flex-col overflow-hidden border-none shadow-lg hover:shadow-xl transition-[box-shadow,transform] duration-200 group cursor-pointer active:scale-[0.995]"
+          className="press h-full flex flex-col overflow-hidden border-none shadow-lg hover:shadow-xl group cursor-pointer"
           onClick={() => setShowQuickView(true)}
         >
           <div className="relative aspect-video overflow-hidden bg-[#211e18]">
@@ -265,11 +265,11 @@ function DefaultTourCard({ tour, index }: { tour: ProductRouteProps; index: numb
 
               {tour.contactForPrice ? (
                 <Link href={detailHref}>
-                  <Button className="w-full font-semibold touch-target touch-feedback" size="lg">{t("tour.inquireNow", "View Details & Contact")}</Button>
+                  <Button className="w-full font-semibold touch-target" size="lg">{t("tour.inquireNow", "View Details & Contact")}</Button>
                 </Link>
               ) : (
                 <Link href={detailHref}>
-                  <Button className="w-full font-semibold touch-target touch-feedback" size="lg">{t("tour.viewDetails", "View Details")}</Button>
+                  <Button className="w-full font-semibold touch-target" size="lg">{t("tour.viewDetails", "View Details")}</Button>
                 </Link>
               )}
             </div>
