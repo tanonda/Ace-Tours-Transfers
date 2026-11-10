@@ -74,7 +74,7 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background font-sans text-foreground">
-      <header className="bg-primary text-white shadow-md py-4 relative z-20">
+      <header className="bg-primary text-primary-foreground shadow-md py-4 relative z-20">
         <div className="container mx-auto px-4 flex items-center justify-between">
           <Link href="/" className="font-serif font-bold text-xl tracking-tight">
             {t("app.title")}

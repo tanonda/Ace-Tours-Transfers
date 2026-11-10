@@ -121,7 +121,10 @@
   --popover-foreground: 38 45% 92%;
 
   --primary: 21 90% 56%;
-  --primary-foreground: 0 0% 100%;
+  /* Navy ink, not white: white on this orange is 2.9:1 (fails AA). The orange
+     can't simply be darkened, because it is also text/icon colour on the navy
+     background and needs to stay light for that (5.8:1). */
+  --primary-foreground: 206 45% 9%;
 
   --secondary: 206 30% 18%;
   --secondary-foreground: 38 45% 92%;

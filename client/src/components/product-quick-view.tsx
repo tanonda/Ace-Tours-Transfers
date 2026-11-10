@@ -104,9 +104,9 @@ export function ProductQuickView({ isOpen, onClose, product }: ProductQuickViewP
 
                 {/* Price badge */}
                 <div className="absolute top-4 left-4">
-                  <div className="bg-primary text-white font-black text-base px-4 py-1.5 rounded-full shadow-lg">
+                  <div className="bg-primary text-primary-foreground font-black text-base px-4 py-1.5 rounded-full shadow-lg">
                     {formatPriceDisplay(shownPrice.amount, currency)}
-                    <span className="text-white/70 font-normal text-xs ml-1">{shownPrice.isPackage ? "/ package" : "/ adult"}</span>
+                    <span className="text-primary-foreground/70 font-normal text-xs ml-1">{shownPrice.isPackage ? "/ package" : "/ adult"}</span>
                   </div>
                 </div>
 
@@ -220,7 +220,7 @@ export function ProductQuickView({ isOpen, onClose, product }: ProductQuickViewP
                     </div>
                   </div>
                   <div className="flex gap-3">
-                    <Button onClick={handleAddToCart} disabled={!dateValid} title={dateValid ? undefined : "Choose a date first"} className="flex-1 bg-primary hover:bg-primary text-white font-bold h-11 rounded-xl shadow-[0_4px_16px_hsl(var(--primary) / 0.35)]">
+                    <Button onClick={handleAddToCart} disabled={!dateValid} title={dateValid ? undefined : "Choose a date first"} className="flex-1 bg-primary hover:bg-primary text-primary-foreground font-bold h-11 rounded-xl shadow-[0_4px_16px_hsl(var(--primary) / 0.35)]">
                       <ShoppingCart className="mr-2 h-4 w-4" />
                       {t("cart.addToCart", "Add to Cart")}
                     </Button>

@@ -105,7 +105,7 @@ export function SocialWidget({ side = "right" }: { side?: "left" | "right" }) {
           aria-expanded={isOpen}
           aria-controls="social-widget-menu"
           aria-label={isOpen ? t("social.close", "Close social media links") : t("social.open", "Follow or contact Ace Tours")}
-          className="grid size-14 place-items-center rounded-full bg-primary text-white shadow-lg ring-2 ring-white/70 transition-[transform,background-color] hover:scale-110 hover:bg-primary/90 active:scale-95"
+          className="grid size-14 place-items-center rounded-full bg-primary text-primary-foreground shadow-lg ring-2 ring-white/70 transition-[transform,background-color] hover:scale-110 hover:bg-primary/90 active:scale-95"
           data-testid="button-social-toggle"
         >
           {isOpen ? <X className="h-6 w-6" /> : <Share2 className="h-6 w-6" />}

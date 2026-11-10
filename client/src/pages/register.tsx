@@ -133,7 +133,7 @@ export default function Register() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background font-sans text-foreground">
-      <header className="bg-primary text-white shadow-md py-4 relative z-20">
+      <header className="bg-primary text-primary-foreground shadow-md py-4 relative z-20">
         <div className="container mx-auto px-4 flex items-center justify-between">
           <Link href="/" className="font-serif font-bold text-xl tracking-tight">
             {t("app.title")}
@@ -302,7 +302,7 @@ export default function Register() {
               {/* Right-hand panel — unchanged */}
               <div className="hidden lg:flex flex-col space-y-8 text-white">
                 <div>
-                  <span className="bg-primary text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+                  <span className="bg-primary text-primary-foreground text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
                     {t("auth.joinCommunity")}
                   </span>
                 </div>

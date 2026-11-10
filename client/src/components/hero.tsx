@@ -299,7 +299,7 @@ function GuestsCell({
           <button
             type="button"
             onClick={() => setOpen(false)}
-            className="w-full h-10 bg-primary hover:bg-primary/90 text-white font-bold rounded-lg text-sm transition-colors"
+            className="w-full h-10 bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-lg text-sm transition-colors"
           >
             Apply
           </button>

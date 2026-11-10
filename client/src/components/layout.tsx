@@ -278,18 +278,18 @@ export const SiteHeader = memo(function SiteHeader() {
           <SheetContent
             side="left"
             hideCloseButton
-            className="w-[85vw] max-w-[320px] p-0 overflow-hidden"
+            className="flex w-[85vw] max-w-[320px] flex-col gap-0 p-0 overflow-hidden"
             data-testid="mobile-menu-panel"
           >
             <SheetHeader className="sr-only">
               <SheetTitle>{t("nav.menu", "Menu")}</SheetTitle>
             </SheetHeader>
-            <div className="bg-primary text-white p-4 flex items-center justify-between">
+            <div className="bg-primary text-primary-foreground p-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <img
                   src={logo}
                   alt="Ace Tours Logo"
-                  className="h-10 w-10 rounded-full border-2 border-white/30"
+                  className="h-10 w-10 rounded-full border-2 border-primary-foreground/30"
                 />
                 <span className="font-serif font-bold text-lg">{t("app.shortTitle", "Ace Tours")}</span>
               </div>
@@ -297,7 +297,7 @@ export const SiteHeader = memo(function SiteHeader() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="text-white hover:bg-white/20"
+                  className="text-primary-foreground hover:bg-primary-foreground/15"
                   data-testid="button-close-mobile-menu"
                 >
                   <X className="h-5 w-5" />
@@ -305,8 +305,11 @@ export const SiteHeader = memo(function SiteHeader() {
               </SheetClose>
             </div>
 
-            <div className="bg-muted/50 p-4 border-b border-border">
-              <AuthState>{({ user }) => user ? (
+            {/* Signed-in only: guest accounts are disabled (guests use their
+                reference ID in Manage Bookings), so for most visitors this
+                strip would be an empty band. */}
+            <AuthState>{({ user }) => user ? (
+              <div className="bg-muted/50 p-4 border-b border-border">
                 <div className="flex items-center gap-3">
                   <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
                     <User className="h-5 w-5 text-primary" />
@@ -321,14 +324,10 @@ export const SiteHeader = memo(function SiteHeader() {
                     </Button>
                   </Link>
                 </div>
-              ) : (
-                <div className="flex gap-2">
-                  {/* Guest accounts are disabled. Guests access via reference ID in Manage Bookings. */}
-                </div>
-              )}</AuthState>
-            </div>
+              </div>
+            ) : null}</AuthState>
 
-            <div className="overflow-y-auto h-[calc(100vh-200px)]">
+            <div className="min-h-0 flex-1 overflow-y-auto">
               <nav className="p-2">
                 <Link
                   href="/"
@@ -461,7 +460,7 @@ export const SiteHeader = memo(function SiteHeader() {
                     <span className="font-medium">{t("cart.title")}</span>
                   </div>
                   <CartCount>{(itemCount) => itemCount > 0 && (
-                    <Badge variant="default" className="bg-primary text-white">
+                    <Badge variant="default">
                       {itemCount}
                     </Badge>
                   )}</CartCount>
@@ -531,10 +530,10 @@ export const SiteHeader = memo(function SiteHeader() {
                   </a>
                 </div>
                 <div className="flex gap-3 mt-4">
-                  <a href={facebookUrl} target="_blank" rel="noopener noreferrer" className="bg-muted p-2 rounded-full hover:bg-primary hover:text-white transition-colors">
+                  <a href={facebookUrl} target="_blank" rel="noopener noreferrer" className="bg-muted p-2 rounded-full hover:bg-primary hover:text-primary-foreground transition-colors">
                     <Facebook className="h-4 w-4" />
                   </a>
-                  <a href={instagramUrl} target="_blank" rel="noopener noreferrer" aria-label="Follow us on Instagram" className="bg-muted p-2 rounded-full hover:bg-primary hover:text-white transition-colors">
+                  <a href={instagramUrl} target="_blank" rel="noopener noreferrer" aria-label="Follow us on Instagram" className="bg-muted p-2 rounded-full hover:bg-primary hover:text-primary-foreground transition-colors">
                     <Instagram className="h-4 w-4" />
                   </a>
                 </div>
@@ -670,10 +669,10 @@ const SiteFooter = memo(function SiteFooter() {
                 {footerCms.text("description", t("footer.description"))}
               </p>
               <div className="flex gap-4">
-                <a href={facebookUrl} target="_blank" rel="noopener noreferrer" className="bg-white/10 p-2 rounded-full hover:bg-primary transition-colors">
+                <a href={facebookUrl} target="_blank" rel="noopener noreferrer" className="bg-white/10 p-2 rounded-full hover:bg-primary hover:text-primary-foreground transition-colors">
                   <Facebook className="h-5 w-5" />
                 </a>
-                <a href={instagramUrl} target="_blank" rel="noopener noreferrer" aria-label="Follow us on Instagram" className="bg-white/10 p-2 rounded-full hover:bg-primary transition-colors">
+                <a href={instagramUrl} target="_blank" rel="noopener noreferrer" aria-label="Follow us on Instagram" className="bg-white/10 p-2 rounded-full hover:bg-primary hover:text-primary-foreground transition-colors">
                   <Instagram className="h-5 w-5" />
                 </a>
               </div>
