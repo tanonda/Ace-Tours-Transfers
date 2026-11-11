@@ -10,7 +10,7 @@ import { z } from "zod";
 import { adminAudit } from "../infrastructure/audit/admin-audit-log.service.js";
 import { toPublicGateway, visibleGateways, isTestModeGateway } from "./public-gateway.js";
 import { PaymentStatus, WebhookResponse } from "../domain/payments/interfaces.js";
-import { MpgsHostedCheckoutAdapter, isMpgsGateway, parseMpgsSessionId, renderMpgsLaunchPage } from "../infrastructure/payments/mpgs.adapter.js";
+import { MpgsHostedCheckoutAdapter, isMpgsGateway, parseMpgsSessionId, renderMpgsLaunchPage, mpgsLaunchCancelUrl } from "../infrastructure/payments/mpgs.adapter.js";
 import { signBookingReceiptToken } from "../lib/receipt-token.js";
 import { isSupportedWebhookGateway, parseWebhookBody, wantsTextWebhookReply, webhookSignature } from "./webhook-body.js";
 import { GATEWAY_SCHEMAS } from "../../shared/gateway-schemas.js";
@@ -188,7 +188,7 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
       const gateway = await storage.getPaymentGatewayBySlug(req.params.gateway);
       if (!gateway || !gateway.active) return res.redirect('/payment/cancel?reason=system_error');
       const adapter = new MpgsHostedCheckoutAdapter(gateway);
-      const { html, csp } = renderMpgsLaunchPage(adapter.checkoutScriptUrl, sessionId, '/payment/cancel?reason=gateway_rejected');
+      const { html, csp } = renderMpgsLaunchPage(adapter.checkoutScriptUrl, sessionId, mpgsLaunchCancelUrl(req.query.booking));
       res.set('Content-Security-Policy', csp);
       res.set('Cache-Control', 'no-store');
       res.set('Referrer-Policy', 'no-referrer');

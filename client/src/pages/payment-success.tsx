@@ -19,6 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useCMS } from "@/lib/cms-context";
 import { format } from "date-fns";
 import { bookingCompleted, trackBookingCompleted } from "@/lib/booking-analytics";
+import { checkoutResultView, isFinalCheckoutView } from "@/lib/checkout-result";
 
 const WHATSAPP_NUMBER = "6787114045";
 
@@ -61,7 +62,6 @@ export default function PaymentSuccess() {
   const accountNumber = settingText(getSetting(BANK_TRANSFER_KEYS.accountNumber)) || MISSING_ACCOUNT_NUMBER;
 
   useEffect(() => {
-    localStorage.removeItem('pendingCart');
     localStorage.removeItem('ace-tours-booking-draft');
   }, []);
 
@@ -105,7 +105,7 @@ export default function PaymentSuccess() {
     enabled: !!bookingId && bookingId !== "demo",
     refetchInterval: (query) => {
       const data = query.state.data;
-      if (data?.status === "confirmed" || data?.status === "completed") return false;
+      if (isFinalCheckoutView(checkoutResultView({ isManual, isCash, status: data?.status }))) return false;
       if (pollingTimedOut) return false;
       return 5000;
     },
@@ -127,7 +127,23 @@ export default function PaymentSuccess() {
     enabled: !!bookingId && bookingId !== "demo",
   });
 
-  const isConfirmed = booking?.status === "confirmed" || booking?.status === "completed";
+  const view = checkoutResultView({ isManual, isCash, status: booking?.status });
+  const isConfirmed = view === "confirmed";
+  const notPaid = view === "card-not-paid";
+
+  // The basket saved before leaving for the bank is only discarded once the booking
+  // is safe; if the card payment fails after all, /payment/cancel puts it back.
+  useEffect(() => {
+    if (isManual || isConfirmed) localStorage.removeItem('pendingCart');
+  }, [isManual, isConfirmed]);
+  const heading: Record<typeof view, { title: string; text: string }> = {
+    "confirmed": { title: "Booking Confirmed! 🎉", text: "Your adventure is secured — see you in beautiful Vanuatu!" },
+    "cash": { title: "You're All Set! 💚", text: "Please pay at the start of your tour or vehicle pickup." },
+    "bank-transfer": { title: "Booking Received", text: "Please complete your bank transfer to secure your booking." },
+    "card-confirming": { title: "Confirming your payment…", text: "Your bank is confirming the payment. This page updates by itself — please don't pay again." },
+    "card-not-paid": { title: "Payment not completed", text: "Your card was not charged for this booking. You can try again or choose another payment method." },
+    "card-review": { title: "Payment received", text: "We have your payment and our team is finalising your booking. We'll email you shortly." },
+  };
   // Strip the "book_" prefix and dashes to get 8 clean hex chars: book_04c85720-... → 04C85720
   const shortRef = bookingId
     ? bookingId.replace(/^book_/i, '').replace(/-/g, '').slice(0, 8).toUpperCase()
@@ -187,28 +203,30 @@ export default function PaymentSuccess() {
 
           {/* Status Card */}
           <Card className="shadow-lg border-none overflow-hidden">
-            <div className={`h-2 w-full ${isConfirmed ? 'bg-green-500' : 'bg-amber-400'}`} />
+            <div className={`h-2 w-full ${isConfirmed ? 'bg-green-500' : notPaid ? 'bg-red-500' : 'bg-amber-400'}`} />
             <CardHeader className="text-center pb-4">
               <div className={`mx-auto p-4 rounded-full w-fit mb-3 ${isConfirmed ? 'bg-green-100' : 'bg-amber-100'}`}>
                 {isConfirmed
                   ? <CheckCircle className="h-12 w-12 text-green-600" />
                   : isCash
                     ? <DollarSign className="h-12 w-12 text-amber-600" />
-                    : <Clock className="h-12 w-12 text-amber-600" />
+                    : view === "card-confirming"
+                      ? <Loader2 className="h-12 w-12 text-amber-600 animate-spin" />
+                      : <Clock className="h-12 w-12 text-amber-600" />
                 }
               </div>
               <CardTitle className={`text-2xl ${isConfirmed ? 'text-green-600' : 'text-amber-600'}`}>
-                {isConfirmed ? "Booking Confirmed! 🎉" : isCash ? "You're All Set! 💚" : "Booking Received"}
+                {heading[view].title}
               </CardTitle>
-              <p className="text-muted-foreground text-sm mt-1">
-                {isConfirmed
-                  ? "Your adventure is secured — see you in beautiful Vanuatu!"
-                  : isCash
-                    ? "Please pay at the start of your tour or vehicle pickup."
-                    : "Please complete your bank transfer to secure your booking."
-                }
+              <p className="text-muted-foreground text-sm mt-1" aria-live="polite">
+                {heading[view].text}
               </p>
-              {pollingTimedOut && !isConfirmed && (
+              {notPaid && (
+                <Link href={`/payment/cancel?booking=${encodeURIComponent(bookingId ?? "")}`}>
+                  <Button className="mt-4">Try Payment Again</Button>
+                </Link>
+              )}
+              {pollingTimedOut && !isConfirmed && !notPaid && (
                 <p className="text-orange-600 text-xs mt-2">
                   Status check timed out. If you've completed payment, please contact us or check back later.
                 </p>
@@ -357,9 +375,11 @@ export default function PaymentSuccess() {
                 </div>
               )}
 
-              <p className="text-xs text-center text-muted-foreground">
-                A confirmation has been sent to your email address.
-              </p>
+              {(isConfirmed || isManual) && (
+                <p className="text-xs text-center text-muted-foreground">
+                  A confirmation has been sent to your email address.
+                </p>
+              )}
 
               <p className="text-xs text-center text-muted-foreground leading-relaxed">
                 Refunds follow our{" "}

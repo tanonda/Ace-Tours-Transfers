@@ -233,7 +233,10 @@ export class MpgsHostedCheckoutAdapter implements PaymentGatewayService {
     return {
       success: true,
       message: 'MPGS checkout session created.',
-      redirectUrl: `${siteOrigin}/api/payments/checkout/${this.slug}?session=${encodeURIComponent(sessionId)}`,
+      // The booking rides along so a launch page that cannot open the bank's page
+      // sends the guest back to this booking, not to a fresh checkout.
+      redirectUrl: `${siteOrigin}/api/payments/checkout/${this.slug}?session=${encodeURIComponent(sessionId)}` +
+        `&booking=${encodeURIComponent(request.bookingId)}`,
       transactionId: paymentId, // the MPGS order ID
       paymentId,
     };
@@ -387,6 +390,15 @@ export class MpgsHostedCheckoutAdapter implements PaymentGatewayService {
   }
 }
 
+/** Booking IDs are UUIDs (some with a "book_" prefix); anything else is dropped from the launch page's links. */
+const BOOKING_ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
+
+/** Where the launch page sends a guest whose bank page could not be opened. */
+export function mpgsLaunchCancelUrl(bookingId: unknown): string {
+  const booking = typeof bookingId === 'string' && BOOKING_ID_PATTERN.test(bookingId) ? `booking=${bookingId}&` : '';
+  return `/payment/cancel?${booking}reason=gateway_rejected`;
+}
+
 /** The ID-checked session, or undefined. */
 export function parseMpgsSessionId(value: unknown): string | undefined {
   return typeof value === 'string' && SESSION_ID_PATTERN.test(value) ? value : undefined;
@@ -423,7 +435,9 @@ try { Checkout.configure({ session: { id: ${js(sessionId)} } }); Checkout.showPa
     `connect-src ${origin}`,
     `frame-src ${origin}`,
     `img-src ${origin} data:`,
-    "style-src 'unsafe-inline'",
+    // The bank's script may pull in its own stylesheet and fonts before it navigates.
+    `style-src 'unsafe-inline' ${origin}`,
+    `font-src ${origin}`,
     `form-action ${origin}`,
     "base-uri 'none'",
   ].join('; ');

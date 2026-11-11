@@ -30,6 +30,7 @@ import { Badge } from "@/components/ui/badge";
 import { usePricingRules } from "@/lib/site-settings";
 import { submitHostedPaymentForm } from "@/lib/hosted-payment-form";
 import { stashPendingCart } from "@/lib/pending-cart";
+import { canRetryBooking } from "@/lib/checkout-result";
 
 const methodIcons: Record<string, React.ElementType> = {
   'card': CreditCard,
@@ -174,6 +175,20 @@ export default function Payment() {
     // Only fetch if we don't already have cached data
     enabled: !!bookingId && !cachedBooking,
   });
+
+  // The basket flow: forget the booking in the URL so the next "Pay" books the basket afresh.
+  const startFromBasket = () => {
+    setBookingId(null);
+    window.history.replaceState(null, "", "/payment");
+  };
+
+  // A guest retrying from /payment/cancel may name a booking that can no longer be
+  // paid (the bank refused it, it expired, or this browser no longer owns it).
+  // The cancel page has put their basket back, so carry on from that instead.
+  useEffect(() => {
+    if (!bookingId || cachedBooking || isLoadingBooking || fetchedBooking === undefined) return;
+    if (!canRetryBooking(fetchedBooking?.status)) startFromBasket();
+  }, [bookingId, cachedBooking, isLoadingBooking, fetchedBooking]);
 
   // Use cached data (sessionStorage) preferentially, fall back to API
   const bookingDetails = cachedBooking || fetchedBooking || null;
@@ -321,6 +336,17 @@ export default function Payment() {
       }
     },
     onError: (error: Error) => {
+      // The seats held for this booking timed out while the guest was at the bank, or
+      // the bank has just closed the booking (cancel/decline). With the basket
+      // restored, the next "Pay" makes a fresh booking.
+      if (bookingId && items.length > 0 && /hold expired|booking is in state/i.test(error.message)) {
+        startFromBasket();
+        toast({
+          title: "Your reservation timed out",
+          description: "Your items are still in your basket. Press Pay again to book them.",
+        });
+        return;
+      }
       toast({
         title: "Payment Error",
         description: error.message || "Failed to process your payment. Please try again.",
@@ -333,7 +359,8 @@ export default function Payment() {
     e.preventDefault();
 
     // Since we now have a checkout step, we just show a generic error if they somehow bypassed it
-    if (!bookingId && !guestName && !guestEmail) {
+    // Either one missing would create a booking under placeholder contact details.
+    if (!bookingId && (!guestName.trim() || !guestEmail.trim())) {
       toast({ title: "Details Required", description: "Please complete the checkout details step first.", variant: "destructive" });
       setLocation("/checkout");
       return;

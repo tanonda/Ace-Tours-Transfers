@@ -8,6 +8,7 @@ import { useTranslation } from "react-i18next";
 import { Link } from "wouter";
 import { useCartActions } from "@/lib/cart-context";
 import { takePendingCart } from "@/lib/pending-cart";
+import { retryPaymentPath } from "@/lib/checkout-result";
 
 export default function PaymentCancel() {
   const { t } = useTranslation();
@@ -59,7 +60,7 @@ export default function PaymentCancel() {
               </p>
             </CardContent>
             <CardFooter className="flex flex-col gap-3">
-              <Button className="w-full" size="lg" onClick={() => setLocation("/payment")} data-testid="button-try-again">
+              <Button className="w-full" size="lg" onClick={() => setLocation(retryPaymentPath(bookingId))} data-testid="button-try-again">
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 {t("payment.retryPayment") || "Try Payment Again"}
               </Button>

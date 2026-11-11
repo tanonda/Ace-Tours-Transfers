@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { MpgsHostedCheckoutAdapter, mapMpgsOrder, parseMpgsSessionId, renderMpgsLaunchPage } from './mpgs.adapter.js';
+import { MpgsHostedCheckoutAdapter, mapMpgsOrder, mpgsLaunchCancelUrl, parseMpgsSessionId, renderMpgsLaunchPage } from './mpgs.adapter.js';
 import { PaymentStatus } from '../../domain/payments/interfaces.js';
 import { AnzEGateCredentialsSchema } from '../../../shared/schema.js';
 import { makePaymentGateway } from '../../test-fixtures/payment.js';
@@ -84,7 +84,7 @@ describe('initiatePayment', () => {
     const res = await makeAdapter(fetchFn).initiatePayment(REQUEST);
 
     expect(res.success).toBe(true);
-    expect(res.redirectUrl).toBe(`https://acetoursvanuatu.com/api/payments/checkout/anz-egate?session=${SESSION_ID}`);
+    expect(res.redirectUrl).toBe(`https://acetoursvanuatu.com/api/payments/checkout/anz-egate?session=${SESSION_ID}&booking=${REQUEST.bookingId}`);
     expect(res.transactionId).toBe('pay-0001');
 
     const call = calls[0];
@@ -107,7 +107,7 @@ describe('initiatePayment', () => {
   it('sends BSP and NBV guests to their own bank\'s callback and launch paths', async () => {
     const { calls, fetchFn } = fakeAnz(() => ({ status: 201, json: { result: 'SUCCESS', session: { id: SESSION_ID } } }));
     const res = await makeAdapter(fetchFn, {}, 'nbv-bank').initiatePayment(REQUEST);
-    expect(res.redirectUrl).toBe(`https://acetoursvanuatu.com/api/payments/checkout/nbv-bank?session=${SESSION_ID}`);
+    expect(res.redirectUrl).toBe(`https://acetoursvanuatu.com/api/payments/checkout/nbv-bank?session=${SESSION_ID}&booking=${REQUEST.bookingId}`);
     expect(calls[0].body.interaction.returnUrl).toContain('/api/payments/callback/nbv-bank?order=pay-0001');
   });
 
@@ -304,6 +304,20 @@ describe('launch page', () => {
     expect(parseMpgsSessionId(SESSION_ID)).toBe(SESSION_ID);
     expect(parseMpgsSessionId('SESSION"</script>')).toBeUndefined();
     expect(parseMpgsSessionId(['a'])).toBeUndefined();
+  });
+
+  it('returns a guest whose bank page cannot open to their own booking', () => {
+    expect(mpgsLaunchCancelUrl(REQUEST.bookingId)).toBe(`/payment/cancel?booking=${REQUEST.bookingId}&reason=gateway_rejected`);
+    // Anything that is not a plain booking ID never reaches the page's script.
+    expect(mpgsLaunchCancelUrl('x"&reason=<script>')).toBe('/payment/cancel?reason=gateway_rejected');
+    expect(mpgsLaunchCancelUrl(['a'])).toBe('/payment/cancel?reason=gateway_rejected');
+    expect(mpgsLaunchCancelUrl(undefined)).toBe('/payment/cancel?reason=gateway_rejected');
+  });
+
+  it('lets the bank\'s own stylesheet and fonts load, and nothing else', () => {
+    const { csp } = renderMpgsLaunchPage(`${HOST}/static/checkout/checkout.min.js`, SESSION_ID, '/payment/cancel');
+    expect(csp).toContain(`style-src 'unsafe-inline' ${HOST}`);
+    expect(csp).toContain(`font-src ${HOST}`);
   });
 
   it('loads only ANZ\'s checkout.js and our nonce\'d script', () => {

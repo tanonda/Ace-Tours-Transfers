@@ -7,6 +7,7 @@ import { ReconciliationPolicy } from "../domain/payments/reconciliation.policy.j
 import { sendEmail, sendAdminEmail, getPaymentConfirmationTemplate, getBookingConfirmedTemplate, shortBookingRef } from "../lib/mail.js";
 import { escapeHtml } from "../lib/escape-html.js";
 import type { Payment, PaymentGateway } from "../../shared/schema.js";
+import { holdPaymentForReview, BANK_STATUS_NEEDS_REVIEW } from "./payment-review.js";
 
 export class PaymentReconciliationService {
   private storage: IStorage;
@@ -104,6 +105,39 @@ export class PaymentReconciliationService {
 
       if (!ReconciliationPolicy.isTransitionSafe(payment.status as PaymentStatus, response.status)) {
         console.warn(`[RECON][${traceId}] Transition from ${payment.status} to ${response.status} rejected by policy.`);
+        return;
+      }
+
+      // The bank holds the money or reports something only a person can settle:
+      // park it with a review window and an admin alert, never silently.
+      if (response.status === PaymentStatus.ManualReviewRequired) {
+        if (payment.status !== PaymentStatus.ManualReviewRequired) {
+          await holdPaymentForReview(this.storage, payment, {
+            reason: BANK_STATUS_NEEDS_REVIEW,
+            gatewayName: gateway.displayName,
+            detail: response.message,
+            gatewayReference: response.gatewayReference,
+            bankAmount: response.amount,
+            bankCurrency: response.currency,
+          });
+        }
+        return;
+      }
+
+      // Same rule as the callback path: a "paid" for another amount or currency
+      // never confirms a booking.
+      const wrongAmount = response.amount !== undefined && response.amount !== payment.amount;
+      const wrongCurrency = response.currency !== undefined && response.currency !== payment.currency;
+      if (response.status === PaymentStatus.Completed && (wrongAmount || wrongCurrency)) {
+        console.error(`[RECON][${traceId}] Payment ${paymentId} captured as ${response.amount} ${response.currency}, expected ${payment.amount} ${payment.currency}.`);
+        await holdPaymentForReview(this.storage, payment, {
+          reason: 'amount_currency_mismatch',
+          gatewayName: gateway.displayName,
+          detail: `Captured ${response.amount} ${response.currency}, expected ${payment.amount} ${payment.currency}`,
+          gatewayReference: response.gatewayReference,
+          bankAmount: response.amount,
+          bankCurrency: response.currency,
+        });
         return;
       }
 

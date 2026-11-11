@@ -19,6 +19,7 @@ import { escapeHtml } from '../lib/escape-html.js';
 import { config } from "../config.js";
 import { PaymentIntent } from "../domain/payments/PaymentIntent.js";
 import { isTestModeGateway } from "./public-gateway.js";
+import { holdPaymentForReview, BANK_STATUS_NEEDS_REVIEW } from "./payment-review.js";
 import { eventDispatcher } from "../infrastructure/events/event-dispatcher.js";
 import { BookingConfirmationService } from "./booking/BookingConfirmationService.js";
 import {
@@ -82,7 +83,16 @@ export class PaymentApplicationService {
       [PaymentStatus.Pending, PaymentStatus.Processing].includes(p.status as PaymentStatus)
     );
 
-    if (activePayment) {
+    // A guest who cancels, is declined or presses Back on the bank's hosted page leaves
+    // a `processing` attempt behind: the bank only tells us about it if a cancellation
+    // notification is configured. That attempt may be replaced by a retry. A `pending`
+    // one is another request still starting (double click), and a payment link stays
+    // payable for days, so both still block.
+    const supersedable = !!activePayment &&
+      activePayment.status === PaymentStatus.Processing &&
+      !(activePayment.metadata as { paymentLink?: unknown } | null)?.paymentLink;
+
+    if (activePayment && !supersedable) {
       return {
         success: false,
         message: "An active payment attempt already exists for this booking.",
@@ -160,6 +170,18 @@ export class PaymentApplicationService {
     const paymentTtlMinutes = gwIsManual ? MANUAL_TTL : CARD_PAYMENT_TTL_MINUTES;
     const expiresAt = new Date();
     expiresAt.setMinutes(expiresAt.getMinutes() + paymentTtlMinutes);
+
+    // Close the abandoned attempt only now that the retry is allowed to go ahead.
+    // No PaymentFailed event: the booking and its seats stay for the new attempt.
+    // If the guest pays the old page after all, the bank's notification finds it
+    // cancelled and it goes to manual review (flagPaidAfterClose), never lost.
+    if (activePayment && supersedable) {
+      await this.storage.updatePayment(activePayment.id, {
+        status: PaymentStatus.Cancelled,
+        failureReason: 'superseded_by_retry',
+      });
+      console.log(`[PAYMENT] Replaced unfinished attempt ${activePayment.id} with a retry for booking ${booking.id}`);
+    }
 
     let payment;
     try {
@@ -621,6 +643,26 @@ export class PaymentApplicationService {
       const isPaymentLink = !!(existingPayment?.metadata as { paymentLink?: unknown } | null)?.paymentLink;
       if (isPaymentLink && [PaymentStatus.Cancelled, PaymentStatus.Failed].includes(result.newPaymentStatus)) {
         return { ...result, newPaymentStatus: undefined, message: 'Payment link is still open; status unchanged.' };
+      }
+
+      // The bank reported a state only a person can settle (funds held but not captured,
+      // a partial capture, a status we don't know). Park it with a review window and an
+      // admin alert; a repeat of the same report changes nothing. A later "paid" from
+      // the bank still completes it through the normal path below.
+      if (result.newPaymentStatus === PaymentStatus.ManualReviewRequired) {
+        const alreadyHeld = existingPayment.status === PaymentStatus.ManualReviewRequired &&
+          existingPayment.failureReason === BANK_STATUS_NEEDS_REVIEW;
+        if (!alreadyHeld) {
+          await holdPaymentForReview(this.storage, existingPayment, {
+            reason: BANK_STATUS_NEEDS_REVIEW,
+            gatewayName: gateway.displayName,
+            detail: result.message,
+            gatewayReference: result.gatewayReference,
+            bankAmount: result.amount,
+            bankCurrency: result.currency,
+          });
+        }
+        return result;
       }
 
       // Verify callback amount + currency (Item 2)
