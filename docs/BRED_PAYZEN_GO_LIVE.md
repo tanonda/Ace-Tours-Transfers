@@ -1,11 +1,11 @@
 # BRED PayZen Card Payments — Go-Live Runbook
 
-**Date:** 9 November 2026
+**Date:** 11 November 2026 (first written 9 November 2026)
 **Status:** integration code complete and **deployed** — the live site runs
-`8cdd99a` (PayZen adapter, IPN, admin form, tests, refund ledger and missed-IPN
-manual-review recovery). Migration `0034_payment_refunds.sql` applied in
-production on 9 Nov 2026. **Card charging is not live yet** — it is waiting on
-the BRED merchant/PayZen setup below.
+`be74202` (PayZen adapter, IPN, admin form, tests, refund ledger, missed-IPN
+manual-review recovery, and the 11 Nov checkout fixes in §1a). Migration
+`0034_payment_refunds.sql` applied in production on 9 Nov 2026. **Card charging
+is not live yet** — it is waiting on the BRED merchant/PayZen setup below.
 **Audience:** owner/operator, and any developer doing the BRED go-live.
 **Related:** [`ADR-007`](./adr/ADR-007-BRED-PAYZEN.md),
 [`SECURITY_HANDOVER`](./SECURITY_HANDOVER.md),
@@ -37,10 +37,10 @@ go to the owner and the developer.
 
 ## 1. Current state
 
-| Item | State on 2026-11-09 |
+| Item | State on 2026-11-11 |
 |---|---|
 | PayZen integration in the code | **Complete and deployed** — adapter, signature, IPN route, admin credentials form, tests, refund recording and missed-IPN review. |
-| Live site (`https://acetoursvanuatu.com`) | **Cash on delivery only** (verified 9 Nov 2026: `/api/payment-gateways` returns just `cash`). `DDD_DISABLE_CARD=true` and `PAYMENTS_BRED_ENABLED=false` in `render.yaml`; the BRED gateway is inactive. |
+| Live site (`https://acetoursvanuatu.com`) | **Cash on delivery only** (verified 11 Nov 2026: `/api/payment-methods` returns just `cash`). `DDD_DISABLE_CARD=true` and `PAYMENTS_BRED_ENABLED=false` in `render.yaml`; the BRED gateway is inactive. |
 | Bank transfer | **Not currently offered to guests** even though `render.yaml` sets `PAYMENTS_MANUAL_ENABLED=true` — the production gateway row/feature flag is disabled. Its account-number setting is also still the placeholder `To be configured` (Admin → Settings → Payments → `bank_transfer_account_number`). Fix both when enabling it. |
 | BRED merchant account / PayZen shop | **Not finished** — that is the 13-point list in §3. |
 | Card charging | **Off.** Do not turn it on until §4 (TEST) and §5 (cutover) are complete. |
@@ -54,6 +54,8 @@ What already exists in the repository:
 | `server/application/payment.routes.ts` | `POST /api/payments/webhook/bred-bank` (IPN) and checkout initiation. |
 | `server/application/payment.application-service.ts` | Status transitions, amount/currency checks, refund recording. |
 | `server/application/payment-reconciliation.service.ts` | Missed-IPN recovery to `manual_review_required` + admin alert. |
+| `server/application/payment-review.ts` | The one way a card payment is parked for a person: 72-hour review window + admin e-mail. |
+| `client/src/lib/checkout-result.ts` | What the guest is told after checkout (confirming / not paid / under review) and where "Try Payment Again" goes. |
 | `shared/schema.ts` → `BredBankCredentialsSchema` | Admin fields: `shopId`, `mode`, `testKey`, `productionKey`, `paymentUrl`. |
 | `shared/gateway-schemas.ts` | That schema (and the other gateways' schemas) shared by the admin form, its client-side check and the server save route. |
 | `server/lib/csp-form-action.ts` | `form-action` CSP allowlist; follows the saved PayZen `paymentUrl` automatically. |
@@ -62,6 +64,29 @@ What already exists in the repository:
 | [`BRED_TEST_EVIDENCE.md`](./BRED_TEST_EVIDENCE.md) | Endpoint checks, Back Office round-trip and the printable TEST evidence log. |
 | `scripts/check-bred-endpoint.mjs` | `npm run check:bred-endpoint` — verifies the public API, CSP and the IPN route (unsigned + signed probe). |
 | `server/application/payment.routes.payzen.test.ts`, `payzen-signature.test.ts`, `payzen.adapter.test.ts` | Tests for signature, form and IPN. |
+
+### 1a. Changes on 11 November 2026
+
+Deployed as `096e53e` and `be74202`. Nothing here needs a bank setting changed,
+but the TEST checklist in §4 has new lines for it.
+
+| Change | What it means in practice |
+|---|---|
+| **Retry on the same booking** | A guest who cancels, is declined or presses Back on the PayZen page can pay the same booking again. The unfinished attempt is closed as `cancelled` / `superseded_by_retry` and a new one is opened. Before, the unfinished attempt blocked the booking and "Try Payment Again" created a second booking. |
+| **Paid on the old page after retrying** | If the guest still completes the superseded attempt, its IPN finds the payment closed: it goes to `manual_review_required` / `paid_after_close` with an admin e-mail. Confirm the booking or refund in the Back Office. |
+| **Success page wording** | A card guest back from PayZen before the IPN lands sees "Confirming your payment…", not bank-transfer instructions. A refused or cancelled payment shows "Payment not completed"; a paid booking needing a person shows "Payment received". |
+| **Review holds are never silent** | A bank status that needs a person (`AUTHORISED_TO_VALIDATE`, or one the site does not know) now gets a 72-hour review window and an admin e-mail (`bank_status_needs_review`). Before, the payment kept its 15-minute window and the overdue sweep expired it and cancelled the booking with nobody told. A later `AUTHORISED`/`CAPTURED` IPN still confirms it automatically. |
+| **No placeholder contact details** | Checkout sends the guest back to the details step if the name or e-mail is missing. |
+| **ANZ / BSP / NBV (same code paths)** | The retry and review-hold changes apply to those gateways too; reconciliation now refuses a capture for another amount or currency; PRODUCTION mode requires the notification secret, and Admin → Payments refuses to save PRODUCTION without it. |
+
+**Open decision for BRED — cancellation notification.** PayZen does not notify
+the site when a guest abandons or cancels unless the shop's notification rule
+for cancellation/abandonment is enabled. Without it, every abandoned card
+checkout that is not retried waits out its 15-minute window, is picked up by
+reconciliation (first pass about an hour after it was created), and then goes to
+`manual_review_required` / `ipn_not_received` with an admin e-mail and a 72-hour
+hold on the pending booking. Ask BRED to enable that rule on the TEST and
+PRODUCTION shops (see the note under §3).
 
 ---
 
@@ -85,7 +110,8 @@ What already exists in the repository:
    `vads_hash` / `vads_trans_status` / `vads_trans_uuid`.
 6. Status mapping: `AUTHORISED`/`CAPTURED` → completed; `REFUSED`/
    `CAPTURE_FAILED` → failed; `ABANDONED`/`CANCELLED` → cancelled; `EXPIRED` →
-   expired; `AUTHORISED_TO_VALIDATE` and unknown statuses → `manual_review_required`.
+   expired; `AUTHORISED_TO_VALIDATE` and unknown statuses → `manual_review_required`
+   with a 72-hour review window and an admin e-mail (a later paid IPN still confirms).
 7. **Refunds are executed in the PayZen Back Office**, not by this site. PayZen's
    `CREDIT` IPN is recorded against the payment (`refunded_amount`,
    `refunded_at`, `refund_reference`; full refund → refunded, partial → completed
@@ -97,6 +123,10 @@ What already exists in the repository:
    review for 72 hours. It is **not** silently cancelled.
 9. TEST-mode credentials hide the gateway from guests (only an admin can test
    with it), so a published test card can never confirm a real guest booking.
+10. **One open payment per booking, replaceable on retry.** A guest returning from
+    the PayZen page without paying can start again on the same booking; the earlier
+    attempt is closed first. A payment captured on a closed attempt is never
+    dropped: it goes to manual review (`paid_after_close`).
 
 ---
 
@@ -130,6 +160,10 @@ Notes for the bank conversation:
   no repo/folder access is needed for the bank setup.
 - The IPN endpoint must be reachable over public HTTPS (it is, on Render).
   PayZen retries non-200 replies; the route answers `text/plain` 200/400.
+- **Also ask (added 11 Nov, not in the 13-point draft):** enable the
+  notification rule for **cancelled/abandoned** payments, to the same IPN URL, on
+  the TEST and PRODUCTION shops. The site already maps `ABANDONED`/`CANCELLED`;
+  without the rule every abandoned checkout ends in a manual-review e-mail (§1a).
 
 ---
 
@@ -168,7 +202,17 @@ never on production first.
          payment becomes `completed`, booking `confirmed`, guest + admin e-mails
          sent once.
    - [ ] Replaying the same IPN does not confirm twice.
-   - [ ] A declined card leaves the booking pending; the hold expires normally.
+   - [ ] Returning from PayZen before the IPN shows "Confirming your payment…"
+         (never bank-transfer instructions), then switches to confirmed by itself.
+   - [ ] Cancelling on the PayZen page returns to `/payment/cancel?booking=…` with
+         the basket restored; **Try Payment Again** opens the same booking and a
+         second attempt pays it. In Admin → Payments the first attempt is
+         `cancelled` (`superseded_by_retry`) and there is still one booking.
+   - [ ] A declined card: if PayZen sends the refusal IPN the booking becomes
+         `failed` and its seats are released, and Try Payment Again starts a fresh
+         booking from the restored basket; with no IPN it behaves like a cancel.
+   - [ ] With the cancellation notification rule on, an abandoned checkout arrives
+         as `ABANDONED`/`CANCELLED` and produces no manual-review e-mail.
    - [ ] A wrong-mode/wrong-shop or unsigned IPN is rejected (400) and changes
          nothing.
    - [ ] A refund created in the test Back Office produces a `CREDIT` IPN and is
@@ -176,6 +220,9 @@ never on production first.
    - [ ] Stopping the IPN (or closing the browser before it arrives) ends in
          `manual_review_required` with an admin e-mail after the payment window —
          not a silent cancellation.
+   - [ ] If the test shop can produce `AUTHORISED_TO_VALIDATE` (manual validation
+         on), the payment is held for review with an admin e-mail, and validating
+         it in the Back Office then confirms the booking.
 7. Run the endpoint checker before the first payment, then record every scenario:
    `BRED_SHOP_ID=… BRED_TEST_KEY=… npm run check:bred-endpoint -- --base-url https://<test-host>`
    See [`BRED_TEST_EVIDENCE.md`](./BRED_TEST_EVIDENCE.md) for the endpoint checks, the
@@ -209,7 +256,10 @@ the merchant account is live, and the production IPN URL is confirmed.
    `DDD_DISABLE_CARD=false`. Confirm a guest sees the card option.
 7. Monitor the first day: Render logs for `[WEBHOOK][bred-bank]`, PayZen Back
    Office transactions vs site `payments`, admin e-mails for
-   `manual_review_required`.
+   `manual_review_required`. The review reasons to expect: `ipn_not_received`
+   (no notification), `paid_after_close` (paid on a closed attempt),
+   `bank_status_needs_review` (bank status needs a person),
+   `amount_currency_mismatch` (wrong amount or currency).
 
 **Rollback** (if something is wrong): set `PAYMENTS_BRED_ENABLED=false` and/or
 `DDD_DISABLE_CARD=true` on Render and redeploy — this blocks **new** card
@@ -547,8 +597,10 @@ setup with Michael. Do not send production files or credentials in any email.
 - [ ] Repo private; owner actions in `SECURITY_HANDOVER.md` started.
 - [ ] BRED's application lists Mark (not John) as technical contact.
 - [ ] 13 points answered by BRED.
-- [ ] TEST shop configured: VUV, HMAC-SHA-256, auto capture, 3DS, IPN + retries.
-- [ ] TEST payments pass §4 (including replay, decline, refund, missed IPN).
+- [ ] TEST shop configured: VUV, HMAC-SHA-256, auto capture, 3DS, IPN + retries,
+      and the cancelled/abandoned notification rule.
+- [ ] TEST payments pass §4 (including replay, cancel-and-retry, decline, refund,
+      missed IPN).
 - [ ] Production key issued and entered by the owner; mode = PRODUCTION.
 - [ ] One controlled live payment + refund completed (§5).
 - [ ] `DDD_DISABLE_CARD=false`, `PAYMENTS_BRED_ENABLED=true`, gateway active.
