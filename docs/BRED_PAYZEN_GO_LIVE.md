@@ -86,7 +86,7 @@ checkout that is not retried waits out its 15-minute window, is picked up by
 reconciliation (first pass about an hour after it was created), and then goes to
 `manual_review_required` / `ipn_not_received` with an admin e-mail and a 72-hour
 hold on the pending booking. Ask BRED to enable that rule on the TEST and
-PRODUCTION shops (see the note under §3).
+PRODUCTION shops (it is part of point 11 in §3).
 
 ---
 
@@ -147,7 +147,7 @@ These are the same 13 points as the existing draft at
 | 8 | Confirm the shop's signature algorithm is **HMAC-SHA-256** | Adapter implements exactly this |
 | 9 | Confirm **same-day automatic capture**, no per-payment manual approval | `vads_capture_delay=0`, `vads_validation_mode=0`; manual validation would leave payments in review |
 | 10 | Confirm **3-D Secure** is enabled | Cardholder authentication |
-| 11 | Set the **IPN URL** for test **and** production to `https://acetoursvanuatu.com/api/payments/webhook/bred-bank`, with **automatic retry** on failure | The only authoritative result source |
+| 11 | Set the **IPN URL** for test **and** production to `https://acetoursvanuatu.com/api/payments/webhook/bred-bank`, with **automatic retry** on failure, and turn on the notification for **cancelled/abandoned** payments to the same URL | The only authoritative result source; without the cancellation rule every abandoned checkout ends in a manual-review e-mail (§1a) |
 | 12 | Send the **test card numbers**, and say how many test payments are needed before the production key is issued | TEST phase exit criteria |
 | 13 | Send the **fees** (per transaction and monthly), the **settlement time**, and how **refunds** work | Pricing/accounting and the refund runbook |
 
@@ -160,10 +160,11 @@ Notes for the bank conversation:
   no repo/folder access is needed for the bank setup.
 - The IPN endpoint must be reachable over public HTTPS (it is, on Render).
   PayZen retries non-200 replies; the route answers `text/plain` 200/400.
-- **Also ask (added 11 Nov, not in the 13-point draft):** enable the
-  notification rule for **cancelled/abandoned** payments, to the same IPN URL, on
-  the TEST and PRODUCTION shops. The site already maps `ABANDONED`/`CANCELLED`;
-  without the rule every abandoned checkout ends in a manual-review e-mail (§1a).
+- **Added 11 Nov, inside point 11 (still 13 points):** enable the notification
+  rule for **cancelled/abandoned** payments, to the same IPN URL, on the TEST and
+  PRODUCTION shops. The site already maps `ABANDONED`/`CANCELLED`; without the
+  rule every abandoned checkout ends in a manual-review e-mail (§1a). The setup
+  sheet, the draft in 10.2 and the Handover e-mail draft all carry it.
 
 ---
 
@@ -470,7 +471,9 @@ Michael Dan for the BRED questions. The shorter information-gathering email in
 > 10. 3-D Secure enabled.
 > 11. The IPN URL for both test and production set to
 >     `https://acetoursvanuatu.com/api/payments/webhook/bred-bank`, with
->     automatic retry on failure.
+>     automatic retry on failure. Please also turn on the notification for
+>     cancelled and abandoned payments, sent to the same URL, so the site is told
+>     when a guest leaves the payment page without paying.
 > 12. Test card numbers, and how many test payments are needed before the
 >     production key is issued.
 > 13. Our fees (per transaction and monthly), settlement timing, and how refunds

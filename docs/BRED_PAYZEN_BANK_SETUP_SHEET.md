@@ -1,7 +1,7 @@
 # BRED Bank / Lyra PayZen — Setup Sheet
 
 **For:** Saviera "Savi" Alexis — owner, Ace Tours & Transfers
-**Prepared by:** Mark, website developer · 10 November 2026
+**Prepared by:** Mark, website developer · 10 November 2026 (updated 11 November 2026)
 **Bank contact:** Michael Dan, BRED (Vanuatu) Ltd, E-Banking — `mdan@bred.vu`
 
 > **Safe to share with BRED.** This page contains no passwords, secret keys or customer data.
@@ -43,6 +43,7 @@ lower-case, no spaces, no full stop at the end.
 | Technical contact | Mark — `markmal64@gmail.com` |
 | Integration | Lyra PayZen **hosted payment page** (signed form). Card numbers are entered on PayZen's page, never on our website. |
 | **Notification URL** (BRED may say **"IPN"**) | `https://acetoursvanuatu.com/api/payments/webhook/bred-bank` |
+| **Notification when a payment is cancelled or abandoned** (PayZen usually lists it as *"Instant Payment Notification URL on cancellation"*) | **Turned on**, sent to the same notification URL above |
 | Return / redirect URL (only if the form requires one) | **No fixed value** — the website sends it with each payment. If a box must be filled, use `https://acetoursvanuatu.com/` as a placeholder. |
 | Signature algorithm | **HMAC-SHA-256** |
 | Currency | **VUV** — whole vatu, no cents (VT 5,000 is sent as `5000`) |
@@ -54,6 +55,12 @@ lower-case, no spaces, no full stop at the end.
 **Same address for TEST and PRODUCTION.** Use the one notification URL for both shops. The website
 checks which shop (TEST or PRODUCTION) sent the result and rejects a test result that arrives while
 the shop is in production mode — so there is no second address to get wrong.
+
+**Why the cancelled/abandoned notification matters.** By default PayZen only tells the website
+about payments that were paid or refused. If a customer opens the payment page and then cancels or
+closes it, the website hears nothing, so the booking waits and you receive a *"payment needs
+review"* email for a payment that was never made. With this notification turned on, the website
+is told straight away and simply closes that attempt.
 
 **If the bank's form asks for a "return", "redirect" or "success" URL:** there is **no fixed value
 to give BRED**. The website sends the return address with every payment because it has to carry the
@@ -79,6 +86,7 @@ Tick these off as BRED provides them:
 - ☐ **Same-day automatic capture** (no manual validation per payment).
 - ☐ **3-D Secure enabled.**
 - ☐ **Notification (IPN) URL** set for **both** TEST and PRODUCTION, with **automatic retry** if our site is momentarily down.
+- ☐ **Notification for cancelled and abandoned payments turned on**, to the same notification URL, for **both** TEST and PRODUCTION.
 - ☐ **Test card numbers** — and how many test payments are needed before the production key is issued.
 - ☐ **Fees** (per transaction and monthly), settlement timing, and how refunds are handled.
 
@@ -124,6 +132,8 @@ You need to be logged in as an **admin**.
 >
 > - **Instant Payment Notification (IPN) URL** — use the same address for both:
 >   `https://acetoursvanuatu.com/api/payments/webhook/bred-bank`
+> - **Notification for cancelled and abandoned payments:** please turn this on as well, sent to
+>   the same address, so our website is told when a customer leaves the payment page without paying
 > - **Signature algorithm:** HMAC-SHA-256
 > - **Currency:** VUV (whole vatu — VT 5,000 is sent as `5000`, no cents)
 > - **Capture:** same-day automatic; **3-D Secure** enabled
