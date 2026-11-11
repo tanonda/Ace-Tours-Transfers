@@ -10,7 +10,7 @@ import { z } from "zod";
 import { adminAudit } from "../infrastructure/audit/admin-audit-log.service.js";
 import { toPublicGateway, visibleGateways, isTestModeGateway } from "./public-gateway.js";
 import { PaymentStatus, WebhookResponse } from "../domain/payments/interfaces.js";
-import { MpgsHostedCheckoutAdapter, isMpgsGateway, parseMpgsSessionId, renderMpgsLaunchPage, mpgsLaunchCancelUrl } from "../infrastructure/payments/mpgs.adapter.js";
+import { MpgsHostedCheckoutAdapter, isMpgsGateway, parseMpgsSessionId, renderMpgsLaunchPage, mpgsLaunchCancelUrl, mpgsProductionGaps } from "../infrastructure/payments/mpgs.adapter.js";
 import { signBookingReceiptToken } from "../lib/receipt-token.js";
 import { isSupportedWebhookGateway, parseWebhookBody, wantsTextWebhookReply, webhookSignature } from "./webhook-body.js";
 import { GATEWAY_SCHEMAS } from "../../shared/gateway-schemas.js";
@@ -410,6 +410,14 @@ export function registerPaymentRoutes(app: Express, storage: IStorage) {
           });
         }
         parsed.data.credentials = credentials.data;
+
+        // Say so at save time, not when the first guest tries to pay.
+        const gaps = isMpgsGateway(before.slug) ? mpgsProductionGaps(credentials.data) : [];
+        if (gaps.length > 0) {
+          return res.status(400).json({
+            error: `PRODUCTION mode needs the ${gaps.join(', ')}. Enter ${gaps.length > 1 ? 'them' : 'it'} or keep the mode on TEST.`,
+          });
+        }
       }
       if (parsed.data.config && gatewaySchema?.config) {
         const config = gatewaySchema.config.safeParse(parsed.data.config);

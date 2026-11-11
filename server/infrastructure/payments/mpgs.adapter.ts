@@ -44,6 +44,22 @@ interface MpgsOrder {
 }
 
 /**
+ * The production values a gateway in PRODUCTION mode still lacks (none in TEST mode).
+ * The notification secret is required for live payments: without it anyone could post
+ * to the notification URL and make this server query the bank.
+ */
+export function mpgsProductionGaps(credentials: {
+  mode?: string; productionMerchantId?: string; productionApiPassword?: string; productionNotificationSecret?: string;
+}): string[] {
+  if (credentials.mode !== 'PRODUCTION') return [];
+  const gaps: string[] = [];
+  if (!credentials.productionMerchantId?.trim()) gaps.push('production merchant ID');
+  if (!credentials.productionApiPassword?.trim()) gaps.push('production API password');
+  if (!credentials.productionNotificationSecret?.trim()) gaps.push('production notification secret');
+  return gaps;
+}
+
+/**
  * Maps an MPGS order status to our payment status. The site always sends
  * operation PURCHASE, so a paid order is CAPTURED in full.
  * Returns undefined when the order is still in progress.
@@ -109,8 +125,9 @@ export class MpgsHostedCheckoutAdapter implements PaymentGatewayService {
     if (!parsed.success) {
       throw new Error(`Invalid ${this.bankName} credentials: ${parsed.error.errors.map((e: z.ZodIssue) => e.message).join(', ')}`);
     }
-    if (parsed.data.mode === 'PRODUCTION' && (!parsed.data.productionMerchantId || !parsed.data.productionApiPassword)) {
-      throw new Error(`${this.bankName} is set to PRODUCTION but the production merchant ID or API password is missing.`);
+    const gaps = mpgsProductionGaps(parsed.data);
+    if (gaps.length > 0) {
+      throw new Error(`${this.bankName} is set to PRODUCTION but is missing: ${gaps.join(', ')}.`);
     }
     this.credentials = parsed.data;
     this.fetchFn = deps.fetch ?? fetch;

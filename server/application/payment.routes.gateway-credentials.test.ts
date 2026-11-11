@@ -123,3 +123,41 @@ describe("PUT /api/admin/payment-gateways/:id — server-side credential validat
     expect(storage.updatePaymentGateway).not.toHaveBeenCalled();
   });
 });
+
+describe("PUT /api/admin/payment-gateways/:id — ANZ/BSP/NBV production mode", () => {
+  const anz = {
+    mode: "PRODUCTION",
+    gatewayUrl: "https://anzworldline.gateway.mastercard.com",
+    testMerchantId: "TESTACETOURS01",
+    testApiPassword: "test-pass",
+    productionMerchantId: "ACETOURS01",
+    productionApiPassword: "prod-pass",
+    productionNotificationSecret: "prod-secret",
+  };
+
+  beforeEach(() => {
+    storage.getPaymentGateway.mockResolvedValue(
+      makePaymentGateway({ id: "gw-bred", slug: "anz-egate", displayName: "ANZ eGate", credentials: {}, config: null }),
+    );
+  });
+
+  it("refuses PRODUCTION without the notification secret and says which value is missing", async () => {
+    const res = await save({ credentials: { ...anz, productionNotificationSecret: "" } });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/production notification secret/);
+    expect(storage.updatePaymentGateway).not.toHaveBeenCalled();
+  });
+
+  it("saves PRODUCTION once the secret is entered", async () => {
+    const res = await save({ credentials: anz });
+    expect(res.status).toBe(200);
+    expect(storage.updatePaymentGateway).toHaveBeenCalled();
+  });
+
+  it("saves TEST mode with the production fields still blank", async () => {
+    const res = await save({
+      credentials: { ...anz, mode: "TEST", productionMerchantId: "", productionApiPassword: "", productionNotificationSecret: "" },
+    });
+    expect(res.status).toBe(200);
+  });
+});

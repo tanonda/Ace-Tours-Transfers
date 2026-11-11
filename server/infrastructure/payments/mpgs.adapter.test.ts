@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { MpgsHostedCheckoutAdapter, mapMpgsOrder, mpgsLaunchCancelUrl, parseMpgsSessionId, renderMpgsLaunchPage } from './mpgs.adapter.js';
+import { MpgsHostedCheckoutAdapter, mapMpgsOrder, mpgsLaunchCancelUrl, mpgsProductionGaps, parseMpgsSessionId, renderMpgsLaunchPage } from './mpgs.adapter.js';
 import { PaymentStatus } from '../../domain/payments/interfaces.js';
 import { AnzEGateCredentialsSchema } from '../../../shared/schema.js';
 import { makePaymentGateway } from '../../test-fixtures/payment.js';
@@ -75,6 +75,27 @@ describe('MpgsHostedCheckoutAdapter constructor', () => {
   it('refuses PRODUCTION mode without production credentials', () => {
     const { fetchFn } = fakeAnz(() => ({ status: 200, json: {} }));
     expect(() => makeAdapter(fetchFn, { mode: 'PRODUCTION', productionApiPassword: '' })).toThrow(/production/i);
+  });
+
+  it('refuses PRODUCTION mode without a notification secret: the notification URL would be open to anyone', () => {
+    const { fetchFn } = fakeAnz(() => ({ status: 200, json: {} }));
+    expect(() => makeAdapter(fetchFn, { mode: 'PRODUCTION', productionNotificationSecret: '' })).toThrow(/notification secret/i);
+    expect(() => makeAdapter(fetchFn, { mode: 'PRODUCTION', productionNotificationSecret: undefined })).toThrow(/notification secret/i);
+    expect(() => makeAdapter(fetchFn, { mode: 'PRODUCTION' })).not.toThrow();
+  });
+
+  it('still allows TEST mode without a notification secret', () => {
+    const { fetchFn } = fakeAnz(() => ({ status: 200, json: {} }));
+    expect(() => makeAdapter(fetchFn, { testNotificationSecret: '', productionNotificationSecret: '' })).not.toThrow();
+  });
+});
+
+describe('mpgsProductionGaps', () => {
+  it('names every production value still missing', () => {
+    expect(mpgsProductionGaps({ ...CREDENTIALS, mode: 'PRODUCTION' })).toEqual([]);
+    expect(mpgsProductionGaps({ ...CREDENTIALS, mode: 'TEST', productionNotificationSecret: '' })).toEqual([]);
+    expect(mpgsProductionGaps({ ...CREDENTIALS, mode: 'PRODUCTION', productionMerchantId: '', productionNotificationSecret: '  ' }))
+      .toEqual(['production merchant ID', 'production notification secret']);
   });
 });
 
