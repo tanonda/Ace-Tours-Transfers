@@ -589,6 +589,19 @@ export function ProductDialog({ tour, open, onOpenChange, onSave }: ProductDialo
 
                 <Separator />
 
+                {/* ── Staff alerts: shown for tours and transfers ── */}
+                <FormField control={form.control} name="requiresFlightInfo" render={({ field }) => (
+                  <FormItem className="flex items-start gap-3 space-y-0 rounded-lg border border-border bg-muted/30 p-3">
+                    <FormControl>
+                      <Switch checked={field.value} onCheckedChange={field.onChange} id="requiresFlightInfo" />
+                    </FormControl>
+                    <div>
+                      <FormLabel htmlFor="requiresFlightInfo" className="text-sm">Needs a flight number</FormLabel>
+                      <p className="text-xs text-muted-foreground">Staff are alerted when a booking of this service has no flight number. Use for airport pickups.</p>
+                    </div>
+                  </FormItem>
+                )} />
+
                 {/* ── TOUR CONTENT ── */}
                 {category === 'tour' && (
                   <div className="space-y-5">
@@ -719,17 +732,6 @@ export function ProductDialog({ tour, open, onOpenChange, onSave }: ProductDialo
                           <FormControl>
                             <textarea rows={3} placeholder="e.g. Departure from your accommodation in Port Vila. Return to the Wharf Road Pier if arriving by cruise ship." className="w-full rounded-md border border-input bg-background px-3 py-2 text-xs shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none" {...field} value={field.value || ''} />
                           </FormControl>
-                        </FormItem>
-                      )} />
-                      <FormField control={form.control} name="requiresFlightInfo" render={({ field }) => (
-                        <FormItem className="flex items-start gap-2 space-y-0">
-                          <FormControl>
-                            <Switch checked={field.value} onCheckedChange={field.onChange} id="requiresFlightInfo" />
-                          </FormControl>
-                          <div>
-                            <FormLabel htmlFor="requiresFlightInfo" className="text-xs">Needs a flight number</FormLabel>
-                            <p className="text-[0.65rem] text-muted-foreground">Staff are alerted when a booking of this service has no flight number. Use for airport pickups.</p>
-                          </div>
                         </FormItem>
                       )} />
                       <FormField control={form.control} name="operatingHours" render={({ field }) => (
