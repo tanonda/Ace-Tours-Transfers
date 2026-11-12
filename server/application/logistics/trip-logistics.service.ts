@@ -3,15 +3,21 @@
 // every failure is logged and leaves the booking with no flags rather than wrong ones.
 //
 // Off unless the `trip-logistics-check` feature flag is enabled AND TYPESAFE_API_KEY is set.
+// The special-requests box is only read when `trip-logistics-special-requests` is also enabled.
 
 import { eventDispatcher } from "../../infrastructure/events/event-dispatcher.js";
 import { BookingCreated } from "../../domain/events.js";
 import { storage as defaultStorage, type IStorage } from "../../storage.js";
 import { askNouls } from "../../infrastructure/typesafe/system-one.js";
-import { LOGISTICS_MODEL, LOGISTICS_QUESTIONS, buildLogisticsState } from "./trip-logistics.questions.js";
+import { LOGISTICS_MODEL, NEEDS_QUESTIONS, PICKUP_QUESTIONS, buildLogisticsState } from "./trip-logistics.questions.js";
 import { decideLogisticsFlags, shouldAlertStaff, type LogisticsFlags } from "./trip-logistics.decision.js";
 
 export const LOGISTICS_FLAG_SLUG = "trip-logistics-check";
+/**
+ * Off = pickup-only mode: the special-requests box is never sent and the dietary, mobility and
+ * child-seat questions are never asked. On = both boxes are read.
+ */
+export const LOGISTICS_REQUESTS_FLAG_SLUG = "trip-logistics-special-requests";
 
 type Storage = Pick<IStorage, "getBooking" | "getProduct" | "getFeatureFlag" | "createNotification" | "setBookingLogisticsFlags">;
 
@@ -46,13 +52,16 @@ export class TripLogisticsService {
       const requiresFlightInfo = product?.requiresFlightInfo === true;
 
       const text = { pickupLocation: booking.pickupLocation ?? null, notes: booking.notes ?? null };
+      const readRequests = (await this.storage.getFeatureFlag(LOGISTICS_REQUESTS_FLAG_SLUG))?.enabled === true;
       const pickupLocation = (text.pickupLocation ?? "").trim();
-      const notes = (text.notes ?? "").trim();
+      // In pickup-only mode the special-requests text is treated as absent everywhere below.
+      const notes = readRequests ? (text.notes ?? "").trim() : "";
+      const facts = { requiresFlightInfo, needsChecked: readRequests };
 
       let flags: LogisticsFlags;
       if (!pickupLocation && !notes) {
         // Nothing to judge: code already knows both are missing, so no data leaves the server.
-        flags = decideLogisticsFlags(null, { requiresFlightInfo, model: null, now: new Date() });
+        flags = decideLogisticsFlags(null, { ...facts, model: null, now: new Date() });
       } else {
         if (!this.apiKey) {
           console.warn(`[LOGISTICS] ${LOGISTICS_FLAG_SLUG} is on but TYPESAFE_API_KEY is not set; booking ${bookingId} not assessed`);
@@ -64,7 +73,7 @@ export class TripLogisticsService {
           result = await this.ask(this.apiKey, {
             model: LOGISTICS_MODEL,
             state: buildLogisticsState({ pickupLocation, notes, productName: booking.tourName }),
-            questions: LOGISTICS_QUESTIONS,
+            questions: readRequests ? { ...PICKUP_QUESTIONS, ...NEEDS_QUESTIONS } : PICKUP_QUESTIONS,
           });
         } catch (err: any) {
           // A failed call is unknown, not "no": clear any flags made from older text.
@@ -74,7 +83,7 @@ export class TripLogisticsService {
         }
         // Answers and token count only: the guest's text is never logged.
         console.log(`[LOGISTICS] booking ${bookingId} model=${result.model} tokens=${result.inputTokens} answers=${JSON.stringify(result.answers)}`);
-        flags = decideLogisticsFlags(result.answers, { requiresFlightInfo, model: result.model, now: new Date() });
+        flags = decideLogisticsFlags(result.answers, { ...facts, model: result.model, now: new Date() });
       }
 
       // Only stored if the text is still what was judged (the guest may have edited it meanwhile).

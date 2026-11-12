@@ -8,6 +8,8 @@ export type LogisticsFlags = {
   pickup: "given" | "missing" | "unclear";
   /** `not_needed` when the product does not require flight details. */
   flight: "given" | "missing" | "unclear" | "not_needed";
+  /** False when the special-requests box was not read (pickup-only mode): `needs` is then always empty. */
+  needsChecked: boolean;
   /** Needs the guest clearly stated. */
   needs: GuestNeed[];
   /** Needs that could not be settled either way: staff should read the notes. */

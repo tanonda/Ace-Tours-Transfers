@@ -53,7 +53,15 @@ const FLAG_DEFAULTS = [
     slug: "trip-logistics-check",
     enabled: false,
     displayName: "Trip Logistics Check",
-    description: "Read each booking's pickup and special-request text with TypeSafe and flag missing flight details, missing pickup place, dietary, mobility and child-seat needs for staff. Sends that text to a third party. Needs TYPESAFE_API_KEY."
+    description: "Read each booking's pickup text with TypeSafe and flag missing flight details and a missing pickup place for staff. Sends that text to a third party. Needs TYPESAFE_API_KEY. The special-requests box is only read if Trip Logistics: Read Special Requests is also on."
+  },
+  {
+    // Off = pickup-only mode. Guests write allergies and mobility needs in the special-requests
+    // box, so sending it is a separate decision from the main check.
+    slug: "trip-logistics-special-requests",
+    enabled: false,
+    displayName: "Trip Logistics: Read Special Requests",
+    description: "Only applies while Trip Logistics Check is on. Off: only the pickup box is sent to TypeSafe, and staff get flight-number and pickup-place flags. On: the special-requests box is sent too, adding dietary, mobility and child-seat flags. That box can contain health-related notes."
   }
 ];
 

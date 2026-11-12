@@ -19,10 +19,11 @@ const answers = (over: Record<string, number> = {}) => ({
 let storage: Record<string, ReturnType<typeof vi.fn>>;
 let ask: ReturnType<typeof vi.fn>;
 
-function setup(opts: { booking?: Partial<ReturnType<typeof makeBooking>>; flagOn?: boolean; requiresFlightInfo?: boolean; apiKey?: string | undefined } = {}) {
+function setup(opts: { booking?: Partial<ReturnType<typeof makeBooking>>; flagOn?: boolean; readRequests?: boolean; requiresFlightInfo?: boolean; apiKey?: string | undefined } = {}) {
   const booking = makeBooking({ id: 'book_abcdef123', tourName: 'Airport Transfer', pickupLocation: 'Holiday Inn, flight NF10', notes: null, ...opts.booking });
   storage = {
-    getFeatureFlag: vi.fn().mockResolvedValue({ enabled: opts.flagOn ?? true }),
+    getFeatureFlag: vi.fn().mockImplementation(async (slug: string) =>
+      slug === 'trip-logistics-special-requests' ? { enabled: opts.readRequests ?? true } : { enabled: opts.flagOn ?? true }),
     getBooking: vi.fn().mockResolvedValue(booking),
     getProduct: vi.fn().mockResolvedValue({ requiresFlightInfo: opts.requiresFlightInfo ?? true }),
     setBookingLogisticsFlags: vi.fn().mockResolvedValue(true),
@@ -51,6 +52,40 @@ describe('TripLogisticsService', () => {
     expect(request.state).toMatchObject({ service_booked: 'Airport Transfer', pickup_hotel_or_flight_box: 'Holiday Inn, flight NF10', special_requests_box: 'Vegetarian please' });
     const sent = JSON.stringify(request);
     for (const secret of ['Alice Tester', 'alice@example.com', '5551234', 'book_abcdef123']) expect(sent).not.toContain(secret);
+  });
+
+  describe('pickup-only mode (special-requests flag off)', () => {
+    it('never sends the special-requests text and asks only the two pickup questions', async () => {
+      const svc = setup({ readRequests: false, booking: { notes: 'Severe peanut allergy, wheelchair user' } });
+      const flags = await svc.assess('book_abcdef123', { alertStaff: true });
+      const request = ask.mock.calls[0][1];
+      expect(Object.keys(request.questions).sort()).toEqual(['flight_number', 'pickup_place']);
+      expect(request.state).not.toHaveProperty('special_requests_box');
+      const sent = JSON.stringify(request);
+      for (const word of ['peanut', 'allergy', 'wheelchair', 'dietary', 'mobility']) expect(sent).not.toContain(word);
+      expect(flags).toMatchObject({ pickup: 'given', flight: 'given', needsChecked: false, needs: [], checkNotes: [] });
+    });
+
+    it('makes no call when only the special-requests box has text', async () => {
+      const svc = setup({ readRequests: false, booking: { pickupLocation: null, notes: 'Vegetarian please' } });
+      const flags = await svc.assess('book_abcdef123', { alertStaff: true });
+      expect(ask).not.toHaveBeenCalled();
+      expect(flags).toMatchObject({ pickup: 'missing', flight: 'missing', needsChecked: false, model: null });
+    });
+
+    it('treats a missing special-requests flag row as off', async () => {
+      const svc = setup();
+      storage.getFeatureFlag.mockImplementation(async (slug: string) => (slug === 'trip-logistics-check' ? { enabled: true } : undefined));
+      await svc.assess('book_abcdef123', { alertStaff: true });
+      expect(Object.keys(ask.mock.calls[0][1].questions).sort()).toEqual(['flight_number', 'pickup_place']);
+    });
+  });
+
+  it('asks all five questions when the special-requests flag is on', async () => {
+    const svc = setup({ booking: { notes: 'Vegetarian please' } });
+    const flags = await svc.assess('book_abcdef123', { alertStaff: true });
+    expect(Object.keys(ask.mock.calls[0][1].questions).sort()).toEqual(['child_seat', 'dietary', 'flight_number', 'limited_mobility', 'pickup_place']);
+    expect(flags?.needsChecked).toBe(true);
   });
 
   it('leaves an empty box out of the state', async () => {

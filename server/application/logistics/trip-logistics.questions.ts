@@ -13,7 +13,8 @@ export const LOGISTICS_MODEL = "jev-1.14.0";
 export const YES = 0.7;
 export const NO = 0.3;
 
-export const LOGISTICS_QUESTIONS = {
+/** Asked about every booking with text. */
+export const PICKUP_QUESTIONS = {
   pickup_place: {
     type: "noul",
     instructions: "Does the guest name a place where a driver can collect them?",
@@ -30,6 +31,13 @@ export const LOGISTICS_QUESTIONS = {
       false: "The guest writes no flight code. An arrival time or an airline name on its own is not a flight number.",
     },
   },
+} as const satisfies Record<string, NoulQuestion>;
+
+/**
+ * Asked only when the special-requests box is read (the `trip-logistics-special-requests` flag).
+ * These are where health-related text is judged.
+ */
+export const NEEDS_QUESTIONS = {
   dietary: {
     type: "noul",
     instructions: "Does the guest mention a food allergy or a dietary requirement?",
@@ -56,13 +64,15 @@ export const LOGISTICS_QUESTIONS = {
   },
 } as const satisfies Record<string, NoulQuestion>;
 
-export type LogisticsQuestionId = keyof typeof LOGISTICS_QUESTIONS;
+export type PickupQuestionId = keyof typeof PICKUP_QUESTIONS;
+export type NeedsQuestionId = keyof typeof NEEDS_QUESTIONS;
 
 export type LogisticsText = { pickupLocation: string; notes: string; productName: string };
 
 /**
  * The state the questions are asked about. Only what a person would need to look at:
- * no guest name, email or phone. An empty box is left out rather than sent as an empty string.
+ * no guest name, email or phone. An empty box is left out rather than sent as an empty string,
+ * and so is the special-requests box when it is not being read (pass notes as "").
  */
 export function buildLogisticsState(text: LogisticsText): Record<string, string> {
   const state: Record<string, string> = {
