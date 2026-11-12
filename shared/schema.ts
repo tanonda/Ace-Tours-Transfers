@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import { invalidPersonName, PERSON_NAME_ERROR } from "./person-name.js";
+import type { LogisticsFlags } from "./logistics-flags.js";
 import { pgTable, text, varchar, integer, timestamp, decimal, boolean, jsonb, index, uniqueIndex } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
@@ -68,6 +69,8 @@ export const products = pgTable("products", {
   itineraryStops: jsonb("itinerary_stops").$type<ItineraryStop[]>(),
   itineraryIntro: text("itinerary_intro"),
   contactForPrice: boolean("contact_for_price").notNull().default(false),
+  // Staff are alerted when a booking of this product has no flight number (e.g. airport pickups).
+  requiresFlightInfo: boolean("requires_flight_info").notNull().default(false),
   meetingPoint: text("meeting_point"),
   meetingPointMapUrl: text("meeting_point_map_url"),
   pickupInstructions: text("pickup_instructions"),
@@ -205,6 +208,8 @@ export const bookings = pgTable("bookings", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
   archivedAt: timestamp("archived_at"),    // Used for soft deletion of bookings
   notes: text("notes"),
+  // Staff flags read from pickupLocation + notes (see shared/logistics-flags.ts). Null = not assessed.
+  logisticsFlags: jsonb("logistics_flags").$type<LogisticsFlags>(),
   // Fraud detection fields (added in migration 0005)
   fraudScore: integer("fraud_score"),                 // 0–100 risk score
   fraudLevel: varchar("fraud_level", { length: 10 }), // 'low' | 'medium' | 'high' | 'critical'

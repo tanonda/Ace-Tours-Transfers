@@ -6,6 +6,7 @@ import { inArray } from "drizzle-orm";
 import { csvRow } from "../../shared/csv.js";
 import { Booking } from "../../shared/schema.js";
 import { screenBookingUpdate } from "../lib/booking-update-policy.js";
+import { tripLogistics } from "../application/logistics/trip-logistics.service.js";
 import { PriceCartService } from "../application/pricing/PriceCartService.js";
 
 import { sendEmail, sendAdminEmail, getBookingStatusUpdateTemplate, shortBookingRef } from "../lib/mail.js";
@@ -429,6 +430,7 @@ export function registerBookingsRoutes(app: Express, deps: RouteDeps) {
 
       updateData.updatedAt = new Date();
       const updated = await storage.updateBooking(bookingId, updateData);
+      if (pickupLocation !== undefined || notes !== undefined) tripLogistics.reassess(bookingId);
 
       return res.json({ success: true, booking: updated });
     } catch (error) {
@@ -968,6 +970,7 @@ export function registerBookingsRoutes(app: Express, deps: RouteDeps) {
       if (updates.status && updates.status !== existing.status) {
         await afterAdminStatusChange(existing, booking, updates.status);
       }
+      if (updates.pickupLocation !== undefined || updates.notes !== undefined) tripLogistics.reassess(req.params.id);
 
       res.json(booking);
     } catch (error) {

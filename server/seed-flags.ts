@@ -46,6 +46,14 @@ const FLAG_DEFAULTS = [
     enabled: true,
     displayName: "Newsletter Signup",
     description: "Show the newsletter subscription form in the site footer and popup. Disabling hides the form and blocks new subscriptions via the API."
+  },
+  {
+    // Off until the client agrees: when on, each booking's pickup and special-request text
+    // is sent to TypeSafe (a third party) to flag missing flight details and guest needs.
+    slug: "trip-logistics-check",
+    enabled: false,
+    displayName: "Trip Logistics Check",
+    description: "Read each booking's pickup and special-request text with TypeSafe and flag missing flight details, missing pickup place, dietary, mobility and child-seat needs for staff. Sends that text to a third party. Needs TYPESAFE_API_KEY."
   }
 ];
 

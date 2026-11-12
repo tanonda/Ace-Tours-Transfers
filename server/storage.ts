@@ -76,6 +76,7 @@ import {
 } from "../shared/schema.js";
 import { db } from "./db.js";
 import { PaymentMethodClassifier } from "./domain/payments/payment-method-classifier.js";
+import type { LogisticsFlags } from "../shared/logistics-flags.js";
 import { eq, like, desc, and, or, isNull, isNotNull, sql, lte, asc, lt, inArray, gt } from "drizzle-orm";
 import { extractErrorDetails } from "./lib/error-util.js";
 import { createHash } from "crypto";
@@ -160,6 +161,11 @@ export interface IStorage {
   expireBookingIfPending(id: string, note: string): Promise<Booking | undefined>;
   createBooking(booking: InsertBooking, tx?: any): Promise<Booking>;
   updateBooking(id: string, booking: Partial<InsertBooking>, tx?: any): Promise<Booking>;
+  /**
+   * Store (or clear, with null) a booking's logistics flags, only if its pickup/notes text is still
+   * `judgedText`. Leaves updatedAt alone: this is derived data, not an edit. True when a row was written.
+   */
+  setBookingLogisticsFlags(id: string, flags: LogisticsFlags | null, judgedText: { pickupLocation: string | null; notes: string | null }): Promise<boolean>;
   linkBookingsToUser(email: string, userId: string): Promise<void>;
   getBookingByHoldId(holdId: string): Promise<Booking | undefined>;
   deleteBooking(id: string): Promise<void>;
@@ -694,6 +700,19 @@ export class DatabaseStorage implements IStorage {
       .where(eq(bookings.id, id))
       .returning();
     return booking;
+  }
+
+  async setBookingLogisticsFlags(id: string, flags: LogisticsFlags | null, judgedText: { pickupLocation: string | null; notes: string | null }): Promise<boolean> {
+    const rows = await db
+      .update(bookings)
+      .set({ logisticsFlags: flags })
+      .where(and(
+        eq(bookings.id, id),
+        sql`${bookings.pickupLocation} IS NOT DISTINCT FROM ${judgedText.pickupLocation}`,
+        sql`${bookings.notes} IS NOT DISTINCT FROM ${judgedText.notes}`,
+      ))
+      .returning({ id: bookings.id });
+    return rows.length > 0;
   }
 
   async linkBookingsToUser(email: string, userId: string): Promise<void> {

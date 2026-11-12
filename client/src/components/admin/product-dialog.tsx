@@ -246,6 +246,7 @@ const schema = z.object({
 
   // ── New tour detail fields ──────────────────────────────────────────────
   contactForPrice: z.boolean().default(false),
+  requiresFlightInfo: z.boolean().default(false),
   // Itinerary stops
   itineraryStops: z.array(itineraryStopSchema).optional(),
   itineraryIntro: z.string().optional(),
@@ -345,6 +346,7 @@ export function ProductDialog({ tour, open, onOpenChange, onSave }: ProductDialo
       supportEmail: '', supportPhone: '', productCode: '',
       travelerPhotos: [],
       contactForPrice: false,
+      requiresFlightInfo: false,
     },
   });
 
@@ -391,6 +393,7 @@ export function ProductDialog({ tour, open, onOpenChange, onSave }: ProductDialo
         productCode: tour.productCode || '',
         travelerPhotos: tour.travelerPhotos || [],
         contactForPrice: tour.contactForPrice || false,
+        requiresFlightInfo: tour.requiresFlightInfo || false,
       });
     } else {
       form.reset({
@@ -408,6 +411,7 @@ export function ProductDialog({ tour, open, onOpenChange, onSave }: ProductDialo
         supportEmail: '', supportPhone: '', productCode: '',
         travelerPhotos: [],
         contactForPrice: false,
+        requiresFlightInfo: false,
       });
     }
   }, [tour, open]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -460,6 +464,7 @@ export function ProductDialog({ tour, open, onOpenChange, onSave }: ProductDialo
       productCode: values.productCode || null,
       travelerPhotos: values.travelerPhotos || [],
       contactForPrice: values.contactForPrice || false,
+      requiresFlightInfo: values.requiresFlightInfo || false,
     });
     onOpenChange(false);
   };
@@ -714,6 +719,17 @@ export function ProductDialog({ tour, open, onOpenChange, onSave }: ProductDialo
                           <FormControl>
                             <textarea rows={3} placeholder="e.g. Departure from your accommodation in Port Vila. Return to the Wharf Road Pier if arriving by cruise ship." className="w-full rounded-md border border-input bg-background px-3 py-2 text-xs shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none" {...field} value={field.value || ''} />
                           </FormControl>
+                        </FormItem>
+                      )} />
+                      <FormField control={form.control} name="requiresFlightInfo" render={({ field }) => (
+                        <FormItem className="flex items-start gap-2 space-y-0">
+                          <FormControl>
+                            <Switch checked={field.value} onCheckedChange={field.onChange} id="requiresFlightInfo" />
+                          </FormControl>
+                          <div>
+                            <FormLabel htmlFor="requiresFlightInfo" className="text-xs">Needs a flight number</FormLabel>
+                            <p className="text-[0.65rem] text-muted-foreground">Staff are alerted when a booking of this service has no flight number. Use for airport pickups.</p>
+                          </div>
                         </FormItem>
                       )} />
                       <FormField control={form.control} name="operatingHours" render={({ field }) => (

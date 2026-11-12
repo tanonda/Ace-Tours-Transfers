@@ -79,6 +79,7 @@ export function makeBooking(overrides: Partial<Booking> = {}): Booking {
     promoCode: null,
     discountCents: 0,
     pickupLocation: null,
+    logisticsFlags: null,
     confirmedAt: null,
     updatedAt: new Date(),
     archivedAt: null,

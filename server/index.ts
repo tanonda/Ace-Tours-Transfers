@@ -36,6 +36,7 @@ import { AvailabilityApplicationService } from "./application/availability/avail
 import { BookingEventHandler } from "./application/events/BookingEventHandler.js";
 import { AdminNotificationHandler } from "./application/events/AdminNotificationHandler.js";
 import { GuestNotificationHandler } from "./application/events/GuestNotificationHandler.js";
+import { tripLogistics } from "./application/logistics/trip-logistics.service.js";
 import { projectionEngine } from "./infrastructure/projections/projection-engine.js";
 import { BookingSummaryHandler } from "./application/projections/BookingSummaryHandler.js";
 import { RevenueByDayHandler } from "./application/projections/RevenueByDayHandler.js";
@@ -633,6 +634,8 @@ app.use((req, res, next) => {
 
     const guestNotificationHandler = new GuestNotificationHandler(storage);
     guestNotificationHandler.register();
+
+    tripLogistics.register();
 
     // Initialize Projections
     projectionEngine.register(BookingCreated, new BookingSummaryHandler(storage));

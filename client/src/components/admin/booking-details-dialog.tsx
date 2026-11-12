@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Calendar, User, MapPin, CreditCard, Users, Clock } from "lucide-react";
 import type { Booking } from "@shared/schema";
+import { LogisticsBadges } from "@/components/logistics-badges";
 
 interface BookingDetailsDialogProps {
   booking: Booking | null;
@@ -81,6 +82,7 @@ export function BookingDetailsDialog({ booking, open, onOpenChange }: BookingDet
                   <p className="text-sm font-medium text-muted-foreground">Tour / Service</p>
                   <p className="font-medium">{booking.tourName}</p>
                   <p className="text-sm text-muted-foreground">Pickup: {booking.pickupLocation || "N/A"}</p>
+                  <div className="mt-1.5"><LogisticsBadges flags={booking.logisticsFlags} /></div>
                 </div>
               </div>
 

@@ -53,6 +53,8 @@ services:
         value: "6787114045"
       - key: ADMIN_EMAIL
         sync: false # Admin notification email address
+      - key: TYPESAFE_API_KEY
+        sync: false # Optional: trip logistics check (also needs the trip-logistics-check feature flag)
       - key: SMS_PROVIDER
         value: console # Change to android_gateway or twilio when ready
       - key: SMS_ADMIN_PHONE

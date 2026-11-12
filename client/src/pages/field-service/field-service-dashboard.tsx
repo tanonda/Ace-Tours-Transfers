@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { LogisticsBadges } from "@/components/logistics-badges";
 import {
   CalendarCheck, Users, Clock, MapPin, CheckCircle, XCircle,
   Search, RefreshCw, Phone, Mail, AlertCircle, ChevronRight
@@ -237,6 +238,9 @@ export default function FieldServiceDashboard() {
                         </div>
                       )}
                     </div>
+                    {b.logisticsFlags && (
+                      <div className="mt-2"><LogisticsBadges flags={b.logisticsFlags} /></div>
+                    )}
                     {b.notes && (
                       <div className="mt-2 p-2 bg-muted/50 rounded-lg text-xs text-muted-foreground">
                         <span className="font-semibold">Note:</span> {b.notes}
